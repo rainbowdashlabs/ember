@@ -284,9 +284,9 @@ export default {
     'M-246': 'Diese Feldgruppe gibt es hier nicht mehr',
     'M-247': 'Eine Feldgruppe braucht einen Namen, es wurde nichts gespeichert',
     'M-248': 'Eine Frage in einer Feldgruppe kann nur von einer Frage derselben Gruppe abhängen, es wurde nichts gespeichert',
-    'M-249': 'Eine Regel beginnt mit einem Block von Prüfungen, es wurde nichts gespeichert',
-    'M-250': 'Einer Prüfung der Regel fehlt, womit sie vergleicht, es wurde nichts gespeichert',
-    'M-251': 'Eine Prüfung der Regel nennt ein Feld, eine Gruppe oder einen Tag, den es hier nicht gibt, es wurde nichts gespeichert',
+    'M-249': 'Eine Regel beginnt mit einem Block von Bedingungen, es wurde nichts gespeichert',
+    'M-250': 'Einer Bedingung der Regel fehlt, womit sie vergleicht, es wurde nichts gespeichert',
+    'M-251': 'Eine Bedingung der Regel nennt ein Feld, eine Gruppe oder einen Tag, den es hier nicht gibt, es wurde nichts gespeichert',
     'M-252': 'Die Regel ist zu groß, es wurde nichts gespeichert',
     'M-253': 'Regeln dürfen nicht im Kreis aufeinander verweisen, es wurde nichts gespeichert',
     'M-254': 'Eine Gruppe in einem Gruppenset kann ihre Mitglieder nicht aus einer Regel nehmen, es wurde nichts gespeichert',
@@ -298,4 +298,7 @@ export default {
     'M-260': GROUP_GRANTS_MORE_THAN_YOURS,
     'M-261': 'Diese Gruppe wird beim Beitritt vergeben und kann ihre Mitglieder deshalb nicht aus einer Regel nehmen',
     'M-262': 'Eine Regel, die Mitgliedsdaten liest, braucht das Recht, Mitglieder zu sehen',
+    'M-263': 'Jeder Block einer Regel braucht mindestens eine Bedingung, es wurde nichts gespeichert',
+    'M-264': 'Eine Gruppe, die Berechtigungen vergibt, kann ihre Mitglieder nicht aus Antworten nehmen, die die '
+        + 'Mitglieder selbst geben. Dafür taugen nur Felder der Wache, die für Mitglieder schreibgeschützt sind',
 }

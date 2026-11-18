@@ -4184,11 +4184,13 @@ export default {
     },
     memberRules: {
         keptByRule: 'Wird durch eine Regel gefüllt',
+        byRuleShort: 'nach Regel',
         keptByRuleHint: 'Die Mitglieder kommen aus einer Regel und lassen sich hier nicht von Hand ändern.',
         mode: 'Mitglieder',
         kind: 'Verknüpfung',
-        incomplete: 'Diese Prüfung ist noch nicht vollständig.',
-        incompleteCount: 'Noch nicht vollständige Prüfungen: {count}',
+        incomplete: 'Diese Bedingung ist noch nicht vollständig.',
+        incompleteCount: 'Noch nicht vollständige Bedingungen: {count}',
+        emptyBlockCount: 'Blöcke ohne Bedingung: {count}',
         readsMemberData: 'Liest Mitgliedsdaten',
         needsMemberRead: 'Diese Regel liest Mitgliedsdaten. Ändern kann sie nur, wer Mitglieder sehen darf.',
         valueNumber: 'Zahl',
@@ -4207,7 +4209,7 @@ export default {
         all: 'Alle treffen zu',
         any: 'Mindestens eine trifft zu',
         none: 'Keine trifft zu',
-        addCheck: 'Prüfung',
+        addCheck: 'Bedingung',
         addBlock: 'Block',
         removeNode: 'Entfernen',
         subject: 'Worauf',
@@ -4215,7 +4217,8 @@ export default {
         pickField: 'Feld wählen',
         pickGroup: 'Gruppe wählen',
         pickTag: 'Tag wählen',
-        fieldGone: 'Dieses Feld gibt es nicht mehr, die Regel trifft auf niemanden zu.',
+        fieldGone: 'Das Feld dieser Bedingung gibt es nicht mehr. Die Regel ruht und behält ihre Mitglieder, bis die Bedingung geändert oder entfernt wird.',
+        fieldUnreadable: 'Dieses Feld darfst du nicht sehen. Die Regel gilt weiter, gespeichert werden kann sie nur von jemandem, der das Feld sehen darf.',
         subjects: {
             GROUP: 'Gruppe',
             TAG: 'Tag',
@@ -4254,11 +4257,12 @@ export default {
             STATE_IN: 'Zustand ist',
         },
         units: {
-            DAYS: 'Tage',
-            MONTHS: 'Monate',
-            YEARS: 'Jahre',
+            DAYS: 'Tagen',
+            MONTHS: 'Monaten',
+            YEARS: 'Jahren',
         },
         years: 'Jahre',
+        yearsRange: 'Jahren',
         and: 'und',
         states: {
             VALID: 'gültig',
@@ -6209,6 +6213,7 @@ export default {
         hint: 'Die Markierung gilt für jeden Termin, der diesen Ort nennt. Der Text im Feld bleibt, wie er ist.',
         mapOf: 'Karte: {place}',
         openInOsm: 'In OpenStreetMap öffnen',
+        remove: 'Markierung entfernen',
     },
     lendingDistance: {
         distanceKm: '{distance} km entfernt',
@@ -6269,7 +6274,7 @@ export default {
         minZoom: 'Min. Zoom',
         maxZoom: 'Max. Zoom',
         geocodingSection: 'Adresssuche (optional)',
-        geocodingHelp: 'Mit einer Adresssuche finden Wachen ihre Adresse auf der Karte. Die Suche läuft über diesen Server: Gesucht wird nur die eingetippte Adresse, ohne Angaben zu der Person, die sucht.',
+        geocodingHelp: 'Mit einer Adresssuche finden Wachen ihre Adresse und die Orte ihrer Termine auf der Karte. Die Suche läuft über diesen Server: Gesucht wird nur der eingetippte Text, ohne Angaben zu der Person, die sucht. Die Datenschutzerklärung beschreibt die Suche in einem eigenen Abschnitt.',
         geocodingProvider: 'Adresssuche',
         geocodingNone: 'Keine, Markierungen werden von Hand gesetzt',
         geocodingPhoton: 'Photon',
@@ -7790,7 +7795,7 @@ export default {
         mailProviderUnknown: 'Unbekannt',
         mailNotConfigured: 'Für diese Wache ist kein E-Mail-Versand eingerichtet, daher können Benachrichtigungen nicht per E-Mail zugestellt werden.',
         notifications: 'Benachrichtigungen',
-        notificationsHint: 'Wähle, welche Benachrichtigungen du in der App und per E-Mail erhalten möchtest.',
+        notificationsHint: 'Wähle, welche Benachrichtigungen du in der App, per E-Mail, im Feed oder als Push erhalten möchtest.',
         columnApp: 'App',
         columnEmail: 'E-Mail',
         columnFeed: 'Feed',
@@ -9802,12 +9807,12 @@ export default {
         autoFederateOffHint: 'Beim Ausschalten bleiben bestehende Verbindungen erhalten. Es werden nur keine neuen mehr angelegt.',
     },
     clusterNotifications: {
-        mailTitle: 'E-Mail',
+        mailTitle: 'Zustellung',
         mailLabel: 'Benachrichtigungen per E-Mail',
         mailHint: 'Was der Verband dir meldet, kommt zusätzlich gesammelt per E-Mail, in der Sprache des Verbands.',
         mailUnavailable: 'Auf dieser Installation ist kein E-Mail-Versand eingerichtet. Der Schalter wird erst nutzbar, wenn das geschieht.',
         pushLabel: 'Auch als Push-Benachrichtigung',
-        pushHint: 'Benachrichtigungen des Verbands erscheinen auch auf den Geräten, auf denen du Push-Benachrichtigungen eingeschaltet hast.',
+        pushHint: 'Benachrichtigungen des Verbands erscheinen auch auf den Geräten, auf denen du Push-Benachrichtigungen eingeschaltet hast. Eingeschaltet wird Push auf einem Gerät unter Profil → Benachrichtigungen.',
         saved: 'Deine Einstellung wurde gespeichert.',
     },
     questionValue: {
@@ -9884,6 +9889,7 @@ export default {
         },
     },
     pushDevices: {
+        deviceOn: '{browser} auf {system}',
         title: 'Push-Benachrichtigungen',
         hint: 'Benachrichtigungen erscheinen auf diesem Gerät auch dann, wenn Ember geschlossen ist. Welche Arten gepusht werden, legst du unten in der Spalte „Push“ fest.',
         enable: 'Auf diesem Gerät einschalten',
@@ -10292,8 +10298,8 @@ export default {
                 },
                 notifications: {
                     title: 'Benachrichtigungen einstellen',
-                    body: 'Du entscheidest für jede Art von Nachricht, ob du sie hier, per E-Mail oder im Feed '
-                        + 'bekommst.',
+                    body: 'Du entscheidest für jede Art von Nachricht, ob du sie hier, per E-Mail, im Feed oder als '
+                        + 'Push bekommst.',
                 },
                 push: {
                     title: 'Push-Benachrichtigungen einschalten',
@@ -10448,7 +10454,7 @@ export default {
                 },
                 notifications: {
                     0: 'Deine Benachrichtigungen liegen hier.',
-                    1: 'Stell für jede Zeile ein, wo du sie haben willst: hier, per E-Mail oder im Feed.',
+                    1: 'Stell für jede Zeile ein, wo du sie haben willst: hier, per E-Mail, im Feed oder als Push.',
                 },
                 push: {
                     0: 'Push-Benachrichtigungen schaltest du bei deinen Benachrichtigungen ein.',

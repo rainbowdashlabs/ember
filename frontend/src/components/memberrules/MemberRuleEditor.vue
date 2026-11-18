@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, onMounted, provide, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -18,14 +18,23 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {memberGroups, memberRules, userTags} from '@/api'
 import type {RuleOwnerKind} from '@/api/memberRules'
-import {RuleNodeKind, StationPermission, type RuleNode, type RulePreview} from '@/api/generated/schema'
+import {StationPermission, type RuleNode, type RulePreview} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {describeFailure, type Failure} from '@/util/failure'
 import {showToast} from '@/util/toast'
 import type {RuleCatalog} from './ruleCatalog'
 import RuleBlockEditor from './RuleBlockEditor.vue'
 import RulePreviewPanel from './RulePreviewPanel.vue'
-import {countChecks, depthOf, emptyBlock, incompleteChecks, readsMemberData, RULE_LIMITS} from './ruleDraft'
+import {
+  countChecks,
+  countEmptyBlocks,
+  depthOf,
+  emptyBlock,
+  incompleteChecks,
+  LOST_CHECKS,
+  lostChecks,
+  readsMemberData,
+} from './ruleDraft'
 
 /**
  * Whether a group or tag is kept by hand or by a rule, and the rule itself: the builder, a preview of who it
@@ -54,6 +63,7 @@ const draft = ref<RuleNode | null>(null)
 const preview = ref<RulePreview | null>(null)
 const confirmSave = ref(false)
 const confirmRemove = ref(false)
+const busy = ref(false)
 
 const byRule = computed(() => draft.value !== null)
 
@@ -62,7 +72,7 @@ const locked = computed(() => {
   const rule = draft.value
   const loaded = catalog.value
   if (!rule || !loaded || loaded.readsMembers) return false
-  return countChecksWhere(rule, readsMemberData) > 0
+  return countChecks(rule, readsMemberData) > 0
 })
 
 const missing = computed(() => {
@@ -71,15 +81,20 @@ const missing = computed(() => {
   return rule && loaded ? incompleteChecks(rule, loaded.options, loaded.fields) : 0
 })
 
-const full = computed(() => draft.value !== null && countChecks(draft.value) >= RULE_LIMITS.checks)
-const fits = computed(() => draft.value !== null
-    && countChecks(draft.value) <= RULE_LIMITS.checks && depthOf(draft.value) <= RULE_LIMITS.depth)
-const ready = computed(() => !locked.value && missing.value === 0 && fits.value)
+/** The checks of the stored rule that lost what they asked about; a row shows them as resting until changed. */
+const lost = computed<ReadonlySet<RuleNode>>(() => new Set(saved.value ? lostChecks(saved.value) : []))
+provide(LOST_CHECKS, lost)
 
-function countChecksWhere(node: RuleNode, test: (check: RuleNode) => boolean): number {
-  if (node.kind === RuleNodeKind.CHECK) return test(node) ? 1 : 0
-  return node.children.reduce((sum, child) => sum + countChecksWhere(child, test), 0)
-}
+const emptyBlocks = computed(() => draft.value ? countEmptyBlocks(draft.value) : 0)
+
+/** A rule that holds nothing yet is plainly unfinished, so only an empty block among others is pointed out. */
+const showEmptyBlocks = computed(() => emptyBlocks.value > 0 && (draft.value?.children.length ?? 0) > 0)
+
+const full = computed(() => draft.value !== null && countChecks(draft.value) >= (catalog.value?.limits.checks ?? 0))
+const fits = computed(() => draft.value !== null
+    && catalog.value !== null
+    && countChecks(draft.value) <= catalog.value.limits.checks && depthOf(draft.value) <= catalog.value.limits.depth)
+const ready = computed(() => !locked.value && missing.value === 0 && emptyBlocks.value === 0 && fits.value)
 
 /** An edit of the draft: the preview showed an older rule, so it goes. */
 function edited(next: RuleNode) {
@@ -89,18 +104,19 @@ function edited(next: RuleNode) {
 
 async function loadCatalog(): Promise<RuleCatalog> {
   const readsMembers = hasPermission(StationPermission.MEMBER_READ)
-  const [options, fields, groups, tags] = await Promise.all([
+  const [table, fields, groups, tags] = await Promise.all([
     memberRules.listOperators(),
     readsMembers ? memberRules.listFields() : Promise.resolve([]),
     memberGroups.listGroups(),
     userTags.listChoosableTags(),
   ])
   return {
-    options,
+    options: table.operators,
     fields,
     groups: groups.map(group => ({id: group.id, name: group.name ?? ''})),
     tags: tags.map(tag => ({id: tag.id, name: tag.name})),
     readsMembers,
+    limits: {depth: table.maxDepth, checks: table.maxChecks},
   }
 }
 
@@ -151,10 +167,15 @@ function requestSave() {
   else confirmSave.value = true
 }
 
+/**
+ * Saves the rule. The members follow a few seconds later on the server, so nothing here waits for them; the
+ * question closes once the save has an answer, and a refusal is shown by the page's alert behind it.
+ */
 async function save() {
   const rule = draft.value
   if (!rule) return
   failure.value = null
+  busy.value = true
   try {
     saved.value = await memberRules.saveRule(props.kind, props.ownerId, rule)
     draft.value = saved.value
@@ -162,11 +183,16 @@ async function save() {
     props.onChanged?.()
   } catch (e) {
     failure.value = describeFailure(e, t)
+  } finally {
+    busy.value = false
+    confirmSave.value = false
   }
 }
 
+/** Removes the rule, keeping its members, and closes the question once the server has answered. */
 async function remove() {
   failure.value = null
+  busy.value = true
   try {
     await memberRules.removeRule(props.kind, props.ownerId)
     saved.value = null
@@ -175,6 +201,9 @@ async function remove() {
     props.onChanged?.()
   } catch (e) {
     failure.value = describeFailure(e, t)
+  } finally {
+    busy.value = false
+    confirmRemove.value = false
   }
 }
 </script>
@@ -201,12 +230,15 @@ async function remove() {
         <MutedText v-if="missing > 0" tag="p" class="text-error">
           {{ t('memberRules.incompleteCount', {count: missing}) }}
         </MutedText>
+        <MutedText v-if="showEmptyBlocks" tag="p" class="text-error">
+          {{ t('memberRules.emptyBlockCount', {count: emptyBlocks}) }}
+        </MutedText>
         <RulePreviewPanel v-if="preview" :preview="preview"/>
         <ButtonRow v-if="!locked">
           <SecondaryButton :icon="['fas', 'eye']" :disabled="!ready" @click="runPreview">
             {{ t('memberRules.preview.refresh') }}
           </SecondaryButton>
-          <PrimaryButton :icon="['fas', 'floppy-disk']" :disabled="!ready" @click="requestSave">
+          <PrimaryButton :icon="['fas', 'floppy-disk']" :disabled="!ready || busy" @click="requestSave">
             {{ t('memberRules.save') }}
           </PrimaryButton>
           <ErrorButton v-if="saved" :icon="['fas', 'trash']" @click="confirmRemove = true">
@@ -216,8 +248,9 @@ async function remove() {
       </template>
     </template>
     <ConfirmDeleteModal v-model="confirmSave" :message="t('memberRules.switchConfirm')"
-                        :confirm-label="t('memberRules.save')" @confirm="save"/>
+                        :confirm-label="t('memberRules.save')" :confirm-icon="['fas', 'floppy-disk']" :busy="busy"
+                        neutral @confirm="save"/>
     <ConfirmDeleteModal v-model="confirmRemove" :message="t('memberRules.removeConfirm')"
-                        :confirm-label="t('memberRules.removeRule')" @confirm="remove"/>
+                        :confirm-label="t('memberRules.removeRule')" :busy="busy" @confirm="remove"/>
   </div>
 </template>

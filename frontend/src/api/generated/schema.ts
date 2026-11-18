@@ -44974,7 +44974,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The operators a check of a group or tag rule can use, per subject and field type */
+        /** The operators a check of a group or tag rule can use, and how large a rule may grow */
         get: {
             parameters: {
                 query?: never;
@@ -44990,7 +44990,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RuleOperatorOption"][];
+                        "application/json": components["schemas"]["RuleOperatorTable"];
                     };
                 };
             };
@@ -58526,6 +58526,13 @@ export interface paths {
                         "application/json": components["schemas"]["PushDevice"];
                     };
                 };
+                /** @description A renewal of a browser this account did not allow */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
             };
         };
         post?: never;
@@ -67796,7 +67803,27 @@ export interface paths {
             };
         };
         post?: never;
-        delete?: never;
+        /** Take the pin off a place text */
+        delete: {
+            parameters: {
+                query: {
+                    text: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -70389,6 +70416,7 @@ export interface components {
             postalCode?: string | null;
         };
         AdminMapsConfig: {
+            defaultGeocodingServer: string | null;
             geocoding: components["schemas"]["MapsGeocodingConfig"];
             /** Format: int32 */
             tileCacheMaxMb: number;
@@ -79048,7 +79076,6 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
-            places: components["schemas"]["StationPlace"][];
             publicFields: components["schemas"]["AppointmentField"][];
             startTime: components["schemas"]["Instant"];
         };
@@ -80411,6 +80438,13 @@ export interface components {
             need: components["schemas"]["RuleNeed"];
             operator: components["schemas"]["RuleOperator"];
             subject: components["schemas"]["RuleSubject"];
+        };
+        RuleOperatorTable: {
+            /** Format: int32 */
+            maxChecks: number;
+            /** Format: int32 */
+            maxDepth: number;
+            operators: components["schemas"]["RuleOperatorOption"][];
         };
         RuleOwners: {
             groupIds: number[];
@@ -82020,6 +82054,8 @@ export interface components {
             endpoint?: string | null;
             label?: string | null;
             p256dh?: string | null;
+            previousEndpoint?: string | null;
+            renewal?: boolean;
         };
         SuggestedAnswer: {
             question: components["schemas"]["TemplateQuestion"];
@@ -84819,6 +84855,7 @@ export type RuleNode = components['schemas']['RuleNode'];
 export type RuleNodeKind = components['schemas']['RuleNodeKind'];
 export type RuleOperator = components['schemas']['RuleOperator'];
 export type RuleOperatorOption = components['schemas']['RuleOperatorOption'];
+export type RuleOperatorTable = components['schemas']['RuleOperatorTable'];
 export type RuleOwners = components['schemas']['RuleOwners'];
 export type RulePreview = components['schemas']['RulePreview'];
 export type RuleRequest = components['schemas']['RuleRequest'];

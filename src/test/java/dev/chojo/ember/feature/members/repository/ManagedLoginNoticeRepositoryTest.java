@@ -53,14 +53,14 @@ class ManagedLoginNoticeRepositoryTest extends RepositoryTestBase {
 
     @Test
     void aChangeIsFoundAgainWithWhatItAnnounces() {
-        Instant due = Instant.now().plus(5, ChronoUnit.MINUTES);
+        Instant due = Instant.now().truncatedTo(ChronoUnit.MILLIS).plus(5, ChronoUnit.MINUTES);
 
         repository.schedule(member.id(), true, due);
 
         var waiting = repository.find(member.id()).orElseThrow();
         assertEquals(member.id(), waiting.memberId());
         assertTrue(waiting.granted());
-        assertEquals(due.truncatedTo(ChronoUnit.MILLIS), waiting.dueAt().truncatedTo(ChronoUnit.MILLIS));
+        assertEquals(due, waiting.dueAt());
     }
 
     @Test

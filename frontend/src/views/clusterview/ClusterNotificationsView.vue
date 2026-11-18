@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -17,7 +17,7 @@ import {useClusterNotificationCount} from '@/composables/useClusterNotificationC
 import {clusterInbox} from '@/api/notifications'
 import NotificationInbox from '@/components/notifications/NotificationInbox.vue'
 import ClusterMailSwitch from './clusternotificationsview/ClusterMailSwitch.vue'
-import {getPushKey} from '@/api/push'
+import {usePushAvailability} from '@/composables/usePushAvailability'
 
 const {t} = useI18n()
 const {refresh: refreshUnreadNotifications} = useClusterNotificationCount()
@@ -42,15 +42,7 @@ async function toggleMail() {
 }
 
 /** Whether this instance pushes; without it the push switch stays hidden. */
-const pushAvailable = ref(false)
-
-onMounted(async () => {
-  try {
-    pushAvailable.value = (await getPushKey()).enabled
-  } catch {
-    pushAvailable.value = false
-  }
-})
+const {available: pushAvailable} = usePushAvailability()
 
 async function togglePush() {
   if (!settings.value) return

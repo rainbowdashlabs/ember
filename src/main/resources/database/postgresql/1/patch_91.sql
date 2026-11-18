@@ -54,10 +54,29 @@ COMMENT ON COLUMN ember_schema.push_subscription.auth IS
     'The browser''s 16-byte secret that goes into every push''s encryption.';
 COMMENT ON COLUMN ember_schema.push_subscription.label IS
     'A short name of the browser and device, such as "Firefox auf Android", so the owner recognises it.';
-COMMENT ON COLUMN ember_schema.push_subscription.created_at IS 'When the browser was registered.';
+COMMENT ON COLUMN ember_schema.push_subscription.created_at IS 'When the browser was last registered or renewed; the cap on devices drops the oldest first.';
 COMMENT ON COLUMN ember_schema.push_subscription.last_success_at IS 'When a push last reached the push service.';
 COMMENT ON COLUMN ember_schema.push_subscription.failure_count IS
     'Pushes in a row the push service refused; past a limit the subscription is dropped.';
+
+CREATE TABLE ember_schema.push_browser
+(
+    account_id INTEGER     NOT NULL REFERENCES ember_schema.account (id) ON DELETE CASCADE,
+    endpoint   TEXT        NOT NULL,
+    allowed    BOOLEAN     NOT NULL,
+    changed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (account_id, endpoint)
+);
+
+COMMENT ON TABLE ember_schema.push_browser IS
+    'Browsers an account allowed push on, or removed from it by hand. Outlives the sign-in, so a browser is only registered again without asking where its account allowed it and did not remove it since.';
+COMMENT ON COLUMN ember_schema.push_browser.account_id IS 'The account that allowed or removed the browser.';
+COMMENT ON COLUMN ember_schema.push_browser.endpoint IS
+    'The address of the push service of the browser, as it was registered.';
+COMMENT ON COLUMN ember_schema.push_browser.allowed IS
+    'True once the account allowed push on the browser, false once it removed the browser by hand.';
+COMMENT ON COLUMN ember_schema.push_browser.changed_at IS
+    'When the browser was last registered, allowed or removed. Six months later, a browser that is not registered any more is forgotten.';
 
 -- Pushes waiting to be sent, written in the same statement as what they are about so none is lost
 -- on a restart. A sent row stays for an hour, which is what the per-browser rate limit counts.
@@ -123,18 +142,15 @@ COMMENT ON COLUMN ember_schema.account.messages_push IS
 
 ALTER TABLE ember_schema.user_settings
     ALTER COLUMN email_enabled SET DEFAULT TRUE;
-UPDATE ember_schema.user_settings SET email_enabled = TRUE WHERE NOT email_enabled;
 
 COMMENT ON COLUMN ember_schema.user_settings.email_enabled IS
     'Whether this membership gets notifications by mail at all. On unless switched off, which takes effect once the station or the instance can send mail.';
 
 ALTER TABLE ember_schema.user_notification_settings
     ALTER COLUMN email_enabled SET DEFAULT TRUE;
-UPDATE ember_schema.user_notification_settings SET email_enabled = TRUE WHERE NOT email_enabled;
 
 ALTER TABLE ember_schema.cluster_member
     ALTER COLUMN email_enabled SET DEFAULT TRUE;
-UPDATE ember_schema.cluster_member SET email_enabled = TRUE WHERE NOT email_enabled;
 
 COMMENT ON COLUMN ember_schema.cluster_member.email_enabled IS
     'Whether this person gets the association''s gathered notifications by mail. On unless switched off, the same as a station membership''s mail setting.';
@@ -240,7 +256,7 @@ COMMENT ON COLUMN ember_schema.member_rule_node.operator
 COMMENT ON COLUMN ember_schema.member_rule_node.field_id
     IS 'The station profile field a field check or an age check reads. A field in use by a rule cannot be deleted.';
 COMMENT ON COLUMN ember_schema.member_rule_node.cluster_field_id
-    IS 'The association profile field a field check or an age check reads. Emptied when the association deletes the field; such a check then matches nobody.';
+    IS 'The association profile field a field check or an age check reads. Emptied when the association deletes the field; a rule with such a check is not run and keeps its members until it is changed.';
 COMMENT ON COLUMN ember_schema.member_rule_node.ref_group_id
     IS 'The group a group check asks about. A group in use by a rule cannot be deleted.';
 COMMENT ON COLUMN ember_schema.member_rule_node.ref_tag_id

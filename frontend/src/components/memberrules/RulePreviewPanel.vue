@@ -22,7 +22,7 @@ function names(members: readonly RuleMember[]): string {
 </script>
 
 <template>
-  <div class="space-y-2">
+  <div class="space-y-2" data-testid="rule-preview">
     <p class="font-medium">{{ t('memberRules.preview.matching', {count: preview.matching.length}) }}</p>
     <div>
       <SectionLabel>{{ t('memberRules.preview.joining') }}</SectionLabel>

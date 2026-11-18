@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed} from 'vue'
+import {computed, inject, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
@@ -15,6 +15,8 @@ import {todayIsoDate} from '@/util/format'
 import type {RuleCatalog} from './ruleCatalog'
 import RuleValueInput from './RuleValueInput.vue'
 import {
+  subjectReadsMemberData,
+  LOST_CHECKS,
   complete,
   countsFromReference,
   fieldOf,
@@ -46,13 +48,9 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const MEMBER_DATA: readonly RuleSubject[] = [
-  RuleSubject.AGE, RuleSubject.FIELD, RuleSubject.CLUSTER_FIELD, RuleSubject.MEMBER_SINCE,
-]
-
 const subjects = computed(() => Object.values(RuleSubject).filter(subject => {
   if (subject === props.check.subject) return true
-  if (MEMBER_DATA.includes(subject) && !props.catalog.readsMembers) return false
+  if (subjectReadsMemberData(subject) && !props.catalog.readsMembers) return false
   if (subject === RuleSubject.CLUSTER_FIELD) {
     return props.catalog.fields.some(field => field.origin === FieldOrigin.CLUSTER)
   }
@@ -64,9 +62,11 @@ const field = computed(() => fieldOf(props.check, props.catalog.fields))
 const fieldChoices = computed(() => fieldsFor(subject.value, props.catalog.fields, props.catalog.options))
 const fieldKey = computed(() => field.value ? `${field.value.origin}:${field.value.id}` : null)
 const hidden = computed(() => !props.catalog.readsMembers && readsMemberData(props.check))
-const incomplete = computed(() => !hidden.value
+const lost = inject(LOST_CHECKS, ref(new Set<RuleNode>()))
+const fieldGone = computed(() => lost.value.has(props.check))
+const incomplete = computed(() => !hidden.value && !fieldGone.value
     && !complete(props.check, props.catalog.options, props.catalog.fields))
-const fieldGone = computed(() => !hidden.value && readsField(subject.value)
+const fieldUnreadable = computed(() => !hidden.value && !fieldGone.value && readsField(subject.value)
     && (props.check.fieldId !== null || props.check.clusterFieldId !== null) && !field.value)
 
 const operators = computed(() => operatorsFor(props.catalog.options, subject.value, field.value?.fieldType))
@@ -150,6 +150,7 @@ function pickReference(fixed: string | number | null | undefined) {
       <IconButton :icon="['fas', 'trash']" :label="t('memberRules.removeNode')" @click="emit('remove')"/>
     </div>
     <MutedText v-if="fieldGone">{{ t('memberRules.fieldGone') }}</MutedText>
+    <MutedText v-else-if="fieldUnreadable">{{ t('memberRules.fieldUnreadable') }}</MutedText>
     <MutedText v-else-if="incomplete" class="text-error">{{ t('memberRules.incomplete') }}</MutedText>
   </div>
 </template>

@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -94,9 +95,9 @@ class PushRepositoryTest extends RepositoryTestBase {
         var subscription = subscriptions.register(
                 anna.id(), signIn(anna.id(), inADay()), "https://push.test/b", new byte[] {1}, new byte[] {2}, "");
 
-        assertFalse(subscriptions.deleteOwn(subscription.id(), ben.id()));
+        assertFalse(subscriptions.declineOwn(subscription.id(), ben.id()));
         assertTrue(subscriptions.findOwn(subscription.id(), ben.id()).isEmpty());
-        assertTrue(subscriptions.deleteOwn(subscription.id(), anna.id()));
+        assertTrue(subscriptions.declineOwn(subscription.id(), anna.id()));
     }
 
     /** Signing out ends the sign-in, and the browser stops receiving pushes with it. */
@@ -248,6 +249,87 @@ class PushRepositoryTest extends RepositoryTestBase {
 
         assertEquals(
                 List.of("https://push.test/many/3", "https://push.test/many/2"),
+                subscriptions.findByAccount(anna.id()).stream()
+                        .map(s -> s.endpoint())
+                        .toList());
+    }
+
+    /**
+     * A browser removed by hand is remembered as removed for its account, which counts as a choice about push;
+     * allowing it again turns the record around, and an address the browser left is forgotten with its
+     * registration.
+     */
+    @Test
+    void aBrowserRemovedByHandIsRememberedUntilAllowedAgain() {
+        int session = signIn(anna.id(), inADay());
+        String endpoint = "https://push.test/removed";
+        var browser = subscriptions.register(anna.id(), session, endpoint, new byte[] {1}, new byte[] {2}, "");
+        assertFalse(subscriptions.declinedAny(anna.id()));
+
+        assertTrue(subscriptions.declineOwn(browser.id(), anna.id()));
+        assertFalse(subscriptions.declineOwn(browser.id(), anna.id()));
+        assertEquals(Optional.of(false), subscriptions.allowed(anna.id(), endpoint));
+        assertTrue(subscriptions.declinedAny(anna.id()));
+
+        subscriptions.allow(anna.id(), endpoint);
+        assertEquals(Optional.of(true), subscriptions.allowed(anna.id(), endpoint));
+        assertFalse(subscriptions.declinedAny(anna.id()));
+
+        subscriptions.register(anna.id(), session, endpoint, new byte[] {1}, new byte[] {2}, "");
+        subscriptions.forgetAddress(anna.id(), endpoint);
+        assertEquals(Optional.empty(), subscriptions.allowed(anna.id(), endpoint));
+        assertTrue(subscriptions.findByAccount(anna.id()).isEmpty());
+    }
+
+    /** What an account allowed is forgotten once its browser stays unregistered; a registered one is kept. */
+    @Test
+    void anUnregisteredBrowserIsForgottenAfterAWhile() {
+        int session = signIn(anna.id(), inADay());
+        subscriptions.allow(anna.id(), "https://push.test/idle");
+        subscriptions.allow(anna.id(), "https://push.test/used");
+        subscriptions.register(anna.id(), session, "https://push.test/used", new byte[] {1}, new byte[] {2}, "");
+
+        subscriptions.pruneBrowsers(Duration.ofDays(1));
+        assertEquals(Optional.of(true), subscriptions.allowed(anna.id(), "https://push.test/idle"));
+
+        subscriptions.pruneBrowsers(Duration.ZERO);
+        assertEquals(Optional.empty(), subscriptions.allowed(anna.id(), "https://push.test/idle"));
+        assertEquals(Optional.of(true), subscriptions.allowed(anna.id(), "https://push.test/used"));
+    }
+
+    /**
+     * A registration that cannot be used any more is dropped, but the allowing stays for the next renewal; only an
+     * address the push service no longer knows takes the allowing with it.
+     */
+    @Test
+    void onlyAnAddressThatIsGoneTakesTheAllowingAlong() {
+        int session = signIn(anna.id(), inADay());
+        String endpoint = "https://push.test/failing";
+        subscriptions.allow(anna.id(), endpoint);
+        var failing = subscriptions.register(anna.id(), session, endpoint, new byte[] {1}, new byte[] {2}, "");
+
+        subscriptions.delete(failing.id());
+        assertEquals(Optional.of(true), subscriptions.allowed(anna.id(), endpoint));
+
+        var gone = subscriptions.register(anna.id(), session, endpoint, new byte[] {1}, new byte[] {2}, "");
+        subscriptions.deleteGone(gone.id());
+        assertEquals(Optional.empty(), subscriptions.allowed(anna.id(), endpoint));
+    }
+
+    /** A browser registered again counts as the newest, so the cap keeps it over one left idle. */
+    @Test
+    void aBrowserRegisteredAgainIsKeptOverAnIdleOne() {
+        int session = signIn(anna.id(), inADay());
+        for (int i = 0; i < 3; i++) {
+            subscriptions.register(
+                    anna.id(), session, "https://push.test/again/" + i, new byte[] {1}, new byte[] {2}, "");
+        }
+        subscriptions.register(anna.id(), session, "https://push.test/again/0", new byte[] {1}, new byte[] {2}, "");
+
+        subscriptions.keepNewest(anna.id(), 2);
+
+        assertEquals(
+                List.of("https://push.test/again/0", "https://push.test/again/2"),
                 subscriptions.findByAccount(anna.id()).stream()
                         .map(s -> s.endpoint())
                         .toList());

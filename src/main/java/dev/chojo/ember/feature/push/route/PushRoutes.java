@@ -44,12 +44,17 @@ public class PushRoutes implements Routes {
      * @param p256dh   the browser's public key, base64url
      * @param auth     the browser's secret, base64url
      * @param label    a short name of browser and device to list it under
+     * @param renewal          whether the page registers the browser again on its own, which is taken only for a
+     *                         browser this account allowed and did not remove since
+     * @param previousEndpoint the address the browser was registered under before it moved, sent with a renewal
      */
     public record SubscribeRequest(
             @Nullable String endpoint,
             @Nullable String p256dh,
             @Nullable String auth,
-            @Nullable String label) {}
+            @Nullable String label,
+            boolean renewal,
+            @Nullable String previousEndpoint) {}
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
@@ -88,18 +93,23 @@ public class PushRoutes implements Routes {
             summary = "Register or refresh this browser for push messages",
             tags = {"Push"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SubscribeRequest.class)),
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PushService.PushDevice.class)))
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PushService.PushDevice.class)),
+                @OpenApiResponse(status = "204", description = "A renewal of a browser this account did not allow")
+            })
     private void subscribe(Context ctx) {
         var session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(SubscribeRequest.class);
-        ctx.json(push.register(
-                session.accountId(),
-                session.sessionId(),
-                request.endpoint(),
-                request.p256dh(),
-                request.auth(),
-                request.label()));
+        push.register(
+                        session.accountId(),
+                        session.sessionId(),
+                        request.endpoint(),
+                        request.p256dh(),
+                        request.auth(),
+                        request.label(),
+                        request.renewal(),
+                        request.previousEndpoint())
+                .ifPresentOrElse(ctx::json, () -> ctx.status(HttpStatus.NO_CONTENT));
     }
 
     @OpenApi(

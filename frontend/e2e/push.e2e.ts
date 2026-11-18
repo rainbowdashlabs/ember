@@ -12,7 +12,8 @@ import {test, expect} from './fixtures/auth'
  * A real push needs the browser maker's push service, which a test run cannot reach, so the browser's
  * push manager is stood in for: it hands out a subscription with a freshly made P-256 key, as a real
  * one does, to an address that never resolves, so a test push is only ever tried again and nothing
- * leaves the test network. A headless browser reports notifications as refused whatever it was
+ * leaves the test network. Like a real one, the subscription outlives a page load, so the page does not
+ * register the browser anew under another address each time it opens. A headless browser reports notifications as refused whatever it was
  * granted, so the permission is stood in for too. Whether a push then arrives on a device is checked by hand.
  */
 test.describe('Push notifications', () => {
@@ -23,24 +24,28 @@ test.describe('Push notifications', () => {
         await page.addInitScript(() => {
             Object.defineProperty(Notification, 'permission', {get: () => 'granted'})
             Notification.requestPermission = async () => 'granted'
-            const endpoint = `https://push.invalid/e2e-${crypto.randomUUID()}`
-            let held: PushSubscription | null = null
-            async function subscription(): Promise<PushSubscription> {
-                const pair = await crypto.subtle.generateKey({name: 'ECDH', namedCurve: 'P-256'}, true, ['deriveBits'])
-                const p256dh = await crypto.subtle.exportKey('raw', pair.publicKey)
-                const auth = crypto.getRandomValues(new Uint8Array(16)).buffer
+            const KEPT = 'e2e-push-subscription'
+            type Kept = {endpoint: string, p256dh: number[], auth: number[]}
+            function asSubscription(kept: Kept): PushSubscription {
                 return {
-                    endpoint,
-                    getKey: (name: string) => (name === 'p256dh' ? p256dh : auth),
-                    unsubscribe: async () => { held = null; return true },
+                    endpoint: kept.endpoint,
+                    getKey: (name: string) => new Uint8Array(name === 'p256dh' ? kept.p256dh : kept.auth).buffer,
+                    unsubscribe: async () => { sessionStorage.removeItem(KEPT); return true },
                 } as unknown as PushSubscription
             }
             PushManager.prototype.subscribe = async function () {
-                held = await subscription()
-                return held
+                const pair = await crypto.subtle.generateKey({name: 'ECDH', namedCurve: 'P-256'}, true, ['deriveBits'])
+                const kept: Kept = {
+                    endpoint: `https://push.invalid/e2e-${crypto.randomUUID()}`,
+                    p256dh: [...new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey))],
+                    auth: [...crypto.getRandomValues(new Uint8Array(16))],
+                }
+                sessionStorage.setItem(KEPT, JSON.stringify(kept))
+                return asSubscription(kept)
             }
             PushManager.prototype.getSubscription = async function () {
-                return held
+                const kept = sessionStorage.getItem(KEPT)
+                return kept ? asSubscription(JSON.parse(kept) as Kept) : null
             }
         })
     })

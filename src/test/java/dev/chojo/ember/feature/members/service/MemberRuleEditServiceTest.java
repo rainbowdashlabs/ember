@@ -14,6 +14,7 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.RuleField;
 import dev.chojo.ember.feature.members.entity.RuleMember;
 import dev.chojo.ember.feature.members.entity.RuleNode;
@@ -85,14 +86,16 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
                 stationRepo,
                 newGroupMemberships(),
                 rules,
-                () -> names);
+                () -> names,
+                newSelfAnsweredRules());
         anna = member("Anna");
         ben = member("Ben");
         manager = stationSession(
                 anna,
                 StationPermission.MEMBER_MANAGE_GROUP,
                 StationPermission.MEMBER_MANAGE_TAGS,
-                StationPermission.MEMBER_READ);
+                StationPermission.MEMBER_READ,
+                StationPermission.USER);
         group = RuleOwner.group(
                 memberGroupRepo.create(station.id(), "Mit JuLeiCa").id());
         tag = RuleOwner.tag(userTagRepo.create(station.id(), "Leitung").id());
@@ -115,6 +118,7 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
                         false,
                         null)
                 .id();
+        clusterProfileFieldRepo.assignToRole(clusterField, ProfileFieldScope.MEMBER, 0, null, null, null);
     }
 
     @AfterEach
@@ -135,6 +139,13 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
     }
 
     private int field(int stationId, String name, FieldType type) {
+        int id = hiddenField(stationId, name, type);
+        profileFieldRepo.assignToRole(id, ProfileFieldScope.MEMBER, 0, null, null, null);
+        return id;
+    }
+
+    /** A field put to nobody a member can read, such as one only managers are asked. */
+    private int hiddenField(int stationId, String name, FieldType type) {
         return profileFieldRepo
                 .create(stationId, name, type, ProfileFieldConfig.empty(), false, false, null)
                 .id();
@@ -155,7 +166,9 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
     @Test
     void aValidRuleIsSavedAndTheStationRunsAfterwards() {
         var rule = RuleNode.all(
-                RuleNode.any(RuleNode.tag(RuleOperator.IN, tag.id()), RuleNode.none()),
+                RuleNode.any(
+                        RuleNode.tag(RuleOperator.IN, tag.id()),
+                        RuleNode.none(RuleNode.userType(RuleOperator.ONE_OF, List.of(StationUserType.TRIAL)))),
                 RuleNode.userType(RuleOperator.ONE_OF, List.of(StationUserType.MEMBER)),
                 RuleNode.memberSince(RuleOperator.AT_LEAST, 1, RuleUnit.YEARS, LocalDate.of(2027, 1, 1)),
                 RuleNode.age(RuleOperator.AT_LEAST, birth, RuleValue.ofYears(10), LocalDate.of(2027, 1, 1)),
@@ -231,6 +244,15 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
         assertEquals(Optional.empty(), edits.find(group));
     }
 
+    /** A block without conditions would match everybody, or nobody, without asking anything, so it is refused anywhere. */
+    @Test
+    void anEmptyBlockIsRefused() {
+        refusedOnSave(MemberRefusal.RULE_BLOCK_EMPTY, RuleNode.all());
+        refusedOnSave(
+                MemberRefusal.RULE_BLOCK_EMPTY,
+                RuleNode.any(RuleNode.all(), withJuleica().children().getFirst()));
+    }
+
     @Test
     void aTargetOfAnotherStationIsNotHere() {
         var otherGroup = memberGroupRepo.create(other.id(), "Fremd").id();
@@ -277,19 +299,90 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
     /** A rule for a group that grants permissions needs a caller who holds them all. */
     @Test
     void aRuleForAGroupThatGrantsMoreThanYoursIsRefused() {
-        var admin = stationMemberRepo
+        grantMemberEdit(group);
+        var managed = RuleNode.all(RuleNode.field(managedField("Lehrgang"), RuleOperator.IS_YES, RuleValue.empty()));
+
+        refusedOnSave(MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_RULE, managed);
+
+        assertEquals(managed, edits.save(holderOfMemberEdit(), group, managed));
+    }
+
+    /**
+     * A group granting permissions may not take its members from an answer they give themselves, directly or
+     * through a tag kept by such a rule; a field only the management writes is fine.
+     */
+    @Test
+    void aGroupGrantingPermissionsTakesNoSelfGivenAnswer() {
+        grantMemberEdit(group);
+        var holder = holderOfMemberEdit();
+
+        refused(MemberRefusal.RULE_PERMISSIONS_FROM_OWN_ANSWER, () -> edits.save(holder, group, withJuleica()));
+
+        edits.save(holder, tag, withJuleica());
+        refused(
+                MemberRefusal.RULE_PERMISSIONS_FROM_OWN_ANSWER,
+                () -> edits.save(holder, group, RuleNode.all(RuleNode.tag(RuleOperator.IN, tag.id()))));
+
+        var managed = RuleNode.all(RuleNode.field(managedField("Lehrgang"), RuleOperator.IS_YES, RuleValue.empty()));
+        assertEquals(managed, edits.save(holder, group, managed));
+    }
+
+    /** Permissions cannot be given to a group whose rule already reads answers its members give themselves. */
+    @Test
+    void permissionsAreNotGivenToAGroupKeptFromSelfGivenAnswers() {
+        edits.save(manager, group, withJuleica());
+        var edit = stationMemberRepo
                 .findPermissionByName(StationPermission.MEMBER_EDIT)
                 .orElseThrow();
-        memberGroupRepo.addGroupPermission(group.id(), admin.id());
 
-        refusedOnSave(MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_RULE, withJuleica());
+        refused(MemberRefusal.RULE_PERMISSIONS_FROM_OWN_ANSWER, () -> newMemberGroupService()
+                .setGroupPermissions(group.id(), List.of(edit.id()), Set.of(StationPermission.MEMBER_EDIT)));
+        assertTrue(memberGroupRepo.findGroupPermissions(group.id()).isEmpty());
+    }
 
-        var holder = stationSession(
+    private void grantMemberEdit(RuleOwner owner) {
+        var edit = stationMemberRepo
+                .findPermissionByName(StationPermission.MEMBER_EDIT)
+                .orElseThrow();
+        memberGroupRepo.addGroupPermission(owner.id(), edit.id());
+    }
+
+    private StationSession holderOfMemberEdit() {
+        return stationSession(
                 ben,
                 StationPermission.MEMBER_MANAGE_GROUP,
+                StationPermission.MEMBER_MANAGE_TAGS,
                 StationPermission.MEMBER_EDIT,
-                StationPermission.MEMBER_READ);
-        assertEquals(withJuleica(), edits.save(holder, group, withJuleica()));
+                StationPermission.MEMBER_READ,
+                StationPermission.USER);
+    }
+
+    /** A yes/no question of the association, put to one kind of member. */
+    private int associationField(String name, boolean readonly, ProfileFieldScope scope) {
+        int id = clusterProfileFieldRepo
+                .create(
+                        clusterId,
+                        name,
+                        FieldType.BOOLEAN,
+                        ProfileFieldConfig.empty(),
+                        false,
+                        readonly,
+                        null,
+                        false,
+                        false,
+                        null)
+                .id();
+        clusterProfileFieldRepo.assignToRole(id, scope, 0, null, null, null);
+        return id;
+    }
+
+    /** A field members are asked but only the management may answer. */
+    private int managedField(String name) {
+        int id = profileFieldRepo
+                .create(station.id(), name, FieldType.BOOLEAN, ProfileFieldConfig.empty(), false, true, null)
+                .id();
+        profileFieldRepo.assignToRole(id, ProfileFieldScope.MEMBER, 0, null, null, null);
+        return id;
     }
 
     /** A rule that reads member data needs the right to read members; one on groups and types does not. */
@@ -327,17 +420,16 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
                 .orElseThrow();
         memberGroupRepo.addGroupPermission(group.id(), edit.id());
         memberRuleRepo.replace(station.id(), group, RuleNode.all(RuleNode.tag(RuleOperator.IN, tag.id())));
+        var members = RuleNode.all(RuleNode.userType(RuleOperator.ONE_OF, List.of(StationUserType.MEMBER)));
 
-        refused(
-                MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_THROUGH_RULE,
-                () -> edits.save(manager, tag, RuleNode.all()));
+        refused(MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_THROUGH_RULE, () -> edits.save(manager, tag, members));
 
         var holder = stationSession(
                 ben,
                 StationPermission.MEMBER_MANAGE_TAGS,
                 StationPermission.MEMBER_EDIT,
                 StationPermission.MEMBER_READ);
-        assertEquals(RuleNode.all(), edits.save(holder, tag, RuleNode.all()));
+        assertEquals(members, edits.save(holder, tag, members));
     }
 
     /** A group a registration code hands out takes no rule, since the code would place nobody in it any more. */
@@ -403,7 +495,7 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
     void theReadableFieldsComeFromStationAndAssociation() {
         field(station.id(), "Abschnitt", FieldType.SECTION);
 
-        var fields = edits.fields(station.id());
+        var fields = edits.fields(manager);
 
         assertEquals(
                 Set.of(
@@ -414,7 +506,68 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
                 new RuleField(FieldOrigin.CLUSTER, clusterField, "Verband", FieldType.DATE, List.of()), fields.get(2));
         assertEquals(3, fields.size());
         stationRepo.setCluster(station.id(), null);
-        assertEquals(2, edits.fields(station.id()).size());
+        assertEquals(2, edits.fields(manager).size());
+    }
+
+    /**
+     * A field the editor may not read is neither offered nor accepted, on saving and on trying a rule: the
+     * preview would otherwise say who answered it.
+     */
+    @Test
+    void aFieldTheEditorMayNotReadIsNotThere() {
+        int managersOnly = hiddenField(station.id(), "Nur Leitung", FieldType.BOOLEAN);
+        var rule = RuleNode.all(RuleNode.field(managersOnly, RuleOperator.IS_YES, RuleValue.empty()));
+
+        assertTrue(edits.fields(manager).stream().noneMatch(field -> field.id() == managersOnly));
+        refusedOnSave(MemberRefusal.RULE_TARGET_NOT_HERE, rule);
+        refused(MemberRefusal.RULE_TARGET_NOT_HERE, () -> edits.preview(manager, group, rule));
+    }
+
+    /** An association field put only to managers is not there for an editor who reads only members' questions. */
+    @Test
+    void anAssociationFieldTheEditorMayNotReadIsNotThere() {
+        int managersOnly = associationField("Nur Leitung im Verband", false, ProfileFieldScope.MANAGER);
+        var rule = RuleNode.all(RuleNode.clusterField(managersOnly, RuleOperator.IS_YES, RuleValue.empty()));
+
+        assertTrue(edits.fields(manager).stream().noneMatch(field -> field.id() == managersOnly));
+        refusedOnSave(MemberRefusal.RULE_TARGET_NOT_HERE, rule);
+        refused(MemberRefusal.RULE_TARGET_NOT_HERE, () -> edits.preview(manager, group, rule));
+    }
+
+    /**
+     * An answer counts as self-given wherever anybody it is put to may write it: any association question, read
+     * only or not, since the association writes past every lock, and a station question read only to members but
+     * open to guardians.
+     */
+    @Test
+    void aSelfGivenAnswerIsFoundForAssociationQuestionsAndGuardians() {
+        grantMemberEdit(group);
+        var holder = holderOfMemberEdit();
+        int association = associationField("Verbandslehrgang", false, ProfileFieldScope.MEMBER);
+        refused(
+                MemberRefusal.RULE_PERMISSIONS_FROM_OWN_ANSWER,
+                () -> edits.save(
+                        holder,
+                        group,
+                        RuleNode.all(RuleNode.clusterField(association, RuleOperator.IS_YES, RuleValue.empty()))));
+
+        int lockedAssociation = associationField("Verbandsprüfung", true, ProfileFieldScope.MEMBER);
+        refused(
+                MemberRefusal.RULE_PERMISSIONS_FROM_OWN_ANSWER,
+                () -> edits.save(
+                        holder,
+                        group,
+                        RuleNode.all(
+                                RuleNode.clusterField(lockedAssociation, RuleOperator.IS_YES, RuleValue.empty()))));
+
+        int guardians = managedField("Elternangabe");
+        profileFieldRepo.assignToRole(guardians, ProfileFieldScope.GUARDIAN, 0, null, false, null);
+        refused(
+                MemberRefusal.RULE_PERMISSIONS_FROM_OWN_ANSWER,
+                () -> edits.save(
+                        holder,
+                        group,
+                        RuleNode.all(RuleNode.field(guardians, RuleOperator.IS_YES, RuleValue.empty()))));
     }
 
     @Test

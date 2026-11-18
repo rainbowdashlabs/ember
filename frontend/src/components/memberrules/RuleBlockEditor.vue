@@ -13,7 +13,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import {RuleNodeKind, type RuleNode} from '@/api/generated/schema'
 import type {RuleCatalog} from './ruleCatalog'
 import RuleCheckRow from './RuleCheckRow.vue'
-import {emptyBlock, emptyCheck, RULE_LIMITS} from './ruleDraft'
+import {emptyBlock, emptyCheck} from './ruleDraft'
 
 /**
  * One block of a rule: whether all, any or none of its children have to hold, the children themselves (checks
@@ -43,8 +43,8 @@ const kindLabels: Partial<Record<RuleNodeKind, string>> = {
   [RuleNodeKind.NONE]: 'memberRules.none',
 }
 
-const mayAddCheck = computed(() => !props.full && props.level + 1 <= RULE_LIMITS.depth)
-const mayAddBlock = computed(() => !props.full && props.level + 2 <= RULE_LIMITS.depth)
+const mayAddCheck = computed(() => !props.full && props.level + 1 <= props.catalog.limits.depth)
+const mayAddBlock = computed(() => !props.full && props.level + 2 <= props.catalog.limits.depth)
 
 function setKind(kind: string | number | null | undefined) {
   emit('change', {...props.block, kind: kind as RuleNodeKind})
@@ -66,14 +66,14 @@ function add(child: RuleNode) {
 </script>
 
 <template>
-  <div class="space-y-3 rounded-lg border border-(--border) p-3">
+  <div class="space-y-3 rounded-lg border border-(--border) p-2 sm:p-3">
     <div class="flex items-center justify-between gap-2">
       <SelectInput :model-value="block.kind" :aria-label="t('memberRules.kind')" @update:model-value="setKind">
         <option v-for="kind in kinds" :key="kind" :value="kind">{{ t(kindLabels[kind]!) }}</option>
       </SelectInput>
       <IconButton v-if="!root" :icon="['fas', 'trash']" :label="t('memberRules.removeNode')" @click="emit('remove')"/>
     </div>
-    <ul class="space-y-3 border-l-2 border-(--border) pl-3">
+    <ul class="space-y-3 border-l-2 border-(--border) pl-1.5 sm:pl-3">
       <li v-for="(child, index) in block.children" :key="index">
         <RuleCheckRow v-if="child.kind === RuleNodeKind.CHECK" :check="child" :catalog="catalog"
                       @change="next => setChild(index, next)" @remove="removeChild(index)"/>

@@ -14,6 +14,7 @@ export const GROUP_ICONS: Record<string, string[]> = {
   INVENTORY_MANAGER: ['fas', 'boxes-stacked'],
   EVENT_MANAGER: ['fas', 'calendar-days'],
   MEMBER_MANAGER: ['fas', 'users'],
+  MESSAGE_CHAT_MANAGE: ['fas', 'comments'],
   WAITLIST_MANAGER: ['fas', 'clock'],
   NEWS_MANAGER: ['fas', 'newspaper'],
   POLL_MANAGER: ['fas', 'square-poll-vertical'],

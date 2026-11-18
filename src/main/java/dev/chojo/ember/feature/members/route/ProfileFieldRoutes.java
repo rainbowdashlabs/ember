@@ -313,25 +313,8 @@ public class ProfileFieldRoutes implements Routes {
             return;
         }
         profileFieldService.requireDependencyAllowed(stationId, id, change.shownIfFieldId(), change.fieldSetId());
-        profileFieldService
-                .update(
-                        id,
-                        change.name(),
-                        change.fieldType(),
-                        change.config(),
-                        change.required(),
-                        change.readonly(),
-                        change.width(),
-                        change.keepOnArchive())
-                .ifPresentOrElse(
-                        updated -> {
-                            profileFieldService.dependOn(id, change.shownIfFieldId(), change.fieldSetId());
-                            profileFieldService.joinSet(id, change.fieldSetId());
-                            ctx.json(profileFieldService.findById(id).orElse(updated));
-                        },
-                        () -> {
-                            throw MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE.raise();
-                        });
+        var changed = profileFieldService.change(id, change);
+        ctx.json(profileFieldService.findById(id).orElse(changed));
     }
 
     /** Everything a change of a question asks for, with the flags a request may leave out read as off. */
@@ -472,7 +455,10 @@ public class ProfileFieldRoutes implements Routes {
                         .toList()
                 : List.of();
         ctx.json(profileFieldService.setValues(
-                memberId, entries, session.member().id(), ProfileWriter.station(canEditReadonly)));
+                memberId,
+                entries,
+                session.member().id(),
+                ProfileWriter.station(canEditReadonly, session.user().permissions())));
     }
 
     /** An entry that names no origin is the station's own, which is what every older caller sends. */

@@ -6,9 +6,9 @@ Notifications and messages can arrive as push notifications on phones and comput
 
 ### New Features
 
-- **Appointment places on a map.** "Location" and "Meeting point" now add place fields, and "On the map" next to a place opens a map to find or correct its pin. The pin applies to every appointment naming the same place, and the appointment page shows it on a small map with a link to OpenStreetMap.
-- **Push notifications.** Notifications and chat messages can arrive on a phone or computer even with Ember closed, once push is allowed on that device under Profile → Notifications. A new "Push" column chooses which kinds are pushed, and devices can be tested and removed there or in the list of sign-ins.
-- **Push for operators.** Push notifications work without any setup and can be switched off for the whole instance in the administration settings. They are delivered through the push services of the browser makers, and the privacy notice gains a section on them.
+- **Appointment places on a map.** "Location" and "Meeting point" now add place fields, and "On the map" next to a place opens a map to find, correct or remove its pin. The pin applies to every appointment naming the same place, and the appointment page shows it on a small map with a link to OpenStreetMap.
+- **Push notifications on phones and computers.** Notifications and chat messages can arrive on a phone or computer even with Ember closed, once push is allowed on that device under Profile → Notifications. A new "Push" column chooses which kinds are pushed, and devices can be tested and removed there or in the list of sign-ins.
+- **Push needs no setup by operators.** Push notifications work without any setup and can be switched off for the whole instance in the administration settings. They are delivered through the push services of the browser makers, and the privacy notice gains a section on them.
 - **Waiting list for full appointments.** Once every place of a date is taken, further sign-ups go onto a waiting list, and the first in line moves up on their own when a place frees and is told so. Whoever runs the appointment sees the list in order, can reorder it or move somebody up by hand, and chooses whether it follows sign-up time or the fairness score.
 - **Alternatives and places in event groups.** A block of an event group can set a maximum beside its minimum, so "exactly one of two" offers alternatives to pick from. Event groups set places per appointment, an appointment of the group can set its own, and a full appointment is marked so members pick the free alternative or wait on the waiting list.
 - **Groups and tags filled by rules.** A group or tag can take its members from a rule of checks on profile answers, age, membership and other groups or tags. Members join and leave on their own as answers change and dates come closer, and a preview shows whom a rule takes in before it is saved.
@@ -20,12 +20,14 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Declined answers folded away.** On the registrations page, the declined answers of a date stay closed until opened. Opened, they show who declined and when, without the place ranking.
 - **Usual port shown for the mail server.** The mail settings name the usual port for the chosen encryption and point out a port that does not fit. The port is still saved as entered.
 - **Instance send interval made visible.** When a station leaves the notification send times to the instance, the settings say how often the instance sends them.
+- **Address search on in the demo.** A demo instance looks addresses and places of appointments up on the public Photon server from the start. It can still be switched off under Settings → Maps.
 
 ### Changes
 
-- **Photon looks up addresses.** Admin → Maps offers Photon as the only address search, using the public server unless the address of a self-hosted server is entered. Nominatim, LocationIQ and Geoapify are removed, and an instance that had one of them selected has no address search until Photon is chosen.
-- **Mail notifications are on by default.** Every member gets notifications by mail as soon as the station or the instance can send mail, for every kind of notification. Members who do not want them switch mail off under Profile → Notifications, including those who had switched it off before this release.
+- **Photon looks up addresses.** Admin → Settings → Maps offers Photon as the only address search, using the public server unless the address of a self-hosted server is entered, and the privacy notice gains a section on it. Nominatim, LocationIQ and Geoapify are removed, and an instance that had one of them selected has no address search until Photon is chosen.
+- **Mail notifications are on by default.** Members without a mail setting of their own get notifications by mail as soon as the station or the instance can send mail, for every kind of notification. Mail settings members already had stay as they were.
 - **Reply address at the top of the mail settings.** The reply address moved out of the box about the instance's mail providers to the top of the page, since it applies to all of a station's mail.
+- **Map settings moved to Settings.** The administration page for map tiles and the address search is found under Settings instead of Monitoring, at `/admin/settings/maps`.
 
 ### Fixes
 
@@ -34,6 +36,9 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Consent asked twice after a policy update.** After the privacy policy or the terms changed, agreeing on the sign-in page did not count for the account, so the same question came again right after signing in. Agreeing before signing in now covers the account.
 - **Installing Ember was not always offered.** In some cases the part of Ember that runs in the background was never started, so the browser did not offer to install Ember and saved files could open in the browser instead. It now starts with every page.
 - **Delivery address shown for own mail servers.** The mail settings offered a delivery report address for a station's own mail server, which sends no such reports. It is no longer shown there.
+- **Station chat permission without an icon.** In the permission picker, "Manage station chats" was the only group shown without an icon. It now has one like the others.
+- **iPhones listed as Macs among sign-ins.** The list of sign-ins showed an iPhone as a Mac with the Apple desktop icon. It now names it iOS.
+- **Closing a question could delete it.** On a list of questions, closing an opened question put its delete button right under the pointer, so a double click on the arrow could delete the question. The arrow now stays at the end of the line, with the delete button kept apart before it.
 
 ## v26.25.1
 

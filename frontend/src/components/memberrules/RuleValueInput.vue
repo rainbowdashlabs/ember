@@ -13,11 +13,12 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MultiSelectInput from '@/components/input/select/MultiSelectInput.vue'
 import {StationUserTypeLabels} from '@/api/types'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 import {
   ExpiryState,
   RuleNeed,
   RuleUnit,
-  StationUserType,
+  type StationUserType,
   type RuleValue,
 } from '@/api/generated/schema'
 import {emptyValue} from './ruleDraft'
@@ -47,9 +48,11 @@ function set(part: Partial<RuleValue>) {
 }
 
 const answerOptions = computed(() => props.answers.map(answer => ({value: answer, label: answer})))
-const typeOptions = computed(() => Object.values(StationUserType)
+const typeOptions = computed(() => STATION_USER_TYPES
     .map(type => ({value: type, label: StationUserTypeLabels[type]})))
-const stateOptions = computed(() => Object.values(ExpiryState)
+/** Valid first, then running out, run out and empty, the order the states follow over a date's life. */
+const STATE_ORDER = [ExpiryState.VALID, ExpiryState.EXPIRING, ExpiryState.EXPIRED, ExpiryState.EMPTY]
+const stateOptions = computed(() => STATE_ORDER
     .map(state => ({value: state, label: t(`memberRules.states.${state}`)})))
 const units = [RuleUnit.DAYS, RuleUnit.MONTHS, RuleUnit.YEARS]
 
@@ -73,11 +76,11 @@ const unitModel = computed({
 
 <template>
   <div class="flex flex-wrap items-center gap-2">
-    <MultiSelectInput v-if="need === RuleNeed.ANSWERS" v-model="answersModel" :options="answerOptions"
+    <MultiSelectInput v-if="need === RuleNeed.ANSWERS" v-model="answersModel" :options="answerOptions" inline
                       role="group" :aria-label="t('memberRules.valueAnswers')"/>
-    <MultiSelectInput v-else-if="need === RuleNeed.USER_TYPES" v-model="typesModel" :options="typeOptions"
+    <MultiSelectInput v-else-if="need === RuleNeed.USER_TYPES" v-model="typesModel" :options="typeOptions" inline
                       role="group" :aria-label="t('memberRules.valueUserTypes')"/>
-    <MultiSelectInput v-else-if="need === RuleNeed.STATES" v-model="statesModel" :options="stateOptions"
+    <MultiSelectInput v-else-if="need === RuleNeed.STATES" v-model="statesModel" :options="stateOptions" inline
                       role="group" :aria-label="t('memberRules.valueStates')"/>
     <DecimalInput v-else-if="need === RuleNeed.NUMBER" class="w-28" :aria-label="t('memberRules.valueNumber')" :model-value="current.number ?? undefined"
                   @update:model-value="number => set({number: number ?? null})"/>
@@ -110,7 +113,7 @@ const unitModel = computed({
       <span>{{ t('memberRules.and') }}</span>
       <NumberInput class="w-20" :aria-label="t('memberRules.valueTo')" :model-value="current.amountTo ?? undefined"
                    @update:model-value="amountTo => set({amountTo: amountTo ?? null, unit: RuleUnit.YEARS})"/>
-      <span>{{ t('memberRules.years') }}</span>
+      <span>{{ t('memberRules.yearsRange') }}</span>
     </template>
   </div>
 </template>

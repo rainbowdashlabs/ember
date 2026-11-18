@@ -71,7 +71,10 @@ public class AdminMapsRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AdminMapsConfig.class)))
     private void getConfig(Context ctx) {
         ctx.json(new AdminMapsConfig(
-                configService.tilesConfig(), configService.geocodingConfig(), configService.tileCacheMaxMb()));
+                configService.tilesConfig(),
+                configService.geocodingConfig(),
+                configService.tileCacheMaxMb(),
+                MapsGeocodingConfig.DEFAULT_BASE_URL));
     }
 
     @OpenApi(
@@ -126,8 +129,15 @@ public class AdminMapsRoutes implements Routes {
     /**
      * Combined admin-facing config payload. Carries the API key so the admin can edit it;
      * never use this DTO for public-facing reads - see {@link PublicMapsRoutes.PublicMapsConfig}.
+     *
+     * @param defaultGeocodingServer the address search used while no server address is entered, filled in when
+     *                               the config is read and ignored when it is saved
      */
-    public record AdminMapsConfig(MapsTilesConfig tiles, MapsGeocodingConfig geocoding, int tileCacheMaxMb) {
+    public record AdminMapsConfig(
+            MapsTilesConfig tiles,
+            MapsGeocodingConfig geocoding,
+            int tileCacheMaxMb,
+            @Nullable String defaultGeocodingServer) {
         /**
          * Convenience for the typed default; used so the route handler can synthesise a
          * record even when the operator only typed one section. {@link MapTileProvider}

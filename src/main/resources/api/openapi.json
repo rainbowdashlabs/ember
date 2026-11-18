@@ -36202,7 +36202,7 @@
     },
     "/api/v1/member-rules/operators" : {
       "get" : {
-        "summary" : "The operators a check of a group or tag rule can use, per subject and field type",
+        "summary" : "The operators a check of a group or tag rule can use, and how large a rule may grow",
         "tags" : [ "Member Rules" ],
         "responses" : {
           "200" : {
@@ -36210,10 +36210,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/RuleOperatorOption"
-                  }
+                  "$ref" : "#/components/schemas/RuleOperatorTable"
                 }
               }
             }
@@ -46049,6 +46046,9 @@
                 }
               }
             }
+          },
+          "204" : {
+            "description" : "A renewal of a browser this account did not allow"
           }
         },
         "requestBody" : {
@@ -52902,6 +52902,23 @@
             }
           }
         }
+      },
+      "delete" : {
+        "summary" : "Take the pin off a place text",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "text",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
       }
     },
     "/api/v1/station/places/geocode" : {
@@ -55191,9 +55208,12 @@
           "tileCacheMaxMb" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "defaultGeocodingServer" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "tiles", "geocoding", "tileCacheMaxMb" ]
+        "required" : [ "tiles", "geocoding", "tileCacheMaxMb", "defaultGeocodingServer" ]
       },
       "AdminOverview" : {
         "type" : "object",
@@ -80473,12 +80493,6 @@
               "$ref" : "#/components/schemas/AppointmentField"
             }
           },
-          "places" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/StationPlace"
-            }
-          },
           "cancelled" : {
             "type" : "boolean"
           },
@@ -80489,7 +80503,7 @@
             }
           }
         },
-        "required" : [ "id", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "category", "publicFields", "places", "cancelled", "cancelledDates" ]
+        "required" : [ "id", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "category", "publicFields", "cancelled", "cancelledDates" ]
       },
       "PublicEventResponse" : {
         "type" : "object",
@@ -84524,6 +84538,26 @@
           }
         },
         "required" : [ "subject", "fieldType", "operator", "need" ]
+      },
+      "RuleOperatorTable" : {
+        "type" : "object",
+        "properties" : {
+          "operators" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RuleOperatorOption"
+            }
+          },
+          "maxDepth" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "maxChecks" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "operators", "maxDepth", "maxChecks" ]
       },
       "RuleOwners" : {
         "type" : "object",
@@ -89221,6 +89255,12 @@
             "type" : [ "string", "null" ]
           },
           "label" : {
+            "type" : [ "string", "null" ]
+          },
+          "renewal" : {
+            "type" : "boolean"
+          },
+          "previousEndpoint" : {
             "type" : [ "string", "null" ]
           }
         }

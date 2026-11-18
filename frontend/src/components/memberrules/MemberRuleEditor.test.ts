@@ -22,16 +22,21 @@ vi.mock('@/api', () => ({
         removeRule: (...args: unknown[]) => removeRule(...args),
         previewRule: (...args: unknown[]) => previewRule(...args),
         listFields: (...args: unknown[]) => listFields(...args),
-        listOperators: async () => [
-            {subject: RuleSubject.GROUP, fieldType: null, operator: RuleOperator.IN, need: RuleNeed.NOTHING},
-        ],
+        listOperators: async () => ({
+            operators: [
+                {subject: RuleSubject.GROUP, fieldType: null, operator: RuleOperator.IN, need: RuleNeed.NOTHING},
+            ],
+            maxDepth: 6,
+            maxChecks: 50,
+        }),
     },
     memberGroups: {listGroups: async () => [{id: 4, name: 'Team'}]},
     userTags: {listChoosableTags: async () => []},
 }))
 
+const session = vi.hoisted(() => ({readsMembers: false}))
 vi.mock('@/composables/useSession', () => ({
-    useSession: () => ({hasPermission: () => false}),
+    useSession: () => ({hasPermission: () => session.readsMembers}),
 }))
 
 const RULE: RuleNode = {...emptyBlock(), children: [{...emptyCheck(), groupId: 4}]}
@@ -45,8 +50,18 @@ const RULE: RuleNode = {...emptyBlock(), children: [{...emptyCheck(), groupId: 4
 describe('MemberRuleEditor', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        session.readsMembers = false
         listFields.mockResolvedValue([])
     })
+
+    /** Adds one condition asking about the group Team, which leaves a first rule ready to save. */
+    async function addGroupCheck(wrapper: ReturnType<typeof editor>) {
+        const add = wrapper.findAll('button').find(button => button.text().trim() === 'Bedingung')
+        await add!.trigger('click')
+        await wrapper.get('select[aria-label="Worauf"]').setValue(RuleSubject.GROUP)
+        await wrapper.get('select[aria-label="Gruppe wählen"]').setValue('4')
+        await flushPromises()
+    }
 
     function editor(onChanged = vi.fn()) {
         return mount(MemberRuleEditor, {
@@ -67,11 +82,32 @@ describe('MemberRuleEditor', () => {
 
         await wrapper.find('select').setValue('rule')
         expect(wrapper.text()).toContain('Regel speichern')
+        expect(wrapper.text()).not.toContain('Blöcke ohne Bedingung')
+        await addGroupCheck(wrapper)
+        expect(wrapper.text()).not.toContain('Blöcke ohne Bedingung')
 
         const save = wrapper.findAll('button').find(button => button.text().includes('Regel speichern'))
         await save!.trigger('click')
         expect(saveRule).not.toHaveBeenCalled()
         expect(document.body.textContent).toContain('Ab jetzt bestimmt die Regel die Mitglieder')
+        wrapper.unmount()
+    })
+
+    it('closes the question once a first rule is saved', async () => {
+        getRule.mockResolvedValue(null)
+        saveRule.mockResolvedValue(RULE)
+        const wrapper = editor()
+        await flushPromises()
+        await wrapper.find('select').setValue('rule')
+        await addGroupCheck(wrapper)
+
+        const save = wrapper.findAll('button').find(button => button.text().includes('Regel speichern'))
+        await save!.trigger('click')
+        document.body.querySelector<HTMLButtonElement>('[data-confirm]')!.click()
+        await flushPromises()
+
+        expect(saveRule).toHaveBeenCalledTimes(1)
+        expect(document.body.textContent).not.toContain('Ab jetzt bestimmt die Regel die Mitglieder')
         wrapper.unmount()
     })
 
@@ -127,6 +163,34 @@ describe('MemberRuleEditor', () => {
         wrapper.unmount()
     })
 
+    it('says a rule whose field was deleted rests and keeps its members', async () => {
+        session.readsMembers = true
+        getRule.mockResolvedValue({
+            ...emptyBlock(),
+            children: [{...emptyCheck(), subject: RuleSubject.CLUSTER_FIELD, operator: RuleOperator.IS_YES}],
+        })
+        const wrapper = editor()
+        await flushPromises()
+
+        expect(wrapper.text()).toContain('Die Regel ruht und behält ihre Mitglieder')
+        expect(wrapper.text()).not.toContain('Diese Bedingung ist noch nicht vollständig')
+        wrapper.unmount()
+    })
+
+    it('says a field the reader may not see is there, rather than gone', async () => {
+        session.readsMembers = true
+        getRule.mockResolvedValue({
+            ...emptyBlock(),
+            children: [{...emptyCheck(), subject: RuleSubject.FIELD, operator: RuleOperator.IS_YES, fieldId: 7}],
+        })
+        const wrapper = editor()
+        await flushPromises()
+
+        expect(wrapper.text()).toContain('Dieses Feld darfst du nicht sehen')
+        expect(wrapper.text()).not.toContain('Die Regel ruht')
+        wrapper.unmount()
+    })
+
     it('keeps saving closed while a check is incomplete', async () => {
         getRule.mockResolvedValue({...emptyBlock(), children: [emptyCheck()]})
         const wrapper = editor()
@@ -134,7 +198,7 @@ describe('MemberRuleEditor', () => {
 
         const save = wrapper.findAll('button').find(button => button.text().includes('Regel speichern'))
         expect(save!.attributes('disabled')).toBeDefined()
-        expect(wrapper.text()).toContain('Noch nicht vollständige Prüfungen: 1')
+        expect(wrapper.text()).toContain('Noch nicht vollständige Bedingungen: 1')
         wrapper.unmount()
     })
 
