@@ -3539,6 +3539,11 @@ volumes:
             dialogText: 'Im Fenster wählst du die Termine und beantwortest die Fragen der Terminreihe. Solange in einem Block noch Termine fehlen oder eine Pflichtfrage offen ist, steht das in roter Schrift und du kannst nicht speichern.',
             exampleMember: 'Mara Seeger',
             exampleOther: 'Tim Becker',
+            exampleWaiting: 'Lea Wolff',
+            fullTitle: 'Volle Termine und Nachrückliste',
+            fullText: 'Hat die Terminreihe begrenzte Plätze, steht bei jedem Termin, wie viele belegt sind. Ein voller Termin heißt im Anmeldefenster „voll“. Wählst du ihn trotzdem, wartet deine ganze Anmeldung auf der Nachrückliste, denn sie wird nie geteilt. Wähle lieber einen freien Termin, wenn es einen gibt.',
+            queueText: 'Auf der Nachrückliste siehst du deinen Platz in der Reihe. Wird ein Platz frei, rückst du von selbst nach und bekommst Bescheid. Mit „Nachrückliste verlassen“ nimmst du dich wieder heraus. Ist ein Block „genau einer“, wählst du einen seiner Termine, ein anderer Haken fällt dann weg.',
+            queueManageText: 'Über der Tabelle steht die Nachrückliste in ihrer Reihenfolge, auch mit Leuten von Partnerwachen. Mit den Pfeilen oder durch Ziehen änderst du sie, „Nachrücken“ gibt einer Person sofort ihre Plätze. Offene Anmeldungen setzt du mit „Auf die Nachrückliste setzen“ einzeln oder alle zusammen auf die Liste. Ist etwas voll, fragt Ember vor dem Annehmen, ob es über das Limit gehen soll.',
             memberFieldsTitle: 'Selbst eintragen',
             memberFieldsText: 'Nennt die Terminreihe Personen, etwa die Betreuer, und dürfen sich Mitglieder selbst eintragen, steht beim Feld „Für alle Termine eintragen“. Dann stehst du auf jedem Termin der Terminreihe und hast dort einen festen Platz. Auf der Seite eines einzelnen Termins trägst du dich nur für diesen ein oder aus: Bist du für alle eingetragen, fehlst du danach nur an diesem Termin.',
             changeTitle: 'Termine ändern oder abmelden',
@@ -3605,6 +3610,8 @@ volumes:
             requiredText: 'Mit dem Schalter „Pflicht“ muss jede Anmeldung diesen Termin wählen. Er zählt zur Mindestzahl des Blocks mit. Verlangt der Block weniger Termine, als Pflicht sind, wird die Zahl erhöht und ein Hinweis sagt es. Wer schon angemeldet ist, ohne den Termin zu haben, wird als unvollständig gezeigt. Ein Pflichttermin, der schon stattgefunden hat, zählt weiter: Wer sich danach anmeldet, erfüllt die Vorgaben nicht mehr und kann nur von der Leitung angemeldet werden.',
             partRulesText: 'Nur einmalige Termine können dazugehören. Ein Termin, für den sich schon Leute einzeln angemeldet haben, kann nicht dazukommen. Eigene Fragen eines Termins fallen weg, sobald er zur Terminreihe gehört.',
             tip: 'Anmeldung, Fragen und Zielgruppe der einzelnen Termine stellst du nicht am Termin ein, sondern hier an der Terminreihe.',
+            setsMaximumText: 'Neben „mindestens“ steht „höchstens“. Leer heißt: so viele, wie man will. Steht bei einem Block 1 und 1, wählt man genau einen seiner Termine, etwa zwei gleiche Kurse an verschiedenen Tagen. Wird ein Termin zur Pflicht, steigt die Höchstzahl mit, wenn sie zu klein ist.',
+            placesText: '„Plätze“ begrenzt, wie viele Personen angenommen werden. „Plätze pro Termin“ gilt für jeden einzelnen Termin, ein Termin kann in seinem Editor eine eigene Zahl haben. Ist etwas voll, kommen weitere Anmeldungen auf die Nachrückliste. Darunter wählst du, ob nach Anmeldezeit oder nach Fairness-Punkten nachgerückt wird.',
         },
         categories: {
             title: 'Kategorien verwalten',
@@ -5968,6 +5975,7 @@ volumes:
         },
         eventEdit: {
             eventGroupPart: 'Gehört ein Termin zu einer Terminreihe, fehlen hier Anmeldung, Zielgruppe und Teilen mit Partnerwachen. Das legst du bei der Terminreihe fest.',
+            partLimitText: 'Unter „Plätze pro Termin“ gibst du einem Termin der Terminreihe eine eigene Zahl an Plätzen, etwa für einen größeren Raum. Bleibt das Feld leer, gilt die Zahl der Terminreihe, die als grauer Text im Feld steht.',
             inheritedSettingsTitle: 'Einstellungen der Terminreihe',
             inheritedSettingsText: 'Gehört ein Termin zu einer Terminreihe, übernimmt er Kategorie, Anwesenheitsvorlage und Erinnerungen von ihr. Sie stehen in einem eigenen Kasten. Mit "Überschreiben" legst du für diesen Termin etwas anderes fest. Leerst du die eigene Einstellung wieder, gilt wieder die der Terminreihe.',
             exampleGroupCategory: 'Lehrgang',

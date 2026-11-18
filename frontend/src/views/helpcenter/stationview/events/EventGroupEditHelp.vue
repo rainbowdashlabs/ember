@@ -23,6 +23,8 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import ColorInput from '@/components/input/ColorInput.vue'
 import EventGroupDateSettingsCard from '@/views/stationview/events/eventgroupeditview/EventGroupDateSettingsCard.vue'
+import QueueOrderField from '@/views/stationview/events/eventshared/QueueOrderField.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 import type {AttendanceTemplate, EventCategory} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -68,9 +70,14 @@ const templates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleG
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.minimumTitle')">
       <p>{{ t('helpCenter.eventGroupEdit.minimumText') }}</p>
+      <p>{{ t('helpCenter.eventGroupEdit.placesText') }}</p>
       <NeutralContainer class="space-y-2">
         <FieldLabel>{{ t('eventGroups.limit') }}</FieldLabel>
         <NumberInput :model-value="12"/>
+        <FieldLabel>{{ t('eventGroups.partLimit') }}</FieldLabel>
+        <NumberInput :model-value="10"/>
+        <FieldHint>{{ t('eventGroups.partLimitHint') }}</FieldHint>
+        <QueueOrderField model-value="TIME"/>
         <FieldLabel inline><ToggleInput :model-value="true"/> {{ t('eventGroups.confirmationField') }}</FieldLabel>
         <FieldLabel>{{ t('eventGroups.minimumField') }}</FieldLabel>
         <NumberInput :model-value="6"/>
@@ -83,14 +90,17 @@ const templates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleG
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.setsTitle')">
       <p>{{ t('helpCenter.eventGroupEdit.setsText') }}</p>
+      <p>{{ t('helpCenter.eventGroupEdit.setsMaximumText') }}</p>
       <NeutralContainer class="space-y-2">
         <div class="flex items-center gap-2">
           <TextInput :model-value="t('helpCenter.eventGroupDetail.practice')" class="flex-1"/>
           <NumberInput :model-value="2" class="w-24"/>
+          <NumberInput :placeholder="t('eventGroups.setMaximum')" class="w-24"/>
           <DeleteButton :label="t('eventGroups.removeSet')"/>
         </div>
         <div class="flex items-center gap-2">
           <TextInput :model-value="t('helpCenter.eventGroupDetail.test')" class="flex-1"/>
+          <NumberInput :model-value="1" class="w-24"/>
           <NumberInput :model-value="1" class="w-24"/>
           <DeleteButton :label="t('eventGroups.removeSet')"/>
         </div>

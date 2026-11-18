@@ -37,7 +37,7 @@ import EventGroupTemplateStart from './eventgroupeditview/EventGroupTemplateStar
 import {groupFieldsOf, groupQuestionsOf, useEventGroupTemplate, newByName} from './eventgroupeditview/eventGroupTemplate'
 import {emptyRestriction, toRestriction} from '@/components/input/restriction'
 import {entryOf, namedEntries} from './eventshared/eventQuestions'
-import type {EventGroupDetail, EventGroupDetails, MemberGroup, MemberWithName, EventFieldEntry, RegistrationFieldDefinition, StationEvent, UserTag} from '@/api/generated/schema'
+import type {EventGroupDetail, EventGroupDetails, EventGroupSet, MemberGroup, MemberWithName, EventFieldEntry, RegistrationFieldDefinition, StationEvent, UserTag} from '@/api/generated/schema'
 import {EventType, StationPermission} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import {eventGroups, events, memberGroups as memberGroupsApi, stationMembers, userTags as userTagsApi} from '@/api'
@@ -69,9 +69,9 @@ const groupMembers = ref(new Map<number, MemberWithName[]>())
 
 const details = ref<EventGroupDetails>({
   name: '', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false,
-  color: null, minRegistrations: null, thresholdDays: null,
+  color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null,
 })
-const sets = ref<SetRow[]>([{id: null, name: t('eventGroups.defaultSet'), minimum: 1}])
+const sets = ref<SetRow[]>([{id: null, name: t('eventGroups.defaultSet'), minimum: 1, maximum: null}])
 const registration = ref<RestrictionSelection>(emptyRestriction())
 const view = ref<RestrictionSelection>(emptyRestriction())
 const questions = ref<RegistrationFieldDefinition[]>([])
@@ -122,7 +122,7 @@ const saveFailure = ref<Failure | null>(null)
 function fill(loadedDetail: EventGroupDetail) {
   detail.value = loadedDetail
   details.value = {...loadedDetail.eventGroup.details}
-  sets.value = loadedDetail.sets.map(set => ({id: set.id, name: set.name, minimum: set.minimum}))
+  sets.value = loadedDetail.sets.map(set => ({id: set.id, name: set.name, minimum: set.minimum, maximum: set.maximum}))
   registration.value = toRestriction(loadedDetail.registration)
   view.value = toRestriction(loadedDetail.view)
   questions.value = loadedDetail.questions.map(({name, fieldType, config, overview}) => ({name, fieldType, config, overview}))
@@ -192,8 +192,10 @@ function dropStartingAppointment() {
 async function refreshParts() {
   if (eventGroupId.value == null) return
   const before = new Map((detail.value?.sets ?? []).map(set => [set.id, set.minimum]))
+  const maximumsBefore = new Map((detail.value?.sets ?? []).map(set => [set.id, set.maximum]))
   detail.value = await eventGroups.getEventGroup(eventGroupId.value)
   for (const set of detail.value.sets) {
+    takeRaisedMaximum(set, maximumsBefore.get(set.id) ?? null)
     const parts = partCounts.value[set.id] ?? 0
     const row = sets.value.find(candidate => candidate.id === set.id)
     if (row && set.minimum > (before.get(set.id) ?? set.minimum) && row.minimum < set.minimum) {
@@ -206,6 +208,18 @@ async function refreshParts() {
     sets.value = sets.value.map(candidate => (candidate.id === set.id ? {...candidate, minimum: to} : candidate))
     showToast(t('eventGroups.setMinimumLowered', {set: set.name, from: before.get(set.id) ?? row.minimum, to}))
   }
+}
+
+/**
+ * Takes a maximum the server raised because a part of the set became required, the same way a raised
+ * minimum is taken, and says so. A maximum the form already holds at least as high is left alone.
+ */
+function takeRaisedMaximum(set: EventGroupSet, before: number | null) {
+  const row = sets.value.find(candidate => candidate.id === set.id)
+  if (!row || set.maximum == null || before == null || set.maximum <= before) return
+  if (row.maximum != null && row.maximum >= set.maximum) return
+  sets.value = sets.value.map(candidate => (candidate.id === set.id ? {...candidate, maximum: set.maximum} : candidate))
+  showToast(t('eventGroups.setMaximumRaised', {set: set.name, from: before, to: set.maximum}))
 }
 
 /** The minimum each saved set was stored with, which a set still filling up may keep. */
@@ -231,6 +245,8 @@ function detailsToSave(): EventGroupDetails {
     color: entered.color || null,
     minRegistrations: entered.minRegistrations || null,
     thresholdDays: entered.minRegistrations ? entered.thresholdDays ?? null : null,
+    partRegistrationLimit: entered.partRegistrationLimit || null,
+    queueOrder: entered.queueOrder ?? null,
   }
 }
 
@@ -245,7 +261,7 @@ async function save() {
   saving.value = true
   saveFailure.value = null
   try {
-    const drafts = sets.value.map(set => ({id: set.id, name: set.name, minimum: set.minimum}))
+    const drafts = sets.value.map(set => ({id: set.id, name: set.name, minimum: set.minimum, maximum: set.maximum}))
     const savedId = eventGroupId.value ?? createdEventGroupId.value
     if (savedId == null) {
       const created = await eventGroups.createEventGroup({
@@ -306,7 +322,7 @@ async function save() {
               :members="members" :groups="groups" :group-members="groupMembers" :tags="tags"
           />
 
-          <EventGroupSignUpFields v-model="details"/>
+          <EventGroupSignUpFields v-model="details" :parts="detail?.parts ?? []"/>
 
           <div class="space-y-3">
             <HintedSubHeader :hint="t('eventGroups.setsHint')">{{ t('eventGroups.sets') }}</HintedSubHeader>

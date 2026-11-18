@@ -25,6 +25,7 @@ import RegistrationFieldsEditor from '@/views/stationview/events/eventshared/Reg
 import {emptySettings} from '@/views/stationview/events/eventshared/eventQuestions'
 import InheritedSettingsCard from '@/views/stationview/events/eventeditview/InheritedSettingsCard.vue'
 import QueueOrderField from '@/views/stationview/events/eventshared/QueueOrderField.vue'
+import PartLimitCard from '@/views/stationview/events/eventeditview/PartLimitCard.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import type {AttendanceTemplate, EventCategory, EventGroupSettings, RegistrationFieldDefinition} from '@/api/generated/schema'
 
@@ -239,6 +240,8 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
 
     <HelpSection :title="t('helpCenter.eventEdit.inheritedSettingsTitle')">
       <p>{{ t('helpCenter.eventEdit.inheritedSettingsText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.partLimitText') }}</p>
+      <PartLimitCard :model-value="undefined" :inherited="10"/>
       <p>{{ t('helpCenter.eventEdit.inheritedFilesText') }}</p>
       <InheritedSettingsCard
           class="mt-3"

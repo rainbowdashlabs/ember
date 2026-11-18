@@ -32,6 +32,7 @@ import FederationCard from './FederationCard.vue'
 import FieldDefaultsCard from './FieldDefaultsCard.vue'
 import InheritedFieldsCard from './InheritedFieldsCard.vue'
 import InheritedSettingsCard, {type InheritedSetting} from './InheritedSettingsCard.vue'
+import PartLimitCard from './PartLimitCard.vue'
 import {entryOf} from '../eventshared/eventQuestions'
 import RegistrationFieldsEditor from '../eventshared/RegistrationFieldsEditor.vue'
 import type {FieldDefaultValue} from './useEventFieldDefaults'
@@ -59,6 +60,8 @@ const props = defineProps<{
   inheritedFields?: AppointmentField[]
   /** The date settings the appointment takes over from its event group. */
   inheritedSettings?: EventGroupSettings | null
+  /** The places per appointment the event group gives its parts, null for no limit. */
+  inheritedPartLimit?: number | null
 }>()
 
 const emit = defineEmits<{
@@ -184,6 +187,12 @@ function override(field: AppointmentField) {
         />
       </template>
     </EventFormCard>
+
+    <PartLimitCard
+        v-if="props.eventGroupPart"
+        v-model="registrationLimit"
+        :inherited="props.inheritedPartLimit ?? null"
+    />
 
     <InheritedSettingsCard
         v-if="props.eventGroupPart && props.inheritedSettings"

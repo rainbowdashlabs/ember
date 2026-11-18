@@ -77,6 +77,12 @@ describe('placesLabel', () => {
             .toBe('registrationQueue.placesTakenWaiting {"taken":13,"limit":12,"waiting":2}')
     })
 
+    /** An event group can have a place free while people wait for a full part: both are said. */
+    it('says the taken places and the waiting ones where a place is free and people wait', () => {
+        expect(placesLabel({taken: 4, limit: 10, waiting: 2, full: false}, say))
+            .toBe('registrationQueue.placesTakenWaiting {"taken":4,"limit":10,"waiting":2}')
+    })
+
     it('says full alone where nobody waits', () => {
         expect(placesLabel({taken: 12, limit: 12, waiting: 0, full: true}, say)).toBe('registrationQueue.full {}')
     })

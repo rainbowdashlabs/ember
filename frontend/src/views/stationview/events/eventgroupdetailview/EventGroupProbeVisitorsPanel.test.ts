@@ -16,7 +16,7 @@ vi.mock('@/api', () => ({waitingList: {visitors}}))
 vi.mock('@/composables/useSession', () => ({useSession: () => ({stationTimezone: ref('Europe/Berlin')})}))
 
 function part(eventId: number, name: string, startTime: string): EventGroupPartState {
-    return {eventId, setId: 1, name, startTime, endTime: startTime, calledOff: false, tookPlace: false, required: false}
+    return {eventId, setId: 1, name, startTime, endTime: startTime, calledOff: false, tookPlace: false, required: false, accepted: 0, places: null}
 }
 
 /** Probe visitors are gathered per part on the station's day of that part, and parts nobody comes to are left out. */

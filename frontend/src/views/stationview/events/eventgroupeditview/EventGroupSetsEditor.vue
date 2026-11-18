@@ -20,6 +20,10 @@ import type {SetRow} from './eventGroupSetRow'
  * of them; a set without parts yet takes any minimum, which counts once parts come, and a set still
  * filling up keeps the minimum it was saved with, as the server does. A number outside that is taken
  * back to the nearest allowed one, and the box shows it once the reader leaves it.
+ *
+ * <p>A set may also hold a maximum, "höchstens", which is empty for none. It is at least 1 and at
+ * least the minimum: a maximum typed below that is taken up to it, and a minimum raised past the
+ * maximum takes the maximum with it. "At least 1, at most 1" makes the parts of a set alternatives.
  */
 const sets = defineModel<SetRow[]>({required: true})
 const props = withDefaults(defineProps<{
@@ -52,13 +56,26 @@ function hint(set: SetRow): string {
 }
 
 /** Shows the number the set holds once the reader leaves the box, where a typed one was taken back. */
-function resync(event: FocusEvent, set: SetRow) {
+function resync(event: FocusEvent, value: number | null) {
   const input = event.target as HTMLInputElement | null
-  if (input && input.value !== String(set.minimum)) input.value = String(set.minimum)
+  const shown = value == null ? '' : String(value)
+  if (input && input.value !== shown) input.value = shown
+}
+
+/** A new minimum, with the maximum raised along where the minimum passes it. */
+function withMinimum(set: SetRow, value: number | undefined): Partial<SetRow> {
+  const minimum = bounded(set, value)
+  return set.maximum != null && set.maximum < minimum ? {minimum, maximum: minimum} : {minimum}
+}
+
+/** A maximum as typed: empty or zero for none, otherwise at least 1 and at least the minimum. */
+function boundedMaximum(set: SetRow, value: number | undefined): number | null {
+  if (!value) return null
+  return Math.max(Math.trunc(value), set.minimum, 1)
 }
 
 function add() {
-  sets.value = [...sets.value, {id: null, name: '', minimum: 1}]
+  sets.value = [...sets.value, {id: null, name: '', minimum: 1, maximum: null}]
 }
 
 function remove(index: number) {
@@ -81,13 +98,23 @@ function update(index: number, change: Partial<SetRow>) {
               class="flex-1 min-w-40"
               @update:model-value="value => update(index, {name: value ?? ''})"
           />
-          <span class="w-24" @focusout="event => resync(event, set)">
+          <span class="w-24" @focusout="event => resync(event, set.minimum)">
             <NumberInput
                 :model-value="set.minimum"
                 :aria-label="t('eventGroups.setMinimum')"
                 min="0"
                 :data-testid="`event-group-set-minimum-${index}`"
-                @update:model-value="value => update(index, {minimum: bounded(set, value)})"
+                @update:model-value="value => update(index, withMinimum(set, value))"
+            />
+          </span>
+          <span class="w-24" @focusout="event => resync(event, set.maximum)">
+            <NumberInput
+                :model-value="set.maximum ?? undefined"
+                :aria-label="t('eventGroups.setMaximum')"
+                :placeholder="t('eventGroups.setMaximum')"
+                min="0"
+                :data-testid="`event-group-set-maximum-${index}`"
+                @update:model-value="value => update(index, {maximum: boundedMaximum(set, value)})"
             />
           </span>
           <MutedText tag="span" size="sm" :data-testid="`event-group-set-hint-${index}`">{{ hint(set) }}</MutedText>

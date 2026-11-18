@@ -13,11 +13,11 @@ const t = (key: string) => key
 
 function signUp(sets: SetResult[], answersMissing: boolean): EventGroupSignUp {
     return {memberId: 1, member: createIdentity({name: 'Anna'}), status: RegistrationStatus.PENDING, registeredAt: null, parts: [1],
-        sets, answers: [], answersMissing, mayRegister: true}
+        sets, answers: [], answersMissing, mayRegister: true, queuePosition: null}
 }
 
-const MET: SetResult = {setId: 1, name: 'Übung', required: 1, chosen: 1, missingRequired: []}
-const SHORT: SetResult = {setId: 2, name: 'Prüfung', required: 1, chosen: 0, missingRequired: []}
+const MET: SetResult = {setId: 1, name: 'Übung', required: 1, chosen: 1, missingRequired: [], maximum: null, tooMany: 0}
+const SHORT: SetResult = {setId: 2, name: 'Prüfung', required: 1, chosen: 0, missingRequired: [], maximum: null, tooMany: 0}
 
 describe('isSignUpComplete', () => {
     it('holds a sign-up that meets every set and owes no answer', () => {
@@ -34,7 +34,7 @@ describe('signUpColumns', () => {
     it('offers the statuses in the order the filter lists them', () => {
         const status = signUpColumns(t).find(column => column.key === 'status')!
         expect(status.options?.map(option => option.value)).toEqual([
-            RegistrationStatus.PENDING, RegistrationStatus.ACCEPTED, RegistrationStatus.DENIED,
+            RegistrationStatus.PENDING, RegistrationStatus.ACCEPTED, RegistrationStatus.QUEUED, RegistrationStatus.DENIED,
         ])
     })
 })

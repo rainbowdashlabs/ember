@@ -24,12 +24,12 @@ function detail(): EventGroupDetail {
   return {
     eventGroup: {
       id: 70,
-      details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null},
-      cancelled: false, cancelReason: null, partCount: 4, holding: 2,
+      details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null},
+      cancelled: false, cancelReason: null, partCount: 4, holding: 2, queued: 0,
     },
     sets: [
-      {id: 1, eventGroupId: 70, name: 'Übung', minimum: 2, position: 0},
-      {id: 2, eventGroupId: 70, name: 'Prüfung', minimum: 1, position: 1},
+      {id: 1, eventGroupId: 70, name: 'Übung', minimum: 2, maximum: null, position: 0},
+      {id: 2, eventGroupId: 70, name: 'Prüfung', minimum: 1, maximum: null, position: 1},
     ],
     parts: [],
     registration: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
@@ -49,9 +49,9 @@ afterEach(() => {
 
 const ATTENDANCE: EventGroupAttendance[] = [
   {memberId: 11, member: createIdentity({name: 'Anna'}), complete: true,
-    sets: [{setId: 1, name: 'Übung', required: 2, chosen: 2, missingRequired: []}, {setId: 2, name: 'Prüfung', required: 1, chosen: 1, missingRequired: []}]},
+    sets: [{setId: 1, name: 'Übung', required: 2, chosen: 2, missingRequired: [], maximum: null, tooMany: 0}, {setId: 2, name: 'Prüfung', required: 1, chosen: 1, missingRequired: [], maximum: null, tooMany: 0}]},
   {memberId: 12, member: createIdentity({name: 'Ben'}), complete: false,
-    sets: [{setId: 1, name: 'Übung', required: 2, chosen: 1, missingRequired: []}, {setId: 2, name: 'Prüfung', required: 1, chosen: 0, missingRequired: []}]},
+    sets: [{setId: 1, name: 'Übung', required: 2, chosen: 1, missingRequired: [], maximum: null, tooMany: 0}, {setId: 2, name: 'Prüfung', required: 1, chosen: 0, missingRequired: [], maximum: null, tooMany: 0}]},
 ]
 
 describe('EventGroupAttendancePanel', () => {
@@ -80,9 +80,9 @@ describe('EventGroupAttendancePanel', () => {
   it('shows per participant the parts attended against each set and whether all are met', async () => {
     listAttendance.mockResolvedValue([
       {memberId: 11, member: createIdentity({name: 'Anna'}), complete: true,
-        sets: [{setId: 1, name: 'Übung', required: 2, chosen: 2, missingRequired: []}, {setId: 2, name: 'Prüfung', required: 1, chosen: 1, missingRequired: []}]},
+        sets: [{setId: 1, name: 'Übung', required: 2, chosen: 2, missingRequired: [], maximum: null, tooMany: 0}, {setId: 2, name: 'Prüfung', required: 1, chosen: 1, missingRequired: [], maximum: null, tooMany: 0}]},
       {memberId: 12, member: createIdentity({name: 'Ben'}), complete: false,
-        sets: [{setId: 1, name: 'Übung', required: 2, chosen: 1, missingRequired: []}, {setId: 2, name: 'Prüfung', required: 1, chosen: 0, missingRequired: []}]},
+        sets: [{setId: 1, name: 'Übung', required: 2, chosen: 1, missingRequired: [], maximum: null, tooMany: 0}, {setId: 2, name: 'Prüfung', required: 1, chosen: 0, missingRequired: [], maximum: null, tooMany: 0}]},
     ])
     wrapper = await mountSuspended(EventGroupAttendancePanel, {props: {detail: detail()}, global: {stubs: {MemberName: true}}})
     await flushPromises()

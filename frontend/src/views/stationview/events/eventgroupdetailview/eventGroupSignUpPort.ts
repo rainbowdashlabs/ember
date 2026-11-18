@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {EventRegistrationFieldValue} from '@/api/generated/schema'
+import type {EventRegistrationFieldValue, WhenFull} from '@/api/generated/schema'
 import {eventGroups, partnerEventGroups} from '@/api'
 
 /**
@@ -13,7 +13,8 @@ import {eventGroups, partnerEventGroups} from '@/api'
 export interface EventGroupSignUpPort {
     /** Whether the parts' documents are signed at this station right after signing up; a partner's are not. */
     readonly signsHere: boolean
-    signUp(parts: number[], answers: EventRegistrationFieldValue[], memberId?: number): Promise<unknown>
+    /** Signs up; `whenFull` is what whoever runs the event group chose for somebody else on a full choice. */
+    signUp(parts: number[], answers: EventRegistrationFieldValue[], memberId?: number, whenFull?: WhenFull): Promise<unknown>
     changeParts(parts: number[], memberId?: number): Promise<unknown>
     withdraw(memberId?: number): Promise<unknown>
 }
@@ -22,13 +23,16 @@ export interface EventGroupSignUpPort {
 export function ownEventGroupPort(eventGroupId: number): EventGroupSignUpPort {
     return {
         signsHere: true,
-        signUp: (parts, answers, memberId) => eventGroups.signUp(eventGroupId, parts, answers, memberId),
+        signUp: (parts, answers, memberId, whenFull) => eventGroups.signUp(eventGroupId, parts, answers, memberId, whenFull),
         changeParts: (parts, memberId) => eventGroups.changeParts(eventGroupId, parts, memberId),
         withdraw: memberId => eventGroups.withdraw(eventGroupId, memberId),
     }
 }
 
-/** Sign-ups for an event group a partner station shares. Partners ask no questions of visitors. */
+/**
+ * Sign-ups for an event group a partner station shares. Partners ask no questions of visitors, and
+ * nobody here runs the partner's event group, so a full choice is never asked about.
+ */
 export function partnerEventGroupPort(stationUid: string, eventGroupId: number): EventGroupSignUpPort {
     return {
         signsHere: false,
