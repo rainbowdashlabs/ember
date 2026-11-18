@@ -82,8 +82,8 @@ const sampleCancellation: CancellationNotice = {
           <SectionHeader>{{ t('helpCenter.sample.events.competitionPrep') }}</SectionHeader>
           <SecondaryBadge>{{ t('events.typeOneTime') }}</SecondaryBadge>
         </div>
-        <ButtonRow>
-          <SecondaryButton><font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>{{ t('common.back') }}</SecondaryButton>
+        <div class="flex items-center gap-2 ml-auto">
+          <SecondaryButton :icon="['fas', 'arrow-left']"><span class="max-sm:sr-only">{{ t('common.back') }}</span></SecondaryButton>
           <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">
             <PrimaryButton><font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/>{{ t('events.editEvent') }}</PrimaryButton>
           </HelpPermissionGuard>
@@ -92,8 +92,9 @@ const sampleCancellation: CancellationNotice = {
             <DropdownMenuItem :icon="['fas', 'copy']">{{ t('events.copyEvent') }}</DropdownMenuItem>
             <DropdownMenuItem :icon="['fas', 'ban']" destructive>{{ t('events.cancelDate') }}</DropdownMenuItem>
             <DropdownMenuItem :icon="['fas', 'calendar-xmark']" destructive>{{ t('events.cancelSeries') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'trash']" destructive>{{ t('common.delete') }}</DropdownMenuItem>
           </ActionsMenu>
-        </ButtonRow>
+        </div>
       </div>
 
       <NeutralContainer class="space-y-3 mt-3">

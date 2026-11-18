@@ -38,6 +38,7 @@ const templates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleG
     <HelpSection :title="t('helpCenter.eventGroupEdit.whatIs')">
       <p>{{ t('helpCenter.eventGroupEdit.whatIsText') }}</p>
       <p>{{ t('helpCenter.eventGroupEdit.formText') }}</p>
+      <p>{{ t('helpCenter.eventGroupEdit.formSectionsText') }}</p>
       <NeutralContainer class="space-y-3">
         <TextInput :model-value="t('helpCenter.eventGroups.exampleName')" :aria-label="t('eventGroups.name')"
                    class="text-lg font-semibold" disabled/>

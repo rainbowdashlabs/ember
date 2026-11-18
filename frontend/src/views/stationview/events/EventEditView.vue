@@ -399,10 +399,6 @@ function leaveEditor() {
   }
 }
 
-function goBack() {
-  leaveEditor()
-}
-
 const bodyProps = computed(() => ({
   isEdit: isEdit.value,
   saving: saving.value || confirming.value,
@@ -412,6 +408,9 @@ const bodyProps = computed(() => ({
   inheritedFields: groupPart.inheritedFields.value,
   inheritedSettings: groupPart.settings.value?.eventGroup ?? null,
   inheritedPartLimit: groupPart.settings.value?.partRegistrationLimit ?? null,
+  documentCount: documentRequirements.chosen.value.length,
+  fileCount: isEdit.value ? attachments.attachments.value.length : templateFiles.value.length,
+  attention: saveFailure.value || confirmFailure.value ? ['audience', 'sharing'] : [],
   ...data.props.value,
   ...fieldDefaults.props.value,
   ...federationShare.props.value,
@@ -423,7 +422,7 @@ const bodyHandlers = {
   ...fieldDefaults.handlers,
   ...federationShare.handlers,
   'apply-template': applyEventTemplate,
-  cancel: goBack,
+  cancel: leaveEditor,
   submit,
 }
 </script>
@@ -435,7 +434,7 @@ const bodyHandlers = {
   >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="leaveEditor">
           {{ t('common.back') }}
         </SecondaryButton>
       </div>

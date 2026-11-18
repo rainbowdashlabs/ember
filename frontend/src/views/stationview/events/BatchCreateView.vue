@@ -260,6 +260,7 @@ function openOverview() {
               :attendance-fields="sheetFields"
               :groups="groups"
               :tags="tags"
+              open-fields
           />
 
           <BatchTemplateNote :carried="batchTemplate.carried.value" :left-out="templateLeftOut"/>

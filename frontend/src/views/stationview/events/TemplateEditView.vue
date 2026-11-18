@@ -292,11 +292,14 @@ async function save() {
             :can-federate="canFederate"
             :attachments="attachments"
             :station-uid="stationUid"
-        />
-        <DocumentRequirementsEditor
-            v-model="documentRequirements.chosen.value"
-            :offered-count="documentRequirements.offeredCount.value"
-        />
+            :document-count="documentRequirements.chosen.value.length"
+        >
+          <DocumentRequirementsEditor
+              v-model="documentRequirements.chosen.value"
+              :offered-count="documentRequirements.offeredCount.value"
+              compact
+          />
+        </TemplateCarriedCards>
       </TemplateEditBody>
     </div>
   </ViewContent>

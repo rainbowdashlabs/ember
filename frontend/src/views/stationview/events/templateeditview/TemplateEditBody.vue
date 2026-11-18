@@ -9,6 +9,7 @@ import SaveButton from '@/components/button/SaveButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FormSection from '@/components/container/FormSection.vue'
 import EventFieldList from '../eventshared/EventFieldList.vue'
 import RegistrationFieldsEditor from '../eventshared/RegistrationFieldsEditor.vue'
 import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
@@ -17,6 +18,7 @@ import TemplateAudienceSection from './TemplateAudienceSection.vue'
 import TemplateSignUpSection from './TemplateSignUpSection.vue'
 import type {RestrictionSelection} from '@/api/types'
 import {isRecurringEvent} from '@/api/events'
+import {audienceSummary, fieldsSummary, questionsSummary, remindersSummary} from '../eventshared/sectionSummaries'
 import type {
     AttendanceTemplate,
     AttendanceTemplateField,
@@ -33,7 +35,9 @@ import type {
  *
  * <p>Its own component because the view around it is the loading, the error and the way back, and
  * the template itself is six sections that have nothing to do with any of those. What the view adds
- * of its own, such as the documents to bring, stands in the slot above the save button.
+ * of its own, such as the documents to bring, stands in the slot above the save button. As in the
+ * appointment form, the name, the defaults and the sign-up stand open, and who may sign up, the
+ * reminders, the fields and the questions are folded sections that say what they hold.
  */
 defineProps<{
   categories: EventCategory[]
@@ -95,30 +99,58 @@ const {t} = useI18n()
       :event-type="eventType"
   />
 
-  <TemplateAudienceSection
-      v-model:restriction="restriction"
-      v-model:view-restriction="viewRestriction"
-      :groups="groups"
-      :tags="tags"
-  />
+  <NeutralContainer sheet>
+    <FormSection
+        :title="t('formSections.audience')"
+        :summary="audienceSummary(restriction, viewRestriction, t)"
+        data-testid="form-section-audience"
+    >
+      <TemplateAudienceSection
+          v-model:restriction="restriction"
+          v-model:view-restriction="viewRestriction"
+          :groups="groups"
+          :tags="tags"
+      />
+    </FormSection>
+  </NeutralContainer>
 
   <NeutralContainer>
-    <EventReminderEditor v-model="reminderDays"/>
+    <FormSection
+        :title="t('formSections.reminders')"
+        :summary="remindersSummary(reminderDays, t)"
+        data-testid="form-section-reminders"
+    >
+      <EventReminderEditor v-model="reminderDays" compact/>
+    </FormSection>
   </NeutralContainer>
 
-  <NeutralContainer class="space-y-4">
-    <EventFieldList
-        v-model:fields="fields"
-        :attendance-fields="sheetFields"
-        :groups="groups"
-        :tags="tags"
-        :recurring="isRecurringEvent(eventType)"
-        :value-label="t('eventFields.defaultValue')"
-        show-value
-    />
+  <NeutralContainer>
+    <FormSection
+        :title="t('formSections.fieldsOnly')"
+        :summary="fieldsSummary('', fields.length, t)"
+        data-testid="form-section-fields"
+    >
+      <EventFieldList
+          v-model:fields="fields"
+          :attendance-fields="sheetFields"
+          :groups="groups"
+          :tags="tags"
+          :recurring="isRecurringEvent(eventType)"
+          :value-label="t('eventFields.defaultValue')"
+          show-value
+      />
+    </FormSection>
   </NeutralContainer>
 
-  <RegistrationFieldsEditor v-if="requiresRegistration" v-model="registrationFields"/>
+  <NeutralContainer v-if="requiresRegistration" sheet>
+    <FormSection
+        :title="t('formSections.questions')"
+        :summary="questionsSummary(registrationFields.length, t)"
+        data-testid="form-section-questions"
+    >
+      <RegistrationFieldsEditor v-model="registrationFields" untitled/>
+    </FormSection>
+  </NeutralContainer>
 
   <slot/>
 

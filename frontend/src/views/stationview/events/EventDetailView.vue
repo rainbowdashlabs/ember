@@ -305,6 +305,7 @@ function onFieldUpdated(field: AppointmentField) {
         :my-registrations="myRegistrations"
         :registering="answer.registering.value !== null"
         :event-group-part="eventGroupPart !== null"
+        :event-group-name="eventGroupPart?.eventGroupName ?? null"
         @cancelled="onEventCancelled"
         @answers-updated="reloadMyRegistrations"
         @field-updated="onFieldUpdated"

@@ -4,9 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FormSection from '@/components/container/FormSection.vue'
 import EventFormPanel from '../eventshared/EventFormPanel.vue'
 import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
+import {remindersSummary} from '../eventshared/sectionSummaries'
 import type {RestrictionSelection} from '@/api/types'
 import type {
     AttendanceTemplate,
@@ -29,6 +32,13 @@ defineProps<{
   groupMembers: Map<number, MemberLike[]>
   /** Whether the appointment is a part of an event group, which owns its sign-up and audiences. */
   eventGroupPart?: boolean
+  /**
+   * The settings the event group of a part hands down, which the inherited settings card shows: the
+   * form offers its own control for one only once the part overrides it.
+   */
+  followsGroup?: {category: boolean; template: boolean; reminders: boolean}
+  /** The folded sections that hold something the reader has to see now, by key, which opens them. */
+  attention?: readonly string[]
 }>()
 
 const name = defineModel<string>('name', {required: true})
@@ -54,6 +64,8 @@ const restriction = defineModel<RestrictionSelection>('restriction', {required: 
 const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
 const reminders = defineModel<number[]>('reminders', {required: true})
+
+const {t} = useI18n()
 </script>
 
 <template>
@@ -65,10 +77,8 @@ const reminders = defineModel<number[]>('reminders', {required: true})
         v-model:template-id="templateId"
         v-model:event-type="eventType"
         v-model:day-of-week="dayOfWeek"
-        v-model:start-time="startTime"
-        v-model:end-time="endTime"
-        v-model:repeat-until="repeatUntil"
-        v-model:repeat-count="repeatCount"
+        v-model:start-time="startTime" v-model:end-time="endTime"
+        v-model:repeat-until="repeatUntil" v-model:repeat-count="repeatCount"
         v-model:requires-registration="requiresRegistration"
         v-model:requires-confirmation="requiresConfirmation"
         v-model:has-deadline="hasDeadline"
@@ -89,14 +99,24 @@ const reminders = defineModel<number[]>('reminders', {required: true})
         :all-members="allMembers"
         :group-members="groupMembers"
         :event-group-part="eventGroupPart"
+        :follows-group="followsGroup"
+        :attention="attention"
         show-schedule
         show-value
     >
       <template #after-fields>
         <slot name="after-fields"/>
       </template>
-      <template #after-description>
-        <EventReminderEditor v-model="reminders" compact/>
+      <template #sections>
+        <FormSection
+            v-if="!followsGroup?.reminders || reminders.length > 0"
+            :title="t('formSections.reminders')"
+            :summary="remindersSummary(reminders, t)"
+            :attention="attention?.includes('reminders')"
+            data-testid="form-section-reminders"
+        >
+          <EventReminderEditor v-model="reminders" compact/>
+        </FormSection>
       </template>
     </EventFormPanel>
   </NeutralContainer>

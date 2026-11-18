@@ -15,6 +15,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import HintedSubHeader from '@/components/typography/HintedSubHeader.vue'
+import FormSection from '@/components/container/FormSection.vue'
+import {audienceSummary} from './eventshared/sectionSummaries'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -335,17 +337,19 @@ async function save() {
             <EventGroupSetsEditor v-model="sets" :part-counts="partCounts" :stored-minimums="storedMinimums"/>
           </div>
 
-          <div class="space-y-3">
-            <HintedSubHeader :hint="t('eventGroups.audienceHint')">{{ t('eventGroups.audiences') }}</HintedSubHeader>
+          <FormSection
+              :title="t('eventGroups.audiences')" :summary="audienceSummary(registration, view, t)" :attention="!!saveFailure" data-testid="form-section-audience"
+          >
+            <MutedText tag="p" size="sm">{{ t('eventGroups.audienceHint') }}</MutedText>
             <AudienceRestrictions
                 v-model:registration="registration" v-model:visibility="view" :groups="groups" :tags="tags"
                 :registration-hint="t('eventGroups.registerAudienceHint')" :visibility-hint="t('eventGroups.viewAudienceHint')"
             />
-          </div>
+          </FormSection>
 
           <EventGroupQuestionsCard v-model="questions" compact/>
           <EventGroupFilesSection :event-group-id="eventGroupId" :requirements="requirements" compact/>
-          <EventGroupShareCard :federation-share="federationShare" :can-federate="canFederate" compact/>
+          <EventGroupShareCard :federation-share="federationShare" :can-federate="canFederate" :attention="!!saveFailure" compact/>
 
           <div class="space-y-3">
             <FailureAlert v-if="saveFailure" :failure="saveFailure"/>

@@ -46,6 +46,8 @@ import {useSession} from '@/composables/useSession'
 const props = defineProps<{
   /** Whether the appointment is a part of an event group, whose sign-up goes through the event group. */
   eventGroupPart?: boolean
+  /** The event group the appointment is a part of, which deleting it leaves. */
+  eventGroupName?: string | null
   event: StationEvent
   eventId: number
   fields: AppointmentField[]
@@ -302,6 +304,7 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
         :category-name="categoryName"
         :attendance-session-id="attendanceSessionId"
         :can-take-attendance="canTakeAttendance && !cancellation"
+        :event-group-name="eventGroupName"
         @cancel-date="cancelling = 'date'"
         @cancel-series="cancelling = 'series'"
         @restore-date="restoreDate"

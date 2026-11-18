@@ -7,6 +7,7 @@ import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 import {pickMemberByName} from './fixtures/memberMenu'
 import {stationDay} from './fixtures/stationDay'
 import {fillMoment, momentFields} from './fixtures/moment'
+import {openFormSection} from './fixtures/formSection'
 
 /**
  * Registering for an event, withdrawing again, and the organiser's view of who has signed up.
@@ -633,6 +634,7 @@ test.describe('Events', () => {
 
         await managerPage.getByText('Anmeldung erforderlich')
             .locator('xpath=following-sibling::button').click()
+        await openFormSection(managerPage, 'questions')
         await managerPage.getByRole('button', {name: 'Frage hinzufügen'}).click()
         await managerPage.getByPlaceholder('z.B. Begleitpersonen').fill(question)
 
