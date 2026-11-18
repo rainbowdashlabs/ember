@@ -124,7 +124,7 @@ class EventGroupAttendanceRoutesTest {
         assertTrue(header(response, "Content-Type").startsWith("application/pdf"));
         assertEquals("%PDF", response.body().string());
         var table = ArgumentCaptor.forClass(MemberTable.class);
-        verify(renderer).toPdf(table.capture(), any(), eq("Jugendflamme 1"), eq("Teilnahme an der Terminreihe"), any());
+        verify(renderer).toPdf(table.capture(), any(), eq("Jugendflamme 1"), eq("Anwesenheit in der Terminreihe"), any());
         assertEquals(
                 List.of("Mitglied", "Übung (2)", "Prüfung (1)", "Erfüllt"), renderer.headerLabels(table.getValue()));
         assertEquals(

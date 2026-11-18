@@ -112,4 +112,17 @@ describe('RegistrationsPanel', () => {
     expect(shown.find('[data-testid="queue-registration-1"]').exists()).toBe(false)
     expect(shown.find('[data-testid="registrations-places"]').exists()).toBe(false)
   })
+
+  /** The counts above the list name each status by the word the status badge uses, not by the button that leads to it. */
+  it('counts refused and signed off answers by their status words', async () => {
+    const registrations = [
+      signUp(1, RegistrationStatus.DENIED, '2026-11-01T10:00:00Z'),
+      signUp(2, RegistrationStatus.DECLINED, '2026-11-01T11:00:00Z'),
+    ]
+    const shown = await panel(false, {registrations, nonPendingRegistrations: registrations})
+
+    expect(shown.text()).toContain('1 abgelehnt')
+    expect(shown.text()).toContain('1 abgemeldet')
+    expect(shown.text()).not.toContain('1 Ablehnen')
+  })
 })

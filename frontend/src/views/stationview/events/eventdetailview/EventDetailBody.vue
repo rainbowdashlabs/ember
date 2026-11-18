@@ -18,6 +18,8 @@ import EventProbeVisitors from './EventProbeVisitors.vue'
 import EventDetailHeader from './EventDetailHeader.vue'
 import EventInfoTab from './EventInfoTab.vue'
 import EventEquipmentTab from './EventEquipmentTab.vue'
+import EventAttendanceTab from './EventAttendanceTab.vue'
+import {detailTabs, showsAttendanceTab, type DetailTabFacts, type DetailTabKey} from './detailTabs'
 import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -220,7 +222,7 @@ const {running: savingAnswers, failure: answersFailure, run: saveAnswers} = useA
       emit('answers-updated')
     })
 
-const activeTab = ref<'info' | 'registrations' | 'equipment'>('info')
+const activeTab = ref<DetailTabKey>('info')
 
 /**
  * Whether what the appointment needs can be read at all. The gear lives in the inventory, so a
@@ -242,26 +244,23 @@ const canReadEquipment = computed(() =>
  */
 const canBorrowGear = computed(() => props.hasPermission(StationPermission.INVENTORY_LENDING_REQUEST))
 
-/**
- * What the second tab is called, which follows what the appointment asks of people.
- *
- * <p>Where it has to be signed up for, the tab holds the sign-ups. Where it does not, everybody is
- * expected and the only answer anybody gives is a refusal, so the tab holds who is not coming. It
- * used to be absent entirely on such an appointment, which left the refusals with nowhere to be
- * read: they can be given from the appointment's own page, and then went nowhere anybody looked.
- */
-const answerTabLabel = computed(() =>
-    props.event.requiresRegistration ? t('eventDetail.tabRegistrations') : t('eventDetail.tabAttendance'))
+/** What decides the tabs of the page, read off the appointment, the reader and the date on screen. */
+const tabFacts = computed<DetailTabFacts>(() => ({
+  requiresRegistration: props.event.requiresRegistration,
+  canManageAttendance: props.canManageAttendance,
+  hasAttendanceTemplate: props.event.templateId != null,
+  hasDate: props.effectiveDate != null,
+  attendanceSessionId: attendanceSessionId.value,
+  cancelled: !!props.cancellation,
+  canReadEquipment: canReadEquipment.value,
+}))
 
-const tabs = computed(() => {
-  const entries = [
-    {key: 'info', label: t('eventDetail.tabInfo')},
-    {key: 'registrations', label: answerTabLabel.value},
-  ]
-  if (canReadEquipment.value) {
-    entries.push({key: 'equipment', label: t('eventDetail.tabEquipment')})
-  }
-  return entries
+const showsAttendance = computed(() => showsAttendanceTab(tabFacts.value))
+
+const tabs = computed(() => detailTabs(tabFacts.value, t))
+
+watch(tabs, entries => {
+  if (!entries.some(entry => entry.key === activeTab.value)) activeTab.value = 'info'
 })
 
 /**
@@ -392,6 +391,12 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
         :date-past="datePast"
         :date-places="places"
         @changed="loadPlaces"
+    />
+
+    <EventAttendanceTab
+        v-if="activeTab === 'attendance' && showsAttendance"
+        :attendance-session-id="attendanceSessionId"
+        @attendance="toAttendance"
     />
 
     <EventEquipmentTab

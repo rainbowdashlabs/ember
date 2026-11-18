@@ -356,7 +356,7 @@ test.describe('Events', () => {
             const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
 
             await memberPage.getByTestId('answer-household').click()
-            await expect(myAnswer, 'nobody has said yes to them yet').toHaveText('Ausstehend', {timeout: 15000})
+            await expect(myAnswer, 'nobody has said yes to them yet').toHaveText('Offen', {timeout: 15000})
 
             await signOff(memberPage, memberPage.getByTestId('withdraw-household'))
             await expect(myAnswer, 'the place is given up, and that is an answer')

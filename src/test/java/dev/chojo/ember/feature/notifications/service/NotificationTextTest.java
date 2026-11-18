@@ -550,7 +550,7 @@ class NotificationTextTest {
     @Test
     void resolveStatusWithSymbolUsesLocalisedLabelAndIcon() {
         assertEquals("✓ Accepted", text.resolveStatusWithSymbol("en", "ACCEPTED"));
-        assertEquals("✓ Angenommen", text.resolveStatusWithSymbol("de", "ACCEPTED"));
+        assertEquals("✓ Bestätigt", text.resolveStatusWithSymbol("de", "ACCEPTED"));
         assertEquals("MYSTERY", text.resolveStatusWithSymbol("en", "MYSTERY"));
         assertNull(text.resolveStatusWithSymbol("en", null));
         assertTrue(text.resolveStatusWithSymbol("en", "DENIED").startsWith("✗ "));

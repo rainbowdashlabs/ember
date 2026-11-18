@@ -58,7 +58,6 @@ const offersCloseDays = computed(() => props.eventType !== EventType.ONE_TIME)
       <NumberInput
           :model-value="registrationCloseDays"
           min="0"
-          :placeholder="t('events.registrationCloseDaysHint')"
           data-testid="template-close-days"
           @update:model-value="value => registrationCloseDays = nonNegative(value)"
       />

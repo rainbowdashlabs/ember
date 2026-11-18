@@ -7,6 +7,7 @@
 import {afterEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount, type VueWrapper} from '@vue/test-utils'
 import EventGroupHouseholdPanel from './EventGroupHouseholdPanel.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {EventGroupDetail, EventGroupSignUp} from '@/api/generated/schema'
 import {createIdentity} from '@/test/mocks/factories'
 
@@ -60,7 +61,7 @@ describe('EventGroupHouseholdPanel', () => {
     expect(wrapper.find('[data-testid="event-group-closed"]').exists()).toBe(true)
   })
 
-  it('withdraws the child it was asked for', async () => {
+  it('withdraws the child it was asked for after a neutral question, since leaving deletes nothing', async () => {
     const onChanged = vi.fn()
     wrapper = mount(EventGroupHouseholdPanel, {
       props: {detail: detail([entry(11, 'Lea'), entry(12, 'Mara', {status: 'ACCEPTED', parts: [11]})]), onChanged},
@@ -70,6 +71,7 @@ describe('EventGroupHouseholdPanel', () => {
 
     await wrapper.find('[data-testid="event-group-withdraw"]').trigger('click')
     await flushPromises()
+    expect(wrapper.findComponent(ConfirmDeleteModal).props('neutral')).toBe(true)
     ;(document.body.querySelector('[data-confirm]') as HTMLButtonElement).click()
     await flushPromises()
 

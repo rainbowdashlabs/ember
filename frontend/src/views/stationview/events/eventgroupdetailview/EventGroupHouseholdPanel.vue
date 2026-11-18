@@ -161,6 +161,7 @@ async function confirmWithdraw() {
         :message="t('eventGroups.withdrawText', {name: withdrawFor?.member.name ?? ''})"
         :confirm-label="withdrawFor && isQueued(withdrawFor) ? t('registrationQueue.leave') : t('eventGroups.withdraw')"
         :busy="busy"
+        neutral
         @confirm="confirmWithdraw"
     />
   </NeutralContainer>
