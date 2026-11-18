@@ -10,6 +10,7 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -41,16 +42,19 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -66,6 +70,7 @@ class RegistrationPlaceRoutesTest {
     private EventRegistrationService registrationService;
     private EventRegistrationFieldService registrationFieldService;
     private EventRegistrationRoutes routes;
+    private EventCrudService crudService;
 
     private static StationMember member(int id) {
         return new StationMember(
@@ -98,7 +103,7 @@ class RegistrationPlaceRoutesTest {
         var restrictions = mock(EventRestrictionService.class);
         when(restrictions.canRegister(anyInt(), anyInt(), any())).thenReturn(true);
         registrationFieldService = mock(EventRegistrationFieldService.class);
-        var crudService = mock(EventCrudService.class);
+        crudService = mock(EventCrudService.class);
         var event = mock(StationEvent.class);
         when(event.stationId()).thenReturn(STATION_ID);
         when(event.requiresRegistration()).thenReturn(true);
@@ -254,5 +259,111 @@ class RegistrationPlaceRoutesTest {
         assertEquals(201, answer.code(), answer.body().string());
         verify(registrationService)
                 .register(eq(EVENT_ID), eq(ASKING_MEMBER_ID), any(), eq(true), isNull(), eq(false), any());
+    }
+
+    @Test
+    void whoeverDecidesPlacesPutsSignUpsOntoTheWaitingList() {
+        var queued = new EventRegistration(
+                REGISTRATION_ID,
+                EVENT_ID,
+                OTHER_MEMBER_ID,
+                LocalDate.of(2026, 9, 2),
+                RegistrationStatus.QUEUED,
+                Instant.now(),
+                null);
+        when(registrationService.moveToQueue(List.of(REGISTRATION_ID))).thenReturn(List.of(queued));
+        when(registrationService.queueRanksOf(List.of(REGISTRATION_ID))).thenReturn(Map.of(REGISTRATION_ID, 1));
+
+        var answer = send(
+                "/events/registrations/queue",
+                "{\"registrationIds\": [%d]}".formatted(REGISTRATION_ID),
+                sessionWith(StationPermission.EVENT_REGISTRATION),
+                true);
+
+        var body = answer.body().string();
+        assertEquals(200, answer.code(), body);
+        assertTrue(body.contains("\"status\":\"QUEUED\""), body);
+        assertTrue(body.contains("\"queuePosition\":1"), body);
+        verify(registrationService).moveToQueue(List.of(REGISTRATION_ID));
+    }
+
+    @Test
+    void aPlainMemberCannotPutSignUpsOntoTheList() {
+        var answer = send(
+                "/events/registrations/queue",
+                "{\"registrationIds\": [%d]}".formatted(REGISTRATION_ID),
+                sessionWith(),
+                true);
+
+        assertEquals(403, answer.code(), answer.body().string());
+        verify(registrationService, never()).moveToQueue(any());
+    }
+
+    @Test
+    void aSignUpOfAnotherStationIsNotMovedInLine() {
+        var foreign = mock(StationEvent.class);
+        when(foreign.stationId()).thenReturn(STATION_ID + 1);
+        when(crudService.findById(EVENT_ID)).thenReturn(Optional.of(foreign));
+
+        var answer = send(
+                "/events/registrations/%d/queue-position".formatted(REGISTRATION_ID),
+                "{\"position\": 1}",
+                sessionWith(StationPermission.EVENT_REGISTRATION),
+                false);
+
+        assertEquals(404, answer.code(), answer.body().string());
+        verify(registrationService, never()).moveInQueue(anyInt(), anyInt());
+    }
+
+    @Test
+    void aPlaceInLineHasToBeNamed() {
+        var answer = send(
+                "/events/registrations/%d/queue-position".formatted(REGISTRATION_ID),
+                "{}",
+                sessionWith(StationPermission.EVENT_REGISTRATION),
+                false);
+
+        assertEquals(EventRefusal.QUEUE_POSITION_MISSING, RouteHarness.refusalOf(answer));
+        verify(registrationService, never()).moveInQueue(anyInt(), anyInt());
+    }
+
+    @Test
+    void aSignUpOfAnotherStationIsNotPutOntoTheList() {
+        var foreign = mock(StationEvent.class);
+        when(foreign.stationId()).thenReturn(STATION_ID + 1);
+        when(crudService.findById(EVENT_ID)).thenReturn(Optional.of(foreign));
+
+        var answer = send(
+                "/events/registrations/queue",
+                "{\"registrationIds\": [%d]}".formatted(REGISTRATION_ID),
+                sessionWith(StationPermission.EVENT_REGISTRATION),
+                true);
+
+        assertEquals(404, answer.code(), answer.body().string());
+        verify(registrationService, never()).moveToQueue(any());
+    }
+
+    @Test
+    void aPlainMemberCannotTouchTheWaitingList() {
+        var answer = send(
+                "/events/registrations/%d/queue-position".formatted(REGISTRATION_ID),
+                "{\"position\": 1}",
+                sessionWith(),
+                false);
+
+        assertEquals(403, answer.code(), answer.body().string());
+        verify(registrationService, never()).moveInQueue(anyInt(), anyInt());
+    }
+
+    @Test
+    void whoeverDecidesPlacesMovesASignUpInLine() {
+        var answer = send(
+                "/events/registrations/%d/queue-position".formatted(REGISTRATION_ID),
+                "{\"position\": 2}",
+                sessionWith(StationPermission.EVENT_REGISTRATION),
+                false);
+
+        assertEquals(204, answer.code(), answer.body().string());
+        verify(registrationService).moveInQueue(REGISTRATION_ID, 2);
     }
 }

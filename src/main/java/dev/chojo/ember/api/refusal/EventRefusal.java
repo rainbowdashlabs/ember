@@ -856,7 +856,25 @@ public enum EventRefusal implements Refusal {
     REGISTRATION_FULL(
             226,
             HttpStatus.CONFLICT,
-            "Every place is taken: accept beyond the limit or put the member on the waiting list");
+            "Every place is taken: accept beyond the limit or put the member on the waiting list"),
+
+    /** Somebody put on the waiting list by hand whose sign-up is not waiting for a decision. */
+    REGISTRATION_NOT_PENDING_FOR_QUEUE(
+            227,
+            HttpStatus.CONFLICT,
+            "Only sign-ups waiting for a decision can go onto the waiting list, nothing was changed"),
+
+    /** A place in line asked for a sign-up that does not wait on the waiting list. */
+    REGISTRATION_NOT_QUEUED(228, HttpStatus.CONFLICT, "This sign-up does not wait on the waiting list"),
+
+    /** A sign-up put on the waiting list of an appointment that has no participant limit to wait for. */
+    QUEUE_WITHOUT_LIMIT(
+            229,
+            HttpStatus.CONFLICT,
+            "An appointment without a participant limit has no waiting list, nothing was changed"),
+
+    /** A place in line asked for without saying which. */
+    QUEUE_POSITION_MISSING(230, HttpStatus.BAD_REQUEST, "Say which place in line the sign-up takes");
 
     private final Definition definition;
 

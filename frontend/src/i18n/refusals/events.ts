@@ -253,4 +253,8 @@ export default {
     'E-224': 'Der Name des Ortes ist zu lang, nichts wurde gespeichert',
     'E-225': 'Dieser Punkt liegt nicht auf der Karte, nichts wurde gespeichert',
     'E-226': 'Alle Plätze sind vergeben: über das Limit hinaus annehmen oder auf die Nachrückliste setzen',
+    'E-227': 'Nur Anmeldungen, über die noch nicht entschieden ist, kommen auf die Nachrückliste, es wurde nichts geändert',
+    'E-228': 'Diese Anmeldung steht nicht auf der Nachrückliste',
+    'E-229': 'Ein Termin ohne Teilnehmerlimit hat keine Nachrückliste, es wurde nichts geändert',
+    'E-230': 'Gib an, an welcher Stelle der Nachrückliste die Anmeldung stehen soll',
 }

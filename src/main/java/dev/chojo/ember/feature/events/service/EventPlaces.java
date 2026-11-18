@@ -10,6 +10,7 @@ import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.Places;
+import dev.chojo.ember.feature.events.entity.QueueEntry;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.WhenFull;
@@ -20,6 +21,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +64,17 @@ public class EventPlaces {
         this.placement = placement;
         this.queue = queue;
         this.advancer = advancer;
+    }
+
+    /**
+     * Refuses a waiting list on a date that has no participant limit: nobody would ever have to wait
+     * there, and the next place falling free would let the whole list in at once.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     */
+    public void requireLimit(int eventId, LocalDate eventDate) {
+        if (capacity.of(eventId, eventDate).limit() == null) throw EventRefusal.QUEUE_WITHOUT_LIMIT.raise();
     }
 
     /**
@@ -171,6 +184,28 @@ public class EventPlaces {
                 queue.orderOfEvent(event.id()),
                 QueueOwner.local(registrationId),
                 placement.scoreOf(event.stationId(), event.categoryId(), memberId));
+    }
+
+    /**
+     * Moves a member's registration to another place in line on the waiting list of its date. Moving by
+     * hand wins over the order the list keeps; whoever comes later is placed by that order around it.
+     *
+     * @param eventId        the appointment
+     * @param date           the date
+     * @param registrationId the registration, which waits on the list
+     * @param rank           the place in line it takes, 1 moving up next; beyond the end it goes last
+     */
+    public void moveTo(int eventId, LocalDate date, int registrationId, int rank) {
+        var list = RegistrationQueueRepository.ofDate(eventId, date);
+        var entries = new ArrayList<>(queue.entries(list));
+        var owner = QueueOwner.local(registrationId);
+        var moving = entries.stream()
+                .filter(owner::owns)
+                .findFirst()
+                .orElseThrow(EventRefusal.REGISTRATION_NOT_QUEUED::raise);
+        entries.remove(moving);
+        entries.add(Math.clamp(rank - 1L, 0, entries.size()), moving);
+        queue.reorder(list, entries.stream().map(QueueEntry::id).toList());
     }
 
     /**

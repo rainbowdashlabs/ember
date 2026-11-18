@@ -167,6 +167,24 @@ public class RegistrationQueueRepository {
     }
 
     /**
+     * Puts every entry of a list into the given order, the first named moving up first, numbering them
+     * from one.
+     *
+     * @param list     the list
+     * @param entryIds all entries of the list in their new order
+     */
+    public void reorder(QueueList list, List<Integer> entryIds) {
+        if (entryIds.isEmpty()) return;
+        query("""
+                        UPDATE %1$s
+                        SET position = o.ord
+                        FROM unnest(:ids) WITH ORDINALITY AS o(entry_id, ord)
+                        WHERE %1$s.id = o.entry_id AND %2$s;""", list.kind().table, list.kind().scope)
+                .single(list.bind(call()).bind("ids", List.copyOf(entryIds), PostgreSqlTypes.INTEGER))
+                .update();
+    }
+
+    /**
      * The position key one behind the last entry of a list.
      *
      * @param list the list

@@ -36,6 +36,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -295,6 +296,72 @@ public class EventRegistrationService {
             recorded(registration);
         });
         return true;
+    }
+
+    /**
+     * Puts sign-ups waiting for a decision onto the waiting list of their dates, the way whoever runs
+     * an appointment that confirms its sign-ups turns down the ones they cannot take yet without
+     * turning them away. They join in sign-up order, oldest first, placed by the order each list keeps.
+     * Nothing changes unless every one of them waits for a decision on a date with a participant limit.
+     *
+     * @param ids the registrations
+     * @return the registrations as stored
+     */
+    public List<EventRegistration> moveToQueue(Collection<Integer> ids) {
+        var moved = Transactions.call(() -> {
+            var found = ids.stream()
+                    .distinct()
+                    .map(id -> registrationRepository
+                            .findById(id)
+                            .orElseThrow(EventRefusal.EVENT_REGISTRATION_NOT_HERE_ON_STATUS_CHANGE::raise))
+                    .toList();
+            found.stream().map(EventRegistration::eventId).distinct().sorted().forEach(eventRepository::lockForSignUp);
+            var current = found.stream()
+                    .map(registration ->
+                            registrationRepository.findById(registration.id()).orElse(registration))
+                    .sorted(Comparator.comparing(EventRegistration::createdAt).thenComparing(EventRegistration::id))
+                    .toList();
+            for (var registration : current) {
+                requireOwnSignUp(registration.eventId());
+                requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_STATUS_CHANGE);
+                if (registration.status() != RegistrationStatus.PENDING) {
+                    throw EventRefusal.REGISTRATION_NOT_PENDING_FOR_QUEUE.raise();
+                }
+                places.requireLimit(registration.eventId(), registration.eventDate());
+            }
+            var queued = new ArrayList<EventRegistration>();
+            for (var registration : current) {
+                registrationRepository.updateStatus(registration.id(), RegistrationStatus.QUEUED);
+                var event = eventRepository.findById(registration.eventId()).orElseThrow();
+                places.enqueue(event, registration.eventDate(), registration.id(), registration.memberId());
+                registrationRepository.findById(registration.id()).ifPresent(queued::add);
+            }
+            return queued;
+        });
+        log.info("Moved {} sign-ups onto the waiting list", moved.size());
+        moved.forEach(this::recorded);
+        return moved;
+    }
+
+    /**
+     * Moves a sign-up to another place in line on the waiting list of its date, as whoever runs the
+     * appointment decides.
+     *
+     * @param id   the registration, which waits on the list
+     * @param rank the place in line it takes, 1 moving up next; beyond the end it goes last
+     */
+    public void moveInQueue(int id, int rank) {
+        Transactions.run(() -> {
+            var found = registrationRepository
+                    .findById(id)
+                    .orElseThrow(EventRefusal.EVENT_REGISTRATION_NOT_HERE_ON_STATUS_CHANGE::raise);
+            eventRepository.lockForSignUp(found.eventId());
+            var registration = registrationRepository.findById(id).orElse(found);
+            requireOwnSignUp(registration.eventId());
+            if (registration.status() != RegistrationStatus.QUEUED) throw EventRefusal.REGISTRATION_NOT_QUEUED.raise();
+            places.moveTo(registration.eventId(), registration.eventDate(), id, rank);
+        });
+        log.info("Moved registration {} to place {} on the waiting list", id, rank);
     }
 
     /**

@@ -169,6 +169,16 @@ public class EventRegistrationRoutes implements Routes {
                 this::updateRegistrationStatus,
                 StationPermission.EVENT_REGISTRATION,
                 StationModule.EVENTS);
+        routes.post(
+                prefix + "/events/registrations/queue",
+                this::moveToQueue,
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/registrations/{id}/queue-position",
+                this::moveInQueue,
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
         routes.delete(
                 prefix + "/events/registrations/{id}",
                 this::withdrawRegistration,
@@ -839,6 +849,53 @@ public class EventRegistrationRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/events/registrations/queue",
+            methods = HttpMethod.POST,
+            summary = "Put sign-ups waiting for a decision onto the waiting list",
+            tags = {"Events"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QueueRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationResponse[].class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void moveToQueue(Context ctx) {
+        var req = ctx.bodyAsClass(QueueRequest.class);
+        var ids = req.registrationIds() == null ? List.<Integer>of() : req.registrationIds();
+        for (int id : ids) requireOwnRegistration(ctx, id);
+        ctx.json(toRegistrationResponses(ctx, registrationService.moveToQueue(ids)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/registrations/{id}/queue-position",
+            methods = HttpMethod.PUT,
+            summary = "Move a sign-up to another place in line on the waiting list",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QueuePositionRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void moveInQueue(Context ctx) {
+        int id = pathInt(ctx, "id");
+        var req = ctx.bodyAsClass(QueuePositionRequest.class);
+        if (req.position() == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
+        requireOwnRegistration(ctx, id);
+        registrationService.moveInQueue(id, req.position());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /** Refuses a registration that is gone or belongs to an appointment of another station. */
+    private void requireOwnRegistration(Context ctx, int id) {
+        var registration = registrationService
+                .findById(id)
+                .orElseThrow(EventRefusal.EVENT_REGISTRATION_NOT_HERE_ON_STATUS_CHANGE::raise);
+        requireOwnedOrNotFound(ctx, registration.eventId(), crudService::findById, StationEvent::stationId);
+    }
+
+    @OpenApi(
             path = "/api/v1/events/registrations/{id}/answer",
             methods = HttpMethod.PUT,
             summary = "Change whether somebody is coming",
@@ -888,6 +945,20 @@ public class EventRegistrationRoutes implements Routes {
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
+
+    /**
+     * Sign-ups to put onto the waiting list.
+     *
+     * @param registrationIds the registrations, each waiting for a decision
+     */
+    public record QueueRequest(List<Integer> registrationIds) {}
+
+    /**
+     * A place in line on the waiting list.
+     *
+     * @param position the place, 1 moving up next; beyond the end goes last
+     */
+    public record QueuePositionRequest(@Nullable Integer position) {}
 
     /**
      * Whether somebody is coming.
