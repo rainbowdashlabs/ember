@@ -8,6 +8,10 @@ Gemeldete Chatnachrichten stehen jetzt unter Monitoring.
 
 - **Gemeldete Nachrichten unter Monitoring.** Die Seite mit gemeldeten Chatnachrichten ist vom eigenen Eintrag in der Seitenleiste in den Bereich Monitoring gewandert. Wer die Chats der Wache betreut, sieht sie dort ohne die übrigen Zahlen der Wache.
 
+### Fehlerbehebungen
+
+- **Zu hohe Kacheln bei den nächsten Terminen.** Bei manchen Fensterbreiten waren die Termine auf der Übersicht und die Termine der Partnerwachen in der Terminliste weit höher als ihr Inhalt. Sie haben wieder ihre gewohnte Größe.
+
 ## v26.25.0
 
 Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die die Wache für beliebige ihrer Leute eröffnet, etwa eine Gruppe samt ihren Betreuern. Ein einzelner Termin einer Serie oder eine Serie ab einem Termin lässt sich für sich ändern, und beim Speichern können die Betroffenen benachrichtigt werden. Terminreihen wie die Jugendflamme fassen Termine in Blöcke, nehmen eine Anmeldung für alle Termine an und lassen sich mit Partnerwachen teilen. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.
