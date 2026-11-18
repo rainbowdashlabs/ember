@@ -18,6 +18,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Declined answers folded away.** On the registrations page, the declined answers of a date stay closed until opened. Opened, they show who declined and when, without the place ranking.
 - **Usual port shown for the mail server.** The mail settings name the usual port for the chosen encryption and point out a port that does not fit. The port is still saved as entered.
 - **Instance send interval made visible.** When a station leaves the notification send times to the instance, the settings say how often the instance sends them.
+- **Address search on in the demo.** A demo instance looks addresses and places of appointments up on the public Photon server from the start. It can still be switched off under Settings → Maps.
 
 ### Changes
 
