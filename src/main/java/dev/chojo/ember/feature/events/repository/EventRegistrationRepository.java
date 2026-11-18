@@ -620,6 +620,39 @@ public class EventRegistrationRepository {
     }
 
     /**
+     * A member's registration for one date of an appointment.
+     *
+     * @param eventId   the appointment
+     * @param memberId  the member
+     * @param eventDate the date
+     * @return the registration, or empty where there is none
+     */
+    public Optional<EventRegistration> findOne(int eventId, int memberId, LocalDate eventDate) {
+        return query("""
+                        SELECT %s FROM event_registration
+                        WHERE event_id = :event_id AND member_id = :member_id AND event_date = :event_date;""", COLUMNS)
+                .single(call().bind("event_id", eventId)
+                        .bind("member_id", memberId)
+                        .bind("event_date", eventDate))
+                .map(EventRegistration.map())
+                .first();
+    }
+
+    /**
+     * Makes a place a question of the appointment holds the member's own, keeping its status: they
+     * signed up for it themselves, so the question letting go of them no longer takes it away.
+     *
+     * @param id the registration
+     * @return whether a place held by a question was taken over
+     */
+    public boolean takeOverFromField(int id) {
+        return query("UPDATE event_registration SET from_field = FALSE WHERE id = :id AND from_field;")
+                .single(call().bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
      * Finds a registration by its ID.
      *
      * @param id the registration ID

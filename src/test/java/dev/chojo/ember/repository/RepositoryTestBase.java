@@ -251,6 +251,7 @@ import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.util.TestEventPlaces;
 import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
 import dev.chojo.ember.util.sql.Transactions;
@@ -1242,7 +1243,8 @@ public abstract class RepositoryTestBase {
                         new EventRegistrationFieldRepository(),
                         eventRepo,
                         eventBus,
-                        memberNameResolver),
+                        memberNameResolver,
+                        TestEventPlaces.of(eventRegistrationRepo)),
                 new EventReminderService(eventReminderRepo),
                 new EquipmentNeedService(
                         equipmentNeedRepo,

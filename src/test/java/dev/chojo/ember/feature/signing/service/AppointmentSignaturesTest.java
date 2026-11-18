@@ -69,6 +69,7 @@ import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.PartnerAgreementRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
+import dev.chojo.ember.util.TestEventPlaces;
 import io.javalin.http.UploadedFile;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -235,7 +236,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 new EventRegistrationFieldRepository(),
                 eventRepo,
                 new DomainEventBus(Set.of(new RegistrationSignaturesHandler(() -> signatures))),
-                memberNameResolver);
+                memberNameResolver,
+                TestEventPlaces.of(eventRegistrationRepo));
         attendance = new AgreementAttendance(requestRepo, eventRepo, eventRegistrationRepo, registrations);
         var rights = new WithdrawalRights(guardianPolicy);
         offers = new AgreementOffers(

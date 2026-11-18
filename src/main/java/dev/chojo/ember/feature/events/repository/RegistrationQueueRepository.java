@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.events.entity.Places;
 import dev.chojo.ember.feature.events.entity.QueueEntry;
@@ -13,8 +14,11 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -95,6 +99,30 @@ public class RegistrationQueueRepository {
                 .single(list.bind(call()))
                 .map(QueueEntry::map)
                 .all();
+    }
+
+    /**
+     * The places in line of members' registrations that wait on the waiting list of their date.
+     *
+     * @param registrationIds the registrations
+     * @return the place in line by registration, only for those waiting
+     */
+    public Map<Integer, Integer> ranksOf(Collection<Integer> registrationIds) {
+        if (registrationIds.isEmpty()) return Map.of();
+        return query("""
+                        SELECT registration_id, rank
+                        FROM (SELECT q.registration_id,
+                                     row_number() OVER (PARTITION BY q.event_id, q.event_date ORDER BY q.position) AS rank
+                              FROM registration_queue q
+                              WHERE (q.event_id, q.event_date) IN (SELECT w.event_id, w.event_date
+                                                                   FROM registration_queue w
+                                                                   WHERE w.registration_id = ANY(:ids))) ranked
+                        WHERE registration_id = ANY(:ids);""")
+                .single(call().bind("ids", List.copyOf(registrationIds), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("registration_id"), row.getInt("rank")))
+                .all()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     /**

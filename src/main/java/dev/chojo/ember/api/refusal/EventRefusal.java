@@ -847,7 +847,16 @@ public enum EventRefusal implements Refusal {
     PLACE_TEXT_TOO_LONG(224, HttpStatus.BAD_REQUEST, "The name of the place is too long, nothing was saved"),
 
     /** A place pinned at a point that does not lie on the map, or without saying where. */
-    PLACE_OFF_THE_MAP(225, HttpStatus.BAD_REQUEST, "That point does not lie on the map, nothing was saved");
+    PLACE_OFF_THE_MAP(225, HttpStatus.BAD_REQUEST, "That point does not lie on the map, nothing was saved"),
+
+    /**
+     * Whoever runs an appointment lets somebody in while every place is taken, without saying whether
+     * beyond the limit or onto the waiting list. Carries the number of places.
+     */
+    REGISTRATION_FULL(
+            226,
+            HttpStatus.CONFLICT,
+            "Every place is taken: accept beyond the limit or put the member on the waiting list");
 
     private final Definition definition;
 

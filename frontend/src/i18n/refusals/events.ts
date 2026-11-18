@@ -252,4 +252,5 @@ export default {
     'E-223': 'Nenne zuerst den Ort',
     'E-224': 'Der Name des Ortes ist zu lang, nichts wurde gespeichert',
     'E-225': 'Dieser Punkt liegt nicht auf der Karte, nichts wurde gespeichert',
+    'E-226': 'Alle Plätze sind vergeben: über das Limit hinaus annehmen oder auf die Nachrückliste setzen',
 }

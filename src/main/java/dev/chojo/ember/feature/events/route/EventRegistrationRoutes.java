@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.entity.WhenFull;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
@@ -256,6 +257,7 @@ public class EventRegistrationRoutes implements Routes {
         var hidden = registrationFieldService.hiddenFieldIds(r.eventId(), readsAnswersOf(ctx, r));
         return toRegistrationResponse(
                 lookupsFor(List.of(r.memberId())),
+                registrationService.queueRanksOf(List.of(r.id())),
                 r,
                 answers.stream()
                         .filter(v -> !hidden.contains(v.fieldId()))
@@ -280,6 +282,7 @@ public class EventRegistrationRoutes implements Routes {
 
     private static RegistrationResponse toRegistrationResponse(
             RegistrationRowLookups lookups,
+            Map<Integer, Integer> queueRanks,
             EventRegistration r,
             List<EventRegistrationFieldValue> fields,
             boolean answersMissing) {
@@ -301,7 +304,8 @@ public class EventRegistrationRoutes implements Routes {
                 r.fromField() ? lookups.namingField(r) : null,
                 r.agreementWithdrawnAt(),
                 r.gaveUpPlace(),
-                r.statusChangedAt());
+                r.statusChangedAt(),
+                queueRanks.get(r.id()));
     }
 
     /**
@@ -317,6 +321,10 @@ public class EventRegistrationRoutes implements Routes {
                 registrations.stream().map(EventRegistration::id).toList());
         var lookups = lookupsFor(
                 registrations.stream().map(EventRegistration::memberId).toList());
+        var queueRanks = registrationService.queueRanksOf(registrations.stream()
+                .filter(r -> r.status() == RegistrationStatus.QUEUED)
+                .map(EventRegistration::id)
+                .toList());
         var session = StationSession.from(ctx);
         boolean runsTheEvents = session.hasPermission(StationPermission.EVENT_EDIT);
         var household = runsTheEvents ? Set.<Integer>of() : Set.copyOf(guardianPolicy.household(session.user()));
@@ -334,6 +342,7 @@ public class EventRegistrationRoutes implements Routes {
                     var carried = answers.getOrDefault(r.id(), List.of());
                     return toRegistrationResponse(
                             lookups,
+                            queueRanks,
                             r,
                             carried.stream()
                                     .filter(v -> !hidden.contains(v.fieldId()))
@@ -745,7 +754,8 @@ public class EventRegistrationRoutes implements Routes {
 
         boolean autoAccept = !event.requiresConfirmation();
         Integer createdBy = memberId != session.member().id() ? session.member().id() : null;
-        var registration = registrationService.register(eventId, memberId, date, autoAccept, createdBy);
+        var registration = registrationService.register(
+                eventId, memberId, date, autoAccept, createdBy, isManagerRegistration, req.whenFull());
         registrationFieldService.persistAnswers(registration.id(), answers);
         ctx.status(HttpStatus.CREATED).json(toRegistrationResponse(ctx, registration));
     }
@@ -821,9 +831,10 @@ public class EventRegistrationRoutes implements Routes {
                 .findById(id)
                 .orElseThrow(EventRefusal.EVENT_REGISTRATION_NOT_HERE_ON_STATUS_CHANGE::raise);
         requireOwnedOrNotFound(ctx, registration.eventId(), crudService::findById, StationEvent::stationId);
-        if (!registrationService.updateStatus(id, req.status())) {
-            throw EventRefusal.EVENT_REGISTRATION_STATUS_NOT_CHANGED.raise();
-        }
+        boolean changed = req.status() == RegistrationStatus.ACCEPTED
+                ? registrationService.accept(id, Boolean.TRUE.equals(req.overLimit()))
+                : registrationService.updateStatus(id, req.status());
+        if (!changed) throw EventRefusal.EVENT_REGISTRATION_STATUS_NOT_CHANGED.raise();
         ctx.json(new MessageResponse("Status updated"));
     }
 
@@ -872,15 +883,19 @@ public class EventRegistrationRoutes implements Routes {
             ctx.status(HttpStatus.NO_CONTENT);
             return;
         }
-        var status = event.requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
-        if (!registrationService.updateStatus(id, status)) {
+        if (!registrationService.answerComing(id, runsTheEvent && !manages, req.whenFull())) {
             throw EventRefusal.EVENT_REGISTRATION_NOT_CONFIRMED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    /** Whether somebody is coming. */
-    public record AnswerRequest(boolean attending) {}
+    /**
+     * Whether somebody is coming.
+     *
+     * @param attending whether they are coming
+     * @param whenFull  what whoever runs the appointment chose for somebody else on a full date, or null
+     */
+    public record AnswerRequest(boolean attending, @Nullable WhenFull whenFull) {}
 
     @OpenApi(
             path = "/api/v1/events/registrations/{id}",
@@ -1028,15 +1043,38 @@ public class EventRegistrationRoutes implements Routes {
              */
             boolean placeGivenUp,
             /** When the registration got its current status, such as when the member declined. */
-            Instant statusChangedAt) {}
+            Instant statusChangedAt,
+            /** The place in line on the waiting list, 1 moves up next; null where the registration does not wait. */
+            @Nullable Integer queuePosition) {}
 
-    public record EventRegisterRequest(String eventDate, Integer memberId, List<EventRegistrationFieldValue> fields) {}
+    /**
+     * A sign-up for an appointment date.
+     *
+     * @param eventDate the date, needed for a series
+     * @param memberId  the member signed up, or null for the caller
+     * @param fields    the answers to the appointment's questions
+     * @param whenFull  what whoever runs the appointment chose for somebody else on a full date; null
+     *                  asks them first, and is all a member answering for themselves can send
+     */
+    public record EventRegisterRequest(
+            String eventDate,
+            Integer memberId,
+            List<EventRegistrationFieldValue> fields,
+            @Nullable WhenFull whenFull) {}
 
     public record RegistrationFieldsRequest(List<EventRegistrationFieldValue> fields) {}
 
     public record RegistrationFieldDefinitionsRequest(List<RegistrationFieldDefinition> fields) {}
 
-    public record StatusUpdateRequest(RegistrationStatus status) {}
+    /**
+     * A decision on a registration.
+     *
+     * @param status    ACCEPTED or DENIED
+     * @param overLimit whether an acceptance goes beyond the limit of a full date; without it a full date
+     *                  refuses
+     */
+    public record StatusUpdateRequest(
+            RegistrationStatus status, @Nullable Boolean overLimit) {}
 
     public record RegistrationStatsResponse(
             int memberId,

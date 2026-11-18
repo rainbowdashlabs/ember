@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.entity.WhenFull;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -37,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -63,6 +65,7 @@ public class EventRegistrationService {
     private final EventRepository eventRepository;
     private final DomainEventBus eventBus;
     private final MemberNameResolver nameResolver;
+    private final EventPlaces places;
 
     @Inject
     public EventRegistrationService(
@@ -70,12 +73,14 @@ public class EventRegistrationService {
             EventRegistrationFieldRepository fieldRepository,
             EventRepository eventRepository,
             DomainEventBus eventBus,
-            MemberNameResolver nameResolver) {
+            MemberNameResolver nameResolver,
+            EventPlaces places) {
         this.registrationRepository = registrationRepository;
         this.fieldRepository = fieldRepository;
         this.eventRepository = eventRepository;
         this.eventBus = eventBus;
         this.nameResolver = nameResolver;
+        this.places = places;
     }
 
     /**
@@ -138,40 +143,168 @@ public class EventRegistrationService {
     }
 
     /**
-     * Registers a member for an event. If {@code autoAccept} is true, the registration is immediately accepted.
+     * Registers a member for an appointment date the way a member signing up does: accepted while a
+     * place is free, onto the waiting list once every place is taken, or waiting for a decision where
+     * {@code autoAccept} is false.
      *
      * @param eventId    the event ID
      * @param memberId   the member ID
      * @param eventDate  the event occurrence date
-     * @param autoAccept whether to automatically accept the registration
+     * @param autoAccept whether the appointment takes sign-ups without a decision
      * @param createdBy  the member ID of the creator, or null if self-registered
      * @return the created registration
      */
     public EventRegistration register(
             int eventId, int memberId, LocalDate eventDate, boolean autoAccept, @Nullable Integer createdBy) {
+        return register(eventId, memberId, eventDate, autoAccept, createdBy, false, null);
+    }
+
+    /**
+     * Registers a member for an appointment date.
+     *
+     * <p>A member who already holds, waits for or asked for a place keeps it as it is, so signing up
+     * again never overtakes anybody on the waiting list. Otherwise the sign-up waits for a decision
+     * where {@code autoAccept} is false, is accepted while a place is free and nobody waits, and joins
+     * the waiting list once every place is taken. Whoever runs the appointment signing somebody else up
+     * to a full date has to choose between the waiting list and going beyond the limit.
+     *
+     * @param eventId    the event ID
+     * @param memberId   the member ID
+     * @param eventDate  the event occurrence date
+     * @param autoAccept whether the appointment takes sign-ups without a decision
+     * @param createdBy  the member ID of the creator, or null if self-registered
+     * @param byManager  whether whoever runs the appointment signs somebody else up
+     * @param choice     what they chose for a full date, or null
+     * @return the registration as it stands
+     */
+    public EventRegistration register(
+            int eventId,
+            int memberId,
+            LocalDate eventDate,
+            boolean autoAccept,
+            @Nullable Integer createdBy,
+            boolean byManager,
+            @Nullable WhenFull choice) {
         var stored = Transactions.call(() -> {
             eventRepository.lockForSignUp(eventId);
             requireOwnSignUp(eventId);
-            return registerOwn(eventId, memberId, eventDate, autoAccept, createdBy);
+            var standing = standingOf(eventId, memberId, eventDate, autoAccept);
+            if (standing != null) return standing;
+            var event = eventRepository.findById(eventId).orElseThrow();
+            var status = autoAccept
+                    ? places.statusForComing(event, eventDate, byManager, choice)
+                    : RegistrationStatus.PENDING;
+            var registration = registrationRepository.create(eventId, memberId, eventDate, status, createdBy);
+            if (status == RegistrationStatus.QUEUED) places.enqueue(event, eventDate, registration.id(), memberId);
+            log.info("Registered member {} for event {} on {} (status={})", memberId, eventId, eventDate, status);
+            return registration;
         });
         recorded(stored);
         return stored;
     }
 
-    private EventRegistration registerOwn(
-            int eventId, int memberId, LocalDate eventDate, boolean autoAccept, @Nullable Integer createdBy) {
-        var registration =
-                registrationRepository.create(eventId, memberId, eventDate, RegistrationStatus.PENDING, createdBy);
-        log.info(
-                "Registered member {} for event {} on {} (status={})",
-                memberId,
-                eventId,
-                eventDate,
-                autoAccept ? RegistrationStatus.ACCEPTED : RegistrationStatus.PENDING);
-        if (autoAccept) {
-            registrationRepository.updateStatus(registration.id(), RegistrationStatus.ACCEPTED);
+    /**
+     * A member's registration for a date that stands and stays as it is when they sign up again, or
+     * null where the sign-up is to be decided anew. A place a question holds becomes the member's own
+     * and keeps its status. A sign-up still waiting for a decision is decided anew where the
+     * appointment no longer confirms its sign-ups.
+     */
+    private @Nullable EventRegistration standingOf(int eventId, int memberId, LocalDate eventDate, boolean autoAccept) {
+        var existing =
+                registrationRepository.findOne(eventId, memberId, eventDate).orElse(null);
+        if (existing == null || !existing.status().standing()) return null;
+        if (autoAccept && existing.status() == RegistrationStatus.PENDING && !existing.fromField()) return null;
+        if (existing.fromField()) {
+            registrationRepository.takeOverFromField(existing.id());
+            return registrationRepository.findById(existing.id()).orElse(existing);
         }
-        return registrationRepository.findById(registration.id()).orElse(registration);
+        return existing;
+    }
+
+    /**
+     * Records that the member behind a registration is coming after all, the way a sign-up would: a
+     * place while one is free and nobody waits, the waiting list once every place is taken, a decision
+     * to wait for where the appointment confirms its sign-ups. A registration that already holds or
+     * waits for a place keeps it.
+     *
+     * @param id        the registration
+     * @param byManager whether whoever runs the appointment answers for somebody else
+     * @param choice    what they chose for a full date, or null
+     * @return true where the registration was found
+     */
+    public boolean answerComing(int id, boolean byManager, @Nullable WhenFull choice) {
+        var changed = Transactions.call(() -> {
+            var found = registrationRepository.findById(id).orElse(null);
+            if (found == null) return null;
+            eventRepository.lockForSignUp(found.eventId());
+            var registration = registrationRepository.findById(id).orElse(found);
+            requireOwnSignUp(registration.eventId());
+            requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_STATUS_CHANGE);
+            var current = registration.status();
+            if (current == RegistrationStatus.ACCEPTED || current == RegistrationStatus.QUEUED) {
+                return new Answered(registration, false);
+            }
+            var event = eventRepository.findById(registration.eventId()).orElseThrow();
+            var status = places.statusForComing(event, registration.eventDate(), byManager, choice);
+            registrationRepository.updateStatus(id, status);
+            if (status == RegistrationStatus.QUEUED) {
+                places.enqueue(event, registration.eventDate(), id, registration.memberId());
+            }
+            return new Answered(registrationRepository.findById(id).orElse(registration), status != current);
+        });
+        if (changed == null) return false;
+        var registration = changed.registration();
+        log.info("Registration {} is coming ({})", id, registration.status());
+        if (changed.moved() && registration.status() != RegistrationStatus.QUEUED) {
+            announce(registration.eventId(), registration.memberId(), registration.status());
+        }
+        recorded(registration);
+        return true;
+    }
+
+    /** A registration after a "coming", and whether its status moved. */
+    private record Answered(EventRegistration registration, boolean moved) {}
+
+    /**
+     * Accepts a registration as whoever runs the appointment, which refuses once every place is
+     * taken unless they accept beyond the limit.
+     *
+     * @param id        the registration
+     * @param overLimit whether they accept beyond the limit
+     * @return true if the registration was updated
+     */
+    public boolean accept(int id, boolean overLimit) {
+        boolean updated = Transactions.call(() -> {
+            var found = registrationRepository.findById(id).orElse(null);
+            if (found == null) return false;
+            eventRepository.lockForSignUp(found.eventId());
+            var registration = registrationRepository.findById(id).orElse(found);
+            requireOwnSignUp(registration.eventId());
+            requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_STATUS_CHANGE);
+            if (registration.status() != RegistrationStatus.ACCEPTED) {
+                eventRepository
+                        .findById(registration.eventId())
+                        .ifPresent(event -> places.requireRoomToAccept(event, registration.eventDate(), overLimit));
+            }
+            return registrationRepository.updateStatus(id, RegistrationStatus.ACCEPTED);
+        });
+        if (!updated) return false;
+        log.info("Accepted registration {}", id);
+        registrationRepository.findById(id).ifPresent(registration -> {
+            announce(registration.eventId(), registration.memberId(), RegistrationStatus.ACCEPTED);
+            recorded(registration);
+        });
+        return true;
+    }
+
+    /**
+     * The places in line of the given registrations that wait on a waiting list.
+     *
+     * @param registrationIds the registrations
+     * @return the place in line by registration, only for those waiting
+     */
+    public Map<Integer, Integer> queueRanksOf(Collection<Integer> registrationIds) {
+        return places.ranksOf(registrationIds);
     }
 
     /**

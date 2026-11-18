@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestEventPlaces;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -61,7 +62,8 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
                 new EventRegistrationFieldRepository(),
                 eventRepo,
                 new DomainEventBus(Set.of()),
-                memberNameResolver);
+                memberNameResolver,
+                TestEventPlaces.of(eventRegistrationRepo));
 
         station = stationRepo.create("Named In A Field Station");
         var accA = accountRepo.create("a@named.test", "Alice", "Anders");
