@@ -25,7 +25,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Photon looks up addresses.** Admin → Settings → Maps offers Photon as the only address search, using the public server unless the address of a self-hosted server is entered, and the privacy notice gains a section on it. Nominatim, LocationIQ and Geoapify are removed, and an instance that had one of them selected has no address search until Photon is chosen.
 - **Mail notifications are on by default.** Members without a mail setting of their own get notifications by mail as soon as the station or the instance can send mail, for every kind of notification. Mail settings members already had stay as they were.
 - **Reply address at the top of the mail settings.** The reply address moved out of the box about the instance's mail providers to the top of the page, since it applies to all of a station's mail.
-- **Map settings moved to Settings.** The administration page for map tiles and the address search is found under Settings instead of Monitoring. The old address `/admin/monitoring/maps` still leads there.
+- **Map settings moved to Settings.** The administration page for map tiles and the address search is found under Settings instead of Monitoring, at `/admin/settings/maps`.
 
 ### Fixes
 

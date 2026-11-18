@@ -25,7 +25,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Photon schlägt Adressen nach.** Unter Verwaltung → Einstellungen → Karten gibt es Photon als einzige Adresssuche, mit dem öffentlichen Server, solange keine eigene Serveradresse eingetragen ist, und die Datenschutzerklärung bekommt einen Abschnitt dazu. Nominatim, LocationIQ und Geoapify entfallen; eine Instanz, die einen davon gewählt hatte, hat keine Adresssuche, bis Photon gewählt wird.
 - **Benachrichtigungen per E-Mail sind von Haus aus eingeschaltet.** Mitglieder ohne eigene E-Mail-Einstellung bekommen Benachrichtigungen per E-Mail, sobald die Wache oder die Instanz E-Mails versenden kann, und zwar für jede Art. Bestehende E-Mail-Einstellungen bleiben, wie sie waren.
 - **Antwortadresse oben in den Mail-Einstellungen.** Die Antwortadresse steht nicht mehr im Kasten zu den Mailanbietern der Instanz, sondern ganz oben auf der Seite, weil sie für alle Mails der Wache gilt.
-- **Karteneinstellungen unter Einstellungen.** Die Seite der Verwaltung für Kartenkacheln und Adresssuche steht unter Einstellungen statt unter Monitoring. Die alte Adresse `/admin/monitoring/maps` führt weiter dorthin.
+- **Karteneinstellungen unter Einstellungen.** Die Seite der Verwaltung für Kartenkacheln und Adresssuche steht unter Einstellungen statt unter Monitoring, unter `/admin/settings/maps`.
 
 ### Fehlerbehebungen
 
