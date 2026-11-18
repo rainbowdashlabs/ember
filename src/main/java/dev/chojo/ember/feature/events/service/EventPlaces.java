@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.Places;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -20,6 +21,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -40,6 +42,7 @@ public class EventPlaces {
     private final EventCapacity capacity;
     private final QueuePlacement placement;
     private final RegistrationQueueRepository queue;
+    private final QueueAdvancer advancer;
 
     /**
      * Creates the decision.
@@ -47,12 +50,69 @@ public class EventPlaces {
      * @param capacity  the places of a date
      * @param placement the waiting list order
      * @param queue     the waiting lists
+     * @param advancer  the move-up from the waiting lists
      */
     @Inject
-    public EventPlaces(EventCapacity capacity, QueuePlacement placement, RegistrationQueueRepository queue) {
+    public EventPlaces(
+            EventCapacity capacity,
+            QueuePlacement placement,
+            RegistrationQueueRepository queue,
+            QueueAdvancer advancer) {
         this.capacity = capacity;
         this.placement = placement;
         this.queue = queue;
+        this.advancer = advancer;
+    }
+
+    /**
+     * Whether every place of a date is taken.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @return true where no place is free
+     */
+    public boolean full(int eventId, LocalDate eventDate) {
+        return capacity.of(eventId, eventDate).full();
+    }
+
+    /**
+     * Fills the free places of a date from its waiting list. The caller holds the appointment's lock.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @return the registrations of this station's members who moved up
+     */
+    public List<EventRegistration> fill(int eventId, LocalDate eventDate) {
+        return advancer.fill(eventId, eventDate);
+    }
+
+    /**
+     * Fills the free places of every waited-for date of an appointment from one day on. The caller
+     * holds the appointment's lock.
+     *
+     * @param eventId the appointment
+     * @param from    the first date looked at
+     * @return the registrations of this station's members who moved up
+     */
+    public List<EventRegistration> fillFrom(int eventId, LocalDate from) {
+        return advancer.fillFrom(eventId, from);
+    }
+
+    /**
+     * Puts a member's registration at the front of the waiting list of its date, ahead of everybody
+     * waiting, for a seat that was given up by mistake and taken in the meantime. The entry carries no
+     * score, so on a list kept by fairness no newcomer is placed before it: it gets the next place that
+     * falls free.
+     *
+     * @param event          the appointment
+     * @param date           the date
+     * @param registrationId the registration
+     */
+    public void enqueueFirst(StationEvent event, LocalDate date, int registrationId) {
+        var list = RegistrationQueueRepository.ofDate(event.id(), date);
+        var entries = queue.entries(list);
+        int position = entries.isEmpty() ? 1 : entries.getFirst().position();
+        queue.insertAt(list, QueueOwner.local(registrationId), position, null);
     }
 
     /**

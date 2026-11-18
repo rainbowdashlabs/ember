@@ -398,15 +398,16 @@ public class EventRegistrationService {
      * @return true if the registration was updated
      */
     public boolean updateStatus(int id, RegistrationStatus status) {
-        boolean updated = Transactions.call(() -> {
-            var registration = registrationRepository.findById(id).orElse(null);
-            if (registration == null) return false;
-            eventRepository.lockForSignUp(registration.eventId());
+        var before = Transactions.call(() -> {
+            var found = registrationRepository.findById(id).orElse(null);
+            if (found == null) return null;
+            eventRepository.lockForSignUp(found.eventId());
+            var registration = registrationRepository.findById(id).orElse(found);
             requireOwnSignUp(registration.eventId());
             requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_STATUS_CHANGE);
-            return registrationRepository.updateStatus(id, status);
+            return registrationRepository.updateStatus(id, status) ? registration : null;
         });
-        if (!updated) {
+        if (before == null) {
             log.warn("Cannot update registration status: registration {} not found", id);
             return false;
         }
@@ -415,6 +416,9 @@ public class EventRegistrationService {
             announce(registration.eventId(), registration.memberId(), status);
             recorded(registration);
         });
+        if (before.status() == RegistrationStatus.ACCEPTED && status != RegistrationStatus.ACCEPTED) {
+            moveUp(before.eventId(), before.eventDate());
+        }
         return true;
     }
 
@@ -492,7 +496,7 @@ public class EventRegistrationService {
         requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_WITHDRAWAL);
         if (!registrationRepository.recordAnswer(id, RegistrationStatus.WITHDRAWN)) return false;
         log.info("Withdrew registration {}", id);
-        announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
+        freedPlace(registration.eventId(), registration.memberId(), registration.eventDate(), registration.status());
         recorded(id);
         return true;
     }
@@ -504,6 +508,11 @@ public class EventRegistrationService {
      * Somebody who pressed the wrong button on a confirmed seat gets the seat, because a misclick is
      * not a change of mind and taking it back should not cost them the thing they were taking back.
      *
+     * <p>A seat somebody else moved up into in the meantime is not taken from them: the member goes to
+     * the front of the waiting list instead and gets the next place that falls free. A place on the
+     * waiting list comes back at the end, or by the fairness score where the list is kept so, and
+     * moves up at once where a place fell free in the meantime.
+     *
      * <p>Past the window this refuses, and the member registers again the ordinary way if the
      * appointment still takes answers. That is the point at which a withdrawal was meant.
      *
@@ -513,19 +522,35 @@ public class EventRegistrationService {
     public boolean undoWithdrawal(int id) {
         var registration = registrationRepository.findById(id).orElse(null);
         if (registration == null) return false;
-        boolean restored = Transactions.call(() -> {
+        var moved = new ArrayList<EventRegistration>();
+        var restored = Transactions.call(() -> {
             eventRepository.lockForSignUp(registration.eventId());
             requireOwnSignUp(registration.eventId());
-            return registrationRepository.restorePreviousStatus(id, UNDO_WINDOW);
+            var held = registration.previousStatus();
+            boolean seatTaken = held == RegistrationStatus.ACCEPTED
+                    && places.full(registration.eventId(), registration.eventDate());
+            boolean back = seatTaken
+                    ? registrationRepository.restoreAs(id, RegistrationStatus.QUEUED, UNDO_WINDOW)
+                    : registrationRepository.restorePreviousStatus(id, UNDO_WINDOW);
+            if (!back) return null;
+            var event = eventRepository.findById(registration.eventId()).orElseThrow();
+            if (seatTaken) {
+                places.enqueueFirst(event, registration.eventDate(), id);
+            } else if (held == RegistrationStatus.QUEUED) {
+                places.enqueue(event, registration.eventDate(), id, registration.memberId());
+                moved.addAll(places.fill(registration.eventId(), registration.eventDate()));
+            }
+            return registrationRepository.findById(id).orElse(registration);
         });
-        if (!restored) {
+        if (restored == null) {
             log.info("Registration {} can no longer be taken back", id);
             return false;
         }
-        log.info("Took back the withdrawal of registration {}", id);
-        if (registration.previousStatus() == RegistrationStatus.ACCEPTED) {
+        log.info("Took back the withdrawal of registration {} ({})", id, restored.status());
+        if (restored.status() == RegistrationStatus.ACCEPTED && held(restored, moved)) {
             announce(registration.eventId(), registration.memberId(), RegistrationStatus.ACCEPTED);
         }
+        movedUp(moved);
         recorded(id);
         return true;
     }
@@ -548,7 +573,7 @@ public class EventRegistrationService {
         var status = refusalFor(registration.status(), registration.eventId());
         if (!registrationRepository.recordAnswer(id, status)) return false;
         log.info("Recorded {} for registration {}", status, id);
-        announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
+        freedPlace(registration.eventId(), registration.memberId(), registration.eventDate(), registration.status());
         recorded(id);
         return true;
     }
@@ -635,7 +660,8 @@ public class EventRegistrationService {
     }
 
     /**
-     * Tells whoever runs the event that a place has fallen free, where one actually has.
+     * Tells whoever runs the event that a place has fallen free, where one actually has, and moves the
+     * first in line on the waiting list up into it.
      *
      * <p>What is announced is decided by the place that was held and not by the word written over it:
      * only a confirmed place falling free is somebody else's to fill, and an answer that was never a
@@ -647,9 +673,55 @@ public class EventRegistrationService {
      *
      * @param heldBefore the status the registration held before this refusal was written
      */
-    private void announceFreedPlace(int eventId, int memberId, @Nullable RegistrationStatus heldBefore) {
+    private void freedPlace(int eventId, int memberId, LocalDate eventDate, @Nullable RegistrationStatus heldBefore) {
         if (heldBefore == RegistrationStatus.ACCEPTED) {
             announce(eventId, memberId, RegistrationStatus.WITHDRAWN);
+            moveUp(eventId, eventDate);
+        }
+    }
+
+    /**
+     * Moves people up from the waiting list of a date into the places that are free, and tells them.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @return the registrations of this station's members who moved up
+     */
+    public List<EventRegistration> moveUp(int eventId, LocalDate eventDate) {
+        var moved = Transactions.call(() -> {
+            eventRepository.lockForSignUp(eventId);
+            return places.fill(eventId, eventDate);
+        });
+        movedUp(moved);
+        return moved;
+    }
+
+    /**
+     * Moves people up on every date of an appointment from one day on that has a waiting list, after
+     * its limit was raised or removed, and tells them.
+     *
+     * @param eventId the appointment
+     * @param from    the first date looked at
+     * @return the registrations of this station's members who moved up
+     */
+    public List<EventRegistration> moveUpFrom(int eventId, LocalDate from) {
+        var moved = Transactions.call(() -> {
+            eventRepository.lockForSignUp(eventId);
+            return places.fillFrom(eventId, from);
+        });
+        movedUp(moved);
+        return moved;
+    }
+
+    /** Whether a registration put back holds its place by itself, not by moving up just now. */
+    private static boolean held(EventRegistration restored, List<EventRegistration> moved) {
+        return moved.stream().noneMatch(registration -> registration.id() == restored.id());
+    }
+
+    private void movedUp(List<EventRegistration> moved) {
+        for (var registration : moved) {
+            announce(registration.eventId(), registration.memberId(), RegistrationStatus.ACCEPTED);
+            recorded(registration);
         }
     }
 
@@ -731,7 +803,7 @@ public class EventRegistrationService {
         var status = refusalFor(heldBefore, eventId);
         var result = registrationRepository.create(eventId, memberId, eventDate, status, createdBy);
         log.info("Recorded {} for member {} on event {} ({})", status, memberId, eventId, eventDate);
-        announceFreedPlace(eventId, memberId, heldBefore);
+        freedPlace(eventId, memberId, eventDate, heldBefore);
         recorded(result);
         return result;
     }

@@ -448,6 +448,29 @@ public class EventRegistrationRepository {
     }
 
     /**
+     * Puts a withdrawal back under another status than the one given up, for as long as it may be put
+     * back: a seat given up by mistake that somebody else took meanwhile comes back as a place on the
+     * waiting list.
+     *
+     * @param id     the registration
+     * @param status the status it comes back with
+     * @param window how long a withdrawal can be put back
+     * @return whether it was put back
+     */
+    public boolean restoreAs(int id, RegistrationStatus status, Duration window) {
+        return query("""
+                UPDATE event_registration
+                SET status = :status, previous_status = NULL, status_changed_at = now()
+                WHERE id = :id
+                  AND status = 'WITHDRAWN'
+                  AND previous_status IS NOT NULL
+                  AND status_changed_at > now() - CAST(:window AS INTERVAL);""")
+                .single(call().bind("id", id).bind("status", status).bind("window", window.toSeconds() + " seconds"))
+                .update()
+                .changed();
+    }
+
+    /**
      * Puts an answer back to what was held before it, for as long as it may still be taken back.
      *
      * <p>The window is in the statement rather than read first and checked after, so two presses

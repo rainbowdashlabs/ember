@@ -201,6 +201,40 @@ public class RegistrationQueueRepository {
     }
 
     /**
+     * Gives a partner station's member who waited on a date's list the place that fell free. Leaving
+     * the list follows from the status, as for a member of this station.
+     *
+     * @param federationRegistrationId the partner's registration
+     * @return whether it was still waiting
+     */
+    public boolean acceptPartner(int federationRegistrationId) {
+        return query("""
+                        UPDATE event_federation_registration
+                        SET status = 'ACCEPTED', status_changed_at = now()
+                        WHERE id = :id AND status = 'QUEUED';""")
+                .single(call().bind("id", federationRegistrationId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * The dates of an appointment from one day on whose waiting list is not empty.
+     *
+     * @param eventId the appointment
+     * @param from    the first date looked at
+     * @return the dates, earliest first
+     */
+    public List<LocalDate> datesWaitedFor(int eventId, LocalDate from) {
+        return query("""
+                        SELECT DISTINCT event_date FROM registration_queue
+                        WHERE event_id = :event_id AND event_date >= :from
+                        ORDER BY event_date;""")
+                .single(call().bind("event_id", eventId).bind("from", from))
+                .map(row -> row.getObject("event_date", LocalDate.class))
+                .all();
+    }
+
+    /**
      * The order of an appointment's waiting lists.
      *
      * @param eventId the appointment
