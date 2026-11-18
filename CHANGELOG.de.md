@@ -6,7 +6,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 
 ### Neue Funktionen
 
-- **Orte von Terminen auf der Karte.** „Ort“ und „Treffpunkt“ legen jetzt Ortsfelder an, und „Auf der Karte“ neben einem Ort öffnet eine Karte, auf der seine Markierung gefunden oder korrigiert wird. Die Markierung gilt für jeden Termin, der denselben Ort nennt, und die Terminseite zeigt sie auf einer kleinen Karte mit einem Link zu OpenStreetMap.
+- **Orte von Terminen auf der Karte.** „Ort“ und „Treffpunkt“ legen jetzt Ortsfelder an, und „Auf der Karte“ neben einem Ort öffnet eine Karte, auf der seine Markierung gefunden, korrigiert oder entfernt wird. Die Markierung gilt für jeden Termin, der denselben Ort nennt, und die Terminseite zeigt sie auf einer kleinen Karte mit einem Link zu OpenStreetMap.
 - **Push-Benachrichtigungen.** Benachrichtigungen und Chatnachrichten erscheinen auf Handy oder Computer, auch wenn Ember geschlossen ist, sobald Push auf dem Gerät unter Profil → Benachrichtigungen erlaubt ist. Eine neue Spalte „Push“ legt fest, welche Arten gepusht werden; Geräte lassen sich dort oder in der Liste der Anmeldungen testen und entfernen.
 - **Push für Betreiber.** Push-Benachrichtigungen funktionieren ohne Einrichtung und lassen sich in den Einstellungen der Verwaltung für die ganze Instanz abschalten. Zugestellt wird über die Push-Dienste der Browserhersteller, und die Datenschutzerklärung bekommt einen Abschnitt dazu.
 - **Gruppen und Tags nach Regel.** Eine Gruppe oder ein Tag kann die Mitglieder aus einer Regel nehmen, die Profilantworten, Alter, Mitgliedschaft und andere Gruppen oder Tags prüft. Mitglieder kommen und gehen von selbst, wenn sich Antworten ändern oder ein Datum näher rückt, und eine Vorschau zeigt vor dem Speichern, wen eine Regel aufnimmt.
@@ -21,7 +21,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 
 ### Änderungen
 
-- **Photon schlägt Adressen nach.** Unter Verwaltung → Karten gibt es Photon als einzige Adresssuche, mit dem öffentlichen Server, solange keine eigene Serveradresse eingetragen ist. Nominatim, LocationIQ und Geoapify entfallen; eine Instanz, die einen davon gewählt hatte, hat keine Adresssuche, bis Photon gewählt wird.
+- **Photon schlägt Adressen nach.** Unter Verwaltung → Karten gibt es Photon als einzige Adresssuche, mit dem öffentlichen Server, solange keine eigene Serveradresse eingetragen ist, und die Datenschutzerklärung bekommt einen Abschnitt dazu. Nominatim, LocationIQ und Geoapify entfallen; eine Instanz, die einen davon gewählt hatte, hat keine Adresssuche, bis Photon gewählt wird.
 - **Benachrichtigungen per E-Mail sind von Haus aus eingeschaltet.** Mitglieder ohne eigene E-Mail-Einstellung bekommen Benachrichtigungen per E-Mail, sobald die Wache oder die Instanz E-Mails versenden kann, und zwar für jede Art. Bestehende E-Mail-Einstellungen bleiben, wie sie waren.
 - **Antwortadresse oben in den Mail-Einstellungen.** Die Antwortadresse steht nicht mehr im Kasten zu den Mailanbietern der Instanz, sondern ganz oben auf der Seite, weil sie für alle Mails der Wache gilt.
 

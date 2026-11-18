@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.members.entity.RuleChange;
 import dev.chojo.ember.feature.members.entity.RuleNode;
 import dev.chojo.ember.feature.members.entity.RuleOperator;
 import dev.chojo.ember.feature.members.entity.RuleOwner;
+import dev.chojo.ember.feature.members.entity.RuleSubject;
 import dev.chojo.ember.feature.members.entity.RuleValue;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.handler.AnswersRuleHandler;
@@ -162,6 +163,25 @@ class MemberRuleServiceTest extends RepositoryTestBase {
 
         assertEquals(List.of(new RuleChange(group, List.of(anna.id(), ben.id()), List.of(clara.id()))), changes);
         assertEquals(List.of(anna.id(), ben.id()), membersOf(group));
+    }
+
+    /**
+     * A rule asking about something deleted underneath it cannot say who belongs, so it is left alone and keeps its
+     * members, even where the lost check sits in a block next to checks that still work.
+     */
+    @Test
+    void aRuleThatLostATargetKeepsItsMembers() {
+        var group = groupWithRule("Mit JuLeiCa", withJuleica());
+        service.refresh(station.id(), TODAY);
+        var lost = RuleNode.check(RuleSubject.TAG, RuleOperator.IN, null, null, null, null, null, null);
+        memberRuleRepo.replace(
+                station.id(),
+                group,
+                RuleNode.any(lost, RuleNode.field(juleica, RuleOperator.IS_YES, RuleValue.empty())));
+        memberGroupRepo.addMember(group.id(), clara.id());
+
+        assertTrue(service.refresh(station.id(), TODAY).isEmpty());
+        assertEquals(List.of(anna.id(), clara.id()), membersOf(group));
     }
 
     @Test

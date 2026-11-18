@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.maps.entity.StationPlace;
 import dev.chojo.ember.feature.maps.service.GeocodingRateLimiter;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -61,6 +62,7 @@ public class EventPlaceRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/station/places", this::find, StationPermission.EVENT_EDIT, StationModule.EVENTS);
         routes.put(prefix + "/station/places", this::save, StationPermission.EVENT_EDIT, StationModule.EVENTS);
+        routes.delete(prefix + "/station/places", this::remove, StationPermission.EVENT_EDIT, StationModule.EVENTS);
         routes.post(
                 prefix + "/station/places/geocode", this::geocode, StationPermission.EVENT_EDIT, StationModule.EVENTS);
         routes.get(prefix + "/events/{id}/places", this::pinsOfEvent, StationPermission.USER, StationModule.EVENTS);
@@ -92,6 +94,18 @@ public class EventPlaceRoutes implements Routes {
     private void save(Context ctx) {
         var session = StationSession.from(ctx);
         ctx.json(placeService.save(session.stationId(), ctx.bodyAsClass(PlaceDraft.class)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station/places",
+            methods = HttpMethod.DELETE,
+            summary = "Take the pin off a place text",
+            tags = {"Events"},
+            queryParams = @OpenApiParam(name = "text", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
+    private void remove(Context ctx) {
+        placeService.remove(StationSession.from(ctx).stationId(), ctx.queryParam("text"));
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     @OpenApi(

@@ -17,7 +17,8 @@ import {listPushDevices, registerPushDevice, removePushDevice, testPushDevice} f
 import {getStatus as getMessagesStatus, updateSettings as updateMessageSettings} from '@/api/messages'
 import type {MessagesStatus, PushDevice} from '@/api/generated/schema'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import {currentBrowserSubscription, deviceLabel, pushState, subscribeBrowser, unsubscribeBrowser, type PushState} from '@/util/pushSupport'
+import {deviceLabel, pushState, subscribeBrowser, unsubscribeBrowser, type PushState} from '@/util/pushSupport'
+import {forgetPushEndpoint, rememberPushEndpoint, renewPushRegistration} from '@/composables/pushRenewal'
 import {describeFailure, type Failure} from '@/util/failure'
 import {formatDateTime} from '@/util/format'
 
@@ -80,13 +81,17 @@ function enable() {
       return
     }
     await registerPushDevice({...subscription, label: deviceLabel()})
+    rememberPushEndpoint(subscription.endpoint)
     await loadDevices()
   })
 }
 
 function remove(device: PushDevice) {
   return guarded(async () => {
-    if (device.current) await unsubscribeBrowser()
+    if (device.current) {
+      await unsubscribeBrowser()
+      forgetPushEndpoint()
+    }
     await removePushDevice(device.id)
     await loadDevices()
   })
@@ -99,18 +104,10 @@ function test(device: PushDevice) {
   })
 }
 
-/**
- * Registers this browser again without asking, where it still holds its subscription and the
- * permission but Ember no longer knows it: a subscription ends with its sign-in, and nobody should
- * have to switch push on again after every sign-in. A browser removed by hand stays removed; the
- * server leaves it out of a renewal.
- */
+/** Registers this browser again where its registration ended with an earlier sign-in, see {@link renewPushRegistration}. */
 async function renewSilently() {
   if (state.value !== 'allowed' || thisDevice.value) return
-  const subscription = await currentBrowserSubscription()
-  if (!subscription) return
-  await registerPushDevice({...subscription, label: deviceLabel(), renewal: true})
-  await loadDevices()
+  if (await renewPushRegistration()) await loadDevices()
 }
 
 onMounted(() => {

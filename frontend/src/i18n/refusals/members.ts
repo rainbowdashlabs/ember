@@ -300,5 +300,5 @@ export default {
     'M-262': 'Eine Regel, die Mitgliedsdaten liest, braucht das Recht, Mitglieder zu sehen',
     'M-263': 'Jeder Block einer Regel braucht mindestens eine Bedingung, es wurde nichts gespeichert',
     'M-264': 'Eine Gruppe, die Berechtigungen vergibt, kann ihre Mitglieder nicht aus Antworten nehmen, die die '
-        + 'Mitglieder selbst geben. Dafür taugen nur Felder, die für Mitglieder schreibgeschützt sind',
+        + 'Mitglieder selbst geben. Dafür taugen nur Felder der Wache, die für Mitglieder schreibgeschützt sind',
 }

@@ -356,6 +356,15 @@
         "de": "Antworten auf ein öffentliches Formular, die Sie begonnen, aber noch nicht abgesendet haben, damit Sie auf diesem Gerät später dort weitermachen können. Sie verlassen Ihr Gerät nicht, bevor Sie absenden, und werden beim Absenden, beim Neubeginn und nach zwei Wochen gelöscht; es werden höchstens zehn behalten.",
         "en": "Answers to a public form you started but have not sent yet, so you can continue later on this device. They do not leave your device before you send them and are deleted when you send, when you start over and after two weeks; at most ten are kept."
       }
+    },
+    {
+      "key": "push_endpoint",
+      "necessity": "FUNCTIONAL",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Die Zustelladresse, unter der dieser Browser zuletzt für Push-Benachrichtigungen eingetragen wurde. Wechselt der Browser die Adresse, meldet er sich damit von selbst wieder an.",
+        "en": "The delivery address this browser was last signed up for push notifications under. When the browser changes the address, it uses it to sign itself up again."
+      }
     }
   ]
 }

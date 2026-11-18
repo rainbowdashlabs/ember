@@ -4177,7 +4177,8 @@ export default {
         pickField: 'Feld wählen',
         pickGroup: 'Gruppe wählen',
         pickTag: 'Tag wählen',
-        fieldGone: 'Dieses Feld gibt es nicht mehr, die Regel trifft auf niemanden zu.',
+        fieldGone: 'Das Feld dieser Bedingung gibt es nicht mehr. Die Regel ruht und behält ihre Mitglieder, bis die Bedingung geändert oder entfernt wird.',
+        fieldUnreadable: 'Dieses Feld darfst du nicht sehen. Die Regel gilt weiter, gespeichert werden kann sie nur von jemandem, der das Feld sehen darf.',
         subjects: {
             GROUP: 'Gruppe',
             TAG: 'Tag',
@@ -6171,6 +6172,7 @@ export default {
         hint: 'Die Markierung gilt für jeden Termin, der diesen Ort nennt. Der Text im Feld bleibt, wie er ist.',
         mapOf: 'Karte: {place}',
         openInOsm: 'In OpenStreetMap öffnen',
+        remove: 'Markierung entfernen',
     },
     lendingDistance: {
         distanceKm: '{distance} km entfernt',
@@ -6231,7 +6233,7 @@ export default {
         minZoom: 'Min. Zoom',
         maxZoom: 'Max. Zoom',
         geocodingSection: 'Adresssuche (optional)',
-        geocodingHelp: 'Mit einer Adresssuche finden Wachen ihre Adresse auf der Karte. Die Suche läuft über diesen Server: Gesucht wird nur die eingetippte Adresse, ohne Angaben zu der Person, die sucht.',
+        geocodingHelp: 'Mit einer Adresssuche finden Wachen ihre Adresse und die Orte ihrer Termine auf der Karte. Die Suche läuft über diesen Server: Gesucht wird nur der eingetippte Text, ohne Angaben zu der Person, die sucht. Die Datenschutzerklärung beschreibt die Suche in einem eigenen Abschnitt.',
         geocodingProvider: 'Adresssuche',
         geocodingNone: 'Keine, Markierungen werden von Hand gesetzt',
         geocodingPhoton: 'Photon',

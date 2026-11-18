@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.push.entity.PushSubscription;
 import dev.chojo.ember.feature.push.repository.PushOutboxRepository;
 import dev.chojo.ember.feature.push.repository.PushSubscriptionRepository;
 import dev.chojo.ember.feature.system.service.InstanceSettingsService;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -95,15 +96,19 @@ public class PushService {
     /**
      * Registers the asking browser, or refreshes it.
      *
-     * <p>A renewal is the page registering a browser again on its own, after the sign-in it was bound to ended. It
-     * leaves out a browser the account removed by hand, which only an explicit allowing brings back.
+     * <p>A renewal is the page registering a browser again on its own, after the sign-in it was bound to ended or
+     * the browser moved to a new push address. It is taken only for a browser this account allowed and has not
+     * removed by hand since, or for a new address whose previous one was such a browser, which then replaces it.
+     * Anything else needs the account to allow push explicitly: a browser somebody else allowed, on a computer
+     * the next person signs in to, does not start pushing to them unasked.
      *
      * @param endpoint the push service's address for the browser
      * @param p256dh   the browser's public key, base64url
      * @param auth     the browser's secret, base64url
      * @param label    the name to list it under
      * @param renewal  whether the page renews the browser on its own rather than the account allowing it
-     * @return the device as listed, empty for a renewal of a browser removed by hand
+     * @param previous the address the browser was registered under before it moved, for a renewal, or null
+     * @return the device as listed, empty for a renewal this account did not allow
      */
     public Optional<PushDevice> register(
             int accountId,
@@ -112,7 +117,8 @@ public class PushService {
             @Nullable String p256dh,
             @Nullable String auth,
             @Nullable String label,
-            boolean renewal) {
+            boolean renewal,
+            @Nullable String previous) {
         if (!instance.pushEnabled()) throw PushRefusal.PUSH_TURNED_OFF.raise();
         if (endpoint == null || endpoint.isBlank() || p256dh == null || auth == null) {
             throw PushRefusal.SUBSCRIPTION_INCOMPLETE.raise();
@@ -129,11 +135,27 @@ public class PushService {
         }
         if (secret.length != AUTH_BYTES) throw PushRefusal.KEYS_NOT_USABLE.raise();
         String address = endpoint.trim();
-        if (renewal && subscriptions.declined(accountId, address)) return Optional.empty();
-        subscriptions.allowAgain(accountId, address);
-        var stored = subscriptions.register(accountId, sessionId, address, publicKey, secret, labelOf(label));
-        subscriptions.keepNewest(accountId, MAX_DEVICES);
-        return Optional.of(device(stored, sessionId));
+        return Transactions.call(() -> {
+            if (renewal && !mayRenew(accountId, address, previous)) return Optional.empty();
+            subscriptions.allow(accountId, address);
+            var stored = subscriptions.register(accountId, sessionId, address, publicKey, secret, labelOf(label));
+            subscriptions.keepNewest(accountId, MAX_DEVICES);
+            return Optional.of(device(stored, sessionId));
+        });
+    }
+
+    /**
+     * Whether the page may register this browser again on its own: the account allowed it and did not remove it
+     * since, or it moved from an address the account allowed, which it then takes the place of.
+     */
+    private boolean mayRenew(int accountId, String address, @Nullable String previous) {
+        var own = subscriptions.allowed(accountId, address);
+        if (own.isPresent()) return own.get();
+        if (previous == null || previous.isBlank() || previous.trim().equals(address)) return false;
+        String old = previous.trim();
+        if (!subscriptions.allowed(accountId, old).orElse(false)) return false;
+        subscriptions.forgetAddress(accountId, old);
+        return true;
     }
 
     /** @return the account's devices, the asking one marked */

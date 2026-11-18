@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:d66dfd7582bfc74d23b02d1539e65ac5d69aaa768d337d6a349b2b59af1bde76",
-  "generatedAt": "2026-11-18T13:22:28Z",
+  "schemaHash": "sha256:2d273d8fe6c49f11a6b0dab96657c20422b3c2d33b0d9c803e28b237db97c9ec",
+  "generatedAt": "2026-11-18T14:29:26Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -22669,7 +22669,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The association profile field a field check or an age check reads. Emptied when the association deletes the field; such a check then matches nobody."
+          "description": "The association profile field a field check or an age check reads. Emptied when the association deletes the field; a rule with such a check is not run and keeps its members until it is changed."
         },
         {
           "name": "ref_group_id",
@@ -26983,31 +26983,38 @@
       },
       "description": "Stored values of profile fields per member."
     },
-    "push_declined": {
+    "push_browser": {
       "feature": "push",
       "scope": "USER",
-      "tableHash": "sha256:810356b798859407ffa564dbf2a9583238ff5be8f65bf599b973d13f693654cc",
+      "tableHash": "sha256:eec820a796a4b0bb496272c93754898b154ec403feb7c35db07183d9f0a7b054",
       "columns": [
         {
           "name": "account_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "The account that removed the browser."
+          "description": "The account that allowed or removed the browser."
         },
         {
           "name": "endpoint",
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "The address of the push service of the removed browser, as it was registered."
+          "description": "The address of the push service of the browser, as it was registered."
         },
         {
-          "name": "declined_at",
+          "name": "allowed",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "True once the account allowed push on the browser, false once it removed the browser by hand."
+        },
+        {
+          "name": "changed_at",
           "type": "timestamptz",
           "nullable": false,
           "verified": true,
-          "description": "When the browser was removed."
+          "description": "When the browser was last registered, allowed or removed. Six months later, a browser that is not registered any more is forgotten."
         }
       ],
       "foreignKeys": [
@@ -27041,7 +27048,7 @@
           }
         ]
       },
-      "description": "Browsers an account removed from push by hand, so they are not registered again without being asked."
+      "description": "Browsers an account allowed push on, or removed from it by hand. Outlives the sign-in, so a browser is only registered again without asking where its account allowed it and did not remove it since."
     },
     "push_outbox": {
       "feature": "push",
@@ -27218,7 +27225,7 @@
           "type": "timestamptz",
           "nullable": false,
           "verified": true,
-          "description": "When the browser was registered."
+          "description": "When the browser was last registered or renewed; the cap on devices drops the oldest first."
         },
         {
           "name": "last_success_at",

@@ -57855,7 +57855,7 @@ export interface paths {
                         "application/json": components["schemas"]["PushDevice"];
                     };
                 };
-                /** @description A renewal of a browser the account removed by hand */
+                /** @description A renewal of a browser this account did not allow */
                 204: {
                     headers: {
                         [name: string]: unknown;
@@ -67132,7 +67132,27 @@ export interface paths {
             };
         };
         post?: never;
-        delete?: never;
+        /** Take the pin off a place text */
+        delete: {
+            parameters: {
+                query: {
+                    text: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -78311,7 +78331,6 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
-            places: components["schemas"]["StationPlace"][];
             publicFields: components["schemas"]["AppointmentField"][];
             startTime: components["schemas"]["Instant"];
         };
@@ -81254,6 +81273,7 @@ export interface components {
             endpoint?: string | null;
             label?: string | null;
             p256dh?: string | null;
+            previousEndpoint?: string | null;
             renewal?: boolean;
         };
         SuggestedAnswer: {

@@ -58,6 +58,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -91,6 +92,7 @@ class OnboardingServiceTest {
 
     @BeforeEach
     void setUp() {
+        reset(pushSubscriptions);
         markRepository = mock(OnboardingTaskRepository.class);
         setupService = mock(SetupService.class);
         twoFactorRepository = mock(TwoFactorRepository.class);
@@ -221,7 +223,16 @@ class OnboardingServiceTest {
         assertTrue(service.forMember(reader, StationUserType.MEMBER).tasks().stream()
                 .noneMatch(task -> task.key().equals("member.push")));
         when(instanceSettings.pushEnabled()).thenReturn(true);
-        when(pushSubscriptions.findByAccount(MEMBER)).thenReturn(List.of());
+    }
+
+    /** Removing a device by hand is a choice about push too, so the step stays settled without a device. */
+    @Test
+    void pushIsSettledByADeviceRemovedByHand() {
+        var reader = member(MEMBER, StationUserType.MEMBER);
+        when(pushSubscriptions.declinedAny(MEMBER)).thenReturn(true);
+
+        assertEquals(
+                OnboardingTaskState.DONE, stateOf(service.forMember(reader, StationUserType.MEMBER), "member.push"));
     }
 
     @Test

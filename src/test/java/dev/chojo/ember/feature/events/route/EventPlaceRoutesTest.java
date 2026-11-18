@@ -108,6 +108,15 @@ class EventPlaceRoutesTest {
     }
 
     @Test
+    void anEditorTakesAPinOffForTheirOwnStation() {
+        harness.run((server, client) -> assertEquals(
+                204,
+                client.delete(PREFIX + "/station/places?text=Ger%C3%A4tehaus", null, editor())
+                        .code()));
+        verify(places).remove(STATION_ID, "Gerätehaus");
+    }
+
+    @Test
     void aDraftWithoutCoordinatesReachesTheServiceWithoutThem() {
         when(places.save(eq(STATION_ID), any())).thenThrow(EventRefusal.PLACE_OFF_THE_MAP.raise());
         harness.run((server, client) -> assertEquals(
@@ -147,6 +156,10 @@ class EventPlaceRoutesTest {
             assertEquals(
                     403,
                     client.post(PREFIX + "/station/places/geocode", body("{\"text\": \"x\"}"), member())
+                            .code());
+            assertEquals(
+                    403,
+                    client.delete(PREFIX + "/station/places?text=x", null, member())
                             .code());
         });
         verify(places, never()).save(anyInt(), any());

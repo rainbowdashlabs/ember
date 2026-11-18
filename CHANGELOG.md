@@ -6,7 +6,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 
 ### New Features
 
-- **Appointment places on a map.** "Location" and "Meeting point" now add place fields, and "On the map" next to a place opens a map to find or correct its pin. The pin applies to every appointment naming the same place, and the appointment page shows it on a small map with a link to OpenStreetMap.
+- **Appointment places on a map.** "Location" and "Meeting point" now add place fields, and "On the map" next to a place opens a map to find, correct or remove its pin. The pin applies to every appointment naming the same place, and the appointment page shows it on a small map with a link to OpenStreetMap.
 - **Push notifications.** Notifications and chat messages can arrive on a phone or computer even with Ember closed, once push is allowed on that device under Profile → Notifications. A new "Push" column chooses which kinds are pushed, and devices can be tested and removed there or in the list of sign-ins.
 - **Push for operators.** Push notifications work without any setup and can be switched off for the whole instance in the administration settings. They are delivered through the push services of the browser makers, and the privacy notice gains a section on them.
 - **Groups and tags filled by rules.** A group or tag can take its members from a rule of checks on profile answers, age, membership and other groups or tags. Members join and leave on their own as answers change and dates come closer, and a preview shows whom a rule takes in before it is saved.
@@ -21,7 +21,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 
 ### Changes
 
-- **Photon looks up addresses.** Admin → Maps offers Photon as the only address search, using the public server unless the address of a self-hosted server is entered. Nominatim, LocationIQ and Geoapify are removed, and an instance that had one of them selected has no address search until Photon is chosen.
+- **Photon looks up addresses.** Admin → Maps offers Photon as the only address search, using the public server unless the address of a self-hosted server is entered, and the privacy notice gains a section on it. Nominatim, LocationIQ and Geoapify are removed, and an instance that had one of them selected has no address search until Photon is chosen.
 - **Mail notifications are on by default.** Members without a mail setting of their own get notifications by mail as soon as the station or the instance can send mail, for every kind of notification. Mail settings members already had stay as they were.
 - **Reply address at the top of the mail settings.** The reply address moved out of the box about the instance's mail providers to the top of the page, since it applies to all of a station's mail.
 

@@ -286,7 +286,8 @@ public class OnboardingService {
             case PUSH -> {
                 Integer accountId = member.accountId();
                 yield accountId != null
-                        && !pushSubscriptions.findByAccount(accountId).isEmpty();
+                        && (!pushSubscriptions.findByAccount(accountId).isEmpty()
+                                || pushSubscriptions.declinedAny(accountId));
             }
             case CALENDAR_FEED ->
                 feedTokenRepository

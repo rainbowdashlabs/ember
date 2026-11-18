@@ -26,7 +26,8 @@ import {describeFailure, type Failure} from '@/util/failure'
  * Where a place an appointment names lies on the map. It opens at the pin the station already keeps
  * for the place text, or looks the text up when there is none yet and the instance has an address
  * search; without one the pin is placed by hand. Saving stores the pin for the place text, so every
- * appointment naming the place shows it; the field's text itself never changes.
+ * appointment naming the place shows it; the field's text itself never changes. A stored pin can be
+ * taken off again, for one set in the wrong place or a place that needs none.
  */
 const open = defineModel<boolean>({default: false})
 
@@ -42,6 +43,8 @@ const latitude = ref<number | null>(null)
 const longitude = ref<number | null>(null)
 const found = ref<GeocodeResult | null>(null)
 const preparing = ref(false)
+const pinned = ref(false)
+const removing = ref(false)
 const failure = ref<Failure | null>(null)
 
 const {failure: findFailure, outcome, find, reset} = useGeocode(() => places.geocodePlace(props.text))
@@ -60,10 +63,12 @@ async function prepare() {
   reset()
   latitude.value = null
   longitude.value = null
+  pinned.value = false
   preparing.value = true
   try {
     const stored = await places.findPlace(props.text)
     if (stored) {
+      pinned.value = true
       latitude.value = stored.latitude
       longitude.value = stored.longitude
       if (stored.precision) {
@@ -107,6 +112,19 @@ async function save() {
     throw err
   }
 }
+
+async function remove() {
+  failure.value = null
+  removing.value = true
+  try {
+    await places.removePlace(props.text)
+    open.value = false
+  } catch (err) {
+    failure.value = describeFailure(err, t)
+  } finally {
+    removing.value = false
+  }
+}
 </script>
 
 <template>
@@ -124,7 +142,11 @@ async function save() {
         />
         <GeocodeHint :outcome="outcome" target="place"/>
       </template>
-      <ButtonRow pair align="end">
+      <ButtonRow align="end">
+        <SecondaryButton v-if="pinned" :icon="['fas', 'trash']" :disabled="removing" data-testid="place-remove"
+                         @click="remove">
+          {{ t('places.remove') }}
+        </SecondaryButton>
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <SaveButton :disabled="latitude == null || longitude == null" :action="save" data-testid="place-save"/>
       </ButtonRow>

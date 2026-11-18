@@ -30,8 +30,9 @@ vi.mock('@/api', () => ({
     userTags: {listChoosableTags: async () => []},
 }))
 
+const session = vi.hoisted(() => ({readsMembers: false}))
 vi.mock('@/composables/useSession', () => ({
-    useSession: () => ({hasPermission: () => false}),
+    useSession: () => ({hasPermission: () => session.readsMembers}),
 }))
 
 const RULE: RuleNode = {...emptyBlock(), children: [{...emptyCheck(), groupId: 4}]}
@@ -45,6 +46,7 @@ const RULE: RuleNode = {...emptyBlock(), children: [{...emptyCheck(), groupId: 4
 describe('MemberRuleEditor', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        session.readsMembers = false
         listFields.mockResolvedValue([])
     })
 
@@ -154,6 +156,34 @@ describe('MemberRuleEditor', () => {
         expect(wrapper.text()).toContain('Ändern kann sie nur, wer Mitglieder sehen darf')
         expect(wrapper.text()).not.toContain('Regel speichern')
         expect(wrapper.find('fieldset').attributes('disabled')).toBeDefined()
+        wrapper.unmount()
+    })
+
+    it('says a rule whose field was deleted rests and keeps its members', async () => {
+        session.readsMembers = true
+        getRule.mockResolvedValue({
+            ...emptyBlock(),
+            children: [{...emptyCheck(), subject: RuleSubject.CLUSTER_FIELD, operator: RuleOperator.IS_YES}],
+        })
+        const wrapper = editor()
+        await flushPromises()
+
+        expect(wrapper.text()).toContain('Die Regel ruht und behält ihre Mitglieder')
+        expect(wrapper.text()).not.toContain('Diese Bedingung ist noch nicht vollständig')
+        wrapper.unmount()
+    })
+
+    it('says a field the reader may not see is there, rather than gone', async () => {
+        session.readsMembers = true
+        getRule.mockResolvedValue({
+            ...emptyBlock(),
+            children: [{...emptyCheck(), subject: RuleSubject.FIELD, operator: RuleOperator.IS_YES, fieldId: 7}],
+        })
+        const wrapper = editor()
+        await flushPromises()
+
+        expect(wrapper.text()).toContain('Dieses Feld darfst du nicht sehen')
+        expect(wrapper.text()).not.toContain('Die Regel ruht')
         wrapper.unmount()
     })
 

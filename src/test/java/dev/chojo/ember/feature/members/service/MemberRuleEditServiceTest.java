@@ -535,8 +535,9 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * An answer counts as self-given wherever anybody it is put to may write it: an association question members
-     * answer, and a station question read only to members but open to guardians.
+     * An answer counts as self-given wherever anybody it is put to may write it: any association question, read
+     * only or not, since the association writes past every lock, and a station question read only to members but
+     * open to guardians.
      */
     @Test
     void aSelfGivenAnswerIsFoundForAssociationQuestionsAndGuardians() {
@@ -549,6 +550,15 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
                         holder,
                         group,
                         RuleNode.all(RuleNode.clusterField(association, RuleOperator.IS_YES, RuleValue.empty()))));
+
+        int lockedAssociation = associationField("Verbandsprüfung", true, ProfileFieldScope.MEMBER);
+        refused(
+                MemberRefusal.RULE_PERMISSIONS_FROM_OWN_ANSWER,
+                () -> edits.save(
+                        holder,
+                        group,
+                        RuleNode.all(
+                                RuleNode.clusterField(lockedAssociation, RuleOperator.IS_YES, RuleValue.empty()))));
 
         int guardians = managedField("Elternangabe");
         profileFieldRepo.assignToRole(guardians, ProfileFieldScope.GUARDIAN, 0, null, false, null);

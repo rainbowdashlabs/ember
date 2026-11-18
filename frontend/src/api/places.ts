@@ -18,6 +18,11 @@ export async function savePlace(draft: PlaceDraft): Promise<StationPlace> {
     return res.data
 }
 
+/** Takes the pin off a place text; every appointment naming the place shows it without a map again. */
+export async function removePlace(text: string): Promise<void> {
+    await client.delete('/station/places', {params: {text}})
+}
+
 /** Looks a place text up on the map near the station; nothing is stored. */
 export async function geocodePlace(text: string): Promise<GeocodeAnswer> {
     const res = await client.post<GeocodeAnswer>('/station/places/geocode', {text})

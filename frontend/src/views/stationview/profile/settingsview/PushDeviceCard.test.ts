@@ -108,7 +108,7 @@ describe('PushDeviceCard', () => {
 
         expect(browser.subscribeBrowser).not.toHaveBeenCalled()
         expect(api.registerPushDevice).toHaveBeenCalledWith(
-            {endpoint: 'https://push.example/b', p256dh: 'p', auth: 'a', label: 'Firefox auf Android', renewal: true})
+            {endpoint: 'https://push.example/b', p256dh: 'p', auth: 'a', label: 'Firefox auf Android', renewal: true, previousEndpoint: null})
     })
 
     it('switches message pushes for the whole account, and hides the switch without messages', async () => {

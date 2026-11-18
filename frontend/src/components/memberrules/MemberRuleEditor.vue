@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, onMounted, provide, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -25,7 +25,17 @@ import {showToast} from '@/util/toast'
 import type {RuleCatalog} from './ruleCatalog'
 import RuleBlockEditor from './RuleBlockEditor.vue'
 import RulePreviewPanel from './RulePreviewPanel.vue'
-import {countChecks, countEmptyBlocks, depthOf, emptyBlock, incompleteChecks, readsMemberData, RULE_LIMITS} from './ruleDraft'
+import {
+  countChecks,
+  countEmptyBlocks,
+  depthOf,
+  emptyBlock,
+  incompleteChecks,
+  LOST_CHECKS,
+  lostChecks,
+  readsMemberData,
+  RULE_LIMITS,
+} from './ruleDraft'
 
 /**
  * Whether a group or tag is kept by hand or by a rule, and the rule itself: the builder, a preview of who it
@@ -71,6 +81,10 @@ const missing = computed(() => {
   const loaded = catalog.value
   return rule && loaded ? incompleteChecks(rule, loaded.options, loaded.fields) : 0
 })
+
+/** The checks of the stored rule that lost what they asked about; a row shows them as resting until changed. */
+const lost = computed<ReadonlySet<RuleNode>>(() => new Set(saved.value ? lostChecks(saved.value) : []))
+provide(LOST_CHECKS, lost)
 
 const emptyBlocks = computed(() => draft.value ? countEmptyBlocks(draft.value) : 0)
 

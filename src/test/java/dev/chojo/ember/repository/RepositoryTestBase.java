@@ -994,7 +994,8 @@ public abstract class RepositoryTestBase {
                 profileFieldChangeRepo,
                 stationMemberRepo,
                 memberPermissionResolver,
-                eventBus);
+                eventBus,
+                RepositoryTestBase::newSelfAnsweredRules);
     }
 
     /**
@@ -1013,7 +1014,8 @@ public abstract class RepositoryTestBase {
                 core,
                 new GenderFields(core, stationRepo),
                 new StationFieldSetRepository(),
-                memberRuleRepo);
+                memberRuleRepo,
+                newSelfAnsweredRules());
     }
 
     /**
@@ -1325,7 +1327,7 @@ public abstract class RepositoryTestBase {
 
     /** The guard against groups granting permissions from answers members give themselves, over this class's repositories. */
     protected static SelfAnsweredRules newSelfAnsweredRules() {
-        return new SelfAnsweredRules(profileFieldRepo, () -> clusterProfileFieldService, memberGroupRepo);
+        return new SelfAnsweredRules(profileFieldRepo, memberGroupRepo, memberRuleRepo);
     }
 
     /**

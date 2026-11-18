@@ -10,6 +10,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.feature.push.entity.PushSubscription;
 import dev.chojo.ember.feature.push.repository.PushOutboxRepository;
 import dev.chojo.ember.feature.push.repository.PushSubscriptionRepository;
 import dev.chojo.ember.feature.push.repository.VapidKeyRepository;
@@ -30,6 +31,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.EnumSet;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -228,6 +230,56 @@ class PushRoutesTest extends RepositoryTestBase {
         assertEquals(1, subscriptions.findByAccount(owner.id()).size());
     }
 
+    /**
+     * A browser somebody else allowed does not start pushing to the next person signing in there; that takes them
+     * allowing push themselves.
+     */
+    @Test
+    void aBrowserAnotherAccountAllowedIsNotRenewedForTheNextOne() {
+        String endpoint = PUSH_SERVICE + UUID.randomUUID();
+        String auth = URL.encodeToString(new byte[16]);
+        subscribe(owner, ownerSession, endpoint, publicKey(), auth);
+
+        assertEquals(
+                204, renew(other, otherSession, endpoint, publicKey(), auth).code());
+        assertEquals(1, subscriptions.findByAccount(owner.id()).size());
+        assertTrue(subscriptions.findByAccount(other.id()).isEmpty());
+    }
+
+    /**
+     * A browser that moved to a new address keeps pushing when the page brings the old one along, and the old one
+     * is gone afterwards; one removed by hand stays out under its new address too.
+     */
+    @Test
+    void aBrowserThatMovedIsRenewedFromItsOldAddressUnlessItWasRemoved() {
+        String auth = URL.encodeToString(new byte[16]);
+        String first = PUSH_SERVICE + UUID.randomUUID();
+        String moved = PUSH_SERVICE + UUID.randomUUID();
+        subscribe(owner, ownerSession, first, publicKey(), auth);
+
+        assertEquals(204, renew(owner, ownerSession, moved, publicKey(), auth).code());
+        assertEquals(
+                200,
+                renewFrom(owner, ownerSession, moved, first, publicKey(), auth).code());
+        assertEquals(
+                List.of(moved),
+                subscriptions.findByAccount(owner.id()).stream()
+                        .map(PushSubscription::endpoint)
+                        .toList());
+        assertEquals(
+                204,
+                renewFrom(owner, ownerSession, PUSH_SERVICE + UUID.randomUUID(), first, publicKey(), auth)
+                        .code());
+
+        int id = subscriptions.findByAccount(owner.id()).getFirst().id();
+        harness.request(client -> client.delete(
+                RouteHarness.PREFIX + "/push/subscriptions/" + id, null, harness.as(as(owner, ownerSession))));
+        assertEquals(
+                204,
+                renewFrom(owner, ownerSession, PUSH_SERVICE + UUID.randomUUID(), moved, publicKey(), auth)
+                        .code());
+    }
+
     @Test
     void nothingIsRegisteredWhilePushIsSwitchedOff() {
         when(instance.pushEnabled()).thenReturn(false);
@@ -248,7 +300,16 @@ class PushRoutesTest extends RepositoryTestBase {
     }
 
     private Response renew(Account account, int session, String endpoint, String p256dh, String auth) {
-        return register(account, session, endpoint, p256dh, auth, true);
+        return renewFrom(account, session, endpoint, null, p256dh, auth);
+    }
+
+    private Response renewFrom(
+            Account account, int session, String endpoint, String previous, String p256dh, String auth) {
+        String json = "{\"endpoint\":\"" + endpoint + "\",\"p256dh\":\"" + p256dh + "\",\"auth\":\"" + auth
+                + "\",\"label\":\"Firefox auf Android\",\"renewal\":true"
+                + (previous == null ? "" : ",\"previousEndpoint\":\"" + previous + "\"") + "}";
+        return harness.request(client ->
+                client.put(RouteHarness.PREFIX + "/push/subscriptions", body(json), harness.as(as(account, session))));
     }
 
     private Response register(

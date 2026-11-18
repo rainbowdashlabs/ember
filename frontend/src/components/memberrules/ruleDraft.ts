@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import type {InjectionKey, Ref} from 'vue'
 import {
     FieldOrigin,
     RuleNeed,
@@ -170,6 +171,25 @@ export function withValue(check: RuleNode, part: Partial<RuleValue>): RuleNode {
 export function countChecks(node: RuleNode): number {
     if (node.kind === RuleNodeKind.CHECK) return 1
     return node.children.reduce((sum, child) => sum + countChecks(child), 0)
+}
+
+/** Hands the checks of the stored rule that lost what they asked about to every row of the editor. */
+export const LOST_CHECKS: InjectionKey<Ref<ReadonlySet<RuleNode>>> = Symbol('lostChecks')
+
+/**
+ * The checks of a stored rule that name nothing any more, because the field, group or tag they asked about was
+ * deleted underneath them, the same test the server makes before it runs a rule. Such a rule rests.
+ */
+export function lostChecks(node: RuleNode): RuleNode[] {
+    if (node.kind !== RuleNodeKind.CHECK) return node.children.flatMap(lostChecks)
+    switch (node.subject) {
+        case RuleSubject.GROUP: return node.groupId === null ? [node] : []
+        case RuleSubject.TAG: return node.tagId === null ? [node] : []
+        case RuleSubject.CLUSTER_FIELD: return node.clusterFieldId === null ? [node] : []
+        case RuleSubject.FIELD:
+        case RuleSubject.AGE: return node.fieldId === null && node.clusterFieldId === null ? [node] : []
+        default: return []
+    }
 }
 
 /** How many blocks of a tree hold nothing, which the server refuses: an empty block would ask nothing at all. */

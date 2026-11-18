@@ -2053,7 +2053,9 @@ volumes:
                 + 'Felder in Regeln nutzt, braucht das Recht, Mitglieder zu sehen, und bekommt nur die Felder angeboten, '
                 + 'die er selbst sehen darf. Eine Gruppe, die Berechtigungen vergibt, kann nur Felder lesen, die für '
                 + 'alle, denen sie gestellt werden, schreibgeschützt sind: sonst könnte sich jeder mit seiner eigenen '
-                + 'Antwort selbst Rechte geben. Jeder Block einer Regel braucht mindestens eine Bedingung.',
+                + 'Antwort selbst Rechte geben. Felder des Verbands gehen dafür gar nicht, weil der Verband sie '
+                + 'immer beschreiben kann. Wer eine solche Antwort ändert, braucht die Berechtigungen der Gruppe '
+                + 'selbst. Jeder Block einer Regel braucht mindestens eine Bedingung.',
             rulesExampleTitle: 'Beispiel: JuLeiCa läuft bald ab',
             title: 'Gruppen',
             subtitle: 'Mitglieder in Gruppen organisieren.',
@@ -6743,7 +6745,7 @@ volumes:
             providerCommercial: 'Mapbox, MapTiler, Thunderforest - kommerzielle Anbieter mit eigenen Tarifen.',
             providerCustom: 'Eigene URL - wenn du z. B. einen eigenen Tile-Server betreibst.',
             geocodingTitle: 'Adresssuche',
-            geocodingText: 'Ist eine Adresssuche eingestellt, können Wachen ihre Adresse mit „Auf der Karte finden" auf die Karte setzen. Zur Wahl steht Photon: ohne Serveradresse der öffentliche Server von Komoot, mit Serveradresse ein eigener. Die Suche läuft immer über deinen Server, so dass der Photon-Server nur die gesuchte Adresse sieht und nie die Person, die sucht. Ohne Adresssuche verlässt keine Adresse die Instanz, und Markierungen werden von Hand gesetzt.',
+            geocodingText: 'Ist eine Adresssuche eingestellt, können Wachen ihre Adresse mit „Auf der Karte finden" auf die Karte setzen, und „Auf der Karte" sucht einen Ort eines Termins, der noch keine Markierung hat, von selbst. Zur Wahl steht Photon: ohne Serveradresse der öffentliche Server von Komoot, mit Serveradresse ein eigener. Die Suche läuft immer über deinen Server, so dass der Photon-Server nur den gesuchten Text sieht, also die Adresse oder den Ortstext des Termins, und nie die Person, die sucht. Ortstexte gehen so hinaus, wie sie eingetragen sind. Ohne Adresssuche verlässt kein Text die Instanz, und Markierungen werden von Hand gesetzt.',
             cacheTitle: 'Wie funktioniert der Cache?',
             cacheText: 'Jede aufgerufene Kachel wird auf der Festplatte abgelegt. Beim nächsten Aufruf liefert dein Server sie aus - der Anbieter sieht weniger Anfragen und Member-IPs bleiben anonym. Bei einem Ausfall des Anbieters bleiben kürzlich aufgerufene Kacheln verfügbar.',
             tip: 'Tipp: Drücke "Testkachel anfordern" nach einer Schlüssel-Änderung - der Anbieter sollte HTTP 200 zurückgeben.',

@@ -45465,7 +45465,7 @@
             }
           },
           "204" : {
-            "description" : "A renewal of a browser the account removed by hand"
+            "description" : "A renewal of a browser this account did not allow"
           }
         },
         "requestBody" : {
@@ -52319,6 +52319,23 @@
             }
           }
         }
+      },
+      "delete" : {
+        "summary" : "Take the pin off a place text",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "text",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
       }
     },
     "/api/v1/station/places/geocode" : {
@@ -79667,12 +79684,6 @@
               "$ref" : "#/components/schemas/AppointmentField"
             }
           },
-          "places" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/StationPlace"
-            }
-          },
           "cancelled" : {
             "type" : "boolean"
           },
@@ -79683,7 +79694,7 @@
             }
           }
         },
-        "required" : [ "id", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "category", "publicFields", "places", "cancelled", "cancelledDates" ]
+        "required" : [ "id", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "category", "publicFields", "cancelled", "cancelledDates" ]
       },
       "PublicEventResponse" : {
         "type" : "object",
@@ -88339,6 +88350,9 @@
           },
           "renewal" : {
             "type" : "boolean"
+          },
+          "previousEndpoint" : {
+            "type" : [ "string", "null" ]
           }
         }
       },

@@ -13,7 +13,8 @@ import 'leaflet/dist/leaflet.css'
 
 /**
  * A small map showing where one place lies, to look at only: no dragging the pin, no clicking it
- * somewhere else. A link below opens the same spot on OpenStreetMap for directions.
+ * somewhere else. A link below opens the same spot on OpenStreetMap for directions. On a touch device
+ * the map does not move under one finger, so swiping over it scrolls the page as everywhere else.
  */
 const props = withDefaults(defineProps<{
   latitude: number
@@ -40,7 +41,12 @@ async function init() {
   const L = await loadLeaflet()
   const config = await load()
   if (!mapEl.value) return
-  mapInstance = L.map(mapEl.value, {center: [props.latitude, props.longitude], zoom: ZOOM, scrollWheelZoom: false})
+  mapInstance = L.map(mapEl.value, {
+    center: [props.latitude, props.longitude],
+    zoom: ZOOM,
+    scrollWheelZoom: false,
+    dragging: !L.Browser.mobile,
+  })
   addTileLayer(L, mapInstance, config)
   marker = L.marker([props.latitude, props.longitude], {draggable: false, title: props.label}).addTo(mapInstance)
 }

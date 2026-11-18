@@ -13,8 +13,12 @@ import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.entity.RuleNode;
 import dev.chojo.ember.feature.members.entity.RuleOperator;
 import dev.chojo.ember.feature.members.entity.RuleOwner;
@@ -35,6 +39,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -322,6 +327,197 @@ class RuleKeptMembershipsTest extends RepositoryTestBase {
         assertTrue(groups.delete(askedGroup, signedIn(manager)));
         assertTrue(tags.delete(askedTag.id()));
         assertTrue(profileFieldService.delete(askedField));
+    }
+
+    /** A field a rule reads keeps its type, since the rule's operator was chosen for it; a rename is fine. */
+    @Test
+    void aFieldAskedAboutByARuleKeepsItsType() {
+        int asked = profileFieldRepo
+                .create(station.id(), "Lehrgang", FieldType.BOOLEAN, ProfileFieldConfig.empty(), false, false, null)
+                .id();
+        var asking = ruledGroup("Jugend");
+        memberRuleRepo.replace(
+                station.id(),
+                RuleOwner.group(asking.id()),
+                RuleNode.all(RuleNode.field(asked, RuleOperator.IS_YES, RuleValue.empty())));
+
+        assertNames(
+                "Jugend",
+                assertRefused(
+                        MemberRefusal.USED_BY_A_RULE,
+                        () -> profileFieldService.update(
+                                asked,
+                                "Lehrgang",
+                                FieldType.TEXT,
+                                ProfileFieldConfig.empty(),
+                                false,
+                                false,
+                                null,
+                                false)));
+        assertTrue(profileFieldService
+                .update(asked, "Lehrgang 2", FieldType.BOOLEAN, ProfileFieldConfig.empty(), false, false, null, false)
+                .isPresent());
+    }
+
+    /**
+     * A question a permission-granting group's rule reads stays read only to members: neither the question itself
+     * nor a new audience may open it for writing, and a refused change leaves it as it was.
+     */
+    @Test
+    void aFieldAPermissionGroupReadsStaysReadOnly() {
+        int managed = profileFieldRepo
+                .create(station.id(), "Lehrgang", FieldType.BOOLEAN, ProfileFieldConfig.empty(), false, true, null)
+                .id();
+        profileFieldRepo.assignToRole(managed, ProfileFieldScope.MEMBER, 0, null, null, null);
+        var admins = ruledGroup("Verwaltung");
+        memberRuleRepo.replace(
+                station.id(),
+                RuleOwner.group(admins.id()),
+                RuleNode.all(RuleNode.field(managed, RuleOperator.IS_YES, RuleValue.empty())));
+        var edit = stationMemberRepo
+                .findPermissionByName(StationPermission.MEMBER_EDIT)
+                .orElseThrow();
+        memberGroupRepo.addGroupPermission(admins.id(), edit.id());
+
+        assertRefused(
+                MemberRefusal.RULE_PERMISSIONS_FROM_OWN_ANSWER,
+                () -> profileFieldService.update(
+                        managed, "Lehrgang", FieldType.BOOLEAN, ProfileFieldConfig.empty(), false, false, null, false));
+        assertTrue(profileFieldRepo.findById(managed).orElseThrow().readonly());
+
+        assertRefused(
+                MemberRefusal.RULE_PERMISSIONS_FROM_OWN_ANSWER,
+                () -> profileFieldService.assignToRole(managed, ProfileFieldScope.GUARDIAN, 0, null, false, null));
+        assertTrue(profileFieldRepo.findAssignments(managed).stream()
+                .noneMatch(assignment -> assignment.role() == ProfileFieldScope.GUARDIAN));
+    }
+
+    /**
+     * The management writes answers members cannot, but changing one that an admin group's rule reads moves people
+     * into that group, which takes the group's permissions; an answer left as it was takes nothing.
+     */
+    @Test
+    void changingAnAnswerAPermissionGroupReadsTakesItsPermissions() {
+        int managed = profileFieldRepo
+                .create(station.id(), "Lehrgang", FieldType.BOOLEAN, ProfileFieldConfig.empty(), false, true, null)
+                .id();
+        profileFieldRepo.assignToRole(managed, ProfileFieldScope.MEMBER, 0, null, null, null);
+        var admins = ruledGroup("Verwaltung");
+        memberRuleRepo.replace(
+                station.id(),
+                RuleOwner.group(admins.id()),
+                RuleNode.all(RuleNode.field(managed, RuleOperator.IS_YES, RuleValue.empty())));
+        var admin = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        memberGroupRepo.addGroupPermission(admins.id(), admin.id());
+        var yes = List.of(new FieldValueEntry(managed, "\"true\"", FieldOrigin.STATION));
+        var editor = ProfileWriter.station(true, Set.of(StationPermission.MEMBER_EDIT));
+
+        assertNames(
+                "Verwaltung",
+                assertRefused(
+                        MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_THROUGH_RULE,
+                        () -> profileFieldService.setValues(child.id(), yes, manager.id(), editor)));
+        assertTrue(profileFieldRepo.findValue(child.id(), managed).isEmpty());
+
+        var administrator = ProfileWriter.station(
+                true, Set.of(StationPermission.MEMBER_EDIT, StationPermission.STATION_ADMINISTRATOR));
+        profileFieldService.setValues(child.id(), yes, manager.id(), administrator);
+        profileFieldService.setValues(child.id(), yes, manager.id(), editor);
+        assertTrue(profileFieldRepo.findValue(child.id(), managed).isPresent());
+    }
+
+    /**
+     * The answer may also reach the group through a tag kept by a rule, and the association, which holds none of
+     * the station's permissions, may not change it either.
+     */
+    @Test
+    void anAnswerReachingAPermissionGroupThroughATagTakesItsPermissionsToo() {
+        int managed = profileFieldRepo
+                .create(station.id(), "Lehrgang", FieldType.BOOLEAN, ProfileFieldConfig.empty(), false, true, null)
+                .id();
+        profileFieldRepo.assignToRole(managed, ProfileFieldScope.MEMBER, 0, null, null, null);
+        var trained = ruledTag("Ausgebildet");
+        memberRuleRepo.replace(
+                station.id(),
+                RuleOwner.tag(trained.id()),
+                RuleNode.all(RuleNode.field(managed, RuleOperator.IS_YES, RuleValue.empty())));
+        var admins = ruledGroup("Verwaltung");
+        memberRuleRepo.replace(
+                station.id(), RuleOwner.group(admins.id()), RuleNode.all(RuleNode.tag(RuleOperator.IN, trained.id())));
+        var admin = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        memberGroupRepo.addGroupPermission(admins.id(), admin.id());
+        var yes = List.of(new FieldValueEntry(managed, "\"true\"", FieldOrigin.STATION));
+
+        assertRefused(
+                MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_THROUGH_RULE,
+                () -> profileFieldService.setValues(
+                        child.id(),
+                        yes,
+                        manager.id(),
+                        ProfileWriter.station(true, Set.of(StationPermission.MEMBER_EDIT))));
+        assertRefused(
+                MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_THROUGH_RULE,
+                () -> profileFieldService.setValues(child.id(), yes, manager.id(), ProfileWriter.association()));
+        assertTrue(profileFieldRepo.findValue(child.id(), managed).isEmpty());
+    }
+
+    /** Putting the question to a group without the read-only lock is refused the same way as to a kind of member. */
+    @Test
+    void aFieldAPermissionGroupReadsIsNotPutToAGroupWithoutTheLock() {
+        int managed = profileFieldRepo
+                .create(station.id(), "Lehrgang", FieldType.BOOLEAN, ProfileFieldConfig.empty(), false, true, null)
+                .id();
+        var admins = ruledGroup("Verwaltung");
+        memberRuleRepo.replace(
+                station.id(),
+                RuleOwner.group(admins.id()),
+                RuleNode.all(RuleNode.field(managed, RuleOperator.IS_YES, RuleValue.empty())));
+        var edit = stationMemberRepo
+                .findPermissionByName(StationPermission.MEMBER_EDIT)
+                .orElseThrow();
+        memberGroupRepo.addGroupPermission(admins.id(), edit.id());
+        var youth = memberGroupRepo.create(station.id(), "Jugend");
+
+        assertRefused(
+                MemberRefusal.RULE_PERMISSIONS_FROM_OWN_ANSWER,
+                () -> profileFieldService.assignToGroup(managed, youth.id(), 0, null, false, null));
+        assertTrue(profileFieldRepo.findAssignments(managed).isEmpty());
+        profileFieldService.assignToGroup(managed, youth.id(), 0, null, null, null);
+    }
+
+    /**
+     * Moving a question into a group of questions puts it to everybody the group is put to, which may open it for
+     * writing; while a permission group's rule reads it, that is refused and the question stays outside.
+     */
+    @Test
+    void aFieldAPermissionGroupReadsDoesNotJoinASetMembersWrite() {
+        int asked = profileFieldRepo
+                .create(station.id(), "Lehrgang", FieldType.BOOLEAN, ProfileFieldConfig.empty(), false, false, null)
+                .id();
+        var admins = ruledGroup("Verwaltung");
+        memberRuleRepo.replace(
+                station.id(),
+                RuleOwner.group(admins.id()),
+                RuleNode.all(RuleNode.field(asked, RuleOperator.IS_YES, RuleValue.empty())));
+        var edit = stationMemberRepo
+                .findPermissionByName(StationPermission.MEMBER_EDIT)
+                .orElseThrow();
+        memberGroupRepo.addGroupPermission(admins.id(), edit.id());
+        int answered = profileFieldRepo
+                .create(station.id(), "Größe", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null)
+                .id();
+        profileFieldRepo.assignToRole(answered, ProfileFieldScope.MEMBER, 0, null, null, null);
+        var set = profileFieldService.createSet(station.id(), "Ausbildung", false);
+        profileFieldService.joinSet(answered, set.id());
+
+        assertRefused(
+                MemberRefusal.RULE_PERMISSIONS_FROM_OWN_ANSWER, () -> profileFieldService.joinSet(asked, set.id()));
+        assertTrue(profileFieldRepo.findAssignments(asked).isEmpty());
+        assertNull(profileFieldRepo.findById(asked).orElseThrow().fieldSetId());
     }
 
     @Test
