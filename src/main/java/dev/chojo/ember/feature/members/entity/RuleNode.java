@@ -156,6 +156,25 @@ public record RuleNode(
         return nodes().filter(node -> node.kind() == RuleNodeKind.CHECK).toList();
     }
 
+    /**
+     * Whether a check of this tree names nothing any more that it could read, because the group, tag or field it
+     * asked about was deleted underneath it. Such a rule cannot say who belongs, so it is not run.
+     */
+    public boolean lostATarget() {
+        return checks().stream().anyMatch(RuleNode::lostItsTarget);
+    }
+
+    private boolean lostItsTarget() {
+        if (subject == null) return false;
+        return switch (subject) {
+            case GROUP -> groupId == null;
+            case TAG -> tagId == null;
+            case USER_TYPE, MEMBER_SINCE -> false;
+            case CLUSTER_FIELD -> clusterFieldId == null;
+            case AGE, FIELD -> fieldId == null && clusterFieldId == null;
+        };
+    }
+
     /** The groups the checks of this tree ask about. */
     public List<Integer> referencedGroups() {
         var ids = new ArrayList<Integer>();

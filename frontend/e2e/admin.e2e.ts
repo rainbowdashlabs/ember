@@ -455,7 +455,7 @@ test.describe('Admin pages render', () => {
         {path: '/admin/monitoring/storage', subtitle: 'Speichernutzung und Kontingente aller Wachen verwalten'},
         {path: '/admin/monitoring/discovery', subtitle: 'Bekannte Peer-Instanzen'},
         {path: '/admin/monitoring/feed-metrics', subtitle: 'Nutzung der RSS- und iCal-Feeds'},
-        {path: '/admin/monitoring/maps', subtitle: 'Tile-Provider und Kartenoptionen'},
+        {path: '/admin/settings/maps', subtitle: 'Tile-Provider und Kartenoptionen'},
     ]
 
     for (const {path, subtitle} of MONITORING) {

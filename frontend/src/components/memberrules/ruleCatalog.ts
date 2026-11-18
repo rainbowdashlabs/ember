@@ -19,4 +19,6 @@ export interface RuleCatalog {
     tags: readonly RuleTarget[]
     /** Whether the reader may read members, without which checks on member data are not offered. */
     readsMembers: boolean
+    /** How deep a rule may go and how many checks it may hold, as the server keeps them. */
+    limits: {depth: number; checks: number}
 }

@@ -3,6 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {translator} from '@/util/translatorState'
+import {BROWSER_NAMES, browserOf, SYSTEM_NAMES, systemOf} from '@/util/userAgent'
+
 /**
  * Where this browser stands with push messages, as the device card tells it.
  *
@@ -44,19 +47,11 @@ export function pushState(): PushState {
  * "Browser" where nothing fits.
  */
 export function deviceLabel(agent = navigator.userAgent): string {
-    const browser = /Edg\//.test(agent) ? 'Edge'
-        : /OPR\//.test(agent) ? 'Opera'
-            : /Firefox\//.test(agent) ? 'Firefox'
-                : /Chrome\//.test(agent) ? 'Chrome'
-                    : /Safari\//.test(agent) ? 'Safari'
-                        : 'Browser'
-    const system = /Android/.test(agent) ? 'Android'
-        : /iPhone|iPad|iPod/.test(agent) ? 'iOS'
-            : /Windows/.test(agent) ? 'Windows'
-                : /Mac OS X|Macintosh/.test(agent) ? 'macOS'
-                    : /Linux/.test(agent) ? 'Linux'
-                        : ''
-    return system ? `${browser} auf ${system}` : browser
+    const browser = browserOf(agent)
+    const system = systemOf(agent)
+    const named = browser === 'unknown' ? 'Browser' : BROWSER_NAMES[browser]
+    if (system === 'unknown') return named
+    return translator.t('pushDevices.deviceOn', {browser: named, system: SYSTEM_NAMES[system]})
 }
 
 /** The key as the push manager takes it. */

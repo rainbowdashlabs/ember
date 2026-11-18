@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.push.entity.PushKind;
 import dev.chojo.ember.util.sql.PermissionHolderSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -75,7 +76,7 @@ public class NotificationRepository {
                 RETURNING id, %1$s AS reader_id),
             pushed AS (
                 INSERT INTO push_outbox (subscription_id, kind, notification_id)
-                SELECT device.id, 'NOTIFICATION', written.id
+                SELECT device.id, :push_kind, written.id
                 FROM written
                 %3$s
                 JOIN push_subscription device ON device.account_id = reader.account_id
@@ -500,7 +501,7 @@ public class NotificationRepository {
 
     private static int insertFor(String column, String readers, String push, Call call) {
         return query(INSERT_FOR_READERS, column, readers, push)
-                .single(call)
+                .single(call.bind("push_kind", PushKind.NOTIFICATION))
                 .map(row -> row.getInt(1))
                 .all()
                 .size();

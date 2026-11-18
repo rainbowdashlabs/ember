@@ -32,11 +32,12 @@ function chips(ruled: number[]) {
 describe('MemberTagChips', () => {
   it('shows a tag a rule fills as it is, but does not let it be toggled', async () => {
     const view = chips([2])
-    const kept = view.findAll('button').find(button => button.text() === 'Leitung')!
+    const kept = view.findAll('button').find(button => button.text().startsWith('Leitung'))!
 
     expect(kept.attributes('disabled')).toBeDefined()
     expect(kept.attributes('aria-pressed')).toBe('true')
     expect(kept.attributes('title')).toBe(deDE.memberRules.keptByRuleHint)
+    expect(kept.text()).toContain(deDE.memberRules.byRuleShort)
     await kept.trigger('click')
     expect(api.userTags.setTagMembers).not.toHaveBeenCalled()
   })

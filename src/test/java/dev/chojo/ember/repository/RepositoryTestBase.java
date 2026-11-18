@@ -202,6 +202,7 @@ import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
 import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.members.service.ProfileFieldCore;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
+import dev.chojo.ember.feature.members.service.SelfAnsweredRules;
 import dev.chojo.ember.feature.members.service.StationMemberEligibility;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.StationProfileFields;
@@ -1000,7 +1001,8 @@ public abstract class RepositoryTestBase {
                 profileFieldChangeRepo,
                 stationMemberRepo,
                 memberPermissionResolver,
-                eventBus);
+                eventBus,
+                RepositoryTestBase::newSelfAnsweredRules);
     }
 
     /**
@@ -1019,7 +1021,8 @@ public abstract class RepositoryTestBase {
                 core,
                 new GenderFields(core, stationRepo),
                 new StationFieldSetRepository(),
-                memberRuleRepo);
+                memberRuleRepo,
+                newSelfAnsweredRules());
     }
 
     /**
@@ -1352,7 +1355,13 @@ public abstract class RepositoryTestBase {
                 userTagRepo,
                 memberRuleRepo,
                 newGroupMemberships(),
+                newSelfAnsweredRules(),
                 new DomainEventBus(Set.of()));
+    }
+
+    /** The guard against groups granting permissions from answers members give themselves, over this class's repositories. */
+    protected static SelfAnsweredRules newSelfAnsweredRules() {
+        return new SelfAnsweredRules(profileFieldRepo, memberGroupRepo, memberRuleRepo);
     }
 
     /**

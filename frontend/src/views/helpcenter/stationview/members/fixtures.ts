@@ -178,6 +178,7 @@ export function demoRuleCatalog(t: Translate): RuleCatalog {
     groups: [],
     tags: [],
     readsMembers: true,
+    limits: {depth: 6, checks: 50},
   }
 }
 

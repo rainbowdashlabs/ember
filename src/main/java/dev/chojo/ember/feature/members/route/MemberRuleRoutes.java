@@ -14,7 +14,7 @@ import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.RuleField;
 import dev.chojo.ember.feature.members.entity.RuleNode;
-import dev.chojo.ember.feature.members.entity.RuleOperatorOption;
+import dev.chojo.ember.feature.members.entity.RuleOperatorTable;
 import dev.chojo.ember.feature.members.entity.RuleOwner;
 import dev.chojo.ember.feature.members.entity.RuleOwners;
 import dev.chojo.ember.feature.members.entity.RulePreview;
@@ -141,17 +141,18 @@ public class MemberRuleRoutes implements Routes {
             tags = {"Member Rules"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RuleField[].class)))
     private void fields(Context ctx) {
-        ctx.json(ruleEdits.fields(StationSession.from(ctx).stationId()));
+        ctx.json(ruleEdits.fields(StationSession.from(ctx)));
     }
 
     @OpenApi(
             path = "/api/v1/member-rules/operators",
             methods = HttpMethod.GET,
-            summary = "The operators a check of a group or tag rule can use, per subject and field type",
+            summary = "The operators a check of a group or tag rule can use, and how large a rule may grow",
             tags = {"Member Rules"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RuleOperatorOption[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RuleOperatorTable.class)))
     private void operators(Context ctx) {
-        ctx.json(MemberRuleEditService.operators());
+        ctx.json(new RuleOperatorTable(
+                MemberRuleEditService.operators(), MemberRuleEditService.MAX_DEPTH, MemberRuleEditService.MAX_CHECKS));
     }
 
     @OpenApi(

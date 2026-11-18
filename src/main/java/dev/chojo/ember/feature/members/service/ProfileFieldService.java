@@ -70,6 +70,8 @@ public class ProfileFieldService {
     private final StationFieldSetRepository sets;
     private final MemberRuleRepository ruleRepository;
 
+    private final SelfAnsweredRules selfAnswered;
+
     @Inject
     public ProfileFieldService(
             ProfileFieldRepository profileFieldRepository,
@@ -80,7 +82,9 @@ public class ProfileFieldService {
             ProfileFieldCore core,
             GenderFields genders,
             StationFieldSetRepository sets,
-            MemberRuleRepository ruleRepository) {
+            MemberRuleRepository ruleRepository,
+            SelfAnsweredRules selfAnswered) {
+        this.selfAnswered = selfAnswered;
         this.profileFieldRepository = profileFieldRepository;
         this.changeRepository = changeRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -144,24 +148,27 @@ public class ProfileFieldService {
      * @param setId the bundle, or {@code null} to stand on its own
      */
     public void joinSet(int fieldId, @Nullable Integer setId) {
-        ProfileField field = profileFieldRepository.findById(fieldId).orElse(null);
-        if (field == null || Objects.equals(field.fieldSetId(), setId)) return;
-        requireSetAllowed(field.stationId(), setId);
-        FieldDependencies.requireWithinGroup(
-                fieldId, field.shownIfFieldId(), setId, dependencyNodes(field.stationId()));
-        List<Integer> others = setId == null ? List.of() : sets.members(setId);
-        sets.place(fieldId, setId);
-        if (!others.isEmpty()) {
-            List<ProfileFieldAssignment> asked = profileFieldRepository.findAssignments(fieldId);
-            for (ProfileFieldAssignment like : profileFieldRepository.findAssignments(others.getFirst())) {
-                ProfileFieldScope role = like.role();
-                Integer groupId = like.groupId();
-                if (role != null) askRoleIfNotYet(fieldId, asked, role, like.position());
-                else if (groupId != null) askGroupIfNotYet(fieldId, asked, groupId, like.position());
+        Transactions.run(() -> {
+            ProfileField field = profileFieldRepository.findById(fieldId).orElse(null);
+            if (field == null || Objects.equals(field.fieldSetId(), setId)) return;
+            requireSetAllowed(field.stationId(), setId);
+            FieldDependencies.requireWithinGroup(
+                    fieldId, field.shownIfFieldId(), setId, dependencyNodes(field.stationId()));
+            List<Integer> others = setId == null ? List.of() : sets.members(setId);
+            sets.place(fieldId, setId);
+            if (!others.isEmpty()) {
+                List<ProfileFieldAssignment> asked = profileFieldRepository.findAssignments(fieldId);
+                for (ProfileFieldAssignment like : profileFieldRepository.findAssignments(others.getFirst())) {
+                    ProfileFieldScope role = like.role();
+                    Integer groupId = like.groupId();
+                    if (role != null) askRoleIfNotYet(fieldId, asked, role, like.position());
+                    else if (groupId != null) askGroupIfNotYet(fieldId, asked, groupId, like.position());
+                }
             }
-        }
-        keepSetsTogether(field.stationId());
-        log.info("Profile field {} now in set {}", fieldId, setId);
+            keepSetsTogether(field.stationId());
+            log.info("Profile field {} now in set {}", fieldId, setId);
+            requireNoSelfAnswerAfterChangeOf(fieldId);
+        });
     }
 
     /** The other questions of the bundle a question is in, or none. */
@@ -390,6 +397,7 @@ public class ProfileFieldService {
             return Optional.empty();
         }
         int stationId = existing.get().stationId();
+        if (existing.get().fieldType() != fieldType) requireNoRuleAsks(id);
         FieldDependencies.requireNotStillUsed(id, fieldType, dependencyNodes(stationId));
         var stored = config.withPronounsOfItsAnswers();
         String chosen = core.checkedName(new Owner.Station(stationId), new FieldDraft(name, fieldType, stored, false));
@@ -400,7 +408,13 @@ public class ProfileFieldService {
                 existing.get().fieldType(),
                 id);
         boolean expected = required && fieldType.isWritten();
-        if (profileFieldRepository.update(id, chosen, fieldType, stored, expected, readonly, width, keepOnArchive)) {
+        boolean updated = Transactions.call(() -> {
+            boolean changed = profileFieldRepository.update(
+                    id, chosen, fieldType, stored, expected, readonly, width, keepOnArchive);
+            selfAnswered.requireNoneAt(stationId);
+            return changed;
+        });
+        if (updated) {
             log.info("Profile field updated: id={}, name='{}', type={}", id, chosen, fieldType);
             return profileFieldRepository.findById(id);
         }
@@ -477,16 +491,20 @@ public class ProfileFieldService {
             @Nullable String widthOverride,
             @Nullable Boolean readonlyOverride,
             @Nullable Boolean requiredOverride) {
-        profileFieldRepository.assignToRole(fieldId, role, position, widthOverride, readonlyOverride, requiredOverride);
-        Optional<ProfileField> field = profileFieldRepository.findById(fieldId);
-        List<Integer> siblings = field.map(this::siblingsOf).orElse(List.of());
-        if (!siblings.isEmpty()) {
-            for (Integer sibling : siblings) {
-                askRoleIfNotYet(sibling, profileFieldRepository.findAssignments(sibling), role, position);
+        Transactions.run(() -> {
+            profileFieldRepository.assignToRole(
+                    fieldId, role, position, widthOverride, readonlyOverride, requiredOverride);
+            Optional<ProfileField> field = profileFieldRepository.findById(fieldId);
+            List<Integer> siblings = field.map(this::siblingsOf).orElse(List.of());
+            if (!siblings.isEmpty()) {
+                for (Integer sibling : siblings) {
+                    askRoleIfNotYet(sibling, profileFieldRepository.findAssignments(sibling), role, position);
+                }
+                keepSetsTogether(field.get().stationId());
             }
-            keepSetsTogether(field.get().stationId());
-        }
-        log.info("Profile field {} is asked of {}", fieldId, role);
+            log.info("Profile field {} is asked of {}", fieldId, role);
+            requireNoSelfAnswerAfterChangeOf(fieldId);
+        });
     }
 
     /**
@@ -508,13 +526,32 @@ public class ProfileFieldService {
             @Nullable String widthOverride,
             @Nullable Boolean readonlyOverride,
             @Nullable Boolean requiredOverride) {
-        requireGroupOfTheFieldsStation(fieldId, groupId);
-        profileFieldRepository.assignToGroup(
-                fieldId, groupId, position, widthOverride, readonlyOverride, requiredOverride);
-        for (Integer sibling : siblingsOf(fieldId)) {
-            askGroupIfNotYet(sibling, profileFieldRepository.findAssignments(sibling), groupId, position);
+        Transactions.run(() -> {
+            requireGroupOfTheFieldsStation(fieldId, groupId);
+            profileFieldRepository.assignToGroup(
+                    fieldId, groupId, position, widthOverride, readonlyOverride, requiredOverride);
+            for (Integer sibling : siblingsOf(fieldId)) {
+                askGroupIfNotYet(sibling, profileFieldRepository.findAssignments(sibling), groupId, position);
+            }
+            log.info("Profile field {} is asked of group {}", fieldId, groupId);
+            requireNoSelfAnswerAfterChangeOf(fieldId);
+        });
+    }
+
+    /**
+     * Refuses, and with it the change running in the same transaction, when the field's station now has a group
+     * granting permissions that takes its members from answers the members write themselves.
+     */
+    private void requireNoSelfAnswerAfterChangeOf(int fieldId) {
+        profileFieldRepository.findById(fieldId).ifPresent(field -> selfAnswered.requireNoneAt(field.stationId()));
+    }
+
+    /** Refuses a change no rule asking about the field could follow, naming the groups and tags whose rules ask. */
+    private void requireNoRuleAsks(int fieldId) {
+        List<String> askers = ruleRepository.askingAboutField(fieldId);
+        if (!askers.isEmpty()) {
+            throw MemberRefusal.USED_BY_A_RULE.raise(RefusalDetail.text(String.join(", ", askers)));
         }
-        log.info("Profile field {} is asked of group {}", fieldId, groupId);
     }
 
     private void requireGroupOfTheFieldsStation(int fieldId, int groupId) {
@@ -644,6 +681,32 @@ public class ProfileFieldService {
     }
 
     /**
+     * Changes a question, the question it depends on and its group in one step, so a refusal of any part, the
+     * group putting it to people who may then write an answer a permission group's rule reads among them, leaves
+     * the question as it was.
+     *
+     * @return the question as changed
+     * @throws RefusalResponse where the change is refused, or the question is not there
+     */
+    public ProfileField change(int id, FieldChange change) {
+        return Transactions.call(() -> {
+            var changed = update(
+                            id,
+                            change.name(),
+                            change.fieldType(),
+                            change.config(),
+                            change.required(),
+                            change.readonly(),
+                            change.width(),
+                            change.keepOnArchive())
+                    .orElseThrow(MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE::raise);
+            dependOn(id, change.shownIfFieldId(), change.fieldSetId());
+            joinSet(id, change.fieldSetId());
+            return changed;
+        });
+    }
+
+    /**
      * Deletes a question after showing the questions that depend on it unconditionally, in one step,
      * so a deletion refused for any other reason leaves them as they were.
      *
@@ -683,10 +746,7 @@ public class ProfileFieldService {
      *         {@link MemberRefusal#USED_BY_A_RULE} naming the groups and tags whose rules read it
      */
     public boolean delete(int id) {
-        List<String> askers = ruleRepository.askingAboutField(id);
-        if (!askers.isEmpty()) {
-            throw MemberRefusal.USED_BY_A_RULE.raise(RefusalDetail.text(String.join(", ", askers)));
-        }
+        requireNoRuleAsks(id);
         profileFieldRepository
                 .findById(id)
                 .ifPresent(

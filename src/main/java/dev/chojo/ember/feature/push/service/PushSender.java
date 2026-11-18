@@ -45,6 +45,9 @@ public class PushSender implements TaskSource {
     /** How many pushes one browser takes in an hour. */
     static final int PER_HOUR = 20;
 
+    /** How long a browser without a registration is remembered as allowed or removed after its last change. */
+    static final Duration BROWSER_MEMORY = Duration.ofDays(183);
+
     private static final Logger log = getLogger(PushSender.class);
     private static final Duration SWEEP = Duration.ofSeconds(5);
     /**
@@ -101,6 +104,7 @@ public class PushSender implements TaskSource {
         try {
             if (Duration.between(lastPrune, now).compareTo(Duration.ofHours(1)) >= 0) {
                 outbox.prune();
+                subscriptions.pruneBrowsers(BROWSER_MEMORY);
                 lastPrune = now;
             }
             if (!instance.pushEnabled()) {
@@ -215,7 +219,7 @@ public class PushSender implements TaskSource {
             outbox.markSummarySent(push.id(), rows);
             subscriptions.recordSuccess(browser.id());
         } else if (answer.gone()) {
-            subscriptions.delete(browser.id());
+            subscriptions.deleteGone(browser.id());
         } else if (answer.worthRetrying() && push.attempts() + 1 < MAX_ATTEMPTS) {
             Instant again = now.plus(pause(push.attempts(), answer.retryAfter()));
             for (long row : rows) outbox.retryLater(row, again);

@@ -85,6 +85,20 @@ public class StationPlaceRepository {
     }
 
     /**
+     * Takes the pin off one place, which every appointment naming it then shows without a map.
+     *
+     * @param stationId the station
+     * @param key       the place text in its normal form
+     * @return whether the place had a pin
+     */
+    public boolean delete(int stationId, String key) {
+        return query("DELETE FROM station_place WHERE station_id = :station_id AND place_key = :place_key;")
+                .single(call().bind("station_id", stationId).bind("place_key", key))
+                .delete()
+                .changed();
+    }
+
+    /**
      * The pins of several places at once, for every key that has one.
      *
      * @param stationId the station

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import AppIcon from '@/components/display/AppIcon.vue'
 import {computed, ref} from 'vue'
 import BareButton from '@/components/button/BareButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -14,9 +15,10 @@ import {queueableByAge} from '../eventdetailview/registrationGroups'
 import type {RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
 
 /**
- * One group of a date's sign-ups, by their status. A collapsed group shows only its heading and
- * count until it is opened, for answers that do not need a decision. Where the date keeps a waiting
- * list, sign-ups waiting for a decision can be put on it, one at a time or all at once.
+ * One group of a date's sign-ups, by their status. The declined answers need no decision, so their
+ * group shows only its heading and count until it is opened, and lists them without the place ranking.
+ * Where the date keeps a waiting list, sign-ups waiting for a decision can be put on it, one at a time
+ * or all at once.
  */
 const props = defineProps<{
   icon: string
@@ -24,14 +26,14 @@ const props = defineProps<{
   registrations: RegistrationResponse[]
   stats: RegistrationStatsResponse[]
   showActions?: boolean
-  collapsed?: boolean
+  /** Whether these are the declined answers. */
   declined?: boolean
   /** Whether the sign-ups can be put on the waiting list. */
   canQueue?: boolean
   busy?: boolean
 }>()
 
-const open = ref(!props.collapsed)
+const open = ref(!props.declined)
 
 const emit = defineEmits<{
   accept: [regId: number]
@@ -47,17 +49,17 @@ const queueable = computed(() => queueableByAge(props.registrations))
 
 <template>
   <section v-if="registrations.length > 0" class="space-y-2">
-    <BareButton v-if="collapsed" class="flex items-center gap-1 cursor-pointer" :aria-expanded="open"
+    <BareButton v-if="declined" class="flex items-center gap-1 cursor-pointer" :aria-expanded="open"
                 data-testid="status-section-toggle" @click="open = !open">
       <SubHeader>
-        <font-awesome-icon :icon="['fas', open ? 'chevron-down' : 'chevron-right']" class="mr-1"/>
-        <font-awesome-icon :icon="['fas', icon]" class="mr-1"/>
+        <AppIcon :icon="['fas', open ? 'chevron-down' : 'chevron-right']" class="mr-1"/>
+        <AppIcon :icon="['fas', icon]" class="mr-1"/>
         {{ title }} ({{ registrations.length }})
       </SubHeader>
     </BareButton>
     <div v-else class="flex flex-wrap items-center justify-between gap-2">
       <SubHeader>
-        <font-awesome-icon :icon="['fas', icon]" class="mr-1"/>
+        <AppIcon :icon="['fas', icon]" class="mr-1"/>
         {{ title }} ({{ registrations.length }})
       </SubHeader>
       <SecondaryButton

@@ -34,7 +34,7 @@ function chips(selected: number[], userType = 'MEMBER', ruled: number[] = []) {
 }
 
 function chip(view: ReturnType<typeof chips>, label: string) {
-  const found = view.findAll('button').find(button => button.text() === label)
+  const found = view.findAll('button').find(button => button.text() === label || button.text().startsWith(`${label} `))
   if (!found) throw new Error(`no chip ${label}`)
   return found
 }
@@ -74,6 +74,7 @@ describe('MemberGroupChips', () => {
     expect(kept.attributes('disabled')).toBeDefined()
     expect(kept.attributes('aria-pressed')).toBe('true')
     expect(kept.attributes('title')).toBe(deDE.memberRules.keptByRuleHint)
+    expect(kept.text()).toContain(deDE.memberRules.byRuleShort)
     await kept.trigger('click')
     expect(view.emitted('change')).toBeUndefined()
   })

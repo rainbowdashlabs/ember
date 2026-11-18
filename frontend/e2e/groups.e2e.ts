@@ -83,4 +83,42 @@ test.describe('Groups', () => {
             await expect(chip(bound)).toBeDisabled()
             await expect(chip(second)).toHaveAttribute('aria-pressed', 'true')
         })
+
+    /**
+     * A group switched to a rule on the groups page: one condition on the kind of member is put together in the
+     * builder, the preview names who would join, and after saving the rule the members follow on their own and
+     * can no longer be changed by hand.
+     *
+     * <p>The group is the story's own, so no other story's members move with it.
+     */
+    test('a group takes its members from a rule and keeps them by it', async ({managerPage: page}) => {
+        const name = unique('Alle Mitglieder')
+        await createGroup(page, name, {groupSetId: null, userTypes: []})
+        const surname = await createMember(page)
+
+        await page.goto('/station/members/groups')
+        await page.getByTestId('group-row').filter({hasText: name}).click()
+        await page.getByRole('combobox', {name: 'Mitglieder', exact: true}).selectOption('rule')
+        await page.getByRole('button', {name: 'Bedingung', exact: true}).click()
+        await page.getByRole('combobox', {name: 'Worauf'}).selectOption('USER_TYPE')
+        await page.getByRole('group', {name: 'Mitgliedstypen'}).getByRole('button', {name: 'Hinzufügen'}).click()
+        await page.getByRole('option', {name: 'Mitglied', exact: true}).click()
+
+        await page.getByRole('button', {name: 'Vorschau aktualisieren'}).click()
+        const preview = page.getByTestId('rule-preview')
+        await expect(preview.getByText(/Heute zutreffend: \d+/)).toBeVisible()
+        await expect(preview.getByText(surname)).toBeVisible()
+
+        await page.getByRole('button', {name: 'Regel speichern'}).click()
+        await page.getByRole('dialog').getByRole('button', {name: 'Regel speichern'}).click()
+        await expect(page.getByRole('dialog')).toHaveCount(0)
+
+        await expect(async () => {
+            await page.reload()
+            await page.getByTestId('group-row').filter({hasText: name}).click()
+            await expect(page.getByTestId('group-current-members').getByText(surname)).toBeVisible({timeout: 2_000})
+        }).toPass({timeout: 30_000})
+        await expect(page.getByRole('button', {name: 'Mitglied entfernen'})).toHaveCount(0)
+        await expect(page.getByText('Mitglied hinzufügen')).toHaveCount(0)
+    })
 })

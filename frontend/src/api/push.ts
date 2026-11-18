@@ -16,9 +16,13 @@ export async function listPushDevices(): Promise<PushDevice[]> {
     return (await client.get<PushDevice[]>('/push/subscriptions')).data
 }
 
-/** Registers this browser for push messages, or refreshes it. */
-export async function registerPushDevice(request: SubscribeRequest): Promise<PushDevice> {
-    return (await client.put<PushDevice>('/push/subscriptions', request)).data
+/**
+ * Registers this browser for push messages, or refreshes it. A renewal, which the page sends on its own, answers
+ * nothing for a browser the account removed by hand, since only allowing it again brings it back.
+ */
+export async function registerPushDevice(request: SubscribeRequest): Promise<PushDevice | null> {
+    const response = await client.put<PushDevice>('/push/subscriptions', request)
+    return response.status === 204 ? null : response.data
 }
 
 /** Forgets one of the account's devices. */

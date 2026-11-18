@@ -74,6 +74,7 @@ class MemberGroupRoutesTest extends RepositoryTestBase {
                         userTagRepo,
                         memberRuleRepo,
                         memberships,
+                        newSelfAnsweredRules(),
                         new DomainEventBus(Set.of())),
                 memberships,
                 newStationMemberService(accountRepo, mock(AuthService.class)),

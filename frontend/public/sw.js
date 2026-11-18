@@ -103,6 +103,31 @@ self.addEventListener('push', event => {
     event.waitUntil(self.registration.showNotification(title, options))
 })
 
+/**
+ * The browser moved this worker's push address, or dropped it. A new subscription is taken with the old one's
+ * options where the browser did not hand one over, and every open page is told, so it registers the new address
+ * for whoever is signed in there. The worker cannot do that itself: the sign-in lives in the page.
+ */
+self.addEventListener('pushsubscriptionchange', event => {
+    event.waitUntil(resubscribe(event).then(() => tellPages({type: 'push-subscription-changed'})))
+})
+
+/** Takes a new subscription with the options of the old one, unless the browser already made one. */
+async function resubscribe(event) {
+    if (event.newSubscription || !event.oldSubscription) return
+    try {
+        await self.registration.pushManager.subscribe(event.oldSubscription.options)
+    } catch {
+        return
+    }
+}
+
+/** Sends a message to every page of Ember this browser has open. */
+async function tellPages(message) {
+    const pages = await self.clients.matchAll({type: 'window', includeUncontrolled: true})
+    for (const page of pages) page.postMessage(message)
+}
+
 self.addEventListener('notificationclick', event => {
     event.notification.close()
     const target = sameOrigin(event.notification.data && event.notification.data.url)

@@ -6,9 +6,9 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 
 ### Neue Funktionen
 
-- **Orte von Terminen auf der Karte.** „Ort“ und „Treffpunkt“ legen jetzt Ortsfelder an, und „Auf der Karte“ neben einem Ort öffnet eine Karte, auf der seine Markierung gefunden oder korrigiert wird. Die Markierung gilt für jeden Termin, der denselben Ort nennt, und die Terminseite zeigt sie auf einer kleinen Karte mit einem Link zu OpenStreetMap.
-- **Push-Benachrichtigungen.** Benachrichtigungen und Chatnachrichten erscheinen auf Handy oder Computer, auch wenn Ember geschlossen ist, sobald Push auf dem Gerät unter Profil → Benachrichtigungen erlaubt ist. Eine neue Spalte „Push“ legt fest, welche Arten gepusht werden; Geräte lassen sich dort oder in der Liste der Anmeldungen testen und entfernen.
-- **Push für Betreiber.** Push-Benachrichtigungen funktionieren ohne Einrichtung und lassen sich in den Einstellungen der Verwaltung für die ganze Instanz abschalten. Zugestellt wird über die Push-Dienste der Browserhersteller, und die Datenschutzerklärung bekommt einen Abschnitt dazu.
+- **Orte von Terminen auf der Karte.** „Ort“ und „Treffpunkt“ legen jetzt Ortsfelder an, und „Auf der Karte“ neben einem Ort öffnet eine Karte, auf der seine Markierung gefunden, korrigiert oder entfernt wird. Die Markierung gilt für jeden Termin, der denselben Ort nennt, und die Terminseite zeigt sie auf einer kleinen Karte mit einem Link zu OpenStreetMap.
+- **Push-Benachrichtigungen auf Handy und Computer.** Benachrichtigungen und Chatnachrichten erscheinen auf Handy oder Computer, auch wenn Ember geschlossen ist, sobald Push auf dem Gerät unter Profil → Benachrichtigungen erlaubt ist. Eine neue Spalte „Push“ legt fest, welche Arten gepusht werden; Geräte lassen sich dort oder in der Liste der Anmeldungen testen und entfernen.
+- **Push braucht keine Einrichtung durch Betreiber.** Push-Benachrichtigungen funktionieren ohne Einrichtung und lassen sich in den Einstellungen der Verwaltung für die ganze Instanz abschalten. Zugestellt wird über die Push-Dienste der Browserhersteller, und die Datenschutzerklärung bekommt einen Abschnitt dazu.
 - **Nachrückliste für volle Termine.** Sind alle Plätze eines Termins vergeben, kommen weitere Anmeldungen auf eine Nachrückliste. Wird ein Platz frei, rückt die erste Person von selbst nach und bekommt Bescheid. Wer den Termin betreut, sieht die Liste in ihrer Reihenfolge, sortiert sie um, lässt jemanden von Hand nachrücken und legt fest, ob sie nach Anmeldezeit oder nach Fairness-Punkten geht.
 - **Alternativen und Plätze in Terminreihen.** Ein Block einer Terminreihe kann neben dem Mindestwert einen Höchstwert haben, so bietet „genau einer von zwei“ Alternativen zur Wahl. Terminreihen legen Plätze pro Termin fest, ein Termin kann eigene haben, und ein voller Termin ist markiert, damit Mitglieder die freie Alternative wählen oder auf der Nachrückliste warten.
 - **Gruppen und Tags nach Regel.** Eine Gruppe oder ein Tag kann die Mitglieder aus einer Regel nehmen, die Profilantworten, Alter, Mitgliedschaft und andere Gruppen oder Tags prüft. Mitglieder kommen und gehen von selbst, wenn sich Antworten ändern oder ein Datum näher rückt, und eine Vorschau zeigt vor dem Speichern, wen eine Regel aufnimmt.
@@ -20,12 +20,14 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Absagen eingeklappt.** Auf der Seite der Anmeldungen bleiben die Absagen zu einem Termin geschlossen, bis sie geöffnet werden. Geöffnet zeigen sie, wer wann abgesagt hat, ohne die Rangfolge für Plätze.
 - **Üblicher Port für den Mailserver.** Die Mail-Einstellungen nennen den üblichen Port zur gewählten Verschlüsselung und weisen auf einen Port hin, der nicht dazu passt. Gespeichert wird der Port trotzdem so, wie er eingetragen ist.
 - **Versandabstand der Instanz sichtbar.** Überlässt eine Wache die Versandzeiten der Benachrichtigungen der Instanz, steht jetzt dabei, wie oft die Instanz sie verschickt.
+- **Adresssuche in der Demo eingeschaltet.** Eine Demo-Instanz sucht Adressen und Orte von Terminen von Anfang an über den öffentlichen Photon-Server. Abschalten lässt sie sich weiterhin unter Einstellungen → Karten.
 
 ### Änderungen
 
-- **Photon schlägt Adressen nach.** Unter Verwaltung → Karten gibt es Photon als einzige Adresssuche, mit dem öffentlichen Server, solange keine eigene Serveradresse eingetragen ist. Nominatim, LocationIQ und Geoapify entfallen; eine Instanz, die einen davon gewählt hatte, hat keine Adresssuche, bis Photon gewählt wird.
-- **Benachrichtigungen per E-Mail sind von Anfang an an.** Jedes Mitglied bekommt Benachrichtigungen per E-Mail, sobald die Wache oder die Instanz E-Mails versenden kann, und zwar für jede Art. Wer das nicht möchte, schaltet es unter Profil → Benachrichtigungen ab, auch wer es vor dieser Version schon abgeschaltet hatte.
+- **Photon schlägt Adressen nach.** Unter Verwaltung → Einstellungen → Karten gibt es Photon als einzige Adresssuche, mit dem öffentlichen Server, solange keine eigene Serveradresse eingetragen ist, und die Datenschutzerklärung bekommt einen Abschnitt dazu. Nominatim, LocationIQ und Geoapify entfallen; eine Instanz, die einen davon gewählt hatte, hat keine Adresssuche, bis Photon gewählt wird.
+- **Benachrichtigungen per E-Mail sind von Haus aus eingeschaltet.** Mitglieder ohne eigene E-Mail-Einstellung bekommen Benachrichtigungen per E-Mail, sobald die Wache oder die Instanz E-Mails versenden kann, und zwar für jede Art. Bestehende E-Mail-Einstellungen bleiben, wie sie waren.
 - **Antwortadresse oben in den Mail-Einstellungen.** Die Antwortadresse steht nicht mehr im Kasten zu den Mailanbietern der Instanz, sondern ganz oben auf der Seite, weil sie für alle Mails der Wache gilt.
+- **Karteneinstellungen unter Einstellungen.** Die Seite der Verwaltung für Kartenkacheln und Adresssuche steht unter Einstellungen statt unter Monitoring, unter `/admin/settings/maps`.
 
 ### Fehlerbehebungen
 
@@ -34,6 +36,9 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Zustimmung nach Änderungen doppelt abgefragt.** Nach einer Änderung der Datenschutzerklärung oder der Nutzungsbedingungen galt die Zustimmung auf der Anmeldeseite nicht für das Konto, sodass dieselbe Frage direkt nach der Anmeldung noch einmal kam. Eine Zustimmung vor der Anmeldung gilt jetzt auch für das Konto.
 - **Installieren wurde nicht immer angeboten.** In manchen Fällen startete der Hintergrundteil von Ember nicht, sodass der Browser die Installation nicht anbot und gespeicherte Dateien sich im Browser öffnen konnten. Er startet jetzt mit jeder Seite.
 - **Rückmeldeadresse beim eigenen Mailserver.** Die Mail-Einstellungen boten auch für einen eigenen Mailserver eine Adresse für Zustellrückmeldungen an, obwohl er keine schickt. Dort wird sie nicht mehr angezeigt.
+- **Berechtigung für Wachenchats ohne Symbol.** In der Rechteauswahl stand „Wachenchats verwalten“ als einzige Gruppe ohne Symbol. Jetzt hat sie eines wie die anderen.
+- **iPhones als Mac unter den Anmeldungen.** Die Liste der Anmeldungen zeigte ein iPhone als Mac mit dem Symbol für Apple-Rechner. Jetzt steht dort iOS.
+- **Schließen einer Frage konnte sie löschen.** In einer Liste von Fragen lag nach dem Schließen einer geöffneten Frage ihr Löschknopf genau unter dem Mauszeiger, so dass ein Doppelklick auf den Pfeil die Frage löschen konnte. Der Pfeil bleibt jetzt am Ende der Zeile, der Löschknopf steht mit Abstand davor.
 
 ## v26.25.2
 

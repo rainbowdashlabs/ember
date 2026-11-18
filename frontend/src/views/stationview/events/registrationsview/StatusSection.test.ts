@@ -33,9 +33,9 @@ function declined(id: number, name: string): RegistrationResponse {
 
 /** Declined answers need no decision, so their group waits closed and shows little once opened. */
 describe('StatusSection', () => {
-    it('keeps a collapsed group closed until its heading is pressed', async () => {
+    it('keeps the declined answers closed until their heading is pressed', async () => {
         const section = await mountSuspended(StatusSection, {
-            props: {icon: 'user-slash', title: 'Abgesagt', registrations: [declined(1, 'Anna')], stats: [], collapsed: true, declined: true},
+            props: {icon: 'user-slash', title: 'Abgesagt', registrations: [declined(1, 'Anna')], stats: [], declined: true},
         })
 
         expect(section.text()).toContain('Abgesagt (1)')
@@ -48,7 +48,7 @@ describe('StatusSection', () => {
         expect(section.text()).not.toContain('Angemeldet am')
     })
 
-    it('shows a group that is not collapsed at once', async () => {
+    it('shows any other group at once', async () => {
         const section = await mountSuspended(StatusSection, {
             props: {icon: 'check', title: 'Bestätigt', registrations: [declined(2, 'Ben')], stats: []},
         })

@@ -66,10 +66,10 @@ async function toggle(tagId: number) {
         :title="ruled?.has(tag.id) ? t('memberRules.keptByRuleHint') : undefined"
         @toggle="toggle(tag.id)"
     >
-      <RuleKeptMark v-if="ruled?.has(tag.id)"/>
       <font-awesome-icon v-if="tag.visibility === TagVisibility.PRIVATE" :icon="['fas', 'lock']"
                          :title="t('userTags.visibilities.PRIVATE.label')" class="text-xs"/>
       {{ tag.name }}
+      <RuleKeptMark v-if="ruled?.has(tag.id)" labelled/>
     </SelectionToggleButton>
     <MutedText v-if="tags.length === 0">{{ t('memberEdit.noTags') }}</MutedText>
   </div>

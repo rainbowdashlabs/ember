@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -75,6 +76,17 @@ class EventPlaceServiceTest extends RepositoryTestBase {
 
         service.save(stationId, new PlaceDraft("gerätehaus", 52.2, 10.8, null));
         assertEquals(52.2, service.find(stationId, "Gerätehaus").orElseThrow().latitude());
+    }
+
+    /** A pin comes off by any spelling of its place, and a place without one has nothing to take off. */
+    @Test
+    void aPinComesOffItsPlace() {
+        service.save(stationId, new PlaceDraft("Gerätehaus", 52.1, 10.7, null));
+
+        assertTrue(service.remove(stationId, " GERÄTEHAUS"));
+        assertTrue(service.find(stationId, "Gerätehaus").isEmpty());
+        assertFalse(service.remove(stationId, "Gerätehaus"));
+        assertFalse(service.remove(stationId, "  "));
     }
 
     @Test

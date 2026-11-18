@@ -19,6 +19,7 @@ import {
     type RuleValue,
 } from '@/api/generated/schema'
 import {
+    countEmptyBlocks,
     complete,
     countChecks,
     countsFromReference,
@@ -62,6 +63,12 @@ describe('ruleDraft', () => {
     it('starts a check on a group and a block with nothing in it', () => {
         expect(emptyCheck()).toMatchObject({kind: RuleNodeKind.CHECK, subject: RuleSubject.GROUP, operator: RuleOperator.IN})
         expect(emptyBlock(RuleNodeKind.ANY)).toMatchObject({kind: RuleNodeKind.ANY, children: []})
+    })
+
+    it('counts every block that holds nothing, nested ones too', () => {
+        expect(countEmptyBlocks(emptyBlock())).toBe(1)
+        expect(countEmptyBlocks({...emptyBlock(), children: [emptyCheck()]})).toBe(0)
+        expect(countEmptyBlocks({...emptyBlock(), children: [emptyCheck(), emptyBlock(), emptyBlock()]})).toBe(2)
     })
 
     it('offers a field check only the operators of its field type', () => {
