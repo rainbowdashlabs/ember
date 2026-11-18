@@ -125,6 +125,7 @@ const dummyGroupIds = new Set([1, 3])
       <p>{{ t('helpCenter.membersEdit.groupsText') }}</p>
       <p>{{ t('helpCenter.membersEdit.groupSetText') }}</p>
       <p>{{ t('helpCenter.membersEdit.groupBoundText') }}</p>
+      <p>{{ t('helpCenter.membersEdit.groupRuleText') }}</p>
       <p>{{ t('helpCenter.membersEdit.typeChangeText') }}</p>
     </HelpSection>
 

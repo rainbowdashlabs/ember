@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.RuleNode;
+import dev.chojo.ember.feature.members.entity.RuleOwner;
 import dev.chojo.ember.feature.members.service.MemberImportService.ColumnMapping;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.FieldTypes;
@@ -137,6 +139,29 @@ class MemberImportServiceTest extends RepositoryTestBase {
                 List.of("Zeile 2: Die Gruppe Ausbilder nimmt dieses Mitglied nicht auf, nicht zugeordnet"),
                 result.warnings());
         assertTrue(memberGroupRepo.findMembers(trainers.id()).isEmpty());
+        memberGroupRepo.findByStation(station.id()).forEach(group -> memberGroupRepo.delete(group.id()));
+    }
+
+    /** A group a rule fills is left to its rule: the import goes on and says so on the row. */
+    @Test
+    void aGroupARuleFillsIsLeftOutWithAWarning() {
+        var ruled = memberGroupRepo.create(station.id(), "Jugend");
+        memberRuleRepo.replace(station.id(), RuleOwner.group(ruled.id()), RuleNode.all());
+        String csv = "Vorname;Name;Gruppe\nMia;Klein;Jugend\n";
+
+        var result = importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Gruppe", "group")),
+                List.of());
+
+        assertEquals(1, result.membersCreated());
+        assertEquals(0, result.groupsAssigned());
+        assertEquals(
+                List.of("Zeile 2: Die Gruppe Jugend nimmt dieses Mitglied nicht auf, nicht zugeordnet"),
+                result.warnings());
+        assertTrue(memberGroupRepo.findMembers(ruled.id()).isEmpty());
         memberGroupRepo.findByStation(station.id()).forEach(group -> memberGroupRepo.delete(group.id()));
     }
 

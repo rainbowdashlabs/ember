@@ -15,6 +15,7 @@ import {memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import GroupListPanel from '@/components/groups/GroupListPanel.vue'
+import MemberRuleEditor from '@/components/memberrules/MemberRuleEditor.vue'
 import GroupDetailPanel from '@/components/groups/GroupDetailPanel.vue'
 import GroupFormModal from '@/components/groups/GroupFormModal.vue'
 import GroupRulesFields from './groupsview/GroupRulesFields.vue'
@@ -28,6 +29,7 @@ import {useGroupSets} from './groupsview/useGroupSets'
 import {useSetMoves} from './groupsview/useSetMoves'
 import {memberDisplayName} from './listview/useMemberData'
 import {useGroupsConfig, type GroupsPort} from '@/composables/useGroupsConfig'
+import {useRuleOwners} from '@/composables/useRuleOwners'
 
 const {t} = useI18n()
 const {canManageMembers, isManager, hasPermission} = useSession()
@@ -126,6 +128,17 @@ const groupSets = useGroupSets(failure, async () => {
 })
 onMounted(() => groupSets.load())
 
+const ruleOwners = useRuleOwners()
+onMounted(ruleOwners.load)
+
+/** A rule was saved or removed, so the markers and, a little later, the open members are read again. */
+function ruleChanged() {
+  const group = selectedGroup.value
+  ruleOwners.changed(() => {
+    if (group && selectedGroup.value?.id === group.id) void selectGroup(group)
+  })
+}
+
 function createGroup() {
   rules.load(null)
   openCreateGroup()
@@ -180,7 +193,7 @@ const {
       <div v-if="!loading" class="grid gap-6 lg:grid-cols-2">
         <div class="space-y-6">
           <GroupListPanel :groups="groups" :selected-group="selectedGroup" :can-convert-to-tag="canConvertToTag"
-                          :sets="groupSets.sets.value"
+                          :sets="groupSets.sets.value" :ruled="ruleOwners.ruledGroups.value"
                           @create="createGroup" @select="selectGroup" @edit="editGroup"
                           @delete="requestDelete" @convert="requestConvertToTag"/>
           <GroupSetPanel :sets="groupSets.sets.value" @create="groupSets.create" @rename="groupSets.rename"
@@ -190,8 +203,13 @@ const {
                           :group-loading="groupLoading" :sorted-group-members="sortedGroupMembers"
                           :available-members="offeredMembers"
                           :offered-user-types="offeredUserTypes" :group-roles="groupRoles" :all-roles="allRoles"
-                          :can-edit-roles="canEditRoles" @add-member="moves.add"
-                          @remove-member="removeMemberFromGroup"/>
+                          :can-edit-roles="canEditRoles"
+                          :members-locked="ruleOwners.isGroupRuled(selectedGroup.id)" @add-member="moves.add"
+                          @remove-member="removeMemberFromGroup">
+          <template #members-source>
+            <MemberRuleEditor kind="group" :owner-id="selectedGroup.id" :on-changed="ruleChanged"/>
+          </template>
+        </GroupDetailPanel>
         <div v-else class="flex items-center justify-center text-(--text-muted) py-12">
           {{ t('memberGroups.selectHint') }}
         </div>
@@ -200,7 +218,8 @@ const {
       <GroupFormModal v-model="showGroupModal" v-model:name="groupName" v-model:color="groupColor"
                       :is-edit="!!editingGroup" :saving="groupSaving" :save-label="saveLabel" @save="saveGroup">
         <GroupRulesFields v-model:set-id="rules.groupSetId.value" v-model:user-types="rules.userTypes.value"
-                          :sets="groupSets.sets.value" :misfits="rules.misfits.value"/>
+                          :sets="groupSets.sets.value" :misfits="rules.misfits.value"
+                          :kept="!!editingGroup && ruleOwners.isGroupRuled(editingGroup.id)"/>
       </GroupFormModal>
       <GroupConflictModal :conflict="rules.conflict.value" @close="rules.conflict.value = null"
                           @remove-and-save="removeMisfitsAndSave"/>

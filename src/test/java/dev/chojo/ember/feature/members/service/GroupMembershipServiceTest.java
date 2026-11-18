@@ -57,7 +57,7 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
         stepUp = mock(StepUpGuard.class);
         names = mock(MemberNameResolver.class);
         service = new GroupMembershipService(
-                memberGroupRepo, stationMemberRepo, stepUp, () -> names, new DomainEventBus(Set.of()));
+                memberGroupRepo, stationMemberRepo, memberRuleRepo, stepUp, () -> names, new DomainEventBus(Set.of()));
         station = stationRepo.create("Membership Station " + System.nanoTime());
         manager = member(StationUserType.MANAGER);
         child = member(StationUserType.MEMBER);

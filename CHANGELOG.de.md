@@ -2,13 +2,14 @@
 
 ## v26.26.0
 
-Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy und auf den Computer, auch wenn Ember geschlossen ist. Orte, die Termine nennen, etwa der Treffpunkt, können eine Markierung tragen, und die Terminseite zeigt sie auf einer kleinen Karte. Benachrichtigungen per E-Mail sind für jedes Mitglied an, sobald E-Mails versendet werden können.
+Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy und auf den Computer, auch wenn Ember geschlossen ist. Orte, die Termine nennen, etwa der Treffpunkt, können eine Markierung tragen, und die Terminseite zeigt sie auf einer kleinen Karte. Gruppen und Tags füllen sich auf Wunsch selbst nach Regeln über Profilantworten, Alter und Mitgliedschaft, etwa mit allen, deren JuLeiCa in den nächsten zehn Monaten abläuft.
 
 ### Neue Funktionen
 
 - **Orte von Terminen auf der Karte.** „Ort“ und „Treffpunkt“ legen jetzt Ortsfelder an, und „Auf der Karte“ neben einem Ort öffnet eine Karte, auf der seine Markierung gefunden oder korrigiert wird. Die Markierung gilt für jeden Termin, der denselben Ort nennt, und die Terminseite zeigt sie auf einer kleinen Karte mit einem Link zu OpenStreetMap.
 - **Push-Benachrichtigungen.** Benachrichtigungen und Chatnachrichten erscheinen auf Handy oder Computer, auch wenn Ember geschlossen ist, sobald Push auf dem Gerät unter Profil → Benachrichtigungen erlaubt ist. Eine neue Spalte „Push“ legt fest, welche Arten gepusht werden; Geräte lassen sich dort oder in der Liste der Anmeldungen testen und entfernen.
 - **Push für Betreiber.** Push-Benachrichtigungen funktionieren ohne Einrichtung und lassen sich in den Einstellungen der Verwaltung für die ganze Instanz abschalten. Zugestellt wird über die Push-Dienste der Browserhersteller, und die Datenschutzerklärung bekommt einen Abschnitt dazu.
+- **Gruppen und Tags nach Regel.** Eine Gruppe oder ein Tag kann die Mitglieder aus einer Regel nehmen, die Profilantworten, Alter, Mitgliedschaft und andere Gruppen oder Tags prüft. Mitglieder kommen und gehen von selbst, wenn sich Antworten ändern oder ein Datum näher rückt, und eine Vorschau zeigt vor dem Speichern, wen eine Regel aufnimmt.
 
 ### Verbesserungen
 

@@ -126,4 +126,21 @@ class MemberGroupRepositoryTest extends RepositoryTestBase {
         assertTrue(memberGroupRepo.delete(groupId));
         assertTrue(memberGroupRepo.findById(groupId).isEmpty());
     }
+
+    @Test
+    void aGroupIsHandedOutByARegistrationCodeOrAWaitingList() {
+        var byCode = memberGroupRepo.create(station.id(), "Handed Code");
+        var byJoin = memberGroupRepo.create(station.id(), "Handed Join");
+        var byTesting = memberGroupRepo.create(station.id(), "Handed Testing");
+        var kept = memberGroupRepo.create(station.id(), "Handed Nowhere");
+        var code = registrationCodeRepo.create(station.id(), "HANDED-" + System.nanoTime(), 5);
+        registrationCodeRepo.addGroup(code.id(), byCode.id());
+        waitingListRepo.create(
+                station.id(), "Handed List", "", null, 180, byTesting.id(), byJoin.id(), 5, false, true, null, null);
+
+        assertTrue(memberGroupRepo.handedOut(byCode.id()));
+        assertTrue(memberGroupRepo.handedOut(byJoin.id()));
+        assertTrue(memberGroupRepo.handedOut(byTesting.id()));
+        assertFalse(memberGroupRepo.handedOut(kept.id()));
+    }
 }

@@ -229,6 +229,25 @@ public class MemberGroupRepository {
     }
 
     /**
+     * Whether people are put into a group on joining: a registration code hands it out, or a waiting list
+     * names it as its join or testing group.
+     *
+     * @param groupId the group
+     */
+    public boolean handedOut(int groupId) {
+        return query("""
+                        SELECT EXISTS (SELECT 1 FROM registration_code_group WHERE group_id = :group_id)
+                                   OR EXISTS (SELECT 1
+                                              FROM waiting_list
+                                              WHERE join_group_id = :group_id
+                                                 OR testing_group_id = :group_id) AS handed_out;""")
+                .single(call().bind("group_id", groupId))
+                .map(row -> row.getBoolean("handed_out"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
      * Deletes a member group by its identifier.
      */
     public boolean delete(int id) {

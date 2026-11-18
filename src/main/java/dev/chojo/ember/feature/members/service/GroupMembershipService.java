@@ -13,12 +13,15 @@ import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.MembersAddedToGroup;
 import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.RuleOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.MemberRuleRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GroupRuleRefused.GroupConflict;
 import dev.chojo.ember.feature.members.util.PermissionValidation;
@@ -38,6 +41,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -56,12 +60,16 @@ import java.util.stream.Collectors;
  * members into groups on their own through {@link #joinAutomatically}, which leaves out a group that
  * does not fit instead of failing somebody's registration. The set rule is also held by the database,
  * so a writer that bypasses this class still cannot put a member into two groups of one set.
+ *
+ * <p>A group that takes its members from a rule is kept by that rule alone: changing its members by hand is
+ * refused, the automatic flows leave it alone, and it cannot be handed out on joining.
  */
 @Singleton
 public class GroupMembershipService {
     private static final Logger log = LoggerFactory.getLogger(GroupMembershipService.class);
     private final MemberGroupRepository groupRepository;
     private final StationMemberRepository memberRepository;
+    private final MemberRuleRepository ruleRepository;
     private final StepUpGuard stepUpGuard;
     private final Provider<MemberNameResolver> nameResolver;
     private final DomainEventBus eventBus;
@@ -70,11 +78,13 @@ public class GroupMembershipService {
     public GroupMembershipService(
             MemberGroupRepository groupRepository,
             StationMemberRepository memberRepository,
+            MemberRuleRepository ruleRepository,
             StepUpGuard stepUpGuard,
             Provider<MemberNameResolver> nameResolver,
             DomainEventBus eventBus) {
         this.groupRepository = groupRepository;
         this.memberRepository = memberRepository;
+        this.ruleRepository = ruleRepository;
         this.stepUpGuard = stepUpGuard;
         this.nameResolver = nameResolver;
         this.eventBus = eventBus;
@@ -84,7 +94,9 @@ public class GroupMembershipService {
      * Replaces the groups one member is in, as their edit page sends it.
      *
      * <p>Leaving one group of a set and joining another in the same request is a move and allowed;
-     * choosing two groups of one set is refused.
+     * choosing two groups of one set is refused. Joining or leaving a group that takes its members from a
+     * rule is refused; such a group may stay in the list as it is. A group whose rule asks about a group
+     * joined or left is filled anew, so its permissions count as granted by the caller too.
      *
      * @param member   the member, already checked to belong to the caller's station
      * @param groupIds every group they should be in afterwards
@@ -99,6 +111,7 @@ public class GroupMembershipService {
             throw MemberRefusal.GROUP_NOT_HERE_FOR_MEMBER.raise();
         }
         var change = SetDiff.of(groupIdsOf(member.id()), wanted);
+        requireNoneRuled(pick(stationGroups, change.touched()));
         List<MemberGroup> added = pick(stationGroups, change.added());
         List<MemberGroup> removed = pick(stationGroups, change.removed());
 
@@ -110,6 +123,7 @@ public class GroupMembershipService {
         requireOneGroupPerSet(pick(stationGroups, wanted));
         requireRightsFor(added, by.user(), MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_FOR_MEMBER);
         requirePresenceFor(pick(stationGroups, change.touched()), by.user());
+        requireMayChangeThroughRules(pick(stationGroups, change.touched()), by.user());
 
         Transactions.run(() -> {
             removed.forEach(group -> groupRepository.removeMember(group.id(), member.id()));
@@ -127,7 +141,9 @@ public class GroupMembershipService {
     }
 
     /**
-     * Replaces the members of one group, as the groups page sends it.
+     * Replaces the members of one group, as the groups page sends it. Refused for a group that takes its
+     * members from a rule. A group whose rule asks about this one is filled anew, so its permissions count
+     * as granted by the caller too.
      *
      * @param group     the group, already checked to belong to the caller's station
      * @param memberIds every member it should hold afterwards
@@ -138,6 +154,7 @@ public class GroupMembershipService {
      */
     public List<StationMember> setMembers(
             MemberGroup group, Collection<Integer> memberIds, boolean move, StationSession by) {
+        requireNoneRuled(List.of(group));
         Map<Integer, StationMember> stationMembers = memberRepository.findByStation(group.stationId(), true).stream()
                 .collect(Collectors.toMap(StationMember::id, Function.identity()));
         Set<Integer> wanted = new LinkedHashSet<>(memberIds);
@@ -180,6 +197,7 @@ public class GroupMembershipService {
         List<MemberGroup> touched = new ArrayList<>(movedFrom.values());
         if (!added.isEmpty() || !removed.isEmpty()) touched.add(group);
         requirePresenceFor(touched, by.user());
+        requireMayChangeThroughRules(touched, by.user());
 
         Transactions.run(() -> {
             removed.forEach(memberId -> groupRepository.removeMember(group.id(), memberId));
@@ -207,7 +225,8 @@ public class GroupMembershipService {
      * <p>A group that does not fit is left out rather than failing the flow, because the person
      * registering cannot do anything about a group a manager set up. That happens where a group of
      * another station is named, where its binding does not take the member's type, and where the
-     * member is already in another group of its set.
+     * member is already in another group of its set. A group that takes its members from a rule is left
+     * alone as well, because the rule decides who is in it.
      *
      * @param groupId  the group
      * @param memberId the member
@@ -221,6 +240,10 @@ public class GroupMembershipService {
             return false;
         }
         if (groupIdsOf(memberId).contains(groupId)) return true;
+        if (ruleRepository.hasRule(RuleOwner.group(groupId))) {
+            log.info("Member {} was not put into group {}: a rule decides who is in it", memberId, groupId);
+            return false;
+        }
         if (!group.admits(member.userType())) {
             log.info(
                     "Member {} was not put into group {}: it takes {} and they are {}",
@@ -240,12 +263,14 @@ public class GroupMembershipService {
     }
 
     /**
-     * Takes a member out of a group on behalf of an automatic flow, such as the end of a trial.
+     * Takes a member out of a group on behalf of an automatic flow, such as the end of a trial. A group
+     * that takes its members from a rule is left alone, because the rule decides who is in it.
      *
      * @param groupId  the group
      * @param memberId the member
      */
     public void leaveAutomatically(int groupId, int memberId) {
+        if (ruleRepository.hasRule(RuleOwner.group(groupId))) return;
         if (!groupRepository.removeMember(groupId, memberId)) return;
         groupRepository
                 .findById(groupId)
@@ -253,9 +278,9 @@ public class GroupMembershipService {
     }
 
     /**
-     * Refuses a group chosen for an invitation unless it is one of the station's and grants nothing
-     * the inviting person does not hold. Checked before anybody is invited, so a refusal leaves
-     * nothing behind.
+     * Refuses a group chosen for an invitation unless it is one of the station's, grants nothing the
+     * inviting person does not hold and does not take its members from a rule. Checked before anybody is
+     * invited, so a refusal leaves nothing behind.
      *
      * @param stationId the station inviting
      * @param groupId   the group chosen, or {@code null} for none
@@ -267,13 +292,15 @@ public class GroupMembershipService {
                 .findById(groupId)
                 .filter(candidate -> candidate.stationId() == stationId)
                 .orElseThrow(MemberRefusal.INVITE_GROUP_NOT_HERE::raise);
+        requireHandedOut(group);
         requireRightsFor(List.of(group), by, MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_INVITE);
     }
 
     /**
-     * Refuses a group an automatic flow is set up to put people into unless it is one of the station's
-     * and takes the type those people will have. Checked where the flow is saved, so it is the manager
-     * setting it up who hears about it and not somebody registering later.
+     * Refuses a group an automatic flow is set up to put people into unless it is one of the station's,
+     * takes the type those people will have and does not take its members from a rule. Checked where the
+     * flow is saved, so it is the manager setting it up who hears about it and not somebody registering
+     * later.
      *
      * @param stationId the station
      * @param groupId   the group, or {@code null} for none
@@ -291,6 +318,41 @@ public class GroupMembershipService {
         if (!group.admits(userType)) {
             throw wrongType.raise(group.name());
         }
+        requireHandedOut(group);
+    }
+
+    /**
+     * Whether people are put into a group on joining, by a registration code or as a waiting list's join or
+     * testing group. An invitation puts people into its group when it is sent, so it never holds one back.
+     *
+     * @param groupId the group
+     * @return whether anything hands the group out
+     */
+    public boolean handedOut(int groupId) {
+        return groupRepository.handedOut(groupId);
+    }
+
+    /**
+     * Refuses a change to a group that takes its members from a rule.
+     *
+     * @param group   the group
+     * @param refusal what to refuse with, naming the group
+     */
+    void requireNoRule(MemberGroup group, Refusal refusal) {
+        if (ruleRepository.hasRule(RuleOwner.group(group.id()))) {
+            throw refusal.raise(RefusalDetail.text(group.name()));
+        }
+    }
+
+    private void requireHandedOut(MemberGroup group) {
+        requireNoRule(group, MemberRefusal.RULE_GROUP_NOT_HANDED_OUT);
+    }
+
+    private void requireNoneRuled(Collection<MemberGroup> groups) {
+        Set<Integer> ruled = ruleRepository.ruled(RuleOwner.Kind.GROUP, ids(List.copyOf(groups)));
+        groups.stream().filter(group -> ruled.contains(group.id())).findFirst().ifPresent(group -> {
+            throw MemberRefusal.MEMBERS_KEPT_BY_RULE.raise(RefusalDetail.text(group.name()));
+        });
     }
 
     /**
@@ -334,6 +396,45 @@ public class GroupMembershipService {
                 .anyMatch(group ->
                         !groupRepository.findGroupPermissions(group.id()).isEmpty());
         if (grants) stepUpGuard.require(by, StepUpCategory.ROLE_CHANGE);
+    }
+
+    /**
+     * Refuses a caller who would decide who receives a group's permissions without holding them all, as a rule
+     * that fills the group does.
+     *
+     * @param group   the group
+     * @param by      who is asking
+     * @param refusal what to refuse with, naming the group
+     */
+    void requireMayFill(MemberGroup group, UserSession by, Refusal refusal) {
+        requireRightsFor(List.of(group), by, refusal);
+        requirePresenceFor(List.of(group), by);
+    }
+
+    /**
+     * Refuses a change to the members of a group or tag that would, through the rules asking about it, move
+     * people into or out of a group granting permissions the caller does not hold; asks for a fresh proof of
+     * presence where such a group grants anything at all.
+     *
+     * @param stationId the station of the group or tag
+     * @param changed   the group or tag whose members change, by hand or by its own rule
+     * @param by        who is asking
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse
+     *         {@link MemberRefusal#GROUP_GRANTS_MORE_THAN_YOURS_THROUGH_RULE} naming the group reached
+     */
+    public void requireMayChangeThroughRules(int stationId, RuleOwner changed, UserSession by) {
+        var reached = RuleDependencies.dependents(changed, ruleRepository.findByStation(stationId)).stream()
+                .filter(owner -> owner.kind() == RuleOwner.Kind.GROUP)
+                .map(owner -> groupRepository.findById(owner.id()))
+                .flatMap(Optional::stream)
+                .toList();
+        if (reached.isEmpty()) return;
+        requireRightsFor(reached, by, MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_THROUGH_RULE);
+        requirePresenceFor(reached, by);
+    }
+
+    private void requireMayChangeThroughRules(Collection<MemberGroup> changed, UserSession by) {
+        changed.forEach(group -> requireMayChangeThroughRules(group.stationId(), RuleOwner.group(group.id()), by));
     }
 
     /**

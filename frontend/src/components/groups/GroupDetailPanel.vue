@@ -32,6 +32,8 @@ const props = defineProps<{
   allRoles: PermissionGrant[]
   groupRoleIds: Set<number>
   canEditRoles: boolean
+  /** Whether a rule decides the members, so they are shown but not changed by hand. */
+  membersLocked?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -63,10 +65,12 @@ const roleIdsModel = useModelProxy(() => props.groupRoleIds, emit, 'groupRoleIds
       <TabBar v-if="detailTabs.length > 1" v-model="detailTab" :tabs="detailTabs"/>
 
       <template v-if="detailTab === 'members'">
+        <slot name="members-source"/>
         <GroupMembersTab
             :sorted-group-members="sortedGroupMembers"
             :available-members="availableMembers"
             :offered-user-types="offeredUserTypes"
+            :locked="membersLocked"
             @add="(id) => emit('add-member', id)"
             @remove="(id) => emit('remove-member', id)"
         />

@@ -121,8 +121,9 @@ public class UserTagRepository {
     }
 
     /**
-     * How many audiences, restrictions and access rules select people by this tag, the audiences of
-     * station chats among them, closed ones included since reopening one takes its audience in again.
+     * How many audiences, restrictions, access rules and checks of group or tag rules select people by this
+     * tag, the audiences of station chats among them, closed ones included since reopening one takes its
+     * audience in again.
      *
      * <p>These are the places that store the tag as a reference of their own. A member question or a
      * page member list keeps it inside its configuration instead and is not counted: a private tag
@@ -152,7 +153,8 @@ public class UserTagRepository {
                      + (SELECT count(*) FROM witness_reach_restriction WHERE tag_id = :tag_id)
                      + (SELECT count(*) FROM procedure_restriction WHERE tag_id = :tag_id)
                      + (SELECT count(*) FROM procedure_template_restriction WHERE tag_id = :tag_id)
-                     + (SELECT count(*) FROM conversation_restriction WHERE tag_id = :tag_id) AS uses;""")
+                     + (SELECT count(*) FROM conversation_restriction WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM member_rule_node WHERE ref_tag_id = :tag_id) AS uses;""")
                 .single(call().bind("tag_id", tagId))
                 .map(row -> row.getLong("uses"))
                 .first()
