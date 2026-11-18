@@ -11,6 +11,7 @@ import PlaceMap from './PlaceMap.vue'
 const leaflet = vi.hoisted(() => ({
     options: [] as Record<string, unknown>[],
     browser: {mobile: false},
+    urlTemplate: 'https://tiles.example/{z}/{x}/{y}.png' as string | null,
 }))
 
 vi.mock('@/util/leaflet', () => ({
@@ -25,7 +26,7 @@ vi.mock('@/util/leaflet', () => ({
     addTileLayer: () => undefined,
 }))
 vi.mock('@/composables/useMapsConfig', () => ({
-    useMapsConfig: () => ({load: async () => ({urlTemplate: null})}),
+    useMapsConfig: () => ({load: async () => ({urlTemplate: leaflet.urlTemplate})}),
 }))
 
 async function placeMap() {
@@ -46,12 +47,22 @@ async function placeMap() {
 describe('PlaceMap', () => {
     beforeEach(() => {
         leaflet.options.length = 0
+        leaflet.urlTemplate = 'https://tiles.example/{z}/{x}/{y}.png'
     })
 
     it('leaves one-finger swipes to the page on a touch device', async () => {
         leaflet.browser.mobile = true
         await placeMap()
         expect(leaflet.options.at(-1)).toMatchObject({dragging: false, scrollWheelZoom: false})
+    })
+
+    it('shows only the link where the instance has no map tiles', async () => {
+        leaflet.urlTemplate = null
+        const wrapper = await placeMap()
+
+        expect(leaflet.options).toHaveLength(0)
+        expect(wrapper.find('[role="region"]').exists()).toBe(false)
+        expect(wrapper.find('a').exists()).toBe(true)
     })
 
     it('can be dragged with a mouse', async () => {

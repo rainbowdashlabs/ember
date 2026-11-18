@@ -113,7 +113,7 @@ const unitModel = computed({
       <span>{{ t('memberRules.and') }}</span>
       <NumberInput class="w-20" :aria-label="t('memberRules.valueTo')" :model-value="current.amountTo ?? undefined"
                    @update:model-value="amountTo => set({amountTo: amountTo ?? null, unit: RuleUnit.YEARS})"/>
-      <span>{{ t('memberRules.years') }}</span>
+      <span>{{ t('memberRules.yearsRange') }}</span>
     </template>
   </div>
 </template>

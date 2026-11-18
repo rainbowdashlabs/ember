@@ -1516,7 +1516,7 @@ volumes:
             whatIs: 'Was sind Sitzungen?',
             whatIsText: 'Jedes Gerät, auf dem du angemeldet bist, hat eine eigene Sitzung. Hier siehst du alle aktiven Sitzungen und kannst einzelne oder alle abmelden.',
             listTitle: 'Aktive Sitzungen',
-            listText: 'Jede Sitzung zeigt das Betriebssystem, den Browser, wann die Sitzung zuletzt benutzt wurde und den Standort. Die aktuelle Sitzung ist farbig markiert. Andere Sitzungen kannst du einzeln abmelden oder alle auf einmal.',
+            listText: 'Jede Sitzung zeigt das Betriebssystem, den Browser, wann die Sitzung zuletzt benutzt wurde und den Standort. Die aktuelle Sitzung ist farbig markiert. Andere Sitzungen kannst du einzeln abmelden oder alle auf einmal. Eine Glocke zeigt, auf welchen Geräten Push-Benachrichtigungen ankommen. Mit „Push entfernen“ bekommt das Gerät keine mehr, ohne dass die Sitzung abgemeldet wird.',
             gdprTitle: 'Datenexport',
             gdprText: 'Du kannst jederzeit alle deine Daten als ZIP-Datei exportieren (DSGVO-Auskunft). Die Datei enthält alle gespeicherten Informationen über dich.',
             deleteTitle: 'Konto löschen',
@@ -2050,7 +2050,8 @@ volumes:
             rulesLimits: 'Eine Gruppe in einem Gruppenset oder eine, die beim Beitritt vergeben wird, kann keine '
                 + 'Regel haben. Vergibt die Gruppe Berechtigungen, brauchst du diese Berechtigungen selbst, um ihre '
                 + 'Regel zu speichern, und ebenso, um Gruppen oder Tags zu ändern, nach denen ihre Regel fragt. Wer '
-                + 'Felder in Regeln nutzt, braucht das Recht, Mitglieder zu sehen, und bekommt nur die Felder angeboten, '
+                + 'Felder, das Alter oder die Dauer der Mitgliedschaft in Regeln nutzt, braucht das Recht, Mitglieder zu '
+                + 'sehen, und bekommt nur die Felder angeboten, '
                 + 'die er selbst sehen darf. Eine Gruppe, die Berechtigungen vergibt, kann nur Felder lesen, die für '
                 + 'alle, denen sie gestellt werden, schreibgeschützt sind: sonst könnte sich jeder mit seiner eigenen '
                 + 'Antwort selbst Rechte geben. Felder des Verbands gehen dafür gar nicht, weil der Verband sie '
@@ -2627,8 +2628,8 @@ volumes:
             rulesTitle: 'Mitglieder nach Regel',
             rulesText: 'Ein Tag kann seine Mitglieder wie eine Gruppe aus einer Regel nehmen, etwa alle, deren '
                 + 'JuLeiCa in den nächsten zehn Monaten abläuft. Wie Regeln aufgebaut sind, steht bei den Gruppen. '
-                + 'Ein privater Tag kann nicht in einer Regel vorkommen, und ein Tag, nach dem eine Regel fragt, '
-                + 'kann nicht privat werden.',
+                + 'Eine Regel kann nicht nach einem privaten Tag fragen, und ein Tag, nach dem eine Regel fragt, '
+                + 'kann nicht privat werden. Ein privater Tag kann seine Mitglieder aber selbst aus einer Regel nehmen.',
             title: 'Tags',
             subtitle: 'Mitglieder mit Tags markieren.',
             whatIs: 'Was sind Tags?',
@@ -5219,7 +5220,7 @@ volumes:
             howToText: 'Öffne in der Seitenleiste unter Verband den Punkt Benachrichtigungen. Schalte den Schalter ein, und die Einstellung ist sofort gespeichert. Mit einem zweiten Klick schaltest du sie wieder aus.',
             whenTitle: 'Wann und in welcher Sprache?',
             whenText: 'Die Meldungen kommen nicht einzeln, sondern gesammelt in einer E-Mail. Sie richtet sich nach der Uhrzeit der Heimat-Wache des Verbands und ist in deren Sprache geschrieben.',
-            tip: 'Die E-Mail ist ausgeschaltet, bis du sie selbst einschaltest. Deine Wache hat einen eigenen Schalter, der davon nicht berührt wird.',
+            tip: 'Für neue Mitglieder ist die E-Mail eingeschaltet und bleibt es, bis du sie hier ausschaltest. Deine Wache hat einen eigenen Schalter, der davon nicht berührt wird.',
         },
         clusterStations: {
             title: 'Wachen des Verbands',
@@ -6025,7 +6026,7 @@ volumes:
             fieldsText: 'Eigene Felder kannst du für viele Datenarten anlegen - Text, Zahl, Datum, Ort, Auswahl, sowie Mitglieder. Mitgliederfelder können auf eine Gruppe, einen Benutzertyp oder ein Tag eingeschränkt werden.',
             fieldsLineText: 'Jedes Feld steht in einer Zeile mit Name, Wert und Typ. Das Auge zeigt das Feld in der Übersicht, die Weltkugel macht es öffentlich, und die Kette zeigt, dass es ein Feld der Anwesenheit ausfüllt. Der Pfeil neben dem Papierkorb öffnet die übrigen Einstellungen.',
             placeTitle: 'Orte auf der Karte',
-            placeText: '„Ort" und „Treffpunkt" legen Ortsfelder an. Steht in einem Ortsfeld ein Text, öffnet „Auf der Karte" eine Karte dazu. Gibt es für den Text noch keine Markierung und hat die Instanz eine Adresssuche, sucht die Karte ihn in der Nähe der Wache; sonst setzt du die Markierung mit einem Klick. Gespeichert wird die Markierung für den Text, so dass jeder Termin, der denselben Ort nennt, sie zeigt. Der Text im Feld bleibt dabei, wie er ist.',
+            placeText: '„Ort“ und „Treffpunkt“ legen Ortsfelder an. Steht in einem Ortsfeld ein Text, öffnet „Auf der Karte“ eine Karte dazu. Gibt es für den Text noch keine Markierung und hat die Instanz eine Adresssuche, sucht die Karte ihn in der Nähe der Wache; sonst setzt du die Markierung mit einem Klick. Gespeichert wird die Markierung für den Text, so dass jeder Termin, der denselben Ort nennt, sie zeigt. Der Text im Feld bleibt dabei, wie er ist. Eine falsch gesetzte Markierung nimmt „Markierung entfernen“ wieder weg. Termine und Vorlagen, die ihren Ort schon vor den Ortsfeldern in einem Textfeld hatten, bekommen keine Karte. Soll dort eine Karte erscheinen, lege den Ort einmal als Ortsfeld neu an. Bei einer Terminreihe gibt es „Auf der Karte“ ebenso, die Karte selbst steht aber bei ihren einzelnen Terminen und nicht auf der Seite der Reihe.',
             selfRegistrationTitle: 'Selbsteintragung für Mitgliederfelder',
             selfRegistrationText: 'Wenn du „Selbsteintragung erlauben" für ein Mitgliederfeld aktivierst, können sich passende Mitglieder selbst eintragen - auch ohne die Berechtigung zum Bearbeiten des Termins. Ist das Feld auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt, sehen nur Mitglieder darin den Knopf „Eintragen". Nach dem Anmeldeschluss steht dort „Eintragung geschlossen", wer schon eingetragen ist, kann sich aber weiter austragen. Bei Einzelfeldern bleibt der Platz beim ersten Mitglied, das ihn nimmt; nur diese Person kann den Platz wieder freigeben. Listenfelder erlauben mehrere Eintragungen.',
             loadTemplateTitle: 'Vorlage laden',

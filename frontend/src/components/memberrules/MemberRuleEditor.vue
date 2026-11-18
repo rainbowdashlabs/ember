@@ -248,7 +248,8 @@ async function remove() {
       </template>
     </template>
     <ConfirmDeleteModal v-model="confirmSave" :message="t('memberRules.switchConfirm')"
-                        :confirm-label="t('memberRules.save')" :busy="busy" @confirm="save"/>
+                        :confirm-label="t('memberRules.save')" :confirm-icon="['fas', 'floppy-disk']" :busy="busy"
+                        neutral @confirm="save"/>
     <ConfirmDeleteModal v-model="confirmRemove" :message="t('memberRules.removeConfirm')"
                         :confirm-label="t('memberRules.removeRule')" :busy="busy" @confirm="remove"/>
   </div>

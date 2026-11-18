@@ -66,14 +66,14 @@ function add(child: RuleNode) {
 </script>
 
 <template>
-  <div class="space-y-3 rounded-lg border border-(--border) p-3">
+  <div class="space-y-3 rounded-lg border border-(--border) p-2 sm:p-3">
     <div class="flex items-center justify-between gap-2">
       <SelectInput :model-value="block.kind" :aria-label="t('memberRules.kind')" @update:model-value="setKind">
         <option v-for="kind in kinds" :key="kind" :value="kind">{{ t(kindLabels[kind]!) }}</option>
       </SelectInput>
       <IconButton v-if="!root" :icon="['fas', 'trash']" :label="t('memberRules.removeNode')" @click="emit('remove')"/>
     </div>
-    <ul class="space-y-3 border-l-2 border-(--border) pl-3">
+    <ul class="space-y-3 border-l-2 border-(--border) pl-1.5 sm:pl-3">
       <li v-for="(child, index) in block.children" :key="index">
         <RuleCheckRow v-if="child.kind === RuleNodeKind.CHECK" :check="child" :catalog="catalog"
                       @change="next => setChild(index, next)" @remove="removeChild(index)"/>

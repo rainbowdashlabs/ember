@@ -4145,6 +4145,7 @@ export default {
     },
     memberRules: {
         keptByRule: 'Wird durch eine Regel gefüllt',
+        byRuleShort: 'nach Regel',
         keptByRuleHint: 'Die Mitglieder kommen aus einer Regel und lassen sich hier nicht von Hand ändern.',
         mode: 'Mitglieder',
         kind: 'Verknüpfung',
@@ -4217,11 +4218,12 @@ export default {
             STATE_IN: 'Zustand ist',
         },
         units: {
-            DAYS: 'Tage',
-            MONTHS: 'Monate',
-            YEARS: 'Jahre',
+            DAYS: 'Tagen',
+            MONTHS: 'Monaten',
+            YEARS: 'Jahren',
         },
         years: 'Jahre',
+        yearsRange: 'Jahren',
         and: 'und',
         states: {
             VALID: 'gültig',
@@ -7754,7 +7756,7 @@ export default {
         mailProviderUnknown: 'Unbekannt',
         mailNotConfigured: 'Für diese Wache ist kein E-Mail-Versand eingerichtet, daher können Benachrichtigungen nicht per E-Mail zugestellt werden.',
         notifications: 'Benachrichtigungen',
-        notificationsHint: 'Wähle, welche Benachrichtigungen du in der App und per E-Mail erhalten möchtest.',
+        notificationsHint: 'Wähle, welche Benachrichtigungen du in der App, per E-Mail, im Feed oder als Push erhalten möchtest.',
         columnApp: 'App',
         columnEmail: 'E-Mail',
         columnFeed: 'Feed',
@@ -9762,12 +9764,12 @@ export default {
         autoFederateOffHint: 'Beim Ausschalten bleiben bestehende Verbindungen erhalten. Es werden nur keine neuen mehr angelegt.',
     },
     clusterNotifications: {
-        mailTitle: 'E-Mail',
+        mailTitle: 'Zustellung',
         mailLabel: 'Benachrichtigungen per E-Mail',
         mailHint: 'Was der Verband dir meldet, kommt zusätzlich gesammelt per E-Mail, in der Sprache des Verbands.',
         mailUnavailable: 'Auf dieser Installation ist kein E-Mail-Versand eingerichtet. Der Schalter wird erst nutzbar, wenn das geschieht.',
         pushLabel: 'Auch als Push-Benachrichtigung',
-        pushHint: 'Benachrichtigungen des Verbands erscheinen auch auf den Geräten, auf denen du Push-Benachrichtigungen eingeschaltet hast.',
+        pushHint: 'Benachrichtigungen des Verbands erscheinen auch auf den Geräten, auf denen du Push-Benachrichtigungen eingeschaltet hast. Eingeschaltet wird Push auf einem Gerät unter Profil → Benachrichtigungen.',
         saved: 'Deine Einstellung wurde gespeichert.',
     },
     questionValue: {
@@ -10253,8 +10255,8 @@ export default {
                 },
                 notifications: {
                     title: 'Benachrichtigungen einstellen',
-                    body: 'Du entscheidest für jede Art von Nachricht, ob du sie hier, per E-Mail oder im Feed '
-                        + 'bekommst.',
+                    body: 'Du entscheidest für jede Art von Nachricht, ob du sie hier, per E-Mail, im Feed oder als '
+                        + 'Push bekommst.',
                 },
                 push: {
                     title: 'Push-Benachrichtigungen einschalten',
@@ -10409,7 +10411,7 @@ export default {
                 },
                 notifications: {
                     0: 'Deine Benachrichtigungen liegen hier.',
-                    1: 'Stell für jede Zeile ein, wo du sie haben willst: hier, per E-Mail oder im Feed.',
+                    1: 'Stell für jede Zeile ein, wo du sie haben willst: hier, per E-Mail, im Feed oder als Push.',
                 },
                 push: {
                     0: 'Push-Benachrichtigungen schaltest du bei deinen Benachrichtigungen ein.',

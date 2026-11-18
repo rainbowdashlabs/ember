@@ -13,7 +13,8 @@ import 'leaflet/dist/leaflet.css'
 
 /**
  * A small map showing where one place lies, to look at only: no dragging the pin, no clicking it
- * somewhere else. A link below opens the same spot on OpenStreetMap for directions. On a touch device
+ * somewhere else. A link below opens the same spot on OpenStreetMap for directions; an instance without map tiles
+ * shows only the link rather than an empty box. On a touch device
  * the map does not move under one finger, so swiping over it scrolls the page as everywhere else.
  */
 const props = withDefaults(defineProps<{
@@ -27,6 +28,8 @@ const props = withDefaults(defineProps<{
 const {t} = useI18n()
 const {load} = useMapsConfig()
 const mapEl = ref<HTMLDivElement | null>(null)
+/** Whether the instance has map tiles; unknown until its map settings are read, when nothing is drawn yet. */
+const hasTiles = ref<boolean | null>(null)
 
 const ZOOM = 16
 
@@ -37,9 +40,12 @@ const osmLink = computed(() =>
     `https://www.openstreetmap.org/?mlat=${props.latitude}&mlon=${props.longitude}#map=${ZOOM}/${props.latitude}/${props.longitude}`)
 
 async function init() {
-  if (!mapEl.value || typeof window === 'undefined') return
+  if (typeof window === 'undefined') return
   const L = await loadLeaflet()
   const config = await load()
+  hasTiles.value = Boolean(config.urlTemplate)
+  if (!hasTiles.value) return
+  await nextTick()
   if (!mapEl.value) return
   mapInstance = L.map(mapEl.value, {
     center: [props.latitude, props.longitude],
@@ -71,6 +77,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="space-y-1" data-testid="place-map">
     <div
+        v-if="hasTiles"
         ref="mapEl"
         :style="{height}"
         :aria-label="t('places.mapOf', {place: label})"
