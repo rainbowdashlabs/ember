@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.events.entity.PartnerAgreementOffer;
 import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -254,8 +255,10 @@ public class PartnerSignatures implements PartnerAppointmentSignatures, Federati
                         RemoteEventRoutes.LIST_MEMBER_REGISTRATIONS.at(member.uid()),
                         RemoteEventRoutes.RemoteMemberRegistration.class)
                 .stream()
-                .anyMatch(registration ->
-                        registration.eventId() == link.remoteEventId() && date.equals(registration.eventDate()));
+                .anyMatch(registration -> registration.eventId() == link.remoteEventId()
+                        && date.equals(registration.eventDate())
+                        && (registration.status() == RegistrationStatus.ACCEPTED
+                                || registration.status() == RegistrationStatus.PENDING));
     }
 
     /**

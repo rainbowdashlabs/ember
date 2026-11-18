@@ -37,6 +37,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestEventPlaces;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -2157,7 +2158,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 new EventRegistrationFieldRepository(),
                 eventRepo,
                 new DomainEventBus(Set.of(new EventAnswerRecordedHandler(service))),
-                memberNameResolver);
+                memberNameResolver,
+                TestEventPlaces.of(eventRegistrationRepo));
     }
 
     private static AttendanceEntry.AttendanceStatus statusOf(List<AttendanceEntry> entries, int memberId) {

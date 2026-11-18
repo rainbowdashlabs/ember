@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {EventType, type EventFieldEntry} from '@/api/generated/schema'
+import {EventType, QueueOrder, type EventFieldEntry} from '@/api/generated/schema'
 import {emptyRestriction} from '@/components/input/restriction'
 
 /**
@@ -27,6 +27,7 @@ export function createEventFormState() {
     hasDeadline: false,
     registrationDeadline: '',
     registrationLimit: undefined as number | undefined,
+    queueOrder: QueueOrder.TIME as QueueOrder,
     minRegistrations: undefined as number | undefined,
     thresholdDays: undefined as number | undefined,
     registrationCloseDays: undefined as number | undefined,

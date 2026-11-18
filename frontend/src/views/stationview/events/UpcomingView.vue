@@ -13,10 +13,12 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import UpcomingBody from './upcomingview/UpcomingBody.vue'
 import {registrationAudienceNote, viewAudienceNote} from './upcomingview/registrationAudience'
+import {registrationSummaryOf, type RegistrationSummary} from './upcomingview/registrationSummary'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import RegistrationSigningStep from './eventshared/RegistrationSigningStep.vue'
+import FullDateDialog from './eventshared/FullDateDialog.vue'
 import {isRecurringEvent} from '@/api/events'
-import {RegistrationStatus, type EventSummary} from '@/api/generated/schema'
+import type {EventSummary} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useUpcomingEvents} from '@/composables/useUpcomingEvents'
 import {formatDateTime, formatTime, todayIsoDate} from '@/util/format'
@@ -37,6 +39,7 @@ const {
   registering, occurrences, multiDayEndDate,
   loading, failure,
   answerPrompt, confirmAnswerPrompt, cancelAnswerPrompt, signingStep, closeSigningStep,
+  fullDateQuestion, answerFullDate,
 } = upcoming
 
 const VIEW_MODE_STORAGE_KEY = 'eventsUpcoming.viewMode'
@@ -85,12 +88,11 @@ function getRestrictionNote(eventId: number): string | null {
   return notes.length > 0 ? notes.join('. ') : null
 }
 
-function getRegistrationSummary(eventId: number, date: string) {
+/** What the sign-ups of one date add up to, the places among them where the appointment limits them. */
+function getRegistrationSummary(eventId: number, date: string): RegistrationSummary {
   const counts = registrationCounts.value.filter(c => c.eventId === eventId && c.eventDate === date)
-  const accepted = counts.find(c => c.status === RegistrationStatus.ACCEPTED)?.count ?? 0
-  const pending = counts.find(c => c.status === RegistrationStatus.PENDING)?.count ?? 0
-  const declined = counts.find(c => c.status === RegistrationStatus.DECLINED)?.count ?? 0
-  return {accepted, pending, declined, total: accepted + pending + declined}
+  const limit = allEvents.value.find(ev => ev.id === eventId)?.registrationLimit ?? null
+  return registrationSummaryOf(limit, counts)
 }
 
 /**
@@ -182,5 +184,6 @@ watch(loaded, (isLoaded) => {
     />
     <RegistrationSigningStep v-if="signingStep" :model-value="true" :step="signingStep"
                              @update:model-value="shown => { if (!shown) closeSigningStep() }"/>
+    <FullDateDialog :question="fullDateQuestion" @answer="answerFullDate"/>
   </ViewContent>
 </template>

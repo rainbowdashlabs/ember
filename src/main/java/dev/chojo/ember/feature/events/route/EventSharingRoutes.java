@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
@@ -82,6 +83,14 @@ public class EventSharingRoutes implements Routes {
         routes.put(
                 prefix + "/events/federation-registrations/{id}/status",
                 this::updateFederationRegistrationStatus,
+                StationPermission.EVENT_REGISTRATION);
+        routes.post(
+                prefix + "/events/federation-registrations/queue",
+                this::moveFederationRegistrationsToQueue,
+                StationPermission.EVENT_REGISTRATION);
+        routes.put(
+                prefix + "/events/federation-registrations/{id}/queue-position",
+                this::moveFederationRegistrationInQueue,
                 StationPermission.EVENT_REGISTRATION);
         routes.get(
                 prefix + "/events/{id}/partner-places", this::listPartnerPlaces, StationPermission.EVENT_REGISTRATION);
@@ -170,8 +179,12 @@ public class EventSharingRoutes implements Routes {
         String dateParam = ctx.queryParam("date");
         LocalDate date = dateParam != null ? LocalDate.parse(dateParam) : null;
         var registrations = eventFederationService.findRegistrations(id, date);
+        var ranks = registrationService.partnerQueueRanksOf(registrations.stream()
+                .filter(r -> r.status() == RegistrationStatus.QUEUED)
+                .map(EventFederationRegistration::id)
+                .toList());
         ctx.json(registrations.stream()
-                .map(r -> new EnrichedFederationRegistration(r, registrants.identify(r)))
+                .map(r -> new EnrichedFederationRegistration(r, registrants.identify(r), ranks.get(r.id())))
                 .toList());
     }
 
@@ -196,6 +209,9 @@ public class EventSharingRoutes implements Routes {
     private void updateFederationRegistrationStatus(Context ctx) {
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(EventRegistrationRoutes.StatusUpdateRequest.class);
+        if (req.status() != RegistrationStatus.ACCEPTED && req.status() != RegistrationStatus.DENIED) {
+            throw EventRefusal.REGISTRATION_DECISION_UNKNOWN.raise();
+        }
         var reg = eventFederationService
                 .findRegistrationById(id)
                 .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise);
@@ -207,7 +223,8 @@ public class EventSharingRoutes implements Routes {
             throw EventRefusal.PARTNER_DECIDES_ITS_OWN.raise();
         }
         if (req.status() == RegistrationStatus.ACCEPTED) {
-            if (!eventFederationService.acceptWithinBudget(id, reg.eventId(), reg.partnerId(), reg.eventDate())) {
+            if (!eventFederationService.acceptWithinBudget(
+                    id, reg.eventId(), reg.partnerId(), reg.eventDate(), Boolean.TRUE.equals(req.overLimit()))) {
                 throw EventRefusal.NO_PLACES_LEFT_FOR_THIS_PARTNER.raise();
             }
         } else {
@@ -225,6 +242,59 @@ public class EventSharingRoutes implements Routes {
      *
      * <p>Asked with a day, each partner's line also says how many of its places are taken on it.
      */
+    @OpenApi(
+            path = "/api/v1/events/federation-registrations/queue",
+            methods = HttpMethod.POST,
+            summary = "Put partners' members waiting for this station's decision onto the waiting list",
+            tags = {"Events"},
+            requestBody =
+                    @OpenApiRequestBody(content = @OpenApiContent(from = EventRegistrationRoutes.QueueRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void moveFederationRegistrationsToQueue(Context ctx) {
+        var req = ctx.bodyAsClass(EventRegistrationRoutes.QueueRequest.class);
+        var ids = req.registrationIds() == null ? List.<Integer>of() : req.registrationIds();
+        for (int id : ids) requireOwnFederationRegistration(ctx, id);
+        eventFederationService.moveToQueue(ids);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/federation-registrations/{id}/queue-position",
+            methods = HttpMethod.PUT,
+            summary = "Move a partner's member to another place in line on the waiting list",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody =
+                    @OpenApiRequestBody(
+                            content = @OpenApiContent(from = EventRegistrationRoutes.QueuePositionRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void moveFederationRegistrationInQueue(Context ctx) {
+        int id = pathInt(ctx, "id");
+        var position = ctx.bodyAsClass(EventRegistrationRoutes.QueuePositionRequest.class)
+                .position();
+        if (position == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
+        requireOwnFederationRegistration(ctx, id);
+        eventFederationService.moveInQueue(id, position);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /** Refuses a partner's registration that is gone or belongs to an appointment of another station. */
+    private void requireOwnFederationRegistration(Context ctx, int id) {
+        var registration = eventFederationService
+                .findRegistrationById(id)
+                .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise);
+        requireOwnedOrNotFound(ctx, registration.eventId(), crudService::findById, StationEvent::stationId);
+    }
+
     @OpenApi(
             path = "/api/v1/events/{id}/partner-places",
             methods = HttpMethod.GET,
@@ -307,5 +377,6 @@ public class EventSharingRoutes implements Routes {
 
     public record EnrichedFederationRegistration(
             EventFederationRegistration registration,
-            @Nullable MemberIdentity memberIdentity) {}
+            @Nullable MemberIdentity memberIdentity,
+            @Nullable Integer queuePosition) {}
 }

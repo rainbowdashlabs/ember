@@ -156,6 +156,7 @@ class DemoPhotoConsentSeederTest extends DemoTestBase {
                         new AttendanceTemplateGuards(attendanceRepo)),
                 events.restriction(),
                 new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility),
+                events.registration(),
                 clock);
     }
 

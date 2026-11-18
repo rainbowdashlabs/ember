@@ -19058,6 +19058,105 @@
         }
       }
     },
+    "/api/v1/events/federation-registrations/queue" : {
+      "post" : {
+        "summary" : "Put partners' members waiting for this station's decision onto the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueueRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/federation-registrations/{id}/queue-position" : {
+      "put" : {
+        "summary" : "Move a partner's member to another place in line on the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueuePositionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/federation-registrations/{id}/status" : {
       "put" : {
         "summary" : "Accept or deny a partner station's registration",
@@ -20149,6 +20248,102 @@
         } ]
       }
     },
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/queue" : {
+      "post" : {
+        "summary" : "Put partner members' event group sign-ups waiting for a decision onto the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupQueueRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/queue-position" : {
+      "put" : {
+        "summary" : "Move a partner member's event group sign-up to another place in line on the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "signUpId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupQueuePositionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/status" : {
       "put" : {
         "summary" : "Accept or turn down a partner member's event group sign-up and every part chosen with it",
@@ -20823,6 +21018,122 @@
         } ]
       }
     },
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/queue" : {
+      "post" : {
+        "summary" : "Put event group sign-ups waiting for a decision onto the event group's waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupQueueRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/queue-position" : {
+      "put" : {
+        "summary" : "Move an event group sign-up to another place in line on the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupQueuePositionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/status" : {
       "put" : {
         "summary" : "Accept or turn down an event group sign-up and every part chosen with it",
@@ -21118,6 +21429,46 @@
         }
       }
     },
+    "/api/v1/events/registrations/queue" : {
+      "post" : {
+        "summary" : "Put sign-ups waiting for a decision onto the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RegistrationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueueRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/registrations/{id}" : {
       "delete" : {
         "summary" : "Withdraw a registration",
@@ -21244,6 +21595,65 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/RegistrationFieldsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/registrations/{id}/queue-position" : {
+      "put" : {
+        "summary" : "Move a sign-up to another place in line on the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueuePositionRequest"
               }
             }
           }
@@ -22088,6 +22498,62 @@
         } ]
       }
     },
+    "/api/v1/events/{eventId}/group-settings/limit" : {
+      "put" : {
+        "summary" : "Give a part of an event group places of its own, or take its event group's again",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventGroupPartSettings"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PartLimitRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/{eventId}/register" : {
       "post" : {
         "summary" : "Register for an event",
@@ -22346,6 +22812,50 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/events/{eventId}/sign-up-places" : {
+      "get" : {
+        "summary" : "How many places a date of an appointment has, how many are taken and how many wait",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Places"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
       }
     },
     "/api/v1/events/{id}" : {
@@ -24263,6 +24773,52 @@
             "type" : "string"
           }
         } ]
+      }
+    },
+    "/api/v1/events/{id}/queue-order" : {
+      "put" : {
+        "summary" : "Set how the waiting lists of an appointment's dates are ordered",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationEvent"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueueOrderRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/events/{id}/reminders" : {
@@ -55183,6 +55739,13 @@
         "properties" : {
           "attending" : {
             "type" : "boolean"
+          },
+          "whenFull" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/WhenFull"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -63440,9 +64003,13 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "queuePosition" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "registration", "memberIdentity" ]
+        "required" : [ "registration", "memberIdentity", "queuePosition" ]
       },
       "EnrichedItem" : {
         "type" : "object",
@@ -64073,11 +64640,14 @@
               "type" : "null"
             } ]
           },
+          "comingOrAsking" : {
+            "type" : "boolean"
+          },
           "standing" : {
             "type" : "boolean"
           }
         },
-        "required" : [ "id", "eventId", "partnerId", "remoteMemberId", "eventDate", "status", "createdAt", "agreementWithdrawnAt", "standing" ]
+        "required" : [ "id", "eventId", "partnerId", "remoteMemberId", "eventDate", "status", "createdAt", "agreementWithdrawnAt", "comingOrAsking", "standing" ]
       },
       "EventFieldDefault" : {
         "type" : "object",
@@ -64277,6 +64847,9 @@
         "properties" : {
           "status" : {
             "$ref" : "#/components/schemas/RegistrationStatus"
+          },
+          "overLimit" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -64358,9 +64931,20 @@
           "thresholdDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "partRegistrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "name", "description", "registrationLimit", "registrationDeadline", "requiresConfirmation", "color", "minRegistrations", "thresholdDays" ]
+        "required" : [ "name", "description", "registrationLimit", "registrationDeadline", "requiresConfirmation", "color", "minRegistrations", "thresholdDays", "partRegistrationLimit", "queueOrder" ]
       },
       "EventGroupDetailsRequest" : {
         "type" : "object",
@@ -64499,9 +65083,17 @@
           },
           "eventGroup" : {
             "$ref" : "#/components/schemas/EventGroupSettings"
+          },
+          "ownRegistrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "partRegistrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "eventGroupId", "ownTemplateId", "ownCategoryId", "eventGroup" ]
+        "required" : [ "eventGroupId", "ownTemplateId", "ownCategoryId", "eventGroup", "ownRegistrationLimit", "partRegistrationLimit" ]
       },
       "EventGroupPartState" : {
         "type" : "object",
@@ -64531,9 +65123,17 @@
           },
           "required" : {
             "type" : "boolean"
+          },
+          "places" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "accepted" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "eventId", "setId", "name", "startTime", "endTime", "calledOff", "tookPlace", "required" ]
+        "required" : [ "eventId", "setId", "name", "startTime", "endTime", "calledOff", "tookPlace", "required", "places", "accepted" ]
       },
       "EventGroupPartSummary" : {
         "type" : "object",
@@ -64612,9 +65212,34 @@
             "items" : {
               "$ref" : "#/components/schemas/SetResult"
             }
+          },
+          "queuePosition" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "member", "status", "registeredAt", "parts", "sets" ]
+        "required" : [ "id", "member", "status", "registeredAt", "parts", "sets", "queuePosition" ]
+      },
+      "EventGroupQueuePositionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "position" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
+      "EventGroupQueueRequest" : {
+        "type" : "object",
+        "properties" : {
+          "ids" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
       },
       "EventGroupSet" : {
         "type" : "object",
@@ -64637,9 +65262,13 @@
           "position" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "maximum" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "eventGroupId", "name", "minimum", "position" ]
+        "required" : [ "id", "eventGroupId", "name", "minimum", "position", "maximum" ]
       },
       "EventGroupSetDraft" : {
         "type" : "object",
@@ -64653,6 +65282,10 @@
           },
           "minimum" : {
             "type" : "integer",
+            "format" : "int32"
+          },
+          "maximum" : {
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -64769,9 +65402,13 @@
           },
           "mayRegister" : {
             "type" : "boolean"
+          },
+          "queuePosition" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "memberId", "member", "status", "registeredAt", "parts", "sets", "answers", "answersMissing", "mayRegister" ]
+        "required" : [ "memberId", "member", "status", "registeredAt", "parts", "sets", "answers", "answersMissing", "mayRegister", "queuePosition" ]
       },
       "EventGroupSignUpRequest" : {
         "type" : "object",
@@ -64792,6 +65429,13 @@
             "items" : {
               "$ref" : "#/components/schemas/EventRegistrationFieldValue"
             }
+          },
+          "whenFull" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/WhenFull"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -64818,9 +65462,13 @@
           "holding" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "queued" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding" ]
+        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding", "queued" ]
       },
       "EventItem" : {
         "type" : "object",
@@ -64944,6 +65592,13 @@
             "items" : {
               "$ref" : "#/components/schemas/EventRegistrationFieldValue"
             }
+          },
+          "whenFull" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/WhenFull"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -65246,6 +65901,9 @@
               "type" : "null"
             } ]
           },
+          "requiresConfirmation" : {
+            "type" : "boolean"
+          },
           "categoryId" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
@@ -65272,7 +65930,7 @@
             } ]
           }
         },
-        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "requiresRegistration", "registrationDeadline", "categoryId", "templateId", "restricted", "seriesCancelled", "registrationLimit", "eventGroup" ]
+        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "templateId", "restricted", "seriesCancelled", "registrationLimit", "eventGroup" ]
       },
       "EventTemplate" : {
         "type" : "object",
@@ -65344,9 +66002,16 @@
           "registrationCloseDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadlineOffsetHours", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit", "minRegistrations", "thresholdDays", "registrationCloseDays" ]
+        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadlineOffsetHours", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit", "minRegistrations", "thresholdDays", "registrationCloseDays", "queueOrder" ]
       },
       "EventTemplateFieldData" : {
         "type" : "object",
@@ -77076,6 +77741,15 @@
         },
         "required" : [ "headers", "rows" ]
       },
+      "PartLimitRequest" : {
+        "type" : "object",
+        "properties" : {
+          "limit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
       "ParticipantDocuments" : {
         "type" : "object",
         "properties" : {
@@ -78009,6 +78683,24 @@
           }
         },
         "required" : [ "stationUid", "name", "homeStation", "actual", "expected", "inPlace" ]
+      },
+      "Places" : {
+        "type" : "object",
+        "properties" : {
+          "limit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "accepted" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "queued" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "limit", "accepted", "queued" ]
       },
       "PlannedLanding" : {
         "type" : "object",
@@ -80420,6 +81112,43 @@
         },
         "required" : [ "earliest", "latest", "maxLength", "format", "min", "max", "whole", "choices" ]
       },
+      "QueueOrder" : {
+        "type" : "string",
+        "enum" : [ "TIME", "FAIRNESS" ]
+      },
+      "QueueOrderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
+      "QueuePositionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "position" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
+      "QueueRequest" : {
+        "type" : "object",
+        "properties" : {
+          "registrationIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
       "QuizAccessRequest" : {
         "type" : "object",
         "properties" : {
@@ -81982,9 +82711,13 @@
           },
           "statusChangedAt" : {
             "$ref" : "#/components/schemas/Instant"
+          },
+          "queuePosition" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp", "statusChangedAt" ]
+        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp", "statusChangedAt", "queuePosition" ]
       },
       "RegistrationStatsResponse" : {
         "type" : "object",
@@ -82029,7 +82762,7 @@
       },
       "RegistrationStatus" : {
         "type" : "string",
-        "enum" : [ "PENDING", "ACCEPTED", "DENIED", "DECLINED", "WITHDRAWN" ]
+        "enum" : [ "PENDING", "ACCEPTED", "DENIED", "DECLINED", "WITHDRAWN", "QUEUED" ]
       },
       "RegistrationTableRequest" : {
         "type" : "object",
@@ -85604,9 +86337,17 @@
               "type" : "integer",
               "format" : "int32"
             }
+          },
+          "maximum" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "tooMany" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "setId", "name", "required", "chosen", "missingRequired" ]
+        "required" : [ "setId", "name", "required", "chosen", "missingRequired", "maximum", "tooMany" ]
       },
       "SetSessionFieldsRequest" : {
         "type" : "object",
@@ -87224,11 +87965,18 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
+          },
           "recurring" : {
             "type" : "boolean"
           }
         },
-        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "registrationCloseDays", "repeatUntil", "repeatCount", "recurring" ]
+        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "registrationCloseDays", "repeatUntil", "repeatCount", "queueOrder", "recurring" ]
       },
       "StationFailedMails" : {
         "type" : "object",
@@ -88019,6 +88767,9 @@
         "properties" : {
           "status" : {
             "$ref" : "#/components/schemas/RegistrationStatus"
+          },
+          "overLimit" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -90811,6 +91562,13 @@
           "registrationCloseDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -92050,6 +92808,10 @@
             "type" : "string"
           }
         }
+      },
+      "WhenFull" : {
+        "type" : "string",
+        "enum" : [ "QUEUE", "OVER_LIMIT" ]
       },
       "WikiAudienceRequest" : {
         "type" : "object",

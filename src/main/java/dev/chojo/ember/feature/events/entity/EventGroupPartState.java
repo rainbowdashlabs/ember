@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 
 /**
@@ -18,6 +20,8 @@ import java.time.Instant;
  * @param calledOff whether it was called off
  * @param tookPlace whether its day lies before today
  * @param required  whether its set requires every sign-up to hold it
+ * @param places    how many places it has, its own or the event group's places per part, or null for no limit
+ * @param accepted  how many accepted registrations hold one of them
  */
 public record EventGroupPartState(
         int eventId,
@@ -27,4 +31,6 @@ public record EventGroupPartState(
         Instant endTime,
         boolean calledOff,
         boolean tookPlace,
-        boolean required) {}
+        boolean required,
+        @Nullable Integer places,
+        int accepted) {}

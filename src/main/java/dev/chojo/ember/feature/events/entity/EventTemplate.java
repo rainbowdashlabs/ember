@@ -30,6 +30,7 @@ import org.jspecify.annotations.Nullable;
  * @param minRegistrations                how many accepted sign-ups each date needs, or null for no minimum
  * @param thresholdDays                   how many days before each date the minimum must be reached
  * @param registrationCloseDays           how many days before each date sign-up closes
+ * @param queueOrder                      how the waiting lists of appointments made from it are ordered
  */
 public record EventTemplate(
         int id,
@@ -48,7 +49,50 @@ public record EventTemplate(
         @Nullable Integer registrationLimit,
         @Nullable Integer minRegistrations,
         @Nullable Integer thresholdDays,
-        @Nullable Integer registrationCloseDays) {
+        @Nullable Integer registrationCloseDays,
+        @Nullable QueueOrder queueOrder) {
+
+    /**
+     * A template that sets no waiting list order.
+     */
+    public EventTemplate(
+            int id,
+            int stationId,
+            String name,
+            @Nullable String title,
+            @Nullable String description,
+            @Nullable Integer categoryId,
+            @Nullable EventType eventType,
+            @Nullable Boolean requiresRegistration,
+            @Nullable Integer registrationDeadlineOffsetHours,
+            @Nullable Boolean requiresConfirmation,
+            @Nullable RestrictionMode restrictionMode,
+            RestrictionMode viewRestrictionMode,
+            @Nullable Integer attendanceTemplateId,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
+        this(
+                id,
+                stationId,
+                name,
+                title,
+                description,
+                categoryId,
+                eventType,
+                requiresRegistration,
+                registrationDeadlineOffsetHours,
+                requiresConfirmation,
+                restrictionMode,
+                viewRestrictionMode,
+                attendanceTemplateId,
+                registrationLimit,
+                minRegistrations,
+                thresholdDays,
+                registrationCloseDays,
+                null);
+    }
 
     public static RowMapping<EventTemplate> map() {
         return row -> new EventTemplate(
@@ -68,6 +112,7 @@ public record EventTemplate(
                 row.getObject("registration_limit", Integer.class),
                 row.getObject("min_registrations", Integer.class),
                 row.getObject("threshold_days", Integer.class),
-                row.getObject("registration_close_days", Integer.class));
+                row.getObject("registration_close_days", Integer.class),
+                row.getEnum("queue_order", QueueOrder.class));
     }
 }

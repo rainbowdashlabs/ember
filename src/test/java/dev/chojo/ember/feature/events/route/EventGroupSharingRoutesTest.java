@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventGroupShare;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService;
@@ -102,6 +103,36 @@ class EventGroupSharingRoutesTest {
                                 accept,
                                 StationPermission.EVENT_REGISTRATION)
                         .code());
-        verify(partners).decide(STATION_ID, EVENT_GROUP_ID, 9, RegistrationStatus.ACCEPTED);
+        verify(partners).decide(STATION_ID, EVENT_GROUP_ID, 9, RegistrationStatus.ACCEPTED, false);
+    }
+
+    @Test
+    void onlyWhoeverHandlesRegistrationsPutsPartnerSignUpsOnTheWaitingListAndReordersIt() {
+        String queue = "{\"ids\": [11, 12]}";
+        assertEquals(
+                403,
+                harness.call(STATION_ID, "POST", EVENT_GROUP + "/partner-sign-ups/queue", queue, StationPermission.USER)
+                        .code());
+        assertEquals(
+                204,
+                harness.call(
+                                STATION_ID,
+                                "POST",
+                                EVENT_GROUP + "/partner-sign-ups/queue",
+                                queue,
+                                StationPermission.EVENT_REGISTRATION)
+                        .code());
+        verify(partners).moveToQueue(STATION_ID, EVENT_GROUP_ID, List.of(11, 12));
+
+        String position = EVENT_GROUP + "/partner-sign-ups/11/queue-position";
+        assertEquals(
+                EventRefusal.QUEUE_POSITION_MISSING,
+                RouteHarness.refusalOf(
+                        harness.call(STATION_ID, "PUT", position, "{}", StationPermission.EVENT_REGISTRATION)));
+        assertEquals(
+                204,
+                harness.call(STATION_ID, "PUT", position, "{\"position\": 2}", StationPermission.EVENT_REGISTRATION)
+                        .code());
+        verify(partners).moveInQueue(STATION_ID, EVENT_GROUP_ID, 11, 2);
     }
 }

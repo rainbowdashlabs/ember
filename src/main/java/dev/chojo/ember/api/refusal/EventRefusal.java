@@ -847,7 +847,54 @@ public enum EventRefusal implements Refusal {
     PLACE_TEXT_TOO_LONG(224, HttpStatus.BAD_REQUEST, "The name of the place is too long, nothing was saved"),
 
     /** A place pinned at a point that does not lie on the map, or without saying where. */
-    PLACE_OFF_THE_MAP(225, HttpStatus.BAD_REQUEST, "That point does not lie on the map, nothing was saved");
+    PLACE_OFF_THE_MAP(225, HttpStatus.BAD_REQUEST, "That point does not lie on the map, nothing was saved"),
+
+    /**
+     * Whoever runs an appointment lets somebody in while every place is taken, without saying whether
+     * beyond the limit or onto the waiting list. Carries the number of places.
+     */
+    REGISTRATION_FULL(
+            226,
+            HttpStatus.CONFLICT,
+            "Every place is taken: accept beyond the limit or put the member on the waiting list"),
+
+    /** Somebody put on the waiting list by hand whose sign-up is not waiting for a decision. */
+    REGISTRATION_NOT_PENDING_FOR_QUEUE(
+            227,
+            HttpStatus.CONFLICT,
+            "Only sign-ups waiting for a decision can go onto the waiting list, nothing was changed"),
+
+    /** A place in line asked for a sign-up that does not wait on the waiting list. */
+    REGISTRATION_NOT_QUEUED(228, HttpStatus.CONFLICT, "This sign-up does not wait on the waiting list"),
+
+    /** A sign-up put on the waiting list of an appointment or event group that limits no places. */
+    QUEUE_WITHOUT_LIMIT(
+            229, HttpStatus.CONFLICT, "Without a participant limit there is no waiting list, nothing was changed"),
+
+    /** A place in line asked for without saying which. */
+    QUEUE_POSITION_MISSING(230, HttpStatus.BAD_REQUEST, "Say which place in line the sign-up takes"),
+
+    /** A set maximum below one or below the set's minimum. Carries the least maximum the set allows. */
+    EVENT_GROUP_SET_MAXIMUM_OUT_OF_RANGE(
+            231, HttpStatus.BAD_REQUEST, "A set cannot allow fewer parts than it asks for, nothing was saved"),
+
+    /** A choice holding more parts of a set than the set allows. Carries the set's name. */
+    EVENT_GROUP_SET_TOO_MANY(232, HttpStatus.BAD_REQUEST, "Too many parts of one set are chosen"),
+
+    /** A sign-up holding a place adds a part that has no place left. Carries the part's name. */
+    EVENT_GROUP_PART_FULL(233, HttpStatus.CONFLICT, "That part has no place left, choose another one"),
+
+    /** Somebody moved onto an event group's waiting list whose sign-up is not waiting for a decision. */
+    EVENT_GROUP_NOT_PENDING_FOR_QUEUE(
+            234,
+            HttpStatus.CONFLICT,
+            "Only sign-ups waiting for a decision can go onto the waiting list, nothing was changed"),
+
+    /** A place in line asked for a sign-up that does not wait on the event group's waiting list. */
+    EVENT_GROUP_NOT_QUEUED(235, HttpStatus.CONFLICT, "This sign-up does not wait on the waiting list"),
+
+    /** The places of an appointment asked without a date, or with something that is not one. */
+    PLACES_DATE_NOT_A_DATE(236, HttpStatus.BAD_REQUEST, "Say which date the places are for");
 
     private final Definition definition;
 

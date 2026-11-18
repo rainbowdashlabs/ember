@@ -245,7 +245,8 @@ public class EventGroupViewService {
                             given,
                             signUp != null
                                     && EventRegistrationFieldService.owesAnswer(signUp.status(), required, stored),
-                            mayRegister.test(entry));
+                            mayRegister.test(entry),
+                            entry.queuePosition());
                 })
                 .toList();
     }

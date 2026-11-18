@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
+import dev.chojo.ember.feature.events.entity.QueueOrder;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -470,6 +471,19 @@ public class EventCrudService {
         var after = eventRepository.findById(id);
         after.ifPresent(updated -> eventBus.publish(new EventChanged(updated.stationId(), event, updated)));
         return after;
+    }
+
+    /**
+     * Sets how the waiting lists of an appointment's dates are ordered from now on: by sign-up time or
+     * by fairness score. Whoever waits already keeps their place.
+     *
+     * @param id    the appointment
+     * @param order the order
+     * @return the appointment as it is now, or empty where it is gone
+     */
+    public Optional<StationEvent> setQueueOrder(int id, QueueOrder order) {
+        if (!eventRepository.setQueueOrder(id, order)) return Optional.empty();
+        return eventRepository.findById(id);
     }
 
     /**

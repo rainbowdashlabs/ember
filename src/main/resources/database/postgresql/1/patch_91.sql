@@ -265,3 +265,181 @@ COMMENT ON COLUMN ember_schema.member_rule_node.value
     IS 'What a check compares with: answers, user types, expiry states, a number or range, a text, a date or a duration. NULL where the operator needs nothing.';
 COMMENT ON COLUMN ember_schema.member_rule_node.reference_date
     IS 'The day a date-relative check counts from, such as an age on a fixed date. NULL means the current day.';
+
+-- Waiting lists: a sign-up for a full appointment or event group waits in order for a place. The new
+-- status QUEUED marks it on the registration; the order lives in one list per appointment date and one
+-- per event group, which holds members of this station and of partner stations alike.
+
+ALTER TABLE ember_schema.event_group_registration
+    DROP CONSTRAINT IF EXISTS event_group_registration_status_check,
+    ADD CONSTRAINT event_group_registration_status_check
+        CHECK (status IN ('PENDING', 'ACCEPTED', 'DENIED', 'DECLINED', 'WITHDRAWN', 'QUEUED'));
+
+ALTER TABLE ember_schema.event_group_partner_registration
+    DROP CONSTRAINT IF EXISTS event_group_partner_registration_status_check,
+    ADD CONSTRAINT event_group_partner_registration_status_check
+        CHECK (status IN ('PENDING', 'ACCEPTED', 'DENIED', 'DECLINED', 'WITHDRAWN', 'QUEUED'));
+
+COMMENT ON COLUMN ember_schema.event_registration.status
+    IS 'PENDING, ACCEPTED, DENIED, DECLINED, WITHDRAWN, or QUEUED while waiting on the waiting list for a place.';
+COMMENT ON COLUMN ember_schema.event_federation_registration.status
+    IS 'PENDING, ACCEPTED, DENIED, DECLINED, WITHDRAWN, or QUEUED while waiting on the waiting list for a place.';
+COMMENT ON COLUMN ember_schema.event_group_registration.status
+    IS 'PENDING, ACCEPTED, DENIED, DECLINED, WITHDRAWN, or QUEUED while waiting on the waiting list, as for an appointment sign-up.';
+COMMENT ON COLUMN ember_schema.event_group_partner_registration.status
+    IS 'PENDING, ACCEPTED, DENIED, DECLINED, WITHDRAWN or QUEUED, as for a member of this station.';
+
+ALTER TABLE ember_schema.station_event
+    ADD COLUMN queue_order TEXT NOT NULL DEFAULT 'TIME' CHECK (queue_order IN ('TIME', 'FAIRNESS'));
+ALTER TABLE ember_schema.event_template
+    ADD COLUMN queue_order TEXT NOT NULL DEFAULT 'TIME' CHECK (queue_order IN ('TIME', 'FAIRNESS'));
+ALTER TABLE ember_schema.event_group
+    ADD COLUMN queue_order TEXT NOT NULL DEFAULT 'TIME' CHECK (queue_order IN ('TIME', 'FAIRNESS')),
+    ADD COLUMN part_registration_limit INT CHECK (part_registration_limit IS NULL OR part_registration_limit > 0);
+ALTER TABLE ember_schema.event_group_set
+    ADD COLUMN maximum INT,
+    ADD CONSTRAINT event_group_set_maximum_range CHECK (maximum IS NULL OR (maximum >= 1 AND maximum >= minimum));
+
+COMMENT ON COLUMN ember_schema.station_event.queue_order
+    IS 'How the waiting list of a full date is ordered: TIME (oldest sign-up first) or FAIRNESS (highest fairness score first, ties by time).';
+COMMENT ON COLUMN ember_schema.event_template.queue_order
+    IS 'The waiting list order an appointment created from the template starts with: TIME or FAIRNESS.';
+COMMENT ON COLUMN ember_schema.event_group.queue_order
+    IS 'How the waiting list of the event group is ordered: TIME (oldest sign-up first) or FAIRNESS (highest fairness score first, ties by time).';
+COMMENT ON COLUMN ember_schema.event_group.part_registration_limit
+    IS 'How many places each part has, for parts without a limit of their own; NULL for no limit. Counts accepted registrations of the part.';
+COMMENT ON COLUMN ember_schema.event_group_set.maximum
+    IS 'How many parts of the set a sign-up may choose at most; NULL for no maximum. Never below the minimum.';
+
+UPDATE ember_schema.station_event
+SET registration_limit = NULL
+WHERE event_group_set_id IS NOT NULL
+  AND registration_limit IS NOT NULL;
+
+CREATE TABLE ember_schema.registration_queue
+(
+    id                         SERIAL PRIMARY KEY,
+    event_id                   INT           NOT NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    event_date                 DATE          NOT NULL,
+    registration_id            INT UNIQUE REFERENCES ember_schema.event_registration (id) ON DELETE CASCADE,
+    federation_registration_id INT UNIQUE REFERENCES ember_schema.event_federation_registration (id) ON DELETE CASCADE,
+    position                   INT           NOT NULL CHECK (position >= 1),
+    score                      NUMERIC(10, 2),
+    joined_at                  TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    CONSTRAINT registration_queue_one_owner CHECK (num_nonnulls(registration_id, federation_registration_id) = 1),
+    CONSTRAINT registration_queue_position_unique UNIQUE (event_id, event_date, position) DEFERRABLE INITIALLY DEFERRED
+);
+
+COMMENT ON TABLE ember_schema.registration_queue
+    IS 'The waiting list of one appointment date: sign-ups with status QUEUED in the order they move up in. Parts of an event group have none; their event group keeps the list.';
+COMMENT ON COLUMN ember_schema.registration_queue.id
+    IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.registration_queue.event_id
+    IS 'The appointment waited for.';
+COMMENT ON COLUMN ember_schema.registration_queue.event_date
+    IS 'The date of the appointment waited for; a series keeps one list per date.';
+COMMENT ON COLUMN ember_schema.registration_queue.registration_id
+    IS 'The waiting sign-up of a member of this station; NULL for a partner''s member.';
+COMMENT ON COLUMN ember_schema.registration_queue.federation_registration_id
+    IS 'The waiting sign-up of a partner station''s member; NULL for a member of this station.';
+COMMENT ON COLUMN ember_schema.registration_queue.position
+    IS 'The order of the list, lowest moves up next. Gaps are allowed; the position a member is shown is the rank.';
+COMMENT ON COLUMN ember_schema.registration_queue.score
+    IS 'The fairness score the sign-up had when it joined the list, kept whatever the order so a list changed to fairness later can still use it.';
+COMMENT ON COLUMN ember_schema.registration_queue.joined_at
+    IS 'When the sign-up joined the list.';
+
+CREATE TABLE ember_schema.event_group_queue
+(
+    id                 SERIAL PRIMARY KEY,
+    event_group_id     INT         NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    sign_up_id         INT UNIQUE REFERENCES ember_schema.event_group_registration (id) ON DELETE CASCADE,
+    partner_sign_up_id INT UNIQUE REFERENCES ember_schema.event_group_partner_registration (id) ON DELETE CASCADE,
+    position           INT         NOT NULL CHECK (position >= 1),
+    score              NUMERIC(10, 2),
+    joined_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT event_group_queue_one_owner CHECK (num_nonnulls(sign_up_id, partner_sign_up_id) = 1),
+    CONSTRAINT event_group_queue_position_unique UNIQUE (event_group_id, position) DEFERRABLE INITIALLY DEFERRED
+);
+
+COMMENT ON TABLE ember_schema.event_group_queue
+    IS 'The waiting list of an event group: sign-ups with status QUEUED, each with the parts it chose, in the order they move up in.';
+COMMENT ON COLUMN ember_schema.event_group_queue.id
+    IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.event_group_queue.event_group_id
+    IS 'The event group waited for.';
+COMMENT ON COLUMN ember_schema.event_group_queue.sign_up_id
+    IS 'The waiting sign-up of a member of this station; NULL for a partner''s member.';
+COMMENT ON COLUMN ember_schema.event_group_queue.partner_sign_up_id
+    IS 'The waiting sign-up of a partner station''s member; NULL for a member of this station.';
+COMMENT ON COLUMN ember_schema.event_group_queue.position
+    IS 'The order of the list, lowest moves up first. Gaps are allowed; the position a member is shown is the rank.';
+COMMENT ON COLUMN ember_schema.event_group_queue.score
+    IS 'The fairness score the sign-up had when it joined the list, kept whatever the order so a list changed to fairness later can still use it.';
+COMMENT ON COLUMN ember_schema.event_group_queue.joined_at
+    IS 'When the sign-up joined the list.';
+
+-- A sign-up that leaves QUEUED leaves its waiting list, whoever writes the status: moving up, leaving,
+-- a decline, a denial or a date going away. Only the writer that puts a sign-up on a list adds rows.
+
+CREATE OR REPLACE FUNCTION ember_schema.registration_queue_leave() RETURNS TRIGGER
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    IF TG_TABLE_NAME = 'event_registration' THEN
+        DELETE FROM ember_schema.registration_queue WHERE registration_id = NEW.id;
+    ELSE
+        DELETE FROM ember_schema.registration_queue WHERE federation_registration_id = NEW.id;
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+COMMENT ON FUNCTION ember_schema.registration_queue_leave()
+    IS 'Takes an appointment sign-up off its waiting list once its status is no longer QUEUED.';
+
+CREATE TRIGGER event_registration_queue_leave
+    AFTER UPDATE OF status
+    ON ember_schema.event_registration
+    FOR EACH ROW
+    WHEN (OLD.status = 'QUEUED' AND NEW.status <> 'QUEUED')
+EXECUTE FUNCTION ember_schema.registration_queue_leave();
+
+CREATE TRIGGER event_federation_registration_queue_leave
+    AFTER UPDATE OF status
+    ON ember_schema.event_federation_registration
+    FOR EACH ROW
+    WHEN (OLD.status = 'QUEUED' AND NEW.status <> 'QUEUED')
+EXECUTE FUNCTION ember_schema.registration_queue_leave();
+
+CREATE OR REPLACE FUNCTION ember_schema.event_group_queue_leave() RETURNS TRIGGER
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    IF TG_TABLE_NAME = 'event_group_registration' THEN
+        DELETE FROM ember_schema.event_group_queue WHERE sign_up_id = NEW.id;
+    ELSE
+        DELETE FROM ember_schema.event_group_queue WHERE partner_sign_up_id = NEW.id;
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+COMMENT ON FUNCTION ember_schema.event_group_queue_leave()
+    IS 'Takes an event group sign-up off its waiting list once its status is no longer QUEUED.';
+
+CREATE TRIGGER event_group_registration_queue_leave
+    AFTER UPDATE OF status
+    ON ember_schema.event_group_registration
+    FOR EACH ROW
+    WHEN (OLD.status = 'QUEUED' AND NEW.status <> 'QUEUED')
+EXECUTE FUNCTION ember_schema.event_group_queue_leave();
+
+CREATE TRIGGER event_group_partner_registration_queue_leave
+    AFTER UPDATE OF status
+    ON ember_schema.event_group_partner_registration
+    FOR EACH ROW
+    WHEN (OLD.status = 'QUEUED' AND NEW.status <> 'QUEUED')
+EXECUTE FUNCTION ember_schema.event_group_queue_leave();

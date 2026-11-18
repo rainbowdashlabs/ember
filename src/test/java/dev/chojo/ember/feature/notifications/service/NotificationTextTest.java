@@ -480,6 +480,23 @@ class NotificationTextTest {
         assertTrue(registrationTitle.contains("✓"), "Should contain check-mark symbol: " + registrationTitle);
         assertTrue(registrationTitle.contains("Open Training"));
 
+        var waiting = notificationWith(
+                NotificationType.EVENT_REGISTRATION_STATUS,
+                new NotificationParams.EventRegistrationStatus(
+                        "Tim Berger", "Open Training", RegistrationStatus.QUEUED, null, 3, false, false),
+                205);
+        assertTrue(text.resolveFeedTitle("en", waiting).contains("Waiting list (place 3)"));
+        var movedUp = notificationWith(
+                NotificationType.EVENT_REGISTRATION_STATUS,
+                new NotificationParams.EventRegistrationStatus(
+                        "Tim Berger", "Open Training", RegistrationStatus.ACCEPTED, null, null, true, true),
+                206);
+        assertTrue(text.resolveFeedTitle("de", movedUp).contains("Von der Nachrückliste nachgerückt, kurzfristig"));
+        assertTrue(text.resolveMessage("de", movedUp).contains("Von der Nachrückliste nachgerückt, kurzfristig"));
+        assertTrue(text.resolveMessage("en", movedUp).contains("Moved up from the waiting list, short notice"));
+        assertTrue(text.resolveMessage("de", waiting).contains("Nachrückliste (Platz 3)"));
+        assertTrue(text.resolveMessage("en", waiting).contains("Waiting list (place 3)"));
+
         var tomorrow = notificationWith(
                 NotificationType.EVENT_REMINDER,
                 new NotificationParams.EventReminder("Probe", 1, LocalDate.parse("2026-09-15")),

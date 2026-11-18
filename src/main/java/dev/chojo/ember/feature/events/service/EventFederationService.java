@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
+import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -46,6 +47,7 @@ import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -55,7 +57,10 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -221,9 +226,27 @@ public class EventFederationService implements FederationServer {
         requireOpenForRegistration(event, eventDate);
         boolean somebodyChooses = event.requiresConfirmation()
                 || federationRepository.findPartnerPlaces(eventId, partnerId).partnerConfirms();
-        var status = somebodyChooses ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
-        var registration =
-                federationRepository.createRegistration(eventId, partnerId, remoteMemberId, eventDate, status);
+        var moved = new ArrayList<EventRegistration>();
+        var registration = registrationService.underSignUpLock(eventId, () -> {
+            var standing = federationRepository
+                    .findRegistration(eventId, partnerId, remoteMemberId, eventDate)
+                    .filter(existing -> existing.status() == RegistrationStatus.QUEUED
+                            || existing.status() == RegistrationStatus.ACCEPTED);
+            if (standing.isPresent()) return standing.get();
+            var decided = somebodyChooses
+                    ? RegistrationStatus.PENDING
+                    : registrationService.statusForVisitor(event, eventDate);
+            var created =
+                    federationRepository.createRegistration(eventId, partnerId, remoteMemberId, eventDate, decided);
+            if (decided == RegistrationStatus.QUEUED) {
+                registrationService.enqueueVisitor(event, eventDate, created.id(), false);
+                moved.addAll(registrationService.fillLocked(eventId, eventDate));
+                return federationRepository.findRegistrationById(created.id()).orElse(created);
+            }
+            return created;
+        });
+        registrationService.tellMovedUp(moved);
+        var status = registration.status();
         log.info(
                 "Registered federated member for event {} from partner {} on {} as {}",
                 eventId,
@@ -296,12 +319,89 @@ public class EventFederationService implements FederationServer {
      * @return true if a row was updated
      */
     public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
-        if (federationRepository.updateRegistrationStatus(id, status)) {
+        var found = federationRepository.findRegistrationById(id).orElse(null);
+        if (found == null) {
+            log.warn("Cannot update federated registration status: registration {} not found", id);
+            return false;
+        }
+        var before = registrationService.underSignUpLock(found.eventId(), () -> {
+            var current = federationRepository.findRegistrationById(id).orElse(found);
+            return federationRepository.updateRegistrationStatus(id, status) ? current : null;
+        });
+        if (before != null) {
             log.info("Updated federated registration {} status to {}", id, status);
+            if (before.status() == RegistrationStatus.ACCEPTED && status != RegistrationStatus.ACCEPTED) {
+                registrationService.moveUp(before.eventId(), before.eventDate());
+            }
             return true;
         }
         log.warn("Cannot update federated registration status: registration {} not found", id);
         return false;
+    }
+
+    /**
+     * Puts partners' members waiting for this station's decision onto the waiting lists of their dates,
+     * in sign-up order, placed by the order each list keeps. Nothing changes unless every one of them
+     * waits for this station's decision on a date with a participant limit.
+     *
+     * @param ids the partners' registrations
+     */
+    public void moveToQueue(Collection<Integer> ids) {
+        Transactions.run(() -> {
+            var found = ids.stream()
+                    .distinct()
+                    .map(id -> federationRepository
+                            .findRegistrationById(id)
+                            .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise))
+                    .toList();
+            found.stream()
+                    .map(EventFederationRegistration::eventId)
+                    .distinct()
+                    .sorted()
+                    .forEach(eventId -> registrationService.underSignUpLock(eventId, () -> null));
+            var current = found.stream()
+                    .map(registration -> federationRepository
+                            .findRegistrationById(registration.id())
+                            .orElse(registration))
+                    .sorted(Comparator.comparing(EventFederationRegistration::createdAt)
+                            .thenComparing(EventFederationRegistration::id))
+                    .toList();
+            for (var registration : current) {
+                registrationService.requireOwnSignUp(registration.eventId());
+                if (registration.status() != RegistrationStatus.PENDING) {
+                    throw EventRefusal.REGISTRATION_NOT_PENDING_FOR_QUEUE.raise();
+                }
+                if (partnerPlaces(registration.eventId(), registration.partnerId())
+                        .partnerConfirms()) {
+                    throw EventRefusal.PARTNER_DECIDES_ITS_OWN.raise();
+                }
+                registrationService.requireLimit(registration.eventId(), registration.eventDate());
+            }
+            for (var registration : current) {
+                federationRepository.updateRegistrationStatus(registration.id(), RegistrationStatus.QUEUED);
+                var event = crudService.findById(registration.eventId()).orElseThrow();
+                registrationService.enqueueVisitor(event, registration.eventDate(), registration.id(), false);
+            }
+        });
+    }
+
+    /**
+     * Moves a partner's member to another place in line on the waiting list of their date.
+     *
+     * @param id   the partner's registration, which waits on the list
+     * @param rank the place in line it takes, 1 moving up next; beyond the end it goes last
+     */
+    public void moveInQueue(int id, int rank) {
+        var found = federationRepository
+                .findRegistrationById(id)
+                .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise);
+        registrationService.underSignUpLock(found.eventId(), () -> {
+            registrationService.requireOwnSignUp(found.eventId());
+            var current = federationRepository.findRegistrationById(id).orElse(found);
+            if (current.status() != RegistrationStatus.QUEUED) throw EventRefusal.REGISTRATION_NOT_QUEUED.raise();
+            registrationService.moveVisitorInQueue(current.eventId(), current.eventDate(), id, rank);
+            return null;
+        });
     }
 
     /**
@@ -345,12 +445,18 @@ public class EventFederationService implements FederationServer {
      * @return true if a registration was deleted
      */
     public boolean withdrawRegistration(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        if (federationRepository.withdrawRegistration(eventId, partnerId, remoteMemberId, eventDate)) {
+        var heldBefore = registrationService.underSignUpLock(eventId, () -> {
+            var before = federationRepository.findRegistration(eventId, partnerId, remoteMemberId, eventDate);
+            if (!federationRepository.withdrawRegistration(eventId, partnerId, remoteMemberId, eventDate)) return null;
+            return before.map(EventFederationRegistration::status).orElse(RegistrationStatus.WITHDRAWN);
+        });
+        if (heldBefore != null) {
             log.info(
                     "Withdrew federated registration for event {} from partner {} on {}",
                     eventId,
                     partnerId,
                     eventDate);
+            if (heldBefore == RegistrationStatus.ACCEPTED) registrationService.moveUp(eventId, eventDate);
             return true;
         }
         log.warn(
@@ -436,7 +542,34 @@ public class EventFederationService implements FederationServer {
      * @return true where a place was granted, false where the budget was already spent
      */
     public boolean acceptWithinBudget(int registrationId, int eventId, int partnerId, LocalDate eventDate) {
-        boolean granted = federationRepository.acceptWithinBudget(registrationId, eventId, partnerId, eventDate);
+        return acceptWithinBudget(registrationId, eventId, partnerId, eventDate, false);
+    }
+
+    /**
+     * Gives a partner's member one of that partner's places, refusing on a full date unless whoever
+     * decides goes beyond the limit.
+     *
+     * @param registrationId the partner's registration
+     * @param eventId        the appointment
+     * @param partnerId      the partner
+     * @param eventDate      the date
+     * @param overLimit      whether the acceptance may go beyond the appointment's limit
+     * @return true where a place was granted, false where the partner's budget was already spent
+     */
+    public boolean acceptWithinBudget(
+            int registrationId, int eventId, int partnerId, LocalDate eventDate, boolean overLimit) {
+        boolean granted = registrationService.underSignUpLock(eventId, () -> {
+            boolean held = federationRepository
+                    .findRegistrationById(registrationId)
+                    .filter(found -> found.status() == RegistrationStatus.ACCEPTED)
+                    .isPresent();
+            if (!held) {
+                crudService
+                        .findById(eventId)
+                        .ifPresent(event -> registrationService.requireRoomToAccept(event, eventDate, overLimit));
+            }
+            return federationRepository.acceptWithinBudget(registrationId, eventId, partnerId, eventDate);
+        });
         if (!granted) {
             log.info("Partner {} has no places left on event {} for {}", partnerId, eventId, eventDate);
         }
@@ -463,9 +596,30 @@ public class EventFederationService implements FederationServer {
      * @return true where the place was restored, false where the window had closed
      */
     public boolean undoWithdrawal(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        boolean restored = federationRepository.restoreRegistration(
-                eventId, partnerId, remoteMemberId, eventDate, EventRegistrationService.UNDO_WINDOW);
+        boolean restored = registrationService.underSignUpLock(eventId, () -> {
+            boolean seatTaken = federationRepository
+                            .findPreviousStatus(eventId, partnerId, remoteMemberId, eventDate)
+                            .filter(RegistrationStatus.ACCEPTED::equals)
+                            .isPresent()
+                    && registrationService.full(eventId, eventDate);
+            if (!federationRepository.restoreRegistration(
+                    eventId, partnerId, remoteMemberId, eventDate, EventRegistrationService.UNDO_WINDOW)) {
+                return false;
+            }
+            var back = federationRepository
+                    .findRegistration(eventId, partnerId, remoteMemberId, eventDate)
+                    .orElseThrow();
+            var event = crudService.findById(eventId).orElseThrow();
+            if (seatTaken) {
+                federationRepository.updateRegistrationStatus(back.id(), RegistrationStatus.QUEUED);
+                registrationService.enqueueVisitor(event, eventDate, back.id(), true);
+            } else if (back.status() == RegistrationStatus.QUEUED) {
+                registrationService.enqueueVisitor(event, eventDate, back.id(), false);
+            }
+            return true;
+        });
         if (restored) {
+            registrationService.moveUp(eventId, eventDate);
             log.info(
                     "Took back the withdrawal of a federated registration for event {} from partner {} on {}",
                     eventId,
@@ -688,7 +842,9 @@ public class EventFederationService implements FederationServer {
     }
 
     /**
-     * A partner confirming one of its own members, where this station handed it that decision.
+     * A partner confirming one of its own members, where this station handed it that decision. Within
+     * the partner's places but on a date every place of which is taken, the member goes onto the
+     * waiting list and moves up like anybody else.
      *
      * <p>Two refusals, and they say different things. Without an arrangement the partner is asking for
      * something it was never given, which is forbidden. With one, but with its places already filled,
@@ -703,6 +859,31 @@ public class EventFederationService implements FederationServer {
         }
         var registration = findRegistration(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate())
                 .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE::raise);
+        boolean queued = registrationService.underSignUpLock(eventId, () -> {
+            if (federationRepository
+                    .findRegistrationById(registration.id())
+                    .filter(found -> found.status() == RegistrationStatus.QUEUED)
+                    .isPresent()) {
+                return true;
+            }
+            var budget = countPartnerPlaces(eventId, partner.partnerId(), request.eventDate());
+            int waiting = federationRepository.countQueuedForPartner(eventId, partner.partnerId(), request.eventDate());
+            Integer places = budget.budget();
+            if (places != null && budget.taken() + waiting >= places) {
+                throw EventRefusal.NO_PLACES_LEFT_FOR_PARTNER.raise();
+            }
+            var current =
+                    federationRepository.findRegistrationById(registration.id()).orElse(registration);
+            if (current.status() == RegistrationStatus.ACCEPTED
+                    || !registrationService.full(eventId, request.eventDate())) {
+                return false;
+            }
+            federationRepository.updateRegistrationStatus(registration.id(), RegistrationStatus.QUEUED);
+            var event = crudService.findById(eventId).orElseThrow();
+            registrationService.enqueueVisitor(event, request.eventDate(), registration.id(), false);
+            return true;
+        });
+        if (queued) return;
         if (!acceptWithinBudget(registration.id(), eventId, partner.partnerId(), request.eventDate())) {
             throw EventRefusal.NO_PLACES_LEFT_FOR_PARTNER.raise();
         }

@@ -24174,6 +24174,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/group-settings/limit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Give a part of an event group places of its own, or take its event group's again */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PartLimitRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupPartSettings"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/register": {
         parameters: {
             query?: never;
@@ -24506,6 +24566,55 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["RegistrationResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{eventId}/sign-up-places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many places a date of an appointment has, how many are taken and how many wait */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Places"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -26583,6 +26692,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/queue-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set how the waiting lists of an appointment's dates are ordered */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QueueOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationEvent"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/reminders": {
         parameters: {
             query?: never;
@@ -27362,6 +27522,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/federation-registrations/{id}/queue-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move a partner's member to another place in line on the waiting list */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QueuePositionRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/federation-registrations/{id}/status": {
         parameters: {
             query?: never;
@@ -27396,6 +27623,62 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/federation-registrations/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put partners' members waiting for this station's decision onto the waiting list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QueueRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -28543,6 +28826,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/queue-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move a partner member's event group sign-up to another place in line on the waiting list */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    signUpId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupQueuePositionRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/status": {
         parameters: {
             query?: never;
@@ -28587,6 +28929,55 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put partner members' event group sign-ups waiting for a decision onto the waiting list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupQueueRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -29179,6 +29570,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/queue-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move an event group sign-up to another place in line on the waiting list */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupQueuePositionRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/status": {
         parameters: {
             query?: never;
@@ -29299,6 +29758,64 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put event group sign-ups waiting for a decision onto the event group's waiting list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupQueueRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -29621,6 +30138,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/registrations/{id}/queue-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move a sign-up to another place in line on the waiting list */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QueuePositionRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/registrations/{id}/status": {
         parameters: {
             query?: never;
@@ -29844,6 +30428,55 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/registrations/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put sign-ups waiting for a decision onto the waiting list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QueueRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RegistrationResponse"][];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -69952,6 +70585,7 @@ export interface components {
         };
         AnswerRequest: {
             attending?: boolean;
+            whenFull?: components["schemas"]["WhenFull"] | null;
         };
         AnswersRefusedBody: {
             code?: string;
@@ -72735,6 +73369,8 @@ export interface components {
         };
         EnrichedFederationRegistration: {
             memberIdentity: components["schemas"]["MemberIdentity"] | null;
+            /** Format: int32 */
+            queuePosition: number | null;
             registration: components["schemas"]["EventFederationRegistration"];
         };
         EnrichedItem: {
@@ -72952,6 +73588,7 @@ export interface components {
         };
         EventFederationRegistration: {
             agreementWithdrawnAt: components["schemas"]["Instant"] | null;
+            comingOrAsking: boolean;
             createdAt: components["schemas"]["Instant"];
             eventDate: components["schemas"]["LocalDate"];
             /** Format: int32 */
@@ -73022,6 +73659,7 @@ export interface components {
             view?: components["schemas"]["RestrictionAudience"] | null;
         };
         EventGroupDecisionRequest: {
+            overLimit?: boolean | null;
             status?: components["schemas"]["RegistrationStatus"];
         };
         EventGroupDetail: {
@@ -73040,6 +73678,9 @@ export interface components {
             /** Format: int32 */
             minRegistrations: number | null;
             name: string;
+            /** Format: int32 */
+            partRegistrationLimit: number | null;
+            queueOrder: components["schemas"]["QueueOrder"] | null;
             registrationDeadline: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             registrationLimit: number | null;
@@ -73081,6 +73722,8 @@ export interface components {
             id: number;
             member: components["schemas"]["MemberIdentity"] | null;
             parts: number[];
+            /** Format: int32 */
+            queuePosition: number | null;
             registeredAt: components["schemas"]["Instant"] | null;
             sets: components["schemas"]["SetResult"][];
             status: components["schemas"]["RegistrationStatus"] | null;
@@ -73101,14 +73744,22 @@ export interface components {
             /** Format: int32 */
             ownCategoryId: number | null;
             /** Format: int32 */
+            ownRegistrationLimit: number | null;
+            /** Format: int32 */
             ownTemplateId: number | null;
+            /** Format: int32 */
+            partRegistrationLimit: number | null;
         };
         EventGroupPartState: {
+            /** Format: int32 */
+            accepted: number;
             calledOff: boolean;
             endTime: components["schemas"]["Instant"];
             /** Format: int32 */
             eventId: number;
             name: string;
+            /** Format: int32 */
+            places: number | null;
             required: boolean;
             /** Format: int32 */
             setId: number;
@@ -73130,11 +73781,20 @@ export interface components {
             setId: number;
             setName: string;
         };
+        EventGroupQueuePositionRequest: {
+            /** Format: int32 */
+            position?: number | null;
+        };
+        EventGroupQueueRequest: {
+            ids?: number[] | null;
+        };
         EventGroupSet: {
             /** Format: int32 */
             eventGroupId: number;
             /** Format: int32 */
             id: number;
+            /** Format: int32 */
+            maximum: number | null;
             /** Format: int32 */
             minimum: number;
             name: string;
@@ -73144,6 +73804,8 @@ export interface components {
         EventGroupSetDraft: {
             /** Format: int32 */
             id?: number | null;
+            /** Format: int32 */
+            maximum?: number | null;
             /** Format: int32 */
             minimum?: number;
             name?: string;
@@ -73175,6 +73837,8 @@ export interface components {
             /** Format: int32 */
             memberId: number;
             parts: number[];
+            /** Format: int32 */
+            queuePosition: number | null;
             registeredAt: components["schemas"]["Instant"] | null;
             sets: components["schemas"]["SetResult"][];
             status: components["schemas"]["RegistrationStatus"] | null;
@@ -73184,6 +73848,7 @@ export interface components {
             /** Format: int32 */
             memberId?: number | null;
             parts?: number[] | null;
+            whenFull?: components["schemas"]["WhenFull"] | null;
         };
         EventGroupSummary: {
             cancelled: boolean;
@@ -73195,6 +73860,8 @@ export interface components {
             id: number;
             /** Format: int32 */
             partCount: number;
+            /** Format: int32 */
+            queued: number;
         };
         EventItem: {
             date?: string;
@@ -73237,6 +73904,7 @@ export interface components {
             fields?: components["schemas"]["EventRegistrationFieldValue"][];
             /** Format: int32 */
             memberId?: number;
+            whenFull?: components["schemas"]["WhenFull"] | null;
         };
         EventRegistration: {
             agreementWithdrawnAt: components["schemas"]["Instant"] | null;
@@ -73343,6 +74011,7 @@ export interface components {
             registrationDeadline: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             registrationLimit: number | null;
+            requiresConfirmation: boolean;
             requiresRegistration: boolean;
             restricted: boolean;
             seriesCancelled: boolean;
@@ -73364,6 +74033,7 @@ export interface components {
             /** Format: int32 */
             minRegistrations: number | null;
             name: string;
+            queueOrder: components["schemas"]["QueueOrder"] | null;
             /** Format: int32 */
             registrationCloseDays: number | null;
             /** Format: int32 */
@@ -77461,6 +78131,10 @@ export interface components {
             memberId: number;
             name: string;
         };
+        PartLimitRequest: {
+            /** Format: int32 */
+            limit?: number | null;
+        };
         PartnerAgreementOffer: {
             /** Format: int32 */
             templateId: number;
@@ -77763,6 +78437,14 @@ export interface components {
             name: string;
             /** Format: uuid */
             stationUid: string;
+        };
+        Places: {
+            /** Format: int32 */
+            accepted: number;
+            /** Format: int32 */
+            limit: number | null;
+            /** Format: int32 */
+            queued: number;
         };
         PlaceSearch: {
             text?: string | null;
@@ -78574,6 +79256,18 @@ export interface components {
             min: number | null;
             whole: boolean;
         };
+        /** @enum {string} */
+        QueueOrder: "TIME" | "FAIRNESS";
+        QueueOrderRequest: {
+            queueOrder?: components["schemas"]["QueueOrder"] | null;
+        };
+        QueuePositionRequest: {
+            /** Format: int32 */
+            position?: number | null;
+        };
+        QueueRequest: {
+            registrationIds?: number[];
+        };
         QuizAccessRequest: {
             closesAt?: components["schemas"]["Instant"] | null;
             /** Format: int32 */
@@ -79121,6 +79815,8 @@ export interface components {
             memberIdentity: components["schemas"]["MemberIdentity"] | null;
             memberName: string;
             placeGivenUp: boolean;
+            /** Format: int32 */
+            queuePosition: number | null;
             status: components["schemas"]["RegistrationStatus"];
             statusChangedAt: components["schemas"]["Instant"];
         };
@@ -79142,7 +79838,7 @@ export interface components {
             registered: number;
         };
         /** @enum {string} */
-        RegistrationStatus: "PENDING" | "ACCEPTED" | "DENIED" | "DECLINED" | "WITHDRAWN";
+        RegistrationStatus: "PENDING" | "ACCEPTED" | "DENIED" | "DECLINED" | "WITHDRAWN" | "QUEUED";
         RegistrationTableRequest: {
             columns?: components["schemas"]["MemberTableColumn"][];
             date?: string;
@@ -80278,12 +80974,16 @@ export interface components {
         SetResult: {
             /** Format: int32 */
             chosen: number;
+            /** Format: int32 */
+            maximum: number | null;
             missingRequired: number[];
             name: string;
             /** Format: int32 */
             required: number;
             /** Format: int32 */
             setId: number;
+            /** Format: int32 */
+            tooMany: number;
         };
         SetSessionFieldsRequest: {
             fields?: components["schemas"]["AttendanceFieldValueEntry"][];
@@ -80828,6 +81528,7 @@ export interface components {
             /** Format: int32 */
             minRegistrations: number | null;
             name: string;
+            queueOrder: components["schemas"]["QueueOrder"] | null;
             recurring: boolean;
             /** Format: int32 */
             registrationCloseDays: number | null;
@@ -81148,6 +81849,7 @@ export interface components {
             status: components["schemas"]["AttendanceStatus"];
         };
         StatusUpdateRequest: {
+            overLimit?: boolean | null;
             status?: components["schemas"]["RegistrationStatus"];
         };
         /** @enum {string} */
@@ -82149,6 +82851,7 @@ export interface components {
             /** Format: int32 */
             minRegistrations?: number | null;
             name?: string;
+            queueOrder?: components["schemas"]["QueueOrder"] | null;
             /** Format: int32 */
             registrationCloseDays?: number | null;
             /** Format: int32 */
@@ -82588,6 +83291,8 @@ export interface components {
             title?: string;
             url?: string;
         };
+        /** @enum {string} */
+        WhenFull: "QUEUE" | "OVER_LIMIT";
         WikiAudienceRequest: {
             everyStation?: boolean;
             /** Format: int32 */
@@ -83168,6 +83873,8 @@ export type EventGroupPartRequiredRequest = components['schemas']['EventGroupPar
 export type EventGroupPartSettings = components['schemas']['EventGroupPartSettings'];
 export type EventGroupPartState = components['schemas']['EventGroupPartState'];
 export type EventGroupPartSummary = components['schemas']['EventGroupPartSummary'];
+export type EventGroupQueuePositionRequest = components['schemas']['EventGroupQueuePositionRequest'];
+export type EventGroupQueueRequest = components['schemas']['EventGroupQueueRequest'];
 export type EventGroupSet = components['schemas']['EventGroupSet'];
 export type EventGroupSetDraft = components['schemas']['EventGroupSetDraft'];
 export type EventGroupSetsRequest = components['schemas']['EventGroupSetsRequest'];
@@ -83770,6 +84477,7 @@ export type PaperState = components['schemas']['PaperState'];
 export type PaperSubmission = components['schemas']['PaperSubmission'];
 export type ParseResult = components['schemas']['ParseResult'];
 export type ParticipantDocuments = components['schemas']['ParticipantDocuments'];
+export type PartLimitRequest = components['schemas']['PartLimitRequest'];
 export type PartnerAgreementOffer = components['schemas']['PartnerAgreementOffer'];
 export type PartnerAgreementState = components['schemas']['PartnerAgreementState'];
 export type PartnerDocumentToSign = components['schemas']['PartnerDocumentToSign'];
@@ -83816,6 +84524,7 @@ export type PlaceholderCatalogueResponse = components['schemas']['PlaceholderCat
 export type PlaceholderCategory = components['schemas']['PlaceholderCategory'];
 export type PlaceholderValues = components['schemas']['PlaceholderValues'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
+export type Places = components['schemas']['Places'];
 export type PlaceSearch = components['schemas']['PlaceSearch'];
 export type PlannedLanding = components['schemas']['PlannedLanding'];
 export type PlannedStep = components['schemas']['PlannedStep'];
@@ -83919,6 +84628,10 @@ export type QuestionColumn = components['schemas']['QuestionColumn'];
 export type QuestionConfig = components['schemas']['QuestionConfig'];
 export type QuestionConfigByType = components['schemas']['QuestionConfigByType'];
 export type QuestionLimits = components['schemas']['QuestionLimits'];
+export type QueueOrder = components['schemas']['QueueOrder'];
+export type QueueOrderRequest = components['schemas']['QueueOrderRequest'];
+export type QueuePositionRequest = components['schemas']['QueuePositionRequest'];
+export type QueueRequest = components['schemas']['QueueRequest'];
 export type QuizAccessRequest = components['schemas']['QuizAccessRequest'];
 export type QuizAnswerRequest = components['schemas']['QuizAnswerRequest'];
 export type QuizAttemptDetail = components['schemas']['QuizAttemptDetail'];
@@ -84478,6 +85191,7 @@ export type WebFontView = components['schemas']['WebFontView'];
 export type WebhookUrl = components['schemas']['WebhookUrl'];
 export type WebhookUrlResponse = components['schemas']['WebhookUrlResponse'];
 export type WeblinkRequest = components['schemas']['WeblinkRequest'];
+export type WhenFull = components['schemas']['WhenFull'];
 export type WikiAudienceRequest = components['schemas']['WikiAudienceRequest'];
 export type WithdrawalResponse = components['schemas']['WithdrawalResponse'];
 export type WitnessCandidateResponse = components['schemas']['WitnessCandidateResponse'];
@@ -85590,6 +86304,11 @@ export const PublicKbMode = {
     OFF: "OFF",
 } as const;
 
+export const QueueOrder = {
+    FAIRNESS: "FAIRNESS",
+    TIME: "TIME",
+} as const;
+
 export const QuizQuestionType = {
     CONNECT: "CONNECT",
     ENUMERATION: "ENUMERATION",
@@ -85621,6 +86340,7 @@ export const RegistrationStatus = {
     DECLINED: "DECLINED",
     DENIED: "DENIED",
     PENDING: "PENDING",
+    QUEUED: "QUEUED",
     WITHDRAWN: "WITHDRAWN",
 } as const;
 
@@ -86356,4 +87076,9 @@ export const WebFontFormat = {
     TRUETYPE: "TRUETYPE",
     WOFF: "WOFF",
     WOFF2: "WOFF2",
+} as const;
+
+export const WhenFull = {
+    OVER_LIMIT: "OVER_LIMIT",
+    QUEUE: "QUEUE",
 } as const;

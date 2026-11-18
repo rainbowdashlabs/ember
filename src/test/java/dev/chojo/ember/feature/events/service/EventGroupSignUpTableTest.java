@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerSignUp;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.members.entity.MemberTable;
@@ -101,7 +102,10 @@ class EventGroupSignUpTableTest extends RepositoryTestBase {
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                newEventGroupSignUpRules());
+                newEventGroupSignUpRules(),
+                newEventGroupQueue(
+                        newEventServices(new DomainEventBus(Set.of())).registration(), mock(DomainEventBus.class)),
+                new RegistrationQueueRepository());
         partners = mock(EventGroupPartnerService.class);
         table = new EventGroupSignUpTable(
                 eventGroups,
@@ -208,7 +212,8 @@ class EventGroupSignUpTableTest extends RepositoryTestBase {
                                 RegistrationStatus.ACCEPTED,
                                 Instant.now(),
                                 List.of(saturday),
-                                List.of()))));
+                                List.of(),
+                                null))));
 
         var drawn = table.table(station, eventGroup.id(), Set.of(StationPermission.EVENT_REGISTRATION), false);
 

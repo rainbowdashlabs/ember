@@ -95,7 +95,7 @@ const noop = () => undefined
                               category-id="1" event-type="RECURRING" attendance-template-id="1"
                               :categories="CATEGORIES" :attendance-templates="ATTENDANCE_TEMPLATES"/>
         <TemplateSignUpSection event-type="RECURRING" :requires-registration="true" :requires-confirmation="false"
-                               :registration-limit="30" :deadline-offset-hours="26" :min-registrations="6"
+                               :registration-limit="30" queue-order="TIME" :deadline-offset-hours="26" :min-registrations="6"
                                :threshold-days="3" :registration-close-days="1"/>
         <NeutralContainer>
           <EventReminderEditor :model-value="REMINDERS"/>
@@ -118,6 +118,7 @@ const noop = () => undefined
     <HelpSection :title="t('helpCenter.eventTemplateEdit.signUpTitle')">
       <p>{{ t('helpCenter.eventTemplateEdit.signUpText') }}</p>
       <p>{{ t('helpCenter.eventTemplateEdit.signUpDeadlineText') }}</p>
+      <p>{{ t('helpCenter.eventTemplateEdit.signUpQueueText') }}</p>
       <p>{{ t('helpCenter.eventTemplateEdit.signUpRulesText') }}</p>
     </HelpSection>
 

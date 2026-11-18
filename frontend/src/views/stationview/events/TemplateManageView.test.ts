@@ -61,6 +61,7 @@ const ORIGINAL: EventTemplate = {
     requiresRegistration: true,
     requiresConfirmation: null,
     registrationLimit: null,
+    queueOrder: null,
     registrationDeadlineOffsetHours: null,
     minRegistrations: null,
     thresholdDays: null,

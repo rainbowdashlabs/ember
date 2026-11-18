@@ -16,11 +16,14 @@ import {isMet} from '@/util/eventGroupChoice'
 
 type Translate = (key: string, values?: Record<string, unknown>) => string
 
-/** The statuses a sign-up can be in, in the order the status filter offers them. */
-/** The statuses the sign-up list holds: waiting, holding a place, or turned down. */
+/**
+ * The statuses the sign-up list holds, in the order the status filter offers them: waiting for a
+ * decision, holding a place, on the waiting list, or turned down.
+ */
 const STATUS_ORDER = [
     RegistrationStatus.PENDING,
     RegistrationStatus.ACCEPTED,
+    RegistrationStatus.QUEUED,
     RegistrationStatus.DENIED,
 ] as const
 

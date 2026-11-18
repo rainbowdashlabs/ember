@@ -21,7 +21,7 @@ const EVENT: StationEvent = {
     recurring: true, startTime: '2026-09-01T19:00:00', endTime: '2026-09-01T21:00:00', dayOfWeek: 2,
     templateId: null, categoryId: null, isPublic: null, restricted: false, restrictionMode: 'AND',
     viewRestrictionMode: 'AND', requiresRegistration: false, requiresConfirmation: false,
-    registrationDeadline: null, registrationLimit: null, registrationCloseDays: null, minRegistrations: null,
+    registrationDeadline: null, registrationLimit: null, queueOrder: null, registrationCloseDays: null, minRegistrations: null,
     thresholdDays: null, repeatUntil: null, repeatCount: null, cancelled: false, cancelledAt: null, cancelReason: null,
 }
 

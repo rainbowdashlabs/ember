@@ -21,7 +21,8 @@ import {isRecurringEvent} from '@/api/events'
 import {RegistrationStatus, type EventCategory, type EventSummary, type RegistrationResponse} from '@/api/generated/schema'
 import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
-import {formatDate} from '@/util/format'
+import {formatDate, todayIsoDate} from '@/util/format'
+import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
 
 const {t} = useI18n()
 const {isGuardian, sessionInfo} = useSession()
@@ -36,7 +37,16 @@ function categoryOf(eventId: number): EventCategory | undefined {
   return categoryId != null ? categories.value.find(cat => cat.id === categoryId) : undefined
 }
 
+/**
+ * The sign-ups that still stand or were decided, which is what the panel lists. A wait on the
+ * waiting list is one of them, and says so with its place in line rather than reading as a place.
+ */
 const activeRegistrations = computed(() => registrations.value.filter(r => r.status !== RegistrationStatus.DECLINED))
+
+/** Whether a sign-up's date is already over, which turns a wait on the waiting list into no place. */
+function isPast(reg: RegistrationResponse): boolean {
+  return reg.eventDate < todayIsoDate()
+}
 
 function isOtherMember(memberId: number): boolean {
   return isGuardian() && memberId !== (sessionInfo.value?.member?.id ?? 0)
@@ -109,7 +119,12 @@ onMounted(loadData)
               <ErrorBadge v-if="reg.answersMissing" :data-testid="`answer-missing-${reg.id}`">
                 {{ t('eventDetail.answerMissing') }}
               </ErrorBadge>
-              <component :is="statusBadgeComponent(reg.status)">
+              <RegistrationStatusBadge
+                  v-if="reg.status === RegistrationStatus.QUEUED"
+                  :status="reg.status"
+                  :queue-position="reg.queuePosition"
+                  :past="isPast(reg)"/>
+              <component :is="statusBadgeComponent(reg.status)" v-else>
                 {{ t(`dashboard.registrationStatus.${reg.status}`) }}
               </component>
             </div>

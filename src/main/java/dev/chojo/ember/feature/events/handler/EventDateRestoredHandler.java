@@ -41,7 +41,7 @@ public class EventDateRestoredHandler implements DomainEventHandler<EventDateRes
 
     @Override
     public void handle(EventDateRestored event) {
-        var placeHolders = registrationRepository.findRegisteredMemberIds(event.eventId(), event.eventDate());
+        var placeHolders = registrationRepository.findConcernedMemberIds(event.eventId(), event.eventDate());
         if (placeHolders.isEmpty()) return;
         notifier.notify(
                 StationAudience.household(placeHolders),

@@ -26,6 +26,7 @@ function declined(id: number, name: string): RegistrationResponse {
         fieldName: null,
         agreementWithdrawnAt: null,
         placeGivenUp: false,
+        queuePosition: null,
         statusChangedAt: '2026-11-10T18:00:00Z',
     }
 }

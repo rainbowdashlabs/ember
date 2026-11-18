@@ -86,9 +86,9 @@ public class EventCancelledHandler implements DomainEventHandler<EventCancelled>
     private List<Integer> placeHolders(EventCancelled event) {
         LocalDate eventDate = event.eventDate();
         if (eventDate != null) {
-            return registrationRepository.findRegisteredMemberIds(event.eventId(), eventDate);
+            return registrationRepository.findConcernedMemberIds(event.eventId(), eventDate);
         }
         var today = LocalDate.now(occurrenceCalendar.zoneOf(event.stationId()));
-        return registrationRepository.findRegisteredMemberIdsFrom(event.eventId(), today);
+        return registrationRepository.findConcernedMemberIdsFrom(event.eventId(), today);
     }
 }

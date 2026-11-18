@@ -14,7 +14,7 @@ const EVENT: StationEvent = {
     id: 7, stationId: 'abc', name: 'Zeltlager', description: null, eventType: 'ONE_TIME', recurring: false,
     startTime: '2026-07-24T08:00:00Z', endTime: '2026-07-26T16:00:00Z', dayOfWeek: null, templateId: null,
     categoryId: null, isPublic: null, restricted: false, restrictionMode: 'AND', viewRestrictionMode: 'AND',
-    requiresRegistration: true, requiresConfirmation: false, registrationDeadline: null, registrationLimit: null,
+    requiresRegistration: true, requiresConfirmation: false, registrationDeadline: null, registrationLimit: null, queueOrder: null,
     registrationCloseDays: null, minRegistrations: null, thresholdDays: null, repeatUntil: null, repeatCount: null,
     cancelled: false, cancelledAt: null, cancelReason: null,
 }

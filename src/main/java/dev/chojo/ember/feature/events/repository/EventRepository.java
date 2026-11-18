@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.EventLink;
 import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
+import dev.chojo.ember.feature.events.entity.QueueOrder;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
@@ -42,7 +43,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String OWN_COLUMNS =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, requires_registration, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_days, registration_close_days, repeat_until, repeat_count";
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, requires_registration, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, \"public\", cancelled, cancelled_at, cancel_reason, min_registrations, threshold_days, registration_close_days, repeat_until, repeat_count, queue_order";
 
     /** The columns of an appointment written to as {@code station_event}, for a {@code RETURNING}. */
     private static final String EVENT_COLUMNS = eventColumns("station_event");
@@ -51,17 +52,19 @@ public class EventRepository {
     private static final String E_COLUMNS = eventColumns("e");
 
     /**
-     * The columns {@link StationEvent#map()} reads, with the attendance template and the category as
-     * they take effect: a part of an event group without its own follows the event group's.
+     * The columns {@link StationEvent#map()} reads, with the attendance template, the category and the
+     * participant limit as they take effect: a part of an event group without its own follows the
+     * event group's.
      *
      * @param table the name or alias the appointment row is read under
      */
     private static String eventColumns(String table) {
-        return "%s, %s AS template_id, %s AS category_id"
+        return "%s, %s AS template_id, %s AS category_id, %s AS registration_limit"
                 .formatted(
                         SqlSupport.alias(table, OWN_COLUMNS),
                         EventGroupInheritance.template(table),
-                        EventGroupInheritance.category(table));
+                        EventGroupInheritance.category(table),
+                        EventGroupInheritance.registrationLimit(table));
     }
 
     /**
@@ -345,6 +348,9 @@ public class EventRepository {
      * @param registrationDeadline the new registration deadline, or null
      * @param requiresConfirmation whether registrations require confirmation
      * @param categoryId           the new category ID, or null
+     * @param registrationLimit    the new limit, or null; a part of an event group keeps its own, which
+     *                             only the part settings change, because what it reads back is the
+     *                             limit in effect and writing that would pin the event group's
      * @return true if a row was updated
      */
     public boolean update(
@@ -380,7 +386,7 @@ public class EventRepository {
                     requires_confirmation   = :requires_confirmation,
                     category_id             = :category_id,
                     public                  = :public,
-                    registration_limit      = :registration_limit,
+                    registration_limit      = CASE WHEN event_group_set_id IS NULL THEN :registration_limit ELSE registration_limit END,
                     min_registrations       = :min_registrations,
                     threshold_days          = :threshold_days,
                     registration_close_days = :registration_close_days,
@@ -586,6 +592,21 @@ public class EventRepository {
      */
     public void lockForSignUp(int id) {
         SqlSupport.exists("SELECT 1 FROM station_event WHERE id = :id FOR UPDATE;", call().bind("id", id));
+    }
+
+    /**
+     * Sets how the waiting lists of an appointment's dates are ordered from now on. Entries already
+     * waiting keep their places.
+     *
+     * @param eventId the appointment
+     * @param order   the order
+     * @return whether the appointment exists
+     */
+    public boolean setQueueOrder(int eventId, QueueOrder order) {
+        return query("UPDATE station_event SET queue_order = :order, updated_at = now() WHERE id = :id;")
+                .single(call().bind("id", eventId).bind("order", order))
+                .update()
+                .changed();
     }
 
     /**

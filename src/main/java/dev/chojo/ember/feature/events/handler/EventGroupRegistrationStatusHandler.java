@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.handler;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventGroupRegistrationStatusChanged;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
@@ -20,7 +21,8 @@ import jakarta.inject.Singleton;
 
 /**
  * Tells a member, and whoever runs events, that an event group sign-up changed: once for the event group, not
- * once for every part chosen with it.
+ * once for every part chosen with it. Moving up from the waiting list and being put on it are told to
+ * the member only.
  */
 @Singleton
 public class EventGroupRegistrationStatusHandler implements DomainEventHandler<EventGroupRegistrationStatusChanged> {
@@ -40,13 +42,20 @@ public class EventGroupRegistrationStatusHandler implements DomainEventHandler<E
     public void handle(EventGroupRegistrationStatusChanged event) {
         var data = NotificationData.of(
                 new NotificationParams.EventRegistrationStatus(
-                        event.memberName(), event.eventGroupName(), event.newStatus(), null),
+                        event.memberName(),
+                        event.eventGroupName(),
+                        event.newStatus(),
+                        null,
+                        event.queuePosition(),
+                        event.movedUp(),
+                        event.shortNotice()),
                 NotificationLinks.eventGroup(event.eventGroupId()));
         notifier.notify(
                 StationAudience.member(event.memberId()),
                 NotificationType.EVENT_REGISTRATION_STATUS,
                 data,
                 Delivery.EVERY_TIME);
+        if (event.movedUp() || event.newStatus() == RegistrationStatus.QUEUED) return;
         notifier.notify(
                 StationAudience.holders(event.stationId(), StationPermission.EVENT_MANAGER)
                         .except(event.memberId()),

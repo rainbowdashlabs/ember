@@ -18,14 +18,16 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import EventGroupFields from './EventGroupFields.vue'
 import type {EventGroupDetail, EventGroupPartState} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
-import {partsOfSet, ruleOf} from '@/util/eventGroupChoice'
+import {eventGroupPlaces, partPlaces, partsOfSet, ruleOf} from '@/util/eventGroupChoice'
+import {placesLabel} from '@/util/eventPlaces'
 import {formatDate, formatDateTime, formatTime} from '@/util/format'
 import type {EventGroupMark} from '../eventshared/eventGroupColor'
 import {renderMarkdown} from '@/util/markdown'
 
 /**
  * What an event group is: its description, places, deadline and confirmation, and its parts grouped by set
- * with how many of each set a sign-up has to choose. A part links to its appointment.
+ * with how many of each set a sign-up has to choose. A part links to its appointment and says how its
+ * own places stand where it has a limit.
  */
 const props = defineProps<{
   detail: EventGroupDetail
@@ -47,6 +49,9 @@ const {t} = useI18n()
 const {stationTimezone} = useSession()
 
 const eventGroup = computed(() => props.detail.eventGroup)
+
+/** How the places for people stand, null where the event group limits no people. */
+const peoplePlaces = computed(() => eventGroupPlaces(eventGroup.value))
 
 /** The minimum of accepted sign-ups the event group needs and by when, or nothing where it has none. */
 const minimumRule = computed(() => {
@@ -91,10 +96,11 @@ function whenOf(part: EventGroupPartState): string {
       <InfoBadge v-if="eventGroup.details.registrationDeadline">
         {{ t('eventGroups.deadline', {date: formatDateTime(eventGroup.details.registrationDeadline, stationTimezone)}) }}
       </InfoBadge>
-      <MutedText tag="span" size="sm">
-        {{ eventGroup.details.registrationLimit != null
-          ? t('eventGroups.places', {holding: eventGroup.holding, limit: eventGroup.details.registrationLimit})
-          : t('eventGroups.placesOpen', {holding: eventGroup.holding}) }}
+      <MutedText tag="span" size="sm" data-testid="event-group-places">
+        {{ peoplePlaces ? placesLabel(peoplePlaces, t) : t('eventGroups.placesOpen', {holding: eventGroup.holding}) }}
+      </MutedText>
+      <MutedText v-if="!peoplePlaces && eventGroup.queued > 0" tag="span" size="sm" data-testid="event-group-waiting">
+        {{ t('registrationQueue.waitingCount', {count: eventGroup.queued}) }}
       </MutedText>
       <MutedText v-if="eventGroup.details.requiresConfirmation" tag="span" size="sm">{{ t('eventGroups.confirmation') }}</MutedText>
     </div>
@@ -116,6 +122,9 @@ function whenOf(part: EventGroupPartState): string {
           <RowLink :to="linkOf(part.eventId)" class="flex flex-wrap items-center gap-2 text-sm">
             <span :class="{'line-through text-(--text-muted)': part.calledOff}">{{ part.name }}</span>
             <MutedText tag="span" size="sm">{{ whenOf(part) }}</MutedText>
+            <MutedText v-if="partPlaces(part) && !part.calledOff" tag="span" size="sm" :data-testid="`event-group-part-places-${part.eventId}`">
+              {{ placesLabel(partPlaces(part)!, t) }}
+            </MutedText>
             <InfoBadge v-if="part.required && !part.calledOff" data-testid="event-group-part-required">{{ t('eventGroups.required') }}</InfoBadge>
             <ErrorBadge v-if="part.calledOff">{{ t('eventGroups.partCalledOff') }}</ErrorBadge>
             <MutedText v-else-if="part.tookPlace" tag="span" size="sm">{{ t('eventGroups.partPast') }}</MutedText>

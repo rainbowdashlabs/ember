@@ -16,7 +16,8 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import type {MemberOption} from '@/components/input/select/memberOption'
-import type {RemoteMemberRegistration} from '@/api/generated/schema'
+import {RegistrationStatus, type RemoteMemberRegistration} from '@/api/generated/schema'
+import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 
@@ -95,6 +96,9 @@ const canSubmit = computed(() => {
           <SuccessBadge v-if="getRegistration(m.uid)!.status === 'ACCEPTED'">{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
           <InfoBadge v-else-if="getRegistration(m.uid)!.status === 'PENDING'">{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
           <ErrorBadge v-else-if="getRegistration(m.uid)!.status === 'DENIED'">{{ t('eventsUpcoming.statusDenied') }}</ErrorBadge>
+          <RegistrationStatusBadge
+              v-else-if="getRegistration(m.uid)!.status === RegistrationStatus.QUEUED"
+              :status="getRegistration(m.uid)!.status"/>
           <PrimaryButton
               v-if="props.weDecide && getRegistration(m.uid)!.status === 'PENDING'"
               :disabled="props.registering"
