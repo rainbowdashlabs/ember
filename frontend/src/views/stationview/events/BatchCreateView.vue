@@ -25,6 +25,7 @@ import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
 import BatchTemplateNote from './batchcreateview/BatchTemplateNote.vue'
 import {useBatchTemplate} from './batchcreateview/useBatchTemplate'
+import {useQuestionsRequireSignUp} from './eventshared/useQuestionsRequireSignUp'
 import {nextDraftRow, type KeyedDraftRow, type ScheduleMode} from './batchcreateview/draftRows'
 import type {
     AttendanceTemplateField,
@@ -69,6 +70,8 @@ const eventDescription = ref('')
 const selectedCategoryId = ref('')
 const selectedTemplateId = ref('')
 const requiresRegistration = ref(false)
+const {signUpHeld} = useQuestionsRequireSignUp(
+    () => (batchTemplate.applied.value?.questions ?? 0) > 0, requiresRegistration)
 const requiresConfirmation = ref(false)
 const hasDeadline = ref(false)
 const registrationDeadline = ref('')
@@ -260,6 +263,7 @@ function openOverview() {
               :attendance-fields="sheetFields"
               :groups="groups"
               :tags="tags"
+              :sign-up-held="signUpHeld"
               open-fields
           />
 

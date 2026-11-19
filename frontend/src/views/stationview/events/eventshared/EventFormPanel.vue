@@ -53,6 +53,8 @@ const props = defineProps<{
    * audiences, and it stays a one-time appointment, so those settings are left out here.
    */
   eventGroupPart?: boolean
+  /** Whether questions are asked, which are answered when signing up, so sign-up stays on. */
+  signUpHeld?: boolean
   /**
    * The settings the event group hands down to a part, where it does: the inherited settings card
    * shows them, so the form leaves out its own control until the part overrides the setting.
@@ -183,8 +185,11 @@ const sheetName = computed(() =>
       <SubHeader>{{ t('events.registration') }}</SubHeader>
 
       <div class="flex items-center justify-between">
-        <span :id="`${labelId}-registration`" class="text-sm font-medium">{{ t('events.requiresRegistration') }}</span>
-        <ToggleInput v-model="requiresRegistration" :aria-labelledby="`${labelId}-registration`"/>
+        <span class="flex items-center gap-1">
+          <span :id="`${labelId}-registration`" class="text-sm font-medium">{{ t('events.requiresRegistration') }}</span>
+          <HintIcon v-if="signUpHeld" :text="t('events.signUpHeldByQuestions')"/>
+        </span>
+        <ToggleInput v-model="requiresRegistration" :disabled="signUpHeld" :aria-labelledby="`${labelId}-registration`"/>
       </div>
 
       <template v-if="requiresRegistration">

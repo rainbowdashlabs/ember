@@ -29,6 +29,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Anwesenheit im eigenen Reiter.** Die Terminseite hat für alle, die Anwesenheit erfassen, einen Reiter Anwesenheit neben dem Eintrag im Menü.
 - **Nachfrage vor dem Ablehnen einer bestätigten Anmeldung.** Wer schon einen Platz hat, wird erst nach einer Nachfrage abgelehnt, und Bestätigen oder Ablehnen meldet, wenn es geklappt hat.
 - **Termine einer Terminreihe besser erreichbar.** Im Editor der Terminreihe zeigt jeder Termin Datum mit Beginn und Ende, führt zu seinem eigenen Editor und ist markiert, wenn er abgesagt ist. Eine neue Terminreihe lässt sich gleich beim Anlegen mit Partnerwachen teilen.
+- **Fragen ohne vorher die Anmeldung einzuschalten.** Die Fragen eines Termins oder einer Vorlage stehen immer im Formular. Wer eine hinzufügt, schaltet damit die Anmeldung ein, und sie bleibt an, solange es Fragen gibt.
 
 ### Änderungen
 
@@ -39,6 +40,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Ein Wort für jeden Begriff der Anmeldung.** Termine und Terminreihen sagen einheitlich Plätze, Anmeldeschluss, bestätigen und „Wer sich anmelden darf“, und wiederkehrende Termine heißen überall so. Die Warteliste der Aufnahme heißt jetzt Bewerberliste und ist nicht mehr mit der Nachrückliste voller Termine zu verwechseln.
 - **Anmeldungen zu Terminreihen werden bei der Terminreihe entschieden.** Die offenen Anmeldungen führen jede Terminreihe mit wartenden Anmeldungen einmal auf und verweisen auf sie, statt ihre Termine einzeln zu zeigen. Die Zahl in der Seitenleiste zählt jede solche Anmeldung einmal.
 - **Geteilte Termine brauchen diese Version auf beiden Seiten.** Das Teilen von Terminen mit einer Partnerwache auf einem anderen Server ruht, bis beide diese Version haben.
+- **Statistiken der Wache unter Monitoring.** Die Statistikseite einer Wache steht unter Monitoring, unter `/station/monitoring/statistics`, und das Dashboard ist wieder eine einzelne Seite.
 
 ### Fehlerbehebungen
 

@@ -82,4 +82,21 @@ describe('EventGroupSetsEditor', () => {
     await minimumInput(editor).setValue('2')
     expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Kurs', minimum: 2, maximum: 2}])
   })
+
+  /** Two bare number fields say nothing on their own, so the columns are named above them. */
+  it('names the columns of the minimum and the maximum', () => {
+    const editor = mountEditor([{id: 1, name: 'Übung', minimum: 1, maximum: 1}], {1: 2})
+
+    const header = editor.get('[data-testid="event-group-sets-header"]').text()
+    expect(header).toContain('Termine mindestens')
+    expect(header).toContain('Termine höchstens')
+  })
+
+  /** Below the width the header shows at, each number field names itself. */
+  it('names both number fields in the row for narrow screens', () => {
+    const editor = mountEditor([{id: 1, name: 'Übung', minimum: 1, maximum: 1}], {1: 2})
+
+    const narrow = editor.findAll('.sm\\:hidden').map(label => label.text())
+    expect(narrow).toEqual(['Termine mindestens', 'Termine höchstens'])
+  })
 })

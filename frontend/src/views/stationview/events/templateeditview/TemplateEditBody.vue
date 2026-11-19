@@ -18,6 +18,7 @@ import TemplateAudienceSection from './TemplateAudienceSection.vue'
 import TemplateSignUpSection from './TemplateSignUpSection.vue'
 import type {RestrictionSelection} from '@/api/types'
 import {isRecurringEvent} from '@/api/events'
+import {useQuestionsRequireSignUp} from '../eventshared/useQuestionsRequireSignUp'
 import {audienceSummary, fieldsSummary, questionsSummary, remindersSummary} from '../eventshared/sectionSummaries'
 import type {
     AttendanceTemplate,
@@ -67,6 +68,7 @@ const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {re
 const reminderDays = defineModel<number[]>('reminderDays', {required: true})
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
 const registrationFields = defineModel<RegistrationFieldDefinition[]>('registrationFields', {required: true})
+const {signUpHeld} = useQuestionsRequireSignUp(() => registrationFields.value.length > 0, requiresRegistration)
 
 const {t} = useI18n()
 </script>
@@ -96,6 +98,7 @@ const {t} = useI18n()
       v-model:min-registrations="minRegistrations"
       v-model:threshold-days="thresholdDays"
       v-model:registration-close-days="registrationCloseDays"
+      :sign-up-held="signUpHeld"
       :event-type="eventType"
   />
 
@@ -142,7 +145,7 @@ const {t} = useI18n()
     </FormSection>
   </NeutralContainer>
 
-  <NeutralContainer v-if="requiresRegistration" sheet>
+  <NeutralContainer sheet>
     <FormSection
         :title="t('formSections.questions')"
         :summary="questionsSummary(registrationFields.length, t)"

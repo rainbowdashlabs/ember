@@ -36,6 +36,7 @@ import InheritedSettingsCard, {type InheritedSetting} from './InheritedSettingsC
 import PartLimitCard from './PartLimitCard.vue'
 import {entryOf} from '../eventshared/eventQuestions'
 import RegistrationFieldsEditor from '../eventshared/RegistrationFieldsEditor.vue'
+import {useQuestionsRequireSignUp} from '../eventshared/useQuestionsRequireSignUp'
 import type {FieldDefaultValue} from './useEventFieldDefaults'
 import {documentsSummary, questionsSummary, sharingSummary} from '../eventshared/sectionSummaries'
 
@@ -92,6 +93,7 @@ const repeatUntil = defineModel<string>('repeatUntil', {required: true})
 const repeatCount = defineModel<number | undefined>('repeatCount')
 const requiresRegistration = defineModel<boolean>('requiresRegistration', {required: true})
 const registrationFields = defineModel<RegistrationFieldDefinition[]>('registrationFields', {required: true})
+const {signUpHeld} = useQuestionsRequireSignUp(() => registrationFields.value.length > 0, requiresRegistration)
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
 const hasDeadline = defineModel<boolean>('hasDeadline', {required: true})
 const registrationDeadline = defineModel<string>('registrationDeadline', {required: true})
@@ -217,6 +219,7 @@ function override(field: AppointmentField) {
         v-model:restriction="restriction" v-model:view-restriction="viewRestriction"
         v-model:fields="fields"
         v-model:reminders="reminders"
+        :sign-up-held="signUpHeld"
         :categories="props.categories"
         :templates="props.templates"
         :attendance-fields="props.attendanceFields"
@@ -263,7 +266,7 @@ function override(field: AppointmentField) {
     />
 
     <FormSection
-        v-if="requiresRegistration && !props.eventGroupPart"
+        v-if="!props.eventGroupPart"
         :title="t('formSections.questions')"
         :summary="questionsSummary(registrationFields.length, t)"
         data-testid="form-section-questions"

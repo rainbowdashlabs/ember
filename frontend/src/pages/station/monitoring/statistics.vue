@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StatisticsHelp from '~/views/helpcenter/dashboardview/StatisticsHelp.vue'
+import StatisticsView from '~/views/dashboardview/StatisticsView.vue'
 
 definePageMeta({
-  layout: 'helpcenter',
-  name: 'help-dashboard-statistics',
+  layout: 'station',
+  name: 'station-statistics',
 })
 </script>
 
 <template>
-  <StatisticsHelp />
+  <StatisticsView />
 </template>

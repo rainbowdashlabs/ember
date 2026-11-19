@@ -192,7 +192,7 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent :title="t('pages.dashboard-statistics.title')" :subtitle="t('pages.dashboard-statistics.subtitle')">
+  <ViewContent :title="t('pages.station-statistics.title')" :subtitle="t('pages.station-statistics.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :failure="failure"/>

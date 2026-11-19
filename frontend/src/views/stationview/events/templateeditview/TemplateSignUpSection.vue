@@ -8,6 +8,7 @@ import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import HintIcon from '@/components/typography/HintIcon.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -23,6 +24,8 @@ import type {QueueOrder} from '@/api/generated/schema'
  */
 defineProps<{
   eventType: string
+  /** Whether the template asks questions, which are answered when signing up, so sign-up stays on. */
+  signUpHeld?: boolean
 }>()
 
 const requiresRegistration = defineModel<boolean>('requiresRegistration', {required: true})
@@ -43,8 +46,11 @@ const labelId = useId()
     <SubHeader>{{ t('events.registration') }}</SubHeader>
 
     <div class="flex items-center justify-between">
-      <span :id="`${labelId}-registration`" class="text-sm font-medium">{{ t('events.requiresRegistration') }}</span>
-      <ToggleInput v-model="requiresRegistration" :aria-labelledby="`${labelId}-registration`"/>
+      <span class="flex items-center gap-1">
+        <span :id="`${labelId}-registration`" class="text-sm font-medium">{{ t('events.requiresRegistration') }}</span>
+        <HintIcon v-if="signUpHeld" :text="t('events.signUpHeldByQuestions')"/>
+      </span>
+      <ToggleInput v-model="requiresRegistration" :disabled="signUpHeld" :aria-labelledby="`${labelId}-registration`"/>
     </div>
 
     <template v-if="requiresRegistration">

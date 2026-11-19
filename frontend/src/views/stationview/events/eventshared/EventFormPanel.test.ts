@@ -146,4 +146,16 @@ describe('EventFormPanel waiting list order', () => {
 
         expect(wrapper.find('[data-testid="queue-order"]').exists()).toBe(false)
     })
+
+    /** While questions are asked, sign-up cannot be switched off, and the form says why. */
+    it('holds sign-up on while questions are asked and says why', () => {
+        const held = panel('ONE_TIME', {requiresRegistration: true, signUpHeld: true})
+        const toggle = held.get('[aria-labelledby$="-registration"]')
+
+        expect(toggle.attributes('disabled')).toBeDefined()
+        expect(held.find('[aria-label="Fragen werden bei der Anmeldung beantwortet. Solange es Fragen gibt, bleibt die Anmeldung eingeschaltet."]').exists()).toBe(true)
+
+        const free = panel('ONE_TIME', {requiresRegistration: true})
+        expect(free.get('[aria-labelledby$="-registration"]').attributes('disabled')).toBeUndefined()
+    })
 })

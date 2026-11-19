@@ -32,6 +32,8 @@ defineProps<{
   groupMembers: Map<number, MemberLike[]>
   /** Whether the appointment is a part of an event group, which owns its sign-up and audiences. */
   eventGroupPart?: boolean
+  /** Whether questions are asked, which hold sign-up on. */
+  signUpHeld?: boolean
   /**
    * The settings the event group of a part hands down, which the inherited settings card shows: the
    * form offers its own control for one only once the part overrides it.
@@ -91,7 +93,7 @@ const {t} = useI18n()
         v-model:restriction="restriction"
         v-model:view-restriction="viewRestriction"
         v-model:fields="fields"
-        :categories="categories"
+        :categories="categories" :sign-up-held="signUpHeld"
         :templates="templates"
         :attendance-fields="attendanceFields"
         :groups="groups"

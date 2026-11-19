@@ -290,4 +290,15 @@ describe('BatchCreateView', () => {
             session.federate = false
         }
     })
+
+    it('holds sign-up on where the applied template asks questions', async () => {
+        const wrapper = await applyDrillTemplate()
+        const panel = wrapper.findComponent(EventFormPanel)
+        expect(panel.props('signUpHeld')).toBe(true)
+
+        panel.vm.$emit('update:requiresRegistration', false)
+        await flushPromises()
+
+        expect(wrapper.findComponent(EventFormPanel).props('requiresRegistration')).toBe(true)
+    })
 })
