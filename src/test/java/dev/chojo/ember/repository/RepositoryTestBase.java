@@ -97,6 +97,7 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.route.EventVisibility;
+import dev.chojo.ember.feature.events.service.AwaitingAnswers;
 import dev.chojo.ember.feature.events.service.EventBlockReferences;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCancellationService;
@@ -1036,6 +1037,15 @@ public abstract class RepositoryTestBase {
         var refused = assertThrows(RefusalResponse.class, call);
         assertEquals(refusal, refused.refusal());
         return refused;
+    }
+
+    /**
+     * The list of answers owed, over the shared repositories.
+     *
+     * @return the service
+     */
+    protected static AwaitingAnswers awaitingAnswers() {
+        return new AwaitingAnswers(eventRepo, eventRegistrationRepo, occurrenceCalendar);
     }
 
     /**

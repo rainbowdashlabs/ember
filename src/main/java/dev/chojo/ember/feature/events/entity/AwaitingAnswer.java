@@ -5,8 +5,27 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
-import java.time.Instant;
+import org.jspecify.annotations.Nullable;
 
-/** One event still waiting on one member's answer. */
+import java.time.Instant;
+import java.time.LocalDate;
+
+/**
+ * One date of an appointment still waiting on one member's answer.
+ *
+ * @param eventId              the appointment
+ * @param name                 its name
+ * @param eventDate            the date the answer is owed for
+ * @param startTime            when that date starts
+ * @param registrationClosesAt when sign-up for that date closes
+ * @param categoryId           its category, or null
+ * @param memberId             the member who owes the answer
+ */
 public record AwaitingAnswer(
-        int eventId, String name, Instant startTime, Instant registrationClosesAt, Integer categoryId, int memberId) {}
+        int eventId,
+        String name,
+        LocalDate eventDate,
+        Instant startTime,
+        Instant registrationClosesAt,
+        @Nullable Integer categoryId,
+        int memberId) {}

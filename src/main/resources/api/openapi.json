@@ -21347,7 +21347,7 @@
     },
     "/api/v1/events/registrations/awaiting" : {
       "get" : {
-        "summary" : "Events still waiting on an answer from the reader or anyone they answer for",
+        "summary" : "Dates still waiting on an answer from the reader or anyone they answer for",
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
@@ -56843,6 +56843,9 @@
           "name" : {
             "type" : "string"
           },
+          "eventDate" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
           "startTime" : {
             "$ref" : "#/components/schemas/Instant"
           },
@@ -56860,7 +56863,7 @@
             }
           }
         },
-        "required" : [ "eventId", "name", "startTime", "registrationClosesAt", "categoryId", "members" ]
+        "required" : [ "eventId", "name", "eventDate", "startTime", "registrationClosesAt", "categoryId", "members" ]
       },
       "AwaitingMember" : {
         "type" : "object",

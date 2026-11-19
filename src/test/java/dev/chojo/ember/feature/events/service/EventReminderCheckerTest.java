@@ -837,7 +837,8 @@ class EventReminderCheckerTest {
                     restrictionService,
                     readOnlyGuard,
                     calendar,
-                    new EventAudience(registrationRepository, stationMemberRepository, restrictionService, calendar));
+                    new EventAudience(registrationRepository, stationMemberRepository, restrictionService, calendar),
+                    new ClosingDates(eventRepository, calendar));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

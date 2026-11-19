@@ -334,8 +334,7 @@ class EventGroupNoticesTest extends RepositoryTestBase {
         var eventGroup = eventGroup(Instant.now().plus(Duration.ofDays(5)), false);
         var day = part(eventGroup, 19);
 
-        assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of(ben.id())).stream()
-                .noneMatch(entry -> entry.eventId() == day.id()));
+        assertTrue(awaitingAnswers().find(List.of(ben.id())).stream().noneMatch(entry -> entry.eventId() == day.id()));
     }
 
     @Test

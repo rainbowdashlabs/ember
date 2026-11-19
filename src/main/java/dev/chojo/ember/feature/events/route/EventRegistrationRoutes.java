@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.WhenFull;
+import dev.chojo.ember.feature.events.service.AwaitingAnswers;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
@@ -108,6 +109,7 @@ public class EventRegistrationRoutes implements Routes {
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventVisibility visibility;
     private final EventSignUpGuards signUpGuards;
+    private final AwaitingAnswers awaitingAnswers;
 
     @Inject
     public EventRegistrationRoutes(
@@ -126,8 +128,10 @@ public class EventRegistrationRoutes implements Routes {
             StationService stationService,
             OccurrenceCalendar occurrenceCalendar,
             EventVisibility visibility,
-            EventSignUpGuards signUpGuards) {
+            EventSignUpGuards signUpGuards,
+            AwaitingAnswers awaitingAnswers) {
         this.signUpGuards = signUpGuards;
+        this.awaitingAnswers = awaitingAnswers;
         this.occurrenceCalendar = occurrenceCalendar;
         this.crudService = crudService;
         this.visibility = visibility;
@@ -381,40 +385,45 @@ public class EventRegistrationRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/events/registrations/awaiting",
             methods = HttpMethod.GET,
-            summary = "Events still waiting on an answer from the reader or anyone they answer for",
+            summary = "Dates still waiting on an answer from the reader or anyone they answer for",
             tags = {"Events"},
-            description = "One entry per event, naming everyone in the household who still owes an "
-                    + "answer, soonest deadline first. Only events open to that person are listed, and "
-                    + "only while their registration is still open.",
+            description = "One entry per appointment and date, naming everyone in the household who still "
+                    + "owes an answer for it, soonest deadline first. Each member is listed at the soonest "
+                    + "date of a series they have not answered. Only appointments open to that person are "
+                    + "listed, and only while sign-up for the date is still open.",
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AwaitingAnswer[].class)))
     private void listAwaitingAnswer(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var household = guardianPolicy.household(session.user());
 
-        var byEvent = new LinkedHashMap<Integer, AwaitingAnswer>();
-        for (var row : registrationService.findAwaitingAnswer(household)) {
+        var byDate = new LinkedHashMap<AwaitedDate, AwaitingAnswer>();
+        for (var row : awaitingAnswers.find(household)) {
             if (!restrictionService.canRegister(
                     row.eventId(), row.memberId(), session.user().permissions())) {
                 continue;
             }
-            var entry = byEvent.computeIfAbsent(
-                    row.eventId(),
-                    id -> new AwaitingAnswer(
-                            id,
+            var entry = byDate.computeIfAbsent(
+                    new AwaitedDate(row.eventId(), row.eventDate()),
+                    key -> new AwaitingAnswer(
+                            key.eventId(),
                             row.name(),
+                            key.date(),
                             row.startTime(),
                             row.registrationClosesAt(),
                             row.categoryId(),
                             new ArrayList<>()));
             entry.members().add(new AwaitingMember(row.memberId(), memberNameResolver.called(row.memberId())));
         }
-        ctx.json(List.copyOf(byEvent.values()));
+        ctx.json(List.copyOf(byDate.values()));
     }
 
-    /** An event still waiting on an answer, and everyone in the household who owes one. */
+    private record AwaitedDate(int eventId, LocalDate date) {}
+
+    /** A date of an appointment still waiting on an answer, and everyone in the household who owes one. */
     public record AwaitingAnswer(
             int eventId,
             String name,
+            LocalDate eventDate,
             Instant startTime,
             Instant registrationClosesAt,
             @Nullable Integer categoryId,

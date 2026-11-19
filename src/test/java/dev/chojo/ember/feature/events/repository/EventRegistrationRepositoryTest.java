@@ -199,7 +199,7 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
                 null,
                 null);
         try {
-            var waiting = eventRegistrationRepo.findAwaitingAnswer(List.of(member.id()));
+            var waiting = awaitingAnswers().find(List.of(member.id()));
             assertTrue(waiting.stream().anyMatch(a -> a.eventId() == open.id()), "an open one waits");
             assertTrue(waiting.stream().noneMatch(a -> a.eventId() == closed.id()), "a closed one does not");
 
@@ -210,13 +210,17 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
             assertEquals(member.id(), entry.memberId());
             assertEquals("Offen", entry.name());
 
-            eventRegistrationRepo.create(open.id(), member.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
+            eventRegistrationRepo.create(
+                    open.id(),
+                    member.id(),
+                    LocalDate.ofInstant(open.startTime(), occurrenceCalendar.zoneOf(station.id())),
+                    RegistrationStatus.DECLINED,
+                    null);
             assertTrue(
-                    eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
-                            .noneMatch(a -> a.eventId() == open.id()),
+                    awaitingAnswers().find(List.of(member.id())).stream().noneMatch(a -> a.eventId() == open.id()),
                     "an answer settles it");
 
-            assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of()).isEmpty(), "nobody owes nothing");
+            assertTrue(awaitingAnswers().find(List.of()).isEmpty(), "nobody owes nothing");
         } finally {
             eventRepo.delete(open.id());
             eventRepo.delete(closed.id());

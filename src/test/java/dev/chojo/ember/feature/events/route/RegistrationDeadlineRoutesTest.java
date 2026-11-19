@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
 import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.service.AwaitingAnswers;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventMemberTableService;
@@ -150,7 +151,8 @@ class RegistrationDeadlineRoutesTest {
                 mock(StationService.class),
                 calendar,
                 mock(EventVisibility.class),
-                new EventSignUpGuards(new GuardianPolicy(memberRepository)));
+                new EventSignUpGuards(new GuardianPolicy(memberRepository)),
+                mock(AwaitingAnswers.class));
         when(registrationService.register(anyInt(), anyInt(), any(), anyBoolean(), any(), anyBoolean(), any()))
                 .thenAnswer(call -> new EventRegistration(
                         REGISTRATION_ID,

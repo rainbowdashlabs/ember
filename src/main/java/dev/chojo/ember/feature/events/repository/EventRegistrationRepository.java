@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
-import dev.chojo.ember.feature.events.entity.AwaitingAnswer;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
@@ -20,10 +19,13 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -870,61 +872,57 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * The events still waiting on an answer from any of the given members.
-     *
-     * <p>One row per event and member, because a household can owe several answers to one event and the
-     * screen groups them back together. Only events whose registration is still open are listed: once the
-     * deadline has passed the answer is no longer the member's to give.
-     *
-     * <p>Eligibility is not decided here, for the same reason it is not decided in
-     * {@link #findUnansweredMemberIds}: it depends on more than this table knows. The caller filters.
+     * The stations of the given members who still belong to one, for the list of answers they owe.
      *
      * @param memberIds the reader and everyone they answer for
-     * @return one entry per event and member still owing an answer, soonest deadline first
+     * @return each current member's station, by member
      */
-    public List<AwaitingAnswer> findAwaitingAnswer(List<Integer> memberIds) {
-        if (memberIds.isEmpty()) return List.of();
-        return query("""
-                SELECT
-                    e.id AS event_id,
-                    e.name,
-                    e.start_time,
-                    c.closes_at,
-                    e.category_id,
-                    sm.id AS member_id
-                FROM station_member sm
-                    JOIN station_event e ON e.station_id = sm.station_id
-                    JOIN station st ON st.id = e.station_id
-                    CROSS JOIN LATERAL (SELECT registration_closes_at(
-                                                       e.registration_deadline_kind, e.registration_deadline,
-                                                       e.registration_deadline_offset_minutes,
-                                                       e.registration_deadline_anchor, e.start_time,
-                                                       st.timezone) AS closes_at) c
-                WHERE sm.id = ANY (:member_ids)
-                  AND sm.former = FALSE
-                  AND e.requires_registration
-                  AND e.event_group_set_id IS NULL
-                  AND e.event_type = 'ONE_TIME'
-                  AND e.cancelled = FALSE
-                  AND %s
-                  AND c.closes_at IS NOT NULL
-                  AND c.closes_at > now()
-                  AND NOT EXISTS (SELECT 1
-                                  FROM event_registration er
-                                  WHERE er.event_id = e.id
-                                    AND er.member_id = sm.id
-                                    AND %s)
-                ORDER BY c.closes_at, e.id;""", CancellationSql.NO_DATE_CANCELLED, GIVEN_ANSWER)
+    public Map<Integer, Integer> findCurrentStationsOf(List<Integer> memberIds) {
+        if (memberIds.isEmpty()) return Map.of();
+        var stations = new HashMap<Integer, Integer>();
+        query("""
+                SELECT id, station_id
+                FROM station_member
+                WHERE id = ANY (:member_ids)
+                  AND former = FALSE;""")
                 .single(call().bind("member_ids", memberIds, PostgreSqlTypes.INTEGER))
-                .map(row -> new AwaitingAnswer(
-                        row.getInt("event_id"),
-                        row.getString("name"),
-                        row.get("start_time", INSTANT_TIMESTAMP),
-                        row.get("closes_at", INSTANT_TIMESTAMP),
-                        row.getObject("category_id", Integer.class),
-                        row.getInt("member_id")))
-                .all();
+                .map(row -> Map.entry(row.getInt("id"), row.getInt("station_id")))
+                .all()
+                .forEach(entry -> stations.put(entry.getKey(), entry.getValue()));
+        return stations;
     }
+
+    /**
+     * The dates from a day on that the given members have answered, declining included: the answers
+     * that leave nothing owed.
+     *
+     * @param memberIds the reader and everyone they answer for
+     * @param from      the first date asked about
+     * @return one entry per appointment, member and date answered
+     */
+    public Set<AnsweredDate> findAnsweredDates(List<Integer> memberIds, LocalDate from) {
+        if (memberIds.isEmpty()) return Set.of();
+        return new HashSet<>(query("""
+                SELECT er.event_id, er.member_id, er.event_date
+                FROM event_registration er
+                WHERE er.member_id = ANY (:member_ids)
+                  AND er.event_date >= :from
+                  AND %s;""", GIVEN_ANSWER)
+                .single(call().bind("member_ids", memberIds, PostgreSqlTypes.INTEGER)
+                        .bind("from", from))
+                .map(row -> new AnsweredDate(
+                        row.getInt("event_id"), row.getInt("member_id"), row.getObject("event_date", LocalDate.class)))
+                .all());
+    }
+
+    /**
+     * A date of an appointment a member has answered.
+     *
+     * @param eventId  the appointment
+     * @param memberId the member
+     * @param date     the date
+     */
+    public record AnsweredDate(int eventId, int memberId, LocalDate date) {}
 
     /**
      * Counts the sign-ups waiting for a decision across a station's appointments and event groups.

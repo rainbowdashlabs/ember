@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.events.entity.Places;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.WhenFull;
+import dev.chojo.ember.feature.events.service.AwaitingAnswers;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventMemberTableService;
@@ -132,7 +133,8 @@ class RegistrationPlaceRoutesTest {
                 mock(StationService.class),
                 mock(OccurrenceCalendar.class),
                 visibility,
-                new EventSignUpGuards(new GuardianPolicy(memberRepository)));
+                new EventSignUpGuards(new GuardianPolicy(memberRepository)),
+                mock(AwaitingAnswers.class));
     }
 
     private Response send(String path, String json, UserSession session, boolean post) {

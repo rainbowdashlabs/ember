@@ -159,14 +159,13 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 null);
         try {
-            assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
-                    .anyMatch(a -> a.eventId() == called.id()));
+            assertTrue(awaitingAnswers().find(List.of(member.id())).stream().anyMatch(a -> a.eventId() == called.id()));
 
             var day = occurrenceCalendar.dateInView(called).orElseThrow();
             eventDateCancellationRepo.cancel(called.id(), day, CancellationCause.MANUAL, null, null);
 
-            assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
-                    .noneMatch(a -> a.eventId() == called.id()));
+            assertTrue(
+                    awaitingAnswers().find(List.of(member.id())).stream().noneMatch(a -> a.eventId() == called.id()));
         } finally {
             eventRepo.delete(called.id());
         }
@@ -198,21 +197,18 @@ class EventRepositoryTest extends RepositoryTestBase {
         try {
             var day = occurrenceCalendar.dateInView(asked).orElseThrow();
             assertTrue(
-                    eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
-                            .anyMatch(a -> a.eventId() == asked.id()),
+                    awaitingAnswers().find(List.of(member.id())).stream().anyMatch(a -> a.eventId() == asked.id()),
                     "nobody has answered yet");
 
             var answer = eventRegistrationRepo.create(asked.id(), member.id(), day, RegistrationStatus.DECLINED, null);
             assertTrue(
-                    eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
-                            .noneMatch(a -> a.eventId() == asked.id()),
+                    awaitingAnswers().find(List.of(member.id())).stream().noneMatch(a -> a.eventId() == asked.id()),
                     "a decline is an answer");
 
             eventRegistrationRepo.recordAnswer(answer.id(), RegistrationStatus.ACCEPTED);
             eventRegistrationRepo.recordAnswer(answer.id(), RegistrationStatus.WITHDRAWN);
             assertTrue(
-                    eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
-                            .noneMatch(a -> a.eventId() == asked.id()),
+                    awaitingAnswers().find(List.of(member.id())).stream().noneMatch(a -> a.eventId() == asked.id()),
                     "and so is a place given up");
         } finally {
             eventRepo.delete(asked.id());
@@ -673,7 +669,7 @@ class EventRepositoryTest extends RepositoryTestBase {
         var closed = withDeadline(
                 "Schon zu", StationEvent.EventType.ONE_TIME, Instant.now().plus(1, ChronoUnit.DAYS), deadline);
         try {
-            var awaiting = eventRegistrationRepo.findAwaitingAnswer(List.of(member.id()));
+            var awaiting = awaitingAnswers().find(List.of(member.id()));
             var listed = awaiting.stream()
                     .filter(answer -> answer.eventId() == open.id())
                     .findFirst()

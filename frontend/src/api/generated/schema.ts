@@ -30335,7 +30335,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Events still waiting on an answer from the reader or anyone they answer for */
+        /** Dates still waiting on an answer from the reader or anyone they answer for */
         get: {
             parameters: {
                 query?: never;
@@ -70997,6 +70997,7 @@ export interface components {
         AwaitingAnswer: {
             /** Format: int32 */
             categoryId: number | null;
+            eventDate: components["schemas"]["LocalDate"];
             /** Format: int32 */
             eventId: number;
             members: components["schemas"]["AwaitingMember"][];

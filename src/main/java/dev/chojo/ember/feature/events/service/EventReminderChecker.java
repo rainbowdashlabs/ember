@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
@@ -32,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,6 +49,7 @@ public class EventReminderChecker implements TaskSource {
     private final StationReadOnlyGuard readOnlyGuard;
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventAudience audience;
+    private final ClosingDates closingDates;
     private final ClosingWarnings closingWarnings;
 
     @Inject
@@ -63,7 +62,8 @@ public class EventReminderChecker implements TaskSource {
             EventRestrictionService restrictionService,
             StationReadOnlyGuard readOnlyGuard,
             OccurrenceCalendar occurrenceCalendar,
-            EventAudience audience) {
+            EventAudience audience,
+            ClosingDates closingDates) {
         this.eventRepository = eventRepository;
         this.reminderRepository = reminderRepository;
         this.registrationRepository = registrationRepository;
@@ -73,6 +73,7 @@ public class EventReminderChecker implements TaskSource {
         this.occurrenceCalendar = occurrenceCalendar;
         this.audience = audience;
         this.closingWarnings = new ClosingWarnings(notifier, memberNameResolver, readOnlyGuard);
+        this.closingDates = closingDates;
     }
 
     /**
@@ -196,32 +197,22 @@ public class EventReminderChecker implements TaskSource {
      * The dates whose sign-up closes after one instant and no later than another, once per sweep for
      * every lead time.
      *
-     * <p>A relative deadline closes each date on its own, so every date close enough to close in time
-     * is asked. A fixed deadline closes every date at once; only the next date is warned about, since
-     * the warning is about answering before it closes. A date called off or taken out by a break is
-     * left out.
-     *
      * @param from  the earliest close, excluded
      * @param until the latest close, included
      * @return one entry per appointment and date
      */
     private List<ClosingDate> datesClosingBetween(Instant from, Instant until) {
-        var calendars = new HashMap<Integer, StationCalendar>();
-        var closing = new ArrayList<ClosingDate>();
-        for (var event : eventRepository.findWithDeadline()) {
-            var calendar = calendars.computeIfAbsent(event.stationId(), occurrenceCalendar::forStation);
-            for (var date : candidateDates(event, calendar, until)) {
-                var closes = event.registrationClosesOn(date, calendar.zone());
-                if (closes.isEmpty()
-                        || !closes.get().isAfter(from)
-                        || closes.get().isAfter(until)) continue;
-                closing.add(new ClosingDate(
+        return closingDates.between(from, until).stream()
+                .map(date -> new ClosingDate(
                         new ClosingWarnings.Closing(
-                                event.id(), event.stationId(), event.name(), date, event.closesPerDate(), closes.get()),
-                        closes.get()));
-            }
-        }
-        return closing;
+                                date.event().id(),
+                                date.event().stationId(),
+                                date.event().name(),
+                                date.date(),
+                                date.event().closesPerDate(),
+                                date.closes()),
+                        date.closes()))
+                .toList();
     }
 
     /**
@@ -238,24 +229,6 @@ public class EventReminderChecker implements TaskSource {
         LocalDate date() {
             return Objects.requireNonNull(closing.date());
         }
-    }
-
-    private static List<LocalDate> candidateDates(StationEvent event, StationCalendar calendar, Instant limit) {
-        var today = calendar.today();
-        var deadline = event.registrationDeadline();
-        if (deadline.kind() == RegistrationDeadline.DeadlineKind.FIXED) {
-            return calendar.next(event, today)
-                    .filter(date -> calendar.takesPlaceOn(event, date))
-                    .map(List::of)
-                    .orElse(List.of());
-        }
-        long spanDays = Duration.ofMinutes(Objects.requireNonNullElse(deadline.offsetMinutes(), 0))
-                        .toDays()
-                + 1;
-        var last = limit.atZone(calendar.zone()).toLocalDate().plusDays(spanDays);
-        return calendar.between(event, today, last).stream()
-                .filter(date -> calendar.takesPlaceOn(event, date))
-                .toList();
     }
 
     @Override

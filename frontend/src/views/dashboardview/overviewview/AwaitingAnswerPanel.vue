@@ -14,15 +14,18 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import {eventGroups, events} from '@/api'
 import type {AwaitingAnswer, EventGroupAwaiting, EventCategory} from '@/api/generated/schema'
+import {formatWeekdayDate} from '@/util/format'
 
 /**
  * The events whose registration is running out and which nobody in the household has answered.
  *
- * <p>One row per event, naming who still owes an answer, because a household usually answers the same way
- * for everyone and reading the event once is how somebody decides that.
+ * <p>One row per event and date, naming who still owes an answer, because a household usually answers the
+ * same way for everyone and reading the event once is how somebody decides that. Every date of a
+ * series that is still waiting has a row of its own, and each row names its date so two of them can
+ * be told apart.
  *
- * <p>The row leads to the event, where both answers are offered: signing up, or signing off, which
- * stops the reminders as well.
+ * <p>The row leads to the event on that date, where both answers are offered: signing up, or signing
+ * off, which stops the reminders as well.
  *
  * <p>Only events open to the person and still open for answers appear, which is the same question the
  * warning notification asks, so a reader who acts on the notification finds the row gone. Event groups
@@ -34,9 +37,9 @@ const awaiting = ref<AwaitingAnswer[]>([])
 const awaitingGroups = ref<EventGroupAwaiting[]>([])
 const categories = ref<EventCategory[]>([])
 
-/** The event the row is about. */
+/** The event the row is about, on the date it is about. */
 function eventPage(entry: AwaitingAnswer) {
-  return {name: 'event-detail', params: {id: entry.eventId}}
+  return {name: 'event-detail-date', params: {id: entry.eventId, date: entry.eventDate}}
 }
 
 /** The category the event was put in, absent where it was put in none. */
@@ -82,7 +85,7 @@ defineExpose({reload: loadData})
     </SectionHeader>
     <div class="overflow-y-auto flex-1 space-y-2">
       <EmptyState v-if="!anything" compact>{{ t('dashboard.noAwaitingAnswer') }}</EmptyState>
-      <RowLink v-for="entry in awaiting" :key="entry.eventId" :to="eventPage(entry)">
+      <RowLink v-for="entry in awaiting" :key="`${entry.eventId}-${entry.eventDate}`" :to="eventPage(entry)">
         <NeutralContainer
             data-testid="awaiting-answer"
             class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
@@ -95,6 +98,9 @@ defineExpose({reload: loadData})
                 {{ categoryOf(entry)!.name }}
               </ColorBadge>
             </div>
+            <p class="text-xs text-(--text-muted)" data-testid="awaiting-answer-date">
+              {{ formatWeekdayDate(entry.eventDate, 'short') }}
+            </p>
             <p class="text-xs text-(--text-muted)">
               {{ entry.members.map(m => m.name).join(', ') }}
             </p>

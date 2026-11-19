@@ -711,20 +711,36 @@ public class EventRepository {
      * @return those appointments
      */
     public List<StationEvent> findWithDeadline() {
-        return query("""
-                SELECT %s, %s
-                FROM
-                    station_event e
-                WHERE e.requires_registration
-                  AND e.registration_deadline_kind <> 'NONE'
-                  AND e.event_group_set_id IS NULL
-                  AND e.cancelled = FALSE
-                  AND (e.event_type <> 'ONE_TIME' OR e.start_time > now())
-                  AND (e.repeat_until IS NULL OR e.repeat_until >= current_date);""", E_COLUMNS, EVENT_RESTRICTED_COLUMN)
+        return query("SELECT %s, %s FROM station_event e WHERE %s;", E_COLUMNS, EVENT_RESTRICTED_COLUMN, CAN_CLOSE)
                 .single(call())
                 .map(StationEvent.map())
                 .all();
     }
+
+    /**
+     * The appointments of one station whose sign-up can close, as {@link #findWithDeadline()} reads
+     * them.
+     *
+     * @param stationId the station
+     * @return those appointments
+     */
+    public List<StationEvent> findWithDeadline(int stationId) {
+        return query(
+                        "SELECT %s, %s FROM station_event e WHERE e.station_id = :station_id AND %s;",
+                        E_COLUMNS, EVENT_RESTRICTED_COLUMN, CAN_CLOSE)
+                .single(call().bind("station_id", stationId))
+                .map(StationEvent.map())
+                .all();
+    }
+
+    /** What an appointment read as {@code e} needs for its sign-up to be able to close. */
+    private static final String CAN_CLOSE = """
+            e.requires_registration
+              AND e.registration_deadline_kind <> 'NONE'
+              AND e.event_group_set_id IS NULL
+              AND e.cancelled = FALSE
+              AND (e.event_type <> 'ONE_TIME' OR e.start_time > now())
+              AND (e.repeat_until IS NULL OR e.repeat_until >= current_date)""";
 
     /**
      * Notes that the passed deadline of one date was handled for the instant it closed at, so it is

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.AwaitingAnswers;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventMemberTableService;
@@ -129,7 +130,8 @@ class RegistrationAnswerAuthorTest {
                 mock(StationService.class),
                 mock(OccurrenceCalendar.class),
                 mock(EventVisibility.class),
-                new EventSignUpGuards(new GuardianPolicy(memberRepository)));
+                new EventSignUpGuards(new GuardianPolicy(memberRepository)),
+                mock(AwaitingAnswers.class));
     }
 
     private Response change(UserSession session, EventRegistration registration) {
