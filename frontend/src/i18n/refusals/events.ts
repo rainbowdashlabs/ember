@@ -264,4 +264,5 @@ export default {
     'E-235': 'Diese Anmeldung steht nicht auf der Nachrückliste',
     'E-236': 'Für die Plätze fehlt das Datum des Termins',
     'E-237': 'Der Termin verlangt eine Antwort auf eine seiner Fragen, die Anmeldung wurde nicht angenommen',
+    'E-238': 'Der Anmeldeschluss braucht einen Zeitpunkt oder eine Zeitspanne vor Beginn, die nicht negativ ist. Eine Vorlage kennt keinen festen Zeitpunkt.',
 }

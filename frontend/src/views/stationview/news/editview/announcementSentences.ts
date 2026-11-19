@@ -4,18 +4,24 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {StationEvent} from '@/api/generated/schema'
-import {formatDateTime, formatWeekdayDate, shiftIsoDate} from '@/util/format'
+import {formatDateTime, formatWeekdayDate, shiftIsoDate, stationDayOf} from '@/util/format'
+import {closesOnDate} from '@/views/stationview/events/eventshared/dateClosing'
+import {MINUTES_PER_DAY, MINUTES_PER_HOUR} from '@/views/stationview/events/eventshared/registrationDeadline'
 
 /** The sentences an announcement can say about an event, each filled from one of its settings. */
 export type AnnouncementSentence =
     | 'cancelled'
     | 'cancelledBecause'
     | 'registrationClosesOn'
+    | 'registrationClosesBefore'
+    | 'registrationClosesBeforeAtMidnight'
+    | 'spanDays'
+    | 'spanDaysOne'
+    | 'spanHours'
+    | 'spanHoursOne'
     | 'registrationRequired'
     | 'registrationLimit'
     | 'registrationConfirmation'
-    | 'unconfirmedLapseOn'
-    | 'unconfirmedLapseDaysBefore'
     | 'minimumRegistrations'
     | 'minimumRegistrationsBy'
     | 'minimumRegistrationsDaysBefore'
@@ -31,13 +37,13 @@ export type Say = (sentence: AnnouncementSentence, values?: Record<string, strin
  * <p>A called-off event says so first, with its reason where one was given, and nothing about
  * signing up for something that no longer takes place.
  *
- * <p>The days-before setting does not close registration. On that day the station declines every
- * sign-up still waiting for confirmation, so it is only mentioned where sign-ups are confirmed, and
- * said as what it does. The minimum of registrations is counted back from the occurrence the same
- * way, since it has to be reached a number of days before each date.
+ * <p>The deadline is named as the moment it falls on for the announced date. Only a series announced
+ * without a date, whose relative deadline falls differently for every date, has it said as the rule
+ * itself. The minimum of registrations is counted back from the occurrence, since it has to be reached
+ * a number of days before each date.
  *
  * @param event    the event being announced
- * @param date     the occurrence being announced, which the days-before setting is counted back from
+ * @param date     the occurrence being announced, which the deadline and the minimum are counted from
  * @param say      writes one sentence
  * @param timezone the station's clock, which the moments are written on
  */
@@ -52,21 +58,38 @@ export function announcementSentences(
     }
     if (!event.requiresRegistration) return []
     return [
-        event.registrationDeadline
-            ? say('registrationClosesOn', {date: formatDateTime(event.registrationDeadline, timezone)})
-            : say('registrationRequired'),
+        registration(event, date, say, timezone),
         event.registrationLimit ? say('registrationLimit', {count: event.registrationLimit}) : '',
         event.requiresConfirmation ? say('registrationConfirmation') : '',
-        event.requiresConfirmation ? lapse(event, date, say) : '',
         minimum(event, date, say),
     ].filter(sentence => sentence !== '')
 }
 
-function lapse(event: StationEvent, date: string | null, say: Say): string {
-    const days = event.registrationCloseDays
-    if (!days) return ''
-    if (!date) return say('unconfirmedLapseDaysBefore', {days})
-    return say('unconfirmedLapseOn', {date: formatWeekdayDate(shiftIsoDate(date, -days))})
+/**
+ * That signing up is needed, and until when: the moment for the announced date, or for a one-off
+ * appointment its own date, and the rule in words for a series announced without a date.
+ */
+function registration(event: StationEvent, date: string | null, say: Say, timezone?: string | null): string {
+    const rule = event.registrationDeadline
+    if (!rule || rule.kind === 'NONE') return say('registrationRequired')
+    const day = date ?? (event.eventType === 'ONE_TIME' ? stationDayOf(new Date(event.startTime), timezone) : null)
+    const closes = rule.kind === 'FIXED' ? rule.at : day && closesOnDate(rule, event.startTime, day, timezone)
+    if (closes) return say('registrationClosesOn', {date: formatDateTime(closes, timezone)})
+    if (rule.kind !== 'RELATIVE' || day) return say('registrationRequired')
+    const span = spanOf(rule.offsetMinutes ?? 0, say)
+    return rule.anchor === 'MIDNIGHT'
+        ? say('registrationClosesBeforeAtMidnight', {span})
+        : say('registrationClosesBefore', {span})
+}
+
+/** A span before the start in words, in whole days where it is some, in hours otherwise. */
+function spanOf(minutes: number, say: Say): string {
+    if (minutes > 0 && minutes % MINUTES_PER_DAY === 0) {
+        const days = minutes / MINUTES_PER_DAY
+        return days === 1 ? say('spanDaysOne') : say('spanDays', {count: days})
+    }
+    const hours = minutes / MINUTES_PER_HOUR
+    return hours === 1 ? say('spanHoursOne') : say('spanHours', {count: hours})
 }
 
 function minimum(event: StationEvent, date: string | null, say: Say): string {

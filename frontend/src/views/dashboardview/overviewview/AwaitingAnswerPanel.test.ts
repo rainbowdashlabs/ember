@@ -10,7 +10,7 @@ import AwaitingAnswerPanel from './AwaitingAnswerPanel.vue'
 
 const listAwaitingAnswer = vi.fn(async () => [] as unknown[])
 const listAwaiting = vi.fn(async () => [{
-  eventGroupId: 70, name: 'Jugendflamme 1', registrationDeadline: new Date(Date.now() + 2 * 86400000).toISOString(),
+  eventGroupId: 70, name: 'Jugendflamme 1', registrationClosesAt: new Date(Date.now() + 2 * 86400000).toISOString(),
   members: [{memberId: 12, name: 'Mara'}],
 }])
 

@@ -82,7 +82,8 @@ describe('EventFormPanel repeat line', () => {
 
     it('keeps the explanations of the sign-up settings behind hint icons', () => {
         const wrapper = panel('RECURRING', {
-            requiresRegistration: true, requiresConfirmation: false, hasDeadline: false, registrationDeadline: '',
+            requiresRegistration: true, requiresConfirmation: false,
+            registrationDeadline: {kind: 'NONE', at: null, offsetMinutes: null, anchor: null},
             minRegistrations: 2,
         })
 
@@ -157,5 +158,44 @@ describe('EventFormPanel waiting list order', () => {
 
         const free = panel('ONE_TIME', {requiresRegistration: true})
         expect(free.get('[aria-labelledby$="-registration"]').attributes('disabled')).toBeUndefined()
+    })
+})
+
+/**
+ * The deadline is one rule in the open sign-up block, shown while sign-up is on. A series whose first
+ * date has passed previews the deadline of the next day its pattern falls on.
+ */
+describe('EventFormPanel registration deadline', () => {
+    const weekBefore = {kind: 'RELATIVE', at: null, offsetMinutes: 10080, anchor: 'MIDNIGHT'}
+
+    it('edits the rule while sign-up is on and leaves it out of the minimum section', async () => {
+        expect(panel('ONE_TIME', {requiresRegistration: false, registrationDeadline: weekBefore})
+            .find('[data-testid="registration-deadline-kind"]').exists()).toBe(false)
+        const wrapper = panel('ONE_TIME', {requiresRegistration: true, registrationDeadline: weekBefore})
+
+        expect(wrapper.find('[data-testid="form-section-turnout"] [data-testid="registration-deadline-kind"]').exists()).toBe(false)
+        await wrapper.get('[data-testid="registration-deadline-kind"]').setValue('NONE')
+
+        expect(wrapper.emitted('update:registrationDeadline')?.at(-1))
+            .toEqual([{kind: 'NONE', at: null, offsetMinutes: null, anchor: null}])
+    })
+
+    it('previews the deadline of the start entered', () => {
+        const wrapper = panel('ONE_TIME', {
+            requiresRegistration: true, registrationDeadline: weekBefore, startTime: '2099-11-21T10:00', timeZone: 'Europe/Berlin',
+        })
+
+        expect(wrapper.get('[data-testid="registration-deadline-next"]').text()).toContain('14.11.2099, 00:00')
+    })
+
+    it('previews the next date of a series whose start has passed', () => {
+        const wrapper = panel('RECURRING', {
+            requiresRegistration: true, registrationDeadline: weekBefore, startTime: '2020-01-03T19:00',
+            dayOfWeek: '5', timeZone: 'Europe/Berlin',
+        })
+
+        const line = wrapper.get('[data-testid="registration-deadline-next"]').text()
+        expect(line).not.toContain('2019')
+        expect(line).toContain('Fr')
     })
 })

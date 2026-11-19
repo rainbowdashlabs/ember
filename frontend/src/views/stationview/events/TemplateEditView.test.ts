@@ -56,6 +56,8 @@ vi.mock('vue-router', () => ({
     useRouter: () => ({push: vi.fn()}),
 }))
 
+const dayBeforeAtMidnight = {kind: 'RELATIVE' as const, at: null, offsetMinutes: 1440, anchor: 'MIDNIGHT' as const}
+
 function template(overrides: Partial<EventTemplate> = {}): EventTemplate {
     return {
         id: 31,
@@ -69,10 +71,9 @@ function template(overrides: Partial<EventTemplate> = {}): EventTemplate {
         requiresConfirmation: null,
         registrationLimit: 20,
         queueOrder: null,
-        registrationDeadlineOffsetHours: 30,
+        registrationDeadline: dayBeforeAtMidnight,
         minRegistrations: 5,
         thresholdDays: 2,
-        registrationCloseDays: 1,
         attendanceTemplateId: null,
         restrictionMode: null,
         viewRestrictionMode: RestrictionMode.OR,
@@ -138,35 +139,33 @@ describe('TemplateEditView', () => {
         expect(api.events.updateTemplate).not.toHaveBeenCalled()
     })
 
-    it('sends the deadline offset and the three rules it loaded', async () => {
+    it('sends the deadline and the rules it loaded', async () => {
         const body = await editor()
 
-        expect(body.props('deadlineOffsetHours')).toBe(30)
+        expect(body.props('registrationDeadline')).toEqual(dayBeforeAtMidnight)
         await body.props('save')()
 
         expect(api.events.updateTemplate).toHaveBeenCalledWith(31, expect.objectContaining({
-            registrationDeadlineOffsetHours: 30,
+            registrationDeadline: dayBeforeAtMidnight,
             minRegistrations: 5,
             thresholdDays: 2,
-            registrationCloseDays: 1,
         }))
     })
 
     it('sends the rules as they were changed', async () => {
         const body = await editor()
 
-        body.vm.$emit('update:deadlineOffsetHours', 53)
+        const threeHoursBefore = {kind: 'RELATIVE', at: null, offsetMinutes: 180, anchor: 'EXACT'}
+        body.vm.$emit('update:registrationDeadline', threeHoursBefore)
         body.vm.$emit('update:minRegistrations', 8)
         body.vm.$emit('update:thresholdDays', 4)
-        body.vm.$emit('update:registrationCloseDays', 3)
         await flushPromises()
         await body.props('save')()
 
         expect(api.events.updateTemplate).toHaveBeenCalledWith(31, expect.objectContaining({
-            registrationDeadlineOffsetHours: 53,
+            registrationDeadline: threeHoursBefore,
             minRegistrations: 8,
             thresholdDays: 4,
-            registrationCloseDays: 3,
         }))
     })
 
@@ -185,29 +184,16 @@ describe('TemplateEditView', () => {
 
     it('sends no deadline and no threshold where none is set', async () => {
         api.events.getTemplate.mockResolvedValue(detail(template({
-            registrationDeadlineOffsetHours: null, minRegistrations: null, registrationCloseDays: null,
+            registrationDeadline: null, minRegistrations: null,
         })))
         const body = await editor()
 
         await body.props('save')()
 
         expect(api.events.updateTemplate).toHaveBeenCalledWith(31, expect.objectContaining({
-            registrationDeadlineOffsetHours: null,
+            registrationDeadline: {kind: 'NONE', at: null, offsetMinutes: null, anchor: null},
             minRegistrations: null,
             thresholdDays: null,
-            registrationCloseDays: null,
-        }))
-    })
-
-    it('sends no close days for a template of one-off appointments', async () => {
-        api.events.getTemplate.mockResolvedValue(detail(template({eventType: EventType.ONE_TIME})))
-        const body = await editor()
-
-        await body.props('save')()
-
-        expect(api.events.updateTemplate).toHaveBeenCalledWith(31, expect.objectContaining({
-            minRegistrations: 5,
-            registrationCloseDays: null,
         }))
     })
 

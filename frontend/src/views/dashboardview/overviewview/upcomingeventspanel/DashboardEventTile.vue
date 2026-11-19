@@ -16,6 +16,8 @@ import RegistrationStatusBadge from '@/views/stationview/events/eventshared/Regi
 import EventGroupTile from '@/views/stationview/events/eventshared/EventGroupTile.vue'
 import type {EventCategory, EventSummary, RegistrationResponse} from '@/api/generated/schema'
 import {formatDate, formatTime} from '@/util/format'
+import {useSession} from '@/composables/useSession'
+import {closesOnDate, hasPassed} from '@/views/stationview/events/eventshared/dateClosing'
 
 const props = defineProps<{
   event: EventSummary
@@ -42,6 +44,11 @@ defineEmits<{
 }>()
 
 const {t} = useI18n()
+const {stationTimezone} = useSession()
+
+/** When sign-up for the date of this tile closes, null where it does not close before the date. */
+const closesAt = computed(() =>
+    closesOnDate(props.event.registrationDeadline, props.event.startTime, props.date, stationTimezone.value))
 
 /**
  * Whether saying "not coming" is still on offer. An appointment everybody is expected at takes it until
@@ -50,8 +57,7 @@ const {t} = useI18n()
  */
 const canDecline = computed(() => props.openCount > 0
     && (!props.event.requiresRegistration
-        || !props.event.registrationDeadline
-        || new Date(props.event.registrationDeadline).getTime() > Date.now()))
+        || !hasPassed(closesAt.value)))
 </script>
 
 <template>

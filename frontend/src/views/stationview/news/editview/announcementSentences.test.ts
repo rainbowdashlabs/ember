@@ -5,7 +5,11 @@
  */
 import {describe, expect, it} from 'vitest'
 import {announcementSentences, type AnnouncementSentence} from './announcementSentences'
-import type {StationEvent} from '@/api/generated/schema'
+import type {RegistrationDeadline, StationEvent} from '@/api/generated/schema'
+import {noDeadline} from '@/views/stationview/events/eventshared/registrationDeadline'
+
+const THREE_DAYS_AT_MIDNIGHT: RegistrationDeadline = {kind: 'RELATIVE', at: null, offsetMinutes: 3 * 1440, anchor: 'MIDNIGHT'}
+const WEEKLY: Partial<StationEvent> = {eventType: 'RECURRING', recurring: true}
 
 const say = (sentence: AnnouncementSentence, values?: Record<string, string | number>) =>
     values ? `${sentence} ${JSON.stringify(values)}` : sentence
@@ -14,8 +18,8 @@ const EVENT: StationEvent = {
     id: 7, stationId: 'abc', name: 'Zeltlager', description: null, eventType: 'ONE_TIME', recurring: false,
     startTime: '2026-07-24T08:00:00Z', endTime: '2026-07-26T16:00:00Z', dayOfWeek: null, templateId: null,
     categoryId: null, isPublic: null, restricted: false, restrictionMode: 'AND', viewRestrictionMode: 'AND',
-    requiresRegistration: true, requiresConfirmation: false, registrationDeadline: null, registrationLimit: null, queueOrder: null,
-    registrationCloseDays: null, minRegistrations: null, thresholdDays: null, repeatUntil: null, repeatCount: null,
+    requiresRegistration: true, requiresConfirmation: false, registrationDeadline: noDeadline(), registrationLimit: null, queueOrder: null,
+    minRegistrations: null, thresholdDays: null, repeatUntil: null, repeatCount: null,
     cancelled: false, cancelledAt: null, cancelReason: null,
 }
 
@@ -28,7 +32,7 @@ describe('announcementSentences', () => {
         const sentences = announcementSentences(
             {
                 ...EVENT,
-                registrationDeadline: '2026-07-01T08:00:00Z',
+                registrationDeadline: {kind: 'FIXED', at: '2026-07-01T08:00:00Z', offsetMinutes: null, anchor: null},
                 registrationLimit: 30,
                 requiresConfirmation: true,
                 minRegistrations: 8,
@@ -52,23 +56,26 @@ describe('announcementSentences', () => {
             .toContain('minimumRegistrationsDaysBefore {"count":8,"days":5}')
     })
 
-    it('says when unconfirmed sign-ups lapse, counted back from the occurrence', () => {
-        expect(announcementSentences({...EVENT, requiresConfirmation: true, registrationCloseDays: 3}, '2026-07-20', say))
+    it('names the deadline of the announced date of a series', () => {
+        const event = {...EVENT, ...WEEKLY, requiresConfirmation: true, registrationDeadline: THREE_DAYS_AT_MIDNIGHT}
+        expect(announcementSentences(event, '2026-07-31', say, 'Europe/Berlin'))
             .toEqual([
-                'registrationRequired',
+                'registrationClosesOn {"date":"28.07.2026, 00:00"}',
                 'registrationConfirmation',
-                'unconfirmedLapseOn {"date":"Freitag, 17.07.2026"}',
             ])
     })
 
-    it('keeps the lapse in days where there is no occurrence to count from', () => {
-        expect(announcementSentences({...EVENT, requiresConfirmation: true, registrationCloseDays: 3}, null, say))
-            .toContain('unconfirmedLapseDaysBefore {"days":3}')
+    it('names the deadline of a one-off appointment announced without a date from its own start', () => {
+        expect(announcementSentences({...EVENT, registrationDeadline: THREE_DAYS_AT_MIDNIGHT}, null, say, 'Europe/Berlin'))
+            .toEqual(['registrationClosesOn {"date":"21.07.2026, 00:00"}'])
     })
 
-    it('leaves the days-before setting out where nothing waits for confirmation', () => {
-        expect(announcementSentences({...EVENT, registrationCloseDays: 3, minRegistrations: 4}, '2026-07-20', say))
-            .toEqual(['registrationRequired', 'minimumRegistrations {"count":4}'])
+    it('says the rule in words for a series announced without a date', () => {
+        expect(announcementSentences({...EVENT, ...WEEKLY, registrationDeadline: THREE_DAYS_AT_MIDNIGHT}, null, say))
+            .toEqual(['registrationClosesBeforeAtMidnight {"span":"spanDays {\\"count\\":3}"}'])
+        const twoHours: RegistrationDeadline = {kind: 'RELATIVE', at: null, offsetMinutes: 120, anchor: 'EXACT'}
+        expect(announcementSentences({...EVENT, ...WEEKLY, registrationDeadline: twoHours}, null, say))
+            .toEqual(['registrationClosesBefore {"span":"spanHours {\\"count\\":2}"}'])
     })
 
     it('says a cancelled event is off, with its reason, and nothing about signing up', () => {

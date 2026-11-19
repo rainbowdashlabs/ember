@@ -37,6 +37,8 @@ const props = defineProps<{
   event: EventSummary
   date: string
   endDate: string | null
+  /** When sign-up for this date closes, null where it does not close before the appointment. */
+  closesAt: string | null
   /** What kind of appointment this is, absent where it was put in no category. */
   category?: EventCategory | null
   overviewFields: AppointmentField[]
@@ -93,7 +95,7 @@ const containerClass = computed(() => [
           <InfoBadge v-if="event.requiresRegistration" data-testid="upcoming-event-registration">
             {{ t('eventsUpcoming.registrationRequired') }}
           </InfoBadge>
-          <MutedText v-if="event.requiresRegistration && event.registrationDeadline" class="text-xs text-(--text-muted)">({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(event.registrationDeadline) }})</MutedText>
+          <MutedText v-if="event.requiresRegistration && closesAt" class="text-xs text-(--text-muted)">({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(closesAt) }})</MutedText>
         </EventHeadline>
         <p v-if="restrictionNote" class="text-xs text-(--text-muted) mt-0.5" data-testid="upcoming-event-restriction-note">
           <font-awesome-icon :icon="['fas', 'lock']" class="mr-1"/>{{ restrictionNote }}
@@ -126,7 +128,7 @@ const containerClass = computed(() => [
         :people="eligibleMembers"
         :answers="answers"
         :requires-registration="!!event.requiresRegistration"
-        :registration-deadline="event.registrationDeadline"
+        :closes-at="closesAt"
         :has-managed-members="hasManagedMembers"
         :registering="registering"
         :sign-up-queues="signUpQueues(registrationSummary.places, event.requiresConfirmation)"

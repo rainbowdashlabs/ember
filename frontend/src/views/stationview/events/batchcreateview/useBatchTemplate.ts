@@ -14,7 +14,6 @@ import {eventFederationPort, templateFederationPort} from '../eventeditview/even
 interface AppliedTemplate {
     id: number
     sheetId: number | null
-    deadlineOffsetHours: number | null
     reminderDays: number[]
     questions: number
     documents: number
@@ -27,11 +26,11 @@ interface AppliedTemplate {
  * The settings a batch takes from an appointment template, beyond the name, description, category,
  * attendance sheet, audiences, registration switches and fields the form already shows.
  *
- * <p>Places, the waiting list order and the minimum go into the form, where they can still be changed.
- * The deadline as hours before each start, the reminders, the questions, the documents to bring, the
- * files and the field starting values go with the batch request, and the server hands them to every
- * appointment it creates. Sharing with partner stations is written to each appointment once the batch
- * exists, for somebody who may share appointments.
+ * <p>Places, the waiting list order, the minimum and the deadline go into the form, where they can
+ * still be changed. The reminders, the questions, the documents to bring, the files and the field
+ * starting values go with the batch request, and the server hands them to every appointment it
+ * creates. Sharing with partner stations is written to each appointment once the batch exists, for
+ * somebody who may share appointments.
  *
  * <p>What cannot reach the batch is named: the repetition of a template for repeating appointments,
  * since a batch makes one-time appointments; the field starting values where the batch is taken on
@@ -77,7 +76,6 @@ export function useBatchTemplate(canFederate: Ref<boolean>) {
         applied.value = {
             id: templateId,
             sheetId: tpl.attendanceTemplateId ?? null,
-            deadlineOffsetHours: tpl.registrationDeadlineOffsetHours ?? null,
             reminderDays: detail.reminderDays ?? [],
             questions: detail.registrationFields.length,
             documents: documents.length,
@@ -92,7 +90,6 @@ export function useBatchTemplate(canFederate: Ref<boolean>) {
         const template = applied.value
         if (!template) return []
         const named: string[] = []
-        if (template.deadlineOffsetHours != null) named.push(t('batchCreate.carriedDeadline', {hours: template.deadlineOffsetHours}))
         if (template.reminderDays.length > 0) named.push(t('batchCreate.carriedReminders', {days: [...template.reminderDays].sort((a, b) => a - b).join(', ')}))
         if (template.questions > 0) named.push(t('batchCreate.carriedQuestions', {count: template.questions}))
         if (template.documents > 0) named.push(t('batchCreate.carriedDocuments', {count: template.documents}))
@@ -130,7 +127,6 @@ export function useBatchTemplate(canFederate: Ref<boolean>) {
             queueOrder: requiresRegistration && settings.registrationLimit ? settings.queueOrder : null,
             minRegistrations: requiresRegistration ? settings.minRegistrations ?? null : null,
             thresholdDays: requiresRegistration && settings.minRegistrations ? settings.thresholdDays ?? null : null,
-            registrationDeadlineOffsetHours: requiresRegistration ? template?.deadlineOffsetHours ?? null : null,
             reminderDays: template?.reminderDays ?? [],
             eventTemplateId: template?.id ?? null,
         }

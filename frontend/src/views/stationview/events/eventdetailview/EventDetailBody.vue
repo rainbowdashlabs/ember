@@ -38,7 +38,8 @@ import {attendance, events} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {StationModule, StationPermission} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
-import {formatDateTime} from '@/util/format'
+import {formatDateTime, stationDayOf} from '@/util/format'
+import {closesOnDate, hasPassed} from '../eventshared/dateClosing'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 import {placesFromResponse, placesLabel, signUpQueues, type Places} from '@/util/eventPlaces'
 import {useSession} from '@/composables/useSession'
@@ -91,7 +92,7 @@ const emit = defineEmits<{
 const currentMemberIds = computed(() => props.allMembers.map(member => member.id))
 
 const {t} = useI18n()
-const {isModuleEnabled} = useSession()
+const {isModuleEnabled, stationTimezone} = useSession()
 const router = useRouter()
 
 /**
@@ -179,14 +180,19 @@ watch(() => [props.eventId, props.effectiveDate, props.event.registrationLimit, 
 const joinsQueue = computed(() => signUpQueues(places.value, !!props.event.requiresConfirmation))
 
 /**
+ * When sign-up for the date on screen closes, or for the first date while none is chosen yet. A fixed
+ * deadline closes every date of a series at once, a relative one each date on its own.
+ */
+const closesAt = computed(() => {
+  const day = props.effectiveDate ?? stationDayOf(new Date(props.event.startTime), stationTimezone.value)
+  return closesOnDate(props.event.registrationDeadline, props.event.startTime, day, stationTimezone.value)
+})
+
+/**
  * Whether an answer can still be given at all, which is the same rule the buttons follow: an
  * appointment that has to be signed up for stops taking answers at its deadline.
  */
-const stillTakingAnswers = computed(() => {
-  if (!props.event.requiresRegistration) return true
-  if (!props.event.registrationDeadline) return true
-  return new Date(props.event.registrationDeadline).getTime() > Date.now()
-})
+const stillTakingAnswers = computed(() => !props.event.requiresRegistration || !hasPassed(closesAt.value))
 
 /**
  * Whether the block is worth drawing at all.
@@ -314,7 +320,7 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
     <div v-if="event.requiresRegistration" class="flex flex-wrap gap-3 text-sm">
       <SuccessBadge>{{ t('events.requiresRegistration') }}</SuccessBadge>
       <InfoBadge v-if="event.requiresConfirmation">{{ t('events.requiresConfirmation') }}</InfoBadge>
-      <span v-if="event.registrationDeadline" class="text-(--text-muted)">{{ t('events.registrationDeadline') }}: {{ formatDateTime(event.registrationDeadline) }}</span>
+      <span v-if="closesAt" class="text-(--text-muted)" data-testid="event-closes-at">{{ t('events.registrationDeadline') }}: {{ formatDateTime(closesAt, stationTimezone) }}</span>
       <span v-if="places" class="text-(--text-muted)" data-testid="event-places">{{ placesLabel(places, t) }}</span>
       <span v-if="event.minRegistrations" class="text-(--text-muted)">{{ t('events.minRegistrations') }}: {{ event.minRegistrations }}</span>
       <span v-if="event.minRegistrations && event.thresholdDays != null" class="text-(--text-muted)">{{ t('events.thresholdDays') }}: {{ t('events.thresholdDaysValue', {days: event.thresholdDays}) }}</span>
@@ -326,7 +332,7 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
           :people="registrableMembers"
           :answers="answers"
           :requires-registration="!!event.requiresRegistration"
-          :registration-deadline="event.registrationDeadline"
+          :closes-at="closesAt"
           :has-managed-members="hasManagedMembers"
           :registering="registering"
           :sign-up-queues="joinsQueue"

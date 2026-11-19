@@ -33,21 +33,22 @@ import type {
     BatchRow,
     EventFieldEntry,
     EventTemplate,
+    RegistrationDeadline,
 } from '@/api/generated/schema'
-import {StationPermission} from '@/api/generated/schema'
+import {Kind, StationPermission} from '@/api/generated/schema'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {describeFailure, saying} from '@/util/failure'
-import {localInputToInstant} from '@/util/format'
+import {deadlineRuleOf, noDeadline} from './eventshared/registrationDeadline'
 import {asSaved} from './eventshared/eventQuestions'
 
 const {t} = useI18n()
 const router = useRouter()
 const eventRoutes = useEventRoutes()
-const {loaded, hasPermission} = useSession()
+const {loaded, hasPermission, stationTimezone} = useSession()
 const batchTemplate = useBatchTemplate(computed(() => hasPermission(StationPermission.EVENTS_FEDERATE)))
 const templateLeftOut = computed(() => batchTemplate.leftOut(selectedTemplateId.value))
 
@@ -73,8 +74,7 @@ const requiresRegistration = ref(false)
 const {signUpHeld} = useQuestionsRequireSignUp(
     () => (batchTemplate.applied.value?.questions ?? 0) > 0, requiresRegistration)
 const requiresConfirmation = ref(false)
-const hasDeadline = ref(false)
-const registrationDeadline = ref('')
+const registrationDeadline = ref<RegistrationDeadline>(noDeadline())
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 
@@ -127,6 +127,8 @@ async function applyTemplate() {
     }
     if (tpl.requiresRegistration != null) requiresRegistration.value = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) requiresConfirmation.value = tpl.requiresConfirmation
+    const deadline = deadlineRuleOf(tpl.registrationDeadline)
+    if (deadline.kind !== Kind.NONE) registrationDeadline.value = deadline
     fieldDefs.value = detail.fields.map(f => ({
       name: f.name,
       fieldType: f.fieldType,
@@ -158,13 +160,9 @@ function onScheduleDone(newRows: BatchRow[]) {
   step.value = 3
 }
 
-/**
- * The registration deadline as the instant the server reads, or nothing where the batch takes no
- * registration or the switch is off. The field holds the local date and time picked, without a zone.
- */
-function deadlineToSend(): string | undefined {
-  if (!requiresRegistration.value || !hasDeadline.value) return undefined
-  return localInputToInstant(registrationDeadline.value) || undefined
+/** The registration deadline of every appointment of the batch, none where the batch takes no registration. */
+function deadlineToSend(): RegistrationDeadline {
+  return requiresRegistration.value ? registrationDeadline.value : noDeadline()
 }
 
 const {running: saving, failure: createFailure, run: createBatch} = useAsyncAction(async () => {
@@ -249,7 +247,6 @@ function openOverview() {
               v-model:template-id="selectedTemplateId"
               v-model:requires-registration="requiresRegistration"
               v-model:requires-confirmation="requiresConfirmation"
-              v-model:has-deadline="hasDeadline"
               v-model:registration-deadline="registrationDeadline"
               v-model:restriction="restriction"
               v-model:view-restriction="viewRestriction"
@@ -264,6 +261,7 @@ function openOverview() {
               :groups="groups"
               :tags="tags"
               :sign-up-held="signUpHeld"
+              :time-zone="stationTimezone"
               open-fields
           />
 

@@ -12,6 +12,7 @@ import {
   type EventAttachment,
   type EventCategory,
   type EventFieldEntry,
+  type RegistrationDeadline,
 } from '@/api/generated/schema'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
@@ -41,6 +42,7 @@ const FIELDS: EventFieldEntry[] = [
   {name: 'Treffpunkt', fieldType: 'TEXT', overview: true, isPublic: false, value: 'Fahrzeughalle'},
 ]
 const REMINDERS = [7, 1]
+const DAY_BEFORE_AT_MIDNIGHT: RegistrationDeadline = {kind: 'RELATIVE', at: null, offsetMinutes: 1440, anchor: 'MIDNIGHT'}
 
 /** Two fields of the chosen attendance sheet, one filled from the appointment's name. */
 const SHEET_FIELDS: AttendanceTemplateField[] = [
@@ -95,9 +97,9 @@ const noop = () => undefined
         <EventDefaultsSection title="Übungsabend" description="Wöchentliche Übung der Einsatzabteilung."
                               category-id="1" event-type="RECURRING" attendance-template-id="1"
                               :categories="CATEGORIES" :attendance-templates="ATTENDANCE_TEMPLATES"/>
-        <TemplateSignUpSection event-type="RECURRING" :requires-registration="true" :requires-confirmation="false"
-                               :registration-limit="30" queue-order="TIME" :deadline-offset-hours="26" :min-registrations="6"
-                               :threshold-days="3" :registration-close-days="1"/>
+        <TemplateSignUpSection :requires-registration="true" :requires-confirmation="false"
+                               :registration-limit="30" queue-order="TIME" :registration-deadline="DAY_BEFORE_AT_MIDNIGHT"
+                               :min-registrations="6" :threshold-days="3"/>
         <NeutralContainer>
           <EventReminderEditor :model-value="REMINDERS"/>
         </NeutralContainer>

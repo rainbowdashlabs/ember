@@ -32,10 +32,13 @@ import {
     type EventCategory,
     type EventFieldEntry,
     type MemberGroup,
+    type RegistrationDeadline,
     type UserTag,
 } from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
-import {weekdayName} from '@/util/format'
+import {stationToday, weekdayName} from '@/util/format'
+import RegistrationDeadlineInput from './RegistrationDeadlineInput.vue'
+import {nextSeriesDay, placedOn} from '../eventeditview/copyDates'
 
 const props = defineProps<{
   categories: EventCategory[]
@@ -64,6 +67,8 @@ const props = defineProps<{
   openFields?: boolean
   /** The folded sections that hold something the reader has to see now, by key, which opens them. */
   attention?: readonly string[]
+  /** The station's time zone, which the deadline of the next date is worked out on. */
+  timeZone?: string | null
 }>()
 
 const name = defineModel<string>('name', {required: true})
@@ -81,13 +86,11 @@ const repeatCount = defineModel<number>('repeatCount')
 
 const requiresRegistration = defineModel<boolean>('requiresRegistration')
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation')
-const hasDeadline = defineModel<boolean>('hasDeadline')
-const registrationDeadline = defineModel<string>('registrationDeadline')
+const registrationDeadline = defineModel<RegistrationDeadline>('registrationDeadline')
 const registrationLimit = defineModel<number>('registrationLimit')
 const queueOrder = defineModel<QueueOrder>('queueOrder')
 const minRegistrations = defineModel<number>('minRegistrations')
 const thresholdDays = defineModel<number>('thresholdDays')
-const registrationCloseDays = defineModel<number>('registrationCloseDays')
 
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
 const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
@@ -109,6 +112,20 @@ const recurring = computed(() => eventType.value !== undefined && eventType.valu
 function setRecurring(repeats: boolean) {
   eventType.value = repeats ? EventType.RECURRING : EventType.ONE_TIME
 }
+
+/**
+ * The start of the date the deadline preview speaks of: the start entered, or for a series whose
+ * start has passed the next day its pattern falls on, at the same time of day.
+ */
+const nextStart = computed(() => {
+  const start = startTime.value
+  if (!start || !recurring.value || !eventType.value) return start || null
+  const today = stationToday(props.timeZone)
+  const firstDay = start.slice(0, 10)
+  if (firstDay >= today) return start
+  const weekday = needsDayOfWeek(eventType.value) ? Number(dayOfWeek.value) : null
+  return placedOn(start, '', nextSeriesDay(eventType.value, weekday, firstDay, today)).startTime
+})
 
 const {t} = useI18n()
 
@@ -201,15 +218,13 @@ const sheetName = computed(() =>
           <ToggleInput v-model="requiresConfirmation" :aria-labelledby="`${labelId}-confirmation`"/>
         </div>
 
-        <div class="flex items-center justify-between">
-          <span :id="`${labelId}-deadline`" class="text-sm font-medium">{{ t('events.hasDeadline') }}</span>
-          <ToggleInput v-model="hasDeadline" :aria-labelledby="`${labelId}-deadline`"/>
-        </div>
-
-        <div v-if="hasDeadline" class="space-y-1">
-          <FieldLabel>{{ t('events.registrationDeadline') }}</FieldLabel>
-          <DateTimeInput v-model="registrationDeadline"/>
-        </div>
+        <RegistrationDeadlineInput
+            v-if="registrationDeadline"
+            v-model="registrationDeadline"
+            :time-zone="timeZone"
+            :next-start="nextStart"
+            :recurring="recurring"
+        />
 
         <div class="space-y-1">
           <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
@@ -223,8 +238,8 @@ const sheetName = computed(() =>
 
     <FormSection
         v-if="requiresRegistration !== undefined && !eventGroupPart && requiresRegistration"
-        :title="recurring ? t('formSections.turnout') : t('formSections.turnoutMinimum')"
-        :summary="turnoutSummary(minRegistrations, thresholdDays, recurring ? registrationCloseDays : null, t)"
+        :title="t('formSections.turnoutMinimum')"
+        :summary="turnoutSummary(minRegistrations, thresholdDays, t)"
         data-testid="form-section-turnout"
     >
       <div class="space-y-1">
@@ -238,14 +253,6 @@ const sheetName = computed(() =>
           <HintIcon :text="t('events.thresholdDaysHint')"/>
         </div>
         <NumberInput v-model="thresholdDays" :placeholder="t('events.thresholdDaysPlaceholder')"/>
-      </div>
-
-      <div v-if="eventType !== undefined && eventType !== 'ONE_TIME'" class="space-y-1">
-        <div class="flex items-center gap-1">
-          <FieldLabel>{{ t('events.registrationCloseDays') }}</FieldLabel>
-          <HintIcon :text="t('events.registrationCloseDaysHint')"/>
-        </div>
-        <NumberInput v-model="registrationCloseDays"/>
       </div>
     </FormSection>
 

@@ -68,6 +68,7 @@ const {t} = useI18n()
           :event="item.event"
           :date="item.date"
           :end-date="multiDayEndDate(item.event, item.date)"
+          :closes-at="item.registrationClosesAt ?? null"
           :category="categories.find(c => c.id === item.event.categoryId)"
           :overview-fields="overviewFields[item.event.id] ?? []"
           :registration-summary="getRegistrationSummary(item.event.id, item.date)"

@@ -66,6 +66,7 @@ vi.mock('@/composables/useSession', () => ({
     useSession: () => ({
         loaded: ref(true),
         sessionInfo: ref(createSessionInfo()),
+        stationTimezone: ref('Europe/Berlin'),
         hasPermission: (permission: string) => held.value.includes(permission),
     }),
 }))
@@ -103,10 +104,9 @@ const TEMPLATE: EventTemplate = {
     requiresConfirmation: null,
     registrationLimit: null,
     queueOrder: null,
-    registrationDeadlineOffsetHours: null,
+    registrationDeadline: {kind: 'NONE', at: null, offsetMinutes: null, anchor: null},
     minRegistrations: null,
     thresholdDays: null,
-    registrationCloseDays: null,
     attendanceTemplateId: 4,
     restrictionMode: null,
     viewRestrictionMode: RestrictionMode.AND,

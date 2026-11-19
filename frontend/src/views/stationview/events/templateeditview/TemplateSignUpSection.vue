@@ -12,18 +12,17 @@ import HintIcon from '@/components/typography/HintIcon.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import TemplateDeadlineOffset from './TemplateDeadlineOffset.vue'
 import TemplateTurnoutRules from './TemplateTurnoutRules.vue'
 import {nonNegative} from './signUpRules'
 import QueueOrderField from '../eventshared/QueueOrderField.vue'
-import type {QueueOrder} from '@/api/generated/schema'
+import RegistrationDeadlineInput from '../eventshared/RegistrationDeadlineInput.vue'
+import type {QueueOrder, RegistrationDeadline} from '@/api/generated/schema'
 
 /**
  * The sign-up rules an event template hands the appointments made from it, laid out as the
  * appointment editor lays them out: every rule but the switch itself only while registration is on.
  */
 defineProps<{
-  eventType: string
   /** Whether the template asks questions, which are answered when signing up, so sign-up stays on. */
   signUpHeld?: boolean
 }>()
@@ -32,10 +31,9 @@ const requiresRegistration = defineModel<boolean>('requiresRegistration', {requi
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
 const registrationLimit = defineModel<number | undefined>('registrationLimit')
 const queueOrder = defineModel<QueueOrder>('queueOrder', {required: true})
-const deadlineOffsetHours = defineModel<number | null>('deadlineOffsetHours', {required: true})
+const registrationDeadline = defineModel<RegistrationDeadline>('registrationDeadline', {required: true})
 const minRegistrations = defineModel<number | undefined>('minRegistrations')
 const thresholdDays = defineModel<number | undefined>('thresholdDays')
-const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
 
 const {t} = useI18n()
 const labelId = useId()
@@ -60,7 +58,7 @@ const labelId = useId()
       </div>
       <p class="text-xs text-(--text-muted)">{{ t('events.requiresConfirmationHint') }}</p>
 
-      <TemplateDeadlineOffset v-model="deadlineOffsetHours"/>
+      <RegistrationDeadlineInput v-model="registrationDeadline" :allow-fixed="false"/>
 
       <div class="space-y-1">
         <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
@@ -79,8 +77,6 @@ const labelId = useId()
       <TemplateTurnoutRules
           v-model:min-registrations="minRegistrations"
           v-model:threshold-days="thresholdDays"
-          v-model:registration-close-days="registrationCloseDays"
-          :event-type="eventType"
       />
     </template>
   </NeutralContainer>

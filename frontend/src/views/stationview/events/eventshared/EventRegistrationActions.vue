@@ -16,6 +16,7 @@ import SignOffConfirm from './eventregistrationactions/SignOffConfirm.vue'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {isRefusal, notOpenLabelKey, type AnswerablePerson, type GivenAnswer} from '@/util/eventAnswers'
 import {RegistrationStatus} from '@/api/generated/schema'
+import {hasPassed} from './dateClosing'
 
 /**
  * Answering an appointment, for oneself and for whoever one answers for.
@@ -38,8 +39,11 @@ const props = withDefaults(defineProps<{
   /** What each of them has said so far. */
   answers: GivenAnswer<K, U>[]
   requiresRegistration: boolean
-  /** When answers stop being taken, or nothing where they are taken until the appointment itself. */
-  registrationDeadline?: string | null
+  /**
+   * When answers stop being taken for the date shown, or nothing where they are taken until the
+   * appointment itself.
+   */
+  closesAt?: string | null
   hasManagedMembers: boolean
   registering: boolean
   /**
@@ -54,7 +58,7 @@ const props = withDefaults(defineProps<{
   signUpQueues?: boolean
   /** Whether the date is already over. */
   past?: boolean
-}>(), {declinable: true, registrationDeadline: null, signUpQueues: false, past: false})
+}>(), {declinable: true, closesAt: null, signUpQueues: false, past: false})
 
 const emit = defineEmits<{
   register: [people: AnswerablePerson<K>[]]
@@ -75,10 +79,7 @@ const peopleWithoutAnswer = computed(() => props.people.filter(person => !answer
  * <p>The server refuses one once the deadline has passed, and the button offering to give one stayed
  * where it was, so the only thing pressing it produced was an error.
  */
-const stillOpen = computed(() => {
-  if (!props.registrationDeadline) return true
-  return new Date(props.registrationDeadline).getTime() > Date.now()
-})
+const stillOpen = computed(() => !hasPassed(props.closesAt))
 
 /** The one thing somebody who has not answered yet can say, where it can still be said. */
 const canAnswer = computed(() => !props.requiresRegistration || stillOpen.value)

@@ -18,6 +18,7 @@ import type {
     EventFieldEntry,
     MemberGroup,
     QueueOrder,
+    RegistrationDeadline,
     UserTag,
 } from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
@@ -41,6 +42,8 @@ defineProps<{
   followsGroup?: {category: boolean; template: boolean; reminders: boolean}
   /** The folded sections that hold something the reader has to see now, by key, which opens them. */
   attention?: readonly string[]
+  /** The station's time zone, which the deadline of the next date is worked out on. */
+  timeZone?: string | null
 }>()
 
 const name = defineModel<string>('name', {required: true})
@@ -55,13 +58,11 @@ const repeatUntil = defineModel<string>('repeatUntil', {required: true})
 const repeatCount = defineModel<number | undefined>('repeatCount')
 const requiresRegistration = defineModel<boolean>('requiresRegistration', {required: true})
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
-const hasDeadline = defineModel<boolean>('hasDeadline', {required: true})
-const registrationDeadline = defineModel<string>('registrationDeadline', {required: true})
+const registrationDeadline = defineModel<RegistrationDeadline>('registrationDeadline', {required: true})
 const registrationLimit = defineModel<number | undefined>('registrationLimit')
 const queueOrder = defineModel<QueueOrder>('queueOrder')
 const minRegistrations = defineModel<number | undefined>('minRegistrations')
 const thresholdDays = defineModel<number | undefined>('thresholdDays')
-const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
 const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
@@ -83,13 +84,11 @@ const {t} = useI18n()
         v-model:repeat-until="repeatUntil" v-model:repeat-count="repeatCount"
         v-model:requires-registration="requiresRegistration"
         v-model:requires-confirmation="requiresConfirmation"
-        v-model:has-deadline="hasDeadline"
         v-model:registration-deadline="registrationDeadline"
         v-model:registration-limit="registrationLimit"
         v-model:queue-order="queueOrder"
         v-model:min-registrations="minRegistrations"
         v-model:threshold-days="thresholdDays"
-        v-model:registration-close-days="registrationCloseDays"
         v-model:restriction="restriction"
         v-model:view-restriction="viewRestriction"
         v-model:fields="fields"
@@ -103,6 +102,7 @@ const {t} = useI18n()
         :event-group-part="eventGroupPart"
         :follows-group="followsGroup"
         :attention="attention"
+        :time-zone="timeZone"
         show-schedule
         show-value
     >

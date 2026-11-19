@@ -17,6 +17,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import HintedSubHeader from '@/components/typography/HintedSubHeader.vue'
 import FormSection from '@/components/container/FormSection.vue'
 import {audienceSummary} from './eventshared/sectionSummaries'
+import {deadlineRuleOf, noDeadline} from './eventshared/registrationDeadline'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -58,7 +59,7 @@ import {showToast} from '@/util/toast'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded, hasPermission} = useSession()
+const {loaded, hasPermission, stationTimezone} = useSession()
 const canFederate = computed(() => hasPermission(StationPermission.EVENTS_FEDERATE))
 const federationShare = useEventFederationShare(canFederate)
 
@@ -70,7 +71,7 @@ const members = ref<MemberWithName[]>([])
 const groupMembers = ref(new Map<number, MemberWithName[]>())
 
 const details = ref<EventGroupDetails>({
-  name: '', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false,
+  name: '', description: null, registrationLimit: null, registrationDeadline: noDeadline(), requiresConfirmation: false,
   color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null,
 })
 const sets = ref<SetRow[]>([{id: null, name: t('eventGroups.defaultSet'), minimum: 1, maximum: null}])
@@ -243,7 +244,7 @@ function detailsToSave(): EventGroupDetails {
     name: entered.name ?? '',
     description: entered.description?.trim() ? entered.description : null,
     registrationLimit: entered.registrationLimit ?? null,
-    registrationDeadline: entered.registrationDeadline ?? null,
+    registrationDeadline: deadlineRuleOf(entered.registrationDeadline),
     requiresConfirmation: entered.requiresConfirmation ?? false,
     color: entered.color || null,
     minRegistrations: entered.minRegistrations || null,
@@ -336,7 +337,7 @@ async function save() {
               :members="members" :groups="groups" :group-members="groupMembers" :tags="tags"
           />
 
-          <EventGroupSignUpFields v-model="details" :parts="detail?.parts ?? []"/>
+          <EventGroupSignUpFields v-model="details" :parts="detail?.parts ?? []" :time-zone="stationTimezone"/>
 
           <div class="space-y-3">
             <HintedSubHeader :hint="t('eventGroups.setsHint')">{{ t('eventGroups.sets') }}</HintedSubHeader>

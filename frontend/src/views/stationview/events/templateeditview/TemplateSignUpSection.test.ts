@@ -12,8 +12,8 @@ const HELD = 'Fragen werden bei der Anmeldung beantwortet. Solange es Fragen gib
 async function mountSection(signUpHeld: boolean) {
   return mountSuspended(TemplateSignUpSection, {
     props: {
-      eventType: 'ONE_TIME', signUpHeld, requiresRegistration: true, requiresConfirmation: false,
-      queueOrder: 'TIME', deadlineOffsetHours: null,
+      signUpHeld, requiresRegistration: true, requiresConfirmation: false,
+      queueOrder: 'TIME', registrationDeadline: {kind: 'NONE', at: null, offsetMinutes: null, anchor: null},
     },
   })
 }
@@ -32,5 +32,12 @@ describe('TemplateSignUpSection', () => {
 
     expect(free.get('[aria-labelledby$="-registration"]').attributes('disabled')).toBeUndefined()
     expect(free.find(`[aria-label="${HELD}"]`).exists()).toBe(false)
+  })
+
+  it('offers no fixed deadline, since a template knows no date', async () => {
+    const section = await mountSection(false)
+
+    const kinds = section.findAll('[data-testid="registration-deadline-kind"] option').map(option => option.attributes('value'))
+    expect(kinds).toEqual(['NONE', 'RELATIVE'])
   })
 })

@@ -45,9 +45,9 @@ function categoryOf(entry: AwaitingAnswer): EventCategory | undefined {
 }
 
 /** Whole days until registration closes, floored, so "today" reads as zero rather than as one. */
-function daysLeft(entry: {registrationDeadline?: string | null}): number {
-  if (!entry.registrationDeadline) return 0
-  const closes = new Date(entry.registrationDeadline).getTime()
+function daysLeft(entry: {registrationClosesAt?: string | null}): number {
+  if (!entry.registrationClosesAt) return 0
+  const closes = new Date(entry.registrationClosesAt).getTime()
   return Math.max(0, Math.floor((closes - Date.now()) / 86400000))
 }
 
