@@ -11,7 +11,6 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -214,14 +213,14 @@ function statusLabel(status: string): string {
         {{ registrationSummary.pending }} {{ t('eventsUpcoming.pendingCount') }}
       </InfoBadge>
       <ErrorBadge v-if="registrationSummary.denied > 0">
-        {{ registrationSummary.denied }} {{ t('eventsRegistrations.deny') }}
+        {{ registrationSummary.denied }} {{ t('eventsRegistrations.denied') }}
       </ErrorBadge>
       <SecondaryBadge v-if="registrationSummary.queued > 0" data-testid="summary-queued">
         {{ t('registrationQueue.waitingCount', {count: registrationSummary.queued}) }}
       </SecondaryBadge>
-      <PrimaryBadge v-if="registrationSummary.declined > 0">
+      <ErrorBadge v-if="registrationSummary.declined > 0">
         {{ registrationSummary.declined }} {{ t('eventsUpcoming.declinedCount') }}
-      </PrimaryBadge>
+      </ErrorBadge>
     </div>
     <MutedText v-if="places" size="sm" tag="p" data-testid="registrations-places">{{ placesLabel(places, t) }}</MutedText>
 

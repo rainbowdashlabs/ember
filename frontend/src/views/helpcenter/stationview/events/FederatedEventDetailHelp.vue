@@ -66,6 +66,8 @@ const PUBLIC_FIELDS: AppointmentField[] = [
 
     <HelpSection :title="t('helpCenter.federatedEventDetail.registrationTitle')">
       <p>{{ t('helpCenter.federatedEventDetail.registrationText') }}</p>
+      <p>{{ t('helpCenter.federatedEventDetail.questionsText') }}</p>
+      <p>{{ t('helpCenter.federatedEventDetail.fullText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.federatedEventDetail.signingTitle')">

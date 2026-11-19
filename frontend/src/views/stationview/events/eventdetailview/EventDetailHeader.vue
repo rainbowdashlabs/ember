@@ -11,16 +11,13 @@ import {useNewsRoutes} from '@/composables/useNewsRoutes'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
+import DetailPageHeader from '../eventshared/DetailPageHeader.vue'
 import {isRecurringEvent} from '@/api/events'
+import {events} from '@/api'
 import type {StationEvent} from '@/api/generated/schema'
 import {eventTypeLabelKey} from '../eventshared/eventTypeLabel'
 import {formatDate} from '@/util/format'
-import {goBack} from '@/util/goBack'
 import {computed} from 'vue'
 
 const props = defineProps<{
@@ -42,6 +39,8 @@ const props = defineProps<{
   attendanceSessionId?: number | null
   /** Whether a sheet could be taken for this occurrence: the reader may, and it is today's. */
   canTakeAttendance?: boolean
+  /** The event group the appointment is a part of, or nothing for an appointment of its own. */
+  eventGroupName?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -80,25 +79,37 @@ const canRestoreDate = computed(() =>
     props.canManageEvents && props.dateCancelled && !props.event.cancelled && !props.datePast)
 
 /**
- * Whether the actions menu shows. Editing stays a button of its own, because the appointment is
- * opened to be changed; announcing and calling off are occasional, and calling off comes last and
- * coloured, since a row under a harmless one reads as harmless otherwise.
+ * Whether the actions menu holds anything besides deleting. Editing stays a button of its own, because
+ * the appointment is opened to be changed; announcing and calling off are occasional, and calling off
+ * and deleting come last and coloured, since a row under a harmless one reads as harmless otherwise.
  */
-const hasMenu = computed(() =>
+const hasMenuItems = computed(() =>
     props.canWriteNews || props.canCreateEvents || hasAttendance.value
     || canCancelDate.value || canCancelSeries.value || canRestoreDate.value)
 
-function back() {
-  goBack(router, {name: 'events-upcoming'})
-}
+/** The edit page on the date in view, for whoever manages appointments. */
+const editTo = computed(() => props.canManageEvents
+  ? {name: eventRoutes.edit, params: {id: props.event.id}, query: props.effectiveDate ? {date: props.effectiveDate} : {}}
+  : null)
 
-function goEdit() {
-  router.push({
-    name: eventRoutes.edit,
-    params: {id: props.event.id},
-    query: props.effectiveDate ? {date: props.effectiveDate} : {},
-  })
-}
+/**
+ * What deleting asks, by what it deletes: a part leaves its event group, a repeating appointment goes
+ * with every date, where calling off one date is what is usually meant, and a one-off is just itself.
+ */
+const deleteMessage = computed(() => {
+  const name = props.event.name
+  if (props.eventGroupName) return t('events.deletePartConfirm', {name, group: props.eventGroupName})
+  if (isRecurringEvent(props.event.eventType)) return t('events.deleteRecurringConfirm', {name})
+  return t('events.deleteEventConfirm', {name})
+})
+
+/** Deletes the appointment with every date and leaves for the appointment list, for whoever manages appointments. */
+const remove = computed(() => props.canManageEvents
+  ? async () => {
+    await events.deleteEvent(props.event.id)
+    await router.push({name: eventRoutes.index})
+  }
+  : null)
 
 /** Opens a new appointment filled in from this one. */
 function copyEvent() {
@@ -121,8 +132,18 @@ function announce() {
 </script>
 
 <template>
-  <div class="flex items-center justify-between flex-wrap gap-3">
-    <div class="flex items-center gap-3">
+  <DetailPageHeader
+      :back-to="{name: 'events-upcoming'}"
+      :edit-to="editTo"
+      :edit-label="t('events.editEvent')"
+      edit-test-id="event-edit"
+      menu-test-id="event-actions"
+      :has-menu-items="hasMenuItems"
+      :remove="remove"
+      :delete-message="deleteMessage"
+      delete-test-id="event-delete"
+  >
+    <template #title>
       <SubHeader>{{ event.name }}</SubHeader>
       <SecondaryBadge v-if="event.categoryId && props.categoryName" data-testid="event-category">
         {{ props.categoryName }}
@@ -132,36 +153,28 @@ function announce() {
       </SecondaryBadge>
       <SecondaryBadge v-if="repeatEnd" data-testid="event-repeat-end">{{ repeatEnd }}</SecondaryBadge>
       <ErrorBadge v-if="dateCancelled">{{ t('events.cancelled') }}</ErrorBadge>
-    </div>
-    <ButtonRow align="end">
-      <SecondaryButton @click="back"><font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>{{ t('common.back') }}</SecondaryButton>
-      <PrimaryButton v-if="canManageEvents" @click="goEdit"><font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/>{{ t('events.editEvent') }}</PrimaryButton>
-      <ActionsMenu v-if="hasMenu" :label="t('common.actions')" test-id="event-actions">
-        <DropdownMenuItem v-if="canWriteNews" :icon="['fas', 'bullhorn']" data-testid="event-announce"
-                          @click="announce">
-          {{ t('events.announceAsNews') }}
-        </DropdownMenuItem>
-        <DropdownMenuItem v-if="canCreateEvents" :icon="['fas', 'copy']" data-testid="event-copy"
-                          @click="copyEvent">
-          {{ t('events.copyEvent') }}
-        </DropdownMenuItem>
-        <DropdownMenuItem v-if="hasAttendance" :icon="['fas', 'clipboard-user']" data-testid="event-attendance"
-                          @click="emit('attendance')">
-          {{ attendanceSessionId ? t('events.openAttendance') : t('events.takeAttendance') }}
-        </DropdownMenuItem>
-        <DropdownMenuItem v-if="canRestoreDate" :icon="['fas', 'rotate-left']" data-testid="event-restore-date"
-                          @click="emit('restore-date')">
-          {{ t('events.restoreDate') }}
-        </DropdownMenuItem>
-        <DropdownMenuItem v-if="canCancelDate" :icon="['fas', 'ban']" destructive data-testid="event-cancel-date"
-                          @click="emit('cancel-date')">
-          {{ t('events.cancelDate') }}
-        </DropdownMenuItem>
-        <DropdownMenuItem v-if="canCancelSeries" :icon="['fas', 'calendar-xmark']" destructive
-                          data-testid="event-cancel-series" @click="emit('cancel-series')">
-          {{ t('events.cancelSeries') }}
-        </DropdownMenuItem>
-      </ActionsMenu>
-    </ButtonRow>
-  </div>
+    </template>
+    <DropdownMenuItem v-if="canWriteNews" :icon="['fas', 'bullhorn']" data-testid="event-announce" @click="announce">
+      {{ t('events.announceAsNews') }}
+    </DropdownMenuItem>
+    <DropdownMenuItem v-if="canCreateEvents" :icon="['fas', 'copy']" data-testid="event-copy" @click="copyEvent">
+      {{ t('events.copyEvent') }}
+    </DropdownMenuItem>
+    <DropdownMenuItem v-if="hasAttendance" :icon="['fas', 'clipboard-user']" data-testid="event-attendance"
+                      @click="emit('attendance')">
+      {{ attendanceSessionId ? t('events.openAttendance') : t('events.takeAttendance') }}
+    </DropdownMenuItem>
+    <DropdownMenuItem v-if="canRestoreDate" :icon="['fas', 'rotate-left']" data-testid="event-restore-date"
+                      @click="emit('restore-date')">
+      {{ t('events.restoreDate') }}
+    </DropdownMenuItem>
+    <DropdownMenuItem v-if="canCancelDate" :icon="['fas', 'ban']" destructive data-testid="event-cancel-date"
+                      @click="emit('cancel-date')">
+      {{ t('events.cancelDate') }}
+    </DropdownMenuItem>
+    <DropdownMenuItem v-if="canCancelSeries" :icon="['fas', 'calendar-xmark']" destructive
+                      data-testid="event-cancel-series" @click="emit('cancel-series')">
+      {{ t('events.cancelSeries') }}
+    </DropdownMenuItem>
+  </DetailPageHeader>
 </template>

@@ -30,6 +30,8 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.PartnerAnswerRepository;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
@@ -149,7 +151,9 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 media,
                 new Api(),
                 new EventGroupRepository(),
-                newEventServices(mock(DomainEventBus.class)).registration());
+                newEventServices(mock(DomainEventBus.class)).registration(),
+                new PartnerQuestionService(
+                        new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility));
         transport.serve(service);
 
         stationA = stationRepo.create("EventFedSvcStationA");
@@ -793,7 +797,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         eq(stationA.id()),
                         any()))
-                .thenReturn(new RemoteEventRoutes.RemoteEventDetail(remoteEvent, List.of(), null));
+                .thenReturn(new RemoteEventRoutes.RemoteEventDetail(remoteEvent, List.of(), null, List.of(), null));
 
         var result = service.getFederatedEvent(stationA.id(), stationC.uid(), eventId);
         assertNotNull(result);
@@ -1364,13 +1368,13 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 .thenReturn(accepted);
 
         var status = service.registerForFederatedEvent(
-                stationA.id(), stationC.uid(), 1, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1));
+                stationA.id(), stationC.uid(), 1, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1), List.of());
         assertEquals(RegistrationStatus.ACCEPTED, status);
 
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.registerForFederatedEvent(
-                        stationA.id(), stationC.uid(), 2, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1)));
+                        stationA.id(), stationC.uid(), 2, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1), List.of()));
         assertEquals(EventRefusal.FEDERATED_REGISTRATION_NOT_TAKEN, refused.refusal());
     }
 
@@ -1522,7 +1526,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var asking = partnerOf(stationB, stationA);
         int serving = partnerOf(stationA, stationB).id();
 
-        assertNotNull(service.registerForFederatedEvent(stationB.id(), stationA.uid(), eventId, member, day));
+        assertNotNull(
+                service.registerForFederatedEvent(stationB.id(), stationA.uid(), eventId, member, day, List.of()));
         transport.assertParity(
                 asking, RemoteEventRoutes.LIST_REGISTRATIONS.at(eventId), null, EventFederationRegistration.class);
         transport.assertParity(
@@ -1544,7 +1549,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var second = UUID.randomUUID();
         assertEquals(
                 RegistrationStatus.PENDING,
-                service.registerForFederatedEvent(stationB.id(), stationA.uid(), eventId, second, day));
+                service.registerForFederatedEvent(stationB.id(), stationA.uid(), eventId, second, day, List.of()));
         assertRefused(
                 EventRefusal.NO_PLACES_LEFT_FOR_PARTNER,
                 () -> service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), eventId, second, day));
@@ -1878,7 +1883,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         try {
             service.setShare(event.id(), ShareScope.ALL_PARTNERS, List.of());
             service.setPartnerPlaces(event.id(), serving, 2, true);
-            service.registerForFederatedEvent(stationB.id(), stationA.uid(), event.id(), member, day);
+            service.registerForFederatedEvent(stationB.id(), stationA.uid(), event.id(), member, day, List.of());
             registrations.register(event.id(), held.id(), day, true, null);
 
             service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), event.id(), member, day);
@@ -1929,7 +1934,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
             service.setShare(event.id(), ShareScope.ALL_PARTNERS, List.of());
             service.setPartnerPlaces(event.id(), serving, 2, true);
             for (var member : List.of(first, second, third)) {
-                service.registerForFederatedEvent(stationB.id(), stationA.uid(), event.id(), member, day);
+                service.registerForFederatedEvent(stationB.id(), stationA.uid(), event.id(), member, day, List.of());
             }
             service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), event.id(), first, day);
             var held = registrations.register(event.id(), local.id(), day, true, null);

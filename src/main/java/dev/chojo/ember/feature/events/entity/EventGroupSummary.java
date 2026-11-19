@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.events.entity;
 
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
+
 /**
  * An event group as lists show it.
  *
@@ -17,6 +19,9 @@ import org.jspecify.annotations.Nullable;
  * @param partCount    how many parts it has
  * @param holding      how many accepted sign-ups hold a place
  * @param queued       how many sign-ups wait on the waiting list
+ * @param pending      how many sign-ups wait for a decision; a partner is never told, so it reads 0 there
+ * @param firstStart   when its earliest part starts, none without parts or where a partner was not told
+ * @param lastEnd      when its latest part ends, none without parts or where a partner was not told
  */
 public record EventGroupSummary(
         int id,
@@ -25,7 +30,10 @@ public record EventGroupSummary(
         @Nullable String cancelReason,
         int partCount,
         int holding,
-        int queued) {
+        int queued,
+        int pending,
+        @Nullable Instant firstStart,
+        @Nullable Instant lastEnd) {
     /**
      * An event group with its counts as lists show it.
      *
@@ -41,6 +49,9 @@ public record EventGroupSummary(
                 eventGroup.cancelReason(),
                 tally.partCount(),
                 tally.holding(),
-                tally.queued());
+                tally.queued(),
+                tally.pending(),
+                tally.firstStart(),
+                tally.lastEnd());
     }
 }

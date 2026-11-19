@@ -151,6 +151,7 @@ import dev.chojo.ember.feature.events.route.EventTemplateSharingRoutes;
 import dev.chojo.ember.feature.events.route.FederatedEventGroupCommentRoutes;
 import dev.chojo.ember.feature.events.route.FederatedEventGroupRoutes;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
+import dev.chojo.ember.feature.events.route.PartnerAnswerRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
@@ -630,6 +631,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(RemoteEventGroupRoutes.class);
         routesBinder.addBinding().to(FederatedEventGroupRoutes.class);
         routesBinder.addBinding().to(EventGroupSharingRoutes.class);
+        routesBinder.addBinding().to(PartnerAnswerRoutes.class);
         routesBinder.addBinding().to(EventGroupSettingsRoutes.class);
         routesBinder.addBinding().to(EventGroupAttachmentRoutes.class);
         routesBinder.addBinding().to(EventGroupRequirementRoutes.class);

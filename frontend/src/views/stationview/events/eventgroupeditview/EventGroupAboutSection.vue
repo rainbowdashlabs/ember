@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import FormSection from '@/components/container/FormSection.vue'
 import type {EventFieldEntry, EventGroupDetails, MemberGroup, MemberWithName, UserTag} from '@/api/generated/schema'
 import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
 import EventGroupDateSettingsSection from './EventGroupDateSettingsSection.vue'
@@ -15,11 +16,13 @@ import EventGroupColorField from './EventGroupColorField.vue'
 import EventGroupFieldsCard from './EventGroupFieldsCard.vue'
 import type {useEventGroupSettings} from './useEventGroupSettings'
 import {useEventGroupDetails} from './useEventGroupDetails'
+import {fieldsSummary, remindersSummary} from '../eventshared/sectionSummaries'
 
 /**
  * What an event group is, in the order the appointment form asks it: the name, then category,
  * attendance template and colour in one row, the fields every part shows followed by the template's
- * pre-fills, the description and the reminders.
+ * pre-fills, the description and the reminders. The fields and the reminders are folded sections
+ * that say what they hold.
  */
 const details = defineModel<EventGroupDetails>('details', {required: true})
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
@@ -52,20 +55,28 @@ const {t} = useI18n()
         <EventGroupColorField v-model="details" :event-group-id="eventGroupId"/>
       </template>
       <template #after-row>
-        <EventGroupFieldsCard
-            v-model="fields"
-            :all-members="members"
-            :groups="groups"
-            :group-members="groupMembers"
-            :tags="tags"
-            compact
-        />
+        <FormSection :title="t('formSections.fieldsOnly')" :summary="fieldsSummary('', fields.length, t)" data-testid="form-section-fields">
+          <EventGroupFieldsCard
+              v-model="fields"
+              :all-members="members"
+              :groups="groups"
+              :group-members="groupMembers"
+              :tags="tags"
+              compact
+          />
+        </FormSection>
       </template>
     </EventGroupDateSettingsSection>
     <div class="space-y-1">
       <FieldLabel>{{ t('eventGroups.description') }}</FieldLabel>
       <MarkdownEditor v-model="description" :placeholder="t('events.descriptionPlaceholder')"/>
     </div>
-    <EventReminderEditor :model-value="settings.reminders.value" compact @update:model-value="settings.setReminders"/>
+    <FormSection
+        :title="t('formSections.reminders')"
+        :summary="remindersSummary(settings.reminders.value, t)"
+        data-testid="form-section-reminders"
+    >
+      <EventReminderEditor :model-value="settings.reminders.value" compact @update:model-value="settings.setReminders"/>
+    </FormSection>
   </div>
 </template>

@@ -912,6 +912,11 @@ public class EventRoutes implements Routes {
         if (req.rows() == null || req.rows().isEmpty()) {
             throw EventRefusal.BATCH_NEEDS_ROWS.raise();
         }
+        ctx.json(batchEventService.createBatch(session.stationId(), batchRequestOf(req)));
+    }
+
+    /** What the batch service is asked for, read from the request with its missing lists as empty ones. */
+    private static BatchRequest batchRequestOf(BatchCreateRequest req) {
         var requestedInlineFields = req.inlineFields();
         List<BatchFieldEntry> inlineFields = requestedInlineFields != null
                 ? requestedInlineFields.stream()
@@ -925,7 +930,7 @@ public class EventRoutes implements Routes {
                         r.endTime(),
                         Objects.requireNonNullElse(r.fieldValues(), Map.<String, String>of())))
                 .toList();
-        var batchReq = new BatchRequest(
+        return new BatchRequest(
                 req.name(),
                 req.description(),
                 req.templateId(),
@@ -936,9 +941,14 @@ public class EventRoutes implements Routes {
                 req.requiresConfirmation(),
                 req.registrationDeadline(),
                 Objects.requireNonNullElse(req.restriction(), RestrictionSelection.empty()),
-                Objects.requireNonNullElse(req.viewRestriction(), RestrictionSelection.empty()));
-        var created = batchEventService.createBatch(session.stationId(), batchReq);
-        ctx.json(created);
+                Objects.requireNonNullElse(req.viewRestriction(), RestrictionSelection.empty()),
+                req.registrationLimit(),
+                req.minRegistrations(),
+                req.thresholdDays(),
+                req.queueOrder(),
+                req.registrationDeadlineOffsetHours(),
+                Objects.requireNonNullElse(req.reminderDays(), List.<Integer>of()),
+                req.eventTemplateId());
     }
 
     @OpenApi(
@@ -1052,6 +1062,10 @@ public class EventRoutes implements Routes {
             /** The zone the times of day are meant in, as the browser names it; the station's where left out. */
             @Nullable String timeZone) {}
 
+    /**
+     * A batch of appointments as the batch screen sends it; the fields after the audiences are read as
+     * {@link BatchRequest} describes them.
+     */
     public record BatchCreateRequest(
             @Nullable String name,
             @Nullable String description,
@@ -1063,7 +1077,14 @@ public class EventRoutes implements Routes {
             @Nullable Boolean requiresConfirmation,
             @Nullable Instant registrationDeadline,
             @Nullable RestrictionSelection restriction,
-            @Nullable RestrictionSelection viewRestriction) {}
+            @Nullable RestrictionSelection viewRestriction,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable QueueOrder queueOrder,
+            @Nullable Integer registrationDeadlineOffsetHours,
+            @Nullable List<Integer> reminderDays,
+            @Nullable Integer eventTemplateId) {}
 
     public record BatchFieldEntryDto(
             String name,

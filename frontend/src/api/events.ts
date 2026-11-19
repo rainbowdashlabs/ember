@@ -33,6 +33,7 @@ import type {
     EventLinks,
     EventRegistration,
     EventRegistrationFieldValue,
+    PartnerAnswers,
     EventRegistrationOpening,
     EventRequest,
     EventRestrictions,
@@ -654,10 +655,11 @@ export async function listMyFederatedRegistrations(): Promise<RemoteMemberRegist
  *
  * <p>The status is theirs to decide: an appointment that asks for no confirmation accepts at once,
  * and showing a pending badge regardless would tell the member something nobody said. Beside it come
- * the documents their appointment asks the member to sign, filed here and signed here.
+ * the documents their appointment asks the member to sign, filed here and signed here. The answers to
+ * the appointment's questions travel with the sign-up.
  */
-export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<FederatedRegistrationAnswer> {
-    const res = await client.post<FederatedRegistrationAnswer>(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null })
+export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string, answers: EventRegistrationFieldValue[] = []): Promise<FederatedRegistrationAnswer> {
+    const res = await client.post<FederatedRegistrationAnswer>(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null, answers })
     return res.data
 }
 
@@ -687,6 +689,12 @@ export async function listFederatedAgreementOffers(stationUid: string, eventId: 
  */
 export async function takeOnFederatedAgreement(stationUid: string, eventId: number, eventDate: string, memberId: string): Promise<PartnerDocumentToSign[]> {
     const res = await client.post<PartnerDocumentToSign[]>(`/federated/${stationUid}/events/${eventId}/agreement`, {eventDate, memberId})
+    return res.data
+}
+
+/** The answers partner stations' members gave to an appointment's questions, per partner registration. */
+export async function listPartnerAnswers(eventId: number): Promise<PartnerAnswers[]> {
+    const res = await client.get<PartnerAnswers[]>(`/events/${eventId}/partner-answers`)
     return res.data
 }
 

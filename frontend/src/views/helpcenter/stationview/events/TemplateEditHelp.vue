@@ -72,6 +72,7 @@ const noop = () => undefined
   <HelpArticle :title="t('helpCenter.eventTemplateEdit.title')" :subtitle="t('helpCenter.eventTemplateEdit.subtitle')">
     <HelpSection :title="t('helpCenter.eventTemplateEdit.whatIs')">
       <p>{{ t('helpCenter.eventTemplateEdit.whatIsText') }}</p>
+      <p>{{ t('helpCenter.eventTemplateEdit.sectionsText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventTemplateEdit.howTo')">
@@ -120,6 +121,10 @@ const noop = () => undefined
       <p>{{ t('helpCenter.eventTemplateEdit.signUpDeadlineText') }}</p>
       <p>{{ t('helpCenter.eventTemplateEdit.signUpQueueText') }}</p>
       <p>{{ t('helpCenter.eventTemplateEdit.signUpRulesText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventTemplateEdit.audienceTitle')">
+      <p>{{ t('helpCenter.eventTemplateEdit.audienceText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventTemplateEdit.remindersTitle')">

@@ -30,6 +30,8 @@ defineProps<{
   compact?: boolean
   /** What the questions are for, where the owner is not an appointment. */
   hint?: string
+  /** Whether a folded section around it already carries the heading, which leaves only the hint here. */
+  untitled?: boolean
 }>()
 
 const {t} = useI18n()
@@ -54,7 +56,8 @@ function replace(index: number, field: RegistrationFieldDefinition) {
 
 <template>
   <NeutralContainer class="space-y-4" data-testid="registration-question-list">
-    <HintedSubHeader v-if="compact" :hint="hint ?? t('events.registrationFields.sectionHint')">
+    <MutedText v-if="untitled" tag="p" size="sm">{{ hint ?? t('events.registrationFields.sectionHint') }}</MutedText>
+    <HintedSubHeader v-else-if="compact" :hint="hint ?? t('events.registrationFields.sectionHint')">
       {{ t('events.registrationFields.sectionTitle') }}
     </HintedSubHeader>
     <div v-else>

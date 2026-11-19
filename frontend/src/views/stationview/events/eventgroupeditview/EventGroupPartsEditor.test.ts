@@ -8,6 +8,7 @@ import {describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount} from '@vue/test-utils'
 import {computed} from 'vue'
 import EventGroupPartsEditor from './EventGroupPartsEditor.vue'
+import EditButton from '@/components/button/EditButton.vue'
 import type {EventGroupDetail} from '@/api/generated/schema'
 
 const createPart = vi.fn(async (..._args: unknown[]) => ({}))
@@ -26,7 +27,7 @@ const detail: EventGroupDetail = {
   eventGroup: {
     id: 70,
     details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null},
-    cancelled: false, cancelReason: null, partCount: 0, holding: 0, queued: 0,
+    cancelled: false, cancelReason: null, partCount: 0, holding: 0, queued: 0, pending: 0, firstStart: null, lastEnd: null,
   },
   sets: [{id: 1, eventGroupId: 70, name: 'Übung', minimum: 2, maximum: null, position: 0}, {id: 2, eventGroupId: 70, name: 'Prüfung', minimum: 1, maximum: null, position: 1}],
   parts: [],
@@ -73,5 +74,26 @@ describe('EventGroupPartsEditor', () => {
 
     expect(setPartRequired).toHaveBeenCalledWith(70, 11, true)
     expect(onChanged).toHaveBeenCalled()
+  })
+
+  it('shows when each part runs, links it to its appointment\'s editor and marks a called off part', async () => {
+    const withParts: EventGroupDetail = {...detail, parts: [
+      {eventId: 11, setId: 1, name: 'Samstag', startTime: '2027-03-06T07:00:00Z', endTime: '2027-03-06T15:00:00Z',
+        calledOff: false, tookPlace: false, required: false, accepted: 0, places: null},
+      {eventId: 12, setId: 1, name: 'Sonntag', startTime: '2027-03-07T07:00:00Z', endTime: '2027-03-07T15:00:00Z',
+        calledOff: true, tookPlace: false, required: false, accepted: 0, places: null},
+    ]}
+    const editor = mount(EventGroupPartsEditor, {props: {detail: withParts}})
+    await flushPromises()
+
+    expect(editor.find('[data-testid="event-group-part-when-11"]').text()).toContain('06.03.2027')
+    expect(editor.find('[data-testid="event-group-part-when-11"]').text()).toContain('08:00')
+    expect(editor.find('[data-testid="event-group-part-when-11"]').text()).toContain('16:00')
+    expect(editor.findAllComponents(EditButton).map(button => button.props('to'))).toEqual([
+      {name: 'event-edit', params: {id: 11}},
+      {name: 'event-edit', params: {id: 12}},
+    ])
+    expect(editor.find('[data-testid="event-group-part-called-off-11"]').exists()).toBe(false)
+    expect(editor.find('[data-testid="event-group-part-called-off-12"]').exists()).toBe(true)
   })
 })

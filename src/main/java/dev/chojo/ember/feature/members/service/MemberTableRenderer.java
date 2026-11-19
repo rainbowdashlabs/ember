@@ -117,7 +117,7 @@ public class MemberTableRenderer {
             case "registrationStatus" ->
                 switch (value) {
                     case "ACCEPTED" -> english ? "Confirmed" : "Bestätigt";
-                    case "PENDING" -> english ? "Pending" : "Ausstehend";
+                    case "PENDING" -> english ? "Pending" : "Offen";
                     case "DENIED" -> english ? "Turned down" : "Abgelehnt";
                     case "DECLINED" -> english ? "Declined" : "Abgemeldet";
                     case "WITHDRAWN" -> english ? "Withdrawn" : "Zurückgezogen";

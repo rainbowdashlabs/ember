@@ -24,6 +24,8 @@ import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.PartnerAnswerRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
@@ -31,6 +33,7 @@ import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupPartDates;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.FederatedRegistrantService;
+import dev.chojo.ember.feature.events.service.PartnerQuestionService;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
@@ -269,7 +272,9 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 media,
                 new Api(),
                 new EventGroupRepository(),
-                newEventServices(mock(DomainEventBus.class)).registration());
+                newEventServices(mock(DomainEventBus.class)).registration(),
+                new PartnerQuestionService(
+                        new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility));
 
         var guardianPolicy = new GuardianPolicy(stationMemberRepo);
         var requirementRepo = new EventRequirementRepository();
@@ -519,7 +524,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     @Test
     void aPartnerThatCannotSignLeavesTheSignatureMissingUntilAPaperCopyIsConfirmed() {
         var member = homeMember("Finn", "Fuchs");
-        events.registerForFederatedEvent(home.id(), organiser.station().uid(), camp.id(), member.uid(), DAY);
+        events.registerForFederatedEvent(home.id(), organiser.station().uid(), camp.id(), member.uid(), DAY, List.of());
 
         var missing = documentOf(member);
         assertEquals(PartnerAgreementState.MISSING, missing.state());
@@ -969,7 +974,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     }
 
     private List<PartnerDocumentToSign> register(StationMember member) {
-        events.registerForFederatedEvent(home.id(), organiser.station().uid(), camp.id(), member.uid(), DAY);
+        events.registerForFederatedEvent(home.id(), organiser.station().uid(), camp.id(), member.uid(), DAY, List.of());
         return signatures.registered(at(member), organiser.station().uid(), camp.id(), DAY, member.uid());
     }
 

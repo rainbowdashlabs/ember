@@ -7,6 +7,7 @@ import {ref} from 'vue'
 import type {EventAttachment, StationFile} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure, type Failure, type Translate} from '@/util/failure'
+import {showToast} from '@/util/toast'
 import type {AttachmentPort} from './eventOwnerPorts'
 
 /**
@@ -28,11 +29,26 @@ import type {AttachmentPort} from './eventOwnerPorts'
  * <p>Whose files they are comes in as a port, fixed to one owner. A template's rows carry the
  * template's id where an event's carry the event's, so nothing here reads an owner off a row.
  *
- * @param port the files of the event or template being edited, or null while an event is being created
+ * <p>While the owner does not exist yet, a new appointment or event group, the files are kept here
+ * as pending: they can be added, labelled, marked internal, put in order and removed like any other,
+ * and {@link attachPendingTo} hangs them on the owner in their order once it has been created. A
+ * pending file carries a negative id, which no stored attachment has.
+ *
+ * @param port the files of the owner being edited, or null while it is being created
  * @param t    the translator, for describing whatever the server refuses with
  */
 export function useEventAttachments(port: () => AttachmentPort | null, t: Translate) {
     const attachments = ref<EventAttachment[]>([])
+    let nextPendingId = -1
+
+    /** A file of the library as it stands in the list until its owner exists. */
+    function pendingOf(file: StationFile): EventAttachment {
+        return {
+            id: nextPendingId--, eventId: 0, fileId: file.id, label: null, internal: false,
+            sortOrder: attachments.value.length, createdAt: new Date().toISOString(), fileName: file.fileName,
+            mimeType: file.mimeType, fileSize: file.fileSize, contentHash: file.contentHash, fromEventGroup: false,
+        }
+    }
     const loading = ref(false)
     const failure = ref<Failure | null>(null)
 
@@ -53,7 +69,10 @@ export function useEventAttachments(port: () => AttachmentPort | null, t: Transl
     /** Hangs a file of the library on the owner, open to the room until somebody says otherwise. */
     async function add(file: StationFile) {
         const owner = port()
-        if (owner === null) return
+        if (owner === null) {
+            attachments.value = [...attachments.value, pendingOf(file)]
+            return
+        }
         try {
             attachments.value = [...attachments.value, await owner.attach(file.id, null, false)]
             failure.value = null
@@ -64,7 +83,10 @@ export function useEventAttachments(port: () => AttachmentPort | null, t: Transl
 
     async function save(attachment: EventAttachment) {
         const owner = port()
-        if (owner === null) return
+        if (owner === null) {
+            attachments.value = attachments.value.map(entry => entry.id === attachment.id ? {...attachment} : entry)
+            return
+        }
         try {
             await owner.update(attachment.id, attachment.label, attachment.internal)
             failure.value = null
@@ -78,7 +100,11 @@ export function useEventAttachments(port: () => AttachmentPort | null, t: Transl
     async function remove(index: number) {
         const owner = port()
         const attachment = attachments.value[index]
-        if (owner === null || !attachment) return
+        if (!attachment) return
+        if (owner === null) {
+            attachments.value = attachments.value.filter((_, at) => at !== index)
+            return
+        }
         try {
             await owner.detach(attachment.id)
             attachments.value = attachments.value.filter((_, at) => at !== index)
@@ -90,7 +116,10 @@ export function useEventAttachments(port: () => AttachmentPort | null, t: Transl
 
     async function reorder(fromIndex: number, toIndex: number) {
         const owner = port()
-        if (owner === null) return
+        if (owner === null) {
+            attachments.value = moveWithin(attachments.value, fromIndex, toIndex)
+            return
+        }
         const before = attachments.value
         attachments.value = moveWithin(attachments.value, fromIndex, toIndex)
         try {
@@ -102,5 +131,50 @@ export function useEventAttachments(port: () => AttachmentPort | null, t: Transl
         }
     }
 
-    return {attachments, loading, failure, load, add, save, remove, reorder}
+    /**
+     * Hangs the pending files on the owner just created, in their order, with their labels and flags.
+     * The owner exists by now, so a file that cannot be attached does not undo it: it is left out, and a
+     * message names the files that are missing so they can be attached again in its editor.
+     *
+     * A pending file the owner already received another way, from a template or from the appointment it
+     * was copied from, is dropped rather than attached a second time.
+     *
+     * @param target    the files of the owner just created
+     * @param carried   the library files the owner already holds
+     * @return the names of the files that could not be attached
+     */
+    async function attachPendingTo(target: AttachmentPort, carried: ReadonlySet<number> = new Set()): Promise<string[]> {
+        const failed: string[] = []
+        const attached: EventAttachment[] = []
+        for (const file of attachments.value.filter(entry => entry.id < 0 && !carried.has(entry.fileId))) {
+            try {
+                attached.push(await target.attach(file.fileId, file.label, file.internal))
+            } catch {
+                failed.push(file.label || file.fileName)
+            }
+        }
+        attachments.value = [...attachments.value.filter(entry => entry.id >= 0), ...attached]
+        if (failed.length > 0) showToast(t('events.attachments.pendingFailed', {files: failed.join(', ')}), 'error')
+        return failed
+    }
+
+    /**
+     * Hangs files of another owner, such as a template's, on the owner being edited, in their order and
+     * with their labels, and reads the list back. A library file the owner already carries is left as
+     * it is. The server only links a template's files when it creates an appointment, so an existing one
+     * gets them here.
+     *
+     * @param files the files to hand over
+     */
+    async function attachMissing(files: readonly EventAttachment[]) {
+        const owner = port()
+        if (owner === null) return
+        const carried = new Set(attachments.value.map(attachment => attachment.fileId))
+        for (const file of files.filter(entry => !carried.has(entry.fileId))) {
+            await owner.attach(file.fileId, file.label, file.internal)
+        }
+        await load()
+    }
+
+    return {attachments, loading, failure, load, add, save, remove, reorder, attachPendingTo, attachMissing}
 }

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:c360e95bf930e8555465f78ccb87a5b58c645f121a81d2292f93930cf35dcf7f",
-  "generatedAt": "2026-11-18T20:24:52Z",
+  "schemaHash": "sha256:7210f52b1753f9f0ca7fae239ff32f0edeb60ee517030f484c14106fe3277a03",
+  "generatedAt": "2026-11-18T22:28:48Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10831,6 +10831,65 @@
         "reason": "Event structure/template data, not per-member"
       },
       "description": "Registrations from federated partner members for shared events."
+    },
+    "event_federation_registration_answer": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:ee4bb4f058670c2ccbf82bdb896d552bf9abe6db512f8ec16d2e185cbece077c",
+      "columns": [
+        {
+          "name": "federation_registration_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The partner's registration the answer belongs to; the answer is removed with it."
+        },
+        {
+          "name": "field_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The question answered."
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The answer, stored as text in the same shape the answers of this station's own members use."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "federation_registration_id",
+          "refTable": "event_federation_registration",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "field_id",
+          "refTable": "event_registration_field",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED"
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "federation_registration_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE removes it with the partner's registration"
+          }
+        ]
+      },
+      "description": "A partner station's member's answer to one registration question of a shared appointment, given when the partner signed them up."
     },
     "event_federation_share": {
       "feature": "events",

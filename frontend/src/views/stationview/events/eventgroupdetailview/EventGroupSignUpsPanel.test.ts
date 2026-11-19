@@ -27,7 +27,7 @@ function detail(): EventGroupDetail {
         eventGroup: {
             id: 70,
             details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null},
-            cancelled: false, cancelReason: null, partCount: 4, holding: 2, queued: 0,
+            cancelled: false, cancelReason: null, partCount: 4, holding: 2, queued: 0, pending: 0, firstStart: null, lastEnd: null,
         },
         sets: [{id: 1, eventGroupId: 70, name: 'Übung', minimum: 2, maximum: null, position: 0}],
         parts: [],
@@ -111,6 +111,31 @@ describe('EventGroupSignUpsPanel', () => {
         await flushPromises()
 
         expect(api.eventGroups.decide).toHaveBeenCalledWith(70, 12, RegistrationStatus.ACCEPTED, false)
+    })
+
+    /** Denying somebody who holds a place takes it away, so it is asked first, keyed by the member. */
+    it('asks before denying an accepted sign-up and sends nothing until agreed', async () => {
+        api.eventGroups.decide.mockResolvedValue({})
+        await mountPanel()
+
+        await wrapper!.findAll('[data-testid="event-group-sign-up-row"]')[0]!.get('[data-testid="event-group-deny"]').trigger('click')
+        await flushPromises()
+        expect(api.eventGroups.decide).not.toHaveBeenCalled()
+
+        ;(document.body.querySelector('[data-testid="deny-accepted-confirm"]') as HTMLElement).click()
+        await flushPromises()
+
+        expect(api.eventGroups.decide).toHaveBeenCalledWith(70, 11, RegistrationStatus.DENIED, undefined)
+    })
+
+    it('denies a pending sign-up without asking', async () => {
+        api.eventGroups.decide.mockResolvedValue({})
+        await mountPanel()
+
+        await wrapper!.findAll('[data-testid="event-group-sign-up-row"]')[1]!.get('[data-testid="event-group-deny"]').trigger('click')
+        await flushPromises()
+
+        expect(api.eventGroups.decide).toHaveBeenCalledWith(70, 12, RegistrationStatus.DENIED, undefined)
     })
 
     /**

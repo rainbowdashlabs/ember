@@ -7,18 +7,25 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.IntervalType;
+import dev.chojo.ember.feature.events.entity.QueueOrder;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.HttpResponseException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -42,12 +49,19 @@ import static org.junit.jupiter.api.Assertions.*;
 class BatchEventServiceTest extends RepositoryTestBase {
 
     private static BatchEventService batchService;
+    private static EventTemplateService templateService;
+    private static EventServices eventServices;
     private static Station station;
 
     @BeforeAll
     static void setup() {
         var domainEventBus = new DomainEventBus(Set.of());
-        var eventServices = newEventServices(domainEventBus);
+        eventServices = newEventServices(domainEventBus);
+        templateService = new EventTemplateService(
+                new EventTemplateRepository(),
+                attendanceRepo,
+                memberEligibility,
+                new AttendanceTemplateGuards(attendanceRepo));
         var fieldService = new EventFieldService(
                 eventFieldRepo,
                 stationMemberRepo,
@@ -62,7 +76,10 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 fieldService,
                 eventBreakRepo,
                 stationRepo,
-                domainEventBus);
+                domainEventBus,
+                templateService,
+                eventServices.reminder(),
+                eventServices.fieldDefault());
 
         station = stationRepo.create("BatchEventServiceStation");
     }
@@ -138,6 +155,154 @@ class BatchEventServiceTest extends RepositoryTestBase {
         var created = batchService.createBatch(station.id(), request);
         assertEquals(1, created.size());
         assertEquals("Restricted Event", created.getFirst().name());
+    }
+
+    @Test
+    @Order(5)
+    void aBatchFromATemplateCarriesWhatTheSingleEditorWould() {
+        var template = templateService.create(station.id(), "Atemschutz");
+        templateService.replaceRegistrationFields(
+                template.id(),
+                List.of(new RegistrationFieldDraft("Größe", FieldType.TEXT, EventQuestionSettings.empty(), false)));
+        Instant start1 = Instant.now().plus(10, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
+        Instant start2 = start1.plus(7, ChronoUnit.DAYS);
+        var rows = List.of(
+                new BatchRow("Übung 1", start1, start1.plus(2, ChronoUnit.HOURS), Map.of()),
+                new BatchRow("Übung 2", start2, start2.plus(2, ChronoUnit.HOURS), Map.of()));
+
+        var request = new BatchRequest(
+                "Übung",
+                null,
+                null,
+                null,
+                List.of(),
+                rows,
+                true,
+                false,
+                null,
+                RestrictionSelection.empty(),
+                RestrictionSelection.empty(),
+                12,
+                3,
+                2,
+                QueueOrder.FAIRNESS,
+                24,
+                List.of(1, 7),
+                template.id());
+
+        var created = batchService.createBatch(station.id(), request);
+        assertEquals(2, created.size());
+        for (var event : created) {
+            var stored = eventRepo.findById(event.id()).orElseThrow();
+            assertEquals(12, stored.registrationLimit());
+            assertEquals(3, stored.minRegistrations());
+            assertEquals(2, stored.thresholdDays());
+            assertEquals(QueueOrder.FAIRNESS, stored.queueOrder());
+            assertEquals(stored.startTime().minus(24, ChronoUnit.HOURS), stored.registrationDeadline());
+            assertEquals(
+                    List.of(1, 7),
+                    eventServices.reminder().findDays(event.id()).stream()
+                            .sorted()
+                            .toList());
+            assertEquals(
+                    List.of("Größe"),
+                    new EventRegistrationFieldRepository()
+                            .findByEvent(event.id()).stream()
+                                    .map(EventRegistrationField::name)
+                                    .toList());
+        }
+    }
+
+    @Test
+    @Order(6)
+    void aDeadlineOfTheBatchWinsOverTheHoursBeforeEachStart() {
+        Instant start = Instant.now().plus(20, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
+        Instant deadline = start.minus(3, ChronoUnit.DAYS);
+        var rows = List.of(new BatchRow("Fest", start, start.plus(1, ChronoUnit.HOURS), Map.of()));
+        var request = new BatchRequest(
+                "Fest",
+                null,
+                null,
+                null,
+                List.of(),
+                rows,
+                true,
+                false,
+                deadline,
+                RestrictionSelection.empty(),
+                RestrictionSelection.empty(),
+                null,
+                null,
+                null,
+                null,
+                24,
+                List.of(),
+                null);
+
+        var created = batchService.createBatch(station.id(), request);
+        assertEquals(deadline, created.getFirst().registrationDeadline());
+    }
+
+    @Test
+    @Order(7)
+    void aTemplateOfAnotherStationRefusesTheWholeBatch() {
+        var other = stationRepo.create("BatchEventServiceOtherStation");
+        try {
+            var foreign = templateService.create(other.id(), "Fremd");
+            Instant start = Instant.now().plus(30, ChronoUnit.DAYS);
+            var rows = List.of(new BatchRow("Fremd", start, start.plus(1, ChronoUnit.HOURS), Map.of()));
+            var request = new BatchRequest(
+                    "Fremd",
+                    null,
+                    null,
+                    null,
+                    List.of(),
+                    rows,
+                    false,
+                    false,
+                    null,
+                    RestrictionSelection.empty(),
+                    RestrictionSelection.empty(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    List.of(),
+                    foreign.id());
+
+            assertThrows(HttpResponseException.class, () -> batchService.createBatch(station.id(), request));
+            assertTrue(eventRepo.findByStation(station.id()).stream()
+                    .noneMatch(event -> event.name().equals("Fremd")));
+        } finally {
+            stationRepo.delete(other.id());
+        }
+    }
+
+    @Test
+    @Order(8)
+    void aBatchWhoseLaterRowIsRefusedLeavesNoAppointmentBehind() {
+        Instant start = Instant.now().plus(40, ChronoUnit.DAYS);
+        var rows = List.of(
+                new BatchRow("Halb 1", start, start.plus(1, ChronoUnit.HOURS), Map.of()),
+                new BatchRow("Halb 2", start, start.plus(1, ChronoUnit.HOURS), Map.of()),
+                new BatchRow("Halb 3", start, start.minus(1, ChronoUnit.HOURS), Map.of()));
+        var request = new BatchRequest(
+                "Halb",
+                null,
+                null,
+                null,
+                List.of(),
+                rows,
+                false,
+                false,
+                null,
+                RestrictionSelection.empty(),
+                RestrictionSelection.empty());
+
+        assertThrows(HttpResponseException.class, () -> batchService.createBatch(station.id(), request));
+        assertTrue(eventRepo.findByStation(station.id()).stream()
+                .noneMatch(event -> event.name().startsWith("Halb")));
     }
 
     @Test

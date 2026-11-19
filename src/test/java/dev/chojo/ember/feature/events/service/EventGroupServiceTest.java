@@ -646,9 +646,11 @@ class EventGroupServiceTest extends EventGroupServiceTestBase {
 
         var tallies = service.tallies(station.id());
 
-        assertEquals(new EventGroupTally(2, 1, 0), tallies.get(eventGroup.id()));
+        var tally = tallies.get(eventGroup.id());
+        assertEquals(List.of(2, 1, 0, 1), List.of(tally.partCount(), tally.holding(), tally.queued(), tally.pending()));
+        assertTrue(tally.firstStart().isBefore(tally.lastEnd()));
         assertEquals(EventGroupTally.NONE, tallies.get(empty.id()));
-        assertEquals(new EventGroupTally(2, 1, 0), service.tally(eventGroup.id()));
+        assertEquals(tally, service.tally(eventGroup.id()));
         assertEquals(EventGroupTally.NONE, service.tally(-1));
         assertEquals(
                 Set.of(anna.id()),

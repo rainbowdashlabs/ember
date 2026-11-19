@@ -23,7 +23,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import type {Failure} from '@/util/failure'
 import {fullPeoplePlaces, keepsWaitingList} from '@/util/eventGroupChoice'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import FullDateDialog from '../eventshared/FullDateDialog.vue'
+import QueueDialogs from '../eventshared/QueueDialogs.vue'
 import {useQueueActions} from '../eventshared/useQueueActions'
 import {eventGroupQueueRoutes} from '../eventshared/queueRoutes'
 
@@ -60,7 +60,8 @@ const actions = useQueueActions(
     () => fullPeoplePlaces(props.detail.eventGroup),
     async () => { await props.onChanged?.() },
     decideFailure,
-    eventGroupQueueRoutes(props.detail.eventGroup.id))
+    eventGroupQueueRoutes(props.detail.eventGroup.id),
+    id => signUps.value.find(entry => entry.id === id)?.status)
 const deciding = actions.busy
 const failure = computed(() => decideFailure.value ?? loadFailure.value)
 
@@ -98,6 +99,6 @@ defineExpose({reload})
         </ButtonRow>
       </li>
     </ul>
-    <FullDateDialog :question="actions.fullDateQuestion.value" @answer="actions.answerFullDate"/>
+    <QueueDialogs :actions="actions"/>
   </NeutralContainer>
 </template>

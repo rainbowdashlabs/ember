@@ -191,4 +191,95 @@ test.describe('Nachrückliste', () => {
             for (const part of parts) await managerPage.request.delete(`/api/v1/events/${part}`, {headers})
         }
     })
+
+    /**
+     * Refusing a sign-up that already holds a place gives that place away, so the page asks first.
+     * Turning the question down leaves the place where it was; saying yes refuses the sign-up and a
+     * message says so.
+     */
+    test('refusing a confirmed sign-up asks first', async ({managerPage: page}) => {
+        const appointment = await limitedAppointment(page, 3)
+        const holder = await ownMember(page, 'Abgelehnt')
+        try {
+            const held = await appointment.signUp(holder.memberId)
+            expect(held.status, 'the sign-up holds a place').toBe('ACCEPTED')
+            const statusOfHeld = async () =>
+                (await appointment.registrations()).find(registration => registration.id === held.id)?.status
+
+            await page.goto(`/station/events/${appointment.id}`)
+            await page.getByRole('tab', {name: 'Anmeldungen'}).click()
+            const deny = page.getByRole('button', {name: 'Ablehnen'}).first()
+            await deny.click()
+
+            const confirm = page.getByTestId('deny-accepted-confirm')
+            await expect(confirm, 'the page asks before the place is given away').toBeVisible()
+            await page.locator('[data-cancel]').last().click()
+            await expect(confirm).toHaveCount(0)
+            expect(await statusOfHeld(), 'turning the question down keeps the place').toBe('ACCEPTED')
+
+            await deny.click()
+            await confirm.click()
+
+            await expect(page.getByTestId('toast').filter({hasText: 'Anmeldung abgelehnt'})).toBeVisible()
+            await expect.poll(statusOfHeld, {message: 'saying yes refuses the sign-up', timeout: 15000}).toBe('DENIED')
+            await expect(page.getByText('1 abgelehnt')).toBeVisible()
+        } finally {
+            await appointment.remove()
+        }
+    })
+
+    /**
+     * A sign-up for an event group that waits for confirmation is decided for the whole group, so the
+     * open sign-ups list it once, under the event group, leading to the group's page. The dates it
+     * chose do not list it a second time.
+     */
+    test('the open sign-ups list an event group sign-up once, under its event group', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const groupName = unique('Bestätigungskurs')
+        const created = await page.request.post('/api/v1/events/groups', {
+            headers,
+            data: {
+                details: {
+                    name: groupName, description: null, registrationLimit: null, registrationDeadline: null,
+                    requiresConfirmation: true, color: null, minRegistrations: null, thresholdDays: null,
+                    partRegistrationLimit: null, queueOrder: null,
+                },
+                sets: [{id: null, name: 'Kurstage', minimum: 1, maximum: null}],
+            },
+        })
+        expect(created.ok(), `the organiser made an event group (${await created.text()})`).toBeTruthy()
+        const group = await created.json() as {eventGroup: {id: number}, sets: {id: number}[]}
+        const groupId = group.eventGroup.id
+        const parts: number[] = []
+        const partNames = [unique('Kurstag Samstag'), unique('Kurstag Sonntag')]
+        try {
+            for (const [index, name] of partNames.entries()) {
+                const when = aheadByDays(40 + index)
+                const part = await page.request.post(`/api/v1/events/groups/${groupId}/parts/new`, {
+                    headers,
+                    data: {name, setId: group.sets[0]!.id, startTime: when.start, endTime: when.end},
+                })
+                expect(part.ok(), `the organiser added a date (${await part.text()})`).toBeTruthy()
+                parts.push((await part.json() as {eventId: number}).eventId)
+            }
+            const member = await ownMember(page, 'Kursanmeldung')
+            const signedUp = await page.request.post(`/api/v1/events/groups/${groupId}/sign-up`,
+                {headers, data: {parts, answers: [], memberId: member.memberId}})
+            expect(signedUp.ok(), `somebody signed up for both dates (${await signedUp.text()})`).toBeTruthy()
+
+            await page.goto('/station/events/registrations')
+            const rows = page.getByTestId('pending-event-group-row').filter({hasText: groupName})
+            await expect(rows, 'the event group is listed once').toHaveCount(1, {timeout: 15000})
+            await expect(rows).toContainText('1 offen')
+            for (const name of partNames) {
+                await expect(page.getByText(name), 'its dates do not list the sign-up again').toHaveCount(0)
+            }
+
+            await rows.click()
+            await expect(page).toHaveURL(new RegExp(`/station/events/groups/${groupId}$`))
+        } finally {
+            await page.request.delete(`/api/v1/events/groups/${groupId}`, {headers})
+            for (const part of parts) await page.request.delete(`/api/v1/events/${part}`, {headers})
+        }
+    })
 })

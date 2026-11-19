@@ -5,6 +5,7 @@
  */
 import {test, expect, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {openFormSection} from './fixtures/formSection'
 
 /** Where half a row stands on the width slider, counted from its narrowest stop. */
 const HALF_STOP = '2'
@@ -25,6 +26,7 @@ async function openTemplate(page: Page, name: string) {
     await row.waitFor()
     await row.getByRole('button').first().click()
     await page.waitForURL(/\/station\/events\/templates\/\d+/)
+    await openFormSection(page, 'fields')
     await page.getByTestId('question-name').first().waitFor()
 }
 
@@ -67,6 +69,7 @@ test.describe('Event templates', () => {
             page.getByRole('button', {name: 'Speichern'}).click(),
         ])
         await page.reload()
+        await openFormSection(page, 'fields')
         await page.getByTestId('question-name').first().waitFor()
 
         expect(await fieldNames(page)).toEqual([before[1], before[0], ...before.slice(2)])
@@ -114,6 +117,7 @@ test.describe('Event templates', () => {
             page.getByRole('button', {name: 'Speichern'}).click(),
         ])
         await page.reload()
+        await openFormSection(page, 'fields')
         await page.getByTestId('field-width').first().waitFor()
 
         await expect(page.getByTestId('field-width').first().getByRole('slider'), 'the width outlives the save')
@@ -139,6 +143,7 @@ test.describe('Event templates', () => {
 
         await original.getByLabel('Duplizieren').click()
         await page.waitForURL(/\/station\/events\/templates\/\d+/)
+        await openFormSection(page, 'fields')
         await page.getByTestId('question-name').first().waitFor()
 
         expect(await fieldNames(page), 'the copy asks the same things').toEqual(questions)
@@ -174,6 +179,7 @@ test.describe('Event templates', () => {
 
         await page.goto('/station/events/new')
         await page.getByTestId('apply-template').selectOption({label: name})
+        await openFormSection(page, 'fields')
 
         await expect(page.getByTestId('event-attendance-template'),
             'the appointment takes the sheet the template named').toHaveValue(sheet)
@@ -189,6 +195,7 @@ test.describe('Event templates', () => {
      */
     test('a question of the attendance sheet is taken into the appointment', async ({managerPage: page}) => {
         await page.goto('/station/events/new')
+        await openFormSection(page, 'fields')
 
         const sheet = page.getByTestId('event-attendance-template')
         await sheet.selectOption({index: 1})
@@ -220,7 +227,9 @@ test.describe('Event templates', () => {
         await page.getByRole('button', {name: 'Vorlage erstellen'}).last().click()
         await page.waitForURL(/\/station\/events\/templates\/\d+/)
 
-        const onTemplate = page.getByTestId('restriction-groups')
+        await openFormSection(page, 'audience')
+        await page.getByTestId('restrict-registration').click()
+        const onTemplate = page.getByTestId('restriction-registration').getByTestId('restriction-groups')
         await onTemplate.getByRole('button').first().click()
         await page.getByRole('option', {name: 'Anfänger'}).click()
         await expect(onTemplate.getByRole('button').first()).toHaveText(/Anfänger/)
@@ -231,6 +240,7 @@ test.describe('Event templates', () => {
 
         await page.goto('/station/events/new')
         await page.getByTestId('apply-template').selectOption({label: name})
+        await openFormSection(page, 'audience')
 
         await expect(page.getByTestId('restriction-groups').getByRole('button').first(),
             'the appointment starts with the group the template named').toHaveText(/Anfänger/)

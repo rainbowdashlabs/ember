@@ -81,6 +81,7 @@ const runsQuiz = runs(StationModule.QUIZ)
 const stationAdmin = can(StationPermission.STATION_ADMINISTRATOR)
 /** Reported chat messages, for whoever looks after the station's chats while messaging is on. */
 const managesChatReports = both(messagesOn, can(StationPermission.MESSAGE_CHAT_MANAGE))
+const readsStatistics = can(StationPermission.STATION_STATISTICS)
 
 /**
  * Named after the halves it still carries: a station that runs its tests but no quiz should not read
@@ -155,12 +156,8 @@ export const STATION_NAV: Entry[] = [
         ],
     },
     {
-        kind: 'group', key: 'dashboard', label: 'sidebar.dashboard', icon: 'gauge', onboarding: 'nav.dashboard',
-        badge: ({counts}) => counts.notifications,
-        children: [
-            {kind: 'page', key: 'dashboard-overview', label: 'sidebar.home', icon: 'house', to: '/station/dashboard/overview', badge: ({counts}) => counts.notifications},
-            {kind: 'page', key: 'dashboard-statistics', label: 'sidebar.statistics', icon: 'chart-line', to: '/station/dashboard/statistics', visible: can(StationPermission.STATION_STATISTICS)},
-        ],
+        kind: 'page', key: 'dashboard-overview', label: 'sidebar.dashboard', icon: 'gauge', to: '/station/dashboard/overview',
+        onboarding: 'nav.dashboard', badge: ({counts}) => counts.notifications,
     },
     {kind: 'page', key: 'station-requirements', label: 'sidebar.requirements', icon: 'clipboard-check', to: '/station/requirements', badge: ({counts}) => counts.requirements, visible: ({counts}) => counts.requirements > 0},
     {kind: 'page', key: 'news-list', label: 'sidebar.news', icon: 'newspaper', to: '/station/news', onboarding: 'nav.news', visible: runs(StationModule.NEWS)},
@@ -338,13 +335,15 @@ export const STATION_NAV: Entry[] = [
         ],
     },
     {
-        kind: 'group', key: 'station-monitoring', label: 'sidebar.monitoring', icon: 'chart-line', visible: either(stationAdmin, managesChatReports),
+        kind: 'group', key: 'station-monitoring', label: 'sidebar.monitoring', icon: 'chart-line',
+        visible: either(either(stationAdmin, managesChatReports), readsStatistics),
         children: [
             {kind: 'page', key: 'station-traffic', label: 'sidebar.stationTraffic', icon: 'tower-broadcast', to: '/station/monitoring/traffic', visible: stationAdmin},
             {kind: 'page', key: 'station-insights', label: 'sidebar.stationInsights', icon: 'chart-pie', to: '/station/monitoring/insights', visible: stationAdmin},
             {kind: 'page', key: 'station-feeds', label: 'sidebar.stationFeeds', icon: 'rss', to: '/station/monitoring/feeds', visible: stationAdmin},
             {kind: 'page', key: 'station-storage', label: 'sidebar.storage', icon: 'hard-drive', to: '/station/monitoring/storage', visible: stationAdmin},
             {kind: 'page', key: 'message-reports', label: 'sidebar.messageReports', icon: 'flag', to: '/station/messages/reports', visible: managesChatReports},
+            {kind: 'page', key: 'station-statistics', label: 'sidebar.statistics', icon: 'chart-line', to: '/station/monitoring/statistics', visible: readsStatistics},
         ],
     },
     {

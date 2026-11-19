@@ -18,7 +18,8 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import ActionsMenu from '@/components/button/ActionsMenu.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
@@ -161,11 +162,14 @@ const exampleVisitors = computed((): WaitingListVisitor[] => [{
       </HelpPermissionGuard>
       <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">
         <p>{{ t('helpCenter.eventGroupDetail.editText') }}</p>
-        <ButtonRow align="end">
-          <SecondaryButton :icon="['fas', 'pen']">{{ t('eventGroups.edit') }}</SecondaryButton>
-          <SecondaryButton :icon="['fas', 'ban']">{{ t('eventGroups.cancel') }}</SecondaryButton>
-          <ErrorButton :icon="['fas', 'trash']">{{ t('eventGroups.delete') }}</ErrorButton>
-        </ButtonRow>
+        <div class="flex items-center justify-end gap-2">
+          <SecondaryButton :icon="['fas', 'arrow-left']"><span class="max-sm:sr-only">{{ t('common.back') }}</span></SecondaryButton>
+          <PrimaryButton :icon="['fas', 'pen']">{{ t('eventGroups.edit') }}</PrimaryButton>
+          <ActionsMenu :label="t('common.actions')" test-id="help-event-group-actions">
+            <DropdownMenuItem :icon="['fas', 'ban']" destructive>{{ t('eventGroups.cancel') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'trash']" destructive>{{ t('eventGroups.delete') }}</DropdownMenuItem>
+          </ActionsMenu>
+        </div>
       </HelpPermissionGuard>
     </HelpSection>
     <HelpPermissionGuard :permissions="[StationPermission.WAITLIST_READ]" :label="t('helpCenter.permissionLabel.waitlistRead')">

@@ -10,6 +10,7 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FormSection from '@/components/container/FormSection.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -57,6 +58,11 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
   <HelpArticle :title="t('helpCenter.eventEdit.title')" :subtitle="t('helpCenter.eventEdit.subtitle')">
     <HelpSection :title="t('helpCenter.eventEdit.whatShown')">
       <p>{{ t('helpCenter.eventEdit.whatShownText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.sectionsText') }}</p>
+      <NeutralContainer sheet class="mt-3">
+        <FormSection :title="t('formSections.reminders')" :summary="t('formSections.remindersSet', {days: '1, 7'})"/>
+        <FormSection :title="t('formSections.questions')" :summary="t('formSections.questionsSet', {count: 3})"/>
+      </NeutralContainer>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventEdit.loadTemplateTitle')">

@@ -18,9 +18,9 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import EventGroupFields from './EventGroupFields.vue'
 import type {EventGroupDetail, EventGroupPartState} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
-import {eventGroupPlaces, partPlaces, partsOfSet, ruleOf} from '@/util/eventGroupChoice'
+import {eventGroupPlaces, partPlaces, partsOfSet, partWhen, ruleOf} from '@/util/eventGroupChoice'
 import {placesLabel} from '@/util/eventPlaces'
-import {formatDate, formatDateTime, formatTime} from '@/util/format'
+import {formatDateTime} from '@/util/format'
 import type {EventGroupMark} from '../eventshared/eventGroupColor'
 import {renderMarkdown} from '@/util/markdown'
 
@@ -77,13 +77,9 @@ const mark = computed<EventGroupMark>(() => {
   }
 })
 
-/** When a part runs, from its start to its end; the end of a part that ends on the day it starts is only its clock. */
+/** When a part runs, from its start to its end. */
 function whenOf(part: EventGroupPartState): string {
-  const sameDay = formatDate(part.startTime, stationTimezone.value) === formatDate(part.endTime, stationTimezone.value)
-  return t('eventGroups.dateRange', {
-    first: formatDateTime(part.startTime, stationTimezone.value),
-    last: sameDay ? formatTime(part.endTime, stationTimezone.value) : formatDateTime(part.endTime, stationTimezone.value),
-  })
+  return partWhen(part, stationTimezone.value, t)
 }
 </script>
 

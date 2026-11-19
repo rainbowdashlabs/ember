@@ -49,6 +49,15 @@ describe('useEventFederationShare', () => {
         expect(api.events.setPartnerPlaces).toHaveBeenCalledWith(12, 4, 2, true)
     })
 
+    /** A form left at "not shared" would stop the sharing on the next save, so a failed read fails the load. */
+    it('fails the load where the share cannot be read', async () => {
+        api.events.getFederationShare.mockRejectedValue({response: {status: 500, data: {}}})
+        const share = useEventFederationShare(ref(true))
+
+        await expect(share.load(eventFederationPort(12))).rejects.toBeDefined()
+        expect(api.events.removeFederationShare).not.toHaveBeenCalled()
+    })
+
     it('reads and writes a template share through the template routes, without places', async () => {
         const share = useEventFederationShare(ref(true))
 

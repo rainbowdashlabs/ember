@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, useId} from 'vue'
+import {computed, ref, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -16,6 +16,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import HintIcon from '@/components/typography/HintIcon.vue'
+import FormSection from '@/components/container/FormSection.vue'
+import {audienceSummary, fieldsSummary, turnoutSummary} from './sectionSummaries'
 import AudienceRestrictions from './AudienceRestrictions.vue'
 import type {RestrictionSelection} from '@/api/types'
 import EventFieldList from './EventFieldList.vue'
@@ -35,7 +37,7 @@ import {
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {weekdayName} from '@/util/format'
 
-defineProps<{
+const props = defineProps<{
   categories: EventCategory[]
   templates: AttendanceTemplate[]
   attendanceFields?: AttendanceTemplateField[]
@@ -51,6 +53,17 @@ defineProps<{
    * audiences, and it stays a one-time appointment, so those settings are left out here.
    */
   eventGroupPart?: boolean
+  /** Whether questions are asked, which are answered when signing up, so sign-up stays on. */
+  signUpHeld?: boolean
+  /**
+   * The settings the event group hands down to a part, where it does: the inherited settings card
+   * shows them, so the form leaves out its own control until the part overrides the setting.
+   */
+  followsGroup?: {category: boolean; template: boolean}
+  /** Whether the fields stand open from the start, where defining them is what the page is for. */
+  openFields?: boolean
+  /** The folded sections that hold something the reader has to see now, by key, which opens them. */
+  attention?: readonly string[]
 }>()
 
 const name = defineModel<string>('name', {required: true})
@@ -100,6 +113,18 @@ function setRecurring(repeats: boolean) {
 const {t} = useI18n()
 
 const labelId = useId()
+
+const fieldsOpen = ref(props.openFields ?? false)
+
+/** Whether the category is chosen here, which a part leaves to its event group until it overrides it. */
+const showsCategory = computed(() => !props.followsGroup?.category || categoryId.value !== '')
+
+/** Whether the attendance template is chosen here, on the same terms as the category. */
+const showsTemplate = computed(() => !props.followsGroup?.template || templateId.value !== '')
+
+/** The name of the attendance template chosen here, empty for none. */
+const sheetName = computed(() =>
+    props.templates.find(template => String(template.id) === templateId.value)?.name ?? '')
 </script>
 
 <template>
@@ -142,52 +167,29 @@ const labelId = useId()
       />
     </template>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <div class="space-y-1">
-        <FieldLabel>{{ t('events.category') }}</FieldLabel>
-        <SelectInput v-model="categoryId" class="w-full">
-          <option value="">-</option>
-          <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
-        </SelectInput>
-      </div>
-      <div class="space-y-1">
-        <FieldLabel>{{ t('events.template') }}</FieldLabel>
-        <SelectInput v-model="templateId" class="w-full" data-testid="event-attendance-template">
-          <option value="">-</option>
-          <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
-        </SelectInput>
-      </div>
+    <div v-if="showsCategory" class="space-y-1">
+      <FieldLabel>{{ t('events.category') }}</FieldLabel>
+      <SelectInput v-model="categoryId" class="w-full">
+        <option value="">-</option>
+        <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
+      </SelectInput>
     </div>
-
-    <EventFieldList
-        v-model:fields="fields"
-        compact
-        :attendance-fields="attendanceFields"
-        :show-value="showValue"
-        :all-members="allMembers"
-        :groups="groups"
-        :group-members="groupMembers"
-        :tags="tags"
-        :tag-members="tagMembers"
-        :recurring="isRecurringEvent(eventType)"
-    />
-
-    <slot name="after-fields"/>
 
     <div class="space-y-1">
       <FieldLabel>{{ t('events.description') }}</FieldLabel>
       <MarkdownEditor v-model="description" :placeholder="t('events.descriptionPlaceholder')"/>
     </div>
 
-    <slot name="after-description"/>
-
     <template v-if="requiresRegistration !== undefined && !eventGroupPart">
       <hr class="border-(--border)"/>
       <SubHeader>{{ t('events.registration') }}</SubHeader>
 
       <div class="flex items-center justify-between">
-        <span :id="`${labelId}-registration`" class="text-sm font-medium">{{ t('events.requiresRegistration') }}</span>
-        <ToggleInput v-model="requiresRegistration" :aria-labelledby="`${labelId}-registration`"/>
+        <span class="flex items-center gap-1">
+          <span :id="`${labelId}-registration`" class="text-sm font-medium">{{ t('events.requiresRegistration') }}</span>
+          <HintIcon v-if="signUpHeld" :text="t('events.signUpHeldByQuestions')"/>
+        </span>
+        <ToggleInput v-model="requiresRegistration" :disabled="signUpHeld" :aria-labelledby="`${labelId}-registration`"/>
       </div>
 
       <template v-if="requiresRegistration">
@@ -216,35 +218,78 @@ const labelId = useId()
         </div>
 
         <QueueOrderField v-if="queueOrder !== undefined && registrationLimit" v-model="queueOrder"/>
-
-        <div class="space-y-1">
-          <FieldLabel>{{ t('events.minRegistrations') }}</FieldLabel>
-          <NumberInput v-model="minRegistrations" placeholder=""/>
-        </div>
-
-        <div v-if="minRegistrations && minRegistrations > 0" class="space-y-1">
-          <div class="flex items-center gap-1">
-            <FieldLabel>{{ t('events.thresholdDays') }}</FieldLabel>
-            <HintIcon :text="t('events.thresholdDaysHint')"/>
-          </div>
-          <NumberInput v-model="thresholdDays" :placeholder="t('events.thresholdDaysPlaceholder')"/>
-        </div>
-
-        <div v-if="eventType !== undefined && eventType !== 'ONE_TIME'" class="space-y-1">
-          <div class="flex items-center gap-1">
-            <FieldLabel>{{ t('events.registrationCloseDays') }}</FieldLabel>
-            <HintIcon :text="t('events.registrationCloseDaysHint')"/>
-          </div>
-          <NumberInput v-model="registrationCloseDays"/>
-        </div>
       </template>
     </template>
 
-    <template v-if="groups && tags && !eventGroupPart">
-      <hr class="border-(--border)"/>
-      <SubHeader>{{ t('events.restrictions') }}</SubHeader>
+    <FormSection
+        v-if="requiresRegistration !== undefined && !eventGroupPart && requiresRegistration"
+        :title="recurring ? t('formSections.turnout') : t('formSections.turnoutMinimum')"
+        :summary="turnoutSummary(minRegistrations, thresholdDays, recurring ? registrationCloseDays : null, t)"
+        data-testid="form-section-turnout"
+    >
+      <div class="space-y-1">
+        <FieldLabel>{{ t('events.minRegistrations') }}</FieldLabel>
+        <NumberInput v-model="minRegistrations" placeholder=""/>
+      </div>
 
+      <div v-if="minRegistrations && minRegistrations > 0" class="space-y-1">
+        <div class="flex items-center gap-1">
+          <FieldLabel>{{ t('events.thresholdDays') }}</FieldLabel>
+          <HintIcon :text="t('events.thresholdDaysHint')"/>
+        </div>
+        <NumberInput v-model="thresholdDays" :placeholder="t('events.thresholdDaysPlaceholder')"/>
+      </div>
+
+      <div v-if="eventType !== undefined && eventType !== 'ONE_TIME'" class="space-y-1">
+        <div class="flex items-center gap-1">
+          <FieldLabel>{{ t('events.registrationCloseDays') }}</FieldLabel>
+          <HintIcon :text="t('events.registrationCloseDaysHint')"/>
+        </div>
+        <NumberInput v-model="registrationCloseDays"/>
+      </div>
+    </FormSection>
+
+    <FormSection
+        v-model:open="fieldsOpen"
+        :title="t('formSections.fields')"
+        :summary="fieldsSummary(sheetName, fields.length, t, !!followsGroup?.template)"
+        :attention="attention?.includes('fields')"
+        data-testid="form-section-fields"
+    >
+      <div v-if="showsTemplate" class="space-y-1">
+        <FieldLabel>{{ t('events.template') }}</FieldLabel>
+        <SelectInput v-model="templateId" class="w-full" data-testid="event-attendance-template">
+          <option value="">-</option>
+          <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
+        </SelectInput>
+      </div>
+
+      <EventFieldList
+          v-model:fields="fields"
+          compact
+          :attendance-fields="attendanceFields"
+          :show-value="showValue"
+          :all-members="allMembers"
+          :groups="groups"
+          :group-members="groupMembers"
+          :tags="tags"
+          :tag-members="tagMembers"
+          :recurring="isRecurringEvent(eventType)"
+      />
+
+      <slot name="after-fields"/>
+    </FormSection>
+
+    <slot name="sections"/>
+
+    <FormSection
+        v-if="groups && tags && !eventGroupPart"
+        :title="t('formSections.audience')"
+        :summary="audienceSummary(restriction, viewRestriction, t)"
+        :attention="attention?.includes('audience')"
+        data-testid="form-section-audience"
+    >
       <AudienceRestrictions v-model:registration="restriction" v-model:visibility="viewRestriction" :groups="groups" :tags="tags"/>
-    </template>
+    </FormSection>
   </div>
 </template>

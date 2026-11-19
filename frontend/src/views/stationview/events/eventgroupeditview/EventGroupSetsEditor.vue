@@ -10,9 +10,19 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+import HintIcon from '@/components/typography/HintIcon.vue'
 import {moveWithin} from '@/util/reorder'
+import {DRAG_CONTROL_COLUMN} from '@/components/input/dragControls'
 import type {SetRow} from './eventGroupSetRow'
+
+/** The width of the minimum and the maximum, in the header and in every row alike. */
+const NUMBER_COLUMN = 'w-24 shrink-0'
+
+/** The width of the delete button, kept as an empty column where a lone set cannot be removed, so the header lines up. */
+const ACTION_COLUMN = 'w-8 shrink-0'
+
+/** The width of the info icon that says what the set's numbers mean, kept empty where there is nothing to say. */
+const HINT_COLUMN = 'w-5 shrink-0'
 
 /**
  * The sets of an event group, in the order members see them: a name and how many of its parts a sign-up
@@ -89,36 +99,52 @@ function update(index: number, change: Partial<SetRow>) {
 
 <template>
   <div class="space-y-2" data-testid="event-group-sets">
+    <div class="hidden sm:flex items-end gap-2 text-xs font-medium text-(--text-muted)" data-testid="event-group-sets-header">
+      <span :class="[DRAG_CONTROL_COLUMN, 'shrink-0']" aria-hidden="true"/>
+      <span class="flex-1 min-w-40">{{ t('eventGroups.setName') }}</span>
+      <span :class="NUMBER_COLUMN">{{ t('eventGroups.setMinimumColumn') }}</span>
+      <span :class="NUMBER_COLUMN">{{ t('eventGroups.setMaximumColumn') }}</span>
+      <span :class="HINT_COLUMN" aria-hidden="true"/>
+      <span :class="ACTION_COLUMN" aria-hidden="true"/>
+    </div>
     <DragList :items="sets" :key-fn="(set, index) => set.id ?? `new-${index}`" @reorder="(from, to) => sets = moveWithin(sets, from, to)">
       <template #default="{item: set, index}">
-        <div class="flex flex-wrap items-center gap-2">
-          <TextInput
-              :model-value="set.name"
-              :aria-label="t('eventGroups.setName')"
-              class="flex-1 min-w-40"
-              @update:model-value="value => update(index, {name: value ?? ''})"
-          />
-          <span class="w-24" @focusout="event => resync(event, set.minimum)">
-            <NumberInput
-                :model-value="set.minimum"
-                :aria-label="t('eventGroups.setMinimum')"
-                min="0"
-                :data-testid="`event-group-set-minimum-${index}`"
-                @update:model-value="value => update(index, withMinimum(set, value))"
+        <div>
+          <div class="flex flex-wrap items-end gap-2 sm:flex-nowrap sm:items-center">
+            <TextInput
+                :model-value="set.name"
+                :aria-label="t('eventGroups.setName')"
+                class="flex-1 min-w-40"
+                @update:model-value="value => update(index, {name: value ?? ''})"
             />
-          </span>
-          <span class="w-24" @focusout="event => resync(event, set.maximum)">
-            <NumberInput
-                :model-value="set.maximum ?? undefined"
-                :aria-label="t('eventGroups.setMaximum')"
-                :placeholder="t('eventGroups.setMaximum')"
-                min="0"
-                :data-testid="`event-group-set-maximum-${index}`"
-                @update:model-value="value => update(index, {maximum: boundedMaximum(set, value)})"
-            />
-          </span>
-          <MutedText tag="span" size="sm" :data-testid="`event-group-set-hint-${index}`">{{ hint(set) }}</MutedText>
-          <DeleteButton v-if="sets.length > 1" :label="t('eventGroups.removeSet')" @click="remove(index)"/>
+            <span :class="[NUMBER_COLUMN, 'flex flex-col gap-0.5']" @focusout="event => resync(event, set.minimum)">
+              <span class="text-xs text-(--text-muted) sm:hidden" aria-hidden="true">{{ t('eventGroups.setMinimumColumn') }}</span>
+              <NumberInput
+                  :model-value="set.minimum"
+                  :aria-label="t('eventGroups.setMinimum')"
+                  min="0"
+                  :data-testid="`event-group-set-minimum-${index}`"
+                  @update:model-value="value => update(index, withMinimum(set, value))"
+              />
+            </span>
+            <span :class="[NUMBER_COLUMN, 'flex flex-col gap-0.5']" @focusout="event => resync(event, set.maximum)">
+              <span class="text-xs text-(--text-muted) sm:hidden" aria-hidden="true">{{ t('eventGroups.setMaximumColumn') }}</span>
+              <NumberInput
+                  :model-value="set.maximum ?? undefined"
+                  :aria-label="t('eventGroups.setMaximum')"
+                  :placeholder="t('eventGroups.setMaximumNone')"
+                  min="0"
+                  :data-testid="`event-group-set-maximum-${index}`"
+                  @update:model-value="value => update(index, {maximum: boundedMaximum(set, value)})"
+              />
+            </span>
+            <span :class="[HINT_COLUMN, 'flex items-center']" :data-testid="`event-group-set-hint-${index}`">
+              <HintIcon v-if="hint(set)" :text="hint(set)"/>
+            </span>
+            <span :class="ACTION_COLUMN">
+              <DeleteButton v-if="sets.length > 1" :label="t('eventGroups.removeSet')" @click="remove(index)"/>
+            </span>
+          </div>
         </div>
       </template>
     </DragList>

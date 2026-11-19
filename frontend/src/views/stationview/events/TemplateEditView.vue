@@ -162,9 +162,16 @@ function seedForm(detail: TemplateDetailResponse) {
   }))
 }
 
+/**
+ * Whether the editor could not be filled. The form is not shown then, since saving a form filled only
+ * in part would replace what the template holds with what is missing.
+ */
+const loadFailed = ref(false)
+
 /** Fills the editor once the session is there, since the choices it offers depend on the station. */
 const {loading, failure} = useAsyncLoader(async () => {
   await until(loaded).toBe(true)
+  loadFailed.value = false
   try {
     const [detail, cats, attTpls, memberGroups, userTags] = await Promise.all([
       events.getTemplate(templateId.value),
@@ -189,6 +196,7 @@ const {loading, failure} = useAsyncLoader(async () => {
 
     seedForm(detail)
   } catch (e) {
+    loadFailed.value = true
     reportCaughtError(e, 'TemplateEditView.loadData')
     throw e
   }
@@ -260,7 +268,7 @@ async function save() {
       <FailureAlert :failure="failure"/>
 
       <TemplateEditBody
-          v-if="!loading"
+          v-if="!loading && !loadFailed"
           v-model:name="name"
           v-bind="settingsModel.props.value"
           v-model:attendance-template-id="attendanceTemplateId"
@@ -284,11 +292,14 @@ async function save() {
             :can-federate="canFederate"
             :attachments="attachments"
             :station-uid="stationUid"
-        />
-        <DocumentRequirementsEditor
-            v-model="documentRequirements.chosen.value"
-            :offered-count="documentRequirements.offeredCount.value"
-        />
+            :document-count="documentRequirements.chosen.value.length"
+        >
+          <DocumentRequirementsEditor
+              v-model="documentRequirements.chosen.value"
+              :offered-count="documentRequirements.offeredCount.value"
+              compact
+          />
+        </TemplateCarriedCards>
       </TemplateEditBody>
     </div>
   </ViewContent>

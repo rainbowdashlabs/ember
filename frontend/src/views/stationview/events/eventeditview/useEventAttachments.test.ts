@@ -54,6 +54,10 @@ function attachment(id: number, overrides: Partial<EventAttachment> = {}): Event
 }
 
 const pickedFile = {id: 77, fileName: 'laufzettel.pdf'} as StationFile
+const secondFile = {id: 78, fileName: 'anfahrt.pdf'} as StationFile
+
+const showToast = vi.hoisted(() => vi.fn())
+vi.mock('@/util/toast', () => ({showToast}))
 
 const t = (key: string) => key
 
@@ -62,7 +66,8 @@ const t = (key: string) => key
  *
  * <p>Nothing here waits for a save: the event already exists, and a file that only lands when the
  * form is submitted is a file somebody believes they attached. What is checked is that each change
- * reaches the server as it is made, and that an event that is not there yet is left alone.
+ * reaches the server as it is made, and that an event that is not there yet keeps its files pending
+ * until it is created.
  */
 describe('useEventAttachments', () => {
     beforeEach(() => {
@@ -119,18 +124,67 @@ describe('useEventAttachments', () => {
         expect(reorderEventAttachments).toHaveBeenCalledWith(12, [3, 1, 2])
     })
 
-    /** An event that has not been created has nothing to hang a file on. */
-    it('asks nothing of an event that is not there yet', async () => {
+    /** An event that has not been created keeps its files here, asking the server nothing, until it is. */
+    it('keeps the files of an event that is not there yet, with their edits, and asks nothing', async () => {
         const files = useEventAttachments(() => null, t)
 
         await files.load()
         await files.add(pickedFile)
-        await files.remove(0)
+        await files.add(secondFile)
+        await files.save({...files.attachments.value[0]!, label: 'Laufzettel', internal: true})
         await files.reorder(0, 1)
 
+        expect(files.attachments.value.map(file => [file.fileId, file.label, file.internal]))
+            .toEqual([[78, null, false], [77, 'Laufzettel', true]])
+        await files.remove(0)
+        expect(files.attachments.value.map(file => file.fileId)).toEqual([77])
         expect(listEventAttachments).not.toHaveBeenCalled()
         expect(attachEventFile).not.toHaveBeenCalled()
+        expect(updateEventAttachment).not.toHaveBeenCalled()
         expect(reorderEventAttachments).not.toHaveBeenCalled()
+        expect(detachEventFile).not.toHaveBeenCalled()
+    })
+
+    /** Once the event exists, its pending files go onto it in their order, with their labels and flags. */
+    it('hangs the pending files on the event just created, in order', async () => {
+        const files = useEventAttachments(() => null, t)
+        await files.add(pickedFile)
+        await files.add(secondFile)
+        await files.save({...files.attachments.value[1]!, label: 'Anfahrt'})
+
+        const failed = await files.attachPendingTo(eventAttachmentPort(31))
+
+        expect(failed).toEqual([])
+        expect(attachEventFile.mock.calls).toEqual([[31, 77, null, false], [31, 78, 'Anfahrt', false]])
+        expect(files.attachments.value.every(file => file.id >= 0)).toBe(true)
+        expect(showToast).not.toHaveBeenCalled()
+    })
+
+    /** A pending file the event already got from its template is dropped, not attached twice. */
+    it('leaves out a pending file the event already carries', async () => {
+        const files = useEventAttachments(() => null, t)
+        await files.add(pickedFile)
+        await files.add(secondFile)
+
+        await files.attachPendingTo(eventAttachmentPort(31), new Set([77]))
+
+        expect(attachEventFile.mock.calls).toEqual([[31, 78, null, false]])
+        expect(files.attachments.value.map(file => file.fileId)).toEqual([78])
+    })
+
+    /** A file that cannot be attached does not undo the event: it is named, and the others still go on. */
+    it('names a pending file that could not be attached and attaches the rest', async () => {
+        const files = useEventAttachments(() => null, t)
+        await files.add(pickedFile)
+        await files.add(secondFile)
+        attachEventFile.mockRejectedValueOnce(new Error('weg'))
+
+        const failed = await files.attachPendingTo(eventAttachmentPort(31))
+
+        expect(failed).toEqual(['laufzettel.pdf'])
+        expect(attachEventFile).toHaveBeenCalledTimes(2)
+        expect(files.attachments.value.map(file => file.fileId)).toEqual([78])
+        expect(showToast).toHaveBeenCalledWith('events.attachments.pendingFailed', 'error')
     })
 
     /**

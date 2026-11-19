@@ -26565,6 +26565,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/partner-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The answers partner stations' members gave to an event's registration questions */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerAnswers"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/partner-places": {
         parameters: {
             query?: never;
@@ -71002,15 +71040,27 @@ export interface components {
             /** Format: int32 */
             categoryId?: number | null;
             description?: string | null;
+            /** Format: int32 */
+            eventTemplateId?: number | null;
             inlineFields?: components["schemas"]["BatchFieldEntryDto"][] | null;
+            /** Format: int32 */
+            minRegistrations?: number | null;
             name?: string | null;
+            queueOrder?: components["schemas"]["QueueOrder"] | null;
             registrationDeadline?: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            registrationDeadlineOffsetHours?: number | null;
+            /** Format: int32 */
+            registrationLimit?: number | null;
+            reminderDays?: number[] | null;
             requiresConfirmation?: boolean | null;
             requiresRegistration?: boolean | null;
             restriction?: components["schemas"]["RestrictionSelection"] | null;
             rows?: components["schemas"]["BatchRowEntry"][];
             /** Format: int32 */
             templateId?: number | null;
+            /** Format: int32 */
+            thresholdDays?: number | null;
             viewRestriction?: components["schemas"]["RestrictionSelection"] | null;
         };
         BatchFieldChoice: {
@@ -73854,12 +73904,16 @@ export interface components {
             cancelled: boolean;
             cancelReason: string | null;
             details: components["schemas"]["EventGroupDetails"];
+            firstStart: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             holding: number;
             /** Format: int32 */
             id: number;
+            lastEnd: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             partCount: number;
+            /** Format: int32 */
+            pending: number;
             /** Format: int32 */
             queued: number;
         };
@@ -74220,6 +74274,7 @@ export interface components {
             partnerStationUid: string;
         };
         FederatedRegBody: {
+            answers?: components["schemas"]["EventRegistrationFieldValue"][] | null;
             eventDate?: string;
             /** Format: uuid */
             memberId?: string | null;
@@ -78142,6 +78197,11 @@ export interface components {
         };
         /** @enum {string} */
         PartnerAgreementState: "MISSING" | "ASKED" | "SIGNED" | "PAPER_CONFIRMED" | "WITHDRAWN";
+        PartnerAnswers: {
+            answers: components["schemas"]["EventRegistrationFieldValue"][];
+            /** Format: int32 */
+            registrationId: number;
+        };
         PartnerDocumentToSign: {
             /** Format: int32 */
             memberId: number;
@@ -78150,9 +78210,11 @@ export interface components {
             signature: components["schemas"]["RequirementSignature"];
         };
         PartnerEventDetail: {
+            datePlaces: components["schemas"]["RemoteDatePlaces"] | null;
             event: components["schemas"]["SharedEvent"];
             places: components["schemas"]["RemotePlaces"] | null;
             publicFields: components["schemas"]["AppointmentField"][];
+            questions: components["schemas"]["EventRegistrationField"][];
         };
         PartnerPlacesView: {
             partnerConfirms: boolean;
@@ -79905,6 +79967,15 @@ export interface components {
             catalog: components["schemas"]["QuizCatalog"];
             categories: components["schemas"]["QuizCategory"][];
             questions: components["schemas"]["QuizQuestion"][];
+        };
+        RemoteDatePlaces: {
+            date: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            limit: number | null;
+            /** Format: int32 */
+            taken: number;
+            /** Format: int32 */
+            waiting: number;
         };
         RemoteKbFile: {
             conversionStatus: components["schemas"]["ConversionStatus"] | null;
@@ -84480,6 +84551,7 @@ export type ParticipantDocuments = components['schemas']['ParticipantDocuments']
 export type PartLimitRequest = components['schemas']['PartLimitRequest'];
 export type PartnerAgreementOffer = components['schemas']['PartnerAgreementOffer'];
 export type PartnerAgreementState = components['schemas']['PartnerAgreementState'];
+export type PartnerAnswers = components['schemas']['PartnerAnswers'];
 export type PartnerDocumentToSign = components['schemas']['PartnerDocumentToSign'];
 export type PartnerEventDetail = components['schemas']['PartnerEventDetail'];
 export type PartnerPlacesView = components['schemas']['PartnerPlacesView'];
@@ -84714,6 +84786,7 @@ export type ReminderTrigger = components['schemas']['ReminderTrigger'];
 export type RemoteAttachment = components['schemas']['RemoteAttachment'];
 export type RemoteBoard = components['schemas']['RemoteBoard'];
 export type RemoteCatalogDetail = components['schemas']['RemoteCatalogDetail'];
+export type RemoteDatePlaces = components['schemas']['RemoteDatePlaces'];
 export type RemoteKbFile = components['schemas']['RemoteKbFile'];
 export type RemoteMemberRegistration = components['schemas']['RemoteMemberRegistration'];
 export type RemotePairRequestResponse = components['schemas']['RemotePairRequestResponse'];

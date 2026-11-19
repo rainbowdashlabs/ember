@@ -64,16 +64,20 @@ describe('EventFormPanel repeat line', () => {
         expect(panel('ONE_TIME', {eventGroupPart: true}).find('[data-testid="event-type-toggle"]').exists()).toBe(false)
     })
 
-    it('puts category and attendance template, then the fields, then the description', () => {
-        const html = panel('ONE_TIME').html()
+    it('keeps the description with the essentials and the attendance template with the fields in their folded section', () => {
+        const wrapper = panel('ONE_TIME')
+        const html = wrapper.html()
 
+        const description = html.indexOf('markdown-editor-stub')
+        const section = html.indexOf('form-section-fields')
         const template = html.indexOf('event-attendance-template')
         const fields = html.indexOf('event-field-list-stub')
-        const description = html.indexOf('markdown-editor-stub')
 
-        expect(template).toBeGreaterThan(-1)
+        expect(description).toBeGreaterThan(-1)
+        expect(description).toBeLessThan(section)
+        expect(section).toBeLessThan(template)
         expect(template).toBeLessThan(fields)
-        expect(fields).toBeLessThan(description)
+        expect(wrapper.get('[data-testid="form-section-fields"] [data-section-toggle]').attributes('aria-expanded')).toBe('false')
     })
 
     it('keeps the explanations of the sign-up settings behind hint icons', () => {
@@ -141,5 +145,17 @@ describe('EventFormPanel waiting list order', () => {
         const wrapper = panel('ONE_TIME', {...registration, registrationLimit: undefined})
 
         expect(wrapper.find('[data-testid="queue-order"]').exists()).toBe(false)
+    })
+
+    /** While questions are asked, sign-up cannot be switched off, and the form says why. */
+    it('holds sign-up on while questions are asked and says why', () => {
+        const held = panel('ONE_TIME', {requiresRegistration: true, signUpHeld: true})
+        const toggle = held.get('[aria-labelledby$="-registration"]')
+
+        expect(toggle.attributes('disabled')).toBeDefined()
+        expect(held.find('[aria-label="Fragen werden bei der Anmeldung beantwortet. Solange es Fragen gibt, bleibt die Anmeldung eingeschaltet."]').exists()).toBe(true)
+
+        const free = panel('ONE_TIME', {requiresRegistration: true})
+        expect(free.get('[aria-labelledby$="-registration"]').attributes('disabled')).toBeUndefined()
     })
 })

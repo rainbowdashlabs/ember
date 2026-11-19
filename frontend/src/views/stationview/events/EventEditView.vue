@@ -44,11 +44,7 @@ import EventSaveDialog from './eventeditview/EventSaveDialog.vue'
 import {useSaveChoice, type SaveChoice} from './eventeditview/useSaveChoice'
 import TemplateFilesNote from './eventeditview/TemplateFilesNote.vue'
 import {
-  eventAttachmentPort,
-  eventFederationPort,
-  eventFieldDefaultsPort,
-  templateFederationPort,
-  templateFieldDefaultsPort,
+  eventAttachmentPort, eventFederationPort, eventFieldDefaultsPort, templateFederationPort, templateFieldDefaultsPort,
 } from './eventeditview/eventOwnerPorts'
 import DocumentRequirementsEditor from './eventshared/DocumentRequirementsEditor.vue'
 import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
@@ -71,6 +67,8 @@ const canFederate = computed(() => hasPermission(StationPermission.EVENTS_FEDERA
  * then saved again against the new appointment, which still holds every date the change moved.
  */
 const savedInto = ref<number | null>(null)
+/** The new appointment a save created, so a save tried again after a later part failed changes it. */
+const createdId = ref<number | null>(null)
 const eventId = computed(() => savedInto.value ?? (route.params.id ? Number(route.params.id) : null))
 const isEdit = computed(() => eventId.value !== null)
 
@@ -180,25 +178,10 @@ async function takeOverCarried(templateId: number) {
   }
   const files = await events.listTemplateAttachments(templateId)
   if (isEdit.value) {
-    await attachTemplateFiles(files)
+    await attachments.attachMissing(files)
   } else {
     templateFiles.value = files
   }
-}
-
-/**
- * Hangs a template's files on the appointment being edited, in the template's order and with its
- * labels. A saved appointment has its files written as they change, and the server only links a
- * template's files when it creates an appointment, so an existing one gets them here. A file the
- * appointment already carries is left as it is.
- */
-async function attachTemplateFiles(files: EventAttachment[]) {
-  const port = eventAttachmentPort(eventId.value!)
-  const carried = new Set(attachments.attachments.value.map(attachment => attachment.fileId))
-  for (const file of files.filter(entry => !carried.has(entry.fileId))) {
-    await port.attach(file.fileId, file.label, file.internal)
-  }
-  await attachments.load()
 }
 
 /** A question as the editor works on it: its definition, without the id of wherever it is stored. */
@@ -216,13 +199,17 @@ function asDefinition(field: RegistrationFieldDefinition): RegistrationFieldDefi
  * and the whole set is replaced on save.
  */
 async function loadRegistrationFields(id: number) {
-  const loadedFields = await events.listRegistrationFields(id).catch(() => [])
+  const loadedFields = await events.listRegistrationFields(id)
   registrationFields.value = loadedFields.map(asDefinition)
 }
+
+/** Whether the editor could not be filled; saving a form filled in part would remove the rest, such as its questions. */
+const loadFailed = ref(false)
 
 /** Fills the editor once the session is there, since the choices it offers depend on the station. */
 const {loading, failure} = useAsyncLoader(async () => {
   await until(loaded).toBe(true)
+  loadFailed.value = false
   try {
     await data.load()
     await documentRequirements.load(isEdit.value ? {kind: 'events', id: eventId.value!} : null)
@@ -244,6 +231,7 @@ const {loading, failure} = useAsyncLoader(async () => {
       templateFiles.value = await copying.copy(copySourceId.value)
     }
   } catch (e) {
+    loadFailed.value = true
     reportCaughtError(e, 'EventEditView.loadData')
     throw e
   }
@@ -261,7 +249,9 @@ const joinsGroup = computed(() =>
  * attendance sheet the field defaults and the ties of its questions are checked against. A change of
  * every date tells the people it concerns with that first save. A change of one date, or of one date
  * and the ones after it, is saved into a new appointment, which the parts are then saved against, and
- * tells once all of them have landed.
+ * tells once all of them have landed. A new appointment is created once and changed by a save tried
+ * again; the files added before it existed go on last, behind the template's, which the server hangs
+ * on it with the creation.
  *
  * @return the appointment everything was saved into
  */
@@ -280,12 +270,15 @@ async function writeEvent(choice: SaveChoice | null): Promise<number> {
       openedRecurring.value = isRecurringEvent(saved.eventType)
       await attachments.load()
     }
+  } else if (createdId.value !== null) {
+    savedEventId = createdId.value
+    await events.updateEvent(savedEventId, {...form.buildPayload(), scope: null, changeNotice: null})
   } else {
-    const created = await events.createEvent(form.buildPayload())
-    savedEventId = created.id
+    savedEventId = (await events.createEvent(form.buildPayload())).id
+    createdId.value = savedEventId
   }
 
-  await fieldDefaults.save(eventFieldDefaultsPort(savedEventId), isEdit.value)
+  await fieldDefaults.save(eventFieldDefaultsPort(savedEventId), isEdit.value || createdId.value !== null)
   await events.setEventReminders(savedEventId, form.state.reminders)
   const queueOrder = form.queueOrderToSave()
   if (queueOrder && !eventGroupPart.value) await events.setQueueOrder(savedEventId, queueOrder)
@@ -296,6 +289,9 @@ async function writeEvent(choice: SaveChoice | null): Promise<number> {
   }
   if (!eventGroupPart.value) await federationShare.save(eventFederationPort(savedEventId))
   await documentRequirements.save({kind: 'events', id: savedEventId})
+  if (!isEdit.value) {
+    await attachments.attachPendingTo(eventAttachmentPort(savedEventId), new Set(templateFiles.value.map(file => file.fileId)))
+  }
   if (scoped) await tellLater(savedEventId, choice.notice)
   return savedEventId
 }
@@ -398,10 +394,6 @@ function leaveEditor() {
   }
 }
 
-function goBack() {
-  leaveEditor()
-}
-
 const bodyProps = computed(() => ({
   isEdit: isEdit.value,
   saving: saving.value || confirming.value,
@@ -411,6 +403,9 @@ const bodyProps = computed(() => ({
   inheritedFields: groupPart.inheritedFields.value,
   inheritedSettings: groupPart.settings.value?.eventGroup ?? null,
   inheritedPartLimit: groupPart.settings.value?.partRegistrationLimit ?? null,
+  documentCount: documentRequirements.chosen.value.length,
+  fileCount: attachments.attachments.value.length + (isEdit.value ? 0 : templateFiles.value.length),
+  attention: saveFailure.value || confirmFailure.value ? ['audience', 'sharing'] : [],
   ...data.props.value,
   ...fieldDefaults.props.value,
   ...federationShare.props.value,
@@ -422,7 +417,7 @@ const bodyHandlers = {
   ...fieldDefaults.handlers,
   ...federationShare.handlers,
   'apply-template': applyEventTemplate,
-  cancel: goBack,
+  cancel: leaveEditor,
   submit,
 }
 </script>
@@ -434,7 +429,7 @@ const bodyHandlers = {
   >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="leaveEditor">
           {{ t('common.back') }}
         </SecondaryButton>
       </div>
@@ -448,7 +443,7 @@ const bodyHandlers = {
       <AddToEventGroupCard v-else-if="joinsGroup" :event-id="eventId!" :on-added="groupPart.reload"/>
 
       <EventEditBody
-          v-if="!loading"
+          v-if="!loading && !loadFailed"
           v-model:registration-fields="registrationFields"
           v-bind="bodyProps"
           v-on="bodyHandlers"
@@ -466,9 +461,9 @@ const bodyHandlers = {
         />
 
         <AttachmentsCard
-            v-if="isEdit"
             v-model:attachments="attachments.attachments.value"
             compact
+            :pending="!isEdit"
             :station-uid="stationUid"
             :failure="attachments.failure.value"
             @add="attachments.add"

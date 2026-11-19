@@ -270,7 +270,7 @@ test.describe('Guardian', () => {
             const confirm = page.getByTestId('answer-confirm')
             await expect(confirm).toBeVisible({timeout: 15000})
             await confirm.click()
-            await expect(page.getByTestId(`my-answer-${gives}`)).toHaveText(/Bestätigt|Ausstehend/, {timeout: 15000})
+            await expect(page.getByTestId(`my-answer-${gives}`)).toHaveText(/Bestätigt|Offen/, {timeout: 15000})
 
             await page.goto('/station/events/upcoming')
             await page.getByPlaceholder('Titel, Beschreibung oder Feldinhalt...').fill(name)

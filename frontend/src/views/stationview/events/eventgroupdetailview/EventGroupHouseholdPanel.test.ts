@@ -7,6 +7,7 @@
 import {afterEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount, type VueWrapper} from '@vue/test-utils'
 import EventGroupHouseholdPanel from './EventGroupHouseholdPanel.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {EventGroupDetail, EventGroupSignUp} from '@/api/generated/schema'
 import {createIdentity} from '@/test/mocks/factories'
 
@@ -27,7 +28,7 @@ function detail(household: EventGroupSignUp[], deadline: string | null = null): 
     eventGroup: {
       id: 70,
       details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: deadline, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null},
-      cancelled: false, cancelReason: null, partCount: 1, holding: 0, queued: 0,
+      cancelled: false, cancelReason: null, partCount: 1, holding: 0, queued: 0, pending: 0, firstStart: null, lastEnd: null,
     },
     sets: [{id: 1, eventGroupId: 70, name: 'Teile', minimum: 1, maximum: null, position: 0}],
     parts: [{eventId: 11, setId: 1, name: 'Samstag', startTime: '2099-03-06T08:00:00Z', endTime: '2099-03-06T16:00:00Z', calledOff: false, tookPlace: false, required: false, accepted: 0, places: null}],
@@ -60,7 +61,7 @@ describe('EventGroupHouseholdPanel', () => {
     expect(wrapper.find('[data-testid="event-group-closed"]').exists()).toBe(true)
   })
 
-  it('withdraws the child it was asked for', async () => {
+  it('withdraws the child it was asked for after a neutral question, since leaving deletes nothing', async () => {
     const onChanged = vi.fn()
     wrapper = mount(EventGroupHouseholdPanel, {
       props: {detail: detail([entry(11, 'Lea'), entry(12, 'Mara', {status: 'ACCEPTED', parts: [11]})]), onChanged},
@@ -70,6 +71,7 @@ describe('EventGroupHouseholdPanel', () => {
 
     await wrapper.find('[data-testid="event-group-withdraw"]').trigger('click')
     await flushPromises()
+    expect(wrapper.findComponent(ConfirmDeleteModal).props('neutral')).toBe(true)
     ;(document.body.querySelector('[data-confirm]') as HTMLButtonElement).click()
     await flushPromises()
 

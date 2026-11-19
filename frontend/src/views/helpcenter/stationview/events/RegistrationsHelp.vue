@@ -28,6 +28,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.eventsRegistrations.badgeText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventsRegistrations.eventGroupsTitle')">
+      <p>{{ t('helpCenter.eventsRegistrations.eventGroupsText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('eventsRegistrations.title')">
       <SectionHeader>{{ t('eventsRegistrations.title') }}</SectionHeader>
       <div class="space-y-3">

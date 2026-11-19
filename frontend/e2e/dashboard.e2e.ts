@@ -15,7 +15,7 @@ test.describe('Dashboard', () => {
     })
 
     test('the station statistics render', async ({managerPage: page}) => {
-        await page.goto('/station/dashboard/statistics')
+        await page.goto('/station/monitoring/statistics')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByText('Statistiken').first()).toBeVisible()

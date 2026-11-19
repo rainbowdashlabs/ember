@@ -38,22 +38,27 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
 
   const props = computed(() => ({partners: partners.value, ...modelProps.value}))
 
-  async function load(port: FederationSharePort) {
+  /** Reads the partners the picker offers, for a share that does not exist yet. None where they cannot be read. */
+  async function loadPartners() {
     try {
       partners.value = await federation.listPartners()
     } catch {
       partners.value = []
     }
+  }
+
+  /**
+   * Reads the partners and how the opened appointment or template is shared. A share that cannot be
+   * read fails the load, since a form left at "not shared" would stop the sharing on the next save.
+   */
+  async function load(port: FederationSharePort) {
+    await loadPartners()
     if (!canFederate.value) return
-    try {
-      const share = await port.get()
-      state.federationShared = share.shared
-      if (share.shared) {
-        state.federationScope = share.scope ?? 'ALL_PARTNERS'
-        state.federationPartnerIds = share.partnerIds ?? []
-      }
-    } catch {
-      state.federationShared = false
+    const share = await port.get()
+    state.federationShared = share.shared
+    if (share.shared) {
+      state.federationScope = share.scope ?? 'ALL_PARTNERS'
+      state.federationPartnerIds = share.partnerIds ?? []
     }
     if (!port.places) return
     try {
@@ -122,5 +127,5 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
     }
   }
 
-  return {props, handlers, state, partners, load, takeFrom, save}
+  return {props, handlers, state, partners, load, loadPartners, takeFrom, save}
 }

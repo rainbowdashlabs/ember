@@ -11,7 +11,6 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FederationSharePicker from '@/components/input/FederationSharePicker.vue'
 import PartnerPlacesRow from '@/views/stationview/events/eventeditview/federationcard/PartnerPlacesRow.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import HintIcon from '@/components/typography/HintIcon.vue'
 import HintedSubHeader from '@/components/typography/HintedSubHeader.vue'
 import {ShareScope, type PartnerResponse} from '@/api/generated/schema'
 
@@ -65,18 +64,15 @@ const {t} = useI18n()
       <p class="text-xs text-(--text-muted)">{{ hint ?? t('events.federationShareHint') }}</p>
     </template>
     <p v-if="note" class="text-xs text-(--text-muted)" data-testid="federation-template-note">{{ note }}</p>
-    <div class="flex items-start gap-1">
-      <FederationSharePicker
-          v-model:shared="shared"
-          v-model:scope="scope"
-          v-model:partner-ids="partnerIds"
-          class="grow"
-          :partners="partners"
-          :disabled="!canFederate"
-          :no-permission-hint="t('events.federationNoPermission')"
-      />
-      <HintIcon v-if="compact" class="mt-1" :text="hint ?? t('events.federationShareHint')"/>
-    </div>
+    <FederationSharePicker
+        v-model:shared="shared"
+        v-model:scope="scope"
+        v-model:partner-ids="partnerIds"
+        :partners="partners"
+        :disabled="!canFederate"
+        :no-permission-hint="t('events.federationNoPermission')"
+        :hint="compact ? hint ?? t('events.federationShareHint') : undefined"
+    />
 
     <template v-if="sharedWith.length > 0">
       <HintedSubHeader v-if="compact" class="pt-2" :hint="t('events.partnerPlacesHint')">

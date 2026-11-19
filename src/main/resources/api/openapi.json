@@ -24674,6 +24674,36 @@
         } ]
       }
     },
+    "/api/v1/events/{id}/partner-answers" : {
+      "get" : {
+        "summary" : "The answers partner stations' members gave to an event's registration questions",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PartnerAnswers"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/{id}/partner-places" : {
       "get" : {
         "summary" : "List what each partner station may do with an event",
@@ -57036,6 +57066,40 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "registrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "minRegistrations" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "thresholdDays" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "registrationDeadlineOffsetHours" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "reminderDays" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "eventTemplateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },
@@ -65466,9 +65530,27 @@
           "queued" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "pending" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "firstStart" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "lastEnd" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding", "queued" ]
+        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding", "queued", "pending", "firstStart", "lastEnd" ]
       },
       "EventItem" : {
         "type" : "object",
@@ -66519,6 +66601,12 @@
           "memberId" : {
             "type" : [ "string", "null" ],
             "format" : "uuid"
+          },
+          "answers" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/EventRegistrationFieldValue"
+            }
           }
         }
       },
@@ -77793,6 +77881,22 @@
         "type" : "string",
         "enum" : [ "MISSING", "ASKED", "SIGNED", "PAPER_CONFIRMED", "WITHDRAWN" ]
       },
+      "PartnerAnswers" : {
+        "type" : "object",
+        "properties" : {
+          "registrationId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "answers" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EventRegistrationFieldValue"
+            }
+          }
+        },
+        "required" : [ "registrationId", "answers" ]
+      },
       "PartnerDocumentToSign" : {
         "type" : "object",
         "properties" : {
@@ -77830,9 +77934,22 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "questions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EventRegistrationField"
+            }
+          },
+          "datePlaces" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RemoteDatePlaces"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "event", "publicFields", "places" ]
+        "required" : [ "event", "publicFields", "places", "questions", "datePlaces" ]
       },
       "PartnerPlacesView" : {
         "type" : "object",
@@ -82953,6 +83070,27 @@
           }
         },
         "required" : [ "catalog", "categories", "questions" ]
+      },
+      "RemoteDatePlaces" : {
+        "type" : "object",
+        "properties" : {
+          "date" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "limit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "taken" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "waiting" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "date", "limit", "taken", "waiting" ]
       },
       "RemoteKbFile" : {
         "type" : "object",

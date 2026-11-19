@@ -6,11 +6,23 @@
 import {ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {RegistrationStatus, WhenFull} from '@/api/generated/schema'
+import type {EnrichedFederationRegistration, RegistrationResponse} from '@/api/generated/schema'
 import {appointmentQueueRoutes, type QueueRoutes} from './queueRoutes'
 import {useFullDateChoice} from '@/composables/useFullDateChoice'
 import {describeFailure, type Failure} from '@/util/failure'
+import {showToast} from '@/util/toast'
 import type {Places} from '@/util/eventPlaces'
 import type {QueueEntry} from '@/util/registrationQueue'
+
+/** Reads the status of an appointment date's sign-ups, the station's own and its partners', for {@link useQueueActions}. */
+export function appointmentStatuses(
+    registrations: () => RegistrationResponse[],
+    partners: () => EnrichedFederationRegistration[],
+) {
+    return (id: number, partner: boolean) => partner
+        ? partners().find(entry => entry.registration.id === id)?.registration.status
+        : registrations().find(entry => entry.id === id)?.status
+}
 
 /**
  * What whoever decides the sign-ups of a date or an event group does with its places and its waiting
@@ -22,22 +34,51 @@ import type {QueueEntry} from '@/util/registrationQueue'
  *
  * <p>Every action is answered for apart from the reload after it: an action the server took,
  * followed by a list that would not come back, is said as the list being stale rather than as the
- * action having failed.
+ * action having failed. Accepting and denying say so once they went through, and denying somebody
+ * who already holds a place asks first, since it takes that place away.
  *
- * @param places  how the places of the date stand, for the question to name
- * @param reload  reads the sign-ups back after an action
- * @param failure the screen's failure channel
- * @param routes  where the actions go, an appointment date's sign-ups unless said otherwise
+ * @param places   how the places of the date stand, for the question to name
+ * @param reload   reads the sign-ups back after an action
+ * @param failure  the screen's failure channel
+ * @param routes   where the actions go, an appointment date's sign-ups unless said otherwise
+ * @param statusOf the status a sign-up has now, by its id and whether it is a partner's
  */
 export function useQueueActions(
     places: () => Places | null,
     reload: () => Promise<void>,
     failure: Ref<Failure | null>,
     routes: QueueRoutes = appointmentQueueRoutes,
+    statusOf: (id: number, partner: boolean) => RegistrationStatus | null | undefined = () => undefined,
 ) {
     const {t} = useI18n()
     const fullDate = useFullDateChoice()
     const busy = ref(false)
+    const denyQuestion = ref(false)
+    let settleDeny: ((denied: boolean) => void) | null = null
+
+    /** Asks whether a sign-up that holds a place is to be denied, and answers with the choice. */
+    function askDeny(): Promise<boolean> {
+        settleDeny?.(false)
+        denyQuestion.value = true
+        return new Promise(resolve => {
+            settleDeny = resolve
+        })
+    }
+
+    /** Takes the answer to {@link askDeny}. */
+    function answerDeny(denied: boolean) {
+        denyQuestion.value = false
+        const resolve = settleDeny
+        settleDeny = null
+        resolve?.(denied)
+    }
+
+    /** Runs an action and, once it went through, says what happened. */
+    async function actSaying(action: () => Promise<unknown>, said: string): Promise<boolean> {
+        const done = await act(action)
+        if (done) showToast(said, 'success')
+        return done
+    }
 
     async function act(action: () => Promise<unknown>): Promise<boolean> {
         failure.value = null
@@ -60,21 +101,32 @@ export function useQueueActions(
 
     /** Accepts a member's sign-up, asking first where that goes beyond the limit. */
     function accept(id: number) {
-        return act(() => fullDate.sendAsking('accept', places(), choice =>
+        return acceptSending(() => fullDate.sendAsking('accept', places(), choice =>
             routes.decide(id, RegistrationStatus.ACCEPTED, choice === WhenFull.OVER_LIMIT)))
     }
 
     /** Accepts a partner's member's sign-up, asking first where that goes beyond the limit. */
     function acceptPartner(id: number) {
-        return act(() => fullDate.sendAsking('accept', places(), choice =>
+        return acceptSending(() => fullDate.sendAsking('accept', places(), choice =>
             routes.decidePartner(id, RegistrationStatus.ACCEPTED, choice === WhenFull.OVER_LIMIT)))
     }
 
-    /** Denies a member's or a partner's member's sign-up. */
-    function deny(id: number, partner = false) {
-        return act(() => partner
+    /** Sends an acceptance and says it went through, unless the question about the limit was turned down. */
+    async function acceptSending(send: () => Promise<boolean>): Promise<boolean> {
+        let sent = false
+        const done = await act(async () => {
+            sent = await send()
+        })
+        if (done && sent) showToast(t('registrationQueue.accepted'), 'success')
+        return done && sent
+    }
+
+    /** Denies a member's or a partner's member's sign-up, asking first where it holds a place. */
+    async function deny(id: number, partner = false) {
+        if (statusOf(id, partner) === RegistrationStatus.ACCEPTED && !await askDeny()) return false
+        return actSaying(() => partner
             ? routes.decidePartner(id, RegistrationStatus.DENIED)
-            : routes.decide(id, RegistrationStatus.DENIED))
+            : routes.decide(id, RegistrationStatus.DENIED), t('registrationQueue.denied'))
     }
 
     /** Moves somebody on the waiting list up by hand, ahead of everybody before them. */
@@ -103,6 +155,8 @@ export function useQueueActions(
         busy,
         fullDateQuestion: fullDate.question,
         answerFullDate: fullDate.answer,
+        denyQuestion,
+        answerDeny,
         sendAsking: fullDate.sendAsking,
         accept,
         acceptPartner,

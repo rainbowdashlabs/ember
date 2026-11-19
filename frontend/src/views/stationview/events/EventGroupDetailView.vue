@@ -10,10 +10,8 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
+import DetailPageHeader from './eventshared/DetailPageHeader.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import EventGroupOverview from './eventgroupdetailview/EventGroupOverview.vue'
 import EventGroupMaterialsPanel from './eventgroupdetailview/EventGroupMaterialsPanel.vue'
@@ -38,8 +36,9 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 /**
  * One event group: what it is, its parts by set with each set's minimum, the sign-up of the reader and
  * everybody they look after, and its comments. Whoever handles registrations sees every sign-up and
- * decides on them; whoever edits appointments edits, calls off or deletes the event group and keeps
- * its notes; whoever reads the waiting lists sees who comes to a part for a probe.
+ * decides on them; whoever edits appointments edits, calls off or deletes the event group from the head of
+ * the page, which has the same shape as an appointment's, and keeps its notes; whoever reads the waiting
+ * lists sees who comes to a part for a probe.
  */
 const {t} = useI18n()
 const route = useRoute()
@@ -49,7 +48,6 @@ const {loaded, hasPermission, sessionInfo} = useSession()
 const eventGroupId = computed(() => Number(route.params.eventGroupId))
 const detail = ref<EventGroupDetail | null>(null)
 const cancelOpen = ref(false)
-const deleteOpen = ref(false)
 const signUpsPanel = ref<InstanceType<typeof EventGroupSignUpsPanel> | null>(null)
 const attendancePanel = ref<InstanceType<typeof EventGroupAttendancePanel> | null>(null)
 const partnerSignUpsPanel = ref<InstanceType<typeof EventGroupPartnerSignUpsPanel> | null>(null)
@@ -102,23 +100,19 @@ async function refresh() {
 const {running: cancelling, failure: cancelFailure, run: runCancel} = useAsyncAction(async (reason: string | null) => {
   detail.value = await eventGroups.cancelEventGroup(eventGroupId.value, reason)
 })
-const {running: deleting, failure: deleteFailure, run: runDelete} = useAsyncAction(async () => {
-  await eventGroups.deleteEventGroup(eventGroupId.value)
-  await router.push({name: 'events'})
-})
-const busy = computed(() => cancelling.value || deleting.value)
-const actionFailure = computed(() => cancelFailure.value ?? deleteFailure.value)
+
+/** Deletes the event group and leaves for the appointment list, for whoever edits appointments. */
+const remove = computed(() => canEdit.value
+  ? async () => {
+    await eventGroups.deleteEventGroup(eventGroupId.value)
+    await router.push({name: 'events'})
+  }
+  : null)
 
 /** Cancels the event group and closes the dialog, whether the cancelling worked or not. */
 async function cancelEventGroup(reason: string | null) {
   await runCancel(reason)
   cancelOpen.value = false
-}
-
-/** Deletes the event group and leaves for the list; only a failed delete closes the dialog here. */
-async function deleteEventGroup() {
-  await runDelete()
-  if (deleteFailure.value) deleteOpen.value = false
 }
 </script>
 
@@ -126,18 +120,25 @@ async function deleteEventGroup() {
   <ViewContent :title="detail?.eventGroup.details.name ?? t('pages.event-group.title')" :subtitle="t('pages.event-group.subtitle')">
     <AsyncSection :loading="loading && !detail" :failure="failure">
       <div v-if="detail" class="space-y-6">
-        <FailureAlert v-if="actionFailure" :failure="actionFailure"/>
-        <ButtonRow v-if="canEdit" align="end">
-          <SecondaryButton :icon="['fas', 'pen']" :to="{name: 'event-group-edit', params: {eventGroupId}}" data-testid="event-group-edit">
-            {{ t('eventGroups.edit') }}
-          </SecondaryButton>
-          <SecondaryButton v-if="!detail.eventGroup.cancelled" :icon="['fas', 'ban']" data-testid="event-group-cancel" @click="cancelOpen = true">
+        <FailureAlert v-if="cancelFailure" :failure="cancelFailure"/>
+        <DetailPageHeader
+            :back-to="{name: 'events'}"
+            :edit-to="canEdit ? {name: 'event-group-edit', params: {eventGroupId}} : null"
+            :edit-label="t('eventGroups.edit')"
+            edit-test-id="event-group-edit"
+            menu-test-id="event-group-actions"
+            :has-menu-items="canEdit && !detail.eventGroup.cancelled"
+            :remove="remove"
+            :delete-label="t('eventGroups.delete')"
+            :delete-title="t('eventGroups.deleteTitle')"
+            :delete-message="t('eventGroups.deleteText')"
+            delete-test-id="event-group-delete"
+        >
+          <DropdownMenuItem v-if="canEdit && !detail.eventGroup.cancelled" :icon="['fas', 'ban']" destructive
+                            data-testid="event-group-cancel" @click="cancelOpen = true">
             {{ t('eventGroups.cancel') }}
-          </SecondaryButton>
-          <ErrorButton :icon="['fas', 'trash']" data-testid="event-group-delete" @click="deleteOpen = true">
-            {{ t('eventGroups.delete') }}
-          </ErrorButton>
-        </ButtonRow>
+          </DropdownMenuItem>
+        </DetailPageHeader>
         <TabBar v-model="activeTab" :tabs="tabs" linked/>
         <div v-show="activeTab === 'info'" class="space-y-6" data-testid="event-group-tab-info">
           <EventGroupOverview :detail="detail" :current-member-id="currentMemberId" :member-names="memberNames" :on-changed="refresh"/>
@@ -161,13 +162,6 @@ async function deleteEventGroup() {
         </div>
       </div>
     </AsyncSection>
-    <EventGroupCancelDialog v-model="cancelOpen" :busy="busy" @confirm="cancelEventGroup"/>
-    <ConfirmDeleteModal
-        v-model="deleteOpen"
-        :title="t('eventGroups.deleteTitle')"
-        :message="t('eventGroups.deleteText')"
-        :busy="busy"
-        @confirm="deleteEventGroup"
-    />
+    <EventGroupCancelDialog v-model="cancelOpen" :busy="cancelling" @confirm="cancelEventGroup"/>
   </ViewContent>
 </template>

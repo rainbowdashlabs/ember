@@ -21,6 +21,16 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Usual port shown for the mail server.** The mail settings name the usual port for the chosen encryption and point out a port that does not fit. The port is still saved as entered.
 - **Instance send interval made visible.** When a station leaves the notification send times to the instance, the settings say how often the instance sends them.
 - **Address search on in the demo.** A demo instance looks addresses and places of appointments up on the public Photon server from the start. It can still be switched off under Settings → Maps.
+- **Partner members answer the questions.** Members of a partner station who sign up for a shared appointment are asked its questions, and the answers show beside their sign-up. Before signing up they see whether the date is full and can go onto the waiting list instead.
+- **Event groups listed on their own.** The appointment overview has a tab with every event group, its first and last date, its sign-ups and whether it was cancelled.
+- **Creating several appointments takes the whole template.** Places, waiting list order, questions, reminders, the minimum, the deadline, documents, files and sharing of a template now reach every appointment created at once. Whatever a template cannot hand over is named on the page.
+- **Calmer appointment forms.** The forms of appointments, event groups and templates show the essentials and fold the rest into sections that say in one line what is set. A section opens by itself when something in it needs attention.
+- **One header on appointment and event group pages.** Both pages have Back, Edit and one menu that holds cancelling and deleting, and the buttons stay on one line on a phone. An appointment can be deleted from its own page, and the question says what goes with it.
+- **Attendance on its own tab.** The appointment page has an Attendance tab for whoever takes attendance, beside the entry in the menu.
+- **A question before refusing a confirmed sign-up.** Refusing somebody who already has a place asks first, and confirming or refusing a sign-up says once it went through.
+- **Parts of an event group easier to reach.** In the event group editor each appointment shows its date with start and end, links to its own editor and is marked when cancelled. A new event group can be shared with partner stations in the same save that creates it.
+- **Questions without switching sign-up on first.** The questions of an appointment or template are always on the form. Adding one switches sign-up on, and sign-up stays on while there are questions.
+- **Files on new appointments and event groups.** Files can be added while an appointment or event group is still being created, and they are attached in order as soon as it is saved.
 
 ### Changes
 
@@ -28,10 +38,14 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Mail notifications are on by default.** Members without a mail setting of their own get notifications by mail as soon as the station or the instance can send mail, for every kind of notification. Mail settings members already had stay as they were.
 - **Reply address at the top of the mail settings.** The reply address moved out of the box about the instance's mail providers to the top of the page, since it applies to all of a station's mail.
 - **Map settings moved to Settings.** The administration page for map tiles and the address search is found under Settings instead of Monitoring, at `/admin/settings/maps`.
+- **One word for each sign-up term.** The German texts use the same word for places, the sign-up deadline, confirming a sign-up and who may sign up, on appointments and event groups alike, and call repeating appointments by one name. The admission waiting list is now called the applicant list, so it is no longer confused with the waiting list of full appointments.
+- **Event group sign-ups decided on the event group.** The open sign-ups list each event group with sign-ups waiting once and leads to it, instead of listing its appointments one by one. The count in the sidebar takes each such sign-up once.
+- **Sharing appointments needs this version on both sides.** Sharing appointments with a partner station on another server pauses until both run this version.
+- **Station statistics moved to Monitoring.** The statistics page of a station is found under Monitoring at `/station/monitoring/statistics`, so the dashboard is a single page again.
 
 ### Fixes
 
-- **Participant limit not enforced.** An appointment could take more sign-ups than its participant limit, which was shown but never checked. Sign-ups beyond the limit now go onto the waiting list.
+- **Places not enforced.** An appointment could take more sign-ups than it has places, which were shown but never checked. Sign-ups beyond the places now go onto the waiting list.
 - **Badges of upcoming appointments wandered.** In some cases an appointment with a long description line showed its registration counts below the text instead of beside it. The description now wraps, so the counts stay beside it wherever there is room.
 - **Consent asked twice after a policy update.** After the privacy policy or the terms changed, agreeing on the sign-in page did not count for the account, so the same question came again right after signing in. Agreeing before signing in now covers the account.
 - **Installing Ember was not always offered.** In some cases the part of Ember that runs in the background was never started, so the browser did not offer to install Ember and saved files could open in the browser instead. It now starts with every page.
@@ -39,6 +53,9 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Station chat permission without an icon.** In the permission picker, "Manage station chats" was the only group shown without an icon. It now has one like the others.
 - **iPhones listed as Macs among sign-ins.** The list of sign-ins showed an iPhone as a Mac with the Apple desktop icon. It now names it iOS.
 - **Closing a question could delete it.** On a list of questions, closing an opened question put its delete button right under the pointer, so a double click on the arrow could delete the question. The arrow now stays at the end of the line, with the delete button kept apart before it.
+- **Questions could be lost when editing.** In some cases, when the questions, reminders or partner sharing of an appointment could not be loaded, the editor showed them as empty and saving removed them. The editor now shows the error and no form.
+- **Places ignored when creating several appointments.** Places and the minimum typed while creating several appointments at once were not saved. They are now saved with each appointment.
+- **Failed loads looked like empty lists.** In some cases partner sign-ups and the choice of event groups in the appointment editor showed as empty when they could not be loaded. The page now says that loading failed.
 
 ## v26.25.2
 

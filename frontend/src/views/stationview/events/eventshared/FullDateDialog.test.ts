@@ -36,7 +36,7 @@ describe('FullDateDialog', () => {
     it('asks only whether to accept anyway', async () => {
         const dialog = await mountSuspended(FullDateDialog, {props: {question: {kind: 'accept', places: null}}, attachTo: document.body})
 
-        expect(bodyText()).toContain('Trotzdem annehmen?')
+        expect(bodyText()).toContain('Trotzdem bestätigen?')
         expect(document.querySelector('[data-testid="full-date-queue"]')).toBeNull()
         press('full-date-over-limit')
 

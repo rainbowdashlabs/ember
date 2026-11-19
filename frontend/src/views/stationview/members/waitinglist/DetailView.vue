@@ -77,7 +77,7 @@ const visibleFieldIds = computed(() => new Set(list.value?.visibleFields ?? []))
 
 /**
  * The list's own name at the head of the page, because a station keeps several of them and
- * "Warteliste" is the same word above each. The word stands there until the list has arrived, and
+ * "Bewerberliste" is the same word above each. The word stands there until the list has arrived, and
  * where it could not be fetched at all.
  */
 const pageTitle = computed(() => list.value?.name || t('pages.waiting-list-detail.title'))

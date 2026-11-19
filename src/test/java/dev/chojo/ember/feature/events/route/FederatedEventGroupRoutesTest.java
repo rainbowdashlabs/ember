@@ -87,7 +87,8 @@ class FederatedEventGroupRoutesTest {
         var eventGroup = EventGroupFixtures.eventGroup(70, 9, "Jugendflamme 1");
         when(partnerEventGroups.eventGroup(anyInt(), eq(HOLDER), eq(70), any()))
                 .thenReturn(new RemoteEventGroupDetail(
-                        RemoteEventGroupSummary.of(EventGroupSummary.of(eventGroup, new EventGroupTally(1, 1, 0))),
+                        RemoteEventGroupSummary.of(
+                                EventGroupSummary.of(eventGroup, new EventGroupTally(1, 1, 0, 0, null, null))),
                         List.of(),
                         List.of(),
                         List.of(
