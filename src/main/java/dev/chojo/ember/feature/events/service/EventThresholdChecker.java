@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -26,10 +27,11 @@ import java.util.List;
 /**
  * Calls off the dates that too few registrations were accepted for in time, one date at a time.
  *
- * <p>An appointment with a minimum says how many days before each date the minimum must be reached.
- * Every half hour each date inside that stretch, read on the station's calendar, is counted on its
- * own: the accepted registrations of that date and no other. A date that falls short is called off,
- * and every other date of the series stays as it is.
+ * <p>An appointment with a minimum says how many days before each date the minimum must be reached:
+ * the check is due from midnight that many days before the date, on the station's calendar. Every
+ * half hour each date inside that stretch is counted on its own: the accepted registrations of that
+ * date and no other. A date that falls short is called off, and every other date of the series stays
+ * as it is.
  *
  * <p>A date that was ever called off is never checked again. That is what keeps a date a manager
  * brought back from being called off by the next sweep.
@@ -72,13 +74,23 @@ public class EventThresholdChecker implements TaskSource {
         }
     }
 
+    /**
+     * Checks the dates whose minimum is due: those whose check moment, midnight the set number of days
+     * before the date on the station's clock, has come. A date is asked from that moment until the
+     * day it takes place, as long as it falls short.
+     */
     private void checkDates(StationEvent event, StationCalendar calendar) {
         Integer thresholdDays = event.thresholdDays();
         Integer minRegistrations = event.minRegistrations();
         if (thresholdDays == null || minRegistrations == null) return;
         LocalDate today = calendar.today();
+        Instant now = Instant.now();
         for (var date : calendar.between(event, today, today.plusDays(thresholdDays))) {
             if (!calendar.takesPlaceOn(event, date)) continue;
+            boolean due = event.thresholdOn(date, calendar.zone())
+                    .map(moment -> !now.isBefore(moment))
+                    .orElse(false);
+            if (!due) continue;
             int accepted = registrationRepository.countAccepted(event.id(), date);
             if (accepted >= minRegistrations) continue;
             if (cancellationService.cancelForTooFewRegistrations(event, date)) {

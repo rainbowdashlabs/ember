@@ -87,6 +87,19 @@ public record RegistrationDeadline(
     }
 
     /**
+     * The midnight a number of calendar days before the start, on the station's clock: the moment a
+     * minimum of sign-ups is checked, for an appointment's date as for an event group's first part.
+     *
+     * @param days how many days before the start
+     * @return the rule
+     * @throws ArithmeticException where the days do not fit a span in minutes, which no stored minimum
+     *                             reaches; the sweep that asked logs it
+     */
+    public static RegistrationDeadline daysBeforeAtMidnight(int days) {
+        return relative(Math.multiplyExact(days, MINUTES_PER_DAY), DeadlineAnchor.MIDNIGHT);
+    }
+
+    /**
      * Reads the rule from the columns {@code registration_deadline},
      * {@code registration_deadline_kind}, {@code registration_deadline_offset_minutes} and
      * {@code registration_deadline_anchor}.

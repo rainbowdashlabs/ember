@@ -37,6 +37,7 @@ import org.mockito.ArgumentCaptor;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -206,6 +207,26 @@ class EventGroupThresholdCheckerTest extends RepositoryTestBase {
         checker.check();
 
         assertFalse(cancelled(eventGroup));
+    }
+
+    /**
+     * An event group starts on its first part as it stands: a first part called off still sets the
+     * moment of the minimum, as it sets the moment sign-up closes.
+     */
+    @Test
+    void aCalledOffFirstPartStillCountsAsTheStart() {
+        var eventGroup = withMinimum("Erster abgesagt", 2, 5, 2, 10);
+        var first = eventGroups.findParts(eventGroup.id()).stream()
+                .map(part -> eventRepo.findById(part.eventId()).orElseThrow())
+                .min(Comparator.comparing(StationEvent::startTime))
+                .orElseThrow();
+        var zone = occurrenceCalendar.zoneOf(station.id());
+        eventDateCancellationRepo.cancel(
+                first.id(), LocalDate.ofInstant(first.startTime(), zone), CancellationCause.MANUAL, null, null);
+
+        checker.check();
+
+        assertTrue(cancelled(eventGroup), "five days before the called-off first part has passed");
     }
 
     @Test

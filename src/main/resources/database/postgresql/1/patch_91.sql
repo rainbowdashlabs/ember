@@ -745,3 +745,6 @@ SET registration_deadline                = NULL,
     registration_deadline_offset_minutes = NULL,
     registration_deadline_anchor         = NULL
 WHERE event_group_set_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_group.threshold_days
+    IS 'How many days before the first part, a called-off one included, the minimum must be reached, counted from midnight on the station''s clock. Set exactly when the minimum is.';

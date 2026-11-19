@@ -250,6 +250,70 @@ class RegistrationDeadlineTest {
         assertEquals(Optional.empty(), calendar.closesInView(weekly(RegistrationDeadline.none())));
     }
 
+    @Test
+    void theMinimumIsCheckedAtMidnightTheDaysBeforeAcrossTheSpringChange() {
+        var series = withThreshold(weekly(RegistrationDeadline.none()), 3);
+        var date = LocalDate.of(2026, 4, 1);
+
+        assertEquals(LocalDateTime.parse("2026-03-29T00:00"), local(series.thresholdOn(date, BERLIN)));
+    }
+
+    @Test
+    void theMinimumIsCheckedAtMidnightTheDaysBeforeAcrossTheAutumnChange() {
+        var series = withThreshold(weekly(RegistrationDeadline.none()), 4);
+        var date = LocalDate.of(2026, 10, 28);
+
+        assertEquals(LocalDateTime.parse("2026-10-24T00:00"), local(series.thresholdOn(date, BERLIN)));
+    }
+
+    @Test
+    void theMinimumIsDueFromMidnightNotFromTheTimeOfDayOfTheStart() {
+        var start = berlin("2026-05-09T09:00");
+        var moment = RegistrationDeadline.daysBeforeAtMidnight(2)
+                .closesAt(start, BERLIN)
+                .orElseThrow();
+
+        assertEquals(LocalDateTime.parse("2026-05-07T00:00"), local(Optional.of(moment)));
+        assertTrue(berlin("2026-05-06T23:00").isBefore(moment), "an hour before midnight it is not due");
+        assertFalse(berlin("2026-05-07T01:00").isBefore(moment), "an hour after midnight it is");
+    }
+
+    @Test
+    void anAppointmentWithoutAMinimumCheckHasNoMoment() {
+        assertEquals(
+                Optional.empty(), weekly(RegistrationDeadline.none()).thresholdOn(LocalDate.of(2026, 5, 6), BERLIN));
+    }
+
+    private static StationEvent withThreshold(StationEvent event, int days) {
+        return new StationEvent(
+                event.id(),
+                event.stationId(),
+                event.name(),
+                event.description(),
+                event.eventType(),
+                event.dayOfWeek(),
+                event.startTime(),
+                event.endTime(),
+                event.templateId(),
+                event.requiresRegistration(),
+                event.registrationDeadline(),
+                event.requiresConfirmation(),
+                event.categoryId(),
+                event.restrictionMode(),
+                event.viewRestrictionMode(),
+                event.restricted(),
+                event.isPublic(),
+                event.registrationLimit(),
+                event.cancelled(),
+                event.cancelledAt(),
+                event.cancelReason(),
+                2,
+                days,
+                event.repeatUntil(),
+                event.repeatCount(),
+                event.queueOrder());
+    }
+
     /** A weekly series on Wednesdays at eight in the evening, Berlin, taking sign-ups. */
     private static StationEvent weekly(RegistrationDeadline deadline) {
         var start = berlin("2026-05-06T20:00");
