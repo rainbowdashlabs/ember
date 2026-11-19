@@ -31,6 +31,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Parts of an event group easier to reach.** In the event group editor each appointment shows its date with start and end, links to its own editor and is marked when cancelled. A new event group can be shared with partner stations in the same save that creates it.
 - **Questions without switching sign-up on first.** The questions of an appointment or template are always on the form. Adding one switches sign-up on, and sign-up stays on while there are questions.
 - **Files on new appointments and event groups.** Files can be added while an appointment or event group is still being created, and they are attached in order as soon as it is saved.
+- **Sign-up deadlines before the start.** Appointments and event groups close sign-up at a fixed time or at a span before the start, to the minute or at midnight. Templates hand on the span, and repeating appointments close and warn for each date on its own.
 
 ### Changes
 
@@ -42,6 +43,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Event group sign-ups decided on the event group.** The open sign-ups list each event group with sign-ups waiting once and leads to it, instead of listing its appointments one by one. The count in the sidebar takes each such sign-up once.
 - **Sharing appointments needs this version on both sides.** Sharing appointments with a partner station on another server pauses until both run this version.
 - **Station statistics moved to Monitoring.** The statistics page of a station is found under Monitoring at `/station/monitoring/statistics`, so the dashboard is a single page again.
+- **Waiting sign-ups kept at the deadline.** Sign-ups still waiting for confirmation are no longer declined when the deadline passes. Whoever runs the appointment is told once per date and decides them as before.
 
 ### Fixes
 

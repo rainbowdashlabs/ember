@@ -241,7 +241,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 satEnd,
                 null,
                 true,
-                RegistrationDeadline.none(),
+                RegistrationDeadline.relative(7 * 1440, RegistrationDeadline.Anchor.MIDNIGHT),
                 false,
                 catVeranstaltung.id(),
                 null,

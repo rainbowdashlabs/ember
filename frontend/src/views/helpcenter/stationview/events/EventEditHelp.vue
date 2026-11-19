@@ -28,7 +28,16 @@ import InheritedSettingsCard from '@/views/stationview/events/eventeditview/Inhe
 import QueueOrderField from '@/views/stationview/events/eventshared/QueueOrderField.vue'
 import PartLimitCard from '@/views/stationview/events/eventeditview/PartLimitCard.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
-import type {AttendanceTemplate, EventCategory, EventGroupSettings, RegistrationFieldDefinition} from '@/api/generated/schema'
+import RegistrationDeadlineInput from '@/views/stationview/events/eventshared/RegistrationDeadlineInput.vue'
+import {
+  Anchor,
+  type AttendanceTemplate,
+  type EventCategory,
+  type EventGroupSettings,
+  Kind,
+  type RegistrationDeadline,
+  type RegistrationFieldDefinition,
+} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -51,6 +60,7 @@ const groupCategories = computed(() => [
   {id: 1, name: t('helpCenter.eventEdit.exampleGroupCategory')},
   {id: 2, name: t('helpCenter.eventEdit.examplePartCategory')},
 ] as EventCategory[])
+const exampleDeadline: RegistrationDeadline = {kind: Kind.RELATIVE, at: null, offsetMinutes: 7 * 1440, anchor: Anchor.MIDNIGHT}
 const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleGroupTemplate')}] as AttendanceTemplate[])
 </script>
 
@@ -161,19 +171,25 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
           <span class="text-sm">{{ t('events.requiresConfirmation') }}</span>
           <HintIcon :text="t('events.requiresConfirmationHint')"/>
         </div>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-1">
-            <FieldLabel>{{ t('events.registrationDeadline') }}</FieldLabel>
-            <DateTimeInput model-value="2026-05-24T18:00" disabled/>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
-            <NumberInput :model-value="15" disabled/>
-            <FieldHint>{{ t('registrationQueue.limitHint') }}</FieldHint>
-          </div>
+        <RegistrationDeadlineInput
+            :model-value="exampleDeadline"
+            next-start="2026-05-30T08:00:00Z"
+            time-zone="Europe/Berlin"
+            recurring
+            disabled
+        />
+        <div class="space-y-1">
+          <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
+          <NumberInput :model-value="15" disabled/>
+          <FieldHint>{{ t('registrationQueue.limitHint') }}</FieldHint>
         </div>
         <QueueOrderField model-value="TIME"/>
       </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventEdit.deadlineTitle')">
+      <p>{{ t('helpCenter.eventEdit.deadlineText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.deadlineAfterText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventEdit.queueTitle')">

@@ -31,6 +31,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Termine einer Terminreihe besser erreichbar.** Im Editor der Terminreihe zeigt jeder Termin Datum mit Beginn und Ende, führt zu seinem eigenen Editor und ist markiert, wenn er abgesagt ist. Eine neue Terminreihe lässt sich gleich beim Anlegen mit Partnerwachen teilen.
 - **Fragen ohne vorher die Anmeldung einzuschalten.** Die Fragen eines Termins oder einer Vorlage stehen immer im Formular. Wer eine hinzufügt, schaltet damit die Anmeldung ein, und sie bleibt an, solange es Fragen gibt.
 - **Dateien schon beim Anlegen.** Dateien lassen sich hinzufügen, während ein Termin oder eine Terminreihe noch angelegt wird, und werden beim Speichern in ihrer Reihenfolge angehängt.
+- **Anmeldeschluss vor Beginn.** Termine und Terminreihen schließen die Anmeldung zu einem festen Zeitpunkt oder eine gewisse Zeit vor Beginn, auf die Minute genau oder um Mitternacht. Vorlagen geben die Zeitspanne weiter, und wiederkehrende Termine schließen und erinnern für jeden Termin einzeln.
 
 ### Änderungen
 
@@ -42,6 +43,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Anmeldungen zu Terminreihen werden bei der Terminreihe entschieden.** Die offenen Anmeldungen führen jede Terminreihe mit wartenden Anmeldungen einmal auf und verweisen auf sie, statt ihre Termine einzeln zu zeigen. Die Zahl in der Seitenleiste zählt jede solche Anmeldung einmal.
 - **Geteilte Termine brauchen diese Version auf beiden Seiten.** Das Teilen von Terminen mit einer Partnerwache auf einem anderen Server ruht, bis beide diese Version haben.
 - **Statistiken der Wache unter Monitoring.** Die Statistikseite einer Wache steht unter Monitoring, unter `/station/monitoring/statistics`, und das Dashboard ist wieder eine einzelne Seite.
+- **Offene Anmeldungen bleiben nach dem Anmeldeschluss bestehen.** Anmeldungen, die noch auf Bestätigung warten, werden beim Anmeldeschluss nicht mehr abgelehnt. Wer den Termin betreut, bekommt je Termin einen Hinweis und entscheidet wie bisher.
 
 ### Fehlerbehebungen
 
