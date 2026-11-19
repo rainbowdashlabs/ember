@@ -181,7 +181,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 rows,
                 true,
                 false,
-                RegistrationDeadline.relative(24 * 60, RegistrationDeadline.Anchor.EXACT),
+                RegistrationDeadline.relative(24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT),
                 RestrictionSelection.empty(),
                 RestrictionSelection.empty(),
                 12,
@@ -200,7 +200,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
             assertEquals(2, stored.thresholdDays());
             assertEquals(QueueOrder.FAIRNESS, stored.queueOrder());
             assertEquals(
-                    RegistrationDeadline.relative(24 * 60, RegistrationDeadline.Anchor.EXACT),
+                    RegistrationDeadline.relative(24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT),
                     stored.registrationDeadline());
             assertEquals(
                     List.of(1, 7),

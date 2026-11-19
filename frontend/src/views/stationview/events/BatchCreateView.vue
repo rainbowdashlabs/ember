@@ -35,7 +35,7 @@ import type {
     EventTemplate,
     RegistrationDeadline,
 } from '@/api/generated/schema'
-import {Kind, StationPermission} from '@/api/generated/schema'
+import {DeadlineKind, StationPermission} from '@/api/generated/schema'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -128,7 +128,7 @@ async function applyTemplate() {
     if (tpl.requiresRegistration != null) requiresRegistration.value = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) requiresConfirmation.value = tpl.requiresConfirmation
     const deadline = deadlineRuleOf(tpl.registrationDeadline)
-    if (deadline.kind !== Kind.NONE) registrationDeadline.value = deadline
+    if (deadline.kind !== DeadlineKind.NONE) registrationDeadline.value = deadline
     fieldDefs.value = detail.fields.map(f => ({
       name: f.name,
       fieldType: f.fieldType,

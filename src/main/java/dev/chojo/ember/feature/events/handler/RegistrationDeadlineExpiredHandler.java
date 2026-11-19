@@ -37,7 +37,8 @@ public class RegistrationDeadlineExpiredHandler implements DomainEventHandler<Re
     @Override
     public void handle(RegistrationDeadlineExpired event) {
         var data = NotificationData.of(
-                new NotificationParams.RegistrationDeadlineExpired(event.eventName(), event.pendingCount()),
+                new NotificationParams.RegistrationDeadlineExpired(
+                        event.eventName(), event.pendingCount(), event.eventDate()),
                 new NotificationData.NotificationLink("events-registrations", Map.of("id", event.eventId())));
         notifier.notify(
                 StationAudience.holders(event.stationId(), StationPermission.EVENT_MANAGER),

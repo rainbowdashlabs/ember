@@ -70601,8 +70601,6 @@ export interface components {
         };
         /** @enum {string} */
         AiVendor: "OPENAI" | "GEMINI" | "CLAUDE" | "DEEPSEEK" | "MISTRAL";
-        /** @enum {string} */
-        Anchor: "EXACT" | "MIDNIGHT";
         AnswerBody: {
             answer?: components["schemas"]["SelfCheckAnswer"] | null;
             /** Format: int32 */
@@ -72812,6 +72810,10 @@ export interface components {
             count: number;
             day: string;
         };
+        /** @enum {string} */
+        DeadlineAnchor: "EXACT" | "MIDNIGHT";
+        /** @enum {string} */
+        DeadlineKind: "NONE" | "FIXED" | "RELATIVE";
         DeclineBody: {
             reason?: string | null;
         };
@@ -73732,7 +73734,7 @@ export interface components {
             /** Format: int32 */
             partRegistrationLimit: number | null;
             queueOrder: components["schemas"]["QueueOrder"] | null;
-            registrationDeadline: components["schemas"]["RegistrationDeadline"] | null;
+            registrationDeadline: components["schemas"]["RegistrationDeadline"];
             /** Format: int32 */
             registrationLimit: number | null;
             requiresConfirmation: boolean;
@@ -74087,7 +74089,7 @@ export interface components {
             minRegistrations: number | null;
             name: string;
             queueOrder: components["schemas"]["QueueOrder"] | null;
-            registrationDeadline: components["schemas"]["RegistrationDeadline"] | null;
+            registrationDeadline: components["schemas"]["RegistrationDeadline"];
             /** Format: int32 */
             registrationLimit: number | null;
             requiresConfirmation: boolean | null;
@@ -76114,8 +76116,6 @@ export interface components {
             /** Format: int32 */
             version: number;
         };
-        /** @enum {string} */
-        Kind: "NONE" | "FIXED" | "RELATIVE";
         KindRequest: {
             color?: string | null;
             enabled?: boolean;
@@ -79845,9 +79845,9 @@ export interface components {
             status: components["schemas"]["RegistrationStatus"];
         };
         RegistrationDeadline: {
-            anchor: components["schemas"]["Anchor"] | null;
+            anchor: components["schemas"]["DeadlineAnchor"] | null;
             at: components["schemas"]["Instant"] | null;
-            kind: components["schemas"]["Kind"];
+            kind: components["schemas"]["DeadlineKind"];
             /** Format: int32 */
             offsetMinutes: number | null;
         };
@@ -83497,7 +83497,6 @@ export type AiProviderRequest = components['schemas']['AiProviderRequest'];
 export type AiSettingsResponse = components['schemas']['AiSettingsResponse'];
 export type AiSuccessResponse = components['schemas']['AiSuccessResponse'];
 export type AiVendor = components['schemas']['AiVendor'];
-export type Anchor = components['schemas']['Anchor'];
 export type AnswerBody = components['schemas']['AnswerBody'];
 export type AnswerProblem = components['schemas']['AnswerProblem'];
 export type AnswerRequest = components['schemas']['AnswerRequest'];
@@ -83809,6 +83808,8 @@ export type DateTokenOption = components['schemas']['DateTokenOption'];
 export type DateValue = components['schemas']['DateValue'];
 export type DayBound = components['schemas']['DayBound'];
 export type DayCount = components['schemas']['DayCount'];
+export type DeadlineAnchor = components['schemas']['DeadlineAnchor'];
+export type DeadlineKind = components['schemas']['DeadlineKind'];
 export type DeclineBody = components['schemas']['DeclineBody'];
 export type Deleted = components['schemas']['Deleted'];
 export type DeleteImpact = components['schemas']['DeleteImpact'];
@@ -84251,7 +84252,6 @@ export type KbRestrictionResponse = components['schemas']['KbRestrictionResponse
 export type KbTag = components['schemas']['KbTag'];
 export type KbTagRequest = components['schemas']['KbTagRequest'];
 export type KbVersionResponse = components['schemas']['KbVersionResponse'];
-export type Kind = components['schemas']['Kind'];
 export type KindRequest = components['schemas']['KindRequest'];
 export type LabelRequest = components['schemas']['LabelRequest'];
 export type LandingPageRequest = components['schemas']['LandingPageRequest'];
@@ -85318,11 +85318,6 @@ export const AiVendor = {
     OPENAI: "OPENAI",
 } as const;
 
-export const Anchor = {
-    EXACT: "EXACT",
-    MIDNIGHT: "MIDNIGHT",
-} as const;
-
 export const ApplicationStatus = {
     ACCEPTED: "ACCEPTED",
     DENIED: "DENIED",
@@ -85534,6 +85529,17 @@ export const DateFormatProblem = {
 export const DateKind = {
     DATE: "DATE",
     DATE_TIME: "DATE_TIME",
+} as const;
+
+export const DeadlineAnchor = {
+    EXACT: "EXACT",
+    MIDNIGHT: "MIDNIGHT",
+} as const;
+
+export const DeadlineKind = {
+    FIXED: "FIXED",
+    NONE: "NONE",
+    RELATIVE: "RELATIVE",
 } as const;
 
 export const DeviceRequestPurpose = {
@@ -85909,12 +85915,6 @@ export const KbRefusalReason = {
     NO_PERMISSION: "NO_PERMISSION",
     SHARE_TOO_WIDE: "SHARE_TOO_WIDE",
     TARGET_INSIDE: "TARGET_INSIDE",
-} as const;
-
-export const Kind = {
-    FIXED: "FIXED",
-    NONE: "NONE",
-    RELATIVE: "RELATIVE",
 } as const;
 
 export const LanePreset = {

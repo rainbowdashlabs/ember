@@ -688,7 +688,7 @@ public class EventRoutes implements Routes {
                 req.endTime(),
                 req.templateId(),
                 Boolean.TRUE.equals(req.requiresRegistration()),
-                req.registrationDeadline(),
+                Objects.requireNonNullElse(req.registrationDeadline(), RegistrationDeadline.none()),
                 Boolean.TRUE.equals(req.requiresConfirmation()),
                 req.categoryId(),
                 req.isPublic(),

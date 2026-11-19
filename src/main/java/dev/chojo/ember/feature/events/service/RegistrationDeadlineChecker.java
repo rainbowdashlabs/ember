@@ -17,11 +17,13 @@ import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -94,23 +96,30 @@ public class RegistrationDeadlineChecker implements TaskSource {
                 .toList();
         if (closed.isEmpty()) return;
         closed.forEach(pending -> eventRepository.markDeadlineExpired(event.id(), pending.date()));
-        if (event.registrationDeadline().kind() == RegistrationDeadline.Kind.FIXED) {
+        if (event.registrationDeadline().kind() == RegistrationDeadline.DeadlineKind.FIXED) {
             tell(
                     event,
                     closed.stream()
                             .mapToInt(EventRepository.PendingDate::pendingCount)
-                            .sum());
+                            .sum(),
+                    null);
         } else {
-            closed.forEach(pending -> tell(event, pending.pendingCount()));
+            closed.forEach(
+                    pending -> tell(event, pending.pendingCount(), event.closesPerDate() ? pending.date() : null));
         }
     }
 
-    private void tell(StationEvent event, int pendingCount) {
-        eventBus.publish(new RegistrationDeadlineExpired(event.stationId(), event.id(), event.name(), pendingCount));
+    /**
+     * Tells the managers, naming the date where a series closes each date on its own.
+     */
+    private void tell(StationEvent event, int pendingCount, @Nullable LocalDate date) {
+        eventBus.publish(
+                new RegistrationDeadlineExpired(event.stationId(), event.id(), event.name(), pendingCount, date));
         log.info(
-                "Registration deadline passed for event '{}' (id={}) with {} pending registrations",
+                "Registration deadline passed for event '{}' (id={}) on {} with {} pending registrations",
                 event.name(),
                 event.id(),
+                date,
                 pendingCount);
     }
 

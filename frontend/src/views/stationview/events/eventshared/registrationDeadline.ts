@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {Anchor, Kind, type RegistrationDeadline} from '@/api/generated/schema'
+import {DeadlineAnchor, DeadlineKind, type RegistrationDeadline} from '@/api/generated/schema'
 import {shiftIsoDate, stationDayOf} from '@/util/format'
 
 export const MINUTES_PER_HOUR = 60
@@ -11,7 +11,7 @@ export const MINUTES_PER_DAY = 1440
 
 /** A rule that never closes sign-up. */
 export function noDeadline(): RegistrationDeadline {
-    return {kind: Kind.NONE, at: null, offsetMinutes: null, anchor: null}
+    return {kind: DeadlineKind.NONE, at: null, offsetMinutes: null, anchor: null}
 }
 
 /**
@@ -91,15 +91,15 @@ function stationMidnightOf(moment: Date, timeZone: string, daysBack = 0): Date {
  * @returns the closing moment, or null when sign-up does not close or the rule is incomplete
  */
 export function closesAt(rule: RegistrationDeadline, occurrenceStart: Date | string, timeZone: string): Date | null {
-    if (rule.kind === Kind.FIXED) return rule.at ? new Date(rule.at) : null
-    if (rule.kind !== Kind.RELATIVE || rule.offsetMinutes == null) return null
+    if (rule.kind === DeadlineKind.FIXED) return rule.at ? new Date(rule.at) : null
+    if (rule.kind !== DeadlineKind.RELATIVE || rule.offsetMinutes == null) return null
     const start = new Date(occurrenceStart)
     if (Number.isNaN(start.getTime())) return null
-    if (rule.anchor === Anchor.MIDNIGHT && rule.offsetMinutes % MINUTES_PER_DAY === 0) {
+    if (rule.anchor === DeadlineAnchor.MIDNIGHT && rule.offsetMinutes % MINUTES_PER_DAY === 0) {
         return stationMidnightOf(start, timeZone, rule.offsetMinutes / MINUTES_PER_DAY)
     }
     const shifted = new Date(start.getTime() - rule.offsetMinutes * 60_000)
-    return rule.anchor === Anchor.MIDNIGHT ? stationMidnightOf(shifted, timeZone) : shifted
+    return rule.anchor === DeadlineAnchor.MIDNIGHT ? stationMidnightOf(shifted, timeZone) : shifted
 }
 
 /**
@@ -123,5 +123,5 @@ export function sameRule(a: RegistrationDeadline | null, b: RegistrationDeadline
  */
 export function deadlineForCopy(value: Partial<RegistrationDeadline> | null | undefined): RegistrationDeadline {
     const rule = deadlineRuleOf(value)
-    return rule.kind === Kind.FIXED ? noDeadline() : rule
+    return rule.kind === DeadlineKind.FIXED ? noDeadline() : rule
 }

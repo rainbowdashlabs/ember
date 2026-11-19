@@ -14,7 +14,7 @@ import HintIcon from '@/components/typography/HintIcon.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {formatTime, formatWeekdayDate, instantToLocalInput, localInputToInstant} from '@/util/format'
 import {nonNegative} from '../templateeditview/signUpRules'
-import {Anchor, Kind, type RegistrationDeadline} from '@/api/generated/schema'
+import {DeadlineAnchor, DeadlineKind, type RegistrationDeadline} from '@/api/generated/schema'
 import {closesAt, MINUTES_PER_DAY, MINUTES_PER_HOUR, noDeadline, sameRule} from './registrationDeadline'
 
 /**
@@ -53,7 +53,7 @@ type DeadlineUnit = 'HOURS' | 'DAYS'
 /** The span and anchor last set for a relative deadline, which switching back to one restores. */
 interface RelativeSpan {
   offsetMinutes: number
-  anchor: Anchor
+  anchor: DeadlineAnchor
 }
 
 const UNIT_MINUTES: Readonly<Record<DeadlineUnit, number>> = {HOURS: MINUTES_PER_HOUR, DAYS: MINUTES_PER_DAY}
@@ -67,7 +67,7 @@ const unit = ref<DeadlineUnit>(unitFor(rule.value.offsetMinutes))
 
 const lastRelative = ref<RelativeSpan>({
   offsetMinutes: rule.value.offsetMinutes ?? MINUTES_PER_DAY,
-  anchor: rule.value.anchor ?? Anchor.MIDNIGHT,
+  anchor: rule.value.anchor ?? DeadlineAnchor.MIDNIGHT,
 })
 
 /** The rule this editor handed out last, which tells its own edits apart from a rule replaced from outside. */
@@ -85,19 +85,19 @@ function setRule(next: RegistrationDeadline) {
  * still divides the span.
  */
 watch(() => rule.value, (current, previous) => {
-  if (current.kind !== Kind.RELATIVE || current.offsetMinutes == null) return
-  lastRelative.value = {offsetMinutes: current.offsetMinutes, anchor: current.anchor ?? Anchor.EXACT}
-  const arrived = previous?.kind !== Kind.RELATIVE || !sameRule(current, editedHere)
+  if (current.kind !== DeadlineKind.RELATIVE || current.offsetMinutes == null) return
+  lastRelative.value = {offsetMinutes: current.offsetMinutes, anchor: current.anchor ?? DeadlineAnchor.EXACT}
+  const arrived = previous?.kind !== DeadlineKind.RELATIVE || !sameRule(current, editedHere)
   if (arrived || current.offsetMinutes % UNIT_MINUTES[unit.value] !== 0) unit.value = unitFor(current.offsetMinutes)
 })
 
 /** Switches the kind of deadline, starting each one from where this editor last left it. */
 function chooseKind(kind: unknown) {
-  if (kind === Kind.FIXED) {
-    setRule({kind: Kind.FIXED, at: null, offsetMinutes: null, anchor: null})
-  } else if (kind === Kind.RELATIVE) {
+  if (kind === DeadlineKind.FIXED) {
+    setRule({kind: DeadlineKind.FIXED, at: null, offsetMinutes: null, anchor: null})
+  } else if (kind === DeadlineKind.RELATIVE) {
     unit.value = unitFor(lastRelative.value.offsetMinutes)
-    setRule({kind: Kind.RELATIVE, at: null, ...lastRelative.value})
+    setRule({kind: DeadlineKind.RELATIVE, at: null, ...lastRelative.value})
   } else {
     setRule(noDeadline())
   }
@@ -117,7 +117,7 @@ function setUnit(value: unknown) {
 }
 
 function setAnchor(value: unknown) {
-  setRule({...rule.value, anchor: value === Anchor.MIDNIGHT ? Anchor.MIDNIGHT : Anchor.EXACT})
+  setRule({...rule.value, anchor: value === DeadlineAnchor.MIDNIGHT ? DeadlineAnchor.MIDNIGHT : DeadlineAnchor.EXACT})
 }
 
 const fixedMoment = computed({
@@ -126,18 +126,18 @@ const fixedMoment = computed({
 })
 
 const nextClosing = computed(() => {
-  if (rule.value.kind !== Kind.RELATIVE || !props.nextStart) return null
+  if (rule.value.kind !== DeadlineKind.RELATIVE || !props.nextStart) return null
   const zone = props.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
   const closing = closesAt(rule.value, props.nextStart, zone)?.toISOString()
   if (!closing) return null
   return `${formatWeekdayDate(closing, 'short', zone)}, ${formatTime(closing, zone)}`
 })
 
-const kinds = computed<Kind[]>(() => props.allowFixed ? [Kind.NONE, Kind.FIXED, Kind.RELATIVE] : [Kind.NONE, Kind.RELATIVE])
-const kindLabel = computed<Record<Kind, string>>(() => ({
-  [Kind.NONE]: t('events.deadlineRule.none'),
-  [Kind.FIXED]: t('events.deadlineRule.fixed'),
-  [Kind.RELATIVE]: t('events.deadlineRule.relative'),
+const kinds = computed<DeadlineKind[]>(() => props.allowFixed ? [DeadlineKind.NONE, DeadlineKind.FIXED, DeadlineKind.RELATIVE] : [DeadlineKind.NONE, DeadlineKind.RELATIVE])
+const kindLabel = computed<Record<DeadlineKind, string>>(() => ({
+  [DeadlineKind.NONE]: t('events.deadlineRule.none'),
+  [DeadlineKind.FIXED]: t('events.deadlineRule.fixed'),
+  [DeadlineKind.RELATIVE]: t('events.deadlineRule.relative'),
 }))
 </script>
 
@@ -147,7 +147,7 @@ const kindLabel = computed<Record<Kind, string>>(() => ({
       <FieldLabel :for="`${id}-kind`">{{ t('events.registrationDeadline') }}</FieldLabel>
       <HintIcon :text="t('events.deadlineRule.afterHint')"/>
       <HintIcon
-          v-if="recurring && rule.kind === Kind.FIXED"
+          v-if="recurring && rule.kind === DeadlineKind.FIXED"
           :text="t('events.deadlineRule.fixedOnSeriesHint')"
           data-testid="registration-deadline-series-hint"
       />
@@ -164,14 +164,14 @@ const kindLabel = computed<Record<Kind, string>>(() => ({
     </SelectInput>
 
     <DateTimeInput
-        v-if="rule.kind === Kind.FIXED"
+        v-if="rule.kind === DeadlineKind.FIXED"
         v-model="fixedMoment"
         :disabled="disabled"
         :label="t('events.registrationDeadline')"
         data-testid="registration-deadline-at"
     />
 
-    <template v-else-if="rule.kind === Kind.RELATIVE">
+    <template v-else-if="rule.kind === DeadlineKind.RELATIVE">
       <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <NumberInput
             :model-value="amount"
@@ -193,15 +193,15 @@ const kindLabel = computed<Record<Kind, string>>(() => ({
           <option value="DAYS">{{ t('events.deadlineRule.days') }}</option>
         </SelectInput>
         <SelectInput
-            :model-value="rule.anchor ?? Anchor.EXACT"
+            :model-value="rule.anchor ?? DeadlineAnchor.EXACT"
             :aria-label="t('events.deadlineRule.anchor')"
             :disabled="disabled"
             class="col-span-2 w-full sm:col-span-1"
             data-testid="registration-deadline-anchor"
             @update:model-value="setAnchor"
         >
-          <option :value="Anchor.EXACT">{{ t('events.deadlineRule.exact') }}</option>
-          <option :value="Anchor.MIDNIGHT">{{ t('events.deadlineRule.midnight') }}</option>
+          <option :value="DeadlineAnchor.EXACT">{{ t('events.deadlineRule.exact') }}</option>
+          <option :value="DeadlineAnchor.MIDNIGHT">{{ t('events.deadlineRule.midnight') }}</option>
         </SelectInput>
       </div>
       <MutedText v-if="nextClosing" size="sm" tag="p" data-testid="registration-deadline-next">

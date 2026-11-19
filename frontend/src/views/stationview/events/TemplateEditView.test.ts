@@ -19,6 +19,7 @@ import {
     type TemplateDetailResponse,
 } from '@/api/generated/schema'
 import {createSessionInfo} from '@/test/mocks/factories'
+import {noDeadline} from './eventshared/registrationDeadline'
 
 const api = vi.hoisted(() => ({
     events: {
@@ -184,7 +185,7 @@ describe('TemplateEditView', () => {
 
     it('sends no deadline and no threshold where none is set', async () => {
         api.events.getTemplate.mockResolvedValue(detail(template({
-            registrationDeadline: null, minRegistrations: null,
+            registrationDeadline: noDeadline(), minRegistrations: null,
         })))
         const body = await editor()
 

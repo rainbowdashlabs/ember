@@ -39,7 +39,7 @@ public record EventTemplateSettings(
         @Nullable Integer categoryId,
         StationEvent.@Nullable EventType eventType,
         @Nullable Boolean requiresRegistration,
-        @Nullable RegistrationDeadline registrationDeadline,
+        RegistrationDeadline registrationDeadline,
         @Nullable Boolean requiresConfirmation,
         @Nullable RestrictionMode restrictionMode,
         @Nullable Integer attendanceTemplateId,
@@ -47,11 +47,6 @@ public record EventTemplateSettings(
         @Nullable Integer minRegistrations,
         @Nullable Integer thresholdDays,
         @Nullable QueueOrder queueOrder) {
-
-    /** Reads a missing deadline as none. */
-    public EventTemplateSettings {
-        if (registrationDeadline == null) registrationDeadline = RegistrationDeadline.none();
-    }
 
     /**
      * Settings that set no waiting list order.
@@ -63,7 +58,7 @@ public record EventTemplateSettings(
             @Nullable Integer categoryId,
             StationEvent.@Nullable EventType eventType,
             @Nullable Boolean requiresRegistration,
-            @Nullable RegistrationDeadline registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             @Nullable Boolean requiresConfirmation,
             @Nullable RestrictionMode restrictionMode,
             @Nullable Integer attendanceTemplateId,
@@ -95,7 +90,7 @@ public record EventTemplateSettings(
      */
     public boolean hasNegativeRule() {
         return !registrationDeadline.isValid()
-                || registrationDeadline.kind() == RegistrationDeadline.Kind.FIXED
+                || registrationDeadline.kind() == RegistrationDeadline.DeadlineKind.FIXED
                 || isNegative(registrationLimit)
                 || isNegative(minRegistrations)
                 || isNegative(thresholdDays);

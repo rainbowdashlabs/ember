@@ -9,7 +9,7 @@ import {needsDayOfWeek} from '@/api/events'
 import {namesMembers} from '@/api/fieldTypes'
 import {
     EventType,
-    Kind,
+    DeadlineKind,
     QueueOrder,
     type AppointmentField,
     type EventFieldEntry,
@@ -176,7 +176,7 @@ export function useEventForm() {
     if (tpl.minRegistrations != null) state.minRegistrations = tpl.minRegistrations
     if (tpl.thresholdDays != null) state.thresholdDays = tpl.thresholdDays
     const deadline = deadlineRuleOf(tpl.registrationDeadline)
-    if (deadline.kind !== Kind.NONE) state.registrationDeadline = deadline
+    if (deadline.kind !== DeadlineKind.NONE) state.registrationDeadline = deadline
     if (detail.fields.length > 0) {
       const newFields: EventFieldEntry[] = detail.fields.map(f => ({
         name: f.name,

@@ -75,7 +75,7 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                RegistrationDeadline.relative(43200, RegistrationDeadline.Anchor.MIDNIGHT),
+                RegistrationDeadline.relative(43200, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
                 true,
                 null,
                 1,
@@ -92,7 +92,7 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
 
             checker.scheduledTasks().getFirst().work().run();
 
-            verify(bus).publish(new RegistrationDeadlineExpired(station.id(), event.id(), event.name(), 1));
+            verify(bus).publish(new RegistrationDeadlineExpired(station.id(), event.id(), event.name(), 1, null));
             assertEquals(
                     RegistrationStatus.PENDING,
                     eventRegistrationRepo.findById(asked.id()).orElseThrow().status());
@@ -113,7 +113,7 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
         var zone = occurrenceCalendar.zoneOf(station.id());
         var near = LocalDate.now(zone).plusDays(1);
         var next = near.plusWeeks(1);
-        var event = series(near, RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.Anchor.EXACT));
+        var event = series(near, RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT));
         try {
             var nearSignUp =
                     eventRegistrationRepo.create(event.id(), pending.id(), near, RegistrationStatus.PENDING, null);
@@ -126,7 +126,7 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
             checker.scheduledTasks().getFirst().work().run();
 
             verify(bus, times(1)).publish(any(RegistrationDeadlineExpired.class));
-            verify(bus).publish(new RegistrationDeadlineExpired(station.id(), event.id(), event.name(), 1));
+            verify(bus).publish(new RegistrationDeadlineExpired(station.id(), event.id(), event.name(), 1, near));
             assertEquals(
                     RegistrationStatus.PENDING,
                     eventRegistrationRepo
@@ -164,7 +164,7 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
             checker.scheduledTasks().getFirst().work().run();
 
             verify(bus, times(1)).publish(any(RegistrationDeadlineExpired.class));
-            verify(bus).publish(new RegistrationDeadlineExpired(station.id(), event.id(), event.name(), 3));
+            verify(bus).publish(new RegistrationDeadlineExpired(station.id(), event.id(), event.name(), 3, null));
         } finally {
             eventRepo.delete(event.id());
         }
@@ -175,7 +175,7 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
     void aCalledOffDateIsNotToldAbout() {
         var zone = occurrenceCalendar.zoneOf(station.id());
         var near = LocalDate.now(zone).plusDays(1);
-        var event = series(near, RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.Anchor.EXACT));
+        var event = series(near, RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT));
         try {
             eventRegistrationRepo.create(event.id(), pending.id(), near, RegistrationStatus.PENDING, null);
             eventDateCancellationRepo.cancel(event.id(), near, CancellationCause.MANUAL, null, null);

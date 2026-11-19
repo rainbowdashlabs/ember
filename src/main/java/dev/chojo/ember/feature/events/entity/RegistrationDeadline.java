@@ -31,20 +31,20 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param anchor        how a relative deadline is placed, null otherwise
  */
 public record RegistrationDeadline(
-        Kind kind,
+        DeadlineKind kind,
         @Nullable Instant at,
         @Nullable Integer offsetMinutes,
-        @Nullable Anchor anchor) {
+        @Nullable DeadlineAnchor anchor) {
 
     private static final int MINUTES_PER_DAY = 1440;
 
-    private static final RegistrationDeadline NONE = new RegistrationDeadline(Kind.NONE, null, null, null);
+    private static final RegistrationDeadline NONE = new RegistrationDeadline(DeadlineKind.NONE, null, null, null);
 
     /**
      * Normalises the rule, so only the values its kind uses are kept.
      */
     public RegistrationDeadline {
-        if (kind == null) kind = Kind.NONE;
+        if (kind == null) kind = DeadlineKind.NONE;
         switch (kind) {
             case NONE -> {
                 at = null;
@@ -57,7 +57,7 @@ public record RegistrationDeadline(
             }
             case RELATIVE -> {
                 at = null;
-                if (anchor == null) anchor = Anchor.EXACT;
+                if (anchor == null) anchor = DeadlineAnchor.EXACT;
             }
         }
     }
@@ -73,7 +73,7 @@ public record RegistrationDeadline(
      * @param at the instant, or null for no deadline
      */
     public static RegistrationDeadline fixed(@Nullable Instant at) {
-        return at == null ? NONE : new RegistrationDeadline(Kind.FIXED, at, null, null);
+        return at == null ? NONE : new RegistrationDeadline(DeadlineKind.FIXED, at, null, null);
     }
 
     /**
@@ -82,8 +82,8 @@ public record RegistrationDeadline(
      * @param offsetMinutes how many minutes before the start
      * @param anchor        exact or down to midnight
      */
-    public static RegistrationDeadline relative(int offsetMinutes, Anchor anchor) {
-        return new RegistrationDeadline(Kind.RELATIVE, null, offsetMinutes, anchor);
+    public static RegistrationDeadline relative(int offsetMinutes, DeadlineAnchor anchor) {
+        return new RegistrationDeadline(DeadlineKind.RELATIVE, null, offsetMinutes, anchor);
     }
 
     /**
@@ -97,16 +97,16 @@ public record RegistrationDeadline(
      */
     public static RegistrationDeadline read(Row row) throws SQLException {
         return new RegistrationDeadline(
-                row.getEnum("registration_deadline_kind", Kind.class),
+                row.getEnum("registration_deadline_kind", DeadlineKind.class),
                 row.get("registration_deadline", INSTANT_TIMESTAMP),
                 row.getObject("registration_deadline_offset_minutes", Integer.class),
-                row.getEnum("registration_deadline_anchor", Anchor.class));
+                row.getEnum("registration_deadline_anchor", DeadlineAnchor.class));
     }
 
     /** Whether any deadline applies. */
     @JsonIgnore
     public boolean isSet() {
-        return kind != Kind.NONE;
+        return kind != DeadlineKind.NONE;
     }
 
     /** Whether the rule is valid: no negative span and a fixed deadline with an instant. */
@@ -153,7 +153,7 @@ public record RegistrationDeadline(
      */
     private Instant relativeTo(Instant start, ZoneId zone) {
         int minutes = offsetMinutes == null ? 0 : offsetMinutes;
-        if (anchor == Anchor.MIDNIGHT && minutes % MINUTES_PER_DAY == 0) {
+        if (anchor == DeadlineAnchor.MIDNIGHT && minutes % MINUTES_PER_DAY == 0) {
             return start.atZone(zone)
                     .toLocalDate()
                     .minusDays(minutes / MINUTES_PER_DAY)
@@ -161,12 +161,12 @@ public record RegistrationDeadline(
                     .toInstant();
         }
         var close = start.minus(Duration.ofMinutes(minutes));
-        if (anchor != Anchor.MIDNIGHT) return close;
+        if (anchor != DeadlineAnchor.MIDNIGHT) return close;
         return close.atZone(zone).toLocalDate().atStartOfDay(zone).toInstant();
     }
 
     /** Which deadline applies. */
-    public enum Kind {
+    public enum DeadlineKind {
         /** Sign-up never closes on its own. */
         NONE,
         /** Sign-up closes at one instant. */
@@ -176,7 +176,7 @@ public record RegistrationDeadline(
     }
 
     /** How a relative deadline is placed. */
-    public enum Anchor {
+    public enum DeadlineAnchor {
         /** Exactly the span before the start. */
         EXACT,
         /** At the midnight that begins the day the span lands on. */

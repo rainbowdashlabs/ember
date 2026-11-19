@@ -97,7 +97,7 @@ class RegistrationDeadlineRoutesTest {
                 start.plusSeconds(7200),
                 null,
                 true,
-                RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.Anchor.EXACT),
+                RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT),
                 false,
                 null,
                 RestrictionMode.AND,

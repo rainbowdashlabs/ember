@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Objects;
 
 /**
  * An appointment as the editor is about to save it: every setting of the appointment itself,
@@ -41,7 +42,7 @@ public record EventDraft(
         Instant endTime,
         @Nullable Integer templateId,
         boolean requiresRegistration,
-        @Nullable RegistrationDeadline registrationDeadline,
+        RegistrationDeadline registrationDeadline,
         boolean requiresConfirmation,
         @Nullable Integer categoryId,
         @Nullable Boolean isPublic,
@@ -53,7 +54,7 @@ public record EventDraft(
 
     /** Reads a missing deadline as none. */
     public EventDraft {
-        if (registrationDeadline == null) registrationDeadline = RegistrationDeadline.none();
+        registrationDeadline = Objects.requireNonNullElse(registrationDeadline, RegistrationDeadline.none());
     }
 
     /** Whether the draft repeats on a schedule. */

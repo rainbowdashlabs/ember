@@ -215,7 +215,9 @@ public class EventReminderChecker implements TaskSource {
                         || !closes.get().isAfter(from)
                         || closes.get().isAfter(until)) continue;
                 closing.add(new ClosingDate(
-                        new ClosingWarnings.Closing(event.id(), event.stationId(), event.name(), date), closes.get()));
+                        new ClosingWarnings.Closing(
+                                event.id(), event.stationId(), event.name(), date, event.closesPerDate()),
+                        closes.get()));
             }
         }
         return closing;
@@ -240,7 +242,7 @@ public class EventReminderChecker implements TaskSource {
     private static List<LocalDate> candidateDates(StationEvent event, StationCalendar calendar, Instant limit) {
         var today = calendar.today();
         var deadline = event.registrationDeadline();
-        if (deadline.kind() == RegistrationDeadline.Kind.FIXED) {
+        if (deadline.kind() == RegistrationDeadline.DeadlineKind.FIXED) {
             return calendar.next(event, today)
                     .filter(date -> calendar.takesPlaceOn(event, date))
                     .map(List::of)

@@ -55711,10 +55711,6 @@
         "type" : "string",
         "enum" : [ "OPENAI", "GEMINI", "CLAUDE", "DEEPSEEK", "MISTRAL" ]
       },
-      "Anchor" : {
-        "type" : "string",
-        "enum" : [ "EXACT", "MIDNIGHT" ]
-      },
       "AnswerBody" : {
         "type" : "object",
         "properties" : {
@@ -62237,6 +62233,14 @@
         },
         "required" : [ "day", "count" ]
       },
+      "DeadlineAnchor" : {
+        "type" : "string",
+        "enum" : [ "EXACT", "MIDNIGHT" ]
+      },
+      "DeadlineKind" : {
+        "type" : "string",
+        "enum" : [ "NONE", "FIXED", "RELATIVE" ]
+      },
       "DeclineBody" : {
         "type" : "object",
         "properties" : {
@@ -64983,11 +64987,7 @@
             "format" : "int32"
           },
           "registrationDeadline" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/RegistrationDeadline"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/RegistrationDeadline"
           },
           "requiresConfirmation" : {
             "type" : "boolean"
@@ -66048,11 +66048,7 @@
             "type" : [ "boolean", "null" ]
           },
           "registrationDeadline" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/RegistrationDeadline"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/RegistrationDeadline"
           },
           "requiresConfirmation" : {
             "type" : [ "boolean", "null" ]
@@ -71872,10 +71868,6 @@
           }
         },
         "required" : [ "id", "version", "isFull", "createdBy", "createdByName", "createdAt" ]
-      },
-      "Kind" : {
-        "type" : "string",
-        "enum" : [ "NONE", "FIXED", "RELATIVE" ]
       },
       "KindRequest" : {
         "type" : "object",
@@ -82720,7 +82712,7 @@
         "type" : "object",
         "properties" : {
           "kind" : {
-            "$ref" : "#/components/schemas/Kind"
+            "$ref" : "#/components/schemas/DeadlineKind"
           },
           "at" : {
             "anyOf" : [ {
@@ -82735,7 +82727,7 @@
           },
           "anchor" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/Anchor"
+              "$ref" : "#/components/schemas/DeadlineAnchor"
             }, {
               "type" : "null"
             } ]

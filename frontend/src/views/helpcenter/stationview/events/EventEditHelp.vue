@@ -30,11 +30,11 @@ import PartLimitCard from '@/views/stationview/events/eventeditview/PartLimitCar
 import FieldHint from '@/components/typography/FieldHint.vue'
 import RegistrationDeadlineInput from '@/views/stationview/events/eventshared/RegistrationDeadlineInput.vue'
 import {
-  Anchor,
+  DeadlineAnchor,
   type AttendanceTemplate,
   type EventCategory,
   type EventGroupSettings,
-  Kind,
+  DeadlineKind,
   type RegistrationDeadline,
   type RegistrationFieldDefinition,
 } from '@/api/generated/schema'
@@ -60,7 +60,7 @@ const groupCategories = computed(() => [
   {id: 1, name: t('helpCenter.eventEdit.exampleGroupCategory')},
   {id: 2, name: t('helpCenter.eventEdit.examplePartCategory')},
 ] as EventCategory[])
-const exampleDeadline: RegistrationDeadline = {kind: Kind.RELATIVE, at: null, offsetMinutes: 7 * 1440, anchor: Anchor.MIDNIGHT}
+const exampleDeadline: RegistrationDeadline = {kind: DeadlineKind.RELATIVE, at: null, offsetMinutes: 7 * 1440, anchor: DeadlineAnchor.MIDNIGHT}
 const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleGroupTemplate')}] as AttendanceTemplate[])
 </script>
 

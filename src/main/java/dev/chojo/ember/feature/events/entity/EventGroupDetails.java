@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.events.entity;
 
 import org.jspecify.annotations.Nullable;
 
+import java.util.Objects;
+
 /**
  * What a manager sets on an event group besides its sets, parts and audiences.
  *
@@ -30,7 +32,7 @@ public record EventGroupDetails(
         String name,
         @Nullable String description,
         @Nullable Integer registrationLimit,
-        @Nullable RegistrationDeadline registrationDeadline,
+        RegistrationDeadline registrationDeadline,
         boolean requiresConfirmation,
         @Nullable String color,
         @Nullable Integer minRegistrations,
@@ -40,7 +42,7 @@ public record EventGroupDetails(
 
     /** Reads a missing deadline as none. */
     public EventGroupDetails {
-        if (registrationDeadline == null) registrationDeadline = RegistrationDeadline.none();
+        registrationDeadline = Objects.requireNonNullElse(registrationDeadline, RegistrationDeadline.none());
     }
 
     /**
@@ -60,7 +62,7 @@ public record EventGroupDetails(
             String name,
             @Nullable String description,
             @Nullable Integer registrationLimit,
-            @Nullable RegistrationDeadline registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             boolean requiresConfirmation,
             @Nullable String color,
             @Nullable Integer minRegistrations,
@@ -102,7 +104,7 @@ public record EventGroupDetails(
             String name,
             @Nullable String description,
             @Nullable Integer registrationLimit,
-            @Nullable RegistrationDeadline registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             boolean requiresConfirmation,
             @Nullable String color) {
         this(name, description, registrationLimit, registrationDeadline, requiresConfirmation, color, null, null);

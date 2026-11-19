@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.events.entity.StationEvent.EventType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Objects;
+
 /**
  * An appointment template: the settings an appointment made from it starts with.
  *
@@ -41,7 +43,7 @@ public record EventTemplate(
         @Nullable Integer categoryId,
         @Nullable EventType eventType,
         @Nullable Boolean requiresRegistration,
-        @Nullable RegistrationDeadline registrationDeadline,
+        RegistrationDeadline registrationDeadline,
         @Nullable Boolean requiresConfirmation,
         @Nullable RestrictionMode restrictionMode,
         RestrictionMode viewRestrictionMode,
@@ -53,7 +55,7 @@ public record EventTemplate(
 
     /** Reads a missing deadline as none. */
     public EventTemplate {
-        if (registrationDeadline == null) registrationDeadline = RegistrationDeadline.none();
+        registrationDeadline = Objects.requireNonNullElse(registrationDeadline, RegistrationDeadline.none());
     }
 
     /**
@@ -68,7 +70,7 @@ public record EventTemplate(
             @Nullable Integer categoryId,
             @Nullable EventType eventType,
             @Nullable Boolean requiresRegistration,
-            @Nullable RegistrationDeadline registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             @Nullable Boolean requiresConfirmation,
             @Nullable RestrictionMode restrictionMode,
             RestrictionMode viewRestrictionMode,

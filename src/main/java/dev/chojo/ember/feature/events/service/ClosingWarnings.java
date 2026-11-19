@@ -84,7 +84,8 @@ final class ClosingWarnings {
                 StationAudience.household(List.of(memberId)),
                 NotificationType.REGISTRATION_CLOSING,
                 NotificationData.of(
-                        new NotificationParams.RegistrationClosing(closing.name(), daysBefore, names.called(memberId)),
+                        new NotificationParams.RegistrationClosing(
+                                closing.name(), daysBefore, names.called(memberId), closing.namedDate()),
                         kind.linkTo(closing.id())),
                 Delivery.EVERY_TIME);
         return told > 0;
@@ -98,9 +99,21 @@ final class ClosingWarnings {
      * @param name      its name, as the warning shows it
      * @param date      the date of an appointment whose deadline this is, since a series closes each
      *                  date on its own; null for an event group, which closes once
+     * @param series    whether the appointment repeats, so the warning names the date
      */
     record Closing(
-            int id, int stationId, String name, @Nullable LocalDate date) {}
+            int id, int stationId, String name, @Nullable LocalDate date, boolean series) {
+        /** Something that closes once, or a date not worth naming. */
+        Closing(int id, int stationId, String name, @Nullable LocalDate date) {
+            this(id, stationId, name, date, false);
+        }
+
+        /** The date the warning names: the one of a series, which closes each date on its own. */
+        @Nullable
+        LocalDate namedDate() {
+            return series ? date : null;
+        }
+    }
 
     /** One kind of thing with a sign-up deadline: what differs between an appointment and an event group. */
     interface Closable {

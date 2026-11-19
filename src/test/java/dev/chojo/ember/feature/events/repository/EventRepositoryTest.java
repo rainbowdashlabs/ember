@@ -308,7 +308,7 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2026-06-15T12:00:00Z"),
                 null,
                 true,
-                RegistrationDeadline.relative(2880, RegistrationDeadline.Anchor.MIDNIGHT),
+                RegistrationDeadline.relative(2880, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
                 false,
                 null,
                 null,
@@ -317,7 +317,7 @@ class EventRepositoryTest extends RepositoryTestBase {
         try {
             var read = eventRepo.findById(event.id()).orElseThrow();
             assertEquals(
-                    RegistrationDeadline.relative(2880, RegistrationDeadline.Anchor.MIDNIGHT),
+                    RegistrationDeadline.relative(2880, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
                     read.registrationDeadline());
             assertTrue(eventRepo.findWithDeadline().stream().anyMatch(e -> e.id() == event.id()));
         } finally {
@@ -582,7 +582,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     /** A one-time appointment already begun and a series already ended have nothing left to close. */
     @Test
     void whatIsOverCannotClose() {
-        var deadline = RegistrationDeadline.relative(24 * 60, RegistrationDeadline.Anchor.EXACT);
+        var deadline = RegistrationDeadline.relative(24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT);
         var past = withDeadline(
                 "Vorbei", StationEvent.EventType.ONE_TIME, Instant.now().minus(1, ChronoUnit.DAYS), deadline);
         var ended = withDeadline(
@@ -625,7 +625,7 @@ class EventRepositoryTest extends RepositoryTestBase {
                 "Relativ",
                 StationEvent.EventType.RECURRING,
                 Instant.now().minus(30, ChronoUnit.DAYS),
-                RegistrationDeadline.relative(2 * 24 * 60, RegistrationDeadline.Anchor.EXACT));
+                RegistrationDeadline.relative(2 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT));
         try {
             eventRegistrationRepo.create(ahead.id(), member.id(), today.plusDays(1), RegistrationStatus.PENDING, null);
             eventRegistrationRepo.create(
@@ -654,7 +654,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     /** A relative deadline of a one-time appointment asks for an answer until its computed close. */
     @Test
     void anAnswerIsAwaitedUntilTheRelativeDeadline() {
-        var deadline = RegistrationDeadline.relative(2 * 24 * 60, RegistrationDeadline.Anchor.EXACT);
+        var deadline = RegistrationDeadline.relative(2 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT);
         var open = withDeadline(
                 "Noch offen", StationEvent.EventType.ONE_TIME, Instant.now().plus(10, ChronoUnit.DAYS), deadline);
         var closed = withDeadline(

@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class EventGroupDeadlineTest extends EventGroupServiceTestBase {
 
     private static final RegistrationDeadline TWO_DAYS =
-            RegistrationDeadline.relative(2 * 24 * 60, RegistrationDeadline.Anchor.EXACT);
+            RegistrationDeadline.relative(2 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT);
 
     private EventGroup relativeGroup(String name) {
         return create(
@@ -241,7 +241,7 @@ class EventGroupDeadlineTest extends EventGroupServiceTestBase {
                                 "Ungültig",
                                 null,
                                 null,
-                                RegistrationDeadline.relative(-60, RegistrationDeadline.Anchor.EXACT),
+                                RegistrationDeadline.relative(-60, RegistrationDeadline.DeadlineAnchor.EXACT),
                                 false,
                                 null)));
         assertEquals(
@@ -265,7 +265,7 @@ class EventGroupDeadlineTest extends EventGroupServiceTestBase {
                         start.plus(Duration.ofHours(2)),
                         null,
                         true,
-                        new RegistrationDeadline(RegistrationDeadline.Kind.FIXED, null, null, null),
+                        new RegistrationDeadline(RegistrationDeadline.DeadlineKind.FIXED, null, null, null),
                         false,
                         null,
                         null,

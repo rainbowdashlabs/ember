@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
-import dev.chojo.ember.feature.events.entity.RegistrationDeadline.Anchor;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline.DeadlineAnchor;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
@@ -58,11 +58,11 @@ class RegistrationClosesAtSqlTest extends RepositoryTestBase {
         var rules = List.of(
                 RegistrationDeadline.none(),
                 RegistrationDeadline.fixed(berlin("2026-03-20T12:00")),
-                RegistrationDeadline.relative(week, Anchor.MIDNIGHT),
-                RegistrationDeadline.relative(week, Anchor.EXACT),
-                RegistrationDeadline.relative(36 * 60, Anchor.MIDNIGHT),
-                RegistrationDeadline.relative(90, Anchor.EXACT),
-                RegistrationDeadline.relative(0, Anchor.MIDNIGHT));
+                RegistrationDeadline.relative(week, DeadlineAnchor.MIDNIGHT),
+                RegistrationDeadline.relative(week, DeadlineAnchor.EXACT),
+                RegistrationDeadline.relative(36 * 60, DeadlineAnchor.MIDNIGHT),
+                RegistrationDeadline.relative(90, DeadlineAnchor.EXACT),
+                RegistrationDeadline.relative(0, DeadlineAnchor.MIDNIGHT));
         var starts = List.of(
                 berlin("2026-11-14T10:00"),
                 berlin("2026-04-04T00:30"),

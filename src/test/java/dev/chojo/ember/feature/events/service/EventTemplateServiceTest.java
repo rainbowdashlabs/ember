@@ -99,7 +99,7 @@ class EventTemplateServiceTest extends RepositoryTestBase {
                         null,
                         StationEvent.EventType.RECURRING,
                         true,
-                        RegistrationDeadline.relative(7 * 24 * 60, RegistrationDeadline.Anchor.MIDNIGHT),
+                        RegistrationDeadline.relative(7 * 24 * 60, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
                         false,
                         RestrictionMode.AND,
                         null,
@@ -111,7 +111,7 @@ class EventTemplateServiceTest extends RepositoryTestBase {
         assertEquals("Updated Template", found.name());
         assertEquals("Weekly Training", found.title());
         assertEquals(
-                RegistrationDeadline.relative(7 * 24 * 60, RegistrationDeadline.Anchor.MIDNIGHT),
+                RegistrationDeadline.relative(7 * 24 * 60, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
                 found.registrationDeadline());
         assertEquals(12, found.registrationLimit());
         assertEquals(4, found.minRegistrations());
@@ -142,7 +142,7 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void negativeSignUpRulesAreRefused() {
-        assertTemplateRefused(RegistrationDeadline.relative(-60, RegistrationDeadline.Anchor.EXACT));
+        assertTemplateRefused(RegistrationDeadline.relative(-60, RegistrationDeadline.DeadlineAnchor.EXACT));
     }
 
     /** A template knows no date, so a fixed deadline is refused and the template left as it was. */

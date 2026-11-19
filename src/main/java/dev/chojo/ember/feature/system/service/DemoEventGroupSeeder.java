@@ -147,7 +147,7 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                         ERSTE_HILFE,
                         "Der Kurs findet zweimal statt. Jede Anmeldung wählt einen der beiden Tage.",
                         null,
-                        null,
+                        RegistrationDeadline.none(),
                         false,
                         "#00c507",
                         null,
@@ -288,7 +288,7 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                         "Die erste Stufe der Jugendflamme. Von den drei Übungstagen müssen zwei besucht werden,"
                                 + " die Prüfung ist Pflicht.",
                         12,
-                        RegistrationDeadline.relative(7 * 1440, RegistrationDeadline.Anchor.MIDNIGHT),
+                        RegistrationDeadline.relative(7 * 1440, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
                         true,
                         "#8b5cf6"),
                 List.of(new EventGroupSetDraft(null, "Übung", 2), new EventGroupSetDraft(null, "Prüfung", 1)),

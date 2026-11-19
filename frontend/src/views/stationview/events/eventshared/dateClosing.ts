@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {stationClock, stationDayOf} from '@/util/format'
-import {Kind, type RegistrationDeadline} from '@/api/generated/schema'
+import {DeadlineKind, type RegistrationDeadline} from '@/api/generated/schema'
 import {closesAt} from './registrationDeadline'
 
 /** The zone a computation runs in: the station's, or the reader's own where the station keeps none. */
@@ -52,7 +52,7 @@ export function closesOnDate(
     day: string,
     timeZone?: string | null,
 ): string | null {
-    if (!rule || rule.kind === Kind.NONE) return null
+    if (!rule || rule.kind === DeadlineKind.NONE) return null
     const start = occurrenceStartOn(eventStart, day, timeZone)
     if (Number.isNaN(start.getTime())) return null
     return closesAt(rule, start, zoneOrLocal(timeZone))?.toISOString() ?? null
@@ -75,8 +75,8 @@ export function eventGroupClosesAt(
     timeZone?: string | null,
 ): string | null {
     const rule = eventGroup.details.registrationDeadline
-    if (!rule || rule.kind === Kind.NONE) return null
-    if (rule.kind === Kind.FIXED) return rule.at
+    if (!rule || rule.kind === DeadlineKind.NONE) return null
+    if (rule.kind === DeadlineKind.FIXED) return rule.at
     if (!eventGroup.firstStart) return null
     return closesAt(rule, eventGroup.firstStart, zoneOrLocal(timeZone))?.toISOString() ?? null
 }

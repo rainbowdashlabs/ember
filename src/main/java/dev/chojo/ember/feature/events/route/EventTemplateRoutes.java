@@ -37,6 +37,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -322,7 +323,7 @@ public class EventTemplateRoutes implements Routes {
                     categoryId,
                     eventType,
                     requiresRegistration,
-                    registrationDeadline,
+                    Objects.requireNonNullElse(registrationDeadline, RegistrationDeadline.none()),
                     requiresConfirmation,
                     restrictionMode,
                     attendanceTemplateId,

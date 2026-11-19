@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
@@ -36,6 +37,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -47,6 +49,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.*;
 
 class EventReminderCheckerTest {
@@ -383,7 +387,8 @@ class EventReminderCheckerTest {
     @Test
     void aSeriesIsWarnedAboutEachDateOnItsOwn() {
         LocalDate near = LocalDate.now(BERLIN).plusDays(9);
-        var series = series(8, near, RegistrationDeadline.relative(7 * 24 * 60, RegistrationDeadline.Anchor.MIDNIGHT));
+        var series = series(
+                8, near, RegistrationDeadline.relative(7 * 24 * 60, RegistrationDeadline.DeadlineAnchor.MIDNIGHT));
         when(eventRepository.findWithDeadline()).thenReturn(List.of(series));
         when(registrationRepository.findUnansweredMemberIds(anyInt(), anyInt(), any()))
                 .thenReturn(List.of(10));
@@ -397,13 +402,15 @@ class EventReminderCheckerTest {
         verify(registrationRepository, never()).findUnansweredMemberIds(8, STATION_ID, near.plusWeeks(1));
         verify(reminderRepository).markDeadlineWarningSent(8, near, 3);
         verify(reminderRepository, never()).markDeadlineWarningSent(eq(8), eq(near.plusWeeks(1)), anyInt());
+        assertEquals(near, closingWarning().eventDate());
     }
 
     /** A date that was called off closes nothing, so nobody is warned and no warning is spent on it. */
     @Test
     void aCalledOffDateIsNotWarnedAbout() {
         LocalDate near = LocalDate.now(BERLIN).plusDays(9);
-        var series = series(8, near, RegistrationDeadline.relative(7 * 24 * 60, RegistrationDeadline.Anchor.MIDNIGHT));
+        var series = series(
+                8, near, RegistrationDeadline.relative(7 * 24 * 60, RegistrationDeadline.DeadlineAnchor.MIDNIGHT));
         when(eventRepository.findWithDeadline()).thenReturn(List.of(series));
         when(cancellationRepository.findActiveByStation(STATION_ID))
                 .thenReturn(List.of(
@@ -432,6 +439,14 @@ class EventReminderCheckerTest {
         verify(notifier, times(1)).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
         verify(reminderRepository).markDeadlineWarningSent(9, next, 3);
         verify(reminderRepository, never()).markDeadlineWarningSent(eq(9), eq(next.plusWeeks(1)), anyInt());
+        assertNull(closingWarning().eventDate());
+    }
+
+    /** The parameters of the one closing warning sent, which say whether it names a date. */
+    private NotificationParams.RegistrationClosing closingWarning() {
+        var data = ArgumentCaptor.forClass(NotificationData.class);
+        verify(notifier).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), data.capture(), any());
+        return (NotificationParams.RegistrationClosing) data.getValue().params();
     }
 
     /**

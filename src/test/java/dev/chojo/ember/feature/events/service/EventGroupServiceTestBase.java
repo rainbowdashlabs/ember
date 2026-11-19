@@ -106,7 +106,7 @@ abstract class EventGroupServiceTestBase extends RepositoryTestBase {
                 start.plus(Duration.ofHours(8)),
                 null,
                 false,
-                RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.Anchor.MIDNIGHT),
+                RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
                 false,
                 null,
                 5,

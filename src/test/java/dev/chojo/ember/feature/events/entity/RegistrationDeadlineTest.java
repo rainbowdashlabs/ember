@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
-import dev.chojo.ember.feature.events.entity.RegistrationDeadline.Anchor;
-import dev.chojo.ember.feature.events.entity.RegistrationDeadline.Kind;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline.DeadlineAnchor;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline.DeadlineKind;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import org.junit.jupiter.api.Test;
 
@@ -44,7 +44,8 @@ class RegistrationDeadlineTest {
     void sevenDaysAtMidnightClosesOnTheSaturdayAWeekEarlierAt178Hours() {
         var start = berlin("2026-11-14T10:00");
 
-        var closes = RegistrationDeadline.relative(WEEK, Anchor.MIDNIGHT).closesAt(start, BERLIN);
+        var closes =
+                RegistrationDeadline.relative(WEEK, DeadlineAnchor.MIDNIGHT).closesAt(start, BERLIN);
 
         assertEquals(LocalDateTime.parse("2026-11-07T00:00"), local(closes));
         assertEquals(Duration.ofHours(178), Duration.between(closes.orElseThrow(), start));
@@ -54,7 +55,8 @@ class RegistrationDeadlineTest {
     void wholeDaysAtMidnightCountCalendarDaysAcrossTheSpringChange() {
         var start = berlin("2026-04-04T00:30");
 
-        var closes = RegistrationDeadline.relative(WEEK, Anchor.MIDNIGHT).closesAt(start, BERLIN);
+        var closes =
+                RegistrationDeadline.relative(WEEK, DeadlineAnchor.MIDNIGHT).closesAt(start, BERLIN);
 
         assertEquals(LocalDateTime.parse("2026-03-28T00:00"), local(closes));
     }
@@ -63,7 +65,8 @@ class RegistrationDeadlineTest {
     void wholeDaysAtMidnightCountCalendarDaysAcrossTheAutumnChange() {
         var start = berlin("2026-10-31T10:00");
 
-        var closes = RegistrationDeadline.relative(WEEK, Anchor.MIDNIGHT).closesAt(start, BERLIN);
+        var closes =
+                RegistrationDeadline.relative(WEEK, DeadlineAnchor.MIDNIGHT).closesAt(start, BERLIN);
 
         assertEquals(LocalDateTime.parse("2026-10-24T00:00"), local(closes));
         assertEquals(Duration.ofHours(179), Duration.between(closes.orElseThrow(), start));
@@ -73,7 +76,8 @@ class RegistrationDeadlineTest {
     void aSpanOfHoursAtMidnightGoesDownToTheDayItLandsOn() {
         var start = berlin("2026-03-30T10:00");
 
-        var closes = RegistrationDeadline.relative(36 * 60, Anchor.MIDNIGHT).closesAt(start, BERLIN);
+        var closes =
+                RegistrationDeadline.relative(36 * 60, DeadlineAnchor.MIDNIGHT).closesAt(start, BERLIN);
 
         assertEquals(LocalDateTime.parse("2026-03-28T00:00"), local(closes));
     }
@@ -82,7 +86,7 @@ class RegistrationDeadlineTest {
     void noDaysAtMidnightClosesAtTheStartOfTheDay() {
         var start = berlin("2026-10-25T10:00");
 
-        var closes = RegistrationDeadline.relative(0, Anchor.MIDNIGHT).closesAt(start, BERLIN);
+        var closes = RegistrationDeadline.relative(0, DeadlineAnchor.MIDNIGHT).closesAt(start, BERLIN);
 
         assertEquals(LocalDateTime.parse("2026-10-25T00:00"), local(closes));
     }
@@ -91,7 +95,7 @@ class RegistrationDeadlineTest {
     void exactIsTheSpanInRealTimeAcrossTheSpringChange() {
         var start = berlin("2026-04-04T10:00");
 
-        var closes = RegistrationDeadline.relative(WEEK, Anchor.EXACT).closesAt(start, BERLIN);
+        var closes = RegistrationDeadline.relative(WEEK, DeadlineAnchor.EXACT).closesAt(start, BERLIN);
 
         assertEquals(start.minus(Duration.ofHours(168)), closes.orElseThrow());
         assertEquals(LocalDateTime.parse("2026-03-28T09:00"), local(closes));
@@ -101,7 +105,7 @@ class RegistrationDeadlineTest {
     void exactIsTheSpanInRealTimeAcrossTheAutumnChange() {
         var start = berlin("2026-10-31T10:00");
 
-        var closes = RegistrationDeadline.relative(WEEK, Anchor.EXACT).closesAt(start, BERLIN);
+        var closes = RegistrationDeadline.relative(WEEK, DeadlineAnchor.EXACT).closesAt(start, BERLIN);
 
         assertEquals(start.minus(Duration.ofHours(168)), closes.orElseThrow());
         assertEquals(LocalDateTime.parse("2026-10-24T11:00"), local(closes));
@@ -131,24 +135,25 @@ class RegistrationDeadlineTest {
     void onlyARuleThatCanBePlacedIsValid() {
         assertTrue(RegistrationDeadline.none().isValid());
         assertTrue(RegistrationDeadline.fixed(Instant.now()).isValid());
-        assertTrue(RegistrationDeadline.relative(0, Anchor.EXACT).isValid());
-        assertFalse(RegistrationDeadline.relative(-1, Anchor.MIDNIGHT).isValid());
-        assertFalse(new RegistrationDeadline(Kind.FIXED, null, null, null).isValid());
-        assertFalse(new RegistrationDeadline(Kind.RELATIVE, null, null, Anchor.EXACT).isValid());
+        assertTrue(RegistrationDeadline.relative(0, DeadlineAnchor.EXACT).isValid());
+        assertFalse(RegistrationDeadline.relative(-1, DeadlineAnchor.MIDNIGHT).isValid());
+        assertFalse(new RegistrationDeadline(DeadlineKind.FIXED, null, null, null).isValid());
+        assertFalse(new RegistrationDeadline(DeadlineKind.RELATIVE, null, null, DeadlineAnchor.EXACT).isValid());
     }
 
     @Test
     void theRuleKeepsOnlyWhatItsKindUses() {
         assertEquals(RegistrationDeadline.none(), RegistrationDeadline.fixed(null));
-        assertEquals(RegistrationDeadline.none(), new RegistrationDeadline(null, Instant.now(), 60, Anchor.EXACT));
+        assertEquals(
+                RegistrationDeadline.none(), new RegistrationDeadline(null, Instant.now(), 60, DeadlineAnchor.EXACT));
 
-        var fixed = new RegistrationDeadline(Kind.FIXED, Instant.EPOCH, 60, Anchor.MIDNIGHT);
+        var fixed = new RegistrationDeadline(DeadlineKind.FIXED, Instant.EPOCH, 60, DeadlineAnchor.MIDNIGHT);
         assertNull(fixed.offsetMinutes());
         assertNull(fixed.anchor());
 
-        var relative = new RegistrationDeadline(Kind.RELATIVE, Instant.EPOCH, 60, null);
+        var relative = new RegistrationDeadline(DeadlineKind.RELATIVE, Instant.EPOCH, 60, null);
         assertNull(relative.at());
-        assertEquals(Anchor.EXACT, relative.anchor());
+        assertEquals(DeadlineAnchor.EXACT, relative.anchor());
     }
 
     @Test
@@ -167,7 +172,7 @@ class RegistrationDeadlineTest {
 
     @Test
     void aRelativeDeadlineClosesEachDateOfASeriesOnItsOwn() {
-        var series = weekly(RegistrationDeadline.relative(2 * 24 * 60, Anchor.MIDNIGHT));
+        var series = weekly(RegistrationDeadline.relative(2 * 24 * 60, DeadlineAnchor.MIDNIGHT));
         var first = LocalDate.of(2026, 5, 6);
         var second = first.plusWeeks(1);
         var between = berlin("2026-05-05T12:00");

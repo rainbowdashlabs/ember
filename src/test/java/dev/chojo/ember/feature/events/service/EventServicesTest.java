@@ -1562,7 +1562,7 @@ class EventServicesTest extends RepositoryTestBase {
                 seriesStart.atTime(20, 0).atZone(stationZone()).toInstant(),
                 null,
                 true,
-                RegistrationDeadline.relative(4320, RegistrationDeadline.Anchor.MIDNIGHT),
+                RegistrationDeadline.relative(4320, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
                 false,
                 null,
                 null,

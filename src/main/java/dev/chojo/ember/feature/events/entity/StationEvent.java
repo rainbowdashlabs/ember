@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
@@ -77,7 +78,7 @@ public record StationEvent(
      * Reads a missing deadline as none.
      */
     public StationEvent {
-        if (registrationDeadline == null) registrationDeadline = RegistrationDeadline.none();
+        registrationDeadline = Objects.requireNonNullElse(registrationDeadline, RegistrationDeadline.none());
     }
 
     /**
@@ -94,7 +95,7 @@ public record StationEvent(
             Instant endTime,
             @Nullable Integer templateId,
             boolean requiresRegistration,
-            @Nullable RegistrationDeadline registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             boolean requiresConfirmation,
             @Nullable Integer categoryId,
             RestrictionMode restrictionMode,
@@ -198,6 +199,17 @@ public record StationEvent(
         return registrationClosesOn(date, zone)
                 .map(close -> now.isBefore(close))
                 .orElse(true);
+    }
+
+    /**
+     * Whether sign-up closes for each date on its own, so a notice about it names the date: a
+     * repeating appointment with a deadline relative to each start. A fixed deadline closes every
+     * date at once.
+     *
+     * @return true for a series with a relative deadline
+     */
+    public boolean closesPerDate() {
+        return isRecurring() && registrationDeadline.kind() == RegistrationDeadline.DeadlineKind.RELATIVE;
     }
 
     /**

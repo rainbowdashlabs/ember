@@ -487,7 +487,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 near.minusWeeks(2).atTime(20, 0).atZone(calendar.zone()).toInstant(),
                 null,
                 true,
-                RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.Anchor.EXACT),
+                RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT),
                 false,
                 null,
                 null,
