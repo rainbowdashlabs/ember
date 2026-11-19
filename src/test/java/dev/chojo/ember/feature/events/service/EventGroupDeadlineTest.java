@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -58,16 +59,25 @@ class EventGroupDeadlineTest extends EventGroupServiceTestBase {
         return eventRepo.findById(part.id()).orElseThrow().registrationDeadline();
     }
 
+    /** Whether the notice that the deadline passed counts for the close as it stands. */
     private boolean deadlineNotified(EventGroup eventGroup) {
-        return query("SELECT deadline_notified FROM event_group WHERE id = :id;")
+        return query("""
+                        SELECT deadline_notified_for IS NOT DISTINCT FROM event_group_closes_at(id) AS counts
+                        FROM event_group
+                        WHERE id = :id;""")
                 .single(call().bind("id", eventGroup.id()))
-                .map(row -> row.getBoolean("deadline_notified"))
+                .map(row -> row.getBoolean("counts"))
                 .first()
                 .orElseThrow();
     }
 
+    /** How many closing warnings count for the close as it stands. */
     private int closingWarnings(EventGroup eventGroup) {
-        return query("SELECT count(*) AS n FROM event_group_deadline_reminder_sent WHERE event_group_id = :id;")
+        return query("""
+                        SELECT count(*) AS n
+                        FROM event_group_deadline_reminder_sent
+                        WHERE event_group_id = :id
+                          AND closes_at = event_group_closes_at(:id);""")
                 .single(call().bind("id", eventGroup.id()))
                 .map(row -> row.getInt("n"))
                 .first()
@@ -75,10 +85,34 @@ class EventGroupDeadlineTest extends EventGroupServiceTestBase {
     }
 
     private void notifiedAndWarned(EventGroup eventGroup) {
-        eventGroupRepo.markDeadlineNotified(eventGroup.id());
-        eventGroupRepo.markClosingWarned(eventGroup.id(), 3);
+        var closes = Objects.requireNonNull(closesAt(eventGroup));
+        eventGroupRepo.markDeadlineNotified(eventGroup.id(), closes);
+        eventGroupRepo.markClosingWarned(eventGroup.id(), 3, closes);
         assertTrue(deadlineNotified(eventGroup));
         assertEquals(1, closingWarnings(eventGroup));
+    }
+
+    private void move(StationEvent part, Instant start) {
+        newEventServices(new DomainEventBus(Set.of()))
+                .crud()
+                .update(
+                        part.id(),
+                        part.name(),
+                        part.description(),
+                        part.eventType(),
+                        part.dayOfWeek(),
+                        start,
+                        start.plus(Duration.ofHours(8)),
+                        null,
+                        true,
+                        RegistrationDeadline.none(),
+                        false,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null)
+                .orElseThrow();
     }
 
     @Test
@@ -101,7 +135,7 @@ class EventGroupDeadlineTest extends EventGroupServiceTestBase {
     }
 
     @Test
-    void movingTheFirstPartMovesTheCloseAndRearmsTheNotice() {
+    void movingTheFirstPartMovesTheCloseSoTheNoticeCountsNoMore() {
         var eventGroup = relativeGroup("Verschoben");
         var first = oneTime(22);
         var second = oneTime(32);
@@ -139,6 +173,31 @@ class EventGroupDeadlineTest extends EventGroupServiceTestBase {
         assertEquals(0, closingWarnings(eventGroup));
     }
 
+    /**
+     * The sweep warns again once the first part moves, though nothing armed the warning again: the
+     * warning recorded was about the close before.
+     */
+    @Test
+    void aGroupWarnedAboutIsWarnedAgainOnceItsFirstPartMoves() {
+        var eventGroup = relativeGroup("Wieder gewarnt");
+        var first = oneTime(4);
+        addPart(eventGroup, first);
+        addPart(eventGroup, oneTime(10));
+        var closes = Objects.requireNonNull(closesAt(eventGroup));
+        assertTrue(closingIn(eventGroup));
+        eventGroupRepo.markClosingWarned(eventGroup.id(), 3, closes);
+        assertFalse(closingIn(eventGroup), "warned for this close");
+
+        move(first, first.startTime().plus(Duration.ofHours(6)));
+
+        assertEquals(closes.plus(Duration.ofHours(6)), closesAt(eventGroup));
+        assertTrue(closingIn(eventGroup), "the warning was about the close before");
+    }
+
+    private boolean closingIn(EventGroup eventGroup) {
+        return eventGroupRepo.findClosingIn(3).stream().anyMatch(closing -> closing.eventGroupId() == eventGroup.id());
+    }
+
     @Test
     void editingAPartWithoutMovingTheCloseKeepsTheNotice() {
         var eventGroup = relativeGroup("Unverändert");
@@ -174,7 +233,7 @@ class EventGroupDeadlineTest extends EventGroupServiceTestBase {
     }
 
     @Test
-    void deletingTheFirstPartMovesTheCloseAndRearmsTheNotice() {
+    void deletingTheFirstPartMovesTheCloseSoTheNoticeCountsNoMore() {
         var eventGroup = relativeGroup("Gelöscht");
         var first = oneTime(23);
         var second = oneTime(33);
@@ -198,16 +257,54 @@ class EventGroupDeadlineTest extends EventGroupServiceTestBase {
         var second = oneTime(35);
         addPart(eventGroup, first);
         addPart(eventGroup, second);
+        var closedWith = Objects.requireNonNull(closesAt(eventGroup));
 
         service.removePart(station.id(), eventGroup.id(), first.id());
 
         var closes = second.startTime().minus(Duration.ofDays(2));
         assertEquals(closes, closesAt(eventGroup));
         assertEquals(RegistrationDeadline.fixed(closes), deadlineOf(second));
+        assertEquals(
+                RegistrationDeadline.fixed(closedWith),
+                deadlineOf(first),
+                "the part that left keeps the close it had, as it keeps its places");
     }
 
     @Test
-    void changingTheRuleRealignsEveryPart() {
+    void partsOfADeletedGroupKeepItsClose() {
+        var eventGroup = relativeGroup("Aufgelöst");
+        var first = oneTime(26);
+        var second = oneTime(36);
+        addPart(eventGroup, first);
+        addPart(eventGroup, second);
+        var closes = Objects.requireNonNull(closesAt(eventGroup));
+
+        service.delete(station.id(), eventGroup.id());
+
+        assertEquals(RegistrationDeadline.fixed(closes), deadlineOf(first));
+        assertEquals(RegistrationDeadline.fixed(closes), deadlineOf(second));
+    }
+
+    @Test
+    void aPartStoresNoDeadlineOfItsOwnAndReadsTheGroupsClose() {
+        var eventGroup = relativeGroup("Gespeichert");
+        var part = oneTime(29);
+        addPart(eventGroup, part);
+
+        var stored = query("""
+                        SELECT registration_deadline_kind
+                        FROM station_event
+                        WHERE id = :id;""")
+                .single(call().bind("id", part.id()))
+                .map(row -> row.getString("registration_deadline_kind"))
+                .first()
+                .orElseThrow();
+        assertEquals("NONE", stored, "the part keeps no copy");
+        assertEquals(RegistrationDeadline.fixed(part.startTime().minus(Duration.ofDays(2))), deadlineOf(part));
+    }
+
+    @Test
+    void changingTheRuleReachesEveryPart() {
         var eventGroup = relativeGroup("Umgestellt");
         var part = oneTime(26);
         addPart(eventGroup, part);
@@ -229,7 +326,7 @@ class EventGroupDeadlineTest extends EventGroupServiceTestBase {
     }
 
     @Test
-    void changingTheRuleOfAGroupWithPartsRearmsTheNoticeAndClearsTheWarnings() {
+    void changingTheRuleOfAGroupWithPartsLeavesTheNoticeAndWarningsBehind() {
         var eventGroup = relativeGroup("Neue Frist");
         var part = oneTime(27);
         addPart(eventGroup, part);

@@ -405,7 +405,8 @@ public class EventGroupService {
 
     /**
      * Makes a part an appointment of its own again. Who was signed up for it stays signed up, and
-     * it keeps the sign-up settings, places, audiences and partner share it had as a part until
+     * it keeps the sign-up settings, the event group's close as its fixed deadline, places, audiences and
+     * partner share it had as a part until
      * somebody changes them, so partners' members signed up for it can still be seen and decided, and
      * a part that took the places per part keeps that many places of its own. A set that
      * asked for every one of its parts asks for all it still holds afterwards.
@@ -421,8 +422,8 @@ public class EventGroupService {
             var leaving = departure.leaving(eventGroupId, eventId);
             int left = eventGroups.findPart(eventId).orElseThrow().setId();
             eventGroups.keepLimit(eventId);
+            eventGroups.keepDeadline(eventId);
             eventGroups.setPartSet(eventId, null);
-            eventGroups.alignPartDeadlines(eventGroupId);
             eventGroups.untieRegistrations(eventId);
             eventGroups.capMinimum(left);
             Transactions.afterCommit(() -> fields.reconcilePart(eventId));

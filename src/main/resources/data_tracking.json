@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:b7eaa3dd8a8cc664967835f6e7ca7b0ee20d282ca2dc1f8eec79ca3a57ec1949",
-  "generatedAt": "2026-11-19T20:12:06Z",
+  "schemaHash": "sha256:f98d74f46fca672d2da7392bf239fb7473a96b268b0b56b53168c5e723fcb827",
+  "generatedAt": "2026-11-19T22:51:27Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10164,7 +10164,7 @@
     "event_deadline_expired": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:d9fb30ed20500996c04649ff295b506ae34fef931561cae0be686cd8986be2c6",
+      "tableHash": "sha256:0760555921a093df3f292e7dac57a40e9d7ab84f9f8d69ac99851e6ecd15405b",
       "columns": [
         {
           "name": "event_id",
@@ -10186,6 +10186,13 @@
           "nullable": false,
           "verified": true,
           "description": "When the passed deadline was handled."
+        },
+        {
+          "name": "closes_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "The deadline instant that passed; the record counts only while the date still closes at this instant."
         }
       ],
       "foreignKeys": [
@@ -10213,7 +10220,7 @@
     "event_deadline_reminder_sent": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:1222c7d37d3322df80b9e59ca13f42a90ba481ce2634ca967fb718dd041602c2",
+      "tableHash": "sha256:0e2355837c1eedda0c8c1468f954c4e3ede33e214dab62af09243ef5a2c4aa75",
       "columns": [
         {
           "name": "event_id",
@@ -10240,6 +10247,13 @@
           "nullable": false,
           "verified": true,
           "description": "The date whose sign-up deadline the warning was about, on the station's clock."
+        },
+        {
+          "name": "closes_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "The deadline instant the warning was about; the warning counts only while the date still closes at this instant."
         }
       ],
       "foreignKeys": [
@@ -11260,7 +11274,7 @@
     "event_group": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:15f7dbdca9dbbc5bb17370d5efc2ecfc41e395c51e8c5b9252d4e461fa9d361d",
+      "tableHash": "sha256:a1b87487b974ead9798698806fa02f8ee1a305cb5bb8cb57496af35f7f1664c8",
       "columns": [
         {
           "name": "id",
@@ -11324,13 +11338,6 @@
           "nullable": false,
           "verified": true,
           "description": "How the entries of event_group_view_restriction combine: AND or OR."
-        },
-        {
-          "name": "deadline_notified",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Whether managers were told that the deadline passed with sign-ups still waiting for a decision."
         },
         {
           "name": "cancelled",
@@ -11429,6 +11436,13 @@
           "nullable": true,
           "verified": true,
           "description": "For a RELATIVE deadline, EXACT or MIDNIGHT on the station's clock; NULL for any other kind."
+        },
+        {
+          "name": "deadline_notified_for",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "The deadline instant whose passing the managers were told about; NULL while not told. The notice counts only while the event group still closes at this instant."
         }
       ],
       "foreignKeys": [
@@ -11455,7 +11469,7 @@
         "status": "TRACKED",
         "ignoredColumns": [
           "station_id",
-          "deadline_notified"
+          "deadline_notified_for"
         ],
         "rationale": "An event group moves with the appointments that are its parts."
       },
@@ -11531,7 +11545,7 @@
     "event_group_deadline_reminder_sent": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:89e4b11d0479d53c75995c5b864d3d92006c385fac688962e08e1943b15c1b82",
+      "tableHash": "sha256:d52bc3cc591fcddec12abd0443896ec85e0e19415f7e527f4f113a5a9ce1365d",
       "columns": [
         {
           "name": "event_group_id",
@@ -11553,6 +11567,13 @@
           "nullable": false,
           "verified": true,
           "description": "When the warning went out."
+        },
+        {
+          "name": "closes_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "The deadline instant the warning was about; the warning counts only while the event group still closes at this instant."
         }
       ],
       "foreignKeys": [

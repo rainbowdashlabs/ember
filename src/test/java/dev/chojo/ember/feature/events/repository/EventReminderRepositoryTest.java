@@ -61,21 +61,23 @@ class EventReminderRepositoryTest extends RepositoryTestBase {
         var created = event("Closing Event", Instant.parse("2028-04-01T09:00:00Z"));
         var other = event("Other Event", Instant.parse("2028-04-01T09:00:00Z"));
         LocalDate date = LocalDate.of(2028, 4, 1);
+        Instant earlier = Instant.parse("2028-03-29T09:00:00Z");
+        Instant closes = Instant.parse("2028-03-30T09:00:00Z");
         try {
             assertEquals(List.of(), eventReminderRepo.findDeadlineWarningsSent(List.of()));
             assertEquals(List.of(), eventReminderRepo.findDeadlineWarningsSent(List.of(created.id())));
 
-            eventReminderRepo.markDeadlineWarningSent(created.id(), date, 3);
-            eventReminderRepo.markDeadlineWarningSent(created.id(), date, 3);
-            eventReminderRepo.markDeadlineWarningSent(created.id(), date.plusWeeks(1), 1);
-            eventReminderRepo.markDeadlineWarningSent(other.id(), date, 3);
+            eventReminderRepo.markDeadlineWarningSent(created.id(), date, 3, earlier);
+            eventReminderRepo.markDeadlineWarningSent(created.id(), date, 3, closes);
+            eventReminderRepo.markDeadlineWarningSent(created.id(), date.plusWeeks(1), 1, closes);
+            eventReminderRepo.markDeadlineWarningSent(other.id(), date, 3, closes);
 
             assertEquals(
                     Set.of(
-                            new EventReminderRepository.DeadlineWarning(created.id(), date, 3),
-                            new EventReminderRepository.DeadlineWarning(created.id(), date.plusWeeks(1), 1)),
+                            new EventReminderRepository.DeadlineWarning(created.id(), date, 3, closes),
+                            new EventReminderRepository.DeadlineWarning(created.id(), date.plusWeeks(1), 1, closes)),
                     Set.copyOf(eventReminderRepo.findDeadlineWarningsSent(List.of(created.id()))),
-                    "per date and lead time, marked twice without error, only the appointments asked for");
+                    "per date and lead time, the later close replacing the earlier, only the appointments asked for");
         } finally {
             eventRepo.delete(created.id());
             eventRepo.delete(other.id());

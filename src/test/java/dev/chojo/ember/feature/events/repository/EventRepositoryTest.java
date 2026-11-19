@@ -515,11 +515,14 @@ class EventRepositoryTest extends RepositoryTestBase {
     }
 
     /**
-     * A date with sign-ups waiting is offered until its passed deadline is recorded as handled, and the
-     * record is per date, so the next date of a series is still offered.
+     * A date with sign-ups waiting is offered with the close its passed deadline was handled for, so the
+     * caller can tell a handled close from one that moved since, and a fixed deadline handled for the
+     * instant it still has is not offered at all. The record is per date and the latest close replaces
+     * the earlier one.
      */
     @Test
-    void aPendingDateIsOfferedUntilItsDeadlineIsMarkedExpired() {
+    void aPendingDateCarriesTheCloseItWasHandledFor() {
+        var closes = Instant.now().minus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.SECONDS);
         var event = eventRepo.create(
                 station.id(),
                 "Expired Deadline",
@@ -530,7 +533,7 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.now().plus(1, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                RegistrationDeadline.fixed(Instant.now().minus(1, ChronoUnit.HOURS)),
+                RegistrationDeadline.fixed(closes),
                 false,
                 null,
                 null,
@@ -539,22 +542,32 @@ class EventRepositoryTest extends RepositoryTestBase {
         LocalDate date = LocalDate.now().plusDays(1);
         try {
             eventRegistrationRepo.create(event.id(), member.id(), date, RegistrationStatus.PENDING, null);
-            var pending = eventRepo.findPendingDatesWithDeadline().stream()
-                    .filter(e -> e.eventId() == event.id())
-                    .toList();
-            assertEquals(List.of(new EventRepository.PendingDate(event.id(), date, 1)), pending);
+            assertEquals(List.of(new EventRepository.PendingDate(event.id(), date, null, 1)), pendingOf(event));
 
-            eventRepo.markDeadlineExpired(event.id(), date.plusDays(7));
-            assertTrue(
-                    eventRepo.findPendingDatesWithDeadline().stream().anyMatch(e -> e.eventId() == event.id()),
-                    "another date's record leaves this one waiting");
+            eventRepo.markDeadlineExpired(event.id(), date.plusDays(7), closes);
+            assertEquals(
+                    List.of(new EventRepository.PendingDate(event.id(), date, null, 1)),
+                    pendingOf(event),
+                    "another date's record leaves this one unhandled");
 
-            eventRepo.markDeadlineExpired(event.id(), date);
-            eventRepo.markDeadlineExpired(event.id(), date);
-            assertFalse(eventRepo.findPendingDatesWithDeadline().stream().anyMatch(e -> e.eventId() == event.id()));
+            var earlier = closes.minus(1, ChronoUnit.DAYS);
+            eventRepo.markDeadlineExpired(event.id(), date, earlier);
+            assertEquals(
+                    List.of(new EventRepository.PendingDate(event.id(), date, earlier, 1)),
+                    pendingOf(event),
+                    "handled for a close the fixed deadline no longer has");
+
+            eventRepo.markDeadlineExpired(event.id(), date, closes);
+            assertEquals(List.of(), pendingOf(event), "handled for the fixed deadline it still has");
         } finally {
             eventRepo.delete(event.id());
         }
+    }
+
+    private List<EventRepository.PendingDate> pendingOf(StationEvent event) {
+        return eventRepo.findPendingDatesWithDeadline().stream()
+                .filter(pending -> pending.eventId() == event.id())
+                .toList();
     }
 
     private StationEvent withDeadline(

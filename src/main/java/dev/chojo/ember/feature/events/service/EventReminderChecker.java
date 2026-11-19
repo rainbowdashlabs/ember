@@ -160,8 +160,8 @@ public class EventReminderChecker implements TaskSource {
                 var limit = now.plus(Duration.ofDays(daysBefore));
                 return candidates.stream()
                         .filter(date -> !date.closes().isAfter(limit))
-                        .filter(date -> !sent.contains(
-                                new EventReminderRepository.DeadlineWarning(date.eventId(), date.date(), daysBefore)))
+                        .filter(date -> !sent.contains(new EventReminderRepository.DeadlineWarning(
+                                date.eventId(), date.date(), daysBefore, date.closes())))
                         .map(ClosingDate::closing)
                         .toList();
             }
@@ -180,8 +180,9 @@ public class EventReminderChecker implements TaskSource {
             @Override
             public void markWarned(ClosingWarnings.Closing closing, int daysBefore) {
                 var date = Objects.requireNonNull(closing.date());
-                reminderRepository.markDeadlineWarningSent(closing.id(), date, daysBefore);
-                sent.add(new EventReminderRepository.DeadlineWarning(closing.id(), date, daysBefore));
+                reminderRepository.markDeadlineWarningSent(closing.id(), date, daysBefore, closing.closesAt());
+                sent.add(new EventReminderRepository.DeadlineWarning(
+                        closing.id(), date, daysBefore, closing.closesAt()));
             }
 
             @Override
@@ -216,7 +217,7 @@ public class EventReminderChecker implements TaskSource {
                         || closes.get().isAfter(until)) continue;
                 closing.add(new ClosingDate(
                         new ClosingWarnings.Closing(
-                                event.id(), event.stationId(), event.name(), date, event.closesPerDate()),
+                                event.id(), event.stationId(), event.name(), date, event.closesPerDate(), closes.get()),
                         closes.get()));
             }
         }

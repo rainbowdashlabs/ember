@@ -81,6 +81,9 @@ public class RegistrationDeadlineChecker implements TaskSource {
      * Handles the waiting dates of one appointment whose deadline passed. A fixed deadline closes
      * every date at once, so its dates are told about in one notice with their sign-ups added up;
      * a relative one closes each date on its own and is told about per date.
+     *
+     * <p>A date already handled counts as handled only for the close it was handled for: once its
+     * deadline moved and passed again, it is told about again.
      */
     private void handle(
             StationEvent event,
@@ -89,12 +92,16 @@ public class RegistrationDeadlineChecker implements TaskSource {
             Instant now) {
         if (!readOnlyGuard.isWritable(event.stationId())) return;
         var calendar = calendars.computeIfAbsent(event.stationId(), occurrenceCalendar::forStation);
-        var closed = dates.stream()
-                .filter(pending -> !calendar.isCancelled(event, pending.date()))
-                .filter(pending -> event.registrationClosedOn(pending.date(), calendar.zone(), now))
-                .toList();
+        var closed = new ArrayList<EventRepository.PendingDate>();
+        for (var pending : dates) {
+            if (calendar.isCancelled(event, pending.date())) continue;
+            if (!event.registrationClosedOn(pending.date(), calendar.zone(), now)) continue;
+            var closes = event.registrationClosesOn(pending.date(), calendar.zone());
+            if (closes.isEmpty() || closes.get().equals(pending.handledFor())) continue;
+            eventRepository.markDeadlineExpired(event.id(), pending.date(), closes.get());
+            closed.add(pending);
+        }
         if (closed.isEmpty()) return;
-        closed.forEach(pending -> eventRepository.markDeadlineExpired(event.id(), pending.date()));
         if (event.registrationDeadline().kind() == RegistrationDeadline.DeadlineKind.FIXED) {
             tell(
                     event,

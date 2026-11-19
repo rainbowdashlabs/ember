@@ -9,12 +9,14 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
  * Repository for the reminder tables: {@code event_reminder} holds how many days before an
@@ -126,7 +128,7 @@ public class EventReminderRepository {
     public List<DeadlineWarning> findDeadlineWarningsSent(Collection<Integer> eventIds) {
         if (eventIds.isEmpty()) return List.of();
         return query("""
-                SELECT event_id, occurrence_date, days_before
+                SELECT event_id, occurrence_date, days_before, closes_at
                 FROM event_deadline_reminder_sent
                 WHERE event_id = ANY (:event_ids)
                   AND occurrence_date >= current_date - 1;""")
@@ -134,7 +136,8 @@ public class EventReminderRepository {
                 .map(row -> new DeadlineWarning(
                         row.getInt("event_id"),
                         row.getObject("occurrence_date", LocalDate.class),
-                        row.getInt("days_before")))
+                        row.getInt("days_before"),
+                        row.get("closes_at", INSTANT_TIMESTAMP)))
                 .all();
     }
 
@@ -144,25 +147,32 @@ public class EventReminderRepository {
      * @param eventId    the appointment
      * @param date       the date it was about
      * @param daysBefore the lead time
+     * @param closesAt   the close it warned about; a warning about an earlier close no longer counts
      */
-    public record DeadlineWarning(int eventId, LocalDate date, int daysBefore) {}
+    public record DeadlineWarning(int eventId, LocalDate date, int daysBefore, Instant closesAt) {}
 
     /**
-     * Records that the closing warning for a lead time has gone out for one date of an appointment.
+     * Records that the closing warning for a lead time has gone out for one date of an appointment
+     * closing at an instant, replacing a warning about an earlier close.
      *
      * @param eventId    the appointment
      * @param date       the date whose deadline was warned about
      * @param daysBefore the lead time
+     * @param closesAt   the close warned about
      */
-    public void markDeadlineWarningSent(int eventId, LocalDate date, int daysBefore) {
+    public void markDeadlineWarningSent(int eventId, LocalDate date, int daysBefore, Instant closesAt) {
         query("""
                 INSERT
                 INTO
-                    event_deadline_reminder_sent(event_id, occurrence_date, days_before)
+                    event_deadline_reminder_sent(event_id, occurrence_date, days_before, closes_at)
                 VALUES
-                    (:event_id, :date, :days_before)
-                ON CONFLICT DO NOTHING;""")
-                .single(call().bind("event_id", eventId).bind("date", date).bind("days_before", daysBefore))
+                    (:event_id, :date, :days_before, :closes_at)
+                ON CONFLICT (event_id, occurrence_date, days_before)
+                    DO UPDATE SET closes_at = excluded.closes_at, sent_at = now();""")
+                .single(call().bind("event_id", eventId)
+                        .bind("date", date)
+                        .bind("days_before", daysBefore)
+                        .bind("closes_at", closesAt, INSTANT_TIMESTAMP))
                 .insert();
     }
 

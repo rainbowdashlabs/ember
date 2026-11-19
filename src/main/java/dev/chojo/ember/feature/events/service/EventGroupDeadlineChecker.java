@@ -82,7 +82,11 @@ public class EventGroupDeadlineChecker implements TaskSource {
             public List<ClosingWarnings.Closing> closingIn(int daysBefore) {
                 return eventGroups.findClosingIn(daysBefore).stream()
                         .map(eventGroup -> new ClosingWarnings.Closing(
-                                eventGroup.eventGroupId(), eventGroup.stationId(), eventGroup.name(), null))
+                                eventGroup.eventGroupId(),
+                                eventGroup.stationId(),
+                                eventGroup.name(),
+                                null,
+                                eventGroup.closesAt()))
                         .toList();
             }
 
@@ -98,7 +102,7 @@ public class EventGroupDeadlineChecker implements TaskSource {
 
             @Override
             public void markWarned(ClosingWarnings.Closing closing, int daysBefore) {
-                eventGroups.markClosingWarned(closing.id(), daysBefore);
+                eventGroups.markClosingWarned(closing.id(), daysBefore, closing.closesAt());
             }
 
             @Override
@@ -111,7 +115,7 @@ public class EventGroupDeadlineChecker implements TaskSource {
     private void tellAboutExpiredEventGroups() {
         for (var eventGroup : eventGroups.findExpiredDeadlines()) {
             if (!readOnlyGuard.isWritable(eventGroup.stationId())) continue;
-            eventGroups.markDeadlineNotified(eventGroup.eventGroupId());
+            eventGroups.markDeadlineNotified(eventGroup.eventGroupId(), eventGroup.closesAt());
             eventBus.publish(new RegistrationDeadlineExpired(
                     eventGroup.stationId(),
                     eventGroup.name(),

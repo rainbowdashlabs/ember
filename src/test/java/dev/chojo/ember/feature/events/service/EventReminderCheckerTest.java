@@ -93,10 +93,16 @@ class EventReminderCheckerTest {
     /** Lets the mocked reminder repository remember the closing warnings marked, as the table does. */
     private void rememberDeadlineWarnings() {
         var sent = new ArrayList<EventReminderRepository.DeadlineWarning>();
-        doAnswer(call -> sent.add(new EventReminderRepository.DeadlineWarning(
-                        call.getArgument(0), call.getArgument(1), call.getArgument(2))))
+        doAnswer(call -> {
+                    var warning = new EventReminderRepository.DeadlineWarning(
+                            call.getArgument(0), call.getArgument(1), call.getArgument(2), call.getArgument(3));
+                    sent.removeIf(old -> old.eventId() == warning.eventId()
+                            && old.date().equals(warning.date())
+                            && old.daysBefore() == warning.daysBefore());
+                    return sent.add(warning);
+                })
                 .when(reminderRepository)
-                .markDeadlineWarningSent(anyInt(), any(), anyInt());
+                .markDeadlineWarningSent(anyInt(), any(), anyInt(), any());
         when(reminderRepository.findDeadlineWarningsSent(any())).thenAnswer(call -> List.copyOf(sent));
     }
 
@@ -308,8 +314,8 @@ class EventReminderCheckerTest {
                         eq(NotificationType.REGISTRATION_CLOSING),
                         any(NotificationData.class),
                         eq(Delivery.EVERY_TIME));
-        verify(reminderRepository).markDeadlineWarningSent(7, date, 3);
-        verify(reminderRepository, never()).markDeadlineWarningSent(7, date, 1);
+        verify(reminderRepository).markDeadlineWarningSent(eq(7), eq(date), eq(3), any());
+        verify(reminderRepository, never()).markDeadlineWarningSent(eq(7), eq(date), eq(1), any());
     }
 
     @Test
@@ -328,8 +334,8 @@ class EventReminderCheckerTest {
                         eq(NotificationType.REGISTRATION_CLOSING),
                         any(NotificationData.class),
                         eq(Delivery.EVERY_TIME));
-        verify(reminderRepository).markDeadlineWarningSent(7, date, 1);
-        verify(reminderRepository).markDeadlineWarningSent(7, date, 3);
+        verify(reminderRepository).markDeadlineWarningSent(eq(7), eq(date), eq(1), any());
+        verify(reminderRepository).markDeadlineWarningSent(eq(7), eq(date), eq(3), any());
     }
 
     /**
@@ -350,21 +356,40 @@ class EventReminderCheckerTest {
         invokeCheck();
 
         verify(notifier, never()).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
-        verify(reminderRepository).markDeadlineWarningSent(7, date, 3);
+        verify(reminderRepository).markDeadlineWarningSent(eq(7), eq(date), eq(3), any());
     }
 
     /** A date whose warning already went out is passed over rather than warned about again. */
     @Test
     void aWarningAlreadySentIsNotSentAgain() {
-        var event = closingEvent(7, RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(2))));
+        var closes = Instant.now().plus(Duration.ofDays(2));
+        var event = closingEvent(7, RegistrationDeadline.fixed(closes));
         var date = dateOf(event);
-        reminderRepository.markDeadlineWarningSent(7, date, 3);
+        reminderRepository.markDeadlineWarningSent(7, date, 3, closes);
         when(registrationRepository.findUnansweredMemberIds(anyInt(), anyInt(), any()))
                 .thenReturn(List.of(10));
 
         invokeCheck();
 
         verify(notifier, never()).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
+    }
+
+    /** A warning about a close that has since moved counts no more: the new close is warned about. */
+    @Test
+    void aMovedDeadlineIsWarnedAboutAgain() {
+        var closes = Instant.now().plus(Duration.ofDays(2));
+        var event = closingEvent(7, RegistrationDeadline.fixed(closes));
+        var date = dateOf(event);
+        reminderRepository.markDeadlineWarningSent(7, date, 3, closes.minus(Duration.ofHours(5)));
+        when(registrationRepository.findUnansweredMemberIds(7, STATION_ID, date))
+                .thenReturn(List.of(10));
+        when(memberNameResolver.called(10)).thenReturn("Kind");
+
+        invokeCheck();
+        invokeCheck();
+
+        verify(notifier, times(1)).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
+        verify(reminderRepository).markDeadlineWarningSent(7, date, 3, closes);
     }
 
     /** A deadline further away than the widest lead is not warned about yet. */
@@ -377,7 +402,7 @@ class EventReminderCheckerTest {
         invokeCheck();
 
         verify(notifier, never()).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
-        verify(reminderRepository, never()).markDeadlineWarningSent(anyInt(), any(), anyInt());
+        verify(reminderRepository, never()).markDeadlineWarningSent(anyInt(), any(), anyInt(), any());
     }
 
     /**
@@ -400,8 +425,8 @@ class EventReminderCheckerTest {
         verify(notifier, times(1)).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
         verify(registrationRepository, atLeastOnce()).findUnansweredMemberIds(8, STATION_ID, near);
         verify(registrationRepository, never()).findUnansweredMemberIds(8, STATION_ID, near.plusWeeks(1));
-        verify(reminderRepository).markDeadlineWarningSent(8, near, 3);
-        verify(reminderRepository, never()).markDeadlineWarningSent(eq(8), eq(near.plusWeeks(1)), anyInt());
+        verify(reminderRepository).markDeadlineWarningSent(eq(8), eq(near), eq(3), any());
+        verify(reminderRepository, never()).markDeadlineWarningSent(eq(8), eq(near.plusWeeks(1)), anyInt(), any());
         assertEquals(near, closingWarning().eventDate());
     }
 
@@ -421,7 +446,7 @@ class EventReminderCheckerTest {
         invokeCheck();
 
         verify(notifier, never()).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
-        verify(reminderRepository, never()).markDeadlineWarningSent(anyInt(), any(), anyInt());
+        verify(reminderRepository, never()).markDeadlineWarningSent(anyInt(), any(), anyInt(), any());
     }
 
     /** A fixed deadline on a series closes every date at once, so only the next date is warned about. */
@@ -437,8 +462,8 @@ class EventReminderCheckerTest {
         invokeCheck();
 
         verify(notifier, times(1)).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
-        verify(reminderRepository).markDeadlineWarningSent(9, next, 3);
-        verify(reminderRepository, never()).markDeadlineWarningSent(eq(9), eq(next.plusWeeks(1)), anyInt());
+        verify(reminderRepository).markDeadlineWarningSent(eq(9), eq(next), eq(3), any());
+        verify(reminderRepository, never()).markDeadlineWarningSent(eq(9), eq(next.plusWeeks(1)), anyInt(), any());
         assertNull(closingWarning().eventDate());
     }
 

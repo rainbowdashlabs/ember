@@ -361,14 +361,13 @@ public class EventCrudService {
                     endTime,
                     templateId,
                     part ? before.requiresRegistration() : requiresRegistration,
-                    part ? before.registrationDeadline() : registrationDeadline,
+                    part ? RegistrationDeadline.none() : registrationDeadline,
                     part ? before.requiresConfirmation() : requiresConfirmation,
                     categoryId,
                     isPublic,
                     part ? before.registrationLimit() : registrationLimit,
                     part ? before.minRegistrations() : minRegistrations,
                     part ? before.thresholdDays() : thresholdDays);
-            if (changed) groupOfPart.ifPresent(eventGroups::alignPartDeadlines);
             return changed;
         });
         if (updated) {
@@ -531,7 +530,6 @@ public class EventCrudService {
                     .orElse(NOTHING_MORE);
             if (!eventRepository.delete(id)) return null;
             locked.ifPresent(left -> eventGroups.capMinimum(left.setId()));
-            locked.ifPresent(left -> eventGroups.alignPartDeadlines(left.eventGroupId()));
             return leaving;
         });
     }

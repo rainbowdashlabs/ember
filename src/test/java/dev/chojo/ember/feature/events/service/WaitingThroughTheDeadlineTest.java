@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.RegistrationDeadlineSql;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -25,6 +26,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -200,6 +203,85 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
         } finally {
             eventRepo.delete(event.id());
         }
+    }
+
+    /**
+     * A notice counts for the close it was about: an unchanged deadline is told about once, one moved
+     * to another instant that has passed as well is told about again, without anything arming it.
+     */
+    @Test
+    void aMovedDeadlineOfAOneTimeAppointmentIsToldAboutAgain() {
+        var zone = occurrenceCalendar.zoneOf(station.id());
+        var day = LocalDate.now(zone).plusDays(2);
+        var start = day.atTime(18, 0).atZone(zone).toInstant();
+        var closes = Instant.now().minus(3, ChronoUnit.HOURS).truncatedTo(ChronoUnit.SECONDS);
+        var event = eventRepo.create(
+                station.id(),
+                "Einmalig",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                RegistrationDeadline.fixed(closes),
+                true,
+                null,
+                null,
+                null,
+                null);
+        try {
+            eventRegistrationRepo.create(event.id(), pending.id(), day, RegistrationStatus.PENDING, null);
+            var bus = mock(DomainEventBus.class);
+            var checker = new RegistrationDeadlineChecker(eventRepo, bus, occurrenceCalendar, writable());
+
+            checker.scheduledTasks().getFirst().work().run();
+            checker.scheduledTasks().getFirst().work().run();
+            verify(bus, times(1)).publish(any(RegistrationDeadlineExpired.class));
+
+            setDeadline(event, RegistrationDeadline.fixed(closes.plus(1, ChronoUnit.HOURS)));
+            checker.scheduledTasks().getFirst().work().run();
+            checker.scheduledTasks().getFirst().work().run();
+
+            verify(bus, times(2)).publish(any(RegistrationDeadlineExpired.class));
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    /** The same per date of a series: a relative deadline made longer closes the date again. */
+    @Test
+    void aMovedDeadlineOfASeriesDateIsToldAboutAgain() {
+        var zone = occurrenceCalendar.zoneOf(station.id());
+        var near = LocalDate.now(zone).plusDays(1);
+        var event = series(near, RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT));
+        try {
+            eventRegistrationRepo.create(event.id(), pending.id(), near, RegistrationStatus.PENDING, null);
+            var bus = mock(DomainEventBus.class);
+            var checker = new RegistrationDeadlineChecker(eventRepo, bus, occurrenceCalendar, writable());
+
+            checker.scheduledTasks().getFirst().work().run();
+            setDeadline(event, RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT));
+            checker.scheduledTasks().getFirst().work().run();
+            verify(bus, times(1)).publish(any(RegistrationDeadlineExpired.class));
+
+            setDeadline(event, RegistrationDeadline.relative(4 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT));
+            checker.scheduledTasks().getFirst().work().run();
+
+            verify(bus, times(2)).publish(any(RegistrationDeadlineExpired.class));
+            verify(bus, times(2))
+                    .publish(new RegistrationDeadlineExpired(
+                            station.id(), event.name(), 1, near, NotificationLinks.eventRegistrations(event.id())));
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    private static void setDeadline(StationEvent event, RegistrationDeadline deadline) {
+        query("UPDATE station_event SET %s WHERE id = :id;".formatted(RegistrationDeadlineSql.SET))
+                .single(RegistrationDeadlineSql.bind(call(), deadline).bind("id", event.id()))
+                .update();
     }
 
     private StationEvent series(LocalDate first, RegistrationDeadline deadline) {

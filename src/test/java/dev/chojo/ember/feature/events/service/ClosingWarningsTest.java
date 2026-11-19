@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -149,7 +150,7 @@ class ClosingWarningsTest {
             var due = new ArrayList<ClosingWarnings.Closing>();
             daysLeft.forEach((id, days) -> {
                 if (days <= daysBefore && !warned.getOrDefault(id, Set.of()).contains(daysBefore)) {
-                    due.add(new ClosingWarnings.Closing(id, STATION, "Übung", null));
+                    due.add(new ClosingWarnings.Closing(id, STATION, "Übung", null, Instant.EPOCH));
                 }
             });
             return due;

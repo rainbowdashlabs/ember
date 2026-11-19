@@ -18,6 +18,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -101,12 +102,13 @@ final class ClosingWarnings {
      * @param date      the date of an appointment whose deadline this is, since a series closes each
      *                  date on its own; null for an event group, which closes once
      * @param series    whether the appointment repeats, so the warning names the date
+     * @param closesAt  when it closes, the instant a warning is recorded for
      */
     record Closing(
-            int id, int stationId, String name, @Nullable LocalDate date, boolean series) {
+            int id, int stationId, String name, @Nullable LocalDate date, boolean series, Instant closesAt) {
         /** Something that closes once, or a date not worth naming. */
-        Closing(int id, int stationId, String name, @Nullable LocalDate date) {
-            this(id, stationId, name, date, false);
+        Closing(int id, int stationId, String name, @Nullable LocalDate date, Instant closesAt) {
+            this(id, stationId, name, date, false, closesAt);
         }
 
         /** The date the warning names: the one of a series, which closes each date on its own. */

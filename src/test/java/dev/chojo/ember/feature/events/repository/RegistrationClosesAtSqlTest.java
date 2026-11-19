@@ -7,11 +7,13 @@ package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline.DeadlineAnchor;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -78,6 +80,65 @@ class RegistrationClosesAtSqlTest extends RepositoryTestBase {
                         closesAtInSql(rule, start),
                         () -> rule + " for a start at " + start);
             }
+        }
+    }
+
+    /**
+     * The migration gives every notice and warning already recorded for a one-time appointment the close
+     * {@code registration_closes_at} places from the stored rule, start and station clock. That has to be
+     * the instant the sweep computes for the same date, or every migrated record would count as being
+     * about an earlier close and be sent again.
+     */
+    @Test
+    void theMigratedCloseIsTheOneTheSweepComputes() {
+        var station = stationRepo.create("Closes At Backfill");
+        stationRepo.updateTimezone(station.id(), BERLIN.getId());
+        try {
+            var zone = occurrenceCalendar.zoneOf(station.id());
+            var start = berlin("2027-03-27T00:30");
+            for (var rule : List.of(
+                    RegistrationDeadline.fixed(berlin("2027-03-20T12:00")),
+                    RegistrationDeadline.relative(7 * 24 * 60, DeadlineAnchor.MIDNIGHT),
+                    RegistrationDeadline.relative(36 * 60, DeadlineAnchor.MIDNIGHT),
+                    RegistrationDeadline.relative(90, DeadlineAnchor.EXACT))) {
+                var event = eventRepo.create(
+                        station.id(),
+                        "Nachgetragen",
+                        null,
+                        StationEvent.EventType.ONE_TIME,
+                        null,
+                        start,
+                        start.plusSeconds(7200),
+                        null,
+                        true,
+                        rule,
+                        false,
+                        null,
+                        null,
+                        null,
+                        null);
+                try {
+                    var backfilled = query("""
+                                    SELECT registration_closes_at(e.registration_deadline_kind, e.registration_deadline,
+                                                                  e.registration_deadline_offset_minutes,
+                                                                  e.registration_deadline_anchor, e.start_time,
+                                                                  s.timezone) AS closes_at
+                                    FROM station_event e
+                                             JOIN station s ON s.id = e.station_id
+                                    WHERE e.id = :id;""")
+                            .single(call().bind("id", event.id()))
+                            .map(row -> row.get("closes_at", INSTANT_TIMESTAMP))
+                            .first()
+                            .orElse(null);
+                    var date = LocalDate.ofInstant(event.startTime(), zone);
+                    assertEquals(
+                            event.registrationClosesOn(date, zone).orElse(null), backfilled, () -> rule.toString());
+                } finally {
+                    eventRepo.delete(event.id());
+                }
+            }
+        } finally {
+            stationRepo.delete(station.id());
         }
     }
 }

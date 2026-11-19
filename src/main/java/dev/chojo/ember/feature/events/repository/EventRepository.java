@@ -44,7 +44,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String OWN_COLUMNS =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, requires_registration, registration_deadline, registration_deadline_kind, registration_deadline_offset_minutes, registration_deadline_anchor, requires_confirmation, restriction_mode, view_restriction_mode, \"public\", cancelled, cancelled_at, cancel_reason, min_registrations, threshold_days, repeat_until, repeat_count, queue_order";
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, requires_registration, requires_confirmation, restriction_mode, view_restriction_mode, \"public\", cancelled, cancelled_at, cancel_reason, min_registrations, threshold_days, repeat_until, repeat_count, queue_order";
 
     /** The columns of an appointment written to as {@code station_event}, for a {@code RETURNING}. */
     private static final String EVENT_COLUMNS = eventColumns("station_event");
@@ -55,17 +55,18 @@ public class EventRepository {
     /**
      * The columns {@link StationEvent#map()} reads, with the attendance template, the category and the
      * participant limit as they take effect: a part of an event group without its own follows the
-     * event group's.
+     * event group's. A part's deadline is always the event group's close.
      *
      * @param table the name or alias the appointment row is read under
      */
     private static String eventColumns(String table) {
-        return "%s, %s AS template_id, %s AS category_id, %s AS registration_limit"
+        return "%s, %s AS template_id, %s AS category_id, %s AS registration_limit, %s"
                 .formatted(
                         SqlSupport.alias(table, OWN_COLUMNS),
                         EventGroupInheritance.template(table),
                         EventGroupInheritance.category(table),
-                        EventGroupInheritance.registrationLimit(table));
+                        EventGroupInheritance.registrationLimit(table),
+                        EventGroupInheritance.deadline(table));
     }
 
     /**
@@ -655,9 +656,12 @@ public class EventRepository {
 
     /**
      * The dates of appointments with a sign-up deadline that still have sign-ups waiting for a
-     * decision and whose passed deadline was not handled yet, one row per appointment and date.
+     * decision, one row per appointment and date, each with the close its passed deadline was last
+     * handled for.
      *
-     * <p>Whether the deadline of a date has passed is decided by the caller on the station's clock,
+     * <p>A date handled for the fixed deadline it still has is left out here, since nothing about it
+     * can have changed. Whether the deadline of a date has passed, and whether the close handled for a
+     * relative one is still the close, is decided by the caller on the station's clock,
      * since a series closes each date on its own. Only dates that can have closed are read: a fixed
      * deadline that has passed, or a relative one whose date lies within its span from today. Dates
      * more than a week back are left out: a deadline that old was handled before or never mattered.
@@ -670,11 +674,14 @@ public class EventRepository {
                 SELECT
                     e.id         AS event_id,
                     er.event_date,
+                    x.closes_at  AS handled_for,
                     count(er.id) AS pending_count
                 FROM
                     station_event e
                         JOIN event_registration er
                         ON er.event_id = e.id AND er.status = 'PENDING'
+                        LEFT JOIN event_deadline_expired x
+                        ON x.event_id = e.id AND x.occurrence_date = er.event_date
                 WHERE e.requires_registration
                   AND e.registration_deadline_kind <> 'NONE'
                   AND e.cancelled = FALSE
@@ -684,16 +691,14 @@ public class EventRepository {
                           WHEN 'FIXED' THEN e.registration_deadline < now()
                           ELSE er.event_date <= current_date + e.registration_deadline_offset_minutes / 1440 + 2
                       END
-                  AND NOT EXISTS (SELECT 1
-                                  FROM event_deadline_expired x
-                                  WHERE x.event_id = e.id
-                                    AND x.occurrence_date = er.event_date)
-                GROUP BY e.id, er.event_date
+                  AND (e.registration_deadline_kind <> 'FIXED' OR x.closes_at IS DISTINCT FROM e.registration_deadline)
+                GROUP BY e.id, er.event_date, x.closes_at
                 ORDER BY e.id, er.event_date;""")
                 .single(call())
                 .map(row -> new PendingDate(
                         row.getInt("event_id"),
                         row.getObject("event_date", LocalDate.class),
+                        row.get("handled_for", INSTANT_TIMESTAMP),
                         row.getInt("pending_count")))
                 .all();
     }
@@ -722,16 +727,23 @@ public class EventRepository {
     }
 
     /**
-     * Notes that the passed deadline of one date was handled, so it is handled once.
+     * Notes that the passed deadline of one date was handled for the instant it closed at, so it is
+     * handled once for that close and again should the close move.
      *
-     * @param eventId the appointment
-     * @param date    the date
+     * @param eventId  the appointment
+     * @param date     the date
+     * @param closesAt the close that passed
      */
-    public void markDeadlineExpired(int eventId, LocalDate date) {
+    public void markDeadlineExpired(int eventId, LocalDate date, Instant closesAt) {
         query("""
-                INSERT INTO event_deadline_expired(event_id, occurrence_date)
-                VALUES (:event_id, :date)
-                ON CONFLICT DO NOTHING;""").single(call().bind("event_id", eventId).bind("date", date)).insert();
+                INSERT INTO event_deadline_expired(event_id, occurrence_date, closes_at)
+                VALUES (:event_id, :date, :closes_at)
+                ON CONFLICT (event_id, occurrence_date)
+                    DO UPDATE SET closes_at = excluded.closes_at, handled_at = now();""")
+                .single(call().bind("event_id", eventId)
+                        .bind("date", date)
+                        .bind("closes_at", closesAt, INSTANT_TIMESTAMP))
+                .insert();
     }
 
     /**
@@ -840,7 +852,9 @@ public class EventRepository {
      *
      * @param eventId      the appointment
      * @param date         the date
+     * @param handledFor   the close its passed deadline was last handled for, null where it never was
      * @param pendingCount how many sign-ups wait
      */
-    public record PendingDate(int eventId, LocalDate date, int pendingCount) {}
+    public record PendingDate(
+            int eventId, LocalDate date, @Nullable Instant handledFor, int pendingCount) {}
 }

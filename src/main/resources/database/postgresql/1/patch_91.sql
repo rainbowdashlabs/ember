@@ -663,3 +663,85 @@ $$;
 
 COMMENT ON FUNCTION ember_schema.event_group_closes_at(INT)
     IS 'When sign-up for an event group closes: its fixed deadline, or its relative one counted from the start of its first part; NULL for no deadline or, for a relative one, no part yet.';
+
+-- Every record that a deadline notice or warning went out remembers the instant it was about. A record
+-- counts only while that instant is still the close, so a deadline that moves is handled again by
+-- itself. Rows already there take the close as it stands now; a row whose close cannot be placed any
+-- more is about nothing that could still close and goes.
+
+ALTER TABLE ember_schema.event_deadline_expired
+    ADD COLUMN closes_at TIMESTAMPTZ;
+
+UPDATE ember_schema.event_deadline_expired x
+SET closes_at = ember_schema.registration_closes_at(e.registration_deadline_kind, e.registration_deadline,
+                                                    e.registration_deadline_offset_minutes,
+                                                    e.registration_deadline_anchor, e.start_time, s.timezone)
+FROM ember_schema.station_event e
+         JOIN ember_schema.station s ON s.id = e.station_id
+WHERE e.id = x.event_id
+  AND e.event_type = 'ONE_TIME';
+
+DELETE FROM ember_schema.event_deadline_expired WHERE closes_at IS NULL;
+
+ALTER TABLE ember_schema.event_deadline_expired
+    ALTER COLUMN closes_at SET NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_deadline_expired.closes_at
+    IS 'The deadline instant that passed; the record counts only while the date still closes at this instant.';
+
+ALTER TABLE ember_schema.event_deadline_reminder_sent
+    ADD COLUMN closes_at TIMESTAMPTZ;
+
+UPDATE ember_schema.event_deadline_reminder_sent r
+SET closes_at = ember_schema.registration_closes_at(e.registration_deadline_kind, e.registration_deadline,
+                                                    e.registration_deadline_offset_minutes,
+                                                    e.registration_deadline_anchor, e.start_time, s.timezone)
+FROM ember_schema.station_event e
+         JOIN ember_schema.station s ON s.id = e.station_id
+WHERE e.id = r.event_id
+  AND e.event_type = 'ONE_TIME';
+
+DELETE FROM ember_schema.event_deadline_reminder_sent WHERE closes_at IS NULL;
+
+ALTER TABLE ember_schema.event_deadline_reminder_sent
+    ALTER COLUMN closes_at SET NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_deadline_reminder_sent.closes_at
+    IS 'The deadline instant the warning was about; the warning counts only while the date still closes at this instant.';
+
+ALTER TABLE ember_schema.event_group_deadline_reminder_sent
+    ADD COLUMN closes_at TIMESTAMPTZ;
+
+UPDATE ember_schema.event_group_deadline_reminder_sent
+SET closes_at = ember_schema.event_group_closes_at(event_group_id);
+
+DELETE FROM ember_schema.event_group_deadline_reminder_sent WHERE closes_at IS NULL;
+
+ALTER TABLE ember_schema.event_group_deadline_reminder_sent
+    ALTER COLUMN closes_at SET NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_group_deadline_reminder_sent.closes_at
+    IS 'The deadline instant the warning was about; the warning counts only while the event group still closes at this instant.';
+
+ALTER TABLE ember_schema.event_group
+    ADD COLUMN deadline_notified_for TIMESTAMPTZ;
+
+UPDATE ember_schema.event_group
+SET deadline_notified_for = ember_schema.event_group_closes_at(id)
+WHERE deadline_notified;
+
+ALTER TABLE ember_schema.event_group
+    DROP COLUMN deadline_notified;
+
+COMMENT ON COLUMN ember_schema.event_group.deadline_notified_for
+    IS 'The deadline instant whose passing the managers were told about; NULL while not told. The notice counts only while the event group still closes at this instant.';
+
+-- A part of an event group takes the event group's close when it is read and keeps no deadline of its
+-- own; the copies written so far go.
+
+UPDATE ember_schema.station_event
+SET registration_deadline                = NULL,
+    registration_deadline_kind           = 'NONE',
+    registration_deadline_offset_minutes = NULL,
+    registration_deadline_anchor         = NULL
+WHERE event_group_set_id IS NOT NULL;
