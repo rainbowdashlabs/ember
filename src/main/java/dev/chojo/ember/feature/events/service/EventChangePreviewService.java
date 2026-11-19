@@ -160,7 +160,6 @@ public class EventChangePreviewService {
                 current.cancelReason(),
                 draft.minRegistrations(),
                 draft.thresholdDays(),
-                draft.registrationCloseDays(),
                 draft.repeatUntil(),
                 draft.repeatCount());
     }

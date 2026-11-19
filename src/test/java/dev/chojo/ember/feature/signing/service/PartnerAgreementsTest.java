@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -267,7 +268,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                         eventRepo,
                         attendanceRepo,
                         eventFieldRegistrationService,
-                        new EventGroupRepository()),
+                        new EventGroupRepository(),
+                        occurrenceCalendar),
                 occurrenceCalendar,
                 media,
                 new Api(),
@@ -1080,9 +1082,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 START.plus(Duration.ofHours(8)),
                 null,
                 requiresRegistration,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

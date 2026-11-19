@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.QueueEntry;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -146,7 +147,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         eventRepo,
                         attendanceRepo,
                         eventFieldRegistrationService,
-                        new EventGroupRepository()),
+                        new EventGroupRepository(),
+                        occurrenceCalendar),
                 occurrenceCalendar,
                 media,
                 new Api(),
@@ -189,9 +191,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 end,
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -441,9 +442,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 next.minusWeeks(2).atTime(20, 0).atZone(calendar.zone()).toInstant(),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -462,6 +462,45 @@ class EventFederationServiceTest extends RepositoryTestBase {
             assertEquals(
                     next.plusWeeks(1),
                     service.registerFederated(weekly.id(), partnerId, visitor, next.plusWeeks(1))
+                            .eventDate());
+        } finally {
+            eventRepo.delete(weekly.id());
+        }
+    }
+
+    /**
+     * A relative deadline closes each date on its own for a visitor too: the date whose deadline passed
+     * is refused, the next date still takes them.
+     */
+    @Test
+    @Order(19)
+    void aVisitorMeetsTheDeadlineOfTheDateTheyAskFor() {
+        var calendar = occurrenceCalendar.forStation(stationA.id());
+        LocalDate near = calendar.today().plusDays(1);
+        var weekly = eventRepo.create(
+                stationA.id(),
+                "Weekly Deadline",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                near.getDayOfWeek().getValue(),
+                near.minusWeeks(2).atTime(18, 0).atZone(calendar.zone()).toInstant(),
+                near.minusWeeks(2).atTime(20, 0).atZone(calendar.zone()).toInstant(),
+                null,
+                true,
+                RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.Anchor.EXACT),
+                false,
+                null,
+                null,
+                null,
+                null);
+        UUID visitor = UUID.fromString("00000000-0000-0000-0000-0000000000d2");
+        try {
+            var closed = assertThrows(
+                    RefusalResponse.class, () -> service.registerFederated(weekly.id(), partnerId, visitor, near));
+            assertEquals(EventRefusal.REGISTRATION_CLOSED_TO_PARTNER, closed.refusal());
+            assertEquals(
+                    near.plusWeeks(1),
+                    service.registerFederated(weekly.id(), partnerId, visitor, near.plusWeeks(1))
                             .eventDate());
         } finally {
             eventRepo.delete(weekly.id());
@@ -652,9 +691,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -1115,9 +1153,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 Instant.now().plus(3, ChronoUnit.DAYS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -1443,9 +1480,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -1616,9 +1652,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -1663,11 +1698,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 1,
-                null,
                 null,
                 null);
     }
@@ -1835,11 +1869,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 true,
                 null,
                 1,
-                null,
                 null,
                 null);
         var day = dayOf(event);
@@ -1911,11 +1944,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 2,
-                null,
                 null,
                 null);
         var day = dayOf(event);

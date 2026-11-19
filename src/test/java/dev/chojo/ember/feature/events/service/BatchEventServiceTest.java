@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.IntervalType;
 import dev.chojo.ember.feature.events.entity.QueueOrder;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
@@ -69,7 +70,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService,
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                occurrenceCalendar);
         batchService = new BatchEventService(
                 eventServices.crud(),
                 eventServices.restriction(),
@@ -179,14 +181,13 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 rows,
                 true,
                 false,
-                null,
+                RegistrationDeadline.relative(24 * 60, RegistrationDeadline.Anchor.EXACT),
                 RestrictionSelection.empty(),
                 RestrictionSelection.empty(),
                 12,
                 3,
                 2,
                 QueueOrder.FAIRNESS,
-                24,
                 List.of(1, 7),
                 template.id());
 
@@ -198,7 +199,9 @@ class BatchEventServiceTest extends RepositoryTestBase {
             assertEquals(3, stored.minRegistrations());
             assertEquals(2, stored.thresholdDays());
             assertEquals(QueueOrder.FAIRNESS, stored.queueOrder());
-            assertEquals(stored.startTime().minus(24, ChronoUnit.HOURS), stored.registrationDeadline());
+            assertEquals(
+                    RegistrationDeadline.relative(24 * 60, RegistrationDeadline.Anchor.EXACT),
+                    stored.registrationDeadline());
             assertEquals(
                     List.of(1, 7),
                     eventServices.reminder().findDays(event.id()).stream()
@@ -215,7 +218,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(6)
-    void aDeadlineOfTheBatchWinsOverTheHoursBeforeEachStart() {
+    void aFixedDeadlineOfTheBatchIsTakenByItsAppointments() {
         Instant start = Instant.now().plus(20, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
         Instant deadline = start.minus(3, ChronoUnit.DAYS);
         var rows = List.of(new BatchRow("Fest", start, start.plus(1, ChronoUnit.HOURS), Map.of()));
@@ -228,19 +231,18 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 rows,
                 true,
                 false,
-                deadline,
+                RegistrationDeadline.fixed(deadline),
                 RestrictionSelection.empty(),
                 RestrictionSelection.empty(),
                 null,
                 null,
                 null,
                 null,
-                24,
                 List.of(),
                 null);
 
         var created = batchService.createBatch(station.id(), request);
-        assertEquals(deadline, created.getFirst().registrationDeadline());
+        assertEquals(RegistrationDeadline.fixed(deadline), created.getFirst().registrationDeadline());
     }
 
     @Test
@@ -263,7 +265,6 @@ class BatchEventServiceTest extends RepositoryTestBase {
                     null,
                     RestrictionSelection.empty(),
                     RestrictionSelection.empty(),
-                    null,
                     null,
                     null,
                     null,

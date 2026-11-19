@@ -84,7 +84,6 @@ class EventTemplateQuestionsRouteTest {
                         any(),
                         any(),
                         any(),
-                        any(),
                         any()))
                 .thenReturn(created);
         templateRepository = mock(EventTemplateRepository.class);
@@ -162,7 +161,6 @@ class EventTemplateQuestionsRouteTest {
                         anyBoolean(),
                         any(),
                         anyBoolean(),
-                        any(),
                         any(),
                         any(),
                         any(),

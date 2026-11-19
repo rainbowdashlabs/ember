@@ -55711,6 +55711,10 @@
         "type" : "string",
         "enum" : [ "OPENAI", "GEMINI", "CLAUDE", "DEEPSEEK", "MISTRAL" ]
       },
+      "Anchor" : {
+        "type" : "string",
+        "enum" : [ "EXACT", "MIDNIGHT" ]
+      },
       "AnswerBody" : {
         "type" : "object",
         "properties" : {
@@ -56846,7 +56850,7 @@
           "startTime" : {
             "$ref" : "#/components/schemas/Instant"
           },
-          "registrationDeadline" : {
+          "registrationClosesAt" : {
             "$ref" : "#/components/schemas/Instant"
           },
           "categoryId" : {
@@ -56860,7 +56864,7 @@
             }
           }
         },
-        "required" : [ "eventId", "name", "startTime", "registrationDeadline", "categoryId", "members" ]
+        "required" : [ "eventId", "name", "startTime", "registrationClosesAt", "categoryId", "members" ]
       },
       "AwaitingMember" : {
         "type" : "object",
@@ -57048,7 +57052,7 @@
           },
           "registrationDeadline" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
+              "$ref" : "#/components/schemas/RegistrationDeadline"
             }, {
               "type" : "null"
             } ]
@@ -57085,10 +57089,6 @@
             }, {
               "type" : "null"
             } ]
-          },
-          "registrationDeadlineOffsetHours" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
           },
           "reminderDays" : {
             "type" : [ "array", "null" ],
@@ -62196,9 +62196,16 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "registrationClosesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "event", "nextDate", "previousDate", "cancellation" ]
+        "required" : [ "event", "nextDate", "previousDate", "cancellation", "registrationClosesAt" ]
       },
       "DayBound" : {
         "type" : "object",
@@ -64838,7 +64845,7 @@
           "name" : {
             "type" : "string"
           },
-          "registrationDeadline" : {
+          "registrationClosesAt" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/Instant"
             }, {
@@ -64852,7 +64859,7 @@
             }
           }
         },
-        "required" : [ "eventGroupId", "name", "registrationDeadline", "members" ]
+        "required" : [ "eventGroupId", "name", "registrationClosesAt", "members" ]
       },
       "EventGroupCancelRequest" : {
         "type" : "object",
@@ -64977,7 +64984,7 @@
           },
           "registrationDeadline" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
+              "$ref" : "#/components/schemas/RegistrationDeadline"
             }, {
               "type" : "null"
             } ]
@@ -65855,7 +65862,7 @@
           },
           "registrationDeadline" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
+              "$ref" : "#/components/schemas/RegistrationDeadline"
             }, {
               "type" : "null"
             } ]
@@ -65893,10 +65900,6 @@
             "format" : "int32"
           },
           "thresholdDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "registrationCloseDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
@@ -65977,11 +65980,7 @@
             "type" : "boolean"
           },
           "registrationDeadline" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/RegistrationDeadline"
           },
           "requiresConfirmation" : {
             "type" : "boolean"
@@ -66048,9 +66047,12 @@
           "requiresRegistration" : {
             "type" : [ "boolean", "null" ]
           },
-          "registrationDeadlineOffsetHours" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
+          "registrationDeadline" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RegistrationDeadline"
+            }, {
+              "type" : "null"
+            } ]
           },
           "requiresConfirmation" : {
             "type" : [ "boolean", "null" ]
@@ -66081,10 +66083,6 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
-          "registrationCloseDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
           "queueOrder" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/QueueOrder"
@@ -66093,7 +66091,7 @@
             } ]
           }
         },
-        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadlineOffsetHours", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit", "minRegistrations", "thresholdDays", "registrationCloseDays", "queueOrder" ]
+        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit", "minRegistrations", "thresholdDays", "queueOrder" ]
       },
       "EventTemplateFieldData" : {
         "type" : "object",
@@ -71874,6 +71872,10 @@
           }
         },
         "required" : [ "id", "version", "isFull", "createdBy", "createdByName", "createdAt" ]
+      },
+      "Kind" : {
+        "type" : "string",
+        "enum" : [ "NONE", "FIXED", "RELATIVE" ]
       },
       "KindRequest" : {
         "type" : "object",
@@ -82714,6 +82716,33 @@
         },
         "required" : [ "eventId", "eventDate", "status", "count" ]
       },
+      "RegistrationDeadline" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/Kind"
+          },
+          "at" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "offsetMinutes" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "anchor" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Anchor"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "kind", "at", "offsetMinutes", "anchor" ]
+      },
       "RegistrationFieldDefinition" : {
         "type" : "object",
         "properties" : {
@@ -88038,11 +88067,7 @@
             "type" : "boolean"
           },
           "registrationDeadline" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/RegistrationDeadline"
           },
           "requiresConfirmation" : {
             "type" : "boolean"
@@ -88088,10 +88113,6 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
-          "registrationCloseDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
           "repeatUntil" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/LocalDate"
@@ -88114,7 +88135,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "registrationCloseDays", "repeatUntil", "repeatCount", "queueOrder", "recurring" ]
+        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "repeatUntil", "repeatCount", "queueOrder", "recurring" ]
       },
       "StationFailedMails" : {
         "type" : "object",
@@ -91401,9 +91422,16 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "registrationClosesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "event", "date", "cancellation" ]
+        "required" : [ "event", "date", "cancellation", "registrationClosesAt" ]
       },
       "UpcomingEventsConfig" : {
         "type" : "object",
@@ -91667,9 +91695,12 @@
           "requiresRegistration" : {
             "type" : [ "boolean", "null" ]
           },
-          "registrationDeadlineOffsetHours" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
+          "registrationDeadline" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RegistrationDeadline"
+            }, {
+              "type" : "null"
+            } ]
           },
           "requiresConfirmation" : {
             "type" : [ "boolean", "null" ]
@@ -91694,10 +91725,6 @@
             "format" : "int32"
           },
           "thresholdDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "registrationCloseDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },

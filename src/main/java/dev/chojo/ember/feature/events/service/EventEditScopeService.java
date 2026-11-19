@@ -210,8 +210,7 @@ public class EventEditScopeService {
                         draft.isPublic(),
                         draft.registrationLimit(),
                         draft.minRegistrations(),
-                        draft.thresholdDays(),
-                        draft.registrationCloseDays())
+                        draft.thresholdDays())
                 .orElseThrow(EventRefusal.EVENT_NOT_HERE_ON_CHANGE::raise);
         return crudService
                 .setRepeatEnd(series.id(), draft.repeatUntil(), draft.repeatCount())
@@ -265,8 +264,7 @@ public class EventEditScopeService {
                 draft.categoryId(),
                 draft.registrationLimit(),
                 draft.minRegistrations(),
-                draft.thresholdDays(),
-                draft.registrationCloseDays());
+                draft.thresholdDays());
         eventRepository.updatePublic(created.id(), draft.isPublic());
         if (until != null || count != null) eventRepository.updateRepeatEnd(created.id(), until, count);
         handoverRepository.copyConfiguration(source.id(), created.id());

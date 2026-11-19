@@ -1,0 +1,83 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.events.repository;
+
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline.Anchor;
+import dev.chojo.ember.repository.RepositoryTestBase;
+import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+/**
+ * The database places a deadline exactly where the server does, since lists and dashboards read the
+ * close from SQL while sign-up is refused by the server. Checked across both changes of Berlin's
+ * daylight saving time in 2026.
+ */
+class RegistrationClosesAtSqlTest extends RepositoryTestBase {
+
+    private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
+
+    private static Instant berlin(String localDateTime) {
+        return LocalDateTime.parse(localDateTime).atZone(BERLIN).toInstant();
+    }
+
+    private static @Nullable Instant closesAtInSql(RegistrationDeadline deadline, Instant start) {
+        var bound = RegistrationDeadlineSql.bind(call(), deadline)
+                .bind("starts", start, INSTANT_TIMESTAMP)
+                .bind("zone", BERLIN.getId());
+        return query("""
+                        SELECT registration_closes_at(
+                                :registration_deadline_kind,
+                                CAST(:registration_deadline AS TIMESTAMPTZ),
+                                CAST(:registration_deadline_offset_minutes AS INT),
+                                :registration_deadline_anchor,
+                                CAST(:starts AS TIMESTAMPTZ),
+                                :zone) AS closes_at;""")
+                .single(bound)
+                .map(row -> row.get("closes_at", INSTANT_TIMESTAMP))
+                .first()
+                .orElse(null);
+    }
+
+    @Test
+    void theDatabaseClosesWhereTheServerDoes() {
+        var week = 7 * 24 * 60;
+        var rules = List.of(
+                RegistrationDeadline.none(),
+                RegistrationDeadline.fixed(berlin("2026-03-20T12:00")),
+                RegistrationDeadline.relative(week, Anchor.MIDNIGHT),
+                RegistrationDeadline.relative(week, Anchor.EXACT),
+                RegistrationDeadline.relative(36 * 60, Anchor.MIDNIGHT),
+                RegistrationDeadline.relative(90, Anchor.EXACT),
+                RegistrationDeadline.relative(0, Anchor.MIDNIGHT));
+        var starts = List.of(
+                berlin("2026-11-14T10:00"),
+                berlin("2026-04-04T00:30"),
+                berlin("2026-04-04T10:00"),
+                berlin("2026-03-30T10:00"),
+                berlin("2026-10-31T10:00"),
+                berlin("2026-10-25T02:30"));
+
+        for (var rule : rules) {
+            for (var start : starts) {
+                assertEquals(
+                        rule.closesAt(start, BERLIN).orElse(null),
+                        closesAtInSql(rule, start),
+                        () -> rule + " for a start at " + start);
+            }
+        }
+    }
+}

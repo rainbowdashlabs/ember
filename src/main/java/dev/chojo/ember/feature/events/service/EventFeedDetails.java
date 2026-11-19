@@ -161,11 +161,15 @@ public class EventFeedDetails implements FeedDetailsContributor {
             if (event == null) return;
             addTimes(details, event);
             addRecurrence(details, event);
-            var registrationDeadline = event.registrationDeadline();
+            var zone = details.zoneOf(event.stationId());
+            var registrationDeadline = event.registrationDeadline().isSet()
+                    ? occurrenceCalendar
+                            .dateInView(event)
+                            .flatMap(date -> event.registrationClosesOn(date, zone))
+                            .orElse(null)
+                    : null;
             if (event.requiresRegistration() && registrationDeadline != null) {
-                details.put(
-                        details.label("deadline", "Deadline"),
-                        details.moment(registrationDeadline, details.zoneOf(event.stationId())));
+                details.put(details.label("deadline", "Deadline"), details.moment(registrationDeadline, zone));
             }
             if (event.registrationLimit() != null) {
                 details.put(details.label("limit", "Limit"), String.valueOf(event.registrationLimit()));

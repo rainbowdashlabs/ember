@@ -885,9 +885,10 @@ public class EventRegistrationRepository {
      *
      * @param eventId   the event
      * @param stationId the station whose members are candidates
+     * @param date      the date the answer is owed for
      * @return the member ids still owing an answer
      */
-    public List<Integer> findUnansweredMemberIds(int eventId, int stationId) {
+    public List<Integer> findUnansweredMemberIds(int eventId, int stationId, LocalDate date) {
         return query("""
                 SELECT sm.id AS member_id
                 FROM station_member sm
@@ -897,8 +898,11 @@ public class EventRegistrationRepository {
                                   FROM event_registration er
                                   WHERE er.event_id = :event_id
                                     AND er.member_id = sm.id
+                                    AND er.event_date = :date
                                     AND %s);""", GIVEN_ANSWER)
-                .single(call().bind("event_id", eventId).bind("station_id", stationId))
+                .single(call().bind("event_id", eventId)
+                        .bind("station_id", stationId)
+                        .bind("date", date))
                 .map(row -> row.getInt("member_id"))
                 .all();
     }
@@ -923,11 +927,17 @@ public class EventRegistrationRepository {
                     e.id AS event_id,
                     e.name,
                     e.start_time,
-                    e.registration_deadline,
+                    c.closes_at,
                     e.category_id,
                     sm.id AS member_id
                 FROM station_member sm
                     JOIN station_event e ON e.station_id = sm.station_id
+                    JOIN station st ON st.id = e.station_id
+                    CROSS JOIN LATERAL (SELECT registration_closes_at(
+                                                       e.registration_deadline_kind, e.registration_deadline,
+                                                       e.registration_deadline_offset_minutes,
+                                                       e.registration_deadline_anchor, e.start_time,
+                                                       st.timezone) AS closes_at) c
                 WHERE sm.id = ANY (:member_ids)
                   AND sm.former = FALSE
                   AND e.requires_registration
@@ -935,20 +945,20 @@ public class EventRegistrationRepository {
                   AND e.event_type = 'ONE_TIME'
                   AND e.cancelled = FALSE
                   AND %s
-                  AND e.registration_deadline IS NOT NULL
-                  AND e.registration_deadline > now()
+                  AND c.closes_at IS NOT NULL
+                  AND c.closes_at > now()
                   AND NOT EXISTS (SELECT 1
                                   FROM event_registration er
                                   WHERE er.event_id = e.id
                                     AND er.member_id = sm.id
                                     AND %s)
-                ORDER BY e.registration_deadline, e.id;""", CancellationSql.NO_DATE_CANCELLED, GIVEN_ANSWER)
+                ORDER BY c.closes_at, e.id;""", CancellationSql.NO_DATE_CANCELLED, GIVEN_ANSWER)
                 .single(call().bind("member_ids", memberIds, PostgreSqlTypes.INTEGER))
                 .map(row -> new AwaitingAnswer(
                         row.getInt("event_id"),
                         row.getString("name"),
                         row.get("start_time", INSTANT_TIMESTAMP),
-                        row.get("registration_deadline", INSTANT_TIMESTAMP),
+                        row.get("closes_at", INSTANT_TIMESTAMP),
                         row.getObject("category_id", Integer.class),
                         row.getInt("member_id")))
                 .all();

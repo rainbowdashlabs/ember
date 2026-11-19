@@ -1,0 +1,221 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.events.entity;
+
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline.Anchor;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline.Kind;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * When sign-up closes for a date, on the station's clock, across both changes of Berlin's daylight
+ * saving time in 2026 (29 March forward, 25 October back).
+ */
+class RegistrationDeadlineTest {
+
+    private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
+    private static final int WEEK = 7 * 24 * 60;
+
+    private static Instant berlin(String localDateTime) {
+        return LocalDateTime.parse(localDateTime).atZone(BERLIN).toInstant();
+    }
+
+    private static LocalDateTime local(Optional<Instant> instant) {
+        return LocalDateTime.ofInstant(instant.orElseThrow(), BERLIN);
+    }
+
+    @Test
+    void sevenDaysAtMidnightClosesOnTheSaturdayAWeekEarlierAt178Hours() {
+        var start = berlin("2026-11-14T10:00");
+
+        var closes = RegistrationDeadline.relative(WEEK, Anchor.MIDNIGHT).closesAt(start, BERLIN);
+
+        assertEquals(LocalDateTime.parse("2026-11-07T00:00"), local(closes));
+        assertEquals(Duration.ofHours(178), Duration.between(closes.orElseThrow(), start));
+    }
+
+    @Test
+    void wholeDaysAtMidnightCountCalendarDaysAcrossTheSpringChange() {
+        var start = berlin("2026-04-04T00:30");
+
+        var closes = RegistrationDeadline.relative(WEEK, Anchor.MIDNIGHT).closesAt(start, BERLIN);
+
+        assertEquals(LocalDateTime.parse("2026-03-28T00:00"), local(closes));
+    }
+
+    @Test
+    void wholeDaysAtMidnightCountCalendarDaysAcrossTheAutumnChange() {
+        var start = berlin("2026-10-31T10:00");
+
+        var closes = RegistrationDeadline.relative(WEEK, Anchor.MIDNIGHT).closesAt(start, BERLIN);
+
+        assertEquals(LocalDateTime.parse("2026-10-24T00:00"), local(closes));
+        assertEquals(Duration.ofHours(179), Duration.between(closes.orElseThrow(), start));
+    }
+
+    @Test
+    void aSpanOfHoursAtMidnightGoesDownToTheDayItLandsOn() {
+        var start = berlin("2026-03-30T10:00");
+
+        var closes = RegistrationDeadline.relative(36 * 60, Anchor.MIDNIGHT).closesAt(start, BERLIN);
+
+        assertEquals(LocalDateTime.parse("2026-03-28T00:00"), local(closes));
+    }
+
+    @Test
+    void noDaysAtMidnightClosesAtTheStartOfTheDay() {
+        var start = berlin("2026-10-25T10:00");
+
+        var closes = RegistrationDeadline.relative(0, Anchor.MIDNIGHT).closesAt(start, BERLIN);
+
+        assertEquals(LocalDateTime.parse("2026-10-25T00:00"), local(closes));
+    }
+
+    @Test
+    void exactIsTheSpanInRealTimeAcrossTheSpringChange() {
+        var start = berlin("2026-04-04T10:00");
+
+        var closes = RegistrationDeadline.relative(WEEK, Anchor.EXACT).closesAt(start, BERLIN);
+
+        assertEquals(start.minus(Duration.ofHours(168)), closes.orElseThrow());
+        assertEquals(LocalDateTime.parse("2026-03-28T09:00"), local(closes));
+    }
+
+    @Test
+    void exactIsTheSpanInRealTimeAcrossTheAutumnChange() {
+        var start = berlin("2026-10-31T10:00");
+
+        var closes = RegistrationDeadline.relative(WEEK, Anchor.EXACT).closesAt(start, BERLIN);
+
+        assertEquals(start.minus(Duration.ofHours(168)), closes.orElseThrow());
+        assertEquals(LocalDateTime.parse("2026-10-24T11:00"), local(closes));
+    }
+
+    @Test
+    void aFixedDeadlineIgnoresTheStartAndNoneNeverCloses() {
+        var at = berlin("2026-05-01T12:00");
+        var fixed = RegistrationDeadline.fixed(at);
+
+        assertEquals(Optional.of(at), fixed.closesAt(berlin("2026-05-10T10:00"), BERLIN));
+        assertEquals(Optional.of(at), fixed.closesAt(berlin("2026-06-10T10:00"), BERLIN));
+        assertEquals(Optional.empty(), RegistrationDeadline.none().closesAt(at, BERLIN));
+        assertFalse(RegistrationDeadline.none().closedAt(at, BERLIN, at.plus(Duration.ofDays(365))));
+    }
+
+    @Test
+    void closedFromTheInstantItClosesOn() {
+        var at = berlin("2026-05-01T12:00");
+        var fixed = RegistrationDeadline.fixed(at);
+
+        assertFalse(fixed.closedAt(at, BERLIN, at.minusSeconds(1)));
+        assertTrue(fixed.closedAt(at, BERLIN, at));
+    }
+
+    @Test
+    void onlyARuleThatCanBePlacedIsValid() {
+        assertTrue(RegistrationDeadline.none().isValid());
+        assertTrue(RegistrationDeadline.fixed(Instant.now()).isValid());
+        assertTrue(RegistrationDeadline.relative(0, Anchor.EXACT).isValid());
+        assertFalse(RegistrationDeadline.relative(-1, Anchor.MIDNIGHT).isValid());
+        assertFalse(new RegistrationDeadline(Kind.FIXED, null, null, null).isValid());
+        assertFalse(new RegistrationDeadline(Kind.RELATIVE, null, null, Anchor.EXACT).isValid());
+    }
+
+    @Test
+    void theRuleKeepsOnlyWhatItsKindUses() {
+        assertEquals(RegistrationDeadline.none(), RegistrationDeadline.fixed(null));
+        assertEquals(RegistrationDeadline.none(), new RegistrationDeadline(null, Instant.now(), 60, Anchor.EXACT));
+
+        var fixed = new RegistrationDeadline(Kind.FIXED, Instant.EPOCH, 60, Anchor.MIDNIGHT);
+        assertNull(fixed.offsetMinutes());
+        assertNull(fixed.anchor());
+
+        var relative = new RegistrationDeadline(Kind.RELATIVE, Instant.EPOCH, 60, null);
+        assertNull(relative.at());
+        assertEquals(Anchor.EXACT, relative.anchor());
+    }
+
+    @Test
+    void aFixedDeadlineClosesEveryDateOfASeriesAtOnce() {
+        var at = berlin("2026-05-01T12:00");
+        var series = weekly(RegistrationDeadline.fixed(at));
+        var first = LocalDate.of(2026, 5, 6);
+        var second = first.plusWeeks(1);
+
+        assertEquals(Optional.of(at), series.registrationClosesOn(first, BERLIN));
+        assertEquals(Optional.of(at), series.registrationClosesOn(second, BERLIN));
+        assertTrue(series.registrationOpenOn(second, BERLIN, at.minusSeconds(1)));
+        assertFalse(series.registrationOpenOn(first, BERLIN, at));
+        assertFalse(series.registrationOpenOn(second, BERLIN, at));
+    }
+
+    @Test
+    void aRelativeDeadlineClosesEachDateOfASeriesOnItsOwn() {
+        var series = weekly(RegistrationDeadline.relative(2 * 24 * 60, Anchor.MIDNIGHT));
+        var first = LocalDate.of(2026, 5, 6);
+        var second = first.plusWeeks(1);
+        var between = berlin("2026-05-05T12:00");
+
+        assertEquals(LocalDateTime.parse("2026-05-04T00:00"), local(series.registrationClosesOn(first, BERLIN)));
+        assertEquals(LocalDateTime.parse("2026-05-11T00:00"), local(series.registrationClosesOn(second, BERLIN)));
+        assertNotEquals(series.registrationClosesOn(first, BERLIN), series.registrationClosesOn(second, BERLIN));
+        assertFalse(series.registrationOpenOn(first, BERLIN, between));
+        assertTrue(series.registrationOpenOn(second, BERLIN, between));
+    }
+
+    @Test
+    void anAppointmentWithoutADeadlineStaysOpen() {
+        var series = weekly(null);
+
+        assertEquals(RegistrationDeadline.none(), series.registrationDeadline());
+        assertEquals(Optional.empty(), series.registrationClosesOn(LocalDate.of(2026, 5, 6), BERLIN));
+        assertTrue(series.registrationOpenOn(LocalDate.of(2026, 5, 6), BERLIN, berlin("2027-01-01T00:00")));
+    }
+
+    /** A weekly series on Wednesdays at eight in the evening, Berlin, taking sign-ups. */
+    private static StationEvent weekly(RegistrationDeadline deadline) {
+        var start = berlin("2026-05-06T20:00");
+        return new StationEvent(
+                1,
+                1,
+                "Übung",
+                null,
+                StationEvent.EventType.RECURRING,
+                3,
+                start,
+                start.plus(Duration.ofHours(2)),
+                null,
+                true,
+                deadline,
+                false,
+                null,
+                RestrictionMode.AND,
+                RestrictionMode.AND,
+                false,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
+}

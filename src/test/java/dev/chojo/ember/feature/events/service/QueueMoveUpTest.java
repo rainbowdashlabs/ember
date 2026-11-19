@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.WhenFull;
@@ -120,11 +121,10 @@ class QueueMoveUpTest extends RepositoryTestBase {
                 start.plusSeconds(7200),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 limit,
-                null,
                 null,
                 null);
         events.add(event);
@@ -519,11 +519,10 @@ class QueueMoveUpTest extends RepositoryTestBase {
                 start.plusSeconds(3600),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 1,
-                null,
                 null,
                 null);
         events.add(event);
@@ -559,11 +558,10 @@ class QueueMoveUpTest extends RepositoryTestBase {
                 start.plusSeconds(7200),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 true,
                 null,
                 1,
-                null,
                 null,
                 null);
         events.add(event);

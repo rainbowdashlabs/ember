@@ -21,6 +21,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.HashMap;
@@ -142,6 +143,34 @@ public class OccurrenceCalendar {
      */
     public Optional<LocalDate> dateInView(StationEvent event) {
         return forStation(event.stationId()).dateInView(event);
+    }
+
+    /**
+     * Whether sign-up for one date of an appointment has closed by its deadline, on the station's
+     * clock. A fixed deadline closes every date at once, a relative one each date on its own.
+     *
+     * @param event the appointment
+     * @param date  the date asked about
+     * @return true once that date's deadline has been reached
+     */
+    public boolean registrationClosed(StationEvent event, LocalDate date) {
+        if (!event.registrationDeadline().isSet()) return false;
+        var now = Instant.now();
+        return event.registrationClosesOn(date, zoneOf(event.stationId()))
+                .map(close -> !now.isBefore(close))
+                .orElse(false);
+    }
+
+    /**
+     * Whether sign-up has closed for the date a screen about the appointment is read for, see
+     * {@link #dateInView(StationEvent)}. An appointment without any date never closes.
+     *
+     * @param event the appointment
+     * @return true once that date's deadline has been reached
+     */
+    public boolean registrationClosedInView(StationEvent event) {
+        if (!event.registrationDeadline().isSet()) return false;
+        return dateInView(event).map(date -> registrationClosed(event, date)).orElse(false);
     }
 
     /** The same for an appointment read by its id, for callers that hold nothing but the id. */

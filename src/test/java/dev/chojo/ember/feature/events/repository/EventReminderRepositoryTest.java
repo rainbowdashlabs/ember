@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,30 +47,38 @@ class EventReminderRepositoryTest extends RepositoryTestBase {
                 start.plusSeconds(7200),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
                 null);
     }
 
-    /** The run-out warning is recorded per lead time, so a sweep every half hour warns once. */
+    /** The run-out warning is recorded per date and lead time, so a sweep every half hour warns once. */
     @Test
-    void aDeadlineWarningIsRecordedOncePerLeadTime() {
+    void aDeadlineWarningIsRecordedOncePerDateAndLeadTime() {
         var created = event("Closing Event", Instant.parse("2028-04-01T09:00:00Z"));
+        var other = event("Other Event", Instant.parse("2028-04-01T09:00:00Z"));
+        LocalDate date = LocalDate.of(2028, 4, 1);
         try {
-            assertFalse(eventReminderRepo.isDeadlineWarningSent(created.id(), 3));
+            assertEquals(List.of(), eventReminderRepo.findDeadlineWarningsSent(List.of()));
+            assertEquals(List.of(), eventReminderRepo.findDeadlineWarningsSent(List.of(created.id())));
 
-            eventReminderRepo.markDeadlineWarningSent(created.id(), 3);
-            assertTrue(eventReminderRepo.isDeadlineWarningSent(created.id(), 3));
-            assertFalse(eventReminderRepo.isDeadlineWarningSent(created.id(), 1), "the other lead time is its own");
+            eventReminderRepo.markDeadlineWarningSent(created.id(), date, 3);
+            eventReminderRepo.markDeadlineWarningSent(created.id(), date, 3);
+            eventReminderRepo.markDeadlineWarningSent(created.id(), date.plusWeeks(1), 1);
+            eventReminderRepo.markDeadlineWarningSent(other.id(), date, 3);
 
-            eventReminderRepo.markDeadlineWarningSent(created.id(), 3);
-            assertTrue(eventReminderRepo.isDeadlineWarningSent(created.id(), 3), "marking twice is not an error");
+            assertEquals(
+                    Set.of(
+                            new EventReminderRepository.DeadlineWarning(created.id(), date, 3),
+                            new EventReminderRepository.DeadlineWarning(created.id(), date.plusWeeks(1), 1)),
+                    Set.copyOf(eventReminderRepo.findDeadlineWarningsSent(List.of(created.id()))),
+                    "per date and lead time, marked twice without error, only the appointments asked for");
         } finally {
             eventRepo.delete(created.id());
+            eventRepo.delete(other.id());
         }
     }
 

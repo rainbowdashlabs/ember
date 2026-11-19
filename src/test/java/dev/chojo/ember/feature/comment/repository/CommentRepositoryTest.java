@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -73,9 +74,8 @@ class CommentRepositoryTest extends RepositoryTestBase {
                         Instant.now().plusSeconds(3600),
                         null,
                         false,
-                        null,
+                        RegistrationDeadline.none(),
                         false,
-                        null,
                         null,
                         null,
                         null,

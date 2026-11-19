@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.repository;
 
 import dev.chojo.ember.feature.documents.entity.Uploader;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
@@ -95,9 +96,8 @@ class PaperSubmissionRepositoryTest extends RepositoryTestBase {
                         start.plus(Duration.ofHours(4)),
                         null,
                         true,
-                        null,
+                        RegistrationDeadline.none(),
                         false,
-                        null,
                         null,
                         null,
                         null,

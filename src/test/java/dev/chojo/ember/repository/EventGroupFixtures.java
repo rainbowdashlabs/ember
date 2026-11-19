@@ -7,6 +7,7 @@ package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 
@@ -50,9 +51,8 @@ public final class EventGroupFixtures {
                 start.plus(Duration.ofHours(8)),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -98,6 +98,15 @@ public final class EventGroupFixtures {
      * @return the event group
      */
     public static EventGroup eventGroup(int id, int stationId, EventGroupDetails details) {
-        return new EventGroup(id, stationId, details, RestrictionMode.AND, RestrictionMode.AND, false, null, null);
+        return new EventGroup(
+                id,
+                stationId,
+                details,
+                RestrictionMode.AND,
+                RestrictionMode.AND,
+                false,
+                null,
+                null,
+                details.registrationDeadline().at());
     }
 }

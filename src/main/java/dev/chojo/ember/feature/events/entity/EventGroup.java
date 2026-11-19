@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -29,6 +31,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param cancelled           whether the whole event group was called off
  * @param cancelledAt         when it was called off
  * @param cancelReason        why it was called off
+ * @param closesAt            when sign-ups close as the deadline places it now, from the start of
+ *                            the first part for a relative one; null for none or no part yet
  */
 public record EventGroup(
         int id,
@@ -38,11 +42,28 @@ public record EventGroup(
         RestrictionMode viewRestrictionMode,
         boolean cancelled,
         @Nullable Instant cancelledAt,
-        @Nullable String cancelReason) {
+        @Nullable String cancelReason,
+        @Nullable Instant closesAt) {
+
+    private static final String OWN_COLUMNS =
+            "id, station_id, name, description, registration_limit, registration_deadline, registration_deadline_kind, registration_deadline_offset_minutes, registration_deadline_anchor, requires_confirmation, restriction_mode, view_restriction_mode, cancelled, cancelled_at, cancel_reason, color, min_registrations, threshold_days, part_registration_limit, queue_order";
 
     /** The columns {@link #map()} reads. */
-    public static final String COLUMNS =
-            "id, station_id, name, description, registration_limit, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, cancelled, cancelled_at, cancel_reason, color, min_registrations, threshold_days, part_registration_limit, queue_order";
+    public static final String COLUMNS = columns("");
+
+    /**
+     * The columns {@link #map()} reads, with the event group read under an alias.
+     *
+     * @param alias the alias, or empty for none
+     * @return the column list
+     */
+    public static String columns(String alias) {
+        String prefix = alias.isEmpty() ? "" : alias + ".";
+        return Arrays.stream(OWN_COLUMNS.split(", "))
+                        .map(column -> prefix + column)
+                        .collect(Collectors.joining(", "))
+                + ", event_group_closes_at(" + prefix + "id) AS closes_at";
+    }
 
     /** Reads an event group from a row holding {@link #COLUMNS}. */
     public static RowMapping<EventGroup> map() {
@@ -53,7 +74,7 @@ public record EventGroup(
                         row.getString("name"),
                         row.getString("description"),
                         row.getObject("registration_limit", Integer.class),
-                        row.get("registration_deadline", INSTANT_TIMESTAMP),
+                        RegistrationDeadline.read(row),
                         row.getBoolean("requires_confirmation"),
                         row.getString("color"),
                         row.getObject("min_registrations", Integer.class),
@@ -64,7 +85,8 @@ public record EventGroup(
                 row.getEnum("view_restriction_mode", RestrictionMode.class),
                 row.getBoolean("cancelled"),
                 row.get("cancelled_at", INSTANT_TIMESTAMP),
-                row.getString("cancel_reason"));
+                row.getString("cancel_reason"),
+                row.get("closes_at", INSTANT_TIMESTAMP));
     }
 
     /**
@@ -74,7 +96,6 @@ public record EventGroup(
      * @return true once a deadline has passed
      */
     public boolean deadlinePassed(Instant now) {
-        var deadline = details.registrationDeadline();
-        return deadline != null && now.isAfter(deadline);
+        return closesAt != null && now.isAfter(closesAt);
     }
 }

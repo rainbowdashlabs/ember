@@ -31,7 +31,6 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,6 +51,7 @@ public class EventFieldService {
     private final EventRepository eventRepository;
     private final AttendanceRepository attendanceRepository;
     private final EventFieldRegistrationService fieldRegistrationService;
+    private final OccurrenceCalendar occurrenceCalendar;
     private final EventGroupRepository eventGroups;
 
     @Inject
@@ -62,7 +62,8 @@ public class EventFieldService {
             EventRepository eventRepository,
             AttendanceRepository attendanceRepository,
             EventFieldRegistrationService fieldRegistrationService,
-            EventGroupRepository eventGroups) {
+            EventGroupRepository eventGroups,
+            OccurrenceCalendar occurrenceCalendar) {
         this.repository = repository;
         this.memberRepository = memberRepository;
         this.eligibility = eligibility;
@@ -70,6 +71,7 @@ public class EventFieldService {
         this.attendanceRepository = attendanceRepository;
         this.fieldRegistrationService = fieldRegistrationService;
         this.eventGroups = eventGroups;
+        this.occurrenceCalendar = occurrenceCalendar;
     }
 
     public List<String> findDistinctFieldNames(int stationId) {
@@ -744,10 +746,12 @@ public class EventFieldService {
         }
     }
 
-    /** Whether the appointment still takes people, which only a passed closing date ends. */
-    private static boolean stillTakingPeople(StationEvent event) {
-        Instant deadline = event.registrationDeadline();
-        if (!event.requiresRegistration() || deadline == null) return true;
-        return !Instant.now().isAfter(deadline);
+    /**
+     * Whether the appointment still takes people, which only a passed deadline ends: the one of the
+     * date the appointment is read for.
+     */
+    private boolean stillTakingPeople(StationEvent event) {
+        if (!event.requiresRegistration()) return true;
+        return !occurrenceCalendar.registrationClosedInView(event);
     }
 }

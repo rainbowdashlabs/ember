@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.comment.entity.CreatedAudience;
 import dev.chojo.ember.feature.comment.entity.Moderation;
 import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.entity.TargetInfo;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
@@ -119,9 +120,8 @@ class CommentServiceTest extends RepositoryTestBase {
                         Instant.now().plusSeconds(3600),
                         null,
                         false,
-                        null,
+                        RegistrationDeadline.none(),
                         false,
-                        null,
                         null,
                         null,
                         null,

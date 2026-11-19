@@ -26,7 +26,7 @@ public record EventSummary(
         Instant startTime,
         Instant endTime,
         boolean requiresRegistration,
-        @Nullable Instant registrationDeadline,
+        RegistrationDeadline registrationDeadline,
         boolean requiresConfirmation,
         @Nullable Integer categoryId,
         @Nullable Integer templateId,

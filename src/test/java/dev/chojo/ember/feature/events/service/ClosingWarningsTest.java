@@ -149,7 +149,7 @@ class ClosingWarningsTest {
             var due = new ArrayList<ClosingWarnings.Closing>();
             daysLeft.forEach((id, days) -> {
                 if (days <= daysBefore && !warned.getOrDefault(id, Set.of()).contains(daysBefore)) {
-                    due.add(new ClosingWarnings.Closing(id, STATION, "Übung"));
+                    due.add(new ClosingWarnings.Closing(id, STATION, "Übung", null));
                 }
             });
             return due;
@@ -166,8 +166,8 @@ class ClosingWarningsTest {
         }
 
         @Override
-        public void markWarned(int id, int daysBefore) {
-            warned.computeIfAbsent(id, key -> new HashSet<>()).add(daysBefore);
+        public void markWarned(ClosingWarnings.Closing closing, int daysBefore) {
+            warned.computeIfAbsent(closing.id(), key -> new HashSet<>()).add(daysBefore);
         }
 
         @Override

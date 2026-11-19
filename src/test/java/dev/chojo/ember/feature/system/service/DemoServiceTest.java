@@ -345,7 +345,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         eventRepo,
                         attendanceRepo,
                         eventFieldRegistrationService,
-                        new EventGroupRepository()),
+                        new EventGroupRepository(),
+                        occurrenceCalendar),
                 occurrenceCalendar,
                 mock(MediaLibraryService.class),
                 new Api(),
@@ -483,7 +484,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         eventRepo,
                         attendanceRepo,
                         eventFieldRegistrationService,
-                        new EventGroupRepository()),
+                        new EventGroupRepository(),
+                        occurrenceCalendar),
                 demoClock);
         var containerSvc =
                 new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);

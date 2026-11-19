@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupPartState;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -154,11 +155,10 @@ class EventGroupBlockMaximumTest extends EventGroupRegistrationTestBase {
                 eventRepo.findById(sat1).orElseThrow().endTime().plusSeconds(86_400L * 10),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 25,
-                null,
                 null,
                 null);
         try {

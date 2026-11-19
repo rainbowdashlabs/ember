@@ -137,13 +137,12 @@ public class BatchEventService {
                     endTime,
                     request.templateId(),
                     Boolean.TRUE.equals(request.requiresRegistration()),
-                    request.deadlineFor(startTime),
+                    request.deadline(),
                     Boolean.TRUE.equals(request.requiresConfirmation()),
                     request.categoryId(),
                     request.registrationLimit(),
                     request.minRegistrations(),
-                    request.minRegistrations() == null ? null : request.thresholdDays(),
-                    null);
+                    request.minRegistrations() == null ? null : request.thresholdDays());
 
             if (request.restriction() != null) {
                 restrictionService.setRestrictions(event.id(), request.restriction());

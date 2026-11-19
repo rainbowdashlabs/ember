@@ -19,7 +19,6 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.sql.SQLException;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -84,14 +83,14 @@ public class EventGroupRepository {
     public EventGroup create(int stationId, EventGroupDetails details) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO event_group(station_id, name, description, registration_limit, registration_deadline, requires_confirmation, color, min_registrations, threshold_days, part_registration_limit, queue_order)
-                VALUES (:station_id, :name, :description, :registration_limit, :registration_deadline, :requires_confirmation, :color, :min_registrations, :threshold_days, :part_registration_limit, :queue_order)
-                RETURNING %s;""",
-                call().bind("station_id", stationId)
+                INSERT INTO event_group(station_id, name, description, registration_limit, %s, requires_confirmation, color, min_registrations, threshold_days, part_registration_limit, queue_order)
+                VALUES (:station_id, :name, :description, :registration_limit, %s, :requires_confirmation, :color, :min_registrations, :threshold_days, :part_registration_limit, :queue_order)
+                RETURNING %s;""".formatted(RegistrationDeadlineSql.COLUMNS, RegistrationDeadlineSql.VALUES, "%s"),
+                RegistrationDeadlineSql.bind(call(), details.registrationDeadline())
+                        .bind("station_id", stationId)
                         .bind("name", details.name())
                         .bind("description", details.description())
                         .bind("registration_limit", details.registrationLimit())
-                        .bind("registration_deadline", details.registrationDeadline(), INSTANT_TIMESTAMP)
                         .bind("requires_confirmation", details.requiresConfirmation())
                         .bind("color", details.color())
                         .bind("min_registrations", details.minRegistrations())
@@ -116,20 +115,22 @@ public class EventGroupRepository {
                 SET name                  = :name,
                     description           = :description,
                     registration_limit    = :registration_limit,
-                    deadline_notified     = deadline_notified AND registration_deadline IS NOT DISTINCT FROM :registration_deadline,
-                    registration_deadline = :registration_deadline,
+                    deadline_notified     = deadline_notified
+                        AND (registration_deadline_kind, registration_deadline, registration_deadline_offset_minutes, registration_deadline_anchor)
+                            IS NOT DISTINCT FROM (:registration_deadline_kind, CAST(:registration_deadline AS TIMESTAMPTZ), CAST(:registration_deadline_offset_minutes AS INT), :registration_deadline_anchor),
+                    %s,
                     requires_confirmation = :requires_confirmation,
                     color                 = :color,
                     min_registrations     = :min_registrations,
                     threshold_days        = :threshold_days,
                     part_registration_limit = :part_registration_limit,
                     queue_order           = :queue_order
-                WHERE id = :id;""")
-                .single(call().bind("id", id)
+                WHERE id = :id;""", RegistrationDeadlineSql.SET)
+                .single(RegistrationDeadlineSql.bind(call(), details.registrationDeadline())
+                        .bind("id", id)
                         .bind("name", details.name())
                         .bind("description", details.description())
                         .bind("registration_limit", details.registrationLimit())
-                        .bind("registration_deadline", details.registrationDeadline(), INSTANT_TIMESTAMP)
                         .bind("requires_confirmation", details.requiresConfirmation())
                         .bind("color", details.color())
                         .bind("min_registrations", details.minRegistrations())
@@ -647,29 +648,63 @@ public class EventGroupRepository {
 
     /**
      * Gives every part of an event group the sign-up of the event group: parts take sign-ups, confirm them as
-     * the event group does and close with it, and carry no closing days or minimum of their own. A part's
-     * own participant limit stays: it is the part's places, set on the part, which an event group saved
-     * again must not take away.
+     * the event group does and close with it, and carry no minimum of their own. A part's own participant
+     * limit stays: it is the part's places, set on the part, which an event group saved again must not take
+     * away.
      *
      * @param eventGroupId         the event group
      * @param requiresConfirmation whether the event group confirms sign-ups
-     * @param deadline             when the event group closes, or null
      */
-    public void alignParts(int eventGroupId, boolean requiresConfirmation, @Nullable Instant deadline) {
+    public void alignParts(int eventGroupId, boolean requiresConfirmation) {
         query("""
                 UPDATE station_event
                 SET requires_registration   = TRUE,
                     requires_confirmation   = :requires_confirmation,
-                    registration_deadline   = :registration_deadline,
-                    registration_close_days = NULL,
                     min_registrations       = NULL,
                     threshold_days          = NULL,
                     updated_at              = now()
                 WHERE event_group_set_id IN (SELECT id FROM event_group_set WHERE event_group_id = :event_group_id);""")
-                .single(call().bind("event_group_id", eventGroupId)
-                        .bind("requires_confirmation", requiresConfirmation)
-                        .bind("registration_deadline", deadline, INSTANT_TIMESTAMP))
+                .single(call().bind("event_group_id", eventGroupId).bind("requires_confirmation", requiresConfirmation))
                 .update();
+        alignPartDeadlines(eventGroupId);
+    }
+
+    /**
+     * Gives every part of an event group the instant the event group closes as its fixed deadline, or no
+     * deadline where the event group has none. The event group's rule is not copied: a relative one counts
+     * from its first part, and copied to each part it would close every part on its own. Run again
+     * whenever the rule or the first part's start may have moved.
+     *
+     * <p>Where the instant moved, the notice that the deadline passed and the closing warnings are armed
+     * again, so an event group opened again by a later first part is warned about and closes again.
+     *
+     * @param eventGroupId the event group
+     */
+    public void alignPartDeadlines(int eventGroupId) {
+        query("""
+                WITH g AS (SELECT event_group_closes_at(:event_group_id) AS closes_at),
+                     moved AS (
+                         UPDATE station_event
+                             SET registration_deadline                = g.closes_at,
+                                 registration_deadline_kind           = CASE WHEN g.closes_at IS NULL THEN 'NONE' ELSE 'FIXED' END,
+                                 registration_deadline_offset_minutes = NULL,
+                                 registration_deadline_anchor         = NULL,
+                                 updated_at                           = now()
+                             FROM g
+                             WHERE event_group_set_id IN (SELECT id FROM event_group_set WHERE event_group_id = :event_group_id)
+                               AND (registration_deadline, registration_deadline_kind)
+                                 IS DISTINCT FROM (g.closes_at, CASE WHEN g.closes_at IS NULL THEN 'NONE' ELSE 'FIXED' END)
+                             RETURNING station_event.id),
+                     rearmed AS (
+                         UPDATE event_group
+                             SET deadline_notified = FALSE
+                             WHERE id = :event_group_id
+                               AND EXISTS (SELECT 1 FROM moved)
+                             RETURNING id)
+                DELETE
+                FROM event_group_deadline_reminder_sent
+                WHERE event_group_id = :event_group_id
+                  AND EXISTS (SELECT 1 FROM moved);""").single(call().bind("event_group_id", eventGroupId)).update();
     }
 
     /**
@@ -745,8 +780,8 @@ public class EventGroupRepository {
                 SELECT c.id AS event_group_id, c.station_id, c.name, count(r.id) AS pending_count
                 FROM event_group c
                          JOIN event_group_registration r ON r.event_group_id = c.id AND r.status = 'PENDING'
-                WHERE c.registration_deadline IS NOT NULL
-                  AND c.registration_deadline < now()
+                         CROSS JOIN LATERAL (SELECT event_group_closes_at(c.id) AS closes_at) x
+                WHERE x.closes_at < now()
                   AND NOT c.deadline_notified
                   AND NOT c.cancelled
                 GROUP BY c.id, c.station_id, c.name;""")
@@ -772,8 +807,8 @@ public class EventGroupRepository {
                 FROM event_group c
                 WHERE c.station_id = :station_id
                   AND NOT c.cancelled
-                  AND c.registration_deadline IS NOT NULL
-                  AND c.registration_deadline > now()
+                  AND event_group_closes_at(c.id) IS NOT NULL
+                  AND event_group_closes_at(c.id) > now()
                   AND EXISTS (SELECT 1
                               FROM station_event e
                                        JOIN event_group_set cs ON cs.id = e.event_group_set_id
@@ -781,7 +816,7 @@ public class EventGroupRepository {
                                 AND e.start_time > now()
                                 AND NOT e.cancelled
                                 AND %s)
-                ORDER BY c.registration_deadline, c.id;""", "c." + EventGroup.COLUMNS.replace(", ", ", c."), CancellationSql.NO_DATE_CANCELLED)
+                ORDER BY event_group_closes_at(c.id), c.id;""", EventGroup.columns("c"), CancellationSql.NO_DATE_CANCELLED)
                 .single(call().bind("station_id", stationId))
                 .map(EventGroup.map())
                 .all();
@@ -809,10 +844,10 @@ public class EventGroupRepository {
         return query("""
                 SELECT c.id AS event_group_id, c.station_id, c.name
                 FROM event_group c
+                         CROSS JOIN LATERAL (SELECT event_group_closes_at(c.id) AS closes_at) x
                 WHERE NOT c.cancelled
-                  AND c.registration_deadline IS NOT NULL
-                  AND c.registration_deadline > now()
-                  AND c.registration_deadline <= now() + make_interval(days => :days_before)
+                  AND x.closes_at > now()
+                  AND x.closes_at <= now() + make_interval(days => :days_before)
                   AND EXISTS (SELECT 1
                               FROM station_event e
                                        JOIN event_group_set cs ON cs.id = e.event_group_set_id

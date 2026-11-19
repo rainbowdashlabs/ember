@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:7210f52b1753f9f0ca7fae239ff32f0edeb60ee517030f484c14106fe3277a03",
-  "generatedAt": "2026-11-18T22:28:48Z",
+  "schemaHash": "sha256:b7eaa3dd8a8cc664967835f6e7ca7b0ee20d282ca2dc1f8eec79ca3a57ec1949",
+  "generatedAt": "2026-11-19T20:12:06Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10161,10 +10161,59 @@
       },
       "description": "One date of an appointment that was called off, a one-time appointment included. The date is cancelled while restored_at is empty. A restored row stays, so the minimum-registration check never cancels a date a manager deliberately brought back."
     },
+    "event_deadline_expired": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:d9fb30ed20500996c04649ff295b506ae34fef931561cae0be686cd8986be2c6",
+      "columns": [
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The appointment; the rows go with it."
+        },
+        {
+          "name": "occurrence_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The date whose deadline passed, on the station's clock."
+        },
+        {
+          "name": "handled_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the passed deadline was handled."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Notification dedup state for passed registration deadlines, ephemeral"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event structure data, not per-member"
+      },
+      "description": "The dates of an appointment whose sign-up deadline has passed and was handled, so each is handled once."
+    },
     "event_deadline_reminder_sent": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:9fe12727e41957ecfeb2ad7d582d238c059164e95602b488d685276cd1defff7",
+      "tableHash": "sha256:1222c7d37d3322df80b9e59ca13f42a90ba481ce2634ca967fb718dd041602c2",
       "columns": [
         {
           "name": "event_id",
@@ -10184,6 +10233,13 @@
           "type": "timestamptz",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "occurrence_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The date whose sign-up deadline the warning was about, on the station's clock."
         }
       ],
       "foreignKeys": [
@@ -10206,7 +10262,7 @@
         "status": "IGNORED",
         "reason": "Event structure data, not per-member"
       },
-      "description": "Which run-out warnings have gone out for an event, so a sweep every few minutes warns once."
+      "description": "Which closing warnings have gone out for each date of an appointment, so a sweep every few minutes warns once per date."
     },
     "event_document_requirement": {
       "tableHash": "sha256:591d562239d4d84b2724cdab536c136bb7069e5340f5c93869f6c64c94d9c580",
@@ -11204,7 +11260,7 @@
     "event_group": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:7a233f0d487f94451178a4fa106c775efcd94ec3b3e14efe480e2e73e3b60461",
+      "tableHash": "sha256:15f7dbdca9dbbc5bb17370d5efc2ecfc41e395c51e8c5b9252d4e461fa9d361d",
       "columns": [
         {
           "name": "id",
@@ -11246,7 +11302,7 @@
           "type": "timestamptz",
           "nullable": true,
           "verified": true,
-          "description": "The instant members can no longer sign up or change their parts; NULL for no deadline. Unlike the appointment deadline it carries its time zone."
+          "description": "The instant members can no longer sign up or change their parts for a FIXED deadline; NULL for any other kind. Unlike the appointment deadline it carries its time zone."
         },
         {
           "name": "requires_confirmation",
@@ -11352,6 +11408,27 @@
           "nullable": true,
           "verified": true,
           "description": "How many places each part has, for parts without a limit of their own; NULL for no limit. Counts accepted registrations of the part."
+        },
+        {
+          "name": "registration_deadline_kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Which sign-up deadline applies: NONE, FIXED (registration_deadline) or RELATIVE (a span before the start of the first part)."
+        },
+        {
+          "name": "registration_deadline_offset_minutes",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "For a RELATIVE deadline, how many minutes before the start of the first part sign-up closes; NULL for any other kind."
+        },
+        {
+          "name": "registration_deadline_anchor",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "For a RELATIVE deadline, EXACT or MIDNIGHT on the station's clock; NULL for any other kind."
         }
       ],
       "foreignKeys": [
@@ -13023,7 +13100,7 @@
     "event_template": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:494a97dac805c51575f1ce446cb3e3d055e9d0d17b00bd90855e7715ddcd953a",
+      "tableHash": "sha256:074db7d77d534c71bc40601ad42370362601a2a90c9d24b3ce729a075abd91f2",
       "columns": [
         {
           "name": "id",
@@ -13082,13 +13159,6 @@
           "description": "Default registration requirement."
         },
         {
-          "name": "registration_deadline_offset",
-          "type": "interval",
-          "nullable": true,
-          "verified": true,
-          "description": "How long before the start registration closes, turned into the appointment's deadline once its start is known. Empty for no deadline."
-        },
-        {
           "name": "requires_confirmation",
           "type": "bool",
           "nullable": true,
@@ -13138,18 +13208,32 @@
           "description": "How many days before each date the minimum must be reached, or the date is called off. Empty where no date is called off for too few registrations."
         },
         {
-          "name": "registration_close_days",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "How many days before each date registration closes. Empty for no automatic close."
-        },
-        {
           "name": "queue_order",
           "type": "text",
           "nullable": false,
           "verified": true,
           "description": "The waiting list order an appointment created from the template starts with: TIME or FAIRNESS."
+        },
+        {
+          "name": "registration_deadline_kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Which sign-up deadline an appointment made from the template gets: NONE or RELATIVE. A template knows no date, so it holds no fixed deadline."
+        },
+        {
+          "name": "registration_deadline_offset_minutes",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "For a RELATIVE deadline, how many minutes before the start of each date sign-up closes; NULL otherwise."
+        },
+        {
+          "name": "registration_deadline_anchor",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "For a RELATIVE deadline, EXACT or MIDNIGHT, as on the appointment; NULL otherwise."
         }
       ],
       "foreignKeys": [
@@ -30800,7 +30884,7 @@
     "station_event": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:bfff8252513ccc25b80ed63eb3a415b9429eef414c24f27c31d7ddbaf450492b",
+      "tableHash": "sha256:1478737cdc05dc7d275cf18ddfd19b00f604f2c232d0e76b9318439cd7c5c521",
       "columns": [
         {
           "name": "id",
@@ -30877,7 +30961,7 @@
           "type": "timestamp",
           "nullable": true,
           "verified": true,
-          "description": "Deadline for registration. NULL if no deadline."
+          "description": "The instant sign-up closes for a FIXED deadline, on every date of a series at once; NULL for any other kind."
         },
         {
           "name": "requires_confirmation",
@@ -30915,13 +30999,6 @@
           "description": "Max number of registrations. NULL = unlimited."
         },
         {
-          "name": "deadline_notified",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Whether the registration deadline notification has been sent."
-        },
-        {
           "name": "cancelled",
           "type": "bool",
           "nullable": false,
@@ -30948,13 +31025,6 @@
           "nullable": true,
           "verified": true,
           "description": "Minimum number of ACCEPTED registrations required. Null means no minimum."
-        },
-        {
-          "name": "registration_close_days",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "Number of days before a recurring event occurrence when registration closes. NULL means no auto-close."
         },
         {
           "name": "updated_at",
@@ -31039,6 +31109,27 @@
           "nullable": false,
           "verified": true,
           "description": "How the waiting list of a full date is ordered: TIME (oldest sign-up first) or FAIRNESS (highest fairness score first, ties by time)."
+        },
+        {
+          "name": "registration_deadline_kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Which sign-up deadline applies: NONE, FIXED (registration_deadline) or RELATIVE (a span before the start of each date)."
+        },
+        {
+          "name": "registration_deadline_offset_minutes",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "For a RELATIVE deadline, how many minutes before the start of each date sign-up closes; NULL for any other kind."
+        },
+        {
+          "name": "registration_deadline_anchor",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "For a RELATIVE deadline, EXACT closes at start minus the offset, MIDNIGHT at the midnight that begins that day on the station's clock; NULL for any other kind."
         }
       ],
       "foreignKeys": [
@@ -31077,9 +31168,7 @@
         "status": "TRACKED",
         "ignoredColumns": [
           "station_id",
-          "deadline_notified",
-          "change_notice_due_at",
-          "registration_close_days"
+          "change_notice_due_at"
         ]
       },
       "gdprExport": {

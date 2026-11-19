@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.waitinglist.service;
 
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -98,9 +99,8 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
                 LocalDate.of(2026, 5, 12).atTime(20, 0).toInstant(ZoneOffset.UTC),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

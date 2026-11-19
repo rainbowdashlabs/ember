@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
@@ -29,9 +30,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Singleton
@@ -145,17 +150,26 @@ public class EventReminderChecker implements TaskSource {
      * override the restriction: somebody the appointment is closed to has nothing to answer.
      */
     private void warnAboutClosingRegistrations() {
+        var now = Instant.now();
+        var candidates = datesClosingBetween(now, now.plus(Duration.ofDays(ClosingWarnings.MAX_LEAD_DAYS)));
+        var sent = new HashSet<>(reminderRepository.findDeadlineWarningsSent(
+                candidates.stream().map(ClosingDate::eventId).distinct().toList()));
         closingWarnings.warn(new ClosingWarnings.Closable() {
             @Override
             public List<ClosingWarnings.Closing> closingIn(int daysBefore) {
-                return eventRepository.findEventsClosingIn(daysBefore).stream()
-                        .map(event -> new ClosingWarnings.Closing(event.eventId(), event.stationId(), event.name()))
+                var limit = now.plus(Duration.ofDays(daysBefore));
+                return candidates.stream()
+                        .filter(date -> !date.closes().isAfter(limit))
+                        .filter(date -> !sent.contains(
+                                new EventReminderRepository.DeadlineWarning(date.eventId(), date.date(), daysBefore)))
+                        .map(ClosingDate::closing)
                         .toList();
             }
 
             @Override
             public List<Integer> unansweredMemberIds(ClosingWarnings.Closing closing) {
-                return registrationRepository.findUnansweredMemberIds(closing.id(), closing.stationId());
+                return registrationRepository.findUnansweredMemberIds(
+                        closing.id(), closing.stationId(), Objects.requireNonNull(closing.date()));
             }
 
             @Override
@@ -164,8 +178,10 @@ public class EventReminderChecker implements TaskSource {
             }
 
             @Override
-            public void markWarned(int id, int daysBefore) {
-                reminderRepository.markDeadlineWarningSent(id, daysBefore);
+            public void markWarned(ClosingWarnings.Closing closing, int daysBefore) {
+                var date = Objects.requireNonNull(closing.date());
+                reminderRepository.markDeadlineWarningSent(closing.id(), date, daysBefore);
+                sent.add(new EventReminderRepository.DeadlineWarning(closing.id(), date, daysBefore));
             }
 
             @Override
@@ -173,6 +189,70 @@ public class EventReminderChecker implements TaskSource {
                 return NotificationLinks.event(id);
             }
         });
+    }
+
+    /**
+     * The dates whose sign-up closes after one instant and no later than another, once per sweep for
+     * every lead time.
+     *
+     * <p>A relative deadline closes each date on its own, so every date close enough to close in time
+     * is asked. A fixed deadline closes every date at once; only the next date is warned about, since
+     * the warning is about answering before it closes. A date called off or taken out by a break is
+     * left out.
+     *
+     * @param from  the earliest close, excluded
+     * @param until the latest close, included
+     * @return one entry per appointment and date
+     */
+    private List<ClosingDate> datesClosingBetween(Instant from, Instant until) {
+        var calendars = new HashMap<Integer, StationCalendar>();
+        var closing = new ArrayList<ClosingDate>();
+        for (var event : eventRepository.findWithDeadline()) {
+            var calendar = calendars.computeIfAbsent(event.stationId(), occurrenceCalendar::forStation);
+            for (var date : candidateDates(event, calendar, until)) {
+                var closes = event.registrationClosesOn(date, calendar.zone());
+                if (closes.isEmpty()
+                        || !closes.get().isAfter(from)
+                        || closes.get().isAfter(until)) continue;
+                closing.add(new ClosingDate(
+                        new ClosingWarnings.Closing(event.id(), event.stationId(), event.name(), date), closes.get()));
+            }
+        }
+        return closing;
+    }
+
+    /**
+     * One date of an appointment whose sign-up closes soon.
+     *
+     * @param closing what the warning is about
+     * @param closes  when that date closes
+     */
+    private record ClosingDate(ClosingWarnings.Closing closing, Instant closes) {
+        int eventId() {
+            return closing.id();
+        }
+
+        LocalDate date() {
+            return Objects.requireNonNull(closing.date());
+        }
+    }
+
+    private static List<LocalDate> candidateDates(StationEvent event, StationCalendar calendar, Instant limit) {
+        var today = calendar.today();
+        var deadline = event.registrationDeadline();
+        if (deadline.kind() == RegistrationDeadline.Kind.FIXED) {
+            return calendar.next(event, today)
+                    .filter(date -> calendar.takesPlaceOn(event, date))
+                    .map(List::of)
+                    .orElse(List.of());
+        }
+        long spanDays = Duration.ofMinutes(Objects.requireNonNullElse(deadline.offsetMinutes(), 0))
+                        .toDays()
+                + 1;
+        var last = limit.atZone(calendar.zone()).toLocalDate().plusDays(spanDays);
+        return calendar.between(event, today, last).stream()
+                .filter(date -> calendar.takesPlaceOn(event, date))
+                .toList();
     }
 
     @Override

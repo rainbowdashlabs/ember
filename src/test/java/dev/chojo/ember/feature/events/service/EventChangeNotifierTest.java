@@ -11,6 +11,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.ChangeNotice;
 import dev.chojo.ember.feature.events.entity.EventChangePart;
 import dev.chojo.ember.feature.events.entity.EventDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.handler.EventChangedHandler;
@@ -157,9 +158,8 @@ class EventChangeNotifierTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 registration,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -197,7 +197,6 @@ class EventChangeNotifierTest extends RepositoryTestBase {
                 event.requiresRegistration(),
                 null,
                 false,
-                null,
                 null,
                 null,
                 null,

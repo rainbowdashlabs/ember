@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -75,7 +76,7 @@ abstract class EventGroupServiceTestBase extends RepositoryTestBase {
     }
 
     protected EventGroupDetails details(String name, boolean confirm) {
-        return new EventGroupDetails(name, "Lehrgang", 12, deadline, confirm, null);
+        return new EventGroupDetails(name, "Lehrgang", 12, RegistrationDeadline.fixed(deadline), confirm, null);
     }
 
     protected EventGroup jugendflamme() {
@@ -105,13 +106,12 @@ abstract class EventGroupServiceTestBase extends RepositoryTestBase {
                 start.plus(Duration.ofHours(8)),
                 null,
                 false,
-                null,
+                RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.Anchor.MIDNIGHT),
                 false,
                 null,
                 5,
                 null,
-                null,
-                3);
+                null);
     }
 
     protected StationEvent oneTime(int daysAhead) {
@@ -152,6 +152,7 @@ abstract class EventGroupServiceTestBase extends RepositoryTestBase {
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService,
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                occurrenceCalendar);
     }
 }

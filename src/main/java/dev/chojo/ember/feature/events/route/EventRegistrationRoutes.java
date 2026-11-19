@@ -403,7 +403,7 @@ public class EventRegistrationRoutes implements Routes {
                             id,
                             row.name(),
                             row.startTime(),
-                            row.registrationDeadline(),
+                            row.registrationClosesAt(),
                             row.categoryId(),
                             new ArrayList<>()));
             entry.members().add(new AwaitingMember(row.memberId(), memberNameResolver.called(row.memberId())));
@@ -416,7 +416,7 @@ public class EventRegistrationRoutes implements Routes {
             int eventId,
             String name,
             Instant startTime,
-            Instant registrationDeadline,
+            Instant registrationClosesAt,
             @Nullable Integer categoryId,
             List<AwaitingMember> members) {}
 
@@ -752,9 +752,7 @@ public class EventRegistrationRoutes implements Routes {
         }
 
         boolean runsTheEvent = session.hasPermission(StationPermission.EVENT_MANAGER);
-        if (!runsTheEvent
-                && event.registrationDeadline() != null
-                && Instant.now().isAfter(event.registrationDeadline())) {
+        if (!runsTheEvent && occurrenceCalendar.registrationClosed(event, date)) {
             throw EventRefusal.REGISTRATION_CLOSED.raise();
         }
 
@@ -966,7 +964,7 @@ public class EventRegistrationRoutes implements Routes {
             throw EventRefusal.ANSWER_NOT_YOURS_TO_GIVE.raise();
         }
 
-        boolean closed = event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline());
+        boolean closed = occurrenceCalendar.registrationClosed(event, registration.eventDate());
         if (closed && !runsTheEvent) {
             throw EventRefusal.REGISTRATION_CLOSED_ON_ANSWER_CHANGE.raise();
         }

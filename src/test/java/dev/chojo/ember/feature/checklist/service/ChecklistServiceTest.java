@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.checklist.entity.ChecklistColumn;
 import dev.chojo.ember.feature.checklist.entity.ChecklistEntry;
 import dev.chojo.ember.feature.checklist.service.ChecklistService.ColumnSpec;
 import dev.chojo.ember.feature.checklist.service.ChecklistService.FilterSpec;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -271,9 +272,8 @@ class ChecklistServiceTest extends RepositoryTestBase {
                 Instant.now().plusSeconds(3600),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 true,
-                null,
                 null,
                 null,
                 null,

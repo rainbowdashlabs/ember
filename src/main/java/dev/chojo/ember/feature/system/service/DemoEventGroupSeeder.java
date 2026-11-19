@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventGroupSettings;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventFieldService;
@@ -186,7 +187,7 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                         "Grundlehrgang",
                         "Acht Abende Grundausbildung für die Neuen. Sechs davon müssen besucht werden.",
                         null,
-                        days.at(firstThursday, 17, 0),
+                        RegistrationDeadline.fixed(days.at(firstThursday, 17, 0)),
                         false,
                         null),
                 List.of(new EventGroupSetDraft(null, "Ausbildungsabende", 6)),
@@ -287,7 +288,7 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                         "Die erste Stufe der Jugendflamme. Von den drei Übungstagen müssen zwei besucht werden,"
                                 + " die Prüfung ist Pflicht.",
                         12,
-                        days.at(saturday.minusDays(7), 23, 59),
+                        RegistrationDeadline.relative(7 * 1440, RegistrationDeadline.Anchor.MIDNIGHT),
                         true,
                         "#8b5cf6"),
                 List.of(new EventGroupSetDraft(null, "Übung", 2), new EventGroupSetDraft(null, "Prüfung", 1)),

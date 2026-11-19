@@ -118,33 +118,51 @@ public class EventReminderRepository {
     }
 
     /**
-     * Reports whether a reminder already went out for an occurrence and lead time.
+     * The closing warnings that went out for upcoming dates of the given appointments.
      *
-     * @param eventId    the event ID
-     * @param eventDate  the occurrence date
-     * @param daysBefore the reminder lead time
+     * @param eventIds the appointments
+     * @return one entry per appointment, date and lead time warned about
      */
-    /** Whether the run-out warning for this lead time has already gone out for an event. */
-    public boolean isDeadlineWarningSent(int eventId, int daysBefore) {
-        return SqlSupport.exists("""
-                SELECT
-                    1
-                FROM
-                    event_deadline_reminder_sent
-                WHERE event_id = :event_id
-                  AND days_before = :days_before;""", call().bind("event_id", eventId).bind("days_before", daysBefore));
+    public List<DeadlineWarning> findDeadlineWarningsSent(Collection<Integer> eventIds) {
+        if (eventIds.isEmpty()) return List.of();
+        return query("""
+                SELECT event_id, occurrence_date, days_before
+                FROM event_deadline_reminder_sent
+                WHERE event_id = ANY (:event_ids)
+                  AND occurrence_date >= current_date - 1;""")
+                .single(call().bind("event_ids", List.copyOf(eventIds), PostgreSqlTypes.INTEGER))
+                .map(row -> new DeadlineWarning(
+                        row.getInt("event_id"),
+                        row.getObject("occurrence_date", LocalDate.class),
+                        row.getInt("days_before")))
+                .all();
     }
 
-    /** Records that the run-out warning for this lead time has gone out. */
-    public void markDeadlineWarningSent(int eventId, int daysBefore) {
+    /**
+     * A closing warning that went out.
+     *
+     * @param eventId    the appointment
+     * @param date       the date it was about
+     * @param daysBefore the lead time
+     */
+    public record DeadlineWarning(int eventId, LocalDate date, int daysBefore) {}
+
+    /**
+     * Records that the closing warning for a lead time has gone out for one date of an appointment.
+     *
+     * @param eventId    the appointment
+     * @param date       the date whose deadline was warned about
+     * @param daysBefore the lead time
+     */
+    public void markDeadlineWarningSent(int eventId, LocalDate date, int daysBefore) {
         query("""
                 INSERT
                 INTO
-                    event_deadline_reminder_sent(event_id, days_before)
+                    event_deadline_reminder_sent(event_id, occurrence_date, days_before)
                 VALUES
-                    (:event_id, :days_before)
+                    (:event_id, :date, :days_before)
                 ON CONFLICT DO NOTHING;""")
-                .single(call().bind("event_id", eventId).bind("days_before", daysBefore))
+                .single(call().bind("event_id", eventId).bind("date", date).bind("days_before", daysBefore))
                 .insert();
     }
 

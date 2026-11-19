@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.EventLink;
 import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.QueueOrder;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
@@ -43,7 +44,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String OWN_COLUMNS =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, requires_registration, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, \"public\", cancelled, cancelled_at, cancel_reason, min_registrations, threshold_days, registration_close_days, repeat_until, repeat_count, queue_order";
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, requires_registration, registration_deadline, registration_deadline_kind, registration_deadline_offset_minutes, registration_deadline_anchor, requires_confirmation, restriction_mode, view_restriction_mode, \"public\", cancelled, cancelled_at, cancel_reason, min_registrations, threshold_days, repeat_until, repeat_count, queue_order";
 
     /** The columns of an appointment written to as {@code station_event}, for a {@code RETURNING}. */
     private static final String EVENT_COLUMNS = eventColumns("station_event");
@@ -285,7 +286,7 @@ public class EventRepository {
      * @param endTime              the end time
      * @param templateId           the optional attendance template ID
      * @param requiresRegistration whether registration is required
-     * @param registrationDeadline the registration deadline, or null
+     * @param registrationDeadline when sign-up closes
      * @param requiresConfirmation whether registrations require manager confirmation
      * @param categoryId           the optional category ID
      * @return the created event
@@ -300,19 +301,19 @@ public class EventRepository {
             Instant endTime,
             @Nullable Integer templateId,
             boolean requiresRegistration,
-            @Nullable Instant registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             boolean requiresConfirmation,
             @Nullable Integer categoryId,
             @Nullable Integer registrationLimit,
             @Nullable Integer minRegistrations,
-            @Nullable Integer thresholdDays,
-            @Nullable Integer registrationCloseDays) {
+            @Nullable Integer thresholdDays) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit, min_registrations, threshold_days, registration_close_days)
-                VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id, :registration_limit, :min_registrations, :threshold_days, :registration_close_days)
-                RETURNING %s, %s;""",
-                call().bind("station_id", stationId)
+                INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, %s, requires_confirmation, category_id, registration_limit, min_registrations, threshold_days)
+                VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, %s, :requires_confirmation, :category_id, :registration_limit, :min_registrations, :threshold_days)
+                RETURNING %s, %s;""".formatted(RegistrationDeadlineSql.COLUMNS, RegistrationDeadlineSql.VALUES, "%s", "%s"),
+                RegistrationDeadlineSql.bind(call(), registrationDeadline)
+                        .bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
                         .bind("event_type", eventType)
@@ -321,13 +322,11 @@ public class EventRepository {
                         .bind("end_time", endTime, INSTANT_TIMESTAMP)
                         .bind("template_id", templateId)
                         .bind("requires_registration", requiresRegistration)
-                        .bind("registration_deadline", registrationDeadline, INSTANT_TIMESTAMP)
                         .bind("requires_confirmation", requiresConfirmation)
                         .bind("category_id", categoryId)
                         .bind("registration_limit", registrationLimit)
                         .bind("min_registrations", minRegistrations)
-                        .bind("threshold_days", thresholdDays)
-                        .bind("registration_close_days", registrationCloseDays),
+                        .bind("threshold_days", thresholdDays),
                 StationEvent.map(),
                 EVENT_COLUMNS,
                 EVENT_RESTRICTED_COLUMN_BARE);
@@ -345,7 +344,7 @@ public class EventRepository {
      * @param endTime              the new end time
      * @param templateId           the new template ID, or null
      * @param requiresRegistration whether registration is required
-     * @param registrationDeadline the new registration deadline, or null
+     * @param registrationDeadline when sign-up closes
      * @param requiresConfirmation whether registrations require confirmation
      * @param categoryId           the new category ID, or null
      * @param registrationLimit    the new limit, or null; a part of an event group keeps its own, which
@@ -363,14 +362,13 @@ public class EventRepository {
             Instant endTime,
             @Nullable Integer templateId,
             boolean requiresRegistration,
-            @Nullable Instant registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             boolean requiresConfirmation,
             @Nullable Integer categoryId,
             @Nullable Boolean isPublic,
             @Nullable Integer registrationLimit,
             @Nullable Integer minRegistrations,
-            @Nullable Integer thresholdDays,
-            @Nullable Integer registrationCloseDays) {
+            @Nullable Integer thresholdDays) {
         return query("""
                 UPDATE station_event
                 SET
@@ -382,17 +380,17 @@ public class EventRepository {
                     end_time                = :end_time,
                     template_id             = :template_id,
                     requires_registration   = :requires_registration,
-                    registration_deadline   = :registration_deadline,
+                    %s,
                     requires_confirmation   = :requires_confirmation,
                     category_id             = :category_id,
                     public                  = :public,
                     registration_limit      = CASE WHEN event_group_set_id IS NULL THEN :registration_limit ELSE registration_limit END,
                     min_registrations       = :min_registrations,
                     threshold_days          = :threshold_days,
-                    registration_close_days = :registration_close_days,
                     updated_at              = now()
-                WHERE id = :id;""")
-                .single(call().bind("name", name)
+                WHERE id = :id;""", RegistrationDeadlineSql.SET)
+                .single(RegistrationDeadlineSql.bind(call(), registrationDeadline)
+                        .bind("name", name)
                         .bind("description", description)
                         .bind("event_type", eventType)
                         .bind("day_of_week", dayOfWeek)
@@ -400,14 +398,12 @@ public class EventRepository {
                         .bind("end_time", endTime, INSTANT_TIMESTAMP)
                         .bind("template_id", templateId)
                         .bind("requires_registration", requiresRegistration)
-                        .bind("registration_deadline", registrationDeadline, INSTANT_TIMESTAMP)
                         .bind("requires_confirmation", requiresConfirmation)
                         .bind("category_id", categoryId)
                         .bind("public", isPublic)
                         .bind("registration_limit", registrationLimit)
                         .bind("min_registrations", minRegistrations)
                         .bind("threshold_days", thresholdDays)
-                        .bind("registration_close_days", registrationCloseDays)
                         .bind("id", id))
                 .update()
                 .changed();
@@ -658,106 +654,84 @@ public class EventRepository {
     }
 
     /**
-     * Finds one-time events whose registration deadline has passed while pending registrations
-     * remain and no deadline notification has gone out yet.
+     * The dates of appointments with a sign-up deadline that still have sign-ups waiting for a
+     * decision and whose passed deadline was not handled yet, one row per appointment and date.
+     *
+     * <p>Whether the deadline of a date has passed is decided by the caller on the station's clock,
+     * since a series closes each date on its own. Only dates that can have closed are read: a fixed
+     * deadline that has passed, or a relative one whose date lies within its span from today. Dates
+     * more than a week back are left out: a deadline that old was handled before or never mattered.
+     * Parts of an event group are left to the event group's own check.
+     *
+     * @return the waiting dates
      */
-    public List<ExpiredDeadlineEvent> findOneTimeEventsWithExpiredDeadline() {
+    public List<PendingDate> findPendingDatesWithDeadline() {
         return query("""
                 SELECT
                     e.id         AS event_id,
-                    e.station_id,
-                    e.name,
+                    er.event_date,
                     count(er.id) AS pending_count
                 FROM
                     station_event e
                         JOIN event_registration er
                         ON er.event_id = e.id AND er.status = 'PENDING'
                 WHERE e.requires_registration
-                  AND e.event_type = 'ONE_TIME'
-                  AND e.registration_deadline IS NOT NULL
-                  AND e.registration_deadline < now()
-                  AND e.deadline_notified = FALSE
+                  AND e.registration_deadline_kind <> 'NONE'
                   AND e.cancelled = FALSE
                   AND e.event_group_set_id IS NULL
-                  AND %s
-                GROUP BY e.id, e.station_id, e.name;""", CancellationSql.NO_DATE_CANCELLED)
+                  AND er.event_date >= current_date - 7
+                  AND CASE e.registration_deadline_kind
+                          WHEN 'FIXED' THEN e.registration_deadline < now()
+                          ELSE er.event_date <= current_date + e.registration_deadline_offset_minutes / 1440 + 2
+                      END
+                  AND NOT EXISTS (SELECT 1
+                                  FROM event_deadline_expired x
+                                  WHERE x.event_id = e.id
+                                    AND x.occurrence_date = er.event_date)
+                GROUP BY e.id, er.event_date
+                ORDER BY e.id, er.event_date;""")
                 .single(call())
-                .map(row -> new ExpiredDeadlineEvent(
+                .map(row -> new PendingDate(
                         row.getInt("event_id"),
-                        row.getInt("station_id"),
-                        row.getString("name"),
+                        row.getObject("event_date", LocalDate.class),
                         row.getInt("pending_count")))
                 .all();
     }
 
     /**
-     * Finds one-time events whose registration closes within the given number of days and whose warning
-     * for that lead time has not gone out yet.
+     * The appointments whose sign-up can still close: they take sign-ups, carry a deadline, are not
+     * called off as a whole and still have a date ahead. Parts of an event group are left to the
+     * event group.
      *
-     * <p>Cancelled events are left alone, and so are events nobody has to answer: a deadline that closes
-     * nothing is not worth warning about.
-     *
-     * @param daysBefore the lead time being warned about
-     * @return the events due that warning
+     * @return those appointments
      */
-    public List<ClosingEvent> findEventsClosingIn(int daysBefore) {
-        return query("""
-                SELECT
-                    e.id AS event_id,
-                    e.station_id,
-                    e.name,
-                    e.registration_deadline
-                FROM
-                    station_event e
-                WHERE e.requires_registration
-                  AND e.event_type = 'ONE_TIME'
-                  AND e.cancelled = FALSE
-                  AND e.event_group_set_id IS NULL
-                  AND %s
-                  AND e.registration_deadline IS NOT NULL
-                  AND e.registration_deadline > now()
-                  AND e.registration_deadline <= now() + make_interval(days => :days_before)
-                  AND NOT EXISTS (SELECT 1
-                                  FROM event_deadline_reminder_sent s
-                                  WHERE s.event_id = e.id
-                                    AND s.days_before = :days_before);""", CancellationSql.NO_DATE_CANCELLED)
-                .single(call().bind("days_before", daysBefore))
-                .map(row -> new ClosingEvent(
-                        row.getInt("event_id"),
-                        row.getInt("station_id"),
-                        row.getString("name"),
-                        row.get("registration_deadline", INSTANT_TIMESTAMP),
-                        daysBefore))
-                .all();
-    }
-
-    /**
-     * Finds active recurring events that close their registration a fixed number of days before
-     * each occurrence.
-     */
-    public List<StationEvent> findRecurringEventsWithCloseDays() {
+    public List<StationEvent> findWithDeadline() {
         return query("""
                 SELECT %s, %s
                 FROM
                     station_event e
                 WHERE e.requires_registration
-                  AND e.registration_close_days IS NOT NULL
-                  AND e.event_type != 'ONE_TIME'
-                  AND e.cancelled = FALSE;""", E_COLUMNS, EVENT_RESTRICTED_COLUMN)
+                  AND e.registration_deadline_kind <> 'NONE'
+                  AND e.event_group_set_id IS NULL
+                  AND e.cancelled = FALSE
+                  AND (e.event_type <> 'ONE_TIME' OR e.start_time > now())
+                  AND (e.repeat_until IS NULL OR e.repeat_until >= current_date);""", E_COLUMNS, EVENT_RESTRICTED_COLUMN)
                 .single(call())
                 .map(StationEvent.map())
                 .all();
     }
 
     /**
-     * Marks an event's registration deadline as notified, preventing duplicate warnings.
+     * Notes that the passed deadline of one date was handled, so it is handled once.
      *
-     * @param eventId the event ID
+     * @param eventId the appointment
+     * @param date    the date
      */
-    public void markDeadlineNotified(int eventId) {
-        query("UPDATE station_event SET deadline_notified = TRUE, updated_at = now() WHERE id = :id;")
-                .single(call().bind("id", eventId))
-                .update();
+    public void markDeadlineExpired(int eventId, LocalDate date) {
+        query("""
+                INSERT INTO event_deadline_expired(event_id, occurrence_date)
+                VALUES (:event_id, :date)
+                ON CONFLICT DO NOTHING;""").single(call().bind("event_id", eventId).bind("date", date)).insert();
     }
 
     /**
@@ -862,14 +836,11 @@ public class EventRepository {
     }
 
     /**
-     * A one-time event whose registration deadline has passed with pending registrations left.
-     */
-    public record ExpiredDeadlineEvent(int eventId, int stationId, String name, int pendingCount) {}
-
-    /**
-     * An event whose registration is about to close.
+     * A date of an appointment with sign-ups still waiting for a decision.
      *
-     * @param daysLeft the lead time this warning is for, rather than a measured distance
+     * @param eventId      the appointment
+     * @param date         the date
+     * @param pendingCount how many sign-ups wait
      */
-    public record ClosingEvent(int eventId, int stationId, String name, Instant deadline, int daysLeft) {}
+    public record PendingDate(int eventId, LocalDate date, int pendingCount) {}
 }

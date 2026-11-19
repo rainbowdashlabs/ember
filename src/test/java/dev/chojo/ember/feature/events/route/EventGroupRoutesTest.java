@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupRegistration;
 import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -671,7 +672,14 @@ class EventGroupRoutesTest {
                 EVENT_GROUP_ID,
                 STATION_ID,
                 new EventGroupDetails(
-                        "Jugendflamme 1", null, null, Instant.now().plusSeconds(3600), false, null, null, null));
+                        "Jugendflamme 1",
+                        null,
+                        null,
+                        RegistrationDeadline.fixed(Instant.now().plusSeconds(3600)),
+                        false,
+                        null,
+                        null,
+                        null));
         when(eventGroups.findOpenWithDeadline(STATION_ID)).thenReturn(List.of(open));
         when(guardians.household(any())).thenReturn(List.of(TestSessions.MEMBER_ID, CHILD_ID));
         when(eventGroups.whoMaySignUp(any(), any(), anySet()))

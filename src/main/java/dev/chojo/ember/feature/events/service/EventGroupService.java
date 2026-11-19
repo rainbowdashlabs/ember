@@ -174,11 +174,12 @@ public class EventGroupService {
         return Transactions.call(() -> {
             var before = lockEventGroup(stationId, eventGroupId);
             eventGroups.update(eventGroupId, checked);
-            if (!Objects.equals(before.details().registrationDeadline(), checked.registrationDeadline())) {
+            eventGroups.alignParts(eventGroupId, checked.requiresConfirmation());
+            var after = eventGroups.findById(eventGroupId).orElseThrow();
+            if (!Objects.equals(before.closesAt(), after.closesAt())) {
                 eventGroups.clearClosingWarnings(eventGroupId);
             }
-            eventGroups.alignParts(eventGroupId, checked.requiresConfirmation(), checked.registrationDeadline());
-            return eventGroups.findById(eventGroupId).orElseThrow();
+            return after;
         });
     }
 
@@ -323,10 +324,7 @@ public class EventGroupService {
             if (!eventGroups.claimPart(eventId, setId)) throw EventRefusal.EVENT_GROUP_PART_TAKEN.raise();
             questions.dropQuestionsOfPart(eventId);
             eventGroups.clearOwnLimit(eventId);
-            eventGroups.alignParts(
-                    eventGroupId,
-                    eventGroup.details().requiresConfirmation(),
-                    eventGroup.details().registrationDeadline());
+            eventGroups.alignParts(eventGroupId, eventGroup.details().requiresConfirmation());
             handDownAudiences(eventGroupId, List.of(eventId));
             eventGroups.handDownShare(eventGroupId, eventId);
             Transactions.afterCommit(() -> fields.reconcilePart(eventId));
@@ -428,6 +426,7 @@ public class EventGroupService {
             int left = eventGroups.findPart(eventId).orElseThrow().setId();
             eventGroups.keepLimit(eventId);
             eventGroups.setPartSet(eventId, null);
+            eventGroups.alignPartDeadlines(eventGroupId);
             eventGroups.untieRegistrations(eventId);
             eventGroups.capMinimum(left);
             Transactions.afterCommit(() -> fields.reconcilePart(eventId));
@@ -767,6 +766,7 @@ public class EventGroupService {
     }
 
     private static EventGroupDetails checked(EventGroupDetails details) {
+        EventCrudService.requireValidDeadline(details.registrationDeadline());
         String name = details.name();
         Integer limit = details.registrationLimit();
         if (name == null || name.isBlank()) throw EventRefusal.EVENT_GROUP_NAME_MISSING.raise();

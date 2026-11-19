@@ -9,4 +9,4 @@ import java.time.Instant;
 
 /** One event still waiting on one member's answer. */
 public record AwaitingAnswer(
-        int eventId, String name, Instant startTime, Instant registrationDeadline, Integer categoryId, int memberId) {}
+        int eventId, String name, Instant startTime, Instant registrationClosesAt, Integer categoryId, int memberId) {}

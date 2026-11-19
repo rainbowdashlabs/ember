@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -56,7 +57,8 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService,
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                occurrenceCalendar);
         registrationService = new EventRegistrationService(
                 eventRegistrationRepo,
                 new EventRegistrationFieldRepository(),
@@ -90,9 +92,8 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 requiresRegistration,
-                registrationDeadline,
+                RegistrationDeadline.fixed(registrationDeadline),
                 requiresConfirmation,
-                null,
                 null,
                 null,
                 null,
@@ -246,9 +247,8 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

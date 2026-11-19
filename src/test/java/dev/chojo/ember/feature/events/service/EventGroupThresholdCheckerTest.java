@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
@@ -142,9 +143,8 @@ class EventGroupThresholdCheckerTest extends RepositoryTestBase {
                     start.plus(Duration.ofHours(8)),
                     null,
                     false,
-                    null,
+                    RegistrationDeadline.none(),
                     false,
-                    null,
                     null,
                     null,
                     null,

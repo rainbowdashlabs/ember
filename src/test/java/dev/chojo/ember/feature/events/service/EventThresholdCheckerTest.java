@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -92,13 +93,12 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
                 first.atTime(20, 0).atZone(zone).toInstant(),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 null,
                 2,
-                days,
-                null);
+                days);
         return event;
     }
 

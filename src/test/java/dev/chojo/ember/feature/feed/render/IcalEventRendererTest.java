@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventDateCancellation;
 import dev.chojo.ember.feature.events.entity.EventDetachedDate;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRecurrence;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -538,7 +539,6 @@ class IcalEventRendererTest {
                 null,
                 null,
                 null,
-                null,
                 repeatUntil,
                 null);
     }
@@ -585,7 +585,7 @@ class IcalEventRendererTest {
                 Instant.parse("2027-09-15T12:00:00Z"),
                 null,
                 true,
-                deadline,
+                RegistrationDeadline.fixed(deadline),
                 false,
                 1,
                 RestrictionMode.AND,

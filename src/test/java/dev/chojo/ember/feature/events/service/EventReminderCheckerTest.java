@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventDateCancellation;
 import dev.chojo.ember.feature.events.entity.EventDetachedDate;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
@@ -36,10 +37,12 @@ import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -80,6 +83,17 @@ class EventReminderCheckerTest {
         breakRepository = mock(EventBreakRepository.class);
         cancellationRepository = mock(EventDateCancellationRepository.class);
         detachedDateRepository = mock(EventDetachedDateRepository.class);
+        rememberDeadlineWarnings();
+    }
+
+    /** Lets the mocked reminder repository remember the closing warnings marked, as the table does. */
+    private void rememberDeadlineWarnings() {
+        var sent = new ArrayList<EventReminderRepository.DeadlineWarning>();
+        doAnswer(call -> sent.add(new EventReminderRepository.DeadlineWarning(
+                        call.getArgument(0), call.getArgument(1), call.getArgument(2))))
+                .when(reminderRepository)
+                .markDeadlineWarningSent(anyInt(), any(), anyInt());
+        when(reminderRepository.findDeadlineWarningsSent(any())).thenAnswer(call -> List.copyOf(sent));
     }
 
     /**
@@ -275,33 +289,31 @@ class EventReminderCheckerTest {
      */
     @Test
     void aClosingRegistrationWarnsWhoeverStillOwesAnAnswer() {
-        var closing = new EventRepository.ClosingEvent(7, STATION_ID, "Übung", Instant.now(), 3);
-        when(eventRepository.findEventsClosingIn(3)).thenReturn(List.of(closing));
-        when(eventRepository.findEventsClosingIn(1)).thenReturn(List.of());
-        when(eventRepository.findEventsWithReminders()).thenReturn(List.of());
-        when(readOnlyGuard.isWritable(STATION_ID)).thenReturn(true);
-        when(registrationRepository.findUnansweredMemberIds(7, STATION_ID)).thenReturn(List.of(10));
+        var event = closingEvent(7, RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(2))));
+        var date = dateOf(event);
+        when(registrationRepository.findUnansweredMemberIds(7, STATION_ID, date))
+                .thenReturn(List.of(10));
         when(memberNameResolver.called(10)).thenReturn("Kind");
 
         invokeCheck();
+        invokeCheck();
 
-        verify(notifier)
+        verify(notifier, times(1))
                 .notify(
                         eq(StationAudience.household(List.of(10))),
                         eq(NotificationType.REGISTRATION_CLOSING),
                         any(NotificationData.class),
                         eq(Delivery.EVERY_TIME));
-        verify(reminderRepository).markDeadlineWarningSent(7, 3);
+        verify(reminderRepository).markDeadlineWarningSent(7, date, 3);
+        verify(reminderRepository, never()).markDeadlineWarningSent(7, date, 1);
     }
 
     @Test
     void aDeadlineUnderADayAwayIsWarnedOnceAndCoversTheWiderLead() {
-        var closing = new EventRepository.ClosingEvent(7, STATION_ID, "Übung", Instant.now(), 1);
-        when(eventRepository.findEventsClosingIn(1)).thenReturn(List.of(closing));
-        when(eventRepository.findEventsClosingIn(3)).thenReturn(List.of());
-        when(eventRepository.findEventsWithReminders()).thenReturn(List.of());
-        when(readOnlyGuard.isWritable(STATION_ID)).thenReturn(true);
-        when(registrationRepository.findUnansweredMemberIds(7, STATION_ID)).thenReturn(List.of(10));
+        var event = closingEvent(7, RegistrationDeadline.fixed(Instant.now().plus(Duration.ofHours(12))));
+        var date = dateOf(event);
+        when(registrationRepository.findUnansweredMemberIds(7, STATION_ID, date))
+                .thenReturn(List.of(10));
         when(memberNameResolver.called(10)).thenReturn("Kind");
 
         invokeCheck();
@@ -312,8 +324,8 @@ class EventReminderCheckerTest {
                         eq(NotificationType.REGISTRATION_CLOSING),
                         any(NotificationData.class),
                         eq(Delivery.EVERY_TIME));
-        verify(reminderRepository).markDeadlineWarningSent(7, 1);
-        verify(reminderRepository).markDeadlineWarningSent(7, 3);
+        verify(reminderRepository).markDeadlineWarningSent(7, date, 1);
+        verify(reminderRepository).markDeadlineWarningSent(7, date, 3);
     }
 
     /**
@@ -325,29 +337,175 @@ class EventReminderCheckerTest {
      */
     @Test
     void nobodyIsWarnedAboutADeadlineTheyCannotMeet() {
-        var closing = new EventRepository.ClosingEvent(7, STATION_ID, "Übung", Instant.now(), 3);
-        when(eventRepository.findEventsClosingIn(3)).thenReturn(List.of(closing));
-        when(eventRepository.findEventsClosingIn(1)).thenReturn(List.of());
-        when(eventRepository.findEventsWithReminders()).thenReturn(List.of());
-        when(readOnlyGuard.isWritable(STATION_ID)).thenReturn(true);
-        when(registrationRepository.findUnansweredMemberIds(7, STATION_ID)).thenReturn(List.of(10));
+        var event = closingEvent(7, RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(2))));
+        var date = dateOf(event);
+        when(registrationRepository.findUnansweredMemberIds(7, STATION_ID, date))
+                .thenReturn(List.of(10));
         when(restrictionService.canRegister(eq(7), eq(10), any())).thenReturn(false);
 
         invokeCheck();
 
         verify(notifier, never()).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
-        verify(reminderRepository).markDeadlineWarningSent(7, 3);
+        verify(reminderRepository).markDeadlineWarningSent(7, date, 3);
     }
 
-    /** An event whose warning already went out is passed over rather than warned about again. */
+    /** A date whose warning already went out is passed over rather than warned about again. */
     @Test
     void aWarningAlreadySentIsNotSentAgain() {
-        when(eventRepository.findEventsClosingIn(anyInt())).thenReturn(List.of());
-        when(eventRepository.findEventsWithReminders()).thenReturn(List.of());
+        var event = closingEvent(7, RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(2))));
+        var date = dateOf(event);
+        reminderRepository.markDeadlineWarningSent(7, date, 3);
+        when(registrationRepository.findUnansweredMemberIds(anyInt(), anyInt(), any()))
+                .thenReturn(List.of(10));
 
         invokeCheck();
 
         verify(notifier, never()).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
+    }
+
+    /** A deadline further away than the widest lead is not warned about yet. */
+    @Test
+    void aDistantDeadlineIsNotWarnedAboutYet() {
+        closingEvent(7, RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(5))));
+        when(registrationRepository.findUnansweredMemberIds(anyInt(), anyInt(), any()))
+                .thenReturn(List.of(10));
+
+        invokeCheck();
+
+        verify(notifier, never()).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
+        verify(reminderRepository, never()).markDeadlineWarningSent(anyInt(), any(), anyInt());
+    }
+
+    /**
+     * A relative deadline closes each date of a series on its own, so the warning goes out for the date
+     * whose deadline is near and the following one waits for its own.
+     */
+    @Test
+    void aSeriesIsWarnedAboutEachDateOnItsOwn() {
+        LocalDate near = LocalDate.now(BERLIN).plusDays(9);
+        var series = series(8, near, RegistrationDeadline.relative(7 * 24 * 60, RegistrationDeadline.Anchor.MIDNIGHT));
+        when(eventRepository.findWithDeadline()).thenReturn(List.of(series));
+        when(registrationRepository.findUnansweredMemberIds(anyInt(), anyInt(), any()))
+                .thenReturn(List.of(10));
+        when(memberNameResolver.called(10)).thenReturn("Kind");
+
+        invokeCheck();
+        invokeCheck();
+
+        verify(notifier, times(1)).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
+        verify(registrationRepository, atLeastOnce()).findUnansweredMemberIds(8, STATION_ID, near);
+        verify(registrationRepository, never()).findUnansweredMemberIds(8, STATION_ID, near.plusWeeks(1));
+        verify(reminderRepository).markDeadlineWarningSent(8, near, 3);
+        verify(reminderRepository, never()).markDeadlineWarningSent(eq(8), eq(near.plusWeeks(1)), anyInt());
+    }
+
+    /** A date that was called off closes nothing, so nobody is warned and no warning is spent on it. */
+    @Test
+    void aCalledOffDateIsNotWarnedAbout() {
+        LocalDate near = LocalDate.now(BERLIN).plusDays(9);
+        var series = series(8, near, RegistrationDeadline.relative(7 * 24 * 60, RegistrationDeadline.Anchor.MIDNIGHT));
+        when(eventRepository.findWithDeadline()).thenReturn(List.of(series));
+        when(cancellationRepository.findActiveByStation(STATION_ID))
+                .thenReturn(List.of(
+                        new EventDateCancellation(8, near, CancellationCause.MANUAL, null, Instant.now(), null, null)));
+        when(registrationRepository.findUnansweredMemberIds(anyInt(), anyInt(), any()))
+                .thenReturn(List.of(10));
+
+        invokeCheck();
+
+        verify(notifier, never()).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
+        verify(reminderRepository, never()).markDeadlineWarningSent(anyInt(), any(), anyInt());
+    }
+
+    /** A fixed deadline on a series closes every date at once, so only the next date is warned about. */
+    @Test
+    void aFixedDeadlineOnASeriesWarnsAboutTheNextDateOnly() {
+        LocalDate next = LocalDate.now(BERLIN).plusDays(4);
+        var series = series(9, next, RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(2))));
+        when(eventRepository.findWithDeadline()).thenReturn(List.of(series));
+        when(registrationRepository.findUnansweredMemberIds(anyInt(), anyInt(), any()))
+                .thenReturn(List.of(10));
+        when(memberNameResolver.called(10)).thenReturn("Kind");
+
+        invokeCheck();
+
+        verify(notifier, times(1)).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
+        verify(reminderRepository).markDeadlineWarningSent(9, next, 3);
+        verify(reminderRepository, never()).markDeadlineWarningSent(eq(9), eq(next.plusWeeks(1)), anyInt());
+    }
+
+    /**
+     * A one-time appointment taking sign-ups, starting ten days from now on the Berlin station, offered
+     * by the repository as one that can close.
+     */
+    private StationEvent closingEvent(int id, RegistrationDeadline deadline) {
+        when(stationRepository.findById(STATION_ID)).thenReturn(Optional.of(berlinStation()));
+        Instant start =
+                LocalDate.now(BERLIN).plusDays(10).atTime(18, 0).atZone(BERLIN).toInstant();
+        var event = new StationEvent(
+                id,
+                STATION_ID,
+                "Übung",
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plusSeconds(3600),
+                null,
+                true,
+                deadline,
+                false,
+                null,
+                RestrictionMode.OR,
+                RestrictionMode.AND,
+                false,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+        when(eventRepository.findWithDeadline()).thenReturn(List.of(event));
+        return event;
+    }
+
+    /** A weekly series taking sign-ups on the Berlin station, its first date on the given day at six. */
+    private StationEvent series(int id, LocalDate first, RegistrationDeadline deadline) {
+        when(stationRepository.findById(STATION_ID)).thenReturn(Optional.of(berlinStation()));
+        Instant start = first.atTime(18, 0).atZone(BERLIN).toInstant();
+        return new StationEvent(
+                id,
+                STATION_ID,
+                "Wochendienst",
+                null,
+                StationEvent.EventType.RECURRING,
+                first.getDayOfWeek().getValue(),
+                start,
+                start.plusSeconds(3600),
+                null,
+                true,
+                deadline,
+                false,
+                null,
+                RestrictionMode.OR,
+                RestrictionMode.AND,
+                false,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    private static LocalDate dateOf(StationEvent event) {
+        return event.startTime().atZone(BERLIN).toLocalDate();
     }
 
     @Test

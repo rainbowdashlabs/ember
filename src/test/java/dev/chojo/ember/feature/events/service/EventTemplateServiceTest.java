@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.question.FieldType;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -97,23 +99,23 @@ class EventTemplateServiceTest extends RepositoryTestBase {
                         null,
                         StationEvent.EventType.RECURRING,
                         true,
-                        30,
+                        RegistrationDeadline.relative(7 * 24 * 60, RegistrationDeadline.Anchor.MIDNIGHT),
                         false,
                         RestrictionMode.AND,
                         null,
                         12,
                         4,
-                        3,
-                        2));
+                        3));
         assertTrue(updated);
         var found = service.findById(templateId).orElseThrow();
         assertEquals("Updated Template", found.name());
         assertEquals("Weekly Training", found.title());
-        assertEquals(30, found.registrationDeadlineOffsetHours());
+        assertEquals(
+                RegistrationDeadline.relative(7 * 24 * 60, RegistrationDeadline.Anchor.MIDNIGHT),
+                found.registrationDeadline());
         assertEquals(12, found.registrationLimit());
         assertEquals(4, found.minRegistrations());
         assertEquals(3, found.thresholdDays());
-        assertEquals(2, found.registrationCloseDays());
 
         service.update(
                 templateId,
@@ -130,15 +132,27 @@ class EventTemplateServiceTest extends RepositoryTestBase {
                         null,
                         null,
                         null,
-                        null,
                         null));
-        assertNull(service.findById(templateId).orElseThrow().registrationDeadlineOffsetHours());
+        assertEquals(
+                RegistrationDeadline.none(),
+                service.findById(templateId).orElseThrow().registrationDeadline());
     }
 
     /** A template whose sign-up rules count below zero is refused and left as it was. */
     @Test
     @Order(6)
     void negativeSignUpRulesAreRefused() {
+        assertTemplateRefused(RegistrationDeadline.relative(-60, RegistrationDeadline.Anchor.EXACT));
+    }
+
+    /** A template knows no date, so a fixed deadline is refused and the template left as it was. */
+    @Test
+    @Order(6)
+    void aFixedDeadlineIsRefusedOnATemplate() {
+        assertTemplateRefused(RegistrationDeadline.fixed(Instant.parse("2027-01-01T10:00:00Z")));
+    }
+
+    private void assertTemplateRefused(RegistrationDeadline deadline) {
         var before = service.findById(templateId).orElseThrow();
 
         var refused = assertThrows(
@@ -152,8 +166,7 @@ class EventTemplateServiceTest extends RepositoryTestBase {
                                 null,
                                 null,
                                 true,
-                                -1,
-                                null,
+                                deadline,
                                 null,
                                 null,
                                 null,

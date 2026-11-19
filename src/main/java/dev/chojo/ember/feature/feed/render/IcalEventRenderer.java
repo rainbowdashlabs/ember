@@ -121,7 +121,7 @@ public class IcalEventRenderer {
             if (ownDeclined && managed.isEmpty()) return false;
         }
 
-        Instant deadline = event.registrationDeadline();
+        Instant deadline = closesInView(event, ctx);
         if (!event.requiresRegistration() || deadline == null || !deadline.isBefore(Instant.now())) {
             return true;
         }
@@ -240,7 +240,7 @@ public class IcalEventRenderer {
         if (event.requiresRegistration()) {
             sb.append(notificationText.resolveLocalized(ctx.locale(), "ical", "registrationRequired", null))
                     .append("\n");
-            Instant registrationDeadline = event.registrationDeadline();
+            Instant registrationDeadline = closesInView(event, ctx);
             if (registrationDeadline != null) {
                 appendLine(sb, ctx.locale(), "label.deadline", formatInstant(registrationDeadline, ctx));
             }
@@ -301,6 +301,17 @@ public class IcalEventRenderer {
     private void appendLine(StringBuilder sb, String locale, String labelKey, String value) {
         String label = notificationText.resolveLocalized(locale, "ical", labelKey, null);
         sb.append(label).append(": ").append(value).append("\n");
+    }
+
+    /**
+     * When sign-up closes for the date the appointment is read for, the next one or the last once
+     * none is left; null where no deadline applies.
+     */
+    private static @Nullable Instant closesInView(StationEvent event, Context ctx) {
+        var calendar = ctx.calendar();
+        return calendar.dateInView(event)
+                .flatMap(date -> event.registrationClosesOn(date, calendar.zone()))
+                .orElse(null);
     }
 
     private String formatInstant(Instant instant, Context ctx) {

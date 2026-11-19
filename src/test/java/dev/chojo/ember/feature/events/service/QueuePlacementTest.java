@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.QueueEntry;
 import dev.chojo.ember.feature.events.entity.QueueOrder;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
@@ -77,11 +78,10 @@ class QueuePlacementTest extends RepositoryTestBase {
                 start.plusSeconds(7200),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 1,
-                null,
                 null,
                 null);
         list = RegistrationQueueRepository.ofDate(event.id(), DATE);
@@ -187,9 +187,8 @@ class QueuePlacementTest extends RepositoryTestBase {
                 Instant.now().minusSeconds(86_400L * 20 - 3600),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -230,10 +229,9 @@ class QueuePlacementTest extends RepositoryTestBase {
                 start.plusSeconds(3600),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 categoryId,
-                null,
                 null,
                 null,
                 null);

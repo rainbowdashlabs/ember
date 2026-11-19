@@ -80,7 +80,8 @@ public class EventOccurrenceService {
                                 .event()
                                 .withEventGroup(parts.get(occurrence.event().id())),
                         occurrence.date(),
-                        occurrence.cancellation()))
+                        occurrence.cancellation(),
+                        occurrence.registrationClosesAt()))
                 .toList();
     }
 
@@ -151,12 +152,12 @@ public class EventOccurrenceService {
      */
     private static Optional<LocalDate> nextOpenDate(
             StationEvent event, LocalDate day, LocalDate last, StationCalendar calendar) {
-        LocalDate today = calendar.today();
         Instant now = Instant.now();
         Optional<LocalDate> candidate = calendar.next(event, day);
         while (candidate.isPresent() && !candidate.get().isAfter(last)) {
             LocalDate date = candidate.get();
-            if (event.registrationOpenOn(date, today, now) && !calendar.isCancelled(event, date)) return candidate;
+            if (event.registrationOpenOn(date, calendar.zone(), now) && !calendar.isCancelled(event, date))
+                return candidate;
             candidate = calendar.next(event, date.plusDays(1));
         }
         return Optional.empty();
@@ -247,7 +248,12 @@ public class EventOccurrenceService {
                         entry.previous(),
                         entry.on() == null
                                 ? null
-                                : calendar.noticeOn(entry.event(), entry.on()).orElse(null)))
+                                : calendar.noticeOn(entry.event(), entry.on()).orElse(null),
+                        entry.next() == null
+                                ? null
+                                : entry.event()
+                                        .registrationClosesOn(entry.next(), calendar.zone())
+                                        .orElse(null)))
                 .toList();
     }
 
@@ -280,7 +286,10 @@ public class EventOccurrenceService {
         var onThisDate = new ArrayList<UpcomingEventOccurrence>();
         for (var ev : events) {
             onThisDate.add(new UpcomingEventOccurrence(
-                    EventSummary.of(ev), date, calendar.noticeOn(ev, date).orElse(null)));
+                    EventSummary.of(ev),
+                    date,
+                    calendar.noticeOn(ev, date).orElse(null),
+                    ev.registrationClosesOn(date, calendar.zone()).orElse(null)));
         }
         onThisDate.sort(Comparator.comparing((UpcomingEventOccurrence o) -> timeOfDay(o, calendar.zone()))
                 .thenComparing(occurrence -> occurrence.event().id()));

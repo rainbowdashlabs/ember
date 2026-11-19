@@ -82,7 +82,7 @@ public class EventGroupDeadlineChecker implements TaskSource {
             public List<ClosingWarnings.Closing> closingIn(int daysBefore) {
                 return eventGroups.findClosingIn(daysBefore).stream()
                         .map(eventGroup -> new ClosingWarnings.Closing(
-                                eventGroup.eventGroupId(), eventGroup.stationId(), eventGroup.name()))
+                                eventGroup.eventGroupId(), eventGroup.stationId(), eventGroup.name(), null))
                         .toList();
             }
 
@@ -97,8 +97,8 @@ public class EventGroupDeadlineChecker implements TaskSource {
             }
 
             @Override
-            public void markWarned(int id, int daysBefore) {
-                eventGroups.markClosingWarned(id, daysBefore);
+            public void markWarned(ClosingWarnings.Closing closing, int daysBefore) {
+                eventGroups.markClosingWarned(closing.id(), daysBefore);
             }
 
             @Override

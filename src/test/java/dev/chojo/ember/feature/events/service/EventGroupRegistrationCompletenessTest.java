@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceEntry.AttendanceStatu
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry.EntrySource;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.question.FieldType;
@@ -155,7 +156,12 @@ class EventGroupRegistrationCompletenessTest extends EventGroupRegistrationTestB
                 station.id(),
                 eventGroup.id(),
                 new EventGroupDetails(
-                        "Jugendflamme 1", null, null, Instant.now().minus(Duration.ofHours(1)), false, null));
+                        "Jugendflamme 1",
+                        null,
+                        null,
+                        RegistrationDeadline.fixed(Instant.now().minus(Duration.ofHours(1))),
+                        false,
+                        null));
 
         assertRefused(
                 EventRefusal.EVENT_GROUP_REGISTRATION_CLOSED,
@@ -177,9 +183,8 @@ class EventGroupRegistrationCompletenessTest extends EventGroupRegistrationTestB
                 start.plus(Duration.ofHours(4)),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

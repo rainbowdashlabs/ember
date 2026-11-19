@@ -14,9 +14,11 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -36,6 +38,9 @@ final class ClosingWarnings {
     private static final Logger log = LoggerFactory.getLogger(ClosingWarnings.class);
     /** The lead times warned about in days, nearest first. */
     private static final List<Integer> LEAD_DAYS = List.of(1, 3);
+
+    /** The widest lead time warned about, in days. */
+    static final int MAX_LEAD_DAYS = 3;
 
     private final Notifier notifier;
     private final MemberNameResolver names;
@@ -62,7 +67,7 @@ final class ClosingWarnings {
                     warned += warnAbout(kind, closing, memberId, daysBefore) ? 1 : 0;
                 }
                 for (int wider : LEAD_DAYS) {
-                    if (wider >= daysBefore) kind.markWarned(closing.id(), wider);
+                    if (wider >= daysBefore) kind.markWarned(closing, wider);
                 }
                 log.info(
                         "Warned {} member(s) that registration for '{}' (id={}) closes in {} day(s)",
@@ -91,8 +96,11 @@ final class ClosingWarnings {
      * @param id        its id
      * @param stationId its station
      * @param name      its name, as the warning shows it
+     * @param date      the date of an appointment whose deadline this is, since a series closes each
+     *                  date on its own; null for an event group, which closes once
      */
-    record Closing(int id, int stationId, String name) {}
+    record Closing(
+            int id, int stationId, String name, @Nullable LocalDate date) {}
 
     /** One kind of thing with a sign-up deadline: what differs between an appointment and an event group. */
     interface Closable {
@@ -124,10 +132,10 @@ final class ClosingWarnings {
         /**
          * Notes that the warning for a lead time went out.
          *
-         * @param id         the thing
+         * @param closing    the thing
          * @param daysBefore the lead time
          */
-        void markWarned(int id, int daysBefore);
+        void markWarned(Closing closing, int daysBefore);
 
         /**
          * Where the warning leads.

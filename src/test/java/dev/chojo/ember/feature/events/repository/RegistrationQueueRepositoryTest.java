@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.Places;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -71,11 +72,10 @@ class RegistrationQueueRepositoryTest extends RepositoryTestBase {
                 start.plusSeconds(7200),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 limit,
-                null,
                 null,
                 null);
     }
@@ -268,12 +268,11 @@ class RegistrationQueueRepositoryTest extends RepositoryTestBase {
                     read.endTime(),
                     null,
                     true,
-                    null,
+                    RegistrationDeadline.none(),
                     false,
                     null,
                     null,
                     read.registrationLimit(),
-                    null,
                     null,
                     null);
             query("UPDATE event_group SET part_registration_limit = 12 WHERE id = :id;")

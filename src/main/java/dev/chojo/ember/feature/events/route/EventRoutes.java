@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.events.entity.IntervalType;
 import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.QueueOrder;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.service.BatchEventService;
@@ -484,13 +485,12 @@ public class EventRoutes implements Routes {
                 req.endTime(),
                 req.templateId(),
                 Boolean.TRUE.equals(req.requiresRegistration()),
-                req.registrationDeadline(),
+                Objects.requireNonNullElse(req.registrationDeadline(), RegistrationDeadline.none()),
                 Boolean.TRUE.equals(req.requiresConfirmation()),
                 req.categoryId(),
                 req.registrationLimit(),
                 req.minRegistrations(),
-                req.thresholdDays(),
-                req.registrationCloseDays());
+                req.thresholdDays());
         applyAudiences(event.id(), req);
         if (template != null) templateService.copyInto(template, event.id());
         if (source != null) copyService.copyInto(source, event.id());
@@ -695,7 +695,6 @@ public class EventRoutes implements Routes {
                 req.registrationLimit(),
                 req.minRegistrations(),
                 req.thresholdDays(),
-                req.registrationCloseDays(),
                 req.repeatUntil(),
                 req.repeatCount());
     }
@@ -946,7 +945,6 @@ public class EventRoutes implements Routes {
                 req.minRegistrations(),
                 req.thresholdDays(),
                 req.queueOrder(),
-                req.registrationDeadlineOffsetHours(),
                 Objects.requireNonNullElse(req.reminderDays(), List.<Integer>of()),
                 req.eventTemplateId());
     }
@@ -1013,7 +1011,7 @@ public class EventRoutes implements Routes {
             @Nullable Integer templateId,
             @Nullable Integer eventTemplateId,
             @Nullable Boolean requiresRegistration,
-            @Nullable Instant registrationDeadline,
+            @Nullable RegistrationDeadline registrationDeadline,
             @Nullable Boolean requiresConfirmation,
             @Nullable Integer categoryId,
             @Nullable RestrictionSelection restriction,
@@ -1022,7 +1020,6 @@ public class EventRoutes implements Routes {
             @Nullable Integer registrationLimit,
             @Nullable Integer minRegistrations,
             @Nullable Integer thresholdDays,
-            @Nullable Integer registrationCloseDays,
             @Nullable LocalDate repeatUntil,
             @Nullable Integer repeatCount,
             @Nullable EditScope scope,
@@ -1075,14 +1072,13 @@ public class EventRoutes implements Routes {
             List<BatchRowEntry> rows,
             @Nullable Boolean requiresRegistration,
             @Nullable Boolean requiresConfirmation,
-            @Nullable Instant registrationDeadline,
+            @Nullable RegistrationDeadline registrationDeadline,
             @Nullable RestrictionSelection restriction,
             @Nullable RestrictionSelection viewRestriction,
             @Nullable Integer registrationLimit,
             @Nullable Integer minRegistrations,
             @Nullable Integer thresholdDays,
             @Nullable QueueOrder queueOrder,
-            @Nullable Integer registrationDeadlineOffsetHours,
             @Nullable List<Integer> reminderDays,
             @Nullable Integer eventTemplateId) {}
 
