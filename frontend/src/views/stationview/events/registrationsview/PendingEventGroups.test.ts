@@ -11,7 +11,7 @@ import type {EventGroupSummary} from '@/api/generated/schema'
 
 function group(id: number, name: string, pending: number, cancelled = false): EventGroupSummary {
     return {
-        id, cancelled, cancelReason: null, partCount: 3, holding: 0, queued: 0, pending, firstStart: null, lastEnd: null,
+        id, cancelled, cancelReason: null, partCount: 3, holding: 0, queued: 0, pending, firstStart: null, lastEnd: null, closesAt: null,
         details: {name} as EventGroupSummary['details'],
     }
 }

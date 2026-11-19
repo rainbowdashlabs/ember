@@ -9,7 +9,6 @@ import {needsDayOfWeek} from '@/api/events'
 import {namesMembers} from '@/api/fieldTypes'
 import {
     EventType,
-    DeadlineKind,
     QueueOrder,
     type AppointmentField,
     type EventFieldEntry,
@@ -25,6 +24,7 @@ import {instantToLocalInput} from '@/util/format'
 import {useEndFollowsStart} from '@/composables/useEndFollowsStart'
 import {entryOf, namedEntries} from '../eventshared/eventQuestions'
 import {deadlineForCopy, deadlineRuleOf, noDeadline} from '../eventshared/registrationDeadline'
+import {signUpRulesOf} from '../templateeditview/signUpRules'
 import {copyStartDay, lengthOf, placedOn} from './copyDates'
 
 /**
@@ -171,12 +171,7 @@ export function useEventForm() {
     }
     if (tpl.requiresRegistration != null) state.requiresRegistration = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) state.requiresConfirmation = tpl.requiresConfirmation
-    if (tpl.registrationLimit != null) state.registrationLimit = tpl.registrationLimit
-    if (tpl.queueOrder != null) state.queueOrder = tpl.queueOrder
-    if (tpl.minRegistrations != null) state.minRegistrations = tpl.minRegistrations
-    if (tpl.thresholdDays != null) state.thresholdDays = tpl.thresholdDays
-    const deadline = deadlineRuleOf(tpl.registrationDeadline)
-    if (deadline.kind !== DeadlineKind.NONE) state.registrationDeadline = deadline
+    Object.assign(state, signUpRulesOf(tpl))
     if (detail.fields.length > 0) {
       const newFields: EventFieldEntry[] = detail.fields.map(f => ({
         name: f.name,

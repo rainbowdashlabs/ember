@@ -9,6 +9,11 @@ import {shiftIsoDate, stationDayOf} from '@/util/format'
 export const MINUTES_PER_HOUR = 60
 export const MINUTES_PER_DAY = 1440
 
+/** The zone a computation runs in: the station's, or the reader's own where the station keeps none. */
+export function zoneOrLocal(timeZone?: string | null): string {
+    return timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone
+}
+
 /** A rule that never closes sign-up. */
 export function noDeadline(): RegistrationDeadline {
     return {kind: DeadlineKind.NONE, at: null, offsetMinutes: null, anchor: null}

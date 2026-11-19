@@ -77,7 +77,20 @@ class EventTemplateCarriedSettingsTest extends RepositoryTestBase {
 
     private static EventTemplateSettings onSheet(String name, @Nullable Integer sheetId) {
         return new EventTemplateSettings(
-                name, null, null, null, null, null, null, null, null, sheetId, null, null, null, null);
+                name,
+                null,
+                null,
+                null,
+                null,
+                null,
+                RegistrationDeadline.none(),
+                null,
+                null,
+                sheetId,
+                null,
+                null,
+                null,
+                null);
     }
 
     private static EventFieldDefault value(int templateId, int fieldId, String value) {

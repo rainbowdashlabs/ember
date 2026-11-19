@@ -131,44 +131,6 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * Retrieves the pending registrations of a single occurrence.
-     *
-     * @param eventId   the event ID
-     * @param eventDate the occurrence date
-     * @return the list of pending registrations
-     */
-    public List<EventRegistration> findPendingByEventAndDate(int eventId, LocalDate eventDate) {
-        return query("""
-                SELECT %s
-                FROM event_registration
-                WHERE event_id = :event_id
-                  AND event_date = :event_date
-                  AND status = 'PENDING'
-                ORDER BY created_at;""", COLUMNS)
-                .single(call().bind("event_id", eventId).bind("event_date", eventDate))
-                .map(EventRegistration.map())
-                .all();
-    }
-
-    /**
-     * Retrieves all pending registrations for a specific event.
-     *
-     * @param eventId the event ID
-     * @return the list of pending registrations
-     */
-    public List<EventRegistration> findPendingByEvent(int eventId) {
-        return query("""
-                SELECT %s
-                FROM event_registration
-                WHERE event_id = :event_id
-                  AND status = 'PENDING'
-                ORDER BY created_at;""", COLUMNS)
-                .single(call().bind("event_id", eventId))
-                .map(EventRegistration.map())
-                .all();
-    }
-
-    /**
      * Retrieves all pending registrations across a station's events, leaving out the parts of event
      * groups: those are decided as a whole on their event group.
      *

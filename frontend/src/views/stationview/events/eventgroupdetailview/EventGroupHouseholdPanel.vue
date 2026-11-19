@@ -25,8 +25,7 @@ import {RegistrationStatus, type EventGroupDetail, type EventGroupSignUp} from '
 import {eventGroupPlaces, holdsOrWaitsForPlace} from '@/util/eventGroupChoice'
 import {ownEventGroupPort, type EventGroupSignUpPort} from './eventGroupSignUpPort'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {useSession} from '@/composables/useSession'
-import {eventGroupClosesAt, hasPassed} from '../eventshared/dateClosing'
+import {hasPassed} from '../eventshared/dateClosing'
 
 /**
  * The sign-up of the reader and of everybody they look after: whether each is signed up, which parts
@@ -45,14 +44,13 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
-const {stationTimezone} = useSession()
 
 const dialogFor = ref<EventGroupSignUp | null>(null)
 const withdrawFor = ref<EventGroupSignUp | null>(null)
 const withdrawOpen = ref(false)
 
 /** Whether sign-ups closed with the deadline. */
-const deadlinePassed = computed(() => hasPassed(eventGroupClosesAt(props.detail.eventGroup, stationTimezone.value)))
+const deadlinePassed = computed(() => hasPassed(props.detail.eventGroup.closesAt))
 
 /** Whether no part is left to choose: none yet, or every one past or called off. */
 const nothingLeft = computed(() =>

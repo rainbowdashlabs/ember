@@ -230,11 +230,6 @@ public sealed interface NotificationParams {
      */
     record RegistrationDeadlineExpired(
             String eventName, int pendingCount, @Nullable LocalDate eventDate) implements NotificationParams {
-        /** A deadline that closes once, for a one-time appointment or an event group. */
-        public RegistrationDeadlineExpired(String eventName, int pendingCount) {
-            this(eventName, pendingCount, null);
-        }
-
         /** The sentence naming the date, where there is one. */
         @Override
         public @Nullable String variant() {
@@ -304,11 +299,6 @@ public sealed interface NotificationParams {
             int daysBefore,
             String memberName,
             @Nullable LocalDate eventDate) implements NotificationParams {
-        /** A deadline that closes once, for a one-time appointment or an event group. */
-        public RegistrationClosing(String eventName, int daysBefore, String memberName) {
-            this(eventName, daysBefore, memberName, null);
-        }
-
         /** The sentence naming the date, where there is one. */
         @Override
         public @Nullable String variant() {

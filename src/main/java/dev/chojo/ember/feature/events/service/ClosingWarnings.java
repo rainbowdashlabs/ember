@@ -40,7 +40,8 @@ final class ClosingWarnings {
     private static final List<Integer> LEAD_DAYS = List.of(1, 3);
 
     /** The widest lead time warned about, in days. */
-    static final int MAX_LEAD_DAYS = 3;
+    static final int MAX_LEAD_DAYS =
+            LEAD_DAYS.stream().mapToInt(Integer::intValue).max().orElseThrow();
 
     private final Notifier notifier;
     private final MemberNameResolver names;

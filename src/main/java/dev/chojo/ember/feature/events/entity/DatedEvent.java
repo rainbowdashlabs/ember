@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.events.entity;
 
 import org.jspecify.annotations.Nullable;
 
-import java.time.Instant;
 import java.time.LocalDate;
 
 /**
@@ -30,12 +29,9 @@ import java.time.LocalDate;
  * @param cancellation why the date the row is ordered by is off, the next date on the list of
  *                     appointments still to come and the previous one on the other; null while that
  *                     date takes place
- * @param registrationClosesAt when sign-up for the next date closes, null where it has no next date
- *                             or no deadline applies
  */
 public record DatedEvent(
         EventSummary event,
         @Nullable LocalDate nextDate,
         @Nullable LocalDate previousDate,
-        @Nullable CancellationNotice cancellation,
-        @Nullable Instant registrationClosesAt) {}
+        @Nullable CancellationNotice cancellation) {}

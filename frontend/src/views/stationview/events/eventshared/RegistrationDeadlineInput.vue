@@ -15,7 +15,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import {formatTime, formatWeekdayDate, instantToLocalInput, localInputToInstant} from '@/util/format'
 import {nonNegative} from '../templateeditview/signUpRules'
 import {DeadlineAnchor, DeadlineKind, type RegistrationDeadline} from '@/api/generated/schema'
-import {closesAt, MINUTES_PER_DAY, MINUTES_PER_HOUR, noDeadline, sameRule} from './registrationDeadline'
+import {closesAt, MINUTES_PER_DAY, MINUTES_PER_HOUR, noDeadline, sameRule, zoneOrLocal} from './registrationDeadline'
 
 /**
  * When sign-up closes: never, at one fixed moment, or a number of hours or days before each date's
@@ -127,7 +127,7 @@ const fixedMoment = computed({
 
 const nextClosing = computed(() => {
   if (rule.value.kind !== DeadlineKind.RELATIVE || !props.nextStart) return null
-  const zone = props.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+  const zone = zoneOrLocal(props.timeZone)
   const closing = closesAt(rule.value, props.nextStart, zone)?.toISOString()
   if (!closing) return null
   return `${formatWeekdayDate(closing, 'short', zone)}, ${formatTime(closing, zone)}`

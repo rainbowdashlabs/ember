@@ -33,16 +33,14 @@ import type {
     BatchRow,
     EventFieldEntry,
     EventTemplate,
-    RegistrationDeadline,
 } from '@/api/generated/schema'
-import {DeadlineKind, StationPermission} from '@/api/generated/schema'
+import {StationPermission} from '@/api/generated/schema'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {describeFailure, saying} from '@/util/failure'
-import {deadlineRuleOf, noDeadline} from './eventshared/registrationDeadline'
 import {asSaved} from './eventshared/eventQuestions'
 
 const {t} = useI18n()
@@ -74,7 +72,6 @@ const requiresRegistration = ref(false)
 const {signUpHeld} = useQuestionsRequireSignUp(
     () => (batchTemplate.applied.value?.questions ?? 0) > 0, requiresRegistration)
 const requiresConfirmation = ref(false)
-const registrationDeadline = ref<RegistrationDeadline>(noDeadline())
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 
@@ -127,8 +124,6 @@ async function applyTemplate() {
     }
     if (tpl.requiresRegistration != null) requiresRegistration.value = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) requiresConfirmation.value = tpl.requiresConfirmation
-    const deadline = deadlineRuleOf(tpl.registrationDeadline)
-    if (deadline.kind !== DeadlineKind.NONE) registrationDeadline.value = deadline
     fieldDefs.value = detail.fields.map(f => ({
       name: f.name,
       fieldType: f.fieldType,
@@ -160,11 +155,6 @@ function onScheduleDone(newRows: BatchRow[]) {
   step.value = 3
 }
 
-/** The registration deadline of every appointment of the batch, none where the batch takes no registration. */
-function deadlineToSend(): RegistrationDeadline {
-  return requiresRegistration.value ? registrationDeadline.value : noDeadline()
-}
-
 const {running: saving, failure: createFailure, run: createBatch} = useAsyncAction(async () => {
   failure.value = null
   const inlineFields: BatchFieldEntryDto[] = fieldDefs.value.map(asSaved).flatMap(f => (f.name?.trim() ? [{
@@ -183,7 +173,6 @@ const {running: saving, failure: createFailure, run: createBatch} = useAsyncActi
     rows: rows.value,
     requiresRegistration: requiresRegistration.value,
     requiresConfirmation: requiresConfirmation.value,
-    registrationDeadline: deadlineToSend(),
     restriction: restriction.value,
     viewRestriction: viewRestriction.value,
     ...batchTemplate.requestPart(requiresRegistration.value),
@@ -247,7 +236,7 @@ function openOverview() {
               v-model:template-id="selectedTemplateId"
               v-model:requires-registration="requiresRegistration"
               v-model:requires-confirmation="requiresConfirmation"
-              v-model:registration-deadline="registrationDeadline"
+              v-model:registration-deadline="batchTemplate.settings.registrationDeadline"
               v-model:restriction="restriction"
               v-model:view-restriction="viewRestriction"
               v-model:fields="fieldDefs"

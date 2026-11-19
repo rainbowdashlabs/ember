@@ -505,8 +505,8 @@ COMMENT ON COLUMN ember_schema.station_event.registration_deadline_offset_minute
 COMMENT ON COLUMN ember_schema.station_event.registration_deadline_anchor
     IS 'For a RELATIVE deadline, EXACT closes at start minus the offset, MIDNIGHT at the midnight that begins that day on the station''s clock; NULL for any other kind.';
 
--- Which dates have had their deadline pass, so the sweep declines their open sign-ups and tells the
--- managers once per date. It replaces the single flag on the appointment, which a series could not use.
+-- Which dates have had their deadline pass, so the sweep tells the managers about the sign-ups still
+-- waiting once per date. It replaces the single flag on the appointment, which a series could not use.
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_deadline_expired
 (

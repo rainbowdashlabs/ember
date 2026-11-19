@@ -1354,7 +1354,8 @@ class DomainEventHandlerTest {
         var handler = new RegistrationDeadlineExpiredHandler(notifier);
         assertEquals(RegistrationDeadlineExpired.class, handler.eventType());
 
-        handler.handle(new RegistrationDeadlineExpired(STATION_ID, 42, "Übungsabend", 5, null));
+        handler.handle(new RegistrationDeadlineExpired(
+                STATION_ID, "Übungsabend", 5, null, NotificationLinks.eventRegistrations(42)));
 
         verifyTold(
                 StationAudience.holders(STATION_ID, StationPermission.EVENT_MANAGER),

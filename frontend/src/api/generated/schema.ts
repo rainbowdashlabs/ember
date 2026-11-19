@@ -72769,7 +72769,6 @@ export interface components {
             event: components["schemas"]["EventSummary"];
             nextDate: components["schemas"]["LocalDate"] | null;
             previousDate: components["schemas"]["LocalDate"] | null;
-            registrationClosesAt: components["schemas"]["Instant"] | null;
         };
         DateFormatCheck: {
             detail: string | null;
@@ -73906,6 +73905,7 @@ export interface components {
         EventGroupSummary: {
             cancelled: boolean;
             cancelReason: string | null;
+            closesAt: components["schemas"]["Instant"] | null;
             details: components["schemas"]["EventGroupDetails"];
             firstStart: components["schemas"]["Instant"] | null;
             /** Format: int32 */

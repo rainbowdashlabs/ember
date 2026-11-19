@@ -313,7 +313,7 @@ class QueueManagerActionsTest extends RepositoryTestBase {
                             null,
                             null,
                             null,
-                            null,
+                            RegistrationDeadline.none(),
                             null,
                             null,
                             null,

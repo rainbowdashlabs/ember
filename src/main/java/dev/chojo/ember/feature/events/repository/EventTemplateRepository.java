@@ -72,9 +72,7 @@ public class EventTemplateRepository {
                     category_id = :category_id,
                     event_type = :event_type,
                     requires_registration = :requires_registration,
-                    registration_deadline_kind = :registration_deadline_kind,
-                    registration_deadline_offset_minutes = :registration_deadline_offset_minutes,
-                    registration_deadline_anchor = :registration_deadline_anchor,
+                    %s,
                     requires_confirmation = :requires_confirmation,
                     restriction_mode = :restriction_mode,
                     attendance_template_id = :attendance_template_id,
@@ -82,23 +80,15 @@ public class EventTemplateRepository {
                     min_registrations = :min_registrations,
                     threshold_days = :threshold_days,
                     queue_order = :queue_order
-                WHERE id = :id;""")
-                .single(call().bind("id", id)
+                WHERE id = :id;""", RegistrationDeadlineSql.RULE_SET)
+                .single(RegistrationDeadlineSql.bindRule(call(), settings.registrationDeadline())
+                        .bind("id", id)
                         .bind("name", settings.name())
                         .bind("title", settings.title())
                         .bind("description", settings.description())
                         .bind("category_id", settings.categoryId())
                         .bind("event_type", settings.eventType())
                         .bind("requires_registration", settings.requiresRegistration())
-                        .bind(
-                                "registration_deadline_kind",
-                                settings.registrationDeadline().kind())
-                        .bind(
-                                "registration_deadline_offset_minutes",
-                                settings.registrationDeadline().offsetMinutes())
-                        .bind(
-                                "registration_deadline_anchor",
-                                settings.registrationDeadline().anchor())
                         .bind("requires_confirmation", settings.requiresConfirmation())
                         .bind("restriction_mode", settings.restrictionMode())
                         .bind("attendance_template_id", settings.attendanceTemplateId())

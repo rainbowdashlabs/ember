@@ -10,7 +10,7 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventGroupCancelled;
-import dev.chojo.ember.event.events.EventGroupDeadlineExpired;
+import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepositor
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -182,9 +183,9 @@ class EventGroupNoticesTest extends RepositoryTestBase {
         var announced = ArgumentCaptor.forClass(DomainEvent.class);
         verify(announcements, atLeastOnce()).publish(announced.capture());
         var expired = announced.getAllValues().stream()
-                .filter(event -> event instanceof EventGroupDeadlineExpired)
-                .map(event -> (EventGroupDeadlineExpired) event)
-                .filter(event -> event.eventGroupId() == eventGroup.id())
+                .filter(event -> event instanceof RegistrationDeadlineExpired)
+                .map(event -> (RegistrationDeadlineExpired) event)
+                .filter(event -> event.link().equals(NotificationLinks.eventGroup(eventGroup.id())))
                 .toList();
         assertEquals(1, expired.size());
         assertEquals(1, expired.getFirst().pendingCount());

@@ -102,8 +102,9 @@ public class EventGroupRepository {
     }
 
     /**
-     * Replaces what an event group holds besides its sets, parts and audiences. A deadline moved re-arms
-     * the notice that it passed.
+     * Replaces what an event group holds besides its sets, parts and audiences. Whether a changed
+     * deadline re-arms its notices is decided when the parts are aligned, see
+     * {@link #alignPartDeadlines(int)}.
      *
      * @param id      the event group
      * @param details what it holds now
@@ -115,9 +116,6 @@ public class EventGroupRepository {
                 SET name                  = :name,
                     description           = :description,
                     registration_limit    = :registration_limit,
-                    deadline_notified     = deadline_notified
-                        AND (registration_deadline_kind, registration_deadline, registration_deadline_offset_minutes, registration_deadline_anchor)
-                            IS NOT DISTINCT FROM (:registration_deadline_kind, CAST(:registration_deadline AS TIMESTAMPTZ), CAST(:registration_deadline_offset_minutes AS INT), :registration_deadline_anchor),
                     %s,
                     requires_confirmation = :requires_confirmation,
                     color                 = :color,
@@ -781,7 +779,7 @@ public class EventGroupRepository {
                 FROM event_group c
                          JOIN event_group_registration r ON r.event_group_id = c.id AND r.status = 'PENDING'
                          CROSS JOIN LATERAL (SELECT event_group_closes_at(c.id) AS closes_at) x
-                WHERE x.closes_at < now()
+                WHERE x.closes_at <= now()
                   AND NOT c.deadline_notified
                   AND NOT c.cancelled
                 GROUP BY c.id, c.station_id, c.name;""")
@@ -863,17 +861,6 @@ public class EventGroupRepository {
                 .map(row -> new ClosingEventGroup(
                         row.getInt("event_group_id"), row.getInt("station_id"), row.getString("name")))
                 .all();
-    }
-
-    /**
-     * Forgets which warnings went out for an event group, so a moved deadline is warned about again.
-     *
-     * @param eventGroupId the event group
-     */
-    public void clearClosingWarnings(int eventGroupId) {
-        query("DELETE FROM event_group_deadline_reminder_sent WHERE event_group_id = :event_group_id;")
-                .single(call().bind("event_group_id", eventGroupId))
-                .update();
     }
 
     /**

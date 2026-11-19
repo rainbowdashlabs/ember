@@ -135,18 +135,6 @@ public record RegistrationDeadline(
     }
 
     /**
-     * Whether sign-up for a date starting at a given instant has closed.
-     *
-     * @param start when the date starts
-     * @param zone  the station's clock
-     * @param now   the instant asked about
-     * @return true once the deadline has been reached
-     */
-    public boolean closedAt(Instant start, ZoneId zone, Instant now) {
-        return closesAt(start, zone).map(close -> !now.isBefore(close)).orElse(false);
-    }
-
-    /**
      * Places a relative deadline. A span of whole days at midnight counts calendar days on the
      * station's clock, so "7 days before, at midnight" stays the same day across a change of the
      * clocks; any other span is counted in minutes.

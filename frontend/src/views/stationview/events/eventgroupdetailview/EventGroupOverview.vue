@@ -21,7 +21,6 @@ import {useSession} from '@/composables/useSession'
 import {eventGroupPlaces, partPlaces, partsOfSet, partWhen, ruleOf} from '@/util/eventGroupChoice'
 import {placesLabel} from '@/util/eventPlaces'
 import {formatDateTime} from '@/util/format'
-import {eventGroupClosesAt} from '../eventshared/dateClosing'
 import type {EventGroupMark} from '../eventshared/eventGroupColor'
 import {renderMarkdown} from '@/util/markdown'
 
@@ -52,7 +51,7 @@ const {stationTimezone} = useSession()
 const eventGroup = computed(() => props.detail.eventGroup)
 
 /** When sign-ups for the event group close, null where they do not. */
-const closesAt = computed(() => eventGroupClosesAt(eventGroup.value, stationTimezone.value))
+const closesAt = computed(() => eventGroup.value.closesAt)
 
 /** How the places for people stand, null where the event group limits no people. */
 const peoplePlaces = computed(() => eventGroupPlaces(eventGroup.value))

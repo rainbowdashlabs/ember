@@ -229,6 +229,44 @@ class EventGroupDeadlineTest extends EventGroupServiceTestBase {
     }
 
     @Test
+    void changingTheRuleOfAGroupWithPartsRearmsTheNoticeAndClearsTheWarnings() {
+        var eventGroup = relativeGroup("Neue Frist");
+        var part = oneTime(27);
+        addPart(eventGroup, part);
+        notifiedAndWarned(eventGroup);
+
+        service.update(
+                station.id(),
+                eventGroup.id(),
+                new EventGroupDetails(
+                        "Neue Frist",
+                        null,
+                        null,
+                        RegistrationDeadline.relative(3 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT),
+                        false,
+                        null));
+
+        assertEquals(part.startTime().minus(Duration.ofDays(3)), closesAt(eventGroup));
+        assertFalse(deadlineNotified(eventGroup));
+        assertEquals(0, closingWarnings(eventGroup));
+    }
+
+    @Test
+    void savingAGroupWithoutMovingItsCloseKeepsTheNotice() {
+        var eventGroup = relativeGroup("Gleiche Frist");
+        addPart(eventGroup, oneTime(28));
+        notifiedAndWarned(eventGroup);
+
+        service.update(
+                station.id(),
+                eventGroup.id(),
+                new EventGroupDetails("Anders benannt", null, null, TWO_DAYS, false, null));
+
+        assertTrue(deadlineNotified(eventGroup));
+        assertEquals(1, closingWarnings(eventGroup));
+    }
+
+    @Test
     void aRuleThatCannotBePlacedIsRefused() {
         var eventGroup = relativeGroup("Ungültig");
 

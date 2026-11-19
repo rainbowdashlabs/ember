@@ -172,14 +172,10 @@ public class EventGroupService {
     public EventGroup update(int stationId, int eventGroupId, EventGroupDetails details) {
         var checked = checked(details);
         return Transactions.call(() -> {
-            var before = lockEventGroup(stationId, eventGroupId);
+            lockEventGroup(stationId, eventGroupId);
             eventGroups.update(eventGroupId, checked);
             eventGroups.alignParts(eventGroupId, checked.requiresConfirmation());
-            var after = eventGroups.findById(eventGroupId).orElseThrow();
-            if (!Objects.equals(before.closesAt(), after.closesAt())) {
-                eventGroups.clearClosingWarnings(eventGroupId);
-            }
-            return after;
+            return eventGroups.findById(eventGroupId).orElseThrow();
         });
     }
 

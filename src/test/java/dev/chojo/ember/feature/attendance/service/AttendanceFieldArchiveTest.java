@@ -190,7 +190,20 @@ class AttendanceFieldArchiveTest extends RepositoryTestBase {
         eventTemplates.update(
                 eventTemplate,
                 new EventTemplateSettings(
-                        "Dienst", null, null, null, null, null, null, null, null, templateId, null, null, null, null));
+                        "Dienst",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        RegistrationDeadline.none(),
+                        null,
+                        null,
+                        templateId,
+                        null,
+                        null,
+                        null,
+                        null));
         eventTemplateRepo.replaceFields(
                 eventTemplate,
                 List.of(new AppointmentTemplateFieldDraft(

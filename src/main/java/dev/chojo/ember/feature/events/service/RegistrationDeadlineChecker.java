@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
@@ -90,9 +91,7 @@ public class RegistrationDeadlineChecker implements TaskSource {
         var calendar = calendars.computeIfAbsent(event.stationId(), occurrenceCalendar::forStation);
         var closed = dates.stream()
                 .filter(pending -> !calendar.isCancelled(event, pending.date()))
-                .filter(pending -> event.registrationClosesOn(pending.date(), calendar.zone())
-                        .map(close -> !now.isBefore(close))
-                        .orElse(false))
+                .filter(pending -> event.registrationClosedOn(pending.date(), calendar.zone(), now))
                 .toList();
         if (closed.isEmpty()) return;
         closed.forEach(pending -> eventRepository.markDeadlineExpired(event.id(), pending.date()));
@@ -113,8 +112,8 @@ public class RegistrationDeadlineChecker implements TaskSource {
      * Tells the managers, naming the date where a series closes each date on its own.
      */
     private void tell(StationEvent event, int pendingCount, @Nullable LocalDate date) {
-        eventBus.publish(
-                new RegistrationDeadlineExpired(event.stationId(), event.id(), event.name(), pendingCount, date));
+        eventBus.publish(new RegistrationDeadlineExpired(
+                event.stationId(), event.name(), pendingCount, date, NotificationLinks.eventRegistrations(event.id())));
         log.info(
                 "Registration deadline passed for event '{}' (id={}) on {} with {} pending registrations",
                 event.name(),

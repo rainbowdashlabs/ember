@@ -275,12 +275,6 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
                     eventRegistrationRepo.findByEventAndDate(created.id(), date).size());
             assertFalse(eventRegistrationRepo.findByEvent(created.id()).isEmpty());
             assertFalse(eventRegistrationRepo.findByMember(member.id()).isEmpty());
-            assertFalse(eventRegistrationRepo.findPendingByEvent(created.id()).isEmpty());
-            assertEquals(
-                    1,
-                    eventRegistrationRepo
-                            .findPendingByEventAndDate(created.id(), date)
-                            .size());
 
             assertTrue(eventRegistrationRepo.updateStatus(registration.id(), RegistrationStatus.ACCEPTED));
             assertEquals(
@@ -571,7 +565,6 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
         assertTrue(
                 eventRegistrationRepo.findByEventAndDate(99999, LocalDate.now()).isEmpty());
         assertTrue(eventRegistrationRepo.findByEvent(99999).isEmpty());
-        assertTrue(eventRegistrationRepo.findPendingByEvent(99999).isEmpty());
         assertTrue(eventRegistrationRepo.findByMember(99999).isEmpty());
         assertTrue(eventRegistrationRepo
                 .findNotAttendingMemberIds(99999, LocalDate.now())

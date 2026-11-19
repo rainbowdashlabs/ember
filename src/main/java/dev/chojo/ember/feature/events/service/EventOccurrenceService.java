@@ -248,12 +248,7 @@ public class EventOccurrenceService {
                         entry.previous(),
                         entry.on() == null
                                 ? null
-                                : calendar.noticeOn(entry.event(), entry.on()).orElse(null),
-                        entry.next() == null
-                                ? null
-                                : entry.event()
-                                        .registrationClosesOn(entry.next(), calendar.zone())
-                                        .orElse(null)))
+                                : calendar.noticeOn(entry.event(), entry.on()).orElse(null)))
                 .toList();
     }
 

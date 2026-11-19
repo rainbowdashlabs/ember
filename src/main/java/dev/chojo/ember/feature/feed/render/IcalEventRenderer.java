@@ -308,10 +308,7 @@ public class IcalEventRenderer {
      * none is left; null where no deadline applies.
      */
     private static @Nullable Instant closesInView(StationEvent event, Context ctx) {
-        var calendar = ctx.calendar();
-        return calendar.dateInView(event)
-                .flatMap(date -> event.registrationClosesOn(date, calendar.zone()))
-                .orElse(null);
+        return ctx.calendar().closesInView(event).orElse(null);
     }
 
     private String formatInstant(Instant instant, Context ctx) {

@@ -5,12 +5,7 @@
  */
 import {stationClock, stationDayOf} from '@/util/format'
 import {DeadlineKind, type RegistrationDeadline} from '@/api/generated/schema'
-import {closesAt} from './registrationDeadline'
-
-/** The zone a computation runs in: the station's, or the reader's own where the station keeps none. */
-function zoneOrLocal(timeZone?: string | null): string {
-    return timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone
-}
+import {closesAt, zoneOrLocal} from './registrationDeadline'
 
 /** What the station's clock and calendar show at a moment, read as if it were UTC, to the minute. */
 function wallClockOf(moment: Date, timeZone: string): number {
@@ -61,22 +56,4 @@ export function closesOnDate(
 /** Whether an instant lies in the past, false where there is none. */
 export function hasPassed(instant: string | null | undefined, now: number = Date.now()): boolean {
     return !!instant && new Date(instant).getTime() <= now
-}
-
-/**
- * When sign-up for an event group closes: at its fixed moment, or counted from the start of its first
- * part, as the server counts it.
- *
- * @returns the closing instant as an ISO string, or null where it does not close or has no part yet
- *          to count a relative deadline from
- */
-export function eventGroupClosesAt(
-    eventGroup: {details: {registrationDeadline?: RegistrationDeadline | null}; firstStart?: string | null},
-    timeZone?: string | null,
-): string | null {
-    const rule = eventGroup.details.registrationDeadline
-    if (!rule || rule.kind === DeadlineKind.NONE) return null
-    if (rule.kind === DeadlineKind.FIXED) return rule.at
-    if (!eventGroup.firstStart) return null
-    return closesAt(rule, eventGroup.firstStart, zoneOrLocal(timeZone))?.toISOString() ?? null
 }

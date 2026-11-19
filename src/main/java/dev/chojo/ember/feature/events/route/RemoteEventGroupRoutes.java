@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupPartState;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSummary;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentDeleteRequest;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentUpdateRequest;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
@@ -195,7 +196,19 @@ public class RemoteEventGroupRoutes implements Routes {
          */
         public EventGroupSummary toSummary() {
             return new EventGroupSummary(
-                    id, details, cancelled, cancelReason, partCount, holding, queued, 0, null, null);
+                    id,
+                    details,
+                    cancelled,
+                    cancelReason,
+                    partCount,
+                    holding,
+                    queued,
+                    0,
+                    null,
+                    null,
+                    details.registrationDeadline().kind() == RegistrationDeadline.DeadlineKind.FIXED
+                            ? details.registrationDeadline().at()
+                            : null);
         }
     }
 

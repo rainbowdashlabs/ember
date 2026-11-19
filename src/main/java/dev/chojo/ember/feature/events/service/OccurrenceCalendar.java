@@ -147,7 +147,8 @@ public class OccurrenceCalendar {
 
     /**
      * Whether sign-up for one date of an appointment has closed by its deadline, on the station's
-     * clock. A fixed deadline closes every date at once, a relative one each date on its own.
+     * clock. A fixed deadline closes every date at once, a relative one each date on its own. Without
+     * a deadline it answers at once, sparing the read of the station's clock.
      *
      * @param event the appointment
      * @param date  the date asked about
@@ -155,10 +156,7 @@ public class OccurrenceCalendar {
      */
     public boolean registrationClosed(StationEvent event, LocalDate date) {
         if (!event.registrationDeadline().isSet()) return false;
-        var now = Instant.now();
-        return event.registrationClosesOn(date, zoneOf(event.stationId()))
-                .map(close -> !now.isBefore(close))
-                .orElse(false);
+        return event.registrationClosedOn(date, zoneOf(event.stationId()), Instant.now());
     }
 
     /**
@@ -170,7 +168,23 @@ public class OccurrenceCalendar {
      */
     public boolean registrationClosedInView(StationEvent event) {
         if (!event.registrationDeadline().isSet()) return false;
-        return dateInView(event).map(date -> registrationClosed(event, date)).orElse(false);
+        var calendar = forStation(event.stationId());
+        return calendar.dateInView(event)
+                .map(date -> event.registrationClosedOn(date, calendar.zone(), Instant.now()))
+                .orElse(false);
+    }
+
+    /**
+     * When sign-up closes for the date a screen about the appointment is read for, see
+     * {@link #dateInView(StationEvent)}. Without a deadline it answers at once, sparing the read of
+     * the station's calendar.
+     *
+     * @param event the appointment
+     * @return the instant, empty without a deadline or without any date
+     */
+    public Optional<Instant> closesInView(StationEvent event) {
+        if (!event.registrationDeadline().isSet()) return Optional.empty();
+        return forStation(event.stationId()).closesInView(event);
     }
 
     /** The same for an appointment read by its id, for callers that hold nothing but the id. */

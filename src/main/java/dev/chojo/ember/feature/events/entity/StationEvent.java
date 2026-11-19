@@ -196,9 +196,22 @@ public record StationEvent(
      */
     public boolean registrationOpenOn(LocalDate date, ZoneId zone, Instant now) {
         if (!requiresRegistration || cancelled) return false;
+        return !registrationClosedOn(date, zone, now);
+    }
+
+    /**
+     * Whether the deadline of one date has been reached: sign-up is closed from the instant the
+     * deadline names on. Without a deadline a date never closes.
+     *
+     * @param date the date
+     * @param zone the station's clock
+     * @param now  the instant asked about
+     * @return true from the deadline on
+     */
+    public boolean registrationClosedOn(LocalDate date, ZoneId zone, Instant now) {
         return registrationClosesOn(date, zone)
-                .map(close -> now.isBefore(close))
-                .orElse(true);
+                .map(close -> !now.isBefore(close))
+                .orElse(false);
     }
 
     /**

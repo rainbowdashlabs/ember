@@ -93,9 +93,9 @@ public record EventGroup(
      * Whether sign-ups are closed by the deadline.
      *
      * @param now the instant asked about
-     * @return true once a deadline has passed
+     * @return true from the instant the deadline names on
      */
     public boolean deadlinePassed(Instant now) {
-        return closesAt != null && now.isAfter(closesAt);
+        return closesAt != null && !now.isBefore(closesAt);
     }
 }

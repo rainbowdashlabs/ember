@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {StationEvent} from '@/api/generated/schema'
+import {DeadlineAnchor, DeadlineKind, EventType, type StationEvent} from '@/api/generated/schema'
 import {formatDateTime, formatWeekdayDate, shiftIsoDate, stationDayOf} from '@/util/format'
 import {closesOnDate} from '@/views/stationview/events/eventshared/dateClosing'
 import {MINUTES_PER_DAY, MINUTES_PER_HOUR} from '@/views/stationview/events/eventshared/registrationDeadline'
@@ -67,17 +67,19 @@ export function announcementSentences(
 
 /**
  * That signing up is needed, and until when: the moment for the announced date, or for a one-off
- * appointment its own date, and the rule in words for a series announced without a date.
+ * appointment or a fixed deadline the moment it closes, and the rule in words for a series announced
+ * without a date.
  */
 function registration(event: StationEvent, date: string | null, say: Say, timezone?: string | null): string {
     const rule = event.registrationDeadline
-    if (!rule || rule.kind === 'NONE') return say('registrationRequired')
-    const day = date ?? (event.eventType === 'ONE_TIME' ? stationDayOf(new Date(event.startTime), timezone) : null)
-    const closes = rule.kind === 'FIXED' ? rule.at : day && closesOnDate(rule, event.startTime, day, timezone)
+    if (!rule || rule.kind === DeadlineKind.NONE) return say('registrationRequired')
+    const onOwnDate = event.eventType === EventType.ONE_TIME || rule.kind === DeadlineKind.FIXED
+    const day = date ?? (onOwnDate ? stationDayOf(new Date(event.startTime), timezone) : null)
+    const closes = day ? closesOnDate(rule, event.startTime, day, timezone) : null
     if (closes) return say('registrationClosesOn', {date: formatDateTime(closes, timezone)})
-    if (rule.kind !== 'RELATIVE' || day) return say('registrationRequired')
+    if (rule.kind !== DeadlineKind.RELATIVE || day) return say('registrationRequired')
     const span = spanOf(rule.offsetMinutes ?? 0, say)
-    return rule.anchor === 'MIDNIGHT'
+    return rule.anchor === DeadlineAnchor.MIDNIGHT
         ? say('registrationClosesBeforeAtMidnight', {span})
         : say('registrationClosesBefore', {span})
 }

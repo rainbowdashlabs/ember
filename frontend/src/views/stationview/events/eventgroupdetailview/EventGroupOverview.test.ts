@@ -22,6 +22,7 @@ function part(eventId: number, overrides: Partial<EventGroupPartState> = {}): Ev
 function detail(
     registrationLimit: number | null, holding: number, queued: number, parts: EventGroupPartState[],
     registrationDeadline: RegistrationDeadline = {kind: 'NONE', at: null, offsetMinutes: null, anchor: null},
+    closesAt: string | null = null,
 ): EventGroupDetail {
   return {
     eventGroup: {
@@ -31,7 +32,7 @@ function detail(
         color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null,
       },
       cancelled: false, cancelReason: null, partCount: parts.length, holding, queued, pending: 0,
-      firstStart: parts[0]?.startTime ?? null, lastEnd: null,
+      firstStart: parts[0]?.startTime ?? null, lastEnd: null, closesAt,
     },
     sets: [{id: 1, eventGroupId: 70, name: 'Übung', minimum: 1, maximum: null, position: 0}],
     parts,
@@ -79,11 +80,11 @@ describe('EventGroupOverview places', () => {
   })
 })
 
-/** The overview names when sign-ups close, counted from the first part where the deadline is relative. */
+/** The overview names when sign-ups close, as the server worked it out from the rule and the first part. */
 describe('EventGroupOverview deadline', () => {
-  it('counts a relative deadline back from the start of the first part', () => {
+  it('names the closing moment the server sends', () => {
     const weekBefore: RegistrationDeadline = {kind: 'RELATIVE', at: null, offsetMinutes: 7 * 1440, anchor: 'MIDNIGHT'}
-    const shown = overview(detail(null, 0, 0, [part(11)], weekBefore))
+    const shown = overview(detail(null, 0, 0, [part(11)], weekBefore, '2027-02-26T23:00:00Z'))
 
     expect(shown.get('[data-testid="event-group-closes-at"]').text()).toContain('27.02.2027, 00:00')
   })

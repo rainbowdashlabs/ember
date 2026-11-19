@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -205,6 +206,18 @@ public record StationCalendar(
     public Optional<LocalDate> dateInView(StationEvent event) {
         LocalDate today = today();
         return next(event, today).or(() -> previous(event, today));
+    }
+
+    /**
+     * When sign-up closes for the date a screen about the appointment is read for, see
+     * {@link #dateInView(StationEvent)}.
+     *
+     * @param event the appointment
+     * @return the instant, empty without a deadline or without any date
+     */
+    public Optional<Instant> closesInView(StationEvent event) {
+        if (!event.registrationDeadline().isSet()) return Optional.empty();
+        return dateInView(event).flatMap(date -> event.registrationClosesOn(date, zone()));
     }
 
     /**

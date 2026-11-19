@@ -62192,16 +62192,9 @@
             }, {
               "type" : "null"
             } ]
-          },
-          "registrationClosesAt" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
-            }, {
-              "type" : "null"
-            } ]
           }
         },
-        "required" : [ "event", "nextDate", "previousDate", "cancellation", "registrationClosesAt" ]
+        "required" : [ "event", "nextDate", "previousDate", "cancellation" ]
       },
       "DayBound" : {
         "type" : "object",
@@ -65555,9 +65548,16 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "closesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding", "queued", "pending", "firstStart", "lastEnd" ]
+        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding", "queued", "pending", "firstStart", "lastEnd", "closesAt" ]
       },
       "EventItem" : {
         "type" : "object",

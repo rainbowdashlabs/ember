@@ -157,6 +157,11 @@ class NotificationFeedGoldenTest {
         when(calendar.dateInView(any()))
                 .thenAnswer(inv -> Optional.of(LocalDate.ofInstant(
                         inv.<StationEvent>getArgument(0).startTime(), StationFormat.timezoneOf(berlin()))));
+        when(calendar.closesInView(any())).thenAnswer(inv -> {
+            StationEvent event = inv.getArgument(0);
+            var zone = StationFormat.timezoneOf(berlin());
+            return event.registrationClosesOn(LocalDate.ofInstant(event.startTime(), zone), zone);
+        });
         renderer = new NotificationFeedRenderer(
                 notificationService,
                 stationRepository,
@@ -345,7 +350,7 @@ class NotificationFeedGoldenTest {
         add(
                 list,
                 NotificationType.REGISTRATION_CLOSING,
-                new NotificationParams.RegistrationClosing("Probe", 2, "Tim"),
+                new NotificationParams.RegistrationClosing("Probe", 2, "Tim", null),
                 "event-detail",
                 event42);
         add(
@@ -449,7 +454,7 @@ class NotificationFeedGoldenTest {
         add(
                 list,
                 NotificationType.REGISTRATION_DEADLINE_EXPIRED,
-                new NotificationParams.RegistrationDeadlineExpired("Probe", 4),
+                new NotificationParams.RegistrationDeadlineExpired("Probe", 4, null),
                 "event-detail",
                 event42);
         add(

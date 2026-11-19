@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -119,16 +120,18 @@ class RegistrationDeadlineTest {
         assertEquals(Optional.of(at), fixed.closesAt(berlin("2026-05-10T10:00"), BERLIN));
         assertEquals(Optional.of(at), fixed.closesAt(berlin("2026-06-10T10:00"), BERLIN));
         assertEquals(Optional.empty(), RegistrationDeadline.none().closesAt(at, BERLIN));
-        assertFalse(RegistrationDeadline.none().closedAt(at, BERLIN, at.plus(Duration.ofDays(365))));
     }
 
     @Test
     void closedFromTheInstantItClosesOn() {
         var at = berlin("2026-05-01T12:00");
-        var fixed = RegistrationDeadline.fixed(at);
+        var series = weekly(RegistrationDeadline.fixed(at));
+        var date = LocalDate.of(2026, 5, 6);
 
-        assertFalse(fixed.closedAt(at, BERLIN, at.minusSeconds(1)));
-        assertTrue(fixed.closedAt(at, BERLIN, at));
+        assertFalse(series.registrationClosedOn(date, BERLIN, at.minusSeconds(1)));
+        assertTrue(series.registrationClosedOn(date, BERLIN, at));
+        assertFalse(
+                weekly(RegistrationDeadline.none()).registrationClosedOn(date, BERLIN, at.plus(Duration.ofDays(365))));
     }
 
     @Test
@@ -191,6 +194,60 @@ class RegistrationDeadlineTest {
         assertEquals(RegistrationDeadline.none(), series.registrationDeadline());
         assertEquals(Optional.empty(), series.registrationClosesOn(LocalDate.of(2026, 5, 6), BERLIN));
         assertTrue(series.registrationOpenOn(LocalDate.of(2026, 5, 6), BERLIN, berlin("2027-01-01T00:00")));
+    }
+
+    @Test
+    void anEventGroupIsClosedFromTheInstantItsDeadlineNames() {
+        var closes = berlin("2026-05-01T12:00");
+        var eventGroup = new EventGroup(
+                1,
+                1,
+                new EventGroupDetails("Lehrgang", null, null, RegistrationDeadline.fixed(closes), false, null),
+                RestrictionMode.AND,
+                RestrictionMode.AND,
+                false,
+                null,
+                null,
+                closes);
+
+        assertFalse(eventGroup.deadlinePassed(closes.minusSeconds(1)));
+        assertTrue(eventGroup.deadlinePassed(closes));
+    }
+
+    @Test
+    void theCloseInViewIsTheOneOfTheNextDate() {
+        var calendar = new StationCalendar(BERLIN, List.of());
+        var start = berlin("2030-05-01T20:00");
+        var series = weekly(RegistrationDeadline.relative(2 * 24 * 60, DeadlineAnchor.MIDNIGHT));
+        var later = new StationEvent(
+                series.id(),
+                series.stationId(),
+                series.name(),
+                null,
+                StationEvent.EventType.RECURRING,
+                start.atZone(BERLIN).getDayOfWeek().getValue(),
+                start,
+                start.plus(Duration.ofHours(2)),
+                null,
+                true,
+                series.registrationDeadline(),
+                false,
+                null,
+                RestrictionMode.AND,
+                RestrictionMode.AND,
+                false,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        assertEquals(LocalDateTime.parse("2030-04-29T00:00"), local(calendar.closesInView(later)));
+        assertEquals(Optional.empty(), calendar.closesInView(weekly(RegistrationDeadline.none())));
     }
 
     /** A weekly series on Wednesdays at eight in the evening, Berlin, taking sign-ups. */

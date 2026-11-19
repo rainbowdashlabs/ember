@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -92,7 +93,9 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
 
             checker.scheduledTasks().getFirst().work().run();
 
-            verify(bus).publish(new RegistrationDeadlineExpired(station.id(), event.id(), event.name(), 1, null));
+            verify(bus)
+                    .publish(new RegistrationDeadlineExpired(
+                            station.id(), event.name(), 1, date, NotificationLinks.eventRegistrations(event.id())));
             assertEquals(
                     RegistrationStatus.PENDING,
                     eventRegistrationRepo.findById(asked.id()).orElseThrow().status());
@@ -126,7 +129,9 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
             checker.scheduledTasks().getFirst().work().run();
 
             verify(bus, times(1)).publish(any(RegistrationDeadlineExpired.class));
-            verify(bus).publish(new RegistrationDeadlineExpired(station.id(), event.id(), event.name(), 1, near));
+            verify(bus)
+                    .publish(new RegistrationDeadlineExpired(
+                            station.id(), event.name(), 1, near, NotificationLinks.eventRegistrations(event.id())));
             assertEquals(
                     RegistrationStatus.PENDING,
                     eventRegistrationRepo
@@ -164,7 +169,9 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
             checker.scheduledTasks().getFirst().work().run();
 
             verify(bus, times(1)).publish(any(RegistrationDeadlineExpired.class));
-            verify(bus).publish(new RegistrationDeadlineExpired(station.id(), event.id(), event.name(), 3, null));
+            verify(bus)
+                    .publish(new RegistrationDeadlineExpired(
+                            station.id(), event.name(), 3, null, NotificationLinks.eventRegistrations(event.id())));
         } finally {
             eventRepo.delete(event.id());
         }

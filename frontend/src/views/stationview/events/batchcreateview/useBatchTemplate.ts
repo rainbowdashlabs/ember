@@ -6,7 +6,9 @@
 import {computed, reactive, ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {appointmentDocuments, events} from '@/api'
-import {EventType, QueueOrder, type BatchCreateRequest, type TemplateDetailResponse} from '@/api/generated/schema'
+import {EventType, QueueOrder, type BatchCreateRequest, type RegistrationDeadline, type TemplateDetailResponse} from '@/api/generated/schema'
+import {noDeadline} from '../eventshared/registrationDeadline'
+import {signUpRulesOf} from '../templateeditview/signUpRules'
 import {useEventFederationShare} from '../eventeditview/useEventFederationShare'
 import {eventFederationPort, templateFederationPort} from '../eventeditview/eventOwnerPorts'
 
@@ -48,6 +50,7 @@ export function useBatchTemplate(canFederate: Ref<boolean>) {
         queueOrder: QueueOrder.TIME as QueueOrder,
         minRegistrations: undefined as number | undefined,
         thresholdDays: undefined as number | undefined,
+        registrationDeadline: noDeadline() as RegistrationDeadline,
     })
     const applied = ref<AppliedTemplate | null>(null)
     const shareNote = ref('')
@@ -60,10 +63,7 @@ export function useBatchTemplate(canFederate: Ref<boolean>) {
      */
     async function apply(detail: TemplateDetailResponse, templateId: number) {
         const tpl = detail.template
-        if (tpl.registrationLimit != null) settings.registrationLimit = tpl.registrationLimit
-        if (tpl.queueOrder != null) settings.queueOrder = tpl.queueOrder
-        if (tpl.minRegistrations != null) settings.minRegistrations = tpl.minRegistrations
-        if (tpl.thresholdDays != null) settings.thresholdDays = tpl.thresholdDays
+        Object.assign(settings, signUpRulesOf(tpl))
         const [files, documents, defaults, share] = await Promise.all([
             events.listTemplateAttachments(templateId),
             appointmentDocuments.listRequirements({kind: 'event-templates', id: templateId}),
@@ -127,6 +127,7 @@ export function useBatchTemplate(canFederate: Ref<boolean>) {
             queueOrder: requiresRegistration && settings.registrationLimit ? settings.queueOrder : null,
             minRegistrations: requiresRegistration ? settings.minRegistrations ?? null : null,
             thresholdDays: requiresRegistration && settings.minRegistrations ? settings.thresholdDays ?? null : null,
+            registrationDeadline: requiresRegistration ? settings.registrationDeadline : noDeadline(),
             reminderDays: template?.reminderDays ?? [],
             eventTemplateId: template?.id ?? null,
         }
