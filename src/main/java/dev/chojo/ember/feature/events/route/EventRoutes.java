@@ -912,6 +912,11 @@ public class EventRoutes implements Routes {
         if (req.rows() == null || req.rows().isEmpty()) {
             throw EventRefusal.BATCH_NEEDS_ROWS.raise();
         }
+        ctx.json(batchEventService.createBatch(session.stationId(), batchRequestOf(req)));
+    }
+
+    /** What the batch service is asked for, read from the request with its missing lists as empty ones. */
+    private static BatchRequest batchRequestOf(BatchCreateRequest req) {
         var requestedInlineFields = req.inlineFields();
         List<BatchFieldEntry> inlineFields = requestedInlineFields != null
                 ? requestedInlineFields.stream()
@@ -925,7 +930,7 @@ public class EventRoutes implements Routes {
                         r.endTime(),
                         Objects.requireNonNullElse(r.fieldValues(), Map.<String, String>of())))
                 .toList();
-        var batchReq = new BatchRequest(
+        return new BatchRequest(
                 req.name(),
                 req.description(),
                 req.templateId(),
@@ -944,8 +949,6 @@ public class EventRoutes implements Routes {
                 req.registrationDeadlineOffsetHours(),
                 Objects.requireNonNullElse(req.reminderDays(), List.<Integer>of()),
                 req.eventTemplateId());
-        var created = batchEventService.createBatch(session.stationId(), batchReq);
-        ctx.json(created);
     }
 
     @OpenApi(

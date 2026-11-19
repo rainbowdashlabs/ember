@@ -21,6 +21,14 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Üblicher Port für den Mailserver.** Die Mail-Einstellungen nennen den üblichen Port zur gewählten Verschlüsselung und weisen auf einen Port hin, der nicht dazu passt. Gespeichert wird der Port trotzdem so, wie er eingetragen ist.
 - **Versandabstand der Instanz sichtbar.** Überlässt eine Wache die Versandzeiten der Benachrichtigungen der Instanz, steht jetzt dabei, wie oft die Instanz sie verschickt.
 - **Adresssuche in der Demo eingeschaltet.** Eine Demo-Instanz sucht Adressen und Orte von Terminen von Anfang an über den öffentlichen Photon-Server. Abschalten lässt sie sich weiterhin unter Einstellungen → Karten.
+- **Mitglieder von Partnerwachen beantworten die Fragen.** Wer sich als Mitglied einer Partnerwache für einen geteilten Termin anmeldet, beantwortet die Fragen des Termins, und die Antworten stehen bei der Anmeldung. Vor dem Anmelden ist zu sehen, ob der Termin voll ist; dann geht es auf die Nachrückliste.
+- **Terminreihen in eigener Liste.** Die Terminübersicht hat einen Reiter mit allen Terminreihen, ihrem ersten und letzten Termin, ihren Anmeldungen und ob sie abgesagt sind.
+- **Mehrere Termine übernehmen die ganze Vorlage.** Plätze, Reihenfolge der Nachrückliste, Fragen, Erinnerungen, Mindestanzahl, Anmeldeschluss, Dokumente, Dateien und Teilen einer Vorlage kommen jetzt bei jedem auf einmal angelegten Termin an. Was eine Vorlage nicht mitgeben kann, steht auf der Seite.
+- **Ruhigere Formulare für Termine.** Die Formulare von Terminen, Terminreihen und Vorlagen zeigen das Wichtigste und klappen den Rest in Abschnitte ein, die in einer Zeile sagen, was eingestellt ist. Ein Abschnitt öffnet sich von selbst, wenn darin etwas Aufmerksamkeit braucht.
+- **Eine Kopfzeile für Termin- und Terminreihenseite.** Beide Seiten haben Zurück, Bearbeiten und ein Menü mit Absagen und Löschen, und auf dem Handy bleiben die Knöpfe in einer Zeile. Ein Termin lässt sich auf seiner eigenen Seite löschen, und die Frage sagt, was mitgeht.
+- **Anwesenheit im eigenen Reiter.** Die Terminseite hat für alle, die Anwesenheit erfassen, einen Reiter Anwesenheit neben dem Eintrag im Menü.
+- **Nachfrage vor dem Ablehnen einer bestätigten Anmeldung.** Wer schon einen Platz hat, wird erst nach einer Nachfrage abgelehnt, und Bestätigen oder Ablehnen meldet, wenn es geklappt hat.
+- **Termine einer Terminreihe besser erreichbar.** Im Editor der Terminreihe zeigt jeder Termin Datum mit Beginn und Ende, führt zu seinem eigenen Editor und ist markiert, wenn er abgesagt ist. Eine neue Terminreihe lässt sich gleich beim Anlegen mit Partnerwachen teilen.
 
 ### Änderungen
 
@@ -28,10 +36,13 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Benachrichtigungen per E-Mail sind von Haus aus eingeschaltet.** Mitglieder ohne eigene E-Mail-Einstellung bekommen Benachrichtigungen per E-Mail, sobald die Wache oder die Instanz E-Mails versenden kann, und zwar für jede Art. Bestehende E-Mail-Einstellungen bleiben, wie sie waren.
 - **Antwortadresse oben in den Mail-Einstellungen.** Die Antwortadresse steht nicht mehr im Kasten zu den Mailanbietern der Instanz, sondern ganz oben auf der Seite, weil sie für alle Mails der Wache gilt.
 - **Karteneinstellungen unter Einstellungen.** Die Seite der Verwaltung für Kartenkacheln und Adresssuche steht unter Einstellungen statt unter Monitoring, unter `/admin/settings/maps`.
+- **Ein Wort für jeden Begriff der Anmeldung.** Termine und Terminreihen sagen einheitlich Plätze, Anmeldeschluss, bestätigen und „Wer sich anmelden darf“, und wiederkehrende Termine heißen überall so. Die Warteliste der Aufnahme heißt jetzt Bewerberliste und ist nicht mehr mit der Nachrückliste voller Termine zu verwechseln.
+- **Anmeldungen zu Terminreihen werden bei der Terminreihe entschieden.** Die offenen Anmeldungen führen jede Terminreihe mit wartenden Anmeldungen einmal auf und verweisen auf sie, statt ihre Termine einzeln zu zeigen. Die Zahl in der Seitenleiste zählt jede solche Anmeldung einmal.
+- **Geteilte Termine brauchen diese Version auf beiden Seiten.** Das Teilen von Terminen mit einer Partnerwache auf einem anderen Server ruht, bis beide diese Version haben.
 
 ### Fehlerbehebungen
 
-- **Teilnehmerlimit wurde nicht eingehalten.** Ein Termin konnte mehr Anmeldungen annehmen, als sein Teilnehmerlimit erlaubt, denn das Limit wurde angezeigt, aber nie geprüft. Anmeldungen über das Limit hinaus kommen jetzt auf die Nachrückliste.
+- **Plätze wurden nicht eingehalten.** Ein Termin konnte mehr Anmeldungen aufnehmen, als er Plätze hat, denn die Plätze wurden angezeigt, aber nie geprüft. Anmeldungen über die Plätze hinaus kommen jetzt auf die Nachrückliste.
 - **Anmeldezahlen bei kommenden Terminen verrutschten.** In manchen Fällen standen die Anmeldezahlen eines Termins mit einer langen Zeile in der Beschreibung unter dem Text statt daneben. Die Beschreibung bricht jetzt um, sodass die Zahlen daneben bleiben, wo Platz ist.
 - **Zustimmung nach Änderungen doppelt abgefragt.** Nach einer Änderung der Datenschutzerklärung oder der Nutzungsbedingungen galt die Zustimmung auf der Anmeldeseite nicht für das Konto, sodass dieselbe Frage direkt nach der Anmeldung noch einmal kam. Eine Zustimmung vor der Anmeldung gilt jetzt auch für das Konto.
 - **Installieren wurde nicht immer angeboten.** In manchen Fällen startete der Hintergrundteil von Ember nicht, sodass der Browser die Installation nicht anbot und gespeicherte Dateien sich im Browser öffnen konnten. Er startet jetzt mit jeder Seite.
@@ -39,6 +50,9 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Berechtigung für Wachenchats ohne Symbol.** In der Rechteauswahl stand „Wachenchats verwalten“ als einzige Gruppe ohne Symbol. Jetzt hat sie eines wie die anderen.
 - **iPhones als Mac unter den Anmeldungen.** Die Liste der Anmeldungen zeigte ein iPhone als Mac mit dem Symbol für Apple-Rechner. Jetzt steht dort iOS.
 - **Schließen einer Frage konnte sie löschen.** In einer Liste von Fragen lag nach dem Schließen einer geöffneten Frage ihr Löschknopf genau unter dem Mauszeiger, so dass ein Doppelklick auf den Pfeil die Frage löschen konnte. Der Pfeil bleibt jetzt am Ende der Zeile, der Löschknopf steht mit Abstand davor.
+- **Fragen konnten beim Bearbeiten verloren gehen.** In manchen Fällen zeigte der Editor Fragen, Erinnerungen oder das Teilen eines Termins leer an, wenn sie sich nicht laden ließen, und Speichern entfernte sie. Jetzt zeigt der Editor den Fehler und kein Formular.
+- **Plätze beim Anlegen mehrerer Termine ignoriert.** Plätze und Mindestanzahl, die beim Anlegen mehrerer Termine auf einmal eingetragen wurden, wurden nicht gespeichert. Jetzt bekommt sie jeder Termin.
+- **Fehler beim Laden sahen aus wie leere Listen.** In manchen Fällen erschienen Anmeldungen von Partnerwachen und die Auswahl der Terminreihen im Editor eines Termins leer, wenn sie sich nicht laden ließen. Jetzt sagt die Seite, dass das Laden fehlgeschlagen ist.
 
 ## v26.25.1
 

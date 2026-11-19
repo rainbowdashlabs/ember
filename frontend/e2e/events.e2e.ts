@@ -713,6 +713,62 @@ test.describe('Events', () => {
     })
 
     /**
+     * A batch made from an appointment template takes the whole template, not only its title: every
+     * appointment of the batch has the template's places and asks its question. The story writes its
+     * own template, applies it on the batch page, and reads the appointments it made.
+     */
+    test('a batch from a template keeps its places and its question', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const title = `Vorlagenserie-${Date.now()}`
+        const question = 'Welche Größe?'
+        const created = await page.request.post('/api/v1/event-templates', {headers, data: {name: title}})
+        expect(created.ok(), `the template was made (${await created.text()})`).toBeTruthy()
+        const templateId = (await created.json() as {id: number}).id
+        const made: number[] = []
+        try {
+            const updated = await page.request.put(`/api/v1/event-templates/${templateId}`, {
+                headers,
+                data: {name: title, title, eventType: 'ONE_TIME', requiresRegistration: true, registrationLimit: 7},
+            })
+            expect(updated.ok(), `the template sets places (${await updated.text()})`).toBeTruthy()
+            const asked = await page.request.put(`/api/v1/event-templates/${templateId}/registration-fields`, {
+                headers,
+                data: {fields: [{name: question, fieldType: 'TEXT', config: {}, overview: false}]},
+            })
+            expect(asked.ok(), `the template asks a question (${await asked.text()})`).toBeTruthy()
+
+            await page.goto('/station/events/batch')
+            await page.locator('select').filter({has: page.locator('option', {hasText: title})}).first()
+                .selectOption({label: title})
+            await expect(page.getByTestId('batch-template-carried')).toContainText('Fragen zur Anmeldung: 1')
+            await page.getByRole('button', {name: 'Weiter'}).click()
+
+            const dates = page.locator('input[type="date"]:visible')
+            await dates.first().fill('2027-03-01')
+            await dates.nth(1).fill('2027-03-14')
+            await page.getByRole('button', {name: 'Termine generieren'}).click()
+            await expect(page.getByText(/\d+ Termine werden erstellt/)).toBeVisible()
+            await page.getByRole('button', {name: 'Termine erstellen'}).click()
+            await expect(page.getByText(/Termine erstellt/)).toBeVisible()
+
+            const listed = await page.request.get('/api/v1/events', {headers})
+            const batch = (await listed.json() as {id: number, name: string, registrationLimit: number | null}[])
+                .filter(event => event.name === title)
+            made.push(...batch.map(event => event.id))
+            expect(batch.length, 'the batch made appointments').toBeGreaterThan(0)
+            for (const event of batch) {
+                expect(event.registrationLimit, 'each appointment has the template\'s places').toBe(7)
+                const fields = await page.request.get(`/api/v1/events/${event.id}/registration-fields`, {headers})
+                expect((await fields.json() as {name: string}[]).map(field => field.name),
+                    'each appointment asks the template\'s question').toEqual([question])
+            }
+        } finally {
+            for (const id of made) await page.request.delete(`/api/v1/events/${id}`, {headers})
+            await page.request.delete(`/api/v1/event-templates/${templateId}`, {headers})
+        }
+    })
+
+    /**
      * A category is what a manager reaches for when the list of events stops being readable. The
      * story creates one and reloads: a category that only lives in the open page is no category.
      */

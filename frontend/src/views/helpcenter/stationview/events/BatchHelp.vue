@@ -76,6 +76,11 @@ const exampleRows = [
       <p>{{ t('helpCenter.batchCreate.waysManual') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.batchCreate.templateTitle')">
+      <p>{{ t('helpCenter.batchCreate.templateText') }}</p>
+      <p>{{ t('helpCenter.batchCreate.templateLeftOutText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.batchCreate.manualExampleTitle')">
       <NeutralContainer class="space-y-4">
         <div class="flex flex-wrap gap-2">
