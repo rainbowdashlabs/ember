@@ -19,7 +19,8 @@ import {useSession} from '@/composables/useSession'
 /**
  * The documents an event group asks every part to bring and the files it hands over on every part, in
  * the event group editor. The documents are saved with the event group; the files are written as they
- * change, so they are offered only once the event group exists. Both sit in one folded section that
+ * change once the event group exists. Files added to a new event group wait until it is created, and
+ * the editor hangs them on it through {@link attachPendingTo}. Both sit in one folded section that
  * counts them.
  */
 const props = defineProps<{
@@ -42,6 +43,19 @@ watch(() => props.eventGroupId, id => {
 function choose(chosen: RequiredTemplate[]) {
   props.requirements.choose(chosen)
 }
+
+/**
+ * Hangs the files added before the event group existed on the one just created, in their order.
+ *
+ * @param eventGroupId the event group just created
+ * @param carried      the library files it already received from its template, which are not attached twice
+ * @return the names of the files that could not be attached
+ */
+function attachPendingTo(eventGroupId: number, carried: ReadonlySet<number> = new Set()): Promise<string[]> {
+  return attachments.attachPendingTo(eventGroupAttachmentPort(eventGroupId), carried)
+}
+
+defineExpose({attachPendingTo})
 </script>
 
 <template>
@@ -58,12 +72,12 @@ function choose(chosen: RequiredTemplate[]) {
         @update:model-value="choose"
     />
     <AttachmentsCard
-        v-if="props.eventGroupId != null"
         v-model:attachments="attachments.attachments.value"
         :station-uid="stationUid"
         :failure="attachments.failure.value"
         :hint="t('eventGroups.attachmentsHint')"
         :compact="props.compact"
+        :pending="props.eventGroupId == null"
         @add="attachments.add"
         @save="attachments.save"
         @remove="attachments.remove"

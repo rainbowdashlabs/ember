@@ -3536,6 +3536,8 @@ export default {
             title: 'Dateien',
             hint: 'Dateien aus der Mediathek, die zu diesem Termin gehören: Laufzettel, Formulare, Pläne.',
             savedRightAway: 'Änderungen an den Dateien gelten sofort, nicht erst mit Speichern.',
+            savedOnCreate: 'Die Dateien werden angehängt, sobald gespeichert ist.',
+            pendingFailed: 'Gespeichert, aber diese Dateien konnten nicht angehängt werden: {files}. Häng sie im Editor noch einmal an.',
             add: 'Datei anhängen',
             empty: 'Noch keine Dateien angehängt.',
             labelPlaceholder: 'Anzeigename (optional)',

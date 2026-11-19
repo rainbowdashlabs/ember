@@ -10,7 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+import HintIcon from '@/components/typography/HintIcon.vue'
 import {moveWithin} from '@/util/reorder'
 import {DRAG_CONTROL_COLUMN} from '@/components/input/dragControls'
 import type {SetRow} from './eventGroupSetRow'
@@ -20,6 +20,9 @@ const NUMBER_COLUMN = 'w-24 shrink-0'
 
 /** The width of the delete button, kept as an empty column where a lone set cannot be removed, so the header lines up. */
 const ACTION_COLUMN = 'w-8 shrink-0'
+
+/** The width of the info icon that says what the set's numbers mean, kept empty where there is nothing to say. */
+const HINT_COLUMN = 'w-5 shrink-0'
 
 /**
  * The sets of an event group, in the order members see them: a name and how many of its parts a sign-up
@@ -101,11 +104,12 @@ function update(index: number, change: Partial<SetRow>) {
       <span class="flex-1 min-w-40">{{ t('eventGroups.setName') }}</span>
       <span :class="NUMBER_COLUMN">{{ t('eventGroups.setMinimumColumn') }}</span>
       <span :class="NUMBER_COLUMN">{{ t('eventGroups.setMaximumColumn') }}</span>
+      <span :class="HINT_COLUMN" aria-hidden="true"/>
       <span :class="ACTION_COLUMN" aria-hidden="true"/>
     </div>
     <DragList :items="sets" :key-fn="(set, index) => set.id ?? `new-${index}`" @reorder="(from, to) => sets = moveWithin(sets, from, to)">
       <template #default="{item: set, index}">
-        <div class="space-y-1">
+        <div>
           <div class="flex flex-wrap items-end gap-2 sm:flex-nowrap sm:items-center">
             <TextInput
                 :model-value="set.name"
@@ -134,11 +138,13 @@ function update(index: number, change: Partial<SetRow>) {
                   @update:model-value="value => update(index, {maximum: boundedMaximum(set, value)})"
               />
             </span>
+            <span :class="[HINT_COLUMN, 'flex items-center']" :data-testid="`event-group-set-hint-${index}`">
+              <HintIcon v-if="hint(set)" :text="hint(set)"/>
+            </span>
             <span :class="ACTION_COLUMN">
               <DeleteButton v-if="sets.length > 1" :label="t('eventGroups.removeSet')" @click="remove(index)"/>
             </span>
           </div>
-          <MutedText tag="p" size="sm" :data-testid="`event-group-set-hint-${index}`">{{ hint(set) }}</MutedText>
         </div>
       </template>
     </DragList>

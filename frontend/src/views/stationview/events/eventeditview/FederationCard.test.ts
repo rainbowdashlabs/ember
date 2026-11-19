@@ -33,4 +33,14 @@ describe('FederationCard', () => {
         expect(full.find('[data-testid="hint-icon"]').exists()).toBe(false)
         expect(full.find('h3').exists()).toBe(true)
     })
+
+    /** The hint belongs to the switch, so it stands beside the switch's label, not at the far end of the card. */
+    it('puts the hint icon beside the label of the switch', () => {
+        const toggle = card(true).get('[data-testid="federation-share-toggle"]')
+
+        const label = toggle.get('span')
+        expect(label.text()).toContain('Mit Partnerwachen teilen')
+        expect(label.find('[data-testid="hint-icon"]').exists()).toBe(true)
+        expect(toggle.find('[role="switch"], button[aria-labelledby]').exists()).toBe(true)
+    })
 })

@@ -30,6 +30,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Nachfrage vor dem Ablehnen einer bestätigten Anmeldung.** Wer schon einen Platz hat, wird erst nach einer Nachfrage abgelehnt, und Bestätigen oder Ablehnen meldet, wenn es geklappt hat.
 - **Termine einer Terminreihe besser erreichbar.** Im Editor der Terminreihe zeigt jeder Termin Datum mit Beginn und Ende, führt zu seinem eigenen Editor und ist markiert, wenn er abgesagt ist. Eine neue Terminreihe lässt sich gleich beim Anlegen mit Partnerwachen teilen.
 - **Fragen ohne vorher die Anmeldung einzuschalten.** Die Fragen eines Termins oder einer Vorlage stehen immer im Formular. Wer eine hinzufügt, schaltet damit die Anmeldung ein, und sie bleibt an, solange es Fragen gibt.
+- **Dateien schon beim Anlegen.** Dateien lassen sich hinzufügen, während ein Termin oder eine Terminreihe noch angelegt wird, und werden beim Speichern in ihrer Reihenfolge angehängt.
 
 ### Änderungen
 

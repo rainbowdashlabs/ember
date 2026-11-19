@@ -30,6 +30,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **A question before refusing a confirmed sign-up.** Refusing somebody who already has a place asks first, and confirming or refusing a sign-up says once it went through.
 - **Parts of an event group easier to reach.** In the event group editor each appointment shows its date with start and end, links to its own editor and is marked when cancelled. A new event group can be shared with partner stations in the same save that creates it.
 - **Questions without switching sign-up on first.** The questions of an appointment or template are always on the form. Adding one switches sign-up on, and sign-up stays on while there are questions.
+- **Files on new appointments and event groups.** Files can be added while an appointment or event group is still being created, and they are attached in order as soon as it is saved.
 
 ### Changes
 

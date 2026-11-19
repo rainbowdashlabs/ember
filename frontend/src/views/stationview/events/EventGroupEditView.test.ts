@@ -50,11 +50,20 @@ const replace = vi.hoisted(() => vi.fn())
 vi.mock('vue-router', () => ({useRoute: () => route, useRouter: () => ({replace})}))
 const toast = vi.hoisted(() => vi.fn())
 vi.mock('@/util/toast', () => ({showToast: toast}))
+const attachPendingTo = vi.hoisted(() => vi.fn(async (_eventGroupId: number, _carried?: ReadonlySet<number>) => [] as string[]))
+
+/** The files section as the editor reaches it: only the pending files it hangs on a created group. */
+const FilesSectionStub = {
+  template: '<div data-testid="event-group-files-section-stub"/>',
+  setup(_props: unknown, {expose}: {expose: (exposed: Record<string, unknown>) => void}) {
+    expose({attachPendingTo})
+  },
+}
 
 function mountEditor() {
   return mount(EventGroupEditView, {
     global: {stubs: {ViewContent: {template: '<div><slot/></div>'}, MarkdownEditor: true, EventGroupSignUpFields: true, EventGroupColorField: true, RestrictionsField: true, EventGroupSetsEditor: true,
-      EventGroupQuestionsCard: true, EventGroupFieldsCard: true, EventGroupShareCard: true, EventGroupPartsEditor: true, EventGroupDateSettingsSection: true, EventGroupFilesSection: true}},
+      EventGroupQuestionsCard: true, EventGroupFieldsCard: true, EventGroupShareCard: true, EventGroupPartsEditor: true, EventGroupDateSettingsSection: true, EventGroupFilesSection: FilesSectionStub}},
   })
 }
 
@@ -289,6 +298,21 @@ describe('EventGroupEditView from an appointment template', () => {
     }))
     expect(api.eventGroups.setSettings).toHaveBeenCalledWith(7, expect.objectContaining({templateId: 4, categoryId: 2, reminderDays: [3]}))
     expect(api.eventGroups.attachFile).toHaveBeenCalledWith(7, 40, 'Anfahrt', false)
+  })
+
+  /** Files added before the group existed go onto it once it is created, after the template's. */
+  it('hangs the files added to the new group on it after the template\'s, leaving out the template\'s own', async () => {
+    const wrapper = mountEditor()
+    await flushPromises()
+    await wrapper.find('[data-testid="event-group-apply-template"]').setValue('5')
+    await flushPromises()
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+
+    expect(attachPendingTo).toHaveBeenCalledWith(7, new Set([40]))
+    expect(api.eventGroups.attachFile.mock.invocationCallOrder[0]).toBeLessThan(attachPendingTo.mock.invocationCallOrder[0]!)
+    expect(replace).toHaveBeenCalledWith({name: 'event-group-edit', params: {eventGroupId: 7}})
   })
 })
 

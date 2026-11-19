@@ -9,7 +9,9 @@ import {flushPromises, mount} from '@vue/test-utils'
 import {computed, ref} from 'vue'
 import EventEditView from './EventEditView.vue'
 import EventEditBody from './eventeditview/EventEditBody.vue'
+import AttachmentsCard from './eventeditview/AttachmentsCard.vue'
 import {
+    type StationFile,
     EventType,
     FederationStatus,
     RestrictionMode,
@@ -40,6 +42,7 @@ const api = vi.hoisted(() => ({
         listEventAttachments: vi.fn(),
         attachEventFile: vi.fn(),
         getNextDate: vi.fn(),
+        createEvent: vi.fn(),
         updateEvent: vi.fn(),
         setFieldDefaults: vi.fn(),
         setEventReminders: vi.fn(),
@@ -54,7 +57,7 @@ const api = vi.hoisted(() => ({
         eventGroupOfEvent: vi.fn(async (): Promise<unknown> => null), getEventGroup: vi.fn(), partSettings: vi.fn(), setPartLimit: vi.fn(),
     },
     federation: {listPartners: vi.fn()},
-    appointmentDocuments: {offeredTemplates: vi.fn(), listRequirements: vi.fn()},
+    appointmentDocuments: {offeredTemplates: vi.fn(), listRequirements: vi.fn(), setRequirements: vi.fn(async () => [])},
 }))
 vi.mock('@/api', () => api)
 
@@ -153,6 +156,53 @@ describe('EventEditView creating from a template', () => {
         api.federation.listPartners.mockResolvedValue([partner(5), partner(6, FederationStatus.SUSPENDED)])
         api.appointmentDocuments.offeredTemplates.mockResolvedValue({total: 0, items: []})
         api.appointmentDocuments.listRequirements.mockResolvedValue([])
+    })
+
+    /**
+     * A new appointment takes files before it exists. They go on last, once everything else of the
+     * save has landed, behind the template's, which the server attaches with the creation itself; a
+     * file the template brings already is not attached a second time.
+     */
+    it('attaches the files added to a new appointment at the end of its save, not the template\'s again', async () => {
+        api.events.createEvent.mockResolvedValue({id: 55, eventType: EventType.ONE_TIME})
+        api.events.attachEventFile.mockImplementation(async (_id: number, fileId: number) => file(9, `datei-${fileId}`))
+        const wrapper = await applyTemplateInEditor()
+        const card = wrapper.findComponent(AttachmentsCard)
+        expect(card.props('pending')).toBe(true)
+
+        card.vm.$emit('add', {id: 70, fileName: 'anfahrt.pdf'} as StationFile)
+        card.vm.$emit('add', {id: 41, fileName: 'laufzettel.pdf'} as StationFile)
+        await flushPromises()
+        expect(api.events.attachEventFile).not.toHaveBeenCalled()
+
+        wrapper.findComponent(EventEditBody).vm.$emit('submit')
+        await flushPromises()
+
+        expect(api.events.attachEventFile.mock.calls).toEqual([[55, 70, null, false]])
+        expect(api.appointmentDocuments.setRequirements.mock.invocationCallOrder[0])
+            .toBeLessThan(api.events.attachEventFile.mock.invocationCallOrder[0]!)
+    })
+
+    /** A save refused after the appointment was created changes that appointment when tried again, files included once. */
+    it('changes the appointment it created when the save is tried again, and attaches the files once', async () => {
+        api.events.createEvent.mockResolvedValue({id: 55, eventType: EventType.ONE_TIME})
+        api.events.updateEvent.mockResolvedValue({id: 55, eventType: EventType.ONE_TIME})
+        api.events.attachEventFile.mockImplementation(async (_id: number, fileId: number) => file(9, `datei-${fileId}`))
+        api.events.setEventReminders.mockRejectedValueOnce({response: {status: 500, data: {}}})
+        const wrapper = await applyTemplateInEditor()
+        wrapper.findComponent(AttachmentsCard).vm.$emit('add', {id: 70, fileName: 'anfahrt.pdf'} as StationFile)
+        await flushPromises()
+
+        wrapper.findComponent(EventEditBody).vm.$emit('submit')
+        await flushPromises()
+        expect(api.events.attachEventFile).not.toHaveBeenCalled()
+
+        wrapper.findComponent(EventEditBody).vm.$emit('submit')
+        await flushPromises()
+
+        expect(api.events.createEvent).toHaveBeenCalledOnce()
+        expect(api.events.updateEvent).toHaveBeenCalledWith(55, expect.objectContaining({scope: null}))
+        expect(api.events.attachEventFile.mock.calls).toEqual([[55, 70, null, false]])
     })
 
     it('takes the field starting values into the form', async () => {

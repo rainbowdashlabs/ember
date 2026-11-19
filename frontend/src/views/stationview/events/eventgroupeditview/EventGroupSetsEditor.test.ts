@@ -38,6 +38,8 @@ describe('EventGroupSetsEditor', () => {
     await input.setValue('4')
     expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: null, name: 'Prüfung', minimum: 4, maximum: null}])
     expect(editor.get('[data-testid="event-group-set-hint-0"]').text()).toBe('gilt, sobald der Block Termine hat')
+    expect(editor.find('[data-testid="event-group-set-hint-0"] [data-testid="hint-icon"]').exists(),
+        'the hint is an info icon in the row, beside the numbers it is about').toBe(true)
   })
 
   it('shows the number the set holds once a typed one past the bound is left', async () => {

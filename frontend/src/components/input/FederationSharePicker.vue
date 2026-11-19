@@ -4,11 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import HintIcon from '@/components/typography/HintIcon.vue'
 import {ShareScope, type PartnerResponse} from '@/api/generated/schema'
 
 const shared = defineModel<boolean>('shared', {required: true})
@@ -19,9 +20,16 @@ const props = defineProps<{
   partners: PartnerResponse[]
   disabled?: boolean
   noPermissionHint?: string
+  /**
+   * What sharing means, behind an info icon right beside the switch's label, as the sign-up switch of
+   * the appointment form has it: the label and its icon on the left, the switch on the right.
+   */
+  hint?: string
 }>()
 
 const {t} = useI18n()
+
+const labelId = useId()
 
 const activePartners = computed(() =>
     props.partners.filter(p => p.partner.status === 'ACTIVE')
@@ -38,7 +46,14 @@ function togglePartner(id: number, checked: boolean) {
 
 <template>
   <div class="space-y-2">
-    <label class="flex items-center gap-3">
+    <div v-if="hint" class="flex items-center justify-between" data-testid="federation-share-toggle">
+      <span class="flex items-center gap-1">
+        <span :id="`${labelId}-share`" class="text-sm font-medium">{{ t('federationShare.enable') }}</span>
+        <HintIcon :text="hint"/>
+      </span>
+      <ToggleInput v-model="shared" :disabled="disabled" :aria-labelledby="`${labelId}-share`"/>
+    </div>
+    <label v-else class="flex items-center gap-3">
       <ToggleInput v-model="shared" :disabled="disabled"/>
       <span class="text-sm">{{ t('federationShare.enable') }}</span>
     </label>

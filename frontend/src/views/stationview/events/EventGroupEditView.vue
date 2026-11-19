@@ -260,6 +260,9 @@ function detailsToSave(): EventGroupDetails {
  */
 const createdEventGroupId = ref<number | null>(null)
 
+/** The files section, which keeps the files added before the event group existed until it is created. */
+const filesSection = ref<InstanceType<typeof EventGroupFilesSection> | null>(null)
+
 /** Creates the event group with everything that goes in the same request, and fills the form from it. */
 async function createEventGroup(drafts: SetRow[]): Promise<number> {
   const created = await eventGroups.createEventGroup({
@@ -280,7 +283,8 @@ async function createEventGroup(drafts: SetRow[]): Promise<number> {
 /**
  * Saves the event group, then its settings, documents and share. A new event group is shared in the
  * same save, the way a new appointment is; one that is not shared sends nothing about sharing, since
- * there is nothing to take away. The template's files go last and the form moves to the saved group.
+ * there is nothing to take away. The template's files go last, followed by the files added before the
+ * group existed, and the form moves to the saved group.
  */
 async function save() {
   saving.value = true
@@ -301,7 +305,9 @@ async function save() {
       await federationShare.save(eventGroupFederationPort(savedId))
     }
     if (eventGroupId.value != null) return
+    const fromTemplateFiles = new Set(fromTemplate.files.value.map(file => file.fileId))
     reportGoneFiles(await fromTemplate.attachFiles(savedId))
+    await filesSection.value?.attachPendingTo(savedId, fromTemplateFiles)
     showToast(t('eventGroups.saved'), 'success')
     await router.replace({name: 'event-group-edit', params: {eventGroupId: savedId}})
   } catch (e) {
@@ -348,7 +354,7 @@ async function save() {
           </FormSection>
 
           <EventGroupQuestionsCard v-model="questions" compact/>
-          <EventGroupFilesSection :event-group-id="eventGroupId" :requirements="requirements" compact/>
+          <EventGroupFilesSection ref="filesSection" :event-group-id="eventGroupId" :requirements="requirements" compact/>
           <EventGroupShareCard :federation-share="federationShare" :can-federate="canFederate" :attention="!!saveFailure" compact/>
 
           <div class="space-y-3">

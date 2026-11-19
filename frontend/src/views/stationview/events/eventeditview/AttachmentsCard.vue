@@ -30,6 +30,8 @@ const props = defineProps<{
   hint?: string
   /** The explanations behind a hint icon by the heading, which also says that changes here save at once. */
   compact?: boolean
+  /** Whether the owner is still being created, so the files are attached only once it is saved. */
+  pending?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -44,7 +46,7 @@ const {t} = useI18n()
 /** Everything the section explains, in one hint: what the files are for, that they save at once, and who sees them. */
 const compactHint = computed(() => [
   props.hint ?? t('events.attachments.hint'),
-  t('events.attachments.savedRightAway'),
+  props.pending ? t('events.attachments.savedOnCreate') : t('events.attachments.savedRightAway'),
   t('events.attachments.internalHint'),
 ].join(' '))
 

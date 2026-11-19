@@ -632,11 +632,13 @@ test.describe('Events', () => {
         await fillMoment(times.first(), '2026-12-01T18:00')
         if (await times.count() > 1) await fillMoment(times.nth(1), '2026-12-01T20:00')
 
-        await managerPage.getByText('Anmeldung erforderlich')
-            .locator('xpath=following-sibling::button').click()
+        const signUp = managerPage.getByRole('switch', {name: 'Anmeldung erforderlich'})
+        await expect(signUp).toHaveAttribute('aria-checked', 'false')
         await openFormSection(managerPage, 'questions')
         await managerPage.getByRole('button', {name: 'Frage hinzufügen'}).click()
         await managerPage.getByPlaceholder('z.B. Begleitpersonen').fill(question)
+        await expect(signUp).toHaveAttribute('aria-checked', 'true')
+        await expect(signUp).toBeDisabled()
 
         await managerPage.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
 
