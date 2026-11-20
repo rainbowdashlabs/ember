@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.entity;
 
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 /**
@@ -19,7 +20,11 @@ import java.time.LocalDate;
  *
  * @param event        the appointment
  * @param date         the date it falls on
- * @param cancellation why that date is off, null while it takes place
+ * @param cancellation         why that date is off, null while it takes place
+ * @param registrationClosesAt when sign-up for that date closes, null where no deadline applies
  */
 public record UpcomingEventOccurrence(
-        EventSummary event, LocalDate date, @Nullable CancellationNotice cancellation) {}
+        EventSummary event,
+        LocalDate date,
+        @Nullable CancellationNotice cancellation,
+        @Nullable Instant registrationClosesAt) {}

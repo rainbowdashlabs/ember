@@ -11,6 +11,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.ChangeNotice;
 import dev.chojo.ember.feature.events.entity.EventChangePart;
 import dev.chojo.ember.feature.events.entity.EventDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.handler.EventChangedHandler;
@@ -157,9 +158,8 @@ class EventChangeNotifierTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 registration,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -197,7 +197,6 @@ class EventChangeNotifierTest extends RepositoryTestBase {
                 event.requiresRegistration(),
                 null,
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -289,6 +288,20 @@ class EventChangeNotifierTest extends RepositoryTestBase {
         assertEquals("20:00", notice.startTime());
         verify(federated)
                 .tellPartners(any(), eq(today.plusDays(3)), eq("TIME,DESCRIPTION"), isNull(), eq("20:00"), eq(true));
+    }
+
+    /** Whoever waits on the waiting list may still move up, so they hear of the change like a place holder. */
+    @Test
+    void whoeverWaitsIsToldOfTheChangeOnce() {
+        var event = oneOff(true);
+        register(event, anna, today.plusDays(3), RegistrationStatus.ACCEPTED);
+        register(event, ben, today.plusDays(3), RegistrationStatus.QUEUED);
+
+        changeWhole(event, "Anders", 2, telling(null, EventChangePart.DESCRIPTION));
+
+        var toBen = sent().get(ben.id());
+        assertEquals(1, toBen.size());
+        assertEquals(NotificationType.EVENT_CHANGED, toBen.getFirst().type());
     }
 
     /**

@@ -13,8 +13,10 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
+import dev.chojo.ember.feature.members.entity.RuleOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.MemberRuleRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.util.PermissionValidation;
@@ -40,7 +42,9 @@ public class MemberGroupService {
     private final MemberGroupRepository groupRepository;
     private final StationMemberRepository memberRepository;
     private final UserTagRepository tagRepository;
+    private final MemberRuleRepository ruleRepository;
     private final GroupMembershipService memberships;
+    private final SelfAnsweredRules selfAnswered;
 
     private final DomainEventBus eventBus;
 
@@ -49,13 +53,17 @@ public class MemberGroupService {
             MemberGroupRepository groupRepository,
             StationMemberRepository memberRepository,
             UserTagRepository tagRepository,
+            MemberRuleRepository ruleRepository,
             GroupMembershipService memberships,
+            SelfAnsweredRules selfAnswered,
             DomainEventBus eventBus) {
         this.eventBus = eventBus;
         this.groupRepository = groupRepository;
         this.memberRepository = memberRepository;
         this.tagRepository = tagRepository;
+        this.ruleRepository = ruleRepository;
         this.memberships = memberships;
+        this.selfAnswered = selfAnswered;
     }
 
     public List<MemberGroup> findByStation(int stationId) {
@@ -67,7 +75,8 @@ public class MemberGroupService {
     }
 
     /**
-     * Removes a group, unless anything is still limited to it or the caller may not take what it grants.
+     * Removes a group, unless anything is still limited to it, a rule of another group or tag asks about it,
+     * or the caller may not take what it grants.
      *
      * <p>A limit that names a group goes with the group, and something limited to nothing else is
      * limited to nobody: it would open to the whole station the moment its last group was removed.
@@ -82,10 +91,12 @@ public class MemberGroupService {
      * @return whether a group was removed
      * @throws dev.chojo.ember.api.refusal.RefusalResponse
      *         {@link MemberRefusal#GROUP_STILL_LIMITS_CONTENT_ON_DELETE} naming how many things are limited to it,
+     *         {@link MemberRefusal#USED_BY_A_RULE} naming the groups and tags whose rules ask about it,
      *         {@link MemberRefusal#GROUP_GRANTS_MORE_THAN_YOURS_ON_DELETE} for a group granting more than the caller holds
      */
     public boolean delete(MemberGroup group, UserSession by) {
         requireNothingLimitedTo(group.id(), MemberRefusal.GROUP_STILL_LIMITS_CONTENT_ON_DELETE);
+        requireNotAskedAbout(group.id());
         memberships.requireMayDissolve(group, by, MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_DELETE);
         log.info("Group deleted: id={}", group.id());
         boolean deleted = groupRepository.delete(group.id());
@@ -96,6 +107,13 @@ public class MemberGroupService {
     private void requireNothingLimitedTo(int groupId, MemberRefusal refusal) {
         int limited = groupRepository.countContentLimitedTo(groupId);
         if (limited > 0) throw refusal.raise(RefusalDetail.count(limited));
+    }
+
+    private void requireNotAskedAbout(int groupId) {
+        List<String> askers = ruleRepository.askingAboutGroup(groupId);
+        if (!askers.isEmpty()) {
+            throw MemberRefusal.USED_BY_A_RULE.raise(RefusalDetail.text(String.join(", ", askers)));
+        }
     }
 
     public List<StationMember> findMembers(int groupId) {
@@ -110,6 +128,10 @@ public class MemberGroupService {
         return groupRepository.findGroupPermissions(groupId);
     }
 
+    /**
+     * Replaces what a group grants. A group that grants anything may not take its members from answers the members
+     * give themselves, see {@link SelfAnsweredRules}.
+     */
     public List<Permission> setGroupPermissions(
             int groupId, List<Integer> desiredPermissionIds, Set<StationPermission> callerPermissions) {
         List<Permission> allPermissions = memberRepository.findAllPermissions();
@@ -119,6 +141,12 @@ public class MemberGroupService {
                 currentPermissions, desiredPermissionIds, allPermissions, callerPermissions);
 
         var change = SetDiff.of(currentPermissions.stream().map(Permission::id).toList(), desiredPermissionIds);
+        if (!desiredPermissionIds.isEmpty()) {
+            groupRepository
+                    .findById(groupId)
+                    .ifPresent(group ->
+                            selfAnswered.requireNoneFor(group, ruleRepository.findByStation(group.stationId())));
+        }
         Transactions.run(() -> {
             change.removed().forEach(permId -> groupRepository.removeGroupPermission(groupId, permId));
             change.added().forEach(permId -> groupRepository.addGroupPermission(groupId, permId));
@@ -129,26 +157,30 @@ public class MemberGroupService {
     }
 
     /**
-     * Turns a group into a tag with the same people in it, unless anything is still limited to the group
-     * or the caller may not take what it grants.
+     * Turns a group into a tag with the same people in it, unless anything is still limited to the group,
+     * a rule of another group or tag asks about it, or the caller may not take what it grants.
      *
      * <p>The group goes, and with it every limit that names it and everything it grants, for the same
-     * reasons as {@link #delete(MemberGroup, UserSession)}.
+     * reasons as {@link #delete(MemberGroup, UserSession)}. A rule that fills the group goes on to fill
+     * the tag.
      *
      * @param group the group, already checked to belong to the caller's station
      * @param by    who is asking
      * @throws dev.chojo.ember.api.refusal.RefusalResponse
      *         {@link MemberRefusal#GROUP_STILL_LIMITS_CONTENT_ON_CONVERT} naming how many things are limited to it,
+     *         {@link MemberRefusal#USED_BY_A_RULE} naming the groups and tags whose rules ask about it,
      *         {@link MemberRefusal#GROUP_GRANTS_MORE_THAN_YOURS_ON_CONVERT} for a group granting more than the caller holds
      */
     public void convertToTag(MemberGroup group, UserSession by) {
         requireNothingLimitedTo(group.id(), MemberRefusal.GROUP_STILL_LIMITS_CONTENT_ON_CONVERT);
+        requireNotAskedAbout(group.id());
         memberships.requireMayDissolve(group, by, MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_CONVERT);
         var tag = Transactions.call(() -> {
             var created = tagRepository.create(group.stationId(), group.name());
             for (var member : groupRepository.findMembers(group.id())) {
                 tagRepository.addMember(created.id(), member.id());
             }
+            ruleRepository.moveRule(RuleOwner.group(group.id()), RuleOwner.tag(created.id()));
             groupRepository.delete(group.id());
             return created;
         });

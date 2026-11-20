@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemotePlaces;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -20,6 +22,8 @@ import java.util.List;
  * @param questions    what it asks of everybody signing up, in order
  * @param fields       what every appointment of it shows, such as its place, in order
  * @param household    the sign-up of the reader and of everybody they look after who may see it
+ * @param places       what the station holding a partner's event group gave this station, only where it
+ *                     decides its own members' sign-ups; null for an event group of this station
  */
 public record EventGroupDetail(
         EventGroupSummary eventGroup,
@@ -29,4 +33,5 @@ public record EventGroupDetail(
         RestrictionAudience view,
         List<EventRegistrationField> questions,
         List<AppointmentField> fields,
-        List<EventGroupSignUp> household) {}
+        List<EventGroupSignUp> household,
+        @Nullable RemotePlaces places) {}

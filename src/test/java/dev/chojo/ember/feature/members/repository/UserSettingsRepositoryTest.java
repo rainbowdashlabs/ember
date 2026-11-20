@@ -43,7 +43,7 @@ class UserSettingsRepositoryTest extends RepositoryTestBase {
         var settings = userSettingsRepo.findOrCreate(member.id());
         assertNotNull(settings);
         assertEquals(member.id(), settings.memberId());
-        assertFalse(settings.emailEnabled(), "mail is off by default");
+        assertTrue(settings.emailEnabled(), "mail is on by default");
     }
 
     @Test

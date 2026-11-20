@@ -11,6 +11,7 @@ import TemplateEditView from './TemplateEditView.vue'
 import TemplateEditBody from './templateeditview/TemplateEditBody.vue'
 import {
     EventType,
+    QueueOrder,
     RestrictionMode,
     ShareScope,
     type EventTemplate,
@@ -18,6 +19,7 @@ import {
     type TemplateDetailResponse,
 } from '@/api/generated/schema'
 import {createSessionInfo} from '@/test/mocks/factories'
+import {noDeadline} from './eventshared/registrationDeadline'
 
 const api = vi.hoisted(() => ({
     events: {
@@ -55,6 +57,8 @@ vi.mock('vue-router', () => ({
     useRouter: () => ({push: vi.fn()}),
 }))
 
+const dayBeforeAtMidnight = {kind: 'RELATIVE' as const, at: null, offsetMinutes: 1440, anchor: 'MIDNIGHT' as const}
+
 function template(overrides: Partial<EventTemplate> = {}): EventTemplate {
     return {
         id: 31,
@@ -67,10 +71,10 @@ function template(overrides: Partial<EventTemplate> = {}): EventTemplate {
         requiresRegistration: true,
         requiresConfirmation: null,
         registrationLimit: 20,
-        registrationDeadlineOffsetHours: 30,
+        queueOrder: null,
+        registrationDeadline: dayBeforeAtMidnight,
         minRegistrations: 5,
         thresholdDays: 2,
-        registrationCloseDays: 1,
         attendanceTemplateId: null,
         restrictionMode: null,
         viewRestrictionMode: RestrictionMode.OR,
@@ -128,63 +132,69 @@ describe('TemplateEditView', () => {
         api.appointmentDocuments.setRequirements.mockResolvedValue([])
     })
 
-    it('sends the deadline offset and the three rules it loaded', async () => {
+    /** Saving writes every column, so a form that could not be filled must not offer to save. */
+    it('shows no form where the template could not be read', async () => {
+        api.events.getTemplate.mockRejectedValue({response: {status: 500, data: {}}})
+
+        expect((await editor()).exists()).toBe(false)
+        expect(api.events.updateTemplate).not.toHaveBeenCalled()
+    })
+
+    it('sends the deadline and the rules it loaded', async () => {
         const body = await editor()
 
-        expect(body.props('deadlineOffsetHours')).toBe(30)
+        expect(body.props('registrationDeadline')).toEqual(dayBeforeAtMidnight)
         await body.props('save')()
 
         expect(api.events.updateTemplate).toHaveBeenCalledWith(31, expect.objectContaining({
-            registrationDeadlineOffsetHours: 30,
+            registrationDeadline: dayBeforeAtMidnight,
             minRegistrations: 5,
             thresholdDays: 2,
-            registrationCloseDays: 1,
         }))
     })
 
     it('sends the rules as they were changed', async () => {
         const body = await editor()
 
-        body.vm.$emit('update:deadlineOffsetHours', 53)
+        const threeHoursBefore = {kind: 'RELATIVE', at: null, offsetMinutes: 180, anchor: 'EXACT'}
+        body.vm.$emit('update:registrationDeadline', threeHoursBefore)
         body.vm.$emit('update:minRegistrations', 8)
         body.vm.$emit('update:thresholdDays', 4)
-        body.vm.$emit('update:registrationCloseDays', 3)
         await flushPromises()
         await body.props('save')()
 
         expect(api.events.updateTemplate).toHaveBeenCalledWith(31, expect.objectContaining({
-            registrationDeadlineOffsetHours: 53,
+            registrationDeadline: threeHoursBefore,
             minRegistrations: 8,
             thresholdDays: 4,
-            registrationCloseDays: 3,
         }))
+    })
+
+    /** The waiting list order is a setting of the template, handed to every appointment made from it. */
+    it('loads the waiting list order and sends it as changed', async () => {
+        api.events.getTemplate.mockResolvedValue(detail(template({queueOrder: QueueOrder.FAIRNESS})))
+        const body = await editor()
+
+        expect(body.props('queueOrder')).toBe(QueueOrder.FAIRNESS)
+        body.vm.$emit('update:queueOrder', QueueOrder.TIME)
+        await flushPromises()
+        await body.props('save')()
+
+        expect(api.events.updateTemplate).toHaveBeenCalledWith(31, expect.objectContaining({queueOrder: QueueOrder.TIME}))
     })
 
     it('sends no deadline and no threshold where none is set', async () => {
         api.events.getTemplate.mockResolvedValue(detail(template({
-            registrationDeadlineOffsetHours: null, minRegistrations: null, registrationCloseDays: null,
+            registrationDeadline: noDeadline(), minRegistrations: null,
         })))
         const body = await editor()
 
         await body.props('save')()
 
         expect(api.events.updateTemplate).toHaveBeenCalledWith(31, expect.objectContaining({
-            registrationDeadlineOffsetHours: null,
+            registrationDeadline: {kind: 'NONE', at: null, offsetMinutes: null, anchor: null},
             minRegistrations: null,
             thresholdDays: null,
-            registrationCloseDays: null,
-        }))
-    })
-
-    it('sends no close days for a template of one-off appointments', async () => {
-        api.events.getTemplate.mockResolvedValue(detail(template({eventType: EventType.ONE_TIME})))
-        const body = await editor()
-
-        await body.props('save')()
-
-        expect(api.events.updateTemplate).toHaveBeenCalledWith(31, expect.objectContaining({
-            minRegistrations: 5,
-            registrationCloseDays: null,
         }))
     })
 

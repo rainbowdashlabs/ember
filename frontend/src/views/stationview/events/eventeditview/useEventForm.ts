@@ -9,6 +9,7 @@ import {needsDayOfWeek} from '@/api/events'
 import {namesMembers} from '@/api/fieldTypes'
 import {
     EventType,
+    QueueOrder,
     type AppointmentField,
     type EventFieldEntry,
     type EventRequest,
@@ -22,8 +23,9 @@ import {modelBindings} from './modelBindings'
 import {instantToLocalInput} from '@/util/format'
 import {useEndFollowsStart} from '@/composables/useEndFollowsStart'
 import {entryOf, namedEntries} from '../eventshared/eventQuestions'
-import {offsetParts} from '../templateeditview/signUpRules'
-import {copyStartDay, deadlineHoursBefore, lengthOf, placedOn} from './copyDates'
+import {deadlineForCopy, deadlineRuleOf, noDeadline} from '../eventshared/registrationDeadline'
+import {signUpRulesOf} from '../templateeditview/signUpRules'
+import {copyStartDay, lengthOf, placedOn} from './copyDates'
 
 /**
  * What the editor reads of a saved appointment to fill its form: the appointment, both audiences, its
@@ -36,14 +38,14 @@ export interface EventEditDetail {
   reminders: number[]
 }
 
-/** Reads what the editor fills its form from. Reminders that cannot be read count as none. */
+/** Reads what the editor fills its form from. */
 export async function fetchEditDetail(id: number): Promise<EventEditDetail> {
-  const [event, restrictions, fields] = await Promise.all([
+  const [event, restrictions, fields, reminders] = await Promise.all([
     events.getEvent(id),
     events.getRestrictions(id),
     events.getEventFields(id, null, true),
+    events.getEventReminders(id),
   ])
-  const reminders = await events.getEventReminders(id).catch(() => [] as number[])
   return {event, restrictions, fields, reminders}
 }
 
@@ -74,6 +76,12 @@ export function useEventForm() {
    * start entered first by that much rather than landing on the start itself.
    */
   const copiedLength = ref<number | null>(null)
+
+  /**
+   * The waiting list order the appointment had when the editor opened, null for a new one. Kept apart
+   * from the form state because the order is saved on its own after the appointment.
+   */
+  const savedQueueOrder = ref<QueueOrder | null>(null)
 
   watch(() => state.startTime, (val) => {
     if (val && !state.endTime) {
@@ -129,42 +137,6 @@ export function useEventForm() {
   }
 
   /**
-   * How many hours before the start the applied template closes registration, for as long as the
-   * deadline still follows the start. Null once nothing follows: no template offset was applied, or
-   * the deadline was changed by hand.
-   */
-  const deadlineOffsetHours = ref<number | null>(null)
-
-  /** The deadline last worked out from the start, which tells a hand edit apart from one of ours. */
-  let derivedDeadline = ''
-
-  /**
-   * Sets the deadline the template's offset gives for the start now entered. Without a start there
-   * is nothing to count back from, so the deadline waits for one.
-   *
-   * <p>Whole days are counted back on the calendar and only the hours left over by the clock, so
-   * "three days before 18:00" stays at 18:00 across a change to or from summer time.
-   */
-  function followStart() {
-    if (deadlineOffsetHours.value === null || !state.startTime) return
-    const deadline = new Date(state.startTime)
-    if (Number.isNaN(deadline.getTime())) return
-    const {days, hours} = offsetParts(deadlineOffsetHours.value)
-    deadline.setDate(deadline.getDate() - days)
-    deadline.setTime(deadline.getTime() - hours * 3_600_000)
-    derivedDeadline = instantToLocalInput(deadline.toISOString())
-    state.hasDeadline = true
-    state.registrationDeadline = derivedDeadline
-  }
-
-  watch(() => state.startTime, followStart, {flush: 'sync'})
-
-  watch(() => [state.registrationDeadline, state.hasDeadline] as const, ([deadline, hasDeadline]) => {
-    if (deadlineOffsetHours.value === null) return
-    if (!hasDeadline || deadline !== derivedDeadline) deadlineOffsetHours.value = null
-  }, {flush: 'sync'})
-
-  /**
    * Whether the appointment finishes before it begins.
    *
    * <p>An appointment may run past midnight and over several days, so only the one order that
@@ -181,9 +153,9 @@ export function useEventForm() {
    * taken on and then leaves the appointment without one makes whoever applied it set the same thing
    * again by hand, which is the one thing a template is for.
    *
-   * <p>A template knows no date, so its deadline is a number of hours before the start. The deadline
-   * is switched on and counted back from the start once one is entered, and it keeps following the
-   * start until it is changed by hand.
+   * <p>A template knows no date, so its deadline is a span before the start, which the appointment
+   * takes over as it is: the server works out each date's deadline from it. A template without a
+   * deadline leaves the one already entered alone.
    */
   function applyTemplate(detail: TemplateDetailResponse) {
     const tpl = detail.template
@@ -199,16 +171,7 @@ export function useEventForm() {
     }
     if (tpl.requiresRegistration != null) state.requiresRegistration = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) state.requiresConfirmation = tpl.requiresConfirmation
-    if (tpl.registrationLimit != null) state.registrationLimit = tpl.registrationLimit
-    if (tpl.minRegistrations != null) state.minRegistrations = tpl.minRegistrations
-    if (tpl.thresholdDays != null) state.thresholdDays = tpl.thresholdDays
-    if (tpl.registrationCloseDays != null) state.registrationCloseDays = tpl.registrationCloseDays
-    if (tpl.registrationDeadlineOffsetHours != null) {
-      derivedDeadline = state.registrationDeadline
-      deadlineOffsetHours.value = tpl.registrationDeadlineOffsetHours
-      state.hasDeadline = true
-      followStart()
-    }
+    Object.assign(state, signUpRulesOf(tpl))
     if (detail.fields.length > 0) {
       const newFields: EventFieldEntry[] = detail.fields.map(f => ({
         name: f.name,
@@ -241,8 +204,8 @@ export function useEventForm() {
    * length. A series keeps its rule, its times and its end and starts on the original's next date,
    * or on the next day from today its pattern falls on where the original has ended. A last day that
    * then lies before the new start is dropped, since the copy would have no date at all; a number of
-   * times is kept and counts from the new start. A deadline is kept as the hours it lay before the
-   * start and follows the new start.
+   * times is kept and counts from the new start. A deadline before the start comes over unchanged; a
+   * fixed one belonged to the original's dates and is dropped with them.
    *
    * @param detail   what the editor reads of the original
    * @param today    today, as `yyyy-MM-dd`
@@ -263,9 +226,7 @@ export function useEventForm() {
 
   /** Moves the copy off the original's dates, as {@link applyCopy} describes. */
   function placeCopy(ev: StationEvent, today: string, nextDate: string | null) {
-    const offset = deadlineHoursBefore(ev.startTime, ev.registrationDeadline)
-    state.hasDeadline = false
-    state.registrationDeadline = ''
+    state.registrationDeadline = deadlineForCopy(ev.registrationDeadline)
     if (eventTypeNamed(state.eventType) === EventType.ONE_TIME) {
       copiedLength.value = lengthOf(state.startTime, state.endTime)
       state.startTime = ''
@@ -278,11 +239,6 @@ export function useEventForm() {
       state.endTime = placed.endTime
       if (state.repeatUntil && state.repeatUntil < day) state.repeatUntil = ''
     }
-    if (offset === null) return
-    derivedDeadline = ''
-    deadlineOffsetHours.value = offset
-    state.hasDeadline = true
-    followStart()
   }
 
   function applyEvent(ev: StationEvent) {
@@ -295,13 +251,13 @@ export function useEventForm() {
     state.templateId = ev.templateId != null ? String(ev.templateId) : ''
     state.categoryId = ev.categoryId != null ? String(ev.categoryId) : ''
     state.requiresRegistration = ev.requiresRegistration ?? false
-    state.hasDeadline = !!ev.registrationDeadline
-    state.registrationDeadline = instantToLocalInput(ev.registrationDeadline)
+    state.registrationDeadline = deadlineRuleOf(ev.registrationDeadline)
     state.requiresConfirmation = ev.requiresConfirmation ?? false
     state.registrationLimit = ev.registrationLimit ?? undefined
+    state.queueOrder = ev.queueOrder ?? QueueOrder.TIME
+    savedQueueOrder.value = state.queueOrder
     state.minRegistrations = ev.minRegistrations ?? undefined
     state.thresholdDays = ev.thresholdDays ?? undefined
-    state.registrationCloseDays = ev.registrationCloseDays ?? undefined
     state.repeatUntil = ev.repeatUntil ?? ''
     state.repeatCount = ev.repeatCount ?? undefined
   }
@@ -328,15 +284,13 @@ export function useEventForm() {
       copiedFromEventId: copiedFromId.value,
       categoryId: state.categoryId ? Number(state.categoryId) : null,
       requiresRegistration: state.requiresRegistration,
-      registrationDeadline: state.hasDeadline && state.registrationDeadline
-          ? new Date(state.registrationDeadline).toISOString() : null,
+      registrationDeadline: state.requiresRegistration ? state.registrationDeadline : noDeadline(),
       requiresConfirmation: state.requiresConfirmation,
       registrationLimit: state.registrationLimit ?? null,
       minRegistrations: state.minRegistrations ?? null,
       thresholdDays: state.minRegistrations ? state.thresholdDays ?? null : null,
       restriction: state.restriction,
       viewRestriction: state.viewRestriction,
-      registrationCloseDays: state.registrationCloseDays ?? null,
       repeatUntil: repeats() && state.repeatUntil ? state.repeatUntil : null,
       repeatCount: repeats() && !state.repeatUntil ? state.repeatCount ?? null : null,
     }
@@ -351,6 +305,19 @@ export function useEventForm() {
     return namedEntries(state.fields)
   }
 
+  /**
+   * Whether the waiting list order has to be saved after the appointment: where it has a participant
+   * limit, which is what a waiting list needs, and where the order was changed. An appointment
+   * without a limit keeps no waiting list, and saving an order nobody touched would be a request for
+   * nothing.
+   */
+  function queueOrderToSave(): QueueOrder | null {
+    if (state.registrationLimit || state.queueOrder !== (savedQueueOrder.value ?? QueueOrder.TIME)) {
+      return state.queueOrder
+    }
+    return null
+  }
+
   return {
     state,
     props,
@@ -362,6 +329,7 @@ export function useEventForm() {
     loadEvent,
     buildPayload,
     namedFields,
+    queueOrderToSave,
     endsBeforeItStarts,
   }
 }

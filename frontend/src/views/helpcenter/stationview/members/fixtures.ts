@@ -4,13 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {
+  FieldOrigin,
   FieldType,
+  RuleNeed,
+  RuleOperator,
+  RuleSubject,
+  RuleUnit,
   StationUserType,
   TagVisibility,
   type EnrichedMemberChangeSummary,
   type MemberGroupSet,
   type MemberIdentity,
   type Permission,
+  type RuleNode,
   type UserTag,
 } from '@/api/generated/schema'
 import type {ChangeEntry} from '@/api/profileFieldChanges'
@@ -18,6 +24,8 @@ import type {AssignableMember} from '@/composables/useGroupsConfig'
 import type {PermissionGrant} from '@/composables/usePermissionTree'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import type {GroupRow} from '@/util/groupRules'
+import type {RuleCatalog} from '@/components/memberrules/ruleCatalog'
+import {emptyBlock, emptyCheck, emptyValue as emptyRuleValue} from '@/components/memberrules/ruleDraft'
 
 /** Looks up a help text, so the demo names follow the help center's own sample people and groups. */
 type Translate = (key: string) => string
@@ -138,4 +146,55 @@ export function demoChanges(t: Translate): ChangeEntry[] {
       }],
     },
   ]
+}
+
+/**
+ * What the rule builder offers on the example: two JuLeiCa fields and the comparisons a yes-or-no field and an
+ * expiry date offer.
+ */
+export function demoRuleCatalog(t: Translate): RuleCatalog {
+  return {
+    options: [
+      {subject: RuleSubject.FIELD, fieldType: FieldType.BOOLEAN, operator: RuleOperator.IS_YES, need: RuleNeed.NOTHING},
+      {subject: RuleSubject.FIELD, fieldType: FieldType.BOOLEAN, operator: RuleOperator.IS_NO, need: RuleNeed.NOTHING},
+      {
+        subject: RuleSubject.FIELD,
+        fieldType: FieldType.EXPIRY_DATE,
+        operator: RuleOperator.EXPIRES_WITHIN,
+        need: RuleNeed.DURATION,
+      },
+      {subject: RuleSubject.FIELD, fieldType: FieldType.EXPIRY_DATE, operator: RuleOperator.EXPIRED, need: RuleNeed.NOTHING},
+    ],
+    fields: [
+      {origin: FieldOrigin.STATION, id: 1, name: t('helpCenter.sample.rules.juleica'), fieldType: FieldType.BOOLEAN, options: []},
+      {
+        origin: FieldOrigin.STATION,
+        id: 2,
+        name: t('helpCenter.sample.rules.juleicaEnd'),
+        fieldType: FieldType.EXPIRY_DATE,
+        options: [],
+      },
+    ],
+    groups: [],
+    tags: [],
+    readsMembers: true,
+    limits: {depth: 6, checks: 50},
+  }
+}
+
+/** The JuLeiCa rule of the example: a JuLeiCa that runs out within ten months. */
+export function demoRule(): RuleNode {
+  return {
+    ...emptyBlock(),
+    children: [
+      {...emptyCheck(), subject: RuleSubject.FIELD, operator: RuleOperator.IS_YES, fieldId: 1},
+      {
+        ...emptyCheck(),
+        subject: RuleSubject.FIELD,
+        operator: RuleOperator.EXPIRES_WITHIN,
+        fieldId: 2,
+        value: {...emptyRuleValue(), amount: 10, unit: RuleUnit.MONTHS},
+      },
+    ],
+  }
 }

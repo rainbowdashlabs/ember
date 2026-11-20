@@ -10,17 +10,20 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventGroupCancelled;
-import dev.chojo.ember.event.events.EventGroupDeadlineExpired;
+import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.handler.EventCancelledHandler;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -109,14 +112,17 @@ class EventGroupNoticesTest extends RepositoryTestBase {
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                newEventGroupSignUpRules());
+                newEventGroupSignUpRules(),
+                newEventGroupQueue(registrations, mock(DomainEventBus.class)),
+                new RegistrationQueueRepository());
         zone = occurrenceCalendar.zoneOf(station.id());
     }
 
     private EventGroup eventGroup(Instant deadline, boolean confirm) {
         return eventGroups.create(
                 station.id(),
-                new EventGroupDetails("Jugendflamme 1", null, null, deadline, confirm, null),
+                new EventGroupDetails(
+                        "Jugendflamme 1", null, null, RegistrationDeadline.fixed(deadline), confirm, null),
                 List.of(new EventGroupSetDraft(null, "Teile", 1)),
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),
@@ -177,14 +183,13 @@ class EventGroupNoticesTest extends RepositoryTestBase {
         var announced = ArgumentCaptor.forClass(DomainEvent.class);
         verify(announcements, atLeastOnce()).publish(announced.capture());
         var expired = announced.getAllValues().stream()
-                .filter(event -> event instanceof EventGroupDeadlineExpired)
-                .map(event -> (EventGroupDeadlineExpired) event)
-                .filter(event -> event.eventGroupId() == eventGroup.id())
+                .filter(event -> event instanceof RegistrationDeadlineExpired)
+                .map(event -> (RegistrationDeadlineExpired) event)
+                .filter(event -> event.link().equals(NotificationLinks.eventGroup(eventGroup.id())))
                 .toList();
         assertEquals(1, expired.size());
         assertEquals(1, expired.getFirst().pendingCount());
-        assertTrue(eventRepo.findOneTimeEventsWithExpiredDeadline().stream()
-                .noneMatch(entry -> entry.eventId() == day.id()));
+        assertTrue(eventRepo.findPendingDatesWithDeadline().stream().noneMatch(entry -> entry.eventId() == day.id()));
     }
 
     @Test
@@ -200,7 +205,7 @@ class EventGroupNoticesTest extends RepositoryTestBase {
         var data = ArgumentCaptor.forClass(NotificationData.class);
         verify(notifier, times(1)).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), data.capture(), any());
         assertEquals("event-group", data.getValue().link().route());
-        assertTrue(eventRepo.findEventsClosingIn(1).stream().noneMatch(entry -> entry.eventId() == day.id()));
+        assertTrue(eventRepo.findWithDeadline().stream().noneMatch(entry -> entry.id() == day.id()));
     }
 
     private EventGroupCancellationService cancellationOver(EventCancellationService dates) {
@@ -251,9 +256,8 @@ class EventGroupNoticesTest extends RepositoryTestBase {
                 first.endTime(),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -280,7 +284,12 @@ class EventGroupNoticesTest extends RepositoryTestBase {
                 station.id(),
                 eventGroup.id(),
                 new EventGroupDetails(
-                        "Jugendflamme 1", null, null, Instant.now().plus(Duration.ofHours(30)), false, null));
+                        "Jugendflamme 1",
+                        null,
+                        null,
+                        RegistrationDeadline.fixed(Instant.now().plus(Duration.ofHours(30))),
+                        false,
+                        null));
         var later = mock(Notifier.class);
         notifier = later;
         checker().check();
@@ -325,8 +334,7 @@ class EventGroupNoticesTest extends RepositoryTestBase {
         var eventGroup = eventGroup(Instant.now().plus(Duration.ofDays(5)), false);
         var day = part(eventGroup, 19);
 
-        assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of(ben.id())).stream()
-                .noneMatch(entry -> entry.eventId() == day.id()));
+        assertTrue(awaitingAnswers().find(List.of(ben.id())).stream().noneMatch(entry -> entry.eventId() == day.id()));
     }
 
     @Test

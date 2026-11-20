@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount} from '@vue/test-utils'
 import {ref} from 'vue'
 import EventGroupEditView from './EventGroupEditView.vue'
@@ -18,6 +18,8 @@ const api = vi.hoisted(() => ({
     updateEventGroup: vi.fn(),
     getEventGroup: vi.fn(),
     getFederationShare: vi.fn(async () => null),
+    setFederationShare: vi.fn(),
+    removeFederationShare: vi.fn(),
     setSettings: vi.fn(),
     getSettings: vi.fn(async () => ({templateId: null, categoryId: null, reminderDays: [], fieldDefaults: []})),
     attachFile: vi.fn(),
@@ -39,19 +41,29 @@ const api = vi.hoisted(() => ({
   federation: {listPartners: vi.fn(async () => [])},
 }))
 vi.mock('@/api', () => api)
+const permitted = vi.hoisted(() => ({federate: false}))
 vi.mock('@/composables/useSession', () => ({
-  useSession: () => ({loaded: ref(true), hasPermission: () => false}),
+  useSession: () => ({loaded: ref(true), stationTimezone: ref('Europe/Berlin'), hasPermission: () => permitted.federate}),
 }))
 const route = vi.hoisted(() => ({params: {} as Record<string, string>, query: {} as Record<string, string>}))
 const replace = vi.hoisted(() => vi.fn())
 vi.mock('vue-router', () => ({useRoute: () => route, useRouter: () => ({replace})}))
 const toast = vi.hoisted(() => vi.fn())
 vi.mock('@/util/toast', () => ({showToast: toast}))
+const attachPendingTo = vi.hoisted(() => vi.fn(async (_eventGroupId: number, _carried?: ReadonlySet<number>) => [] as string[]))
+
+/** The files section as the editor reaches it: only the pending files it hangs on a created group. */
+const FilesSectionStub = {
+  template: '<div data-testid="event-group-files-section-stub"/>',
+  setup(_props: unknown, {expose}: {expose: (exposed: Record<string, unknown>) => void}) {
+    expose({attachPendingTo})
+  },
+}
 
 function mountEditor() {
   return mount(EventGroupEditView, {
     global: {stubs: {ViewContent: {template: '<div><slot/></div>'}, MarkdownEditor: true, EventGroupSignUpFields: true, EventGroupColorField: true, RestrictionsField: true, EventGroupSetsEditor: true,
-      EventGroupQuestionsCard: true, EventGroupFieldsCard: true, EventGroupShareCard: true, EventGroupPartsEditor: true, EventGroupDateSettingsSection: true, EventGroupFilesSection: true}},
+      EventGroupQuestionsCard: true, EventGroupFieldsCard: true, EventGroupShareCard: true, EventGroupPartsEditor: true, EventGroupDateSettingsSection: true, EventGroupFilesSection: FilesSectionStub}},
   })
 }
 
@@ -141,8 +153,8 @@ describe('EventGroupEditView after a part changed', () => {
   const group = {id: 7, details: {name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null,
     requiresConfirmation: false, color: null}}
 
-  function detailWith(minimum: number, parts: number) {
-    return {eventGroup: group, sets: [{id: 1, name: 'Übung', minimum}], questions: [], fields: [],
+  function detailWith(minimum: number, parts: number, maximum: number | null = null) {
+    return {eventGroup: group, sets: [{id: 1, name: 'Übung', minimum, maximum}], questions: [], fields: [],
       registration: YOUTH, view: YOUTH,
       parts: Array.from({length: parts}, (_, index) => ({eventId: index + 1, setId: 1}))}
   }
@@ -162,7 +174,7 @@ describe('EventGroupEditView after a part changed', () => {
     await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
     await flushPromises()
 
-    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2}])
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2, maximum: null}])
     expect(toast).toHaveBeenCalledOnce()
   })
 
@@ -175,7 +187,7 @@ describe('EventGroupEditView after a part changed', () => {
     await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
     await flushPromises()
 
-    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 3}])
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 3, maximum: null}])
     expect(toast).not.toHaveBeenCalled()
   })
 
@@ -183,14 +195,59 @@ describe('EventGroupEditView after a part changed', () => {
     api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(2, 3))
     const wrapper = mountEditor()
     await flushPromises()
-    await wrapper.findComponent({name: 'EventGroupSetsEditor'}).vm.$emit('update:modelValue', [{id: 1, name: 'Übung', minimum: 3}])
+    await wrapper.findComponent({name: 'EventGroupSetsEditor'}).vm.$emit('update:modelValue', [{id: 1, name: 'Übung', minimum: 3, maximum: null}])
 
     api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(2, 2))
     await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
     await flushPromises()
 
-    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2}])
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2, maximum: null}])
     expect(toast).toHaveBeenCalledOnce()
+  })
+
+  /** A minimum the server raised because a part became required reaches the form, which says so. */
+  it('takes a minimum raised by a required part into the form and says so', async () => {
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(1, 3))
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(2, 3))
+    await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
+    await flushPromises()
+
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2, maximum: null}])
+    expect(toast).toHaveBeenCalledOnce()
+    expect(toast).toHaveBeenCalledWith(expect.stringContaining('2 statt 1'))
+  })
+
+  /** A maximum the server raised because a part became required reaches the form, which says so. */
+  it('takes a raised maximum into the form and says so', async () => {
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(1, 3, 1))
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(2, 3, 2))
+    await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
+    await flushPromises()
+
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue'))
+        .toEqual([{id: 1, name: 'Übung', minimum: 2, maximum: 2}])
+    expect(toast).toHaveBeenCalledWith(expect.stringContaining('höchstens 2 statt 1'))
+  })
+
+  it('leaves a maximum the form already holds high enough alone', async () => {
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(1, 3, 1))
+    const wrapper = mountEditor()
+    await flushPromises()
+    await wrapper.findComponent({name: 'EventGroupSetsEditor'}).vm.$emit('update:modelValue', [{id: 1, name: 'Übung', minimum: 1, maximum: 3}])
+
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(1, 3, 2))
+    await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
+    await flushPromises()
+
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue'))
+        .toEqual([{id: 1, name: 'Übung', minimum: 1, maximum: 3}])
+    expect(toast).not.toHaveBeenCalled()
   })
 })
 
@@ -242,6 +299,21 @@ describe('EventGroupEditView from an appointment template', () => {
     expect(api.eventGroups.setSettings).toHaveBeenCalledWith(7, expect.objectContaining({templateId: 4, categoryId: 2, reminderDays: [3]}))
     expect(api.eventGroups.attachFile).toHaveBeenCalledWith(7, 40, 'Anfahrt', false)
   })
+
+  /** Files added before the group existed go onto it once it is created, after the template's. */
+  it('hangs the files added to the new group on it after the template\'s, leaving out the template\'s own', async () => {
+    const wrapper = mountEditor()
+    await flushPromises()
+    await wrapper.find('[data-testid="event-group-apply-template"]').setValue('5')
+    await flushPromises()
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+
+    expect(attachPendingTo).toHaveBeenCalledWith(7, new Set([40]))
+    expect(api.eventGroups.attachFile.mock.invocationCallOrder[0]).toBeLessThan(attachPendingTo.mock.invocationCallOrder[0]!)
+    expect(replace).toHaveBeenCalledWith({name: 'event-group-edit', params: {eventGroupId: 7}})
+  })
 })
 
 /**
@@ -267,5 +339,85 @@ describe('EventGroupEditView layout', () => {
     expect(positions.every(position => position >= 0)).toBe(true)
     expect([...positions].sort((a, b) => a - b)).toEqual(positions)
     expect(form.find('event-group-parts-editor-stub').exists()).toBe(false)
+  })
+})
+
+/**
+ * A new event group is shared in the same save that creates it, the way a new appointment is, and one
+ * that is not shared sends nothing about sharing.
+ */
+describe('EventGroupEditView sharing a new event group', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    permitted.federate = true
+    route.query = {}
+    route.params = {}
+    api.federation.listPartners.mockResolvedValue([])
+    api.eventGroups.createEventGroup.mockResolvedValue({eventGroup: {id: 7, details: {name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null}}, sets: [], parts: [], questions: [], fields: [],
+      registration: YOUTH, view: YOUTH})
+    api.eventGroups.setSettings.mockResolvedValue({templateId: null, categoryId: null, reminderDays: [], fieldDefaults: []})
+  })
+
+  afterEach(() => {
+    permitted.federate = false
+  })
+
+  function shareOf(wrapper: ReturnType<typeof mountEditor>) {
+    return wrapper.findComponent({name: 'EventGroupShareCard'}).props('federationShare') as {state: {federationShared: boolean; federationScope: string; federationPartnerIds: number[]}}
+  }
+
+  it('offers the share before the event group exists and reads the partners for it', async () => {
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    expect(wrapper.findComponent({name: 'EventGroupShareCard'}).exists()).toBe(true)
+    expect(api.federation.listPartners).toHaveBeenCalled()
+    expect(api.eventGroups.getFederationShare).not.toHaveBeenCalled()
+  })
+
+  it('shares the event group it created in the same save', async () => {
+    const wrapper = mountEditor()
+    await flushPromises()
+    const share = shareOf(wrapper)
+    share.state.federationShared = true
+    share.state.federationScope = 'SPECIFIC'
+    share.state.federationPartnerIds = [3]
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+
+    expect(api.eventGroups.setFederationShare).toHaveBeenCalledWith(7, 'SPECIFIC', [3])
+    expect(replace).toHaveBeenCalledWith({name: 'event-group-edit', params: {eventGroupId: 7}})
+  })
+
+  it('sends nothing about sharing for a new event group that is not shared', async () => {
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+
+    expect(api.eventGroups.setFederationShare).not.toHaveBeenCalled()
+    expect(api.eventGroups.removeFederationShare).not.toHaveBeenCalled()
+  })
+
+  it('stays on the new event group when its share is refused, and shares it on the next save', async () => {
+    api.eventGroups.setFederationShare.mockRejectedValueOnce(new Error('refused'))
+    api.eventGroups.updateEventGroup.mockResolvedValue({eventGroup: {id: 7, details: {name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null}}, sets: [], parts: [], questions: [], fields: [],
+      registration: YOUTH, view: YOUTH})
+    const wrapper = mountEditor()
+    await flushPromises()
+    shareOf(wrapper).state.federationShared = true
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+    expect(replace).not.toHaveBeenCalled()
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+
+    expect(api.eventGroups.createEventGroup).toHaveBeenCalledOnce()
+    expect(api.eventGroups.setFederationShare).toHaveBeenCalledTimes(2)
+    expect(replace).toHaveBeenCalledWith({name: 'event-group-edit', params: {eventGroupId: 7}})
   })
 })

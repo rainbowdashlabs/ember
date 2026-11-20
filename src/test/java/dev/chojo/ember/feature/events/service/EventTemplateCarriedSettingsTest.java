@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
@@ -76,7 +77,20 @@ class EventTemplateCarriedSettingsTest extends RepositoryTestBase {
 
     private static EventTemplateSettings onSheet(String name, @Nullable Integer sheetId) {
         return new EventTemplateSettings(
-                name, null, null, null, null, null, null, null, null, sheetId, null, null, null, null);
+                name,
+                null,
+                null,
+                null,
+                null,
+                null,
+                RegistrationDeadline.none(),
+                null,
+                null,
+                sheetId,
+                null,
+                null,
+                null,
+                null);
     }
 
     private static EventFieldDefault value(int templateId, int fieldId, String value) {
@@ -220,9 +234,8 @@ class EventTemplateCarriedSettingsTest extends RepositoryTestBase {
                 java.time.Instant.parse("2026-05-12T20:00:00Z"),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -260,9 +273,8 @@ class EventTemplateCarriedSettingsTest extends RepositoryTestBase {
                 java.time.Instant.parse("2026-05-12T20:00:00Z"),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

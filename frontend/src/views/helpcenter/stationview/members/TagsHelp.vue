@@ -46,6 +46,10 @@ const offeredUserTypes = [StationUserType.MEMBER]
       <p>{{ t('helpCenter.membersTags.visibilityText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.membersTags.rulesTitle')">
+      <p>{{ t('helpCenter.membersTags.rulesText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.membersTags.convertTitle')">
       <p>{{ t('helpCenter.membersTags.convertText') }}</p>
     </HelpSection>

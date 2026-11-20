@@ -10,14 +10,16 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.PartnerAgreementOffer;
 import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventCommentFederation;
 import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
+import dev.chojo.ember.feature.events.service.PartnerEventService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.generator.entity.RequirementSignature;
@@ -77,7 +79,7 @@ class FederatedEventRoutesTest {
     private static final UUID OTHER_UID = UUID.fromString("00000000-0000-0000-0000-000000000013");
     private static final UUID ELSEWHERE_UID = UUID.fromString("00000000-0000-0000-0000-000000000014");
 
-    private EventFederationService events;
+    private PartnerEventService events;
     private FederationService federation;
     private StationMemberService members;
     private MemberLookupService lookup;
@@ -86,7 +88,7 @@ class FederatedEventRoutesTest {
 
     @BeforeEach
     void setup() {
-        events = mock(EventFederationService.class);
+        events = mock(PartnerEventService.class);
         federation = mock(FederationService.class);
         members = mock(StationMemberService.class);
         lookup = mock(MemberLookupService.class);
@@ -103,7 +105,14 @@ class FederatedEventRoutesTest {
 
     private FederatedEventRoutes routes(PartnerAppointmentSignatures signatures) {
         return new FederatedEventRoutes(
-                events, federation, members, lookup, guardians, signatures, new EventSignUpGuards(guardians));
+                events,
+                mock(EventCommentFederation.class),
+                federation,
+                members,
+                lookup,
+                guardians,
+                signatures,
+                new EventSignUpGuards(guardians));
     }
 
     private Consumer<Request.Builder> registrar() {
@@ -112,7 +121,7 @@ class FederatedEventRoutesTest {
 
     @Test
     void aMemberIsRegisteredWithdrawnRestoredAndConfirmedAtTheNamedPartner() {
-        when(events.registerForFederatedEvent(STATION, PARTNER_UID, 4, MEMBER_UID, DAY))
+        when(events.registerForFederatedEvent(STATION, PARTNER_UID, 4, MEMBER_UID, DAY, List.of()))
                 .thenReturn(RegistrationStatus.ACCEPTED);
         var day = body("{\"eventDate\": \"2026-05-01\"}");
 
@@ -129,6 +138,19 @@ class FederatedEventRoutesTest {
         verify(events).withdrawFederatedRegistration(STATION, PARTNER_UID, 4, MEMBER_UID, DAY);
         verify(events).undoFederatedWithdrawal(STATION, PARTNER_UID, 4, MEMBER_UID, DAY);
         verify(events).confirmOwnFederatedMember(STATION, PARTNER_UID, 4, MEMBER_UID, DAY);
+    }
+
+    /** The answers a member gives travel with the sign-up to the station holding the appointment. */
+    @Test
+    void theAnswersTravelWithTheSignUp() {
+        var answers = List.of(new EventRegistrationFieldValue(5, "L"));
+        when(events.registerForFederatedEvent(STATION, PARTNER_UID, 4, MEMBER_UID, DAY, answers))
+                .thenReturn(RegistrationStatus.QUEUED);
+        var signUp = body("{\"eventDate\": \"2026-05-01\", \"answers\": [{\"fieldId\": 5, \"value\": \"L\"}]}");
+
+        var answer = json(harness.request(client -> client.post(REGISTER, signUp, registrar())));
+
+        assertEquals("QUEUED", answer.path("status").asString());
     }
 
     /**
@@ -233,7 +255,7 @@ class FederatedEventRoutesTest {
                 true,
                 null,
                 null);
-        return new RemoteEventRoutes.RemoteEventDetail(event, List.of(), null);
+        return new RemoteEventRoutes.RemoteEventDetail(event, List.of(), null, List.of(), null);
     }
 
     @Test

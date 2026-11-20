@@ -168,7 +168,7 @@ class MessageDigestMailTest extends MessageTestBase {
         Conversation chat = services.stationChats().open(station.id(), mia.id(), "Alle", null, false);
         services.messages().send(anna.id(), chat.uid(), "Allgemeines", null);
         services.messages().send(anna.id(), chat.uid(), "Frage an @[account/%s:Ben Muster]".formatted(ben.uid()), null);
-        services.settings().update(mia.id(), null, StationDigest.ALL);
+        services.settings().update(mia.id(), null, StationDigest.ALL, null);
 
         mail.sweep();
 
@@ -190,7 +190,7 @@ class MessageDigestMailTest extends MessageTestBase {
         services.messages().send(cora.id(), round.uid(), "Blockiert", null);
         var withMia = services.conversations().openDirect(mia.id(), anna.uid());
         services.messages().send(mia.id(), withMia.uid(), "Abgeschaltet", null);
-        services.settings().update(anna.id(), false, null);
+        services.settings().update(anna.id(), false, null, null);
 
         mail.sweep();
 
@@ -217,7 +217,7 @@ class MessageDigestMailTest extends MessageTestBase {
     @Test
     void aStationChatSomebodyWasTakenOutOfSendsThemNothing() {
         Conversation chat = services.stationChats().open(station.id(), mia.id(), "Alle", null, false);
-        services.settings().update(ben.id(), null, StationDigest.ALL);
+        services.settings().update(ben.id(), null, StationDigest.ALL, null);
         stationMemberRepo.setFormer(member(ben).id(), true);
         services.membership().reconcile(station.id());
         services.messages().send(anna.id(), chat.uid(), "Nach Bens Abschied", null);

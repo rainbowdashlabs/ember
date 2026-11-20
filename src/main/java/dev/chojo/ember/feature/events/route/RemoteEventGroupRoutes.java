@@ -12,8 +12,11 @@ import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupPartState;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSummary;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentDeleteRequest;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentUpdateRequest;
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemotePlaces;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
@@ -24,6 +27,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -66,6 +70,17 @@ public class RemoteEventGroupRoutes implements Routes {
             Void.class);
 
     /**
+     * A partner confirming one of its own members' sign-ups, where the station holding the event group
+     * handed it that decision. The answer is where the member stands afterwards: holding a place, or
+     * waiting for one where the event group is full.
+     */
+    public static final FederationEndpoint CONFIRM_OWN = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/groups/{id}/sign-up/confirm",
+            RemoteEventGroupMember.class,
+            RemoteEventGroupConfirmed.class);
+
+    /**
      * The station holding an event group telling a partner that the event group was called off, naming the
      * partner's members who held or waited for a place.
      */
@@ -73,6 +88,17 @@ public class RemoteEventGroupRoutes implements Routes {
                     FederationSurface.EVENT_SHARE,
                     "/remote/webhook/event-group-cancelled",
                     RemoteEventGroupCancelled.class,
+                    Void.class)
+            .keepingInStep();
+
+    /**
+     * The station holding an event group telling a partner that it decided about one of the partner's
+     * members' sign-ups, or that the sign-up moved up from the waiting list.
+     */
+    public static final FederationEndpoint EVENT_GROUP_SIGN_UP_STATUS_WEBHOOK = FederationEndpoint.post(
+                    FederationSurface.EVENT_SHARE,
+                    "/remote/webhook/event-group-sign-up-status",
+                    RemoteEventGroupSignUpStatus.class,
                     Void.class)
             .keepingInStep();
 
@@ -106,7 +132,9 @@ public class RemoteEventGroupRoutes implements Routes {
             SIGN_UP,
             CHANGE_PARTS,
             WITHDRAW,
+            CONFIRM_OWN,
             EVENT_GROUP_CANCELLED_WEBHOOK,
+            EVENT_GROUP_SIGN_UP_STATUS_WEBHOOK,
             LIST_COMMENTS,
             CREATE_COMMENT,
             UPDATE_COMMENT,
@@ -125,7 +153,9 @@ public class RemoteEventGroupRoutes implements Routes {
                 .serveCreated(SIGN_UP)
                 .serve(CHANGE_PARTS)
                 .serve(WITHDRAW)
+                .serve(CONFIRM_OWN)
                 .serve(EVENT_GROUP_CANCELLED_WEBHOOK)
+                .serve(EVENT_GROUP_SIGN_UP_STATUS_WEBHOOK)
                 .serve(LIST_COMMENTS)
                 .serveCreated(CREATE_COMMENT)
                 .serve(UPDATE_COMMENT)
@@ -144,13 +174,15 @@ public class RemoteEventGroupRoutes implements Routes {
      * @param standings where each member asked about stands
      * @param fields    the fields it shows readers outside the station; a partner that has never
      *                  heard of them ignores them
+     * @param places    what the partner asking was given, only where it decides its own sign-ups
      */
     public record RemoteEventGroupDetail(
             RemoteEventGroupSummary eventGroup,
             List<EventGroupSet> sets,
             List<EventGroupPartState> parts,
             List<PartnerStanding> standings,
-            @Nullable List<AppointmentField> fields) {}
+            @Nullable List<AppointmentField> fields,
+            @Nullable RemotePlaces places) {}
 
     /**
      * A shared event group as its partner is told about it.
@@ -160,7 +192,8 @@ public class RemoteEventGroupRoutes implements Routes {
      * @param cancelled    whether it was called off
      * @param cancelReason why, where it was
      * @param partCount    how many parts it has
-     * @param holding      how many sign-ups hold or wait for a place, of every station
+     * @param holding      how many accepted sign-ups hold a place, of every station
+     * @param queued       how many sign-ups wait on the waiting list, of every station
      */
     public record RemoteEventGroupSummary(
             int id,
@@ -168,7 +201,8 @@ public class RemoteEventGroupRoutes implements Routes {
             boolean cancelled,
             @Nullable String cancelReason,
             int partCount,
-            int holding) {
+            int holding,
+            int queued) {
         /**
          * The event group as the station holding it tells a partner about it.
          *
@@ -182,7 +216,8 @@ public class RemoteEventGroupRoutes implements Routes {
                     summary.cancelled(),
                     summary.cancelReason(),
                     summary.partCount(),
-                    summary.holding());
+                    summary.holding(),
+                    summary.queued());
         }
 
         /**
@@ -191,7 +226,20 @@ public class RemoteEventGroupRoutes implements Routes {
          * @return the summary
          */
         public EventGroupSummary toSummary() {
-            return new EventGroupSummary(id, details, cancelled, cancelReason, partCount, holding);
+            return new EventGroupSummary(
+                    id,
+                    details,
+                    cancelled,
+                    cancelReason,
+                    partCount,
+                    holding,
+                    queued,
+                    0,
+                    null,
+                    null,
+                    details.registrationDeadline().kind() == RegistrationDeadline.DeadlineKind.FIXED
+                            ? details.registrationDeadline().at()
+                            : null);
         }
     }
 
@@ -205,6 +253,35 @@ public class RemoteEventGroupRoutes implements Routes {
 
     /** @param memberUid the member, by the id their own station gave them */
     public record RemoteEventGroupMember(UUID memberUid) {}
+
+    /**
+     * Where a partner's member stands after the partner confirmed their event group sign-up.
+     *
+     * @param standing       where the member stands now
+     * @param eventGroupName the event group's name, for the notice the member gets
+     */
+    public record RemoteEventGroupConfirmed(PartnerStanding standing, String eventGroupName) {}
+
+    /**
+     * A decision about a partner's member's event group sign-up, as the station holding the event group
+     * tells the partner.
+     *
+     * @param eventGroupId   the event group at the station holding it
+     * @param eventGroupName its name, for the notice the partner's member gets
+     * @param memberUid      the partner's member
+     * @param status         the status the sign-up holds now
+     * @param queuePosition  the place in line where it now waits on the waiting list, or null
+     * @param movedUp        whether it moved up from the waiting list into a place that fell free
+     * @param changedAt      when the station holding the event group decided, on its own clock
+     */
+    public record RemoteEventGroupSignUpStatus(
+            int eventGroupId,
+            String eventGroupName,
+            UUID memberUid,
+            RegistrationStatus status,
+            @Nullable Integer queuePosition,
+            boolean movedUp,
+            Instant changedAt) {}
 
     /**
      * A shared event group that was called off.

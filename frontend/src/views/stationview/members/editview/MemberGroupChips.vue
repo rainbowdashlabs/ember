@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import RuleKeptMark from '@/components/display/RuleKeptMark.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SectionLabel from '@/components/typography/SectionLabel.vue'
 import type {MemberGroup, MemberGroupSet} from '@/api/generated/schema'
@@ -26,7 +27,8 @@ import {
  * <p>A group in no set is joined and left on its own. The groups of a set are one choice, with "none"
  * beside them, because a member can be in only one of them and picking another is a move. A group bound
  * to member types the member does not have stays visible but cannot be picked, and says which types it
- * takes, so nobody wonders why it will not light up.
+ * takes, so nobody wonders why it will not light up. A group that takes its members from a rule shows
+ * whether the member is in it, carries the rule mark and cannot be toggled, because the rule decides.
  */
 const props = defineProps<{
   groups: MemberGroup[]
@@ -34,6 +36,8 @@ const props = defineProps<{
   selected: ReadonlySet<number>
   userType: string
   disabled?: boolean
+  /** The groups that take their members from a rule. */
+  ruled?: ReadonlySet<number>
 }>()
 
 const emit = defineEmits<{
@@ -45,8 +49,17 @@ const {t} = useI18n()
 const looseGroups = computed(() => groupsOutsideSets(props.groups))
 const choices = computed(() => setsWithGroups(props.groups, props.sets))
 
+function kept(group: MemberGroup): boolean {
+  return props.ruled?.has(group.id) ?? false
+}
+
 function closed(group: MemberGroup): boolean {
-  return !props.selected.has(group.id) && !admits(group, props.userType)
+  return !kept(group) && !props.selected.has(group.id) && !admits(group, props.userType)
+}
+
+function hintOf(group: MemberGroup): string | undefined {
+  if (kept(group)) return t('memberRules.keptByRuleHint')
+  return closed(group) ? boundTo(group) : undefined
 }
 
 function boundTo(group: MemberGroup): string {
@@ -91,11 +104,12 @@ function optionsOf(entry: SetOfGroups): SetOption[] {
           v-for="group in looseGroups"
           :key="group.id"
           :selected="selected.has(group.id)"
-          :disabled="disabled || closed(group)"
-          :title="closed(group) ? boundTo(group) : undefined"
+          :disabled="disabled || closed(group) || kept(group)"
+          :title="hintOf(group)"
           @toggle="emit('change', toggled(selected, group.id))"
       >
         {{ group.name }}
+        <RuleKeptMark v-if="kept(group)" labelled/>
       </SelectionToggleButton>
     </div>
 

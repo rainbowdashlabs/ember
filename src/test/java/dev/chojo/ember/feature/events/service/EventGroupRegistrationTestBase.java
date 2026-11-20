@@ -15,12 +15,14 @@ import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -109,7 +111,9 @@ abstract class EventGroupRegistrationTestBase extends RepositoryTestBase {
                 bus,
                 memberNameResolver,
                 questions,
-                newEventGroupSignUpRules());
+                newEventGroupSignUpRules(),
+                newEventGroupQueue(registrations, bus),
+                new RegistrationQueueRepository());
         zone = occurrenceCalendar.zoneOf(station.id());
         eventGroup = jugendflamme(null, false, Instant.now().plus(Duration.ofDays(5)));
     }
@@ -117,7 +121,8 @@ abstract class EventGroupRegistrationTestBase extends RepositoryTestBase {
     protected EventGroup jugendflamme(Integer limit, boolean confirm, Instant deadline) {
         var created = eventGroups.create(
                 station.id(),
-                new EventGroupDetails("Jugendflamme 1", null, limit, deadline, confirm, null),
+                new EventGroupDetails(
+                        "Jugendflamme 1", null, limit, RegistrationDeadline.fixed(deadline), confirm, null),
                 List.of(new EventGroupSetDraft(null, "Übung", 2), new EventGroupSetDraft(null, "Prüfung", 1)),
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),

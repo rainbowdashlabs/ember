@@ -15,6 +15,8 @@ import type {NotificationToggle, NotificationType, SettingsResponse} from '@/api
 
 const props = defineProps<{
   settings: SettingsResponse
+  /** Whether this instance pushes, which is when the push column is shown. */
+  pushAvailable?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -22,6 +24,7 @@ const emit = defineEmits<{
   toggleApp: [type: string]
   toggleEmail: [type: string]
   toggleFeed: [type: string]
+  togglePush: [type: string]
 }>()
 
 const {t} = useI18n()
@@ -60,30 +63,50 @@ const consent = computed(() => {
   return t('userSettings.emailConsent', {provider: names[0] ?? `„${t('userSettings.mailProviderUnknown')}"`})
 })
 
+/**
+ * Whether the station sends mail at all, through a provider of its own or one the instance shares with
+ * it. Without one the mail switch and the mail column are left out, since nothing could be switched
+ * there; the notice above says why notifications do not arrive by mail.
+ */
+const sendsMail = computed(() => props.settings.mailConfigured)
+
+/**
+ * The grid of the type rows: one column for the app and the feed each, one more for mail where the
+ * station sends mail and one for push where the instance pushes, so the toggles stay in line with their
+ * headings. On a phone the name of a type takes a line of its own and the toggles sit below it in
+ * equal columns, centred under their headings, since four toggles beside a name leave the name no room.
+ */
+const GRIDS: Readonly<Record<number, string>> = {
+  2: 'grid-cols-2 justify-items-center sm:grid-cols-[1fr_auto_auto] sm:justify-items-stretch',
+  3: 'grid-cols-3 justify-items-center sm:grid-cols-[1fr_auto_auto_auto] sm:justify-items-stretch',
+  4: 'grid-cols-4 justify-items-center sm:grid-cols-[1fr_auto_auto_auto_auto] sm:justify-items-stretch',
+}
+
+const columns = computed(() => GRIDS[2 + (sendsMail.value ? 1 : 0) + (props.pushAvailable ? 1 : 0)])
+
 function getToggle(type: string): NotificationToggle {
-  return props.settings.notifications?.[type] ?? {app: true, email: false, feed: true}
+  return props.settings.notifications?.[type] ?? {app: true, email: true, feed: true, push: true}
 }
 </script>
 
 <template>
-  <MailProviderNotice v-if="settings.mailConfigured" :providers="settings.mailProviders"/>
+  <MailProviderNotice v-if="sendsMail" :providers="settings.mailProviders"/>
 
-  <NeutralContainer v-if="!settings.mailConfigured" class="text-sm text-(--text-muted) py-3">
+  <NeutralContainer v-if="!sendsMail" class="text-sm text-(--text-muted) py-3" data-testid="mail-not-configured">
     {{ t('userSettings.mailNotConfigured') }}
   </NeutralContainer>
 
-  <NeutralContainer class="space-y-4">
+  <NeutralContainer v-if="sendsMail" class="space-y-4" data-testid="mail-switch">
     <SubHeader class="text-sm">{{ t('userSettings.emailTitle') }}</SubHeader>
     <div class="flex items-center justify-between">
       <div>
         <span class="text-sm font-medium">{{ t('userSettings.emailEnabled') }}</span>
         <p class="text-xs text-(--text-muted)">{{ t('userSettings.emailEnabledHint') }}</p>
-        <p v-if="settings.mailConfigured" class="text-xs text-(--text-muted)">
+        <p class="text-xs text-(--text-muted)">
           {{ consent }}
         </p>
       </div>
-      <ToggleInput :model-value="settings.emailEnabled" :disabled="!settings.mailConfigured"
-                   @update:model-value="emit('toggleEmailEnabled')"/>
+      <ToggleInput :model-value="settings.emailEnabled" @update:model-value="emit('toggleEmailEnabled')"/>
     </div>
   </NeutralContainer>
 
@@ -91,28 +114,35 @@ function getToggle(type: string): NotificationToggle {
     <SubHeader class="text-sm">{{ t('userSettings.notifications') }}</SubHeader>
     <p class="text-xs text-(--text-muted)">{{ t('userSettings.notificationsHint') }}</p>
 
-    <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center text-xs font-semibold text-(--text-muted) border-b border-(--border) pb-2">
-      <span/>
+    <div :class="columns" class="grid gap-x-4 items-center text-xs font-semibold text-(--text-muted) border-b border-(--border) pb-2">
+      <span class="hidden sm:block"/>
       <span class="w-12 text-center">{{ t('userSettings.columnApp') }}</span>
-      <span class="w-12 text-center">{{ t('userSettings.columnEmail') }}</span>
+      <span v-if="sendsMail" class="w-12 text-center">{{ t('userSettings.columnEmail') }}</span>
       <span class="w-12 text-center">{{ t('userSettings.columnFeed') }}</span>
+      <span v-if="pushAvailable" class="w-12 text-center">{{ t('userSettings.columnPush') }}</span>
     </div>
 
     <div v-for="row in notifyRows" :key="row.type"
-         class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
-      <div>
+         :class="columns" class="grid gap-x-4 gap-y-1 items-center py-1">
+      <div class="col-span-full justify-self-stretch sm:col-span-1 min-w-0 break-words">
         <span class="text-sm font-medium">{{ t(`userSettings.${row.label}`) }}</span>
         <p class="text-xs text-(--text-muted)">{{ t(`userSettings.${row.hint}`) }}</p>
       </div>
       <div class="w-12 flex justify-center">
         <ToggleInput :model-value="getToggle(row.type).app" @update:model-value="emit('toggleApp', row.type)"/>
       </div>
-      <div class="w-12 flex justify-center">
+      <div v-if="sendsMail" class="w-12 flex justify-center">
         <ToggleInput :model-value="getToggle(row.type).email" :disabled="!settings.emailEnabled"
+                     :data-testid="`email-toggle-${row.type}`"
                      @update:model-value="emit('toggleEmail', row.type)"/>
       </div>
       <div class="w-12 flex justify-center">
         <ToggleInput :model-value="getToggle(row.type).feed" @update:model-value="emit('toggleFeed', row.type)"/>
+      </div>
+      <div v-if="pushAvailable" class="w-12 flex justify-center">
+        <ToggleInput :model-value="getToggle(row.type).push !== false" :disabled="!getToggle(row.type).app"
+                     :data-testid="`push-toggle-${row.type}`"
+                     @update:model-value="emit('togglePush', row.type)"/>
       </div>
     </div>
   </NeutralContainer>

@@ -10,6 +10,10 @@ import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
@@ -21,6 +25,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -29,7 +34,7 @@ import java.util.UUID;
  * Server-to-server event routes. They serve this station's shared events, their registrations and
  * their comments to a federation partner, authenticated by the RSA signature that
  * {@code AccessManager} already verified, through the serving functions of
- * {@code EventFederationService}.
+ * {@code EventPartnerRegistrationService} and {@code EventCommentFederation}.
  */
 @Singleton
 public class RemoteEventRoutes implements Routes {
@@ -68,18 +73,23 @@ public class RemoteEventRoutes implements Routes {
             FederationSurface.EVENT_SHARE,
             "/remote/events/{id}/register/confirm",
             RemoteRegistrationRequest.class,
-            Void.class);
+            RemoteConfirmedOwn.class);
 
     public static final FederationEndpoint LIST_REGISTRATIONS = FederationEndpoint.getList(
             FederationSurface.EVENT_SHARE, "/remote/events/{id}/registrations", EventFederationRegistration.class);
     public static final FederationEndpoint LIST_MEMBER_REGISTRATIONS = FederationEndpoint.getList(
             FederationSurface.EVENT_SHARE, "/remote/registrations/{memberUid}", RemoteMemberRegistration.class);
+    /**
+     * The station holding an appointment telling a partner that it decided about one of the partner's
+     * members, or that the member moved up from the waiting list.
+     */
     public static final FederationEndpoint REGISTRATION_STATUS_WEBHOOK = FederationEndpoint.post(
                     FederationSurface.EVENT_SHARE,
                     "/remote/webhook/event-registration-status",
-                    Void.class,
-                    FederatedEventRoutes.StatusResponse.class)
+                    RemoteRegistrationStatus.class,
+                    Void.class)
             .keepingInStep();
+
     public static final FederationEndpoint EVENT_CHANGED_WEBHOOK = FederationEndpoint.post(
                     FederationSurface.EVENT_SHARE, "/remote/webhook/event-changed", RemoteEventChange.class, Void.class)
             .keepingInStep();
@@ -176,13 +186,99 @@ public class RemoteEventRoutes implements Routes {
     }
 
     /**
-     * @param places what this partner may do here, or {@code null} where the host decides as it always
-     *         did. A peer that has never heard of this field ignores it and behaves as before
+     * @param places     what this partner may do here, or {@code null} where the host decides as it always
+     *                   did. A peer that has never heard of this field ignores it and behaves as before
+     * @param questions  the registration questions a partner's member answers on signing up: every one
+     *                   the appointment asks except those naming members of the host, which mean nothing
+     *                   at a partner
+     * @param datePlaces how the places of the date in view stand, or {@code null} where the appointment
+     *                   falls on no date
      */
     public record RemoteEventDetail(
             SharedEvent event,
             List<EventField> publicFields,
-            @Nullable RemotePlaces places) {}
+            @Nullable RemotePlaces places,
+            List<RemoteQuestion> questions,
+            @Nullable RemoteDatePlaces datePlaces) {}
+
+    /**
+     * A registration question as a partner station asks it of its member, under the type names partner
+     * stations read.
+     *
+     * @param id           the question, which an answer names
+     * @param name         what it asks
+     * @param fieldType    the kind of answer it takes
+     * @param options      the values a choice offers, or null
+     * @param required     whether the sign-up is refused without an answer
+     * @param defaultValue what an unanswered question is taken to say, or null
+     * @param min          the lowest number or shortest text it takes, or null
+     * @param max          the highest number or longest text it takes, or null
+     * @param description  what it explains below its label, or null
+     * @param position     where it stands among the questions
+     */
+    public record RemoteQuestion(
+            int id,
+            String name,
+            EventFieldType fieldType,
+            @Nullable List<String> options,
+            boolean required,
+            @Nullable String defaultValue,
+            @Nullable Integer min,
+            @Nullable Integer max,
+            @Nullable String description,
+            int position) {
+
+        /** The wire shape of a question of this station's appointment. */
+        public static RemoteQuestion of(EventRegistrationField field) {
+            var config = field.config();
+            return new RemoteQuestion(
+                    field.id(),
+                    field.name(),
+                    EventFieldType.of(field.fieldType()),
+                    config.options(),
+                    config.required(),
+                    config.defaultValue(),
+                    config.min(),
+                    config.max(),
+                    config.description(),
+                    field.position());
+        }
+
+        /**
+         * This question as the partner station's own sign-up form reads one.
+         *
+         * @param eventId the appointment at the station that asks it
+         */
+        public EventRegistrationField asField(int eventId) {
+            var settings = new EventQuestionSettings(
+                    options,
+                    null,
+                    null,
+                    null,
+                    null,
+                    false,
+                    false,
+                    required,
+                    defaultValue,
+                    min,
+                    max,
+                    false,
+                    description);
+            return new EventRegistrationField(
+                    id, eventId, null, name, fieldType.fieldType(), settings, position, false);
+        }
+    }
+
+    /**
+     * How the places of one date of a shared appointment stand, so a partner knows before signing up
+     * whether the sign-up lands on the waiting list.
+     *
+     * @param date    the date counted
+     * @param limit   how many places there are, or null for no limit
+     * @param taken   how many places accepted sign-ups hold, partners' members included
+     * @param waiting how many sign-ups wait on the waiting list
+     */
+    public record RemoteDatePlaces(LocalDate date, @Nullable Integer limit, int taken, int waiting) {}
 
     /**
      * What a partner station has been given on one appointment, in its own terms.
@@ -221,7 +317,54 @@ public class RemoteEventRoutes implements Routes {
     public record RemoteMemberRegistration(
             int eventId, String remoteMemberId, String eventDate, RegistrationStatus status, int partnerId) {}
 
-    public record RemoteRegistrationRequest(UUID remoteMemberId, LocalDate eventDate) {}
+    /**
+     * A partner's member and date, for signing up, withdrawing, putting back and confirming.
+     *
+     * @param answers the answers to the appointment's questions, sent with a sign-up only. Absent from a
+     *                partner that never asks them; such a sign-up is taken where no question is required
+     */
+    public record RemoteRegistrationRequest(
+            UUID remoteMemberId,
+            LocalDate eventDate,
+            @Nullable List<EventRegistrationFieldValue> answers) {
+
+        /** A request about a member's place that carries no answers. */
+        public RemoteRegistrationRequest(UUID remoteMemberId, LocalDate eventDate) {
+            this(remoteMemberId, eventDate, null);
+        }
+    }
+
+    /**
+     * Where a partner's member stands after the partner confirmed them, as the station holding the
+     * appointment answers.
+     *
+     * @param status    the status the registration holds now: accepted, or waiting on the waiting list
+     * @param eventName the appointment's name, for the notice the member gets
+     */
+    public record RemoteConfirmedOwn(RegistrationStatus status, String eventName) {}
+
+    /**
+     * A decision about a partner's member on one date of a shared appointment, as the station holding it
+     * tells the partner.
+     *
+     * @param eventId       the appointment at the station holding it
+     * @param eventName     its name, for the notice the partner's member gets
+     * @param memberUid     the partner's member
+     * @param eventDate     the date
+     * @param status        the status the registration holds now
+     * @param queuePosition the place in line where it now waits on the waiting list, or null
+     * @param movedUp       whether it moved up from the waiting list into a place that fell free
+     * @param changedAt     when the station holding the appointment decided, on its own clock
+     */
+    public record RemoteRegistrationStatus(
+            int eventId,
+            String eventName,
+            UUID memberUid,
+            LocalDate eventDate,
+            RegistrationStatus status,
+            @Nullable Integer queuePosition,
+            boolean movedUp,
+            Instant changedAt) {}
 
     /**
      * A shared appointment changed, told to the partner station whose members hold a place on it, so

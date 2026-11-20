@@ -8,10 +8,14 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.EventChangePart;
 import dev.chojo.ember.feature.events.entity.EventDraft;
+import dev.chojo.ember.feature.events.entity.PartnerPlaces;
+import dev.chojo.ember.feature.events.entity.PlacesKind;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventHandoverRepository;
+import dev.chojo.ember.feature.events.repository.PartnerPlacesRepository;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -138,9 +142,8 @@ class FederatedEventChangeServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -242,7 +245,8 @@ class FederatedEventChangeServiceTest extends RepositoryTestBase {
         var event = weekly();
         var share = eventFederationRepo.setShare(event.id(), ShareScope.SPECIFIC);
         eventFederationRepo.setShareTargets(share.id(), List.of(guestAtHost.id()));
-        eventFederationRepo.setPartnerPlaces(event.id(), guestAtHost.id(), 3, true);
+        new PartnerPlacesRepository()
+                .set(PlacesKind.APPOINTMENT, PartnerPlaces.requested(event.id(), guestAtHost.id(), 3, true));
         LocalDate from = nextTuesday().plusWeeks(1);
         var before = eventFederationRepo.createRegistration(
                 event.id(), guestAtHost.id(), guestMember.uid(), nextTuesday(), RegistrationStatus.ACCEPTED);
@@ -283,7 +287,6 @@ class FederatedEventChangeServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                null,
                 null);
 
         var continued = scope.split(event, from, draft);
@@ -294,8 +297,8 @@ class FederatedEventChangeServiceTest extends RepositoryTestBase {
         assertEquals(List.of(guestAtHost.id()), eventFederationRepo.findShareTargets(copied.id()));
         assertEquals(
                 3,
-                eventFederationRepo
-                        .findPartnerPlaces(continued.id(), guestAtHost.id())
+                new PartnerPlacesRepository()
+                        .find(PlacesKind.APPOINTMENT, continued.id(), guestAtHost.id())
                         .slotBudget());
         assertEquals(
                 event.id(),

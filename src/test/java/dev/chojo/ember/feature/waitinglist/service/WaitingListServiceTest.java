@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
@@ -18,10 +19,13 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.documents.entity.Uploader;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.members.entity.RuleNode;
+import dev.chojo.ember.feature.members.entity.RuleOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.notifications.service.Notifier;
@@ -99,9 +103,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 Instant.parse("2099-05-12T20:00:00Z"),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -1576,6 +1579,52 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
         memberGroupRepo.delete(trainers.id());
         stationRepo.delete(elsewhere.id());
+    }
+
+    /** A group a rule fills cannot be a list's join or testing group, because the rule decides who is in it. */
+    @Test
+    void aListIsRefusedGroupsARuleFills() {
+        var ruled = memberGroupRepo.create(station.id(), "WL Ruled " + UUID.randomUUID());
+        memberRuleRepo.replace(station.id(), RuleOwner.group(ruled.id()), RuleNode.all());
+
+        assertEquals(
+                MemberRefusal.RULE_GROUP_NOT_HANDED_OUT,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.create(
+                                        station.id(),
+                                        "Refused",
+                                        "",
+                                        null,
+                                        180,
+                                        ruled.id(),
+                                        null,
+                                        5,
+                                        false,
+                                        true,
+                                        null,
+                                        null))
+                        .refusal());
+        assertEquals(
+                MemberRefusal.RULE_GROUP_NOT_HANDED_OUT,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.create(
+                                        station.id(),
+                                        "Refused",
+                                        "",
+                                        null,
+                                        180,
+                                        null,
+                                        ruled.id(),
+                                        5,
+                                        false,
+                                        true,
+                                        null,
+                                        null))
+                        .refusal());
+
+        memberGroupRepo.delete(ruled.id());
     }
 
     /**

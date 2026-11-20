@@ -204,8 +204,9 @@ public class EventRegistrationFieldService {
      * refuses to go through without one. A required question with nothing stored against it can
      * therefore only be one that came after the registration, which is the whole of what this says.
      *
-     * <p>Only a registration that still stands owes anything. Somebody who declined, withdrew or was
-     * turned away holds no place, and a question added afterwards is not theirs to answer.
+     * <p>Only a registration that still stands owes anything, one waiting on the waiting list included,
+     * since it may move up. Somebody who declined, withdrew or was turned away holds no place, and a
+     * question added afterwards is not theirs to answer.
      *
      * @param status   where the registration stands
      * @param required the ids of the appointment's required questions
@@ -215,7 +216,7 @@ public class EventRegistrationFieldService {
     public static boolean owesAnswer(
             RegistrationStatus status, Set<Integer> required, List<RegistrationFieldValue> answers) {
         if (required.isEmpty()) return false;
-        if (status != RegistrationStatus.PENDING && status != RegistrationStatus.ACCEPTED) return false;
+        if (!status.standing()) return false;
         var answered = answers.stream()
                 .filter(value -> !isBlank(value.value()))
                 .map(RegistrationFieldValue::fieldId)

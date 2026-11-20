@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -24,6 +25,7 @@ import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.service.EventGroupPartDates;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
 import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
@@ -69,6 +71,7 @@ import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.PartnerAgreementRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
+import dev.chojo.ember.util.TestEventPlaces;
 import io.javalin.http.UploadedFile;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -235,7 +238,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 new EventRegistrationFieldRepository(),
                 eventRepo,
                 new DomainEventBus(Set.of(new RegistrationSignaturesHandler(() -> signatures))),
-                memberNameResolver);
+                memberNameResolver,
+                TestEventPlaces.of(eventRegistrationRepo));
         attendance = new AgreementAttendance(requestRepo, eventRepo, eventRegistrationRepo, registrations);
         var rights = new WithdrawalRights(guardianPolicy);
         offers = new AgreementOffers(
@@ -287,9 +291,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 START.plus(Duration.ofHours(8)),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -861,9 +864,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 START.plus(Duration.ofHours(8)),
                 null,
                 takesRegistrations,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -1034,9 +1036,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 start.plus(Duration.ofHours(8)),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -1055,7 +1056,9 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 new DomainEventBus(Set.of()),
                 memberNameResolver,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                newEventGroupSignUpRules());
+                newEventGroupSignUpRules(),
+                newEventGroupQueue(registrations, new DomainEventBus(Set.of())),
+                new RegistrationQueueRepository());
     }
 
     private static void signUp(GroupParts group, StationEvent... parts) {

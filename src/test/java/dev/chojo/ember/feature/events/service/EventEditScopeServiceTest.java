@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventLink;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventHandoverRepository;
@@ -133,9 +134,8 @@ class EventEditScopeServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -158,7 +158,6 @@ class EventEditScopeServiceTest extends RepositoryTestBase {
                 true,
                 null,
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -425,7 +424,6 @@ class EventEditScopeServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                null,
                 nextTuesday().plusWeeks(8),
                 4);
 
@@ -521,7 +519,6 @@ class EventEditScopeServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                null,
                 null);
 
         var continued = track(scope.split(series, from, onWednesday));
@@ -553,9 +550,8 @@ class EventEditScopeServiceTest extends RepositoryTestBase {
                 nextTuesday().atTime(20, 0).atZone(zone).toInstant(),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -577,7 +573,6 @@ class EventEditScopeServiceTest extends RepositoryTestBase {
                                 true,
                                 null,
                                 false,
-                                null,
                                 null,
                                 null,
                                 null,

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -22,6 +23,7 @@ import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
+import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -62,6 +64,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
     private final EventTemplateService eventTemplateService;
     private final EventRestrictionService restrictionService;
     private final EventRegistrationFieldService registrationFieldService;
+    private final EventRegistrationService registrationService;
     private final DemoClock clock;
 
     @Inject
@@ -74,6 +77,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
             EventTemplateService eventTemplateService,
             EventRestrictionService restrictionService,
             EventRegistrationFieldService registrationFieldService,
+            EventRegistrationService registrationService,
             DemoClock clock) {
         this.categoryRepository = categoryRepository;
         this.registrationRepository = registrationRepository;
@@ -83,6 +87,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         this.eventTemplateService = eventTemplateService;
         this.restrictionService = restrictionService;
         this.registrationFieldService = registrationFieldService;
+        this.registrationService = registrationService;
         this.clock = clock;
     }
 
@@ -203,10 +208,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 monEnd,
                 templateUebung.id(),
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 catUebung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -220,10 +224,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 satEnd,
                 templateGesamt.id(),
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 catUebung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -238,10 +241,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 satEnd,
                 null,
                 true,
-                null,
+                RegistrationDeadline.relative(7 * 1440, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
                 false,
                 catVeranstaltung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -259,10 +261,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 satEnd,
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 catVeranstaltung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -282,10 +283,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 jhvEnd,
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 catVeranstaltung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -306,10 +306,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 todayEventEnd,
                 templateTheorie.id(),
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 catUebung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -334,10 +333,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 nextMonthEnd,
                 null,
                 true,
-                deadline,
+                RegistrationDeadline.fixed(deadline),
                 true,
                 catVeranstaltung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -357,10 +355,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 oeffentlichkeitEnd,
                 null,
                 true,
-                oeffentlichkeitDeadline,
+                RegistrationDeadline.fixed(oeffentlichkeitDeadline),
                 false,
                 catVeranstaltung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -380,10 +377,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 wettbewerbEnd,
                 null,
                 true,
-                wettbewerbDeadline,
+                RegistrationDeadline.fixed(wettbewerbDeadline),
                 true,
                 catWettbewerb.id(),
-                null,
                 null,
                 null,
                 null);
@@ -400,10 +396,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 days.at(zeltlagerStart.plusDays(6), 16, 0),
                 null,
                 true,
-                days.at(zeltlagerStart.minusWeeks(3), 23, 59),
+                RegistrationDeadline.fixed(days.at(zeltlagerStart.minusWeeks(3), 23, 59)),
                 false,
                 catVeranstaltung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -495,10 +490,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                     oeEnd,
                     null,
                     true,
-                    null,
+                    RegistrationDeadline.none(),
                     true,
                     catOeffentlichkeit.id(),
-                    null,
                     null,
                     null,
                     null);
@@ -546,10 +540,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 openEnd,
                 null,
                 true,
-                openDeadline,
+                RegistrationDeadline.fixed(openDeadline),
                 true,
                 catOeffentlichkeit.id(),
-                null,
                 null,
                 null,
                 null);
@@ -588,6 +581,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
             var status = i < 6 ? RegistrationStatus.ACCEPTED : RegistrationStatus.PENDING;
             registrationRepository.create(oeOpen.id(), allMembers.get(i).id(), openDate, status, null);
         }
+        seedFullDrill(days, stationId, catUebung.id(), allMembers);
 
         eventFieldRepository.create(
                 tagDerOffenenTuer.id(),
@@ -745,7 +739,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                         null,
                         StationEvent.EventType.RECURRING,
                         false,
-                        null,
+                        RegistrationDeadline.none(),
                         false,
                         null,
                         null,
@@ -784,14 +778,13 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                         null,
                         StationEvent.EventType.ONE_TIME,
                         true,
-                        72,
+                        RegistrationDeadline.relative(72 * 60, RegistrationDeadline.DeadlineAnchor.EXACT),
                         true,
                         null,
                         null,
                         null,
                         6,
-                        7,
-                        null));
+                        7));
         eventTemplateService.replaceFields(
                 tplWettbewerb.id(),
                 List.of(
@@ -800,6 +793,50 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                         new AppointmentTemplateFieldDraft(
                                 "Thema", FieldType.TEXT, EventQuestionSettings.empty(), 1, true, false, null, null)));
         log.info("Demo: Created event templates");
+    }
+
+    /** What the full breathing apparatus drill is called, the appointment with a waiting list. */
+    static final String FULL_DRILL = "Atemschutz-Belastungsübung";
+
+    /** How many places the full breathing apparatus drill has. */
+    static final int FULL_DRILL_PLACES = 4;
+
+    /** How many members wait on the waiting list of the full breathing apparatus drill. */
+    static final int FULL_DRILL_WAITING = 3;
+
+    /**
+     * A drill ten days ahead whose places are all taken, with a short waiting list, so the demo shows
+     * places, the Nachrückliste and moving up. The members sign up the way members do, so the first
+     * ones take the places and the rest join the waiting list in the order they came.
+     *
+     * @param days       today and the hours of a day as the station has them
+     * @param stationId  the station
+     * @param categoryId the category of drills
+     * @param members    the station's members, the first of whom sign up
+     */
+    private void seedFullDrill(DemoStationDays days, int stationId, int categoryId, List<StationMember> members) {
+        LocalDate date = days.today().plusDays(10);
+        var drill = crudService.create(
+                stationId,
+                FULL_DRILL,
+                "Belastungsübung in der Atemschutzstrecke. Die Strecke fasst nur vier Trupps auf einmal.",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                days.at(date, 18, 0),
+                days.at(date, 21, 0),
+                null,
+                true,
+                RegistrationDeadline.none(),
+                false,
+                categoryId,
+                FULL_DRILL_PLACES,
+                null,
+                null);
+        int signUps = Math.min(FULL_DRILL_PLACES + FULL_DRILL_WAITING, members.size());
+        for (int i = 0; i < signUps; i++) {
+            registrationService.register(drill.id(), members.get(i).id(), date, true, null);
+        }
+        log.info("Demo: Created the full drill {} with {} sign-ups", FULL_DRILL, signUps);
     }
 
     /**
@@ -830,10 +867,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 end,
                 null,
                 true,
-                deadline,
+                RegistrationDeadline.fixed(deadline),
                 false,
                 categoryId,
-                null,
                 null,
                 null,
                 null);

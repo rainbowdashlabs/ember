@@ -25,13 +25,14 @@ import {templateAttachmentPort, templateFederationPort, templateFieldDefaultsPor
 import {emptyRestriction, toRestriction} from '@/components/input/restriction'
 import type {RestrictionSelection} from '@/api/types'
 import {
-    EventType,
+    QueueOrder,
     StationPermission,
     type AttendanceTemplate,
     type AttendanceTemplateField,
     type EventCategory,
     type EventFieldEntry,
     type MemberGroup,
+    type RegistrationDeadline,
     type RegistrationFieldDefinition,
     type TemplateDetailResponse,
     type UserTag,
@@ -39,6 +40,7 @@ import {
 import {attendance, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
 import {eventTypeNamed} from './eventeditview/eventFormState'
 import {modelBindings} from './eventeditview/modelBindings'
+import {deadlineRuleOf, noDeadline} from './eventshared/registrationDeadline'
 import {asSaved, namedEntries} from './eventshared/eventQuestions'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -97,10 +99,10 @@ const settings = reactive({
   requiresRegistration: false,
   requiresConfirmation: false,
   registrationLimit: undefined as number | undefined,
-  deadlineOffsetHours: null as number | null,
+  queueOrder: QueueOrder.TIME as QueueOrder,
+  registrationDeadline: noDeadline() as RegistrationDeadline,
   minRegistrations: undefined as number | undefined,
   thresholdDays: undefined as number | undefined,
-  registrationCloseDays: undefined as number | undefined,
 })
 const settingsModel = modelBindings(settings)
 const attendanceTemplateId = ref('')
@@ -134,10 +136,10 @@ function seedForm(detail: TemplateDetailResponse) {
   settings.requiresRegistration = tpl.requiresRegistration ?? false
   settings.requiresConfirmation = tpl.requiresConfirmation ?? false
   settings.registrationLimit = tpl.registrationLimit ?? undefined
-  settings.deadlineOffsetHours = tpl.registrationDeadlineOffsetHours ?? null
+  settings.queueOrder = tpl.queueOrder ?? QueueOrder.TIME
+  settings.registrationDeadline = deadlineRuleOf(tpl.registrationDeadline)
   settings.minRegistrations = tpl.minRegistrations ?? undefined
   settings.thresholdDays = tpl.thresholdDays ?? undefined
-  settings.registrationCloseDays = tpl.registrationCloseDays ?? undefined
   attendanceTemplateId.value = tpl.attendanceTemplateId ? String(tpl.attendanceTemplateId) : ''
   reminderDays.value = detail.reminderDays ?? []
   restriction.value = toRestriction(detail.restriction?.register)
@@ -159,9 +161,16 @@ function seedForm(detail: TemplateDetailResponse) {
   }))
 }
 
+/**
+ * Whether the editor could not be filled. The form is not shown then, since saving a form filled only
+ * in part would replace what the template holds with what is missing.
+ */
+const loadFailed = ref(false)
+
 /** Fills the editor once the session is there, since the choices it offers depend on the station. */
 const {loading, failure} = useAsyncLoader(async () => {
   await until(loaded).toBe(true)
+  loadFailed.value = false
   try {
     const [detail, cats, attTpls, memberGroups, userTags] = await Promise.all([
       events.getTemplate(templateId.value),
@@ -186,6 +195,7 @@ const {loading, failure} = useAsyncLoader(async () => {
 
     seedForm(detail)
   } catch (e) {
+    loadFailed.value = true
     reportCaughtError(e, 'TemplateEditView.loadData')
     throw e
   }
@@ -203,10 +213,10 @@ async function save() {
       requiresRegistration: settings.requiresRegistration || null,
       requiresConfirmation: settings.requiresConfirmation || null,
       registrationLimit: settings.registrationLimit ?? null,
-      registrationDeadlineOffsetHours: settings.deadlineOffsetHours,
+      queueOrder: settings.queueOrder,
+      registrationDeadline: settings.registrationDeadline,
       minRegistrations: settings.minRegistrations ?? null,
       thresholdDays: settings.minRegistrations ? settings.thresholdDays ?? null : null,
-      registrationCloseDays: settings.eventType !== EventType.ONE_TIME ? settings.registrationCloseDays ?? null : null,
       attendanceTemplateId: attendanceTemplateId.value ? Number(attendanceTemplateId.value) : null,
     })
     await fieldDefaults.save(templateFieldDefaultsPort(templateId.value), true)
@@ -256,7 +266,7 @@ async function save() {
       <FailureAlert :failure="failure"/>
 
       <TemplateEditBody
-          v-if="!loading"
+          v-if="!loading && !loadFailed"
           v-model:name="name"
           v-bind="settingsModel.props.value"
           v-model:attendance-template-id="attendanceTemplateId"
@@ -280,11 +290,14 @@ async function save() {
             :can-federate="canFederate"
             :attachments="attachments"
             :station-uid="stationUid"
-        />
-        <DocumentRequirementsEditor
-            v-model="documentRequirements.chosen.value"
-            :offered-count="documentRequirements.offeredCount.value"
-        />
+            :document-count="documentRequirements.chosen.value.length"
+        >
+          <DocumentRequirementsEditor
+              v-model="documentRequirements.chosen.value"
+              :offered-count="documentRequirements.offeredCount.value"
+              compact
+          />
+        </TemplateCarriedCards>
       </TemplateEditBody>
     </div>
   </ViewContent>

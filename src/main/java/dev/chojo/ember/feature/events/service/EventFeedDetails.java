@@ -60,7 +60,10 @@ public class EventFeedDetails implements FeedDetailsContributor {
                     String memberName,
                     String eventName,
                     RegistrationStatus status,
-                    String eventDescription) -> {
+                    String eventDescription,
+                    Integer _,
+                    boolean _,
+                    boolean _) -> {
                 details.putIfPresent(details.label("member", "Member"), memberName);
                 details.putIfPresent(details.label("status", "Status"), details.statusWithSymbol(status.name()));
                 details.putIfPresent(details.label("event", "Event"), eventName);
@@ -89,9 +92,14 @@ public class EventFeedDetails implements FeedDetailsContributor {
                 details.put(details.label("daysBefore"), String.valueOf(daysBefore));
                 addEventContext(details);
             }
-            case NotificationParams.RegistrationClosing(String eventName, int daysBefore, String memberName) -> {
+            case NotificationParams.RegistrationClosing(
+                    String eventName,
+                    int daysBefore,
+                    String memberName,
+                    LocalDate eventDate) -> {
                 details.putIfPresent(details.label("event", "Event"), eventName);
                 details.putIfPresent(details.label("member", "Member"), memberName);
+                if (eventDate != null) details.put(details.label("eventDate"), details.date(eventDate));
                 details.put(details.label("daysBefore"), String.valueOf(daysBefore));
                 addEventContext(details);
             }
@@ -127,8 +135,12 @@ public class EventFeedDetails implements FeedDetailsContributor {
                 details.put(details.label("eventDate"), details.date(changed.eventDate()));
                 addEventContext(details);
             }
-            case NotificationParams.RegistrationDeadlineExpired(String eventName, int pendingCount) -> {
+            case NotificationParams.RegistrationDeadlineExpired(
+                    String eventName,
+                    int pendingCount,
+                    LocalDate eventDate) -> {
                 details.putIfPresent(details.label("event", "Event"), eventName);
+                if (eventDate != null) details.put(details.label("eventDate"), details.date(eventDate));
                 details.put(details.label("pendingCount"), String.valueOf(pendingCount));
             }
             default -> {}
@@ -158,11 +170,10 @@ public class EventFeedDetails implements FeedDetailsContributor {
             if (event == null) return;
             addTimes(details, event);
             addRecurrence(details, event);
-            var registrationDeadline = event.registrationDeadline();
+            var zone = details.zoneOf(event.stationId());
+            var registrationDeadline = occurrenceCalendar.closesInView(event).orElse(null);
             if (event.requiresRegistration() && registrationDeadline != null) {
-                details.put(
-                        details.label("deadline", "Deadline"),
-                        details.moment(registrationDeadline, details.zoneOf(event.stationId())));
+                details.put(details.label("deadline", "Deadline"), details.moment(registrationDeadline, zone));
             }
             if (event.registrationLimit() != null) {
                 details.put(details.label("limit", "Limit"), String.valueOf(event.registrationLimit()));

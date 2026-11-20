@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupRegistration;
 import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -305,7 +306,15 @@ class EventGroupRoutesTest {
 
         assertEquals(201, response.code());
         verify(signUps)
-                .register(STATION_ID, EVENT_GROUP_ID, TestSessions.MEMBER_ID, Set.of(101, 102), Map.of(), null, false);
+                .register(
+                        STATION_ID,
+                        EVENT_GROUP_ID,
+                        TestSessions.MEMBER_ID,
+                        Set.of(101, 102),
+                        Map.of(),
+                        null,
+                        false,
+                        null);
     }
 
     @Test
@@ -316,7 +325,7 @@ class EventGroupRoutesTest {
                 STATION_ID, "POST", EVENT_GROUP + "/sign-up", "{\"parts\": [101]}", StationPermission.USER);
 
         assertEquals(EventRefusal.MEMBER_NOT_INVITED_TO_EVENT, refusalOf(response));
-        verify(signUps, never()).register(anyInt(), anyInt(), anyInt(), anySet(), anyMap(), any(), eq(false));
+        verify(signUps, never()).register(anyInt(), anyInt(), anyInt(), anySet(), anyMap(), any(), eq(false), any());
     }
 
     @Test
@@ -329,7 +338,15 @@ class EventGroupRoutesTest {
                 harness.call(STATION_ID, "POST", EVENT_GROUP + "/sign-up", forChild, StationPermission.USER)
                         .code());
         verify(signUps)
-                .register(STATION_ID, EVENT_GROUP_ID, CHILD_ID, Set.of(101), Map.of(), TestSessions.MEMBER_ID, false);
+                .register(
+                        STATION_ID,
+                        EVENT_GROUP_ID,
+                        CHILD_ID,
+                        Set.of(101),
+                        Map.of(),
+                        TestSessions.MEMBER_ID,
+                        false,
+                        null);
 
         String forStranger = "{\"memberId\": 99, \"parts\": [101]}";
         assertEquals(
@@ -352,7 +369,8 @@ class EventGroupRoutesTest {
                 StationPermission.EVENT_MANAGER);
 
         assertEquals(201, response.code());
-        verify(signUps).register(STATION_ID, EVENT_GROUP_ID, 99, Set.of(101), Map.of(), TestSessions.MEMBER_ID, true);
+        verify(signUps)
+                .register(STATION_ID, EVENT_GROUP_ID, 99, Set.of(101), Map.of(), TestSessions.MEMBER_ID, true, null);
     }
 
     @Test
@@ -409,7 +427,7 @@ class EventGroupRoutesTest {
                                 accept,
                                 StationPermission.EVENT_REGISTRATION)
                         .code());
-        verify(signUps).decide(STATION_ID, EVENT_GROUP_ID, CHILD_ID, RegistrationStatus.ACCEPTED);
+        verify(signUps).decide(STATION_ID, EVENT_GROUP_ID, CHILD_ID, RegistrationStatus.ACCEPTED, false);
         verify(signUps, never()).decide(anyInt(), anyInt(), anyInt(), isNull());
     }
 
@@ -654,7 +672,14 @@ class EventGroupRoutesTest {
                 EVENT_GROUP_ID,
                 STATION_ID,
                 new EventGroupDetails(
-                        "Jugendflamme 1", null, null, Instant.now().plusSeconds(3600), false, null, null, null));
+                        "Jugendflamme 1",
+                        null,
+                        null,
+                        RegistrationDeadline.fixed(Instant.now().plusSeconds(3600)),
+                        false,
+                        null,
+                        null,
+                        null));
         when(eventGroups.findOpenWithDeadline(STATION_ID)).thenReturn(List.of(open));
         when(guardians.household(any())).thenReturn(List.of(TestSessions.MEMBER_ID, CHILD_ID));
         when(eventGroups.whoMaySignUp(any(), any(), anySet()))
@@ -684,6 +709,17 @@ class EventGroupRoutesTest {
                 harness.call(STATION_ID, "PUT", EVENT_GROUP, body, StationPermission.EVENT_EDIT)
                         .code());
         verify(eventGroups).save(eq(STATION_ID), eq(EVENT_GROUP_ID), any(), any(), any(), any(), any());
+        verify(signUps).moveUp(STATION_ID, EVENT_GROUP_ID);
+    }
+
+    @Test
+    void removingAPartMovesWhoeverWaitsUp() {
+        assertEquals(
+                204,
+                harness.call(STATION_ID, "DELETE", EVENT_GROUP + "/parts/101", null, StationPermission.EVENT_EDIT)
+                        .code());
+        verify(eventGroups).removePart(STATION_ID, EVENT_GROUP_ID, 101);
+        verify(signUps).moveUp(STATION_ID, EVENT_GROUP_ID);
     }
 
     @Test
@@ -698,5 +734,34 @@ class EventGroupRoutesTest {
                 harness.call(STATION_ID, "POST", PREFIX + "/events/groups", body, StationPermission.EVENT_EDIT)
                         .code());
         verify(eventGroups).createWith(eq(STATION_ID), any(), any(), any(), any(), any(), eq(12));
+    }
+
+    @Test
+    void onlyWhoeverHandlesRegistrationsPutsSignUpsOnTheWaitingListAndReordersIt() {
+        String queue = "{\"ids\": [5, 6]}";
+        assertEquals(
+                403,
+                harness.call(STATION_ID, "POST", EVENT_GROUP + "/sign-ups/queue", queue, StationPermission.USER)
+                        .code());
+        assertEquals(
+                204,
+                harness.call(
+                                STATION_ID,
+                                "POST",
+                                EVENT_GROUP + "/sign-ups/queue",
+                                queue,
+                                StationPermission.EVENT_REGISTRATION)
+                        .code());
+        verify(signUps).moveToQueue(STATION_ID, EVENT_GROUP_ID, List.of(5, 6));
+
+        String position = EVENT_GROUP + "/sign-ups/5/queue-position";
+        assertEquals(
+                EventRefusal.QUEUE_POSITION_MISSING,
+                refusalOf(harness.call(STATION_ID, "PUT", position, "{}", StationPermission.EVENT_REGISTRATION)));
+        assertEquals(
+                204,
+                harness.call(STATION_ID, "PUT", position, "{\"position\": 3}", StationPermission.EVENT_REGISTRATION)
+                        .code());
+        verify(signUps).moveInQueue(STATION_ID, EVENT_GROUP_ID, 5, 3);
     }
 }

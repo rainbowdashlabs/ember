@@ -64,21 +64,26 @@ describe('EventFormPanel repeat line', () => {
         expect(panel('ONE_TIME', {eventGroupPart: true}).find('[data-testid="event-type-toggle"]').exists()).toBe(false)
     })
 
-    it('puts category and attendance template, then the fields, then the description', () => {
-        const html = panel('ONE_TIME').html()
+    it('keeps the description with the essentials and the attendance template with the fields in their folded section', () => {
+        const wrapper = panel('ONE_TIME')
+        const html = wrapper.html()
 
+        const description = html.indexOf('markdown-editor-stub')
+        const section = html.indexOf('form-section-fields')
         const template = html.indexOf('event-attendance-template')
         const fields = html.indexOf('event-field-list-stub')
-        const description = html.indexOf('markdown-editor-stub')
 
-        expect(template).toBeGreaterThan(-1)
+        expect(description).toBeGreaterThan(-1)
+        expect(description).toBeLessThan(section)
+        expect(section).toBeLessThan(template)
         expect(template).toBeLessThan(fields)
-        expect(fields).toBeLessThan(description)
+        expect(wrapper.get('[data-testid="form-section-fields"] [data-section-toggle]').attributes('aria-expanded')).toBe('false')
     })
 
     it('keeps the explanations of the sign-up settings behind hint icons', () => {
         const wrapper = panel('RECURRING', {
-            requiresRegistration: true, requiresConfirmation: false, hasDeadline: false, registrationDeadline: '',
+            requiresRegistration: true, requiresConfirmation: false,
+            registrationDeadline: {kind: 'NONE', at: null, offsetMinutes: null, anchor: null},
             minRegistrations: 2,
         })
 
@@ -117,5 +122,80 @@ describe('EventFormPanel repeat line', () => {
 
         expect(wrapper.find('[data-testid="restriction-visibility"]').exists()).toBe(true)
         expect(wrapper.find('[data-testid="restrict-visibility"]').exists()).toBe(false)
+    })
+})
+
+/**
+ * The waiting list order stands next to the participant limit, and only once there is a limit:
+ * without one, nothing waits.
+ */
+describe('EventFormPanel waiting list order', () => {
+    const registration = {requiresRegistration: true, requiresConfirmation: false, queueOrder: 'TIME'}
+
+    it('offers the order once a limit is set', async () => {
+        const wrapper = panel('ONE_TIME', {...registration, registrationLimit: 12})
+
+        expect(wrapper.text()).toContain('weitere Anmeldungen auf die Nachrückliste')
+        const select = wrapper.get('[data-testid="queue-order"] select')
+        await select.setValue('FAIRNESS')
+
+        expect(wrapper.emitted('update:queueOrder')?.at(-1)).toEqual(['FAIRNESS'])
+    })
+
+    it('offers no order without a limit', () => {
+        const wrapper = panel('ONE_TIME', {...registration, registrationLimit: undefined})
+
+        expect(wrapper.find('[data-testid="queue-order"]').exists()).toBe(false)
+    })
+
+    /** While questions are asked, sign-up cannot be switched off, and the form says why. */
+    it('holds sign-up on while questions are asked and says why', () => {
+        const held = panel('ONE_TIME', {requiresRegistration: true, signUpHeld: true})
+        const toggle = held.get('[aria-labelledby$="-registration"]')
+
+        expect(toggle.attributes('disabled')).toBeDefined()
+        expect(held.find('[aria-label="Fragen werden bei der Anmeldung beantwortet. Solange es Fragen gibt, bleibt die Anmeldung eingeschaltet."]').exists()).toBe(true)
+
+        const free = panel('ONE_TIME', {requiresRegistration: true})
+        expect(free.get('[aria-labelledby$="-registration"]').attributes('disabled')).toBeUndefined()
+    })
+})
+
+/**
+ * The deadline is one rule in the open sign-up block, shown while sign-up is on. A series whose first
+ * date has passed previews the deadline of the next day its pattern falls on.
+ */
+describe('EventFormPanel registration deadline', () => {
+    const weekBefore = {kind: 'RELATIVE', at: null, offsetMinutes: 10080, anchor: 'MIDNIGHT'}
+
+    it('edits the rule while sign-up is on and leaves it out of the minimum section', async () => {
+        expect(panel('ONE_TIME', {requiresRegistration: false, registrationDeadline: weekBefore})
+            .find('[data-testid="registration-deadline-kind"]').exists()).toBe(false)
+        const wrapper = panel('ONE_TIME', {requiresRegistration: true, registrationDeadline: weekBefore})
+
+        expect(wrapper.find('[data-testid="form-section-turnout"] [data-testid="registration-deadline-kind"]').exists()).toBe(false)
+        await wrapper.get('[data-testid="registration-deadline-kind"]').setValue('NONE')
+
+        expect(wrapper.emitted('update:registrationDeadline')?.at(-1))
+            .toEqual([{kind: 'NONE', at: null, offsetMinutes: null, anchor: null}])
+    })
+
+    it('previews the deadline of the start entered', () => {
+        const wrapper = panel('ONE_TIME', {
+            requiresRegistration: true, registrationDeadline: weekBefore, startTime: '2099-11-21T10:00', timeZone: 'Europe/Berlin',
+        })
+
+        expect(wrapper.get('[data-testid="registration-deadline-next"]').text()).toContain('14.11.2099, 00:00')
+    })
+
+    it('previews the next date of a series whose start has passed', () => {
+        const wrapper = panel('RECURRING', {
+            requiresRegistration: true, registrationDeadline: weekBefore, startTime: '2020-01-03T19:00',
+            dayOfWeek: '5', timeZone: 'Europe/Berlin',
+        })
+
+        const line = wrapper.get('[data-testid="registration-deadline-next"]').text()
+        expect(line).not.toContain('2019')
+        expect(line).toContain('Fr')
     })
 })

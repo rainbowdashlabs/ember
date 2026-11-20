@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import org.junit.jupiter.api.Test;
@@ -74,9 +75,8 @@ class EventGroupRegistrationServiceTest extends EventGroupRegistrationTestBase {
                 Instant.now().plus(Duration.ofHours(1)),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -85,20 +85,28 @@ class EventGroupRegistrationServiceTest extends EventGroupRegistrationTestBase {
     }
 
     @Test
-    void aFullEventGroupRefusesMembersAndAWithdrawalFreesThePlace() {
+    void aFullEventGroupPutsMembersOnTheWaitingListAndAFreedPlaceMovesThemUp() {
         eventGroup = jugendflamme(1, false, null);
         signUp(anna, sat1, sun1, test);
 
-        assertRefused(EventRefusal.EVENT_GROUP_FULL, () -> signUp(ben, sat1, sun1, test));
+        signUp(ben, sat1, sun1, test);
+        assertEquals(
+                RegistrationStatus.QUEUED,
+                service.find(eventGroup.id(), ben.id()).status());
+        assertEquals(RegistrationStatus.QUEUED, partsOf(ben).get(sat1));
         service.register(
                 station.id(), eventGroup.id(), carla.id(), Set.of(sat1, sun1, test), Map.of(), leader.id(), true);
 
         service.withdraw(station.id(), eventGroup.id(), anna.id());
+        assertEquals(
+                RegistrationStatus.QUEUED,
+                service.find(eventGroup.id(), ben.id()).status(),
+                "the place went beyond the limit, so it is still full");
         service.withdraw(station.id(), eventGroup.id(), carla.id());
-        signUp(ben, sat1, sun1, test);
         assertEquals(
                 RegistrationStatus.ACCEPTED,
                 service.find(eventGroup.id(), ben.id()).status());
+        assertEquals(RegistrationStatus.ACCEPTED, partsOf(ben).get(sat1));
     }
 
     @Test
@@ -224,17 +232,22 @@ class EventGroupRegistrationServiceTest extends EventGroupRegistrationTestBase {
     }
 
     @Test
-    void theLimitCountsOnlySignUpsHoldingOrWaitingForAPlace() {
+    void theLimitCountsOnlyAcceptedSignUpsAndAConfirmingEventGroupLetsEverybodyAsk() {
         eventGroup = jugendflamme(2, true, null);
         signUp(anna, sat1, sun1, test);
         service.decide(station.id(), eventGroup.id(), anna.id(), RegistrationStatus.DENIED);
         signUp(ben, sat1, sun1, test);
         service.withdraw(station.id(), eventGroup.id(), ben.id());
-
         signUp(carla, sat1, sun1, test);
         signUp(leader, sat1, sun1, test);
+        service.decide(station.id(), eventGroup.id(), carla.id(), RegistrationStatus.ACCEPTED);
+        service.decide(station.id(), eventGroup.id(), leader.id(), RegistrationStatus.ACCEPTED);
 
-        assertRefused(EventRefusal.EVENT_GROUP_FULL, () -> signUp(ben, sat1, sun1, test));
+        signUp(ben, sat1, sun1, test);
+
+        assertEquals(
+                RegistrationStatus.PENDING,
+                service.find(eventGroup.id(), ben.id()).status());
     }
 
     @Test

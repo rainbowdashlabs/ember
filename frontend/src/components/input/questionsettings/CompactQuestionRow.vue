@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 
 /**
@@ -17,6 +18,10 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
  * of questions into a long page. Most of them only need their name read or changed; the rest of the
  * card opens on request. The list decides what stands beside the name (a value, marks) and what the
  * opened card is.
+ *
+ * <p>The arrow that opens and closes the card stands at the far end of the line in both states, with the delete
+ * button kept apart before it: a second click on the arrow, as in a double click, toggles the card again and never
+ * lands on delete.
  */
 const open = defineModel<boolean>('open', {required: true})
 
@@ -53,19 +58,18 @@ const {t} = useI18n()
       <div class="flex shrink-0 items-center gap-1">
         <SecondaryBadge data-testid="question-row-type">{{ typeLabel }}</SecondaryBadge>
         <slot name="marks"/>
+        <DeleteButton
+            :disabled="disabled"
+            data-testid="question-row-remove"
+            @click="emit('remove')"
+        />
         <IconButton
             :icon="['fas', 'chevron-down']"
             :label="t('common.openSettings')"
             :disabled="disabled"
+            class="ml-3"
             data-testid="question-row-open"
             @click="open = true"
-        />
-        <IconButton
-            :icon="['fas', 'trash']"
-            :label="t('common.delete')"
-            :disabled="disabled"
-            data-testid="question-row-remove"
-            @click="emit('remove')"
         />
       </div>
     </div>

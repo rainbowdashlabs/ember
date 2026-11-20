@@ -94,7 +94,8 @@ const rows = computed<Row[]>(() => {
         <p class="text-sm" :class="{'line-through text-(--text-muted)': row.replaced}">{{ row.value }}</p>
       </div>
       <MutedText v-if="row.replaced" tag="span" size="sm">{{ t('eventGroups.overridden') }}</MutedText>
-      <SecondaryButton v-else :icon="['fas', 'pen']" compact data-testid="override-setting" @click="emit('override', row.setting)">
+      <SecondaryButton v-else :icon="['fas', 'pen']" compact data-testid="override-setting" :data-setting="row.setting"
+                       @click="emit('override', row.setting)">
         {{ t('eventGroups.override') }}
       </SecondaryButton>
     </div>

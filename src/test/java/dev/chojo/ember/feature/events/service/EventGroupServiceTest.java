@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventGroupTally;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
@@ -61,7 +62,7 @@ class EventGroupServiceTest extends EventGroupServiceTestBase {
                 sets.stream().map(EventGroupSet::name).toList());
         assertEquals(List.of(2, 1), sets.stream().map(EventGroupSet::minimum).toList());
         assertEquals(12, eventGroup.details().registrationLimit());
-        assertEquals(deadline, eventGroup.details().registrationDeadline());
+        assertEquals(RegistrationDeadline.fixed(deadline), eventGroup.details().registrationDeadline());
         assertTrue(eventGroup.details().requiresConfirmation());
     }
 
@@ -134,9 +135,8 @@ class EventGroupServiceTest extends EventGroupServiceTestBase {
         var stored = eventRepo.findById(saturday.id()).orElseThrow();
         assertTrue(stored.requiresRegistration());
         assertTrue(stored.requiresConfirmation());
-        assertEquals(deadline, stored.registrationDeadline());
+        assertEquals(RegistrationDeadline.fixed(deadline), stored.registrationDeadline());
         assertNull(stored.registrationLimit());
-        assertNull(stored.registrationCloseDays());
     }
 
     @Test
@@ -154,7 +154,7 @@ class EventGroupServiceTest extends EventGroupServiceTestBase {
 
         var stored = eventRepo.findById(saturday.id()).orElseThrow();
         assertFalse(stored.requiresConfirmation());
-        assertNull(stored.registrationDeadline());
+        assertEquals(RegistrationDeadline.none(), stored.registrationDeadline());
     }
 
     @Test
@@ -482,20 +482,19 @@ class EventGroupServiceTest extends EventGroupServiceTestBase {
                 saturday.endTime(),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 null,
                 40,
                 3,
-                2,
-                5);
+                2);
 
         var stored = eventRepo.findById(saturday.id()).orElseThrow();
         assertEquals("Samstag", stored.name());
         assertTrue(stored.requiresRegistration());
         assertTrue(stored.requiresConfirmation());
-        assertEquals(deadline, stored.registrationDeadline());
+        assertEquals(RegistrationDeadline.fixed(deadline), stored.registrationDeadline());
         assertNull(stored.registrationLimit());
         assertNull(stored.minRegistrations());
         assertRefused(
@@ -510,9 +509,8 @@ class EventGroupServiceTest extends EventGroupServiceTestBase {
                         saturday.endTime(),
                         null,
                         true,
-                        null,
+                        RegistrationDeadline.none(),
                         true,
-                        null,
                         null,
                         null,
                         null,
@@ -599,14 +597,26 @@ class EventGroupServiceTest extends EventGroupServiceTestBase {
     void onlyEventGroupsStillOpenWithAPartToComeAwaitAnswers() {
         var open = service.create(
                 otherStation.id(),
-                new EventGroupDetails("Offen", null, null, Instant.now().plus(Duration.ofDays(3)), false, null),
+                new EventGroupDetails(
+                        "Offen",
+                        null,
+                        null,
+                        RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(3))),
+                        false,
+                        null),
                 List.of(new EventGroupSetDraft(null, "Teile", 1)),
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),
                 null);
         var empty = service.create(
                 otherStation.id(),
-                new EventGroupDetails("Leer", null, null, Instant.now().plus(Duration.ofDays(3)), false, null),
+                new EventGroupDetails(
+                        "Leer",
+                        null,
+                        null,
+                        RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(3))),
+                        false,
+                        null),
                 List.of(new EventGroupSetDraft(null, "Teile", 1)),
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),
@@ -627,7 +637,7 @@ class EventGroupServiceTest extends EventGroupServiceTestBase {
     }
 
     @Test
-    void theTallyCountsPartsAndTheSignUpsHoldingAPlace() {
+    void theTallyCountsPartsAndOnlyTheAcceptedSignUpsAsHoldingAPlace() {
         var eventGroup = jugendflamme();
         var empty = create(details("Leer", false), List.of(new EventGroupSetDraft(null, "Teile", 1)));
         service.addPart(
@@ -641,13 +651,16 @@ class EventGroupServiceTest extends EventGroupServiceTestBase {
                 oneTime(62).id(),
                 set(eventGroup, "Prüfung").id());
         var registrations = new EventGroupRegistrationRepository();
-        registrations.signUp(eventGroup.id(), anna.id(), RegistrationStatus.PENDING, null);
+        registrations.signUp(eventGroup.id(), anna.id(), RegistrationStatus.ACCEPTED, null);
+        registrations.signUp(eventGroup.id(), outsider.id(), RegistrationStatus.PENDING, null);
 
         var tallies = service.tallies(station.id());
 
-        assertEquals(new EventGroupTally(2, 1), tallies.get(eventGroup.id()));
+        var tally = tallies.get(eventGroup.id());
+        assertEquals(List.of(2, 1, 0, 1), List.of(tally.partCount(), tally.holding(), tally.queued(), tally.pending()));
+        assertTrue(tally.firstStart().isBefore(tally.lastEnd()));
         assertEquals(EventGroupTally.NONE, tallies.get(empty.id()));
-        assertEquals(new EventGroupTally(2, 1), service.tally(eventGroup.id()));
+        assertEquals(tally, service.tally(eventGroup.id()));
         assertEquals(EventGroupTally.NONE, service.tally(-1));
         assertEquals(
                 Set.of(anna.id()),

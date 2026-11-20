@@ -886,7 +886,82 @@ public enum MemberRefusal implements Refusal {
     PROFILE_DEPENDENCY_OUTSIDE_GROUP(
             248,
             HttpStatus.BAD_REQUEST,
-            "A question in a group can only depend on a question of the same group, so nothing was saved");
+            "A question in a group can only depend on a question of the same group, so nothing was saved"),
+
+    /** A rule whose top is a single check rather than a block of checks. */
+    RULE_NEEDS_A_BLOCK(249, HttpStatus.BAD_REQUEST, "A rule starts with a block of checks, so nothing was saved"),
+
+    /** A check of a rule missing its subject, an operator its subject offers, or the value that operator needs. */
+    RULE_CHECK_INCOMPLETE(
+            250, HttpStatus.BAD_REQUEST, "A check of the rule is missing what it compares, so nothing was saved"),
+
+    /** A check naming a field, group or tag that is gone or belongs to another station. */
+    RULE_TARGET_NOT_HERE(
+            251,
+            HttpStatus.BAD_REQUEST,
+            "A check of the rule names a field, group or tag that is not here, so nothing was saved"),
+
+    /** A rule nested deeper or holding more checks than a rule may, naming the limit it passed. */
+    RULE_TOO_LARGE(252, HttpStatus.BAD_REQUEST, "The rule is too large, so nothing was saved"),
+
+    /** A rule that would ask about itself through other rules, naming the chain. */
+    RULE_IN_A_CIRCLE(253, HttpStatus.CONFLICT, "Rules may not ask about each other in a circle, so nothing was saved"),
+
+    /** A rule for a group that is part of a group set. */
+    RULE_GROUP_IN_A_SET(
+            254,
+            HttpStatus.CONFLICT,
+            "A group in a group set cannot take its members from a rule, so nothing was saved"),
+
+    /** A rule for a group granting permissions the caller does not hold, naming the group. */
+    GROUP_GRANTS_MORE_THAN_YOURS_ON_RULE(255, HttpStatus.FORBIDDEN, Sentences.GROUP_GRANTS_MORE_THAN_YOURS),
+
+    /** A hand change to the members of a group or tag that takes them from a rule, naming it. */
+    MEMBERS_KEPT_BY_RULE(
+            256,
+            HttpStatus.CONFLICT,
+            "This group or tag takes its members from a rule, so they cannot be changed by hand"),
+
+    /** A group that takes its members from a rule being put into a group set, naming it. */
+    RULE_GROUP_NOT_FOR_A_SET(
+            257, HttpStatus.CONFLICT, "A group that takes its members from a rule cannot join a group set"),
+
+    /** A field, group or tag deleted or converted while a rule of another group or tag asks about it, naming it. */
+    USED_BY_A_RULE(258, HttpStatus.CONFLICT, "A rule of a group or tag still asks about this, so nothing was changed"),
+
+    /** A group or tag that takes its members from a rule chosen to be handed out on joining, naming it. */
+    RULE_GROUP_NOT_HANDED_OUT(
+            259,
+            HttpStatus.CONFLICT,
+            "A group or tag that takes its members from a rule cannot be given to people on joining"),
+
+    /**
+     * A change to a group's or tag's members, by hand or by its rule, that would move people into or out of a
+     * group granting more than the caller holds through a rule asking about it, naming that group.
+     */
+    GROUP_GRANTS_MORE_THAN_YOURS_THROUGH_RULE(260, HttpStatus.FORBIDDEN, Sentences.GROUP_GRANTS_MORE_THAN_YOURS),
+
+    /** A rule saved for a group that registration codes, invites or the waiting list hand out, naming the group. */
+    RULE_GROUP_HANDED_OUT(
+            261,
+            HttpStatus.CONFLICT,
+            "This group is given to people on joining, so it cannot take its members from a rule"),
+
+    /** A rule that reads profile answers, ages or join dates, saved or tried by a caller who may not read members. */
+    RULE_READS_MEMBER_DATA(262, HttpStatus.FORBIDDEN, "A rule that reads member data takes the right to read members"),
+
+    /** A rule with a block that holds nothing, which would match everybody or nobody instead of asking anything. */
+    RULE_BLOCK_EMPTY(
+            263, HttpStatus.BAD_REQUEST, "Every block of a rule needs at least one condition, so nothing was saved"),
+
+    /**
+     * A group granting permissions that would take its members, directly or through other rules, from an answer the
+     * members write themselves, naming the group.
+     */
+    RULE_PERMISSIONS_FROM_OWN_ANSWER(
+            264,
+            HttpStatus.CONFLICT,
+            "A group that grants permissions cannot take its members from answers the members give themselves");
 
     private final Definition definition;
 

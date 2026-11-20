@@ -9,7 +9,9 @@ import {flushPromises, mount} from '@vue/test-utils'
 import {computed, ref} from 'vue'
 import EventEditView from './EventEditView.vue'
 import EventEditBody from './eventeditview/EventEditBody.vue'
+import AttachmentsCard from './eventeditview/AttachmentsCard.vue'
 import {
+    type StationFile,
     EventType,
     FederationStatus,
     RestrictionMode,
@@ -39,10 +41,23 @@ const api = vi.hoisted(() => ({
         listRegistrationFields: vi.fn(),
         listEventAttachments: vi.fn(),
         attachEventFile: vi.fn(),
+        getNextDate: vi.fn(),
+        createEvent: vi.fn(),
+        updateEvent: vi.fn(),
+        setFieldDefaults: vi.fn(),
+        setEventReminders: vi.fn(),
+        setEventFields: vi.fn(),
+        setRegistrationFields: vi.fn(),
+        setQueueOrder: vi.fn(),
+        setFederationShare: vi.fn(),
+        removeFederationShare: vi.fn(),
+        setPartnerPlaces: vi.fn(),
     },
-    eventGroups: {eventGroupOfEvent: vi.fn(async (): Promise<unknown> => null), getEventGroup: vi.fn(), partSettings: vi.fn()},
+    eventGroups: {
+        eventGroupOfEvent: vi.fn(async (): Promise<unknown> => null), getEventGroup: vi.fn(), partSettings: vi.fn(), setPartLimit: vi.fn(),
+    },
     federation: {listPartners: vi.fn()},
-    appointmentDocuments: {offeredTemplates: vi.fn(), listRequirements: vi.fn()},
+    appointmentDocuments: {offeredTemplates: vi.fn(), listRequirements: vi.fn(), setRequirements: vi.fn(async () => [])},
 }))
 vi.mock('@/api', () => api)
 
@@ -51,6 +66,7 @@ vi.mock('@/composables/useSession', () => ({
     useSession: () => ({
         loaded: ref(true),
         sessionInfo: ref(createSessionInfo()),
+        stationTimezone: ref('Europe/Berlin'),
         hasPermission: (permission: string) => held.value.includes(permission),
     }),
 }))
@@ -87,10 +103,10 @@ const TEMPLATE: EventTemplate = {
     requiresRegistration: null,
     requiresConfirmation: null,
     registrationLimit: null,
-    registrationDeadlineOffsetHours: null,
+    queueOrder: null,
+    registrationDeadline: {kind: 'NONE', at: null, offsetMinutes: null, anchor: null},
     minRegistrations: null,
     thresholdDays: null,
-    registrationCloseDays: null,
     attendanceTemplateId: 4,
     restrictionMode: null,
     viewRestrictionMode: RestrictionMode.AND,
@@ -140,6 +156,53 @@ describe('EventEditView creating from a template', () => {
         api.federation.listPartners.mockResolvedValue([partner(5), partner(6, FederationStatus.SUSPENDED)])
         api.appointmentDocuments.offeredTemplates.mockResolvedValue({total: 0, items: []})
         api.appointmentDocuments.listRequirements.mockResolvedValue([])
+    })
+
+    /**
+     * A new appointment takes files before it exists. They go on last, once everything else of the
+     * save has landed, behind the template's, which the server attaches with the creation itself; a
+     * file the template brings already is not attached a second time.
+     */
+    it('attaches the files added to a new appointment at the end of its save, not the template\'s again', async () => {
+        api.events.createEvent.mockResolvedValue({id: 55, eventType: EventType.ONE_TIME})
+        api.events.attachEventFile.mockImplementation(async (_id: number, fileId: number) => file(9, `datei-${fileId}`))
+        const wrapper = await applyTemplateInEditor()
+        const card = wrapper.findComponent(AttachmentsCard)
+        expect(card.props('pending')).toBe(true)
+
+        card.vm.$emit('add', {id: 70, fileName: 'anfahrt.pdf'} as StationFile)
+        card.vm.$emit('add', {id: 41, fileName: 'laufzettel.pdf'} as StationFile)
+        await flushPromises()
+        expect(api.events.attachEventFile).not.toHaveBeenCalled()
+
+        wrapper.findComponent(EventEditBody).vm.$emit('submit')
+        await flushPromises()
+
+        expect(api.events.attachEventFile.mock.calls).toEqual([[55, 70, null, false]])
+        expect(api.appointmentDocuments.setRequirements.mock.invocationCallOrder[0])
+            .toBeLessThan(api.events.attachEventFile.mock.invocationCallOrder[0]!)
+    })
+
+    /** A save refused after the appointment was created changes that appointment when tried again, files included once. */
+    it('changes the appointment it created when the save is tried again, and attaches the files once', async () => {
+        api.events.createEvent.mockResolvedValue({id: 55, eventType: EventType.ONE_TIME})
+        api.events.updateEvent.mockResolvedValue({id: 55, eventType: EventType.ONE_TIME})
+        api.events.attachEventFile.mockImplementation(async (_id: number, fileId: number) => file(9, `datei-${fileId}`))
+        api.events.setEventReminders.mockRejectedValueOnce({response: {status: 500, data: {}}})
+        const wrapper = await applyTemplateInEditor()
+        wrapper.findComponent(AttachmentsCard).vm.$emit('add', {id: 70, fileName: 'anfahrt.pdf'} as StationFile)
+        await flushPromises()
+
+        wrapper.findComponent(EventEditBody).vm.$emit('submit')
+        await flushPromises()
+        expect(api.events.attachEventFile).not.toHaveBeenCalled()
+
+        wrapper.findComponent(EventEditBody).vm.$emit('submit')
+        await flushPromises()
+
+        expect(api.events.createEvent).toHaveBeenCalledOnce()
+        expect(api.events.updateEvent).toHaveBeenCalledWith(55, expect.objectContaining({scope: null}))
+        expect(api.events.attachEventFile.mock.calls).toEqual([[55, 70, null, false]])
     })
 
     it('takes the field starting values into the form', async () => {
@@ -291,6 +354,27 @@ describe('EventEditView of a part of an event group', () => {
         expect(body.props('inheritedSettings')).toEqual({templateId: 4, categoryId: 2, reminderDays: [3], fieldDefaults: []})
     })
 
+    /** A part saves the places it sets itself through the part route, and only where they changed. */
+    it('saves the part\'s own places through the part route', async () => {
+        api.events.getNextDate.mockResolvedValue(null)
+        api.events.updateEvent.mockResolvedValue({id: 12, eventType: EventType.ONE_TIME})
+        api.eventGroups.setPartLimit.mockResolvedValue({})
+        const wrapper = mount(EventEditView, {
+            global: {renderStubDefaultSlot: true, stubs: {ViewContent: {template: '<div><slot/></div>'}, EventEditBody: true, DocumentRequirementsEditor: true}},
+        })
+        await flushPromises()
+
+        const body = wrapper.findComponent(EventEditBody)
+        expect(body.props('registrationLimit')).toBeUndefined()
+        body.vm.$emit('update:registrationLimit', 20)
+        await flushPromises()
+        body.vm.$emit('submit')
+        await flushPromises()
+
+        expect(api.eventGroups.setPartLimit).toHaveBeenCalledWith(12, 20)
+        expect(api.events.setQueueOrder).not.toHaveBeenCalled()
+    })
+
     it('reads the own fields for editing and the group fields as the group stores them', async () => {
         const wrapper = mount(EventEditView, {
             global: {renderStubDefaultSlot: true, stubs: {ViewContent: {template: '<div><slot/></div>'}, EventEditBody: true, DocumentRequirementsEditor: true}},
@@ -335,6 +419,30 @@ describe('EventEditView offering to join an event group', () => {
         api.appointmentDocuments.offeredTemplates.mockResolvedValue({total: 0, items: []})
         api.appointmentDocuments.listRequirements.mockResolvedValue([])
         api.eventGroups.eventGroupOfEvent.mockResolvedValue(null)
+    })
+
+    /** An appointment of its own keeps its limit in its own save and never touches the part route. */
+    it('saves no part places for an appointment of its own', async () => {
+        api.events.getNextDate.mockResolvedValue(null)
+        api.events.updateEvent.mockResolvedValue({id: 12, eventType: EventType.ONE_TIME})
+        const wrapper = mountEditor()
+        await flushPromises()
+
+        wrapper.findComponent(EventEditBody).vm.$emit('submit')
+        await flushPromises()
+
+        expect(api.events.updateEvent).toHaveBeenCalled()
+        expect(api.eventGroups.setPartLimit).not.toHaveBeenCalled()
+    })
+
+    /** Saving replaces every question, so an editor that could not read them must not offer to save. */
+    it('shows no form where the questions could not be read', async () => {
+        api.events.listRegistrationFields.mockRejectedValue({response: {status: 500, data: {}}})
+        const wrapper = mountEditor()
+        await flushPromises()
+
+        expect(wrapper.findComponent(EventEditBody).exists()).toBe(false)
+        expect(api.events.setRegistrationFields).not.toHaveBeenCalled()
     })
 
     it('offers it for a saved one-time appointment of the station', async () => {

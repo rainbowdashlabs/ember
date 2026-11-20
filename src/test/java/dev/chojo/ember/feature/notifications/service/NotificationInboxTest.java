@@ -392,7 +392,7 @@ class NotificationInboxTest extends RepositoryTestBase {
     @Test
     @Order(50)
     void aMemberWhoSwitchedTheAppOffIsNotTold() {
-        notificationSettingsRepo.upsert(member1.id(), NotificationType.WAITLIST_NEW_ENTRY, false, false, false);
+        notificationSettingsRepo.upsert(member1.id(), NotificationType.WAITLIST_NEW_ENTRY, false, false, false, true);
         var data = NotificationData.of(
                 new NotificationParams.WaitlistNewEntry("Child", "List A"),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -403,7 +403,7 @@ class NotificationInboxTest extends RepositoryTestBase {
     @Test
     @Order(51)
     void aMemberWhoSwitchedTheAppOffIsNotToldOnceEither() {
-        notificationSettingsRepo.upsert(member2.id(), NotificationType.LENDING_NEW_REQUEST, false, false, false);
+        notificationSettingsRepo.upsert(member2.id(), NotificationType.LENDING_NEW_REQUEST, false, false, false, true);
         int before = countUnread(member2.id());
         var data = NotificationData.of(
                 new NotificationParams.LendingNewRequest("Station X", "Helmet"),
@@ -415,7 +415,8 @@ class NotificationInboxTest extends RepositoryTestBase {
     @Test
     @Order(52)
     void membersNamedOneByOneSkipWhoeverSwitchedTheAppOff() {
-        notificationSettingsRepo.upsert(member1.id(), NotificationType.LENDING_STATUS_CHANGE, false, false, false);
+        notificationSettingsRepo.upsert(
+                member1.id(), NotificationType.LENDING_STATUS_CHANGE, false, false, false, true);
         acknowledgeAll(member1.id());
         var data = NotificationData.of(
                 new NotificationParams.LendingStatusChange("Station Y", LendingStatus.APPROVED),
@@ -427,7 +428,7 @@ class NotificationInboxTest extends RepositoryTestBase {
     @Test
     @Order(53)
     void aWholeStationSkipsWhoeverSwitchedTheAppOff() {
-        notificationSettingsRepo.upsert(member2.id(), NotificationType.LENDING_NEW_MESSAGE, false, false, false);
+        notificationSettingsRepo.upsert(member2.id(), NotificationType.LENDING_NEW_MESSAGE, false, false, false, true);
         acknowledgeAll(member2.id());
         var data = NotificationData.of(
                 new NotificationParams.LendingNewMessage("Station Z", "Alice"),

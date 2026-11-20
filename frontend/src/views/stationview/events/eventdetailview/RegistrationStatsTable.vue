@@ -11,16 +11,24 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import type {EventRegistrationField, RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
 import RegistrationStatsMember from './registrationstatstable/RegistrationStatsMember.vue'
-import {registrationStatsColumns, SCORE_KEY, type RankedRegistration} from './registrationstatstable/registrationStatsColumns'
+import {
+  declinedColumns,
+  DECLINED_AT_KEY,
+  registrationStatsColumns,
+  SCORE_KEY,
+  type RankedRegistration,
+} from './registrationstatstable/registrationStatsColumns'
 
 /**
  * The sign-ups ranked by how strong a claim each member has to a place: the highest score first,
- * which a reader may resort or filter by any column.
+ * which a reader may resort or filter by any column. Declined answers show only who declined and
+ * when, latest first.
  */
 const props = defineProps<{
   fields?: EventRegistrationField[]
@@ -29,12 +37,16 @@ const props = defineProps<{
   showActions?: boolean
   /** Whether the reader may put an answer right, which is whoever runs the appointment. */
   canEditAnswers?: boolean
+  declined?: boolean
+  /** Whether a sign-up can be put on the waiting list from its row, which needs a participant limit. */
+  canQueue?: boolean
 }>()
 
 const emit = defineEmits<{
   accept: [registrationId: number]
   deny: [registrationId: number]
   editAnswers: [registrationId: number]
+  queue: [registrationId: number]
 }>()
 
 const {t} = useI18n()
@@ -47,11 +59,11 @@ const rows = computed<RankedRegistration[]>(() => props.registrations.map(regist
 })))
 
 const table = useDataTable<RankedRegistration>({
-  id: 'registration-stats',
+  id: props.declined ? 'registration-declined' : 'registration-stats',
   rows,
-  columns: computed(() => registrationStatsColumns(t)),
+  columns: computed(() => props.declined ? declinedColumns(t) : registrationStatsColumns(t)),
   rowKey: row => row.registration.id,
-  sort: {key: SCORE_KEY, direction: 'desc'},
+  sort: {key: props.declined ? DECLINED_AT_KEY : SCORE_KEY, direction: 'desc'},
 })
 
 /** The colour the ranking is read by: the ones with the strongest claim to a place stand out. */
@@ -86,14 +98,24 @@ function scoreClass(row: RankedRegistration): string {
         <ErrorBadge v-if="(row.stats?.denied ?? 0) > 0">{{ text }}</ErrorBadge>
         <template v-else>{{ text }}</template>
       </template>
-      <template v-if="showActions" #actions="{row}">
-        <ButtonRow pair align="end">
-          <PrimaryButton :icon="['fas', 'check']" @click="emit('accept', row.registration.id)">
-            {{ t('eventsRegistrations.accept') }}
-          </PrimaryButton>
-          <ErrorButton :icon="['fas', 'xmark']" @click="emit('deny', row.registration.id)">
-            {{ t('eventsRegistrations.deny') }}
-          </ErrorButton>
+      <template v-if="showActions || canQueue" #actions="{row}">
+        <ButtonRow :pair="!canQueue" align="end">
+          <template v-if="showActions">
+            <PrimaryButton :icon="['fas', 'check']" @click="emit('accept', row.registration.id)">
+              {{ t('eventsRegistrations.accept') }}
+            </PrimaryButton>
+            <ErrorButton :icon="['fas', 'xmark']" @click="emit('deny', row.registration.id)">
+              {{ t('eventsRegistrations.deny') }}
+            </ErrorButton>
+          </template>
+          <SecondaryButton
+              v-if="canQueue && !row.registration.fromField"
+              :icon="['fas', 'list-ol']"
+              :data-testid="`queue-registration-${row.registration.id}`"
+              @click="emit('queue', row.registration.id)"
+          >
+            {{ t('registrationQueue.putOnList') }}
+          </SecondaryButton>
         </ButtonRow>
       </template>
     </RecordTable>

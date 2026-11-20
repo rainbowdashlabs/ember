@@ -59,7 +59,7 @@ class PartnerEventGroupSignaturesTest {
 
     private static EventGroupPartState part(int eventId, String start) {
         return new EventGroupPartState(
-                eventId, 1, "Tag " + eventId, Instant.parse(start), Instant.parse(start), false, false, false);
+                eventId, 1, "Tag " + eventId, Instant.parse(start), Instant.parse(start), false, false, false, null, 0);
     }
 
     @Test
@@ -71,7 +71,13 @@ class PartnerEventGroupSignaturesTest {
                         List.of(),
                         List.of(part(101, "2027-03-06T23:30:00Z"), part(102, "2027-03-08T08:00:00Z")),
                         List.of(new PartnerStanding(
-                                member.uid(), RegistrationStatus.ACCEPTED, Instant.now(), List.of(101), List.of())),
+                                member.uid(),
+                                RegistrationStatus.ACCEPTED,
+                                Instant.now(),
+                                List.of(101),
+                                List.of(),
+                                null)),
+                        null,
                         null));
 
         var before = service.before(STATION_ID, HOLDER, 70, member);

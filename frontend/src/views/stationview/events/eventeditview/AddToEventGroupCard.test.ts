@@ -53,6 +53,14 @@ describe('AddToEventGroupCard', () => {
     expect(onAdded).not.toHaveBeenCalled()
   })
 
+  it('says so where the event groups cannot be read', async () => {
+    api.eventGroups.listEventGroups.mockRejectedValueOnce(new Error('unreachable'))
+    const wrapper = mount(AddToEventGroupCard, {props: {eventId: 12}})
+    await flushPromises()
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true)
+  })
+
   it('drops the sets of an event group that is no longer chosen', async () => {
     let answerFirst: (value: {sets: {id: number, name: string}[]}) => void = () => undefined
     api.eventGroups.getEventGroup.mockImplementationOnce(() => new Promise(resolve => {

@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.events.entity;
 
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
+
 /**
  * An event group as lists show it.
  *
@@ -15,7 +17,14 @@ import org.jspecify.annotations.Nullable;
  * @param cancelled    whether it was called off
  * @param cancelReason why, where it was
  * @param partCount    how many parts it has
- * @param holding      how many sign-ups hold or wait for a place
+ * @param holding      how many accepted sign-ups hold a place
+ * @param queued       how many sign-ups wait on the waiting list
+ * @param pending      how many sign-ups wait for a decision; a partner is never told, so it reads 0 there
+ * @param firstStart   when its earliest part starts, none without parts or where a partner was not told
+ * @param lastEnd      when its latest part ends, none without parts or where a partner was not told
+ * @param closesAt     when sign-ups close as the deadline places it now, from the start of the first
+ *                     part for a relative one; none for no deadline, no part yet, or a relative one a
+ *                     partner was not told the parts of
  */
 public record EventGroupSummary(
         int id,
@@ -23,7 +32,12 @@ public record EventGroupSummary(
         boolean cancelled,
         @Nullable String cancelReason,
         int partCount,
-        int holding) {
+        int holding,
+        int queued,
+        int pending,
+        @Nullable Instant firstStart,
+        @Nullable Instant lastEnd,
+        @Nullable Instant closesAt) {
     /**
      * An event group with its counts as lists show it.
      *
@@ -38,6 +52,11 @@ public record EventGroupSummary(
                 eventGroup.cancelled(),
                 eventGroup.cancelReason(),
                 tally.partCount(),
-                tally.holding());
+                tally.holding(),
+                tally.queued(),
+                tally.pending(),
+                tally.firstStart(),
+                tally.lastEnd(),
+                eventGroup.closesAt());
     }
 }

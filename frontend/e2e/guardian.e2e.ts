@@ -252,7 +252,7 @@ test.describe('Guardian', () => {
                     startTime: new Date(Date.now() + 8 * 86400000).toISOString(),
                     endTime: new Date(Date.now() + 8 * 86400000 + 3600000).toISOString(),
                     requiresRegistration: true,
-                    registrationDeadline: new Date(Date.now() + 2 * 86400000).toISOString(),
+                    registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() + 2 * 86400000).toISOString(), offsetMinutes: null, anchor: null},
                 },
             })
             expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
@@ -270,7 +270,7 @@ test.describe('Guardian', () => {
             const confirm = page.getByTestId('answer-confirm')
             await expect(confirm).toBeVisible({timeout: 15000})
             await confirm.click()
-            await expect(page.getByTestId(`my-answer-${gives}`)).toHaveText(/Bestätigt|Ausstehend/, {timeout: 15000})
+            await expect(page.getByTestId(`my-answer-${gives}`)).toHaveText(/Bestätigt|Offen/, {timeout: 15000})
 
             await page.goto('/station/events/upcoming')
             await page.getByPlaceholder('Titel, Beschreibung oder Feldinhalt...').fill(name)

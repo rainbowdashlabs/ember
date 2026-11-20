@@ -1,5 +1,72 @@
 # Changelog
 
+## v26.26.0
+
+Notifications and messages can arrive as push notifications on phones and computers, even with Ember closed. Groups and tags can fill themselves from rules over profile answers, age and membership, such as everybody whose JuLeiCa runs out within ten months. Full appointments and event groups put further sign-ups on a waiting list, and the first in line moves up when a place frees.
+
+### New Features
+
+- **Appointment places on a map.** "Location" and "Meeting point" now add place fields, and "On the map" next to a place opens a map to find, correct or remove its pin. The pin applies to every appointment naming the same place, and the appointment page shows it on a small map with a link to OpenStreetMap.
+- **Push notifications on phones and computers.** Notifications and chat messages can arrive on a phone or computer even with Ember closed, once push is allowed on that device under Profile → Notifications. A new "Push" column chooses which kinds are pushed, and devices can be tested and removed there or in the list of sign-ins.
+- **Push needs no setup by operators.** Push notifications work without any setup and can be switched off for the whole instance in the administration settings. They are delivered through the push services of the browser makers, and the privacy notice gains a section on them.
+- **Waiting list for full appointments.** Once every place of a date is taken, further sign-ups go onto a waiting list, and the first in line moves up on their own when a place frees and is told so. Whoever runs the appointment sees the list in order, can reorder it or move somebody up by hand, and chooses whether it follows sign-up time or the fairness score.
+- **Alternatives and places in event groups.** A block of an event group can set a maximum beside its minimum, so "exactly one of two" offers alternatives to pick from. Event groups set places per appointment, an appointment of the group can set its own, and a full appointment is marked so members pick the free alternative or wait on the waiting list.
+- **Groups and tags filled by rules.** A group or tag can take its members from a rule of checks on profile answers, age, membership and other groups or tags. Members join and leave on their own as answers change and dates come closer, and a preview shows whom a rule takes in before it is saved.
+
+### Improvements
+
+- **Mail switches only where mail is sent.** A station without a mail provider of its own or one shared by the instance no longer shows the mail switch and the mail column in the notification settings. A note there says that notifications cannot arrive by mail.
+- **Finding the station address on the map.** "Find on map" in the station location settings moves the pin to the typed address. A hint says when only the street or the town was found, and nothing is saved until the location is saved.
+- **Declined answers folded away.** On the registrations page, the declined answers of a date stay closed until opened. Opened, they show who declined and when, without the place ranking.
+- **Usual port shown for the mail server.** The mail settings name the usual port for the chosen encryption and point out a port that does not fit. The port is still saved as entered.
+- **Instance send interval made visible.** When a station leaves the notification send times to the instance, the settings say how often the instance sends them.
+- **Address search on in the demo.** A demo instance looks addresses and places of appointments up on the public Photon server from the start. It can still be switched off under Settings → Maps.
+- **Partner members answer the questions.** Members of a partner station who sign up for a shared appointment are asked its questions, and the answers show beside their sign-up. Before signing up they see whether the date is full and can go onto the waiting list instead.
+- **Event groups listed on their own.** The appointment overview has a tab with every event group, its first and last date, its sign-ups and whether it was cancelled.
+- **Creating several appointments takes the whole template.** Places, waiting list order, questions, reminders, the minimum, the deadline, documents, files and sharing of a template now reach every appointment created at once. Whatever a template cannot hand over is named on the page.
+- **Calmer appointment forms.** The forms of appointments, event groups and templates show the essentials and fold the rest into sections that say in one line what is set. A section opens by itself when something in it needs attention.
+- **One header on appointment and event group pages.** Both pages have Back, Edit and one menu that holds cancelling and deleting, and the buttons stay on one line on a phone. An appointment can be deleted from its own page, and the question says what goes with it.
+- **Attendance on its own tab.** The appointment page has an Attendance tab for whoever takes attendance, beside the entry in the menu.
+- **A question before refusing a confirmed sign-up.** Refusing somebody who already has a place asks first, and confirming or refusing a sign-up says once it went through.
+- **Parts of an event group easier to reach.** In the event group editor each appointment shows its date with start and end, links to its own editor and is marked when cancelled. A new event group can be shared with partner stations in the same save that creates it.
+- **Questions without switching sign-up on first.** The questions of an appointment or template are always on the form. Adding one switches sign-up on, and sign-up stays on while there are questions.
+- **Files on new appointments and event groups.** Files can be added while an appointment or event group is still being created, and they are attached in order as soon as it is saved.
+- **Sign-up deadlines before the start.** Appointments and event groups close sign-up at a fixed time or at a span before the start, to the minute or at midnight. Templates hand on the span, and repeating appointments close and warn for each date on its own.
+- **Open answers for every date of a series.** The dashboard lists each date of a repeating appointment that still waits for an answer, not only one-time appointments, and leads to that date.
+- **Places per partner station for event groups.** A shared event group can let a partner station decide its own sign-ups, optionally with a number of places for the whole event group. Until now only shared appointments could do this.
+- **Partner members told about decisions.** Members of a partner station are told when the station holding it accepts or turns down their sign-up, puts it on the waiting list or moves it up. The same notice arrives when their own station confirms them.
+
+### Changes
+
+- **Photon looks up addresses.** Admin → Settings → Maps offers Photon as the only address search, using the public server unless the address of a self-hosted server is entered, and the privacy notice gains a section on it. Nominatim, LocationIQ and Geoapify are removed, and an instance that had one of them selected has no address search until Photon is chosen.
+- **Mail notifications are on by default.** Members without a mail setting of their own get notifications by mail as soon as the station or the instance can send mail, for every kind of notification. Mail settings members already had stay as they were.
+- **Reply address at the top of the mail settings.** The reply address moved out of the box about the instance's mail providers to the top of the page, since it applies to all of a station's mail.
+- **Map settings moved to Settings.** The administration page for map tiles and the address search is found under Settings instead of Monitoring, at `/admin/settings/maps`.
+- **One word for each sign-up term.** The German texts use the same word for places, the sign-up deadline, confirming a sign-up and who may sign up, on appointments and event groups alike, and call repeating appointments by one name. The admission waiting list is now called the applicant list, so it is no longer confused with the waiting list of full appointments.
+- **Event group sign-ups decided on the event group.** The open sign-ups list each event group with sign-ups waiting once and leads to it, instead of listing its appointments one by one. The count in the sidebar takes each such sign-up once.
+- **Sharing appointments needs this version on both sides.** Sharing appointments with a partner station on another server pauses until both run this version.
+- **Station statistics moved to Monitoring.** The statistics page of a station is found under Monitoring at `/station/monitoring/statistics`, so the dashboard is a single page again.
+- **Waiting sign-ups kept at the deadline.** Sign-ups still waiting for confirmation are no longer declined when the deadline passes. Whoever runs the appointment is told once per date and decides them as before.
+- **Minimum checked from midnight.** The minimum of an event group is checked from midnight the set number of days before its first appointment, a called-off first appointment included, as it already was for appointments.
+- **Places go with the share.** When an appointment or event group is no longer shared with a partner station, the arrangement about that station's places is removed. Sharing it again starts with the station holding the appointment or event group deciding each sign-up.
+
+### Fixes
+
+- **Places not enforced.** An appointment could take more sign-ups than it has places, which were shown but never checked. Sign-ups beyond the places now go onto the waiting list.
+- **Badges of upcoming appointments wandered.** In some cases an appointment with a long description line showed its registration counts below the text instead of beside it. The description now wraps, so the counts stay beside it wherever there is room.
+- **Consent asked twice after a policy update.** After the privacy policy or the terms changed, agreeing on the sign-in page did not count for the account, so the same question came again right after signing in. Agreeing before signing in now covers the account.
+- **Installing Ember was not always offered.** In some cases the part of Ember that runs in the background was never started, so the browser did not offer to install Ember and saved files could open in the browser instead. It now starts with every page.
+- **Delivery address shown for own mail servers.** The mail settings offered a delivery report address for a station's own mail server, which sends no such reports. It is no longer shown there.
+- **Station chat permission without an icon.** In the permission picker, "Manage station chats" was the only group shown without an icon. It now has one like the others.
+- **iPhones listed as Macs among sign-ins.** The list of sign-ins showed an iPhone as a Mac with the Apple desktop icon. It now names it iOS.
+- **Closing a question could delete it.** On a list of questions, closing an opened question put its delete button right under the pointer, so a double click on the arrow could delete the question. The arrow now stays at the end of the line, with the delete button kept apart before it.
+- **Questions could be lost when editing.** In some cases, when the questions, reminders or partner sharing of an appointment could not be loaded, the editor showed them as empty and saving removed them. The editor now shows the error and no form.
+- **Places ignored when creating several appointments.** Places and the minimum typed while creating several appointments at once were not saved. They are now saved with each appointment.
+- **Failed loads looked like empty lists.** In some cases partner sign-ups and the choice of event groups in the appointment editor showed as empty when they could not be loaded. The page now says that loading failed.
+- **Called-off dates looked open on the dashboard.** In some cases the dashboard showed a called-off date of a repeating appointment as an ordinary date. It is now marked as called off and no longer offers to decline.
+- **Minimum date one day late in announcements.** The announcement sentence about a minimum named the day the check runs as the last day to sign up. It now names the day before.
+- **A moved deadline was not warned about again.** In some cases a deadline that was moved after its warning or its notice had gone out was not warned or told about a second time. Both now follow the deadline as it stands.
+
 ## v26.25.2
 
 The backend image protects x86 servers against the Java4Shell vulnerability.

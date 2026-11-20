@@ -138,13 +138,17 @@ export function offersFieldValue(question: EventQuestionDraft, showValue: boolea
 /** A field nearly every appointment has, added with one click. */
 export interface QuickField {
     name: string
+    fieldType: FieldType
     overview: boolean
     isPublic: boolean
 }
 
-/** The fields offered for one-click adding, in the order they are offered. */
+/**
+ * The fields offered for one-click adding, in the order they are offered. Where the appointment
+ * happens and where people meet are place fields, so they can carry a pin on the map.
+ */
 export const QUICK_FIELDS: readonly QuickField[] = [
-    {name: 'Ort', overview: true, isPublic: true},
-    {name: 'Treffpunkt', overview: true, isPublic: true},
-    {name: 'Thema', overview: true, isPublic: false},
+    {name: 'Ort', fieldType: FieldType.LOCATION, overview: true, isPublic: true},
+    {name: 'Treffpunkt', fieldType: FieldType.LOCATION, overview: true, isPublic: true},
+    {name: 'Thema', fieldType: FieldType.TEXT, overview: true, isPublic: false},
 ]

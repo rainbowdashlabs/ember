@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSettings;
 import dev.chojo.ember.feature.events.entity.EventGroupSettings;
 import dev.chojo.ember.feature.events.route.EventStructureRoutes.FieldDefaultEntry;
+import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
 import dev.chojo.ember.feature.events.service.EventGroupSettingsService;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
@@ -42,10 +43,12 @@ public class EventGroupSettingsRoutes implements Routes {
     private static final String SETTINGS = "/events/groups/{eventGroupId}/settings";
 
     private final EventGroupSettingsService settings;
+    private final EventGroupRegistrationService signUps;
 
     @Inject
-    public EventGroupSettingsRoutes(EventGroupSettingsService settings) {
+    public EventGroupSettingsRoutes(EventGroupSettingsService settings, EventGroupRegistrationService signUps) {
         this.settings = settings;
+        this.signUps = signUps;
     }
 
     @Override
@@ -57,6 +60,38 @@ public class EventGroupSettingsRoutes implements Routes {
                 this::ofPart,
                 StationPermission.EVENT_EDIT,
                 StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/{eventId}/group-settings/limit",
+                this::setPartLimit,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
+    }
+
+    /**
+     * The places a part of an event group has of its own.
+     *
+     * @param limit its places, or null to take the event group's places per part
+     */
+    public record PartLimitRequest(@Nullable Integer limit) {}
+
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/group-settings/limit",
+            methods = HttpMethod.PUT,
+            summary = "Give a part of an event group places of its own, or take its event group's again",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PartLimitRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventGroupPartSettings.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setPartLimit(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(PartLimitRequest.class);
+        var part = settings.setPartLimit(session.stationId(), pathInt(ctx, "eventId"), request.limit());
+        signUps.moveUp(session.stationId(), part.eventGroupId());
+        ctx.json(part);
     }
 
     /**

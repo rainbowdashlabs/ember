@@ -7,6 +7,7 @@ import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 import {pickMemberByName} from './fixtures/memberMenu'
 import {stationDay} from './fixtures/stationDay'
 import {fillMoment, momentFields} from './fixtures/moment'
+import {openFormSection} from './fixtures/formSection'
 
 /**
  * Registering for an event, withdrawing again, and the organiser's view of who has signed up.
@@ -297,7 +298,7 @@ test.describe('Events', () => {
                 startTime: new Date(Date.now() + 25 * 86400000).toISOString(),
                 endTime: new Date(Date.now() + 25 * 86400000 + 3600000).toISOString(),
                 requiresRegistration: true,
-                registrationDeadline: new Date(Date.now() + 20 * 86400000).toISOString(),
+                registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() + 20 * 86400000).toISOString(), offsetMinutes: null, anchor: null},
             },
         })
         expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
@@ -356,7 +357,7 @@ test.describe('Events', () => {
             const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
 
             await memberPage.getByTestId('answer-household').click()
-            await expect(myAnswer, 'nobody has said yes to them yet').toHaveText('Ausstehend', {timeout: 15000})
+            await expect(myAnswer, 'nobody has said yes to them yet').toHaveText('Offen', {timeout: 15000})
 
             await signOff(memberPage, memberPage.getByTestId('withdraw-household'))
             await expect(myAnswer, 'the place is given up, and that is an answer')
@@ -476,7 +477,7 @@ test.describe('Events', () => {
                     startTime: new Date(Date.now() + 20 * 86400000).toISOString(),
                     endTime: new Date(Date.now() + 20 * 86400000 + 3600000).toISOString(),
                     requiresRegistration: true,
-                    registrationDeadline: new Date(Date.now() + 10 * 86400000).toISOString(),
+                    registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() + 10 * 86400000).toISOString(), offsetMinutes: null, anchor: null},
                 },
             })
             expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
@@ -501,7 +502,7 @@ test.describe('Events', () => {
                     startTime: new Date(Date.now() + 20 * 86400000).toISOString(),
                     endTime: new Date(Date.now() + 20 * 86400000 + 3600000).toISOString(),
                     requiresRegistration: true,
-                    registrationDeadline: new Date(Date.now() - 86400000).toISOString(),
+                    registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() - 86400000).toISOString(), offsetMinutes: null, anchor: null},
                 },
             })
             expect(closed.ok(), `the organiser closed registration (${await closed.text()})`).toBeTruthy()
@@ -541,7 +542,7 @@ test.describe('Events', () => {
                     startTime: new Date(Date.now() + 21 * 86400000).toISOString(),
                     endTime: new Date(Date.now() + 21 * 86400000 + 3600000).toISOString(),
                     requiresRegistration: true,
-                    registrationDeadline: new Date(Date.now() + 10 * 86400000).toISOString(),
+                    registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() + 10 * 86400000).toISOString(), offsetMinutes: null, anchor: null},
                 },
             })
             expect(created.ok(), `the organiser made an appointment (${await created.text()})`).toBeTruthy()
@@ -583,7 +584,7 @@ test.describe('Events', () => {
                     startTime: new Date(Date.now() + 21 * 86400000).toISOString(),
                     endTime: new Date(Date.now() + 21 * 86400000 + 3600000).toISOString(),
                     requiresRegistration: true,
-                    registrationDeadline: new Date(Date.now() - 86400000).toISOString(),
+                    registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() - 86400000).toISOString(), offsetMinutes: null, anchor: null},
                 },
             })
             expect(closed.ok(), `registration closed (${await closed.text()})`).toBeTruthy()
@@ -631,10 +632,13 @@ test.describe('Events', () => {
         await fillMoment(times.first(), '2026-12-01T18:00')
         if (await times.count() > 1) await fillMoment(times.nth(1), '2026-12-01T20:00')
 
-        await managerPage.getByText('Anmeldung erforderlich')
-            .locator('xpath=following-sibling::button').click()
+        const signUp = managerPage.getByRole('switch', {name: 'Anmeldung erforderlich'})
+        await expect(signUp).toHaveAttribute('aria-checked', 'false')
+        await openFormSection(managerPage, 'questions')
         await managerPage.getByRole('button', {name: 'Frage hinzufügen'}).click()
         await managerPage.getByPlaceholder('z.B. Begleitpersonen').fill(question)
+        await expect(signUp).toHaveAttribute('aria-checked', 'true')
+        await expect(signUp).toBeDisabled()
 
         await managerPage.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
 
@@ -708,6 +712,62 @@ test.describe('Events', () => {
 
         await page.goto(`/station/events?search=${encodeURIComponent(name)}`)
         await expect(page.getByText(name).first()).toBeVisible()
+    })
+
+    /**
+     * A batch made from an appointment template takes the whole template, not only its title: every
+     * appointment of the batch has the template's places and asks its question. The story writes its
+     * own template, applies it on the batch page, and reads the appointments it made.
+     */
+    test('a batch from a template keeps its places and its question', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const title = `Vorlagenserie-${Date.now()}`
+        const question = 'Welche Größe?'
+        const created = await page.request.post('/api/v1/event-templates', {headers, data: {name: title}})
+        expect(created.ok(), `the template was made (${await created.text()})`).toBeTruthy()
+        const templateId = (await created.json() as {id: number}).id
+        const made: number[] = []
+        try {
+            const updated = await page.request.put(`/api/v1/event-templates/${templateId}`, {
+                headers,
+                data: {name: title, title, eventType: 'ONE_TIME', requiresRegistration: true, registrationLimit: 7},
+            })
+            expect(updated.ok(), `the template sets places (${await updated.text()})`).toBeTruthy()
+            const asked = await page.request.put(`/api/v1/event-templates/${templateId}/registration-fields`, {
+                headers,
+                data: {fields: [{name: question, fieldType: 'TEXT', config: {}, overview: false}]},
+            })
+            expect(asked.ok(), `the template asks a question (${await asked.text()})`).toBeTruthy()
+
+            await page.goto('/station/events/batch')
+            await page.locator('select').filter({has: page.locator('option', {hasText: title})}).first()
+                .selectOption({label: title})
+            await expect(page.getByTestId('batch-template-carried')).toContainText('Fragen zur Anmeldung: 1')
+            await page.getByRole('button', {name: 'Weiter'}).click()
+
+            const dates = page.locator('input[type="date"]:visible')
+            await dates.first().fill('2027-03-01')
+            await dates.nth(1).fill('2027-03-14')
+            await page.getByRole('button', {name: 'Termine generieren'}).click()
+            await expect(page.getByText(/\d+ Termine werden erstellt/)).toBeVisible()
+            await page.getByRole('button', {name: 'Termine erstellen'}).click()
+            await expect(page.getByText(/Termine erstellt/)).toBeVisible()
+
+            const listed = await page.request.get('/api/v1/events', {headers})
+            const batch = (await listed.json() as {id: number, name: string, registrationLimit: number | null}[])
+                .filter(event => event.name === title)
+            made.push(...batch.map(event => event.id))
+            expect(batch.length, 'the batch made appointments').toBeGreaterThan(0)
+            for (const event of batch) {
+                expect(event.registrationLimit, 'each appointment has the template\'s places').toBe(7)
+                const fields = await page.request.get(`/api/v1/events/${event.id}/registration-fields`, {headers})
+                expect((await fields.json() as {name: string}[]).map(field => field.name),
+                    'each appointment asks the template\'s question').toEqual([question])
+            }
+        } finally {
+            for (const id of made) await page.request.delete(`/api/v1/events/${id}`, {headers})
+            await page.request.delete(`/api/v1/event-templates/${templateId}`, {headers})
+        }
     })
 
     /**

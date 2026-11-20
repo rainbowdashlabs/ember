@@ -46,11 +46,12 @@ public record EventGroupRegistration(
     }
 
     /**
-     * Whether the sign-up still holds or waits for a place.
+     * Whether the sign-up still stands: it holds a place, waits for a decision or waits on the waiting
+     * list.
      *
-     * @return true while pending or accepted
+     * @return true for a pending, accepted or waiting sign-up
      */
     public boolean active() {
-        return status == RegistrationStatus.PENDING || status == RegistrationStatus.ACCEPTED;
+        return status.standing();
     }
 }

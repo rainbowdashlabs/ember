@@ -3,8 +3,29 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-/** How long before the start a newly set deadline closes the registration, until somebody changes it. */
-export const DEFAULT_DEADLINE_OFFSET_HOURS = 24
+import {DeadlineKind, type EventTemplate} from '@/api/generated/schema'
+import {deadlineRuleOf} from '../eventshared/registrationDeadline'
+
+/** The sign-up rules a template hands an appointment form: only those the template sets. */
+export type TemplateSignUpRules = Partial<Pick<EventTemplate,
+    'registrationLimit' | 'queueOrder' | 'minRegistrations' | 'thresholdDays' | 'registrationDeadline'>>
+
+/**
+ * The sign-up rules a template sets, for a form to take over with `Object.assign`. A rule the template
+ * leaves open is left out, so whatever the form already holds for it stays.
+ *
+ * @param template the template applied
+ */
+export function signUpRulesOf(template: EventTemplate): TemplateSignUpRules {
+    const rules: TemplateSignUpRules = {}
+    if (template.registrationLimit != null) rules.registrationLimit = template.registrationLimit
+    if (template.queueOrder != null) rules.queueOrder = template.queueOrder
+    if (template.minRegistrations != null) rules.minRegistrations = template.minRegistrations
+    if (template.thresholdDays != null) rules.thresholdDays = template.thresholdDays
+    const deadline = deadlineRuleOf(template.registrationDeadline)
+    if (deadline.kind !== DeadlineKind.NONE) rules.registrationDeadline = deadline
+    return rules
+}
 
 /**
  * A count typed into a number field, as a whole number of zero or more, or undefined for a field
@@ -18,23 +39,4 @@ export const DEFAULT_DEADLINE_OFFSET_HOURS = 24
 export function nonNegative(value: unknown): number | undefined {
     if (typeof value !== 'number' || Number.isNaN(value)) return undefined
     return Math.max(0, Math.trunc(value))
-}
-
-/**
- * A deadline offset in hours, split into the whole days and the hours left over that the editor shows.
- *
- * @param offsetHours hours before the start
- */
-export function offsetParts(offsetHours: number): {days: number; hours: number} {
-    return {days: Math.floor(offsetHours / 24), hours: offsetHours % 24}
-}
-
-/**
- * Days and hours before the start, as the hours the server stores.
- *
- * @param days  whole days before the start
- * @param hours hours on top of the days
- */
-export function offsetHoursOf(days: unknown, hours: unknown): number {
-    return (nonNegative(days) ?? 0) * 24 + (nonNegative(hours) ?? 0)
 }

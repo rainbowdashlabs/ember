@@ -125,10 +125,7 @@ public class EventGroupViewService {
                     .toList();
             if (!owing.isEmpty()) {
                 awaiting.add(new EventGroupAwaiting(
-                        eventGroup.id(),
-                        eventGroup.details().name(),
-                        eventGroup.details().registrationDeadline(),
-                        owing));
+                        eventGroup.id(), eventGroup.details().name(), eventGroup.closesAt(), owing));
             }
         }
         return awaiting;
@@ -183,7 +180,8 @@ public class EventGroupViewService {
                         session,
                         asked,
                         signUps.standings(eventGroup.id(), household),
-                        entry -> eventGroups.canSignUp(eventGroup.id(), entry.memberId(), permissions)));
+                        entry -> eventGroups.canSignUp(eventGroup.id(), entry.memberId(), permissions)),
+                null);
     }
 
     /**
@@ -245,7 +243,8 @@ public class EventGroupViewService {
                             given,
                             signUp != null
                                     && EventRegistrationFieldService.owesAnswer(signUp.status(), required, stored),
-                            mayRegister.test(entry));
+                            mayRegister.test(entry),
+                            entry.queuePosition());
                 })
                 .toList();
     }

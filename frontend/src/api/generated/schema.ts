@@ -18731,7 +18731,7 @@ export interface paths {
                 };
             };
         };
-        /** Switch the caller's mail for the association's notifications on or off */
+        /** Switch the caller's mail or pushes for the association's notifications on or off */
         put: {
             parameters: {
                 query?: never;
@@ -24174,6 +24174,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/group-settings/limit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Give a part of an event group places of its own, or take its event group's again */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PartLimitRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupPartSettings"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/register": {
         parameters: {
             query?: never;
@@ -24506,6 +24566,55 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["RegistrationResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{eventId}/sign-up-places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many places a date of an appointment has, how many are taken and how many wait */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Places"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -25177,6 +25286,64 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/date-deadlines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** When sign-up for a date of an appointment closes and when its minimum is checked */
+        get: {
+            parameters: {
+                query?: {
+                    date?: components["schemas"]["LocalDate"];
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DateDeadlines"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -26456,6 +26623,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/partner-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The answers partner stations' members gave to an event's registration questions */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerAnswers"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/partner-places": {
         parameters: {
             query?: never;
@@ -26523,6 +26728,106 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The pins of an appointment's place fields */
+        get: {
+            parameters: {
+                query?: {
+                    date?: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationPlace"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/queue-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set how the waiting lists of an appointment's dates are ordered */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QueueOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationEvent"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -27313,6 +27618,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/federation-registrations/{id}/queue-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move a partner's member to another place in line on the waiting list */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QueuePositionRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/federation-registrations/{id}/status": {
         parameters: {
             query?: never;
@@ -27347,6 +27719,62 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/federation-registrations/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put partners' members waiting for this station's decision onto the waiting list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QueueRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -28456,6 +28884,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/groups/{eventGroupId}/partner-places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List what each partner station may do with an event group */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerPlacesView"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/partner-places/{partnerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Hand a partner station places at an event group, or take them back */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    partnerId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetPartnerPlacesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/groups/{eventGroupId}/partner-sign-ups": {
         parameters: {
             query?: never;
@@ -28487,6 +29023,65 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/queue-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move a partner member's event group sign-up to another place in line on the waiting list */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    signUpId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupQueuePositionRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -28538,6 +29133,55 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put partner members' event group sign-ups waiting for a decision onto the waiting list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupQueueRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -29130,6 +29774,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/queue-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move an event group sign-up to another place in line on the waiting list */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupQueuePositionRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/status": {
         parameters: {
             query?: never;
@@ -29250,6 +29962,64 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put event group sign-ups waiting for a decision onto the event group's waiting list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupQueueRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -29572,6 +30342,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/registrations/{id}/queue-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move a sign-up to another place in line on the waiting list */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QueuePositionRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/registrations/{id}/status": {
         parameters: {
             query?: never;
@@ -29664,7 +30501,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Events still waiting on an answer from the reader or anyone they answer for */
+        /** Dates still waiting on an answer from the reader or anyone they answer for */
         get: {
             parameters: {
                 query?: never;
@@ -29801,6 +30638,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/registrations/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put sign-ups waiting for a decision onto the waiting list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QueueRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RegistrationResponse"][];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/restrictions": {
         parameters: {
             query?: never;
@@ -29926,6 +30812,7 @@ export interface paths {
                     registrationOpen?: boolean;
                     requiresRegistration?: boolean;
                     search?: string;
+                    seriesTo?: string;
                     to?: string;
                 };
                 header?: never;
@@ -30586,6 +31473,67 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm one of this station's members for a partner station's event group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    stationuid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupConfirmRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -35846,6 +36794,177 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/groups/{id}/rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The rule a group takes its members from, if any */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberRuleResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Save the rule a group takes its members from; the group is filled by it from then on */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberRuleResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Remove a group's rule; it keeps its members and is kept by hand from then on */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/groups/{id}/rule/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Who a rule would put into a group today, without saving it */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RulePreview"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -43998,6 +45117,114 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The groups and tags of the station that take their members from a rule */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuleOwners"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-rules/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The fields a check of a group or tag rule can read, the station's and its association's */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuleField"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-rules/operators": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The operators a check of a group or tag rule can use, and how large a rule may grow */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuleOperatorTable"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -57440,6 +58667,181 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/push/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The key a browser subscribes to push messages with, and whether push is on */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PushKey"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The account's browsers that receive push messages */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PushDevice"][];
+                    };
+                };
+            };
+        };
+        /** Register or refresh this browser for push messages */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SubscribeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PushDevice"];
+                    };
+                };
+                /** @description A renewal of a browser this account did not allow */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/subscriptions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Forget one of the account's browsers */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/subscriptions/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test push to one of the account's browsers */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/quiz/answers/{id}/grade": {
         parameters: {
             query?: never;
@@ -64875,6 +66277,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station/location/geocode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find where the station's address lies */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AddressSearch"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeocodeAnswer"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station/mail-import/log": {
         parameters: {
             query?: never;
@@ -66488,6 +67966,173 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station/places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The stored pin of a place text */
+        get: {
+            parameters: {
+                query: {
+                    text: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlaceAnswer"];
+                    };
+                };
+            };
+        };
+        /** Store the pin of a place text */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PlaceDraft"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationPlace"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Take the pin off a place text */
+        delete: {
+            parameters: {
+                query: {
+                    text: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/places/geocode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find where a place text lies */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PlaceSearch"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeocodeAnswer"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station/setup/complete": {
         parameters: {
             query?: never;
@@ -67509,6 +69154,168 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tags/{id}/rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The rule a tag takes its members from, if any */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberRuleResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Save the rule a tag takes its members from; the tag is filled by it from then on */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberRuleResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Remove a tag's rule; it keeps its members and is kept by hand from then on */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tags/{id}/rule/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Who a rule would put into a tag today, without saving it */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RulePreview"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -68801,6 +70608,8 @@ export interface components {
             isCurrent: boolean;
             lastUsedAt: components["schemas"]["Instant"];
             location: string | null;
+            /** Format: int32 */
+            pushDeviceId: number | null;
             userAgent: string | null;
         };
         /** @enum {string} */
@@ -68828,7 +70637,14 @@ export interface components {
             mapUrl?: string;
             postalCode?: string;
         };
+        AddressSearch: {
+            addressLine?: string | null;
+            city?: string | null;
+            country?: string | null;
+            postalCode?: string | null;
+        };
         AdminMapsConfig: {
+            defaultGeocodingServer: string | null;
             geocoding: components["schemas"]["MapsGeocodingConfig"];
             /** Format: int32 */
             tileCacheMaxMb: number;
@@ -69035,6 +70851,7 @@ export interface components {
         };
         AnswerRequest: {
             attending?: boolean;
+            whenFull?: components["schemas"]["WhenFull"] | null;
         };
         AnswersRefusedBody: {
             code?: string;
@@ -69072,6 +70889,7 @@ export interface components {
             instanceDefaultTheme: string;
             instanceLockFeel: boolean;
             messagesEnabled: boolean;
+            pushEnabled: boolean | null;
             stationRegistrationEnabled: boolean;
         };
         /** @enum {string} */
@@ -69407,11 +71225,12 @@ export interface components {
         AwaitingAnswer: {
             /** Format: int32 */
             categoryId: number | null;
+            eventDate: components["schemas"]["LocalDate"];
             /** Format: int32 */
             eventId: number;
             members: components["schemas"]["AwaitingMember"][];
             name: string;
-            registrationDeadline: components["schemas"]["Instant"];
+            registrationClosesAt: components["schemas"]["Instant"];
             startTime: components["schemas"]["Instant"];
         };
         AwaitingMember: {
@@ -69450,15 +71269,25 @@ export interface components {
             /** Format: int32 */
             categoryId?: number | null;
             description?: string | null;
+            /** Format: int32 */
+            eventTemplateId?: number | null;
             inlineFields?: components["schemas"]["BatchFieldEntryDto"][] | null;
+            /** Format: int32 */
+            minRegistrations?: number | null;
             name?: string | null;
-            registrationDeadline?: components["schemas"]["Instant"] | null;
+            queueOrder?: components["schemas"]["QueueOrder"] | null;
+            registrationDeadline?: components["schemas"]["RegistrationDeadline"] | null;
+            /** Format: int32 */
+            registrationLimit?: number | null;
+            reminderDays?: number[] | null;
             requiresConfirmation?: boolean | null;
             requiresRegistration?: boolean | null;
             restriction?: components["schemas"]["RestrictionSelection"] | null;
             rows?: components["schemas"]["BatchRowEntry"][];
             /** Format: int32 */
             templateId?: number | null;
+            /** Format: int32 */
+            thresholdDays?: number | null;
             viewRestriction?: components["schemas"]["RestrictionSelection"] | null;
         };
         BatchFieldChoice: {
@@ -70407,9 +72236,11 @@ export interface components {
         ClusterMail: {
             emailEnabled: boolean;
             mailAvailable: boolean;
+            pushEnabled: boolean;
         };
         ClusterMailRequest: {
-            emailEnabled?: boolean;
+            emailEnabled?: boolean | null;
+            pushEnabled?: boolean | null;
         };
         ClusterMemberDetailResponse: {
             direct: string[];
@@ -71162,6 +72993,11 @@ export interface components {
              */
             kind: "DATE";
         };
+        DateDeadlines: {
+            date: components["schemas"]["LocalDate"] | null;
+            minimumCheckedAt: components["schemas"]["Instant"] | null;
+            registrationClosesAt: components["schemas"]["Instant"] | null;
+        };
         DatedEvent: {
             cancellation: components["schemas"]["CancellationNotice"] | null;
             event: components["schemas"]["EventSummary"];
@@ -71207,6 +73043,10 @@ export interface components {
             count: number;
             day: string;
         };
+        /** @enum {string} */
+        DeadlineAnchor: "EXACT" | "MIDNIGHT";
+        /** @enum {string} */
+        DeadlineKind: "NONE" | "FIXED" | "RELATIVE";
         DeclineBody: {
             reason?: string | null;
         };
@@ -71815,6 +73655,8 @@ export interface components {
         };
         EnrichedFederationRegistration: {
             memberIdentity: components["schemas"]["MemberIdentity"] | null;
+            /** Format: int32 */
+            queuePosition: number | null;
             registration: components["schemas"]["EventFederationRegistration"];
         };
         EnrichedItem: {
@@ -72032,6 +73874,7 @@ export interface components {
         };
         EventFederationRegistration: {
             agreementWithdrawnAt: components["schemas"]["Instant"] | null;
+            comingOrAsking: boolean;
             createdAt: components["schemas"]["Instant"];
             eventDate: components["schemas"]["LocalDate"];
             /** Format: int32 */
@@ -72086,10 +73929,14 @@ export interface components {
             eventGroupId: number;
             members: components["schemas"]["AwaitingMember"][];
             name: string;
-            registrationDeadline: components["schemas"]["Instant"] | null;
+            registrationClosesAt: components["schemas"]["Instant"] | null;
         };
         EventGroupCancelRequest: {
             reason?: string | null;
+        };
+        EventGroupConfirmRequest: {
+            /** Format: int32 */
+            memberId?: number;
         };
         EventGroupCreateRequest: {
             /** Format: int32 */
@@ -72102,6 +73949,7 @@ export interface components {
             view?: components["schemas"]["RestrictionAudience"] | null;
         };
         EventGroupDecisionRequest: {
+            overLimit?: boolean | null;
             status?: components["schemas"]["RegistrationStatus"];
         };
         EventGroupDetail: {
@@ -72109,6 +73957,7 @@ export interface components {
             fields: components["schemas"]["AppointmentField"][];
             household: components["schemas"]["EventGroupSignUp"][];
             parts: components["schemas"]["EventGroupPartState"][];
+            places: components["schemas"]["RemotePlaces"] | null;
             questions: components["schemas"]["EventRegistrationField"][];
             registration: components["schemas"]["RestrictionAudience"];
             sets: components["schemas"]["EventGroupSet"][];
@@ -72120,7 +73969,10 @@ export interface components {
             /** Format: int32 */
             minRegistrations: number | null;
             name: string;
-            registrationDeadline: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            partRegistrationLimit: number | null;
+            queueOrder: components["schemas"]["QueueOrder"] | null;
+            registrationDeadline: components["schemas"]["RegistrationDeadline"];
             /** Format: int32 */
             registrationLimit: number | null;
             requiresConfirmation: boolean;
@@ -72160,7 +74012,12 @@ export interface components {
             /** Format: int32 */
             id: number;
             member: components["schemas"]["MemberIdentity"] | null;
+            partnerDecides: boolean;
+            /** Format: int32 */
+            partnerId: number;
             parts: number[];
+            /** Format: int32 */
+            queuePosition: number | null;
             registeredAt: components["schemas"]["Instant"] | null;
             sets: components["schemas"]["SetResult"][];
             status: components["schemas"]["RegistrationStatus"] | null;
@@ -72181,14 +74038,22 @@ export interface components {
             /** Format: int32 */
             ownCategoryId: number | null;
             /** Format: int32 */
+            ownRegistrationLimit: number | null;
+            /** Format: int32 */
             ownTemplateId: number | null;
+            /** Format: int32 */
+            partRegistrationLimit: number | null;
         };
         EventGroupPartState: {
+            /** Format: int32 */
+            accepted: number;
             calledOff: boolean;
             endTime: components["schemas"]["Instant"];
             /** Format: int32 */
             eventId: number;
             name: string;
+            /** Format: int32 */
+            places: number | null;
             required: boolean;
             /** Format: int32 */
             setId: number;
@@ -72210,11 +74075,20 @@ export interface components {
             setId: number;
             setName: string;
         };
+        EventGroupQueuePositionRequest: {
+            /** Format: int32 */
+            position?: number | null;
+        };
+        EventGroupQueueRequest: {
+            ids?: number[] | null;
+        };
         EventGroupSet: {
             /** Format: int32 */
             eventGroupId: number;
             /** Format: int32 */
             id: number;
+            /** Format: int32 */
+            maximum: number | null;
             /** Format: int32 */
             minimum: number;
             name: string;
@@ -72224,6 +74098,8 @@ export interface components {
         EventGroupSetDraft: {
             /** Format: int32 */
             id?: number | null;
+            /** Format: int32 */
+            maximum?: number | null;
             /** Format: int32 */
             minimum?: number;
             name?: string;
@@ -72255,6 +74131,8 @@ export interface components {
             /** Format: int32 */
             memberId: number;
             parts: number[];
+            /** Format: int32 */
+            queuePosition: number | null;
             registeredAt: components["schemas"]["Instant"] | null;
             sets: components["schemas"]["SetResult"][];
             status: components["schemas"]["RegistrationStatus"] | null;
@@ -72264,17 +74142,25 @@ export interface components {
             /** Format: int32 */
             memberId?: number | null;
             parts?: number[] | null;
+            whenFull?: components["schemas"]["WhenFull"] | null;
         };
         EventGroupSummary: {
             cancelled: boolean;
             cancelReason: string | null;
+            closesAt: components["schemas"]["Instant"] | null;
             details: components["schemas"]["EventGroupDetails"];
+            firstStart: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             holding: number;
             /** Format: int32 */
             id: number;
+            lastEnd: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             partCount: number;
+            /** Format: int32 */
+            pending: number;
+            /** Format: int32 */
+            queued: number;
         };
         EventItem: {
             date?: string;
@@ -72317,6 +74203,7 @@ export interface components {
             fields?: components["schemas"]["EventRegistrationFieldValue"][];
             /** Format: int32 */
             memberId?: number;
+            whenFull?: components["schemas"]["WhenFull"] | null;
         };
         EventRegistration: {
             agreementWithdrawnAt: components["schemas"]["Instant"] | null;
@@ -72385,9 +74272,7 @@ export interface components {
             /** Format: int32 */
             minRegistrations?: number | null;
             name?: string;
-            /** Format: int32 */
-            registrationCloseDays?: number | null;
-            registrationDeadline?: components["schemas"]["Instant"] | null;
+            registrationDeadline?: components["schemas"]["RegistrationDeadline"] | null;
             /** Format: int32 */
             registrationLimit?: number | null;
             /** Format: int32 */
@@ -72420,9 +74305,10 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
-            registrationDeadline: components["schemas"]["Instant"] | null;
+            registrationDeadline: components["schemas"]["RegistrationDeadline"];
             /** Format: int32 */
             registrationLimit: number | null;
+            requiresConfirmation: boolean;
             requiresRegistration: boolean;
             restricted: boolean;
             seriesCancelled: boolean;
@@ -72444,10 +74330,8 @@ export interface components {
             /** Format: int32 */
             minRegistrations: number | null;
             name: string;
-            /** Format: int32 */
-            registrationCloseDays: number | null;
-            /** Format: int32 */
-            registrationDeadlineOffsetHours: number | null;
+            queueOrder: components["schemas"]["QueueOrder"] | null;
+            registrationDeadline: components["schemas"]["RegistrationDeadline"];
             /** Format: int32 */
             registrationLimit: number | null;
             requiresConfirmation: boolean | null;
@@ -72488,6 +74372,8 @@ export interface components {
         };
         /** @enum {string} */
         Expected: "ITS_OWN" | "THE_CLUSTERS" | "INSTANCE_DEFAULT" | "WHEREVER_IT_IS";
+        /** @enum {string} */
+        ExpiryState: "VALID" | "EXPIRING" | "EXPIRED" | "EMPTY";
         ExportColumnRequest: {
             fieldName?: string;
             key?: string;
@@ -72628,6 +74514,7 @@ export interface components {
             partnerStationUid: string;
         };
         FederatedRegBody: {
+            answers?: components["schemas"]["EventRegistrationFieldValue"][] | null;
             eventDate?: string;
             /** Format: uuid */
             memberId?: string | null;
@@ -73479,8 +75366,18 @@ export interface components {
             done: boolean;
             questions: components["schemas"]["GeneratedQuestionWithMeta"][];
         };
+        GeocodeAnswer: {
+            match: components["schemas"]["GeocodeResult"] | null;
+        };
         /** @enum {string} */
-        GeocodingProvider: "NONE" | "NOMINATIM" | "LOCATIONIQ" | "GEOAPIFY";
+        GeocodePrecision: "EXACT" | "STREET" | "AREA";
+        GeocodeResult: {
+            latitude: number;
+            longitude: number;
+            precision: components["schemas"]["GeocodePrecision"];
+        };
+        /** @enum {string} */
+        GeocodingProvider: "NONE" | "PHOTON";
         GradingScope: {
             mayGrade: boolean;
             restricted: boolean;
@@ -75232,8 +77129,7 @@ export interface components {
             zoom?: number;
         };
         MapsGeocodingConfig: {
-            apiKey: string;
-            contactEmail: string;
+            baseUrl: string | null;
             provider: components["schemas"]["GeocodingProvider"];
         };
         MapsTilesConfig: {
@@ -75546,6 +77442,12 @@ export interface components {
                 [key: string]: components["schemas"]["InventoryItem"][];
             };
         };
+        MemberRuleRequest: {
+            rule?: components["schemas"]["RuleNode"];
+        };
+        MemberRuleResponse: {
+            rule: components["schemas"]["RuleNode"] | null;
+        };
         MemberSearchResult: {
             avatarUrl: string | null;
             displayName: string;
@@ -75696,11 +77598,13 @@ export interface components {
         };
         MessageSettingsRequest: {
             mail?: boolean | null;
+            push?: boolean | null;
             stationDigest?: components["schemas"]["StationDigest"] | null;
         };
         MessagesStatus: {
             available: boolean;
             mail: boolean;
+            push: boolean;
             stationDigest: components["schemas"]["StationDigest"];
             /** Format: int32 */
             unread: number;
@@ -76229,6 +78133,7 @@ export interface components {
             app: boolean;
             email: boolean;
             feed: boolean;
+            push: boolean | null;
         };
         /** @enum {string} */
         NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_COMMENT" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "EVENT_CHANGED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "PROCEDURE_DOCUMENT_WITHDRAWN" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "WAITLIST_TRIAL_ENDED" | "WAITLIST_INVITATION_DATES_GONE" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN" | "MESSAGE_REPORTED";
@@ -76521,6 +78426,10 @@ export interface components {
             memberId: number;
             name: string;
         };
+        PartLimitRequest: {
+            /** Format: int32 */
+            limit?: number | null;
+        };
         PartnerAgreementOffer: {
             /** Format: int32 */
             templateId: number;
@@ -76528,6 +78437,11 @@ export interface components {
         };
         /** @enum {string} */
         PartnerAgreementState: "MISSING" | "ASKED" | "SIGNED" | "PAPER_CONFIRMED" | "WITHDRAWN";
+        PartnerAnswers: {
+            answers: components["schemas"]["EventRegistrationFieldValue"][];
+            /** Format: int32 */
+            registrationId: number;
+        };
         PartnerDocumentToSign: {
             /** Format: int32 */
             memberId: number;
@@ -76536,9 +78450,11 @@ export interface components {
             signature: components["schemas"]["RequirementSignature"];
         };
         PartnerEventDetail: {
+            datePlaces: components["schemas"]["RemoteDatePlaces"] | null;
             event: components["schemas"]["SharedEvent"];
             places: components["schemas"]["RemotePlaces"] | null;
             publicFields: components["schemas"]["AppointmentField"][];
+            questions: components["schemas"]["EventRegistrationField"][];
         };
         PartnerPlacesView: {
             partnerConfirms: boolean;
@@ -76783,6 +78699,15 @@ export interface components {
             title: string;
             updatedAt: components["schemas"]["Instant"];
         };
+        PlaceAnswer: {
+            place: components["schemas"]["StationPlace"] | null;
+        };
+        PlaceDraft: {
+            latitude?: number | null;
+            longitude?: number | null;
+            precision?: components["schemas"]["GeocodePrecision"] | null;
+            text?: string | null;
+        };
         Placeholder: {
             category: components["schemas"]["PlaceholderCategory"];
             dateKind: components["schemas"]["DateKind"] | null;
@@ -76814,6 +78739,17 @@ export interface components {
             name: string;
             /** Format: uuid */
             stationUid: string;
+        };
+        Places: {
+            /** Format: int32 */
+            accepted: number;
+            /** Format: int32 */
+            limit: number | null;
+            /** Format: int32 */
+            queued: number;
+        };
+        PlaceSearch: {
+            text?: string | null;
         };
         PlannedLanding: {
             certain: boolean;
@@ -77467,6 +79403,7 @@ export interface components {
         };
         PublicMapsConfig: {
             attribution: string | null;
+            geocoding: boolean;
             /** Format: int32 */
             maxZoom: number;
             /** Format: int32 */
@@ -77569,6 +79506,18 @@ export interface components {
             id: number;
             name: string;
         };
+        PushDevice: {
+            createdAt: components["schemas"]["Instant"];
+            current: boolean;
+            /** Format: int32 */
+            id: number;
+            label: string;
+            lastSuccessAt: components["schemas"]["Instant"] | null;
+        };
+        PushKey: {
+            enabled: boolean;
+            publicKey: string;
+        };
         QuestionAnswerCount: {
             /** Format: int32 */
             answers: number;
@@ -77608,6 +79557,18 @@ export interface components {
             maxLength: number | null;
             min: number | null;
             whole: boolean;
+        };
+        /** @enum {string} */
+        QueueOrder: "TIME" | "FAIRNESS";
+        QueueOrderRequest: {
+            queueOrder?: components["schemas"]["QueueOrder"] | null;
+        };
+        QueuePositionRequest: {
+            /** Format: int32 */
+            position?: number | null;
+        };
+        QueueRequest: {
+            registrationIds?: number[];
         };
         QuizAccessRequest: {
             closesAt?: components["schemas"]["Instant"] | null;
@@ -78125,6 +80086,13 @@ export interface components {
             eventId: number;
             status: components["schemas"]["RegistrationStatus"];
         };
+        RegistrationDeadline: {
+            anchor: components["schemas"]["DeadlineAnchor"] | null;
+            at: components["schemas"]["Instant"] | null;
+            kind: components["schemas"]["DeadlineKind"];
+            /** Format: int32 */
+            offsetMinutes: number | null;
+        };
         RegistrationFieldDefinition: {
             config?: components["schemas"]["EventQuestionSettings"] | null;
             fieldType?: components["schemas"]["FieldType"] | null;
@@ -78156,7 +80124,11 @@ export interface components {
             memberIdentity: components["schemas"]["MemberIdentity"] | null;
             memberName: string;
             placeGivenUp: boolean;
+            /** Format: int32 */
+            queuePosition: number | null;
+            registrationClosesAt: components["schemas"]["Instant"] | null;
             status: components["schemas"]["RegistrationStatus"];
+            statusChangedAt: components["schemas"]["Instant"];
         };
         RegistrationStatsResponse: {
             /** Format: int32 */
@@ -78176,7 +80148,7 @@ export interface components {
             registered: number;
         };
         /** @enum {string} */
-        RegistrationStatus: "PENDING" | "ACCEPTED" | "DENIED" | "DECLINED" | "WITHDRAWN";
+        RegistrationStatus: "PENDING" | "ACCEPTED" | "DENIED" | "DECLINED" | "WITHDRAWN" | "QUEUED";
         RegistrationTableRequest: {
             columns?: components["schemas"]["MemberTableColumn"][];
             date?: string;
@@ -78243,6 +80215,15 @@ export interface components {
             catalog: components["schemas"]["QuizCatalog"];
             categories: components["schemas"]["QuizCategory"][];
             questions: components["schemas"]["QuizQuestion"][];
+        };
+        RemoteDatePlaces: {
+            date: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            limit: number | null;
+            /** Format: int32 */
+            taken: number;
+            /** Format: int32 */
+            waiting: number;
         };
         RemoteKbFile: {
             conversionStatus: components["schemas"]["ConversionStatus"] | null;
@@ -78665,6 +80646,63 @@ export interface components {
             /** Format: int64 */
             totalBytes: number;
         };
+        RuleField: {
+            fieldType: components["schemas"]["FieldType"];
+            /** Format: int32 */
+            id: number;
+            name: string;
+            options: string[];
+            origin: components["schemas"]["FieldOrigin"];
+        };
+        RuleMember: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+        };
+        /** @enum {string} */
+        RuleNeed: "NOTHING" | "ANSWERS" | "USER_TYPES" | "STATES" | "NUMBER" | "NUMBER_RANGE" | "TEXT" | "DATE" | "DURATION" | "YEARS" | "YEARS_RANGE";
+        RuleNode: {
+            children: components["schemas"]["RuleNode"][];
+            /** Format: int32 */
+            clusterFieldId: number | null;
+            /** Format: int32 */
+            fieldId: number | null;
+            /** Format: int32 */
+            groupId: number | null;
+            kind: components["schemas"]["RuleNodeKind"];
+            operator: components["schemas"]["RuleOperator"] | null;
+            referenceDate: components["schemas"]["LocalDate"] | null;
+            subject: components["schemas"]["RuleSubject"] | null;
+            /** Format: int32 */
+            tagId: number | null;
+            value: components["schemas"]["RuleValue"] | null;
+        };
+        /** @enum {string} */
+        RuleNodeKind: "ALL" | "ANY" | "NONE" | "CHECK";
+        /** @enum {string} */
+        RuleOperator: "IN" | "NOT_IN" | "ONE_OF" | "NONE_OF" | "AT_LEAST" | "LESS_THAN" | "BETWEEN" | "IS_YES" | "IS_NO" | "IS_NOT_YES" | "EMPTY" | "NOT_EMPTY" | "EQUALS" | "CONTAINS" | "EQ" | "LT" | "LE" | "GT" | "GE" | "BEFORE" | "ON_OR_AFTER" | "WITHIN_NEXT" | "WITHIN_LAST" | "EXPIRES_WITHIN" | "EXPIRED" | "STATE_IN";
+        RuleOperatorOption: {
+            fieldType: components["schemas"]["FieldType"] | null;
+            need: components["schemas"]["RuleNeed"];
+            operator: components["schemas"]["RuleOperator"];
+            subject: components["schemas"]["RuleSubject"];
+        };
+        RuleOperatorTable: {
+            /** Format: int32 */
+            maxChecks: number;
+            /** Format: int32 */
+            maxDepth: number;
+            operators: components["schemas"]["RuleOperatorOption"][];
+        };
+        RuleOwners: {
+            groupIds: number[];
+            tagIds: number[];
+        };
+        RulePreview: {
+            joining: components["schemas"]["RuleMember"][];
+            leaving: components["schemas"]["RuleMember"][];
+            matching: components["schemas"]["RuleMember"][];
+        };
         RuleRequest: {
             acceptedTypes?: string[];
             action?: components["schemas"]["MailRuleAction"];
@@ -78708,6 +80746,24 @@ export interface components {
             subjectFilter: string | null;
             tags: string[];
             titleSource: components["schemas"]["MailTitleSource"];
+        };
+        /** @enum {string} */
+        RuleSubject: "GROUP" | "TAG" | "USER_TYPE" | "MEMBER_SINCE" | "AGE" | "FIELD" | "CLUSTER_FIELD";
+        /** @enum {string} */
+        RuleUnit: "DAYS" | "MONTHS" | "YEARS";
+        RuleValue: {
+            /** Format: int32 */
+            amount: number | null;
+            /** Format: int32 */
+            amountTo: number | null;
+            answers: string[] | null;
+            date: components["schemas"]["LocalDate"] | null;
+            number: number | null;
+            numberTo: number | null;
+            states: components["schemas"]["ExpiryState"][] | null;
+            text: string | null;
+            unit: components["schemas"]["RuleUnit"] | null;
+            userTypes: components["schemas"]["StationUserType"][] | null;
         };
         RunDetailResponse: {
             members: components["schemas"]["RunMemberWithProgress"][];
@@ -79237,12 +81293,16 @@ export interface components {
         SetResult: {
             /** Format: int32 */
             chosen: number;
+            /** Format: int32 */
+            maximum: number | null;
             missingRequired: number[];
             name: string;
             /** Format: int32 */
             required: number;
             /** Format: int32 */
             setId: number;
+            /** Format: int32 */
+            tooMany: number;
         };
         SetSessionFieldsRequest: {
             fields?: components["schemas"]["AttendanceFieldValueEntry"][];
@@ -79787,10 +81847,9 @@ export interface components {
             /** Format: int32 */
             minRegistrations: number | null;
             name: string;
+            queueOrder: components["schemas"]["QueueOrder"] | null;
             recurring: boolean;
-            /** Format: int32 */
-            registrationCloseDays: number | null;
-            registrationDeadline: components["schemas"]["Instant"] | null;
+            registrationDeadline: components["schemas"]["RegistrationDeadline"];
             /** Format: int32 */
             registrationLimit: number | null;
             /** Format: int32 */
@@ -79992,6 +82051,13 @@ export interface components {
             selectable: boolean;
             stationUid: string;
         };
+        StationPlace: {
+            latitude: number;
+            longitude: number;
+            precision: components["schemas"]["GeocodePrecision"] | null;
+            text: string;
+            updatedAt: components["schemas"]["Instant"];
+        };
         StationPoolUse: {
             /** Format: int32 */
             instancePosition: number;
@@ -80100,6 +82166,7 @@ export interface components {
             status: components["schemas"]["AttendanceStatus"];
         };
         StatusUpdateRequest: {
+            overLimit?: boolean | null;
             status?: components["schemas"]["RegistrationStatus"];
         };
         /** @enum {string} */
@@ -80227,6 +82294,14 @@ export interface components {
         Strategy: "CASCADE" | "DELETE_EXPLICIT" | "ANONYMIZE" | "NULL" | "RETAIN" | "RETAIN_UNLINKED" | "NOT_APPLICABLE";
         StringValue: {
             value: string;
+        };
+        SubscribeRequest: {
+            auth?: string | null;
+            endpoint?: string | null;
+            label?: string | null;
+            p256dh?: string | null;
+            previousEndpoint?: string | null;
+            renewal?: boolean;
         };
         SuggestedAnswer: {
             question: components["schemas"]["TemplateQuestion"];
@@ -81002,6 +83077,7 @@ export interface components {
             cancellation: components["schemas"]["CancellationNotice"] | null;
             date: components["schemas"]["LocalDate"];
             event: components["schemas"]["EventSummary"];
+            registrationClosesAt: components["schemas"]["Instant"] | null;
         };
         UpcomingEventsConfig: {
             categoryIds?: number[];
@@ -81093,10 +83169,8 @@ export interface components {
             /** Format: int32 */
             minRegistrations?: number | null;
             name?: string;
-            /** Format: int32 */
-            registrationCloseDays?: number | null;
-            /** Format: int32 */
-            registrationDeadlineOffsetHours?: number | null;
+            queueOrder?: components["schemas"]["QueueOrder"] | null;
+            registrationDeadline?: components["schemas"]["RegistrationDeadline"] | null;
             /** Format: int32 */
             registrationLimit?: number | null;
             requiresConfirmation?: boolean | null;
@@ -81532,6 +83606,8 @@ export interface components {
             title?: string;
             url?: string;
         };
+        /** @enum {string} */
+        WhenFull: "QUEUE" | "OVER_LIMIT";
         WikiAudienceRequest: {
             everyStation?: boolean;
             /** Format: int32 */
@@ -81646,6 +83722,7 @@ export type AddMembersRequest = components['schemas']['AddMembersRequest'];
 export type AddMembersResponse = components['schemas']['AddMembersResponse'];
 export type AddPeerRequest = components['schemas']['AddPeerRequest'];
 export type AddressCardConfig = components['schemas']['AddressCardConfig'];
+export type AddressSearch = components['schemas']['AddressSearch'];
 export type AdminMapsConfig = components['schemas']['AdminMapsConfig'];
 export type AdminOverview = components['schemas']['AdminOverview'];
 export type AdminStationSummary = components['schemas']['AdminStationSummary'];
@@ -81964,6 +84041,7 @@ export type DataTracking = components['schemas']['DataTracking'];
 export type Date = components['schemas']['Date'];
 export type DateAnswer = components['schemas']['DateAnswer'];
 export type DateConfig = components['schemas']['DateConfig'];
+export type DateDeadlines = components['schemas']['DateDeadlines'];
 export type DatedEvent = components['schemas']['DatedEvent'];
 export type DateFormatCheck = components['schemas']['DateFormatCheck'];
 export type DateFormatCheckRequest = components['schemas']['DateFormatCheckRequest'];
@@ -81974,6 +84052,8 @@ export type DateTokenOption = components['schemas']['DateTokenOption'];
 export type DateValue = components['schemas']['DateValue'];
 export type DayBound = components['schemas']['DayBound'];
 export type DayCount = components['schemas']['DayCount'];
+export type DeadlineAnchor = components['schemas']['DeadlineAnchor'];
+export type DeadlineKind = components['schemas']['DeadlineKind'];
 export type DeclineBody = components['schemas']['DeclineBody'];
 export type Deleted = components['schemas']['Deleted'];
 export type DeleteImpact = components['schemas']['DeleteImpact'];
@@ -82097,6 +84177,7 @@ export type EventGroupAttendance = components['schemas']['EventGroupAttendance']
 export type EventGroupAudiences = components['schemas']['EventGroupAudiences'];
 export type EventGroupAwaiting = components['schemas']['EventGroupAwaiting'];
 export type EventGroupCancelRequest = components['schemas']['EventGroupCancelRequest'];
+export type EventGroupConfirmRequest = components['schemas']['EventGroupConfirmRequest'];
 export type EventGroupCreateRequest = components['schemas']['EventGroupCreateRequest'];
 export type EventGroupDecisionRequest = components['schemas']['EventGroupDecisionRequest'];
 export type EventGroupDetail = components['schemas']['EventGroupDetail'];
@@ -82111,6 +84192,8 @@ export type EventGroupPartRequiredRequest = components['schemas']['EventGroupPar
 export type EventGroupPartSettings = components['schemas']['EventGroupPartSettings'];
 export type EventGroupPartState = components['schemas']['EventGroupPartState'];
 export type EventGroupPartSummary = components['schemas']['EventGroupPartSummary'];
+export type EventGroupQueuePositionRequest = components['schemas']['EventGroupQueuePositionRequest'];
+export type EventGroupQueueRequest = components['schemas']['EventGroupQueueRequest'];
 export type EventGroupSet = components['schemas']['EventGroupSet'];
 export type EventGroupSetDraft = components['schemas']['EventGroupSetDraft'];
 export type EventGroupSetsRequest = components['schemas']['EventGroupSetsRequest'];
@@ -82138,6 +84221,7 @@ export type EventType = components['schemas']['EventType'];
 export type EvidenceSummary = components['schemas']['EvidenceSummary'];
 export type ExaminerCandidate = components['schemas']['ExaminerCandidate'];
 export type Expected = components['schemas']['Expected'];
+export type ExpiryState = components['schemas']['ExpiryState'];
 export type ExportColumnRequest = components['schemas']['ExportColumnRequest'];
 export type ExportMovementsRequest = components['schemas']['ExportMovementsRequest'];
 export type ExternalLinkCardConfig = components['schemas']['ExternalLinkCardConfig'];
@@ -82283,6 +84367,9 @@ export type GenerateQuestionsRequest = components['schemas']['GenerateQuestionsR
 export type GenerationJobResponse = components['schemas']['GenerationJobResponse'];
 export type GenerationJobSummary = components['schemas']['GenerationJobSummary'];
 export type GenerationPollResponse = components['schemas']['GenerationPollResponse'];
+export type GeocodeAnswer = components['schemas']['GeocodeAnswer'];
+export type GeocodePrecision = components['schemas']['GeocodePrecision'];
+export type GeocodeResult = components['schemas']['GeocodeResult'];
 export type GeocodingProvider = components['schemas']['GeocodingProvider'];
 export type GradingScope = components['schemas']['GradingScope'];
 export type GrantRequest = components['schemas']['GrantRequest'];
@@ -82561,6 +84648,8 @@ export type MemberProfileValueResponse = components['schemas']['MemberProfileVal
 export type MemberReceiptRequest = components['schemas']['MemberReceiptRequest'];
 export type MemberRequirement = components['schemas']['MemberRequirement'];
 export type MemberRequirements = components['schemas']['MemberRequirements'];
+export type MemberRuleRequest = components['schemas']['MemberRuleRequest'];
+export type MemberRuleResponse = components['schemas']['MemberRuleResponse'];
 export type MemberSearchResult = components['schemas']['MemberSearchResult'];
 export type MemberSpotlightConfig = components['schemas']['MemberSpotlightConfig'];
 export type MemberStatus = components['schemas']['MemberStatus'];
@@ -82707,8 +84796,10 @@ export type PaperState = components['schemas']['PaperState'];
 export type PaperSubmission = components['schemas']['PaperSubmission'];
 export type ParseResult = components['schemas']['ParseResult'];
 export type ParticipantDocuments = components['schemas']['ParticipantDocuments'];
+export type PartLimitRequest = components['schemas']['PartLimitRequest'];
 export type PartnerAgreementOffer = components['schemas']['PartnerAgreementOffer'];
 export type PartnerAgreementState = components['schemas']['PartnerAgreementState'];
+export type PartnerAnswers = components['schemas']['PartnerAnswers'];
 export type PartnerDocumentToSign = components['schemas']['PartnerDocumentToSign'];
 export type PartnerEventDetail = components['schemas']['PartnerEventDetail'];
 export type PartnerPlacesView = components['schemas']['PartnerPlacesView'];
@@ -82746,11 +84837,15 @@ export type PermissionNode = components['schemas']['PermissionNode'];
 export type PermissionsByMember = components['schemas']['PermissionsByMember'];
 export type PickerEvent = components['schemas']['PickerEvent'];
 export type PickerPage = components['schemas']['PickerPage'];
+export type PlaceAnswer = components['schemas']['PlaceAnswer'];
+export type PlaceDraft = components['schemas']['PlaceDraft'];
 export type Placeholder = components['schemas']['Placeholder'];
 export type PlaceholderCatalogueResponse = components['schemas']['PlaceholderCatalogueResponse'];
 export type PlaceholderCategory = components['schemas']['PlaceholderCategory'];
 export type PlaceholderValues = components['schemas']['PlaceholderValues'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
+export type Places = components['schemas']['Places'];
+export type PlaceSearch = components['schemas']['PlaceSearch'];
 export type PlannedLanding = components['schemas']['PlannedLanding'];
 export type PlannedStep = components['schemas']['PlannedStep'];
 export type PoliciesResponse = components['schemas']['PoliciesResponse'];
@@ -82845,12 +84940,18 @@ export type PublicVisibilityResponse = components['schemas']['PublicVisibilityRe
 export type PublicWaitlistFormResponse = components['schemas']['PublicWaitlistFormResponse'];
 export type PublicWaitlistRegistrationRequest = components['schemas']['PublicWaitlistRegistrationRequest'];
 export type PublicWaitlistSummary = components['schemas']['PublicWaitlistSummary'];
+export type PushDevice = components['schemas']['PushDevice'];
+export type PushKey = components['schemas']['PushKey'];
 export type QuestionAnswerCount = components['schemas']['QuestionAnswerCount'];
 export type QuestionBranch = components['schemas']['QuestionBranch'];
 export type QuestionColumn = components['schemas']['QuestionColumn'];
 export type QuestionConfig = components['schemas']['QuestionConfig'];
 export type QuestionConfigByType = components['schemas']['QuestionConfigByType'];
 export type QuestionLimits = components['schemas']['QuestionLimits'];
+export type QueueOrder = components['schemas']['QueueOrder'];
+export type QueueOrderRequest = components['schemas']['QueueOrderRequest'];
+export type QueuePositionRequest = components['schemas']['QueuePositionRequest'];
+export type QueueRequest = components['schemas']['QueueRequest'];
 export type QuizAccessRequest = components['schemas']['QuizAccessRequest'];
 export type QuizAnswerRequest = components['schemas']['QuizAnswerRequest'];
 export type QuizAttemptDetail = components['schemas']['QuizAttemptDetail'];
@@ -82917,6 +85018,7 @@ export type RegisterRequest = components['schemas']['RegisterRequest'];
 export type RegisterResponse = components['schemas']['RegisterResponse'];
 export type RegistrationCode = components['schemas']['RegistrationCode'];
 export type RegistrationCount = components['schemas']['RegistrationCount'];
+export type RegistrationDeadline = components['schemas']['RegistrationDeadline'];
 export type RegistrationFieldDefinition = components['schemas']['RegistrationFieldDefinition'];
 export type RegistrationFieldDefinitionsRequest = components['schemas']['RegistrationFieldDefinitionsRequest'];
 export type RegistrationFieldsRequest = components['schemas']['RegistrationFieldsRequest'];
@@ -82933,6 +85035,7 @@ export type ReminderTrigger = components['schemas']['ReminderTrigger'];
 export type RemoteAttachment = components['schemas']['RemoteAttachment'];
 export type RemoteBoard = components['schemas']['RemoteBoard'];
 export type RemoteCatalogDetail = components['schemas']['RemoteCatalogDetail'];
+export type RemoteDatePlaces = components['schemas']['RemoteDatePlaces'];
 export type RemoteKbFile = components['schemas']['RemoteKbFile'];
 export type RemoteMemberRegistration = components['schemas']['RemoteMemberRegistration'];
 export type RemotePairRequestResponse = components['schemas']['RemotePairRequestResponse'];
@@ -82994,8 +85097,21 @@ export type RevocationReason = components['schemas']['RevocationReason'];
 export type RevocationStatus = components['schemas']['RevocationStatus'];
 export type RichMember = components['schemas']['RichMember'];
 export type RoomDetail = components['schemas']['RoomDetail'];
+export type RuleField = components['schemas']['RuleField'];
+export type RuleMember = components['schemas']['RuleMember'];
+export type RuleNeed = components['schemas']['RuleNeed'];
+export type RuleNode = components['schemas']['RuleNode'];
+export type RuleNodeKind = components['schemas']['RuleNodeKind'];
+export type RuleOperator = components['schemas']['RuleOperator'];
+export type RuleOperatorOption = components['schemas']['RuleOperatorOption'];
+export type RuleOperatorTable = components['schemas']['RuleOperatorTable'];
+export type RuleOwners = components['schemas']['RuleOwners'];
+export type RulePreview = components['schemas']['RulePreview'];
 export type RuleRequest = components['schemas']['RuleRequest'];
 export type RuleResponse = components['schemas']['RuleResponse'];
+export type RuleSubject = components['schemas']['RuleSubject'];
+export type RuleUnit = components['schemas']['RuleUnit'];
+export type RuleValue = components['schemas']['RuleValue'];
 export type RunDetailResponse = components['schemas']['RunDetailResponse'];
 export type RunExaminers = components['schemas']['RunExaminers'];
 export type RunMemberWithProgress = components['schemas']['RunMemberWithProgress'];
@@ -83169,6 +85285,7 @@ export type StationPage = components['schemas']['StationPage'];
 export type StationPermission = components['schemas']['StationPermission'];
 export type StationPermissionsRequest = components['schemas']['StationPermissionsRequest'];
 export type StationPickerResult = components['schemas']['StationPickerResult'];
+export type StationPlace = components['schemas']['StationPlace'];
 export type StationPoolUse = components['schemas']['StationPoolUse'];
 export type StationRegistrationStatus = components['schemas']['StationRegistrationStatus'];
 export type StationRequest = components['schemas']['StationRequest'];
@@ -83211,6 +85328,7 @@ export type StorageQuotaPreset = components['schemas']['StorageQuotaPreset'];
 export type StoredProblem = components['schemas']['StoredProblem'];
 export type Strategy = components['schemas']['Strategy'];
 export type StringValue = components['schemas']['StringValue'];
+export type SubscribeRequest = components['schemas']['SubscribeRequest'];
 export type SuggestedAnswer = components['schemas']['SuggestedAnswer'];
 export type Suggestion = components['schemas']['Suggestion'];
 export type Summary = components['schemas']['Summary'];
@@ -83395,6 +85513,7 @@ export type WebFontView = components['schemas']['WebFontView'];
 export type WebhookUrl = components['schemas']['WebhookUrl'];
 export type WebhookUrlResponse = components['schemas']['WebhookUrlResponse'];
 export type WeblinkRequest = components['schemas']['WeblinkRequest'];
+export type WhenFull = components['schemas']['WhenFull'];
 export type WikiAudienceRequest = components['schemas']['WikiAudienceRequest'];
 export type WithdrawalResponse = components['schemas']['WithdrawalResponse'];
 export type WitnessCandidateResponse = components['schemas']['WitnessCandidateResponse'];
@@ -83657,6 +85776,17 @@ export const DateKind = {
     DATE_TIME: "DATE_TIME",
 } as const;
 
+export const DeadlineAnchor = {
+    EXACT: "EXACT",
+    MIDNIGHT: "MIDNIGHT",
+} as const;
+
+export const DeadlineKind = {
+    FIXED: "FIXED",
+    NONE: "NONE",
+    RELATIVE: "RELATIVE",
+} as const;
+
 export const DeviceRequestPurpose = {
     ENROL_PASSKEY: "ENROL_PASSKEY",
     SIGN_IN: "SIGN_IN",
@@ -83759,6 +85889,13 @@ export const Expected = {
     ITS_OWN: "ITS_OWN",
     THE_CLUSTERS: "THE_CLUSTERS",
     WHEREVER_IT_IS: "WHEREVER_IT_IS",
+} as const;
+
+export const ExpiryState = {
+    EMPTY: "EMPTY",
+    EXPIRED: "EXPIRED",
+    EXPIRING: "EXPIRING",
+    VALID: "VALID",
 } as const;
 
 export const ExternalLinkImageDisplay = {
@@ -83907,11 +86044,15 @@ export const GalleryAspectMode = {
     SQUARE: "SQUARE",
 } as const;
 
+export const GeocodePrecision = {
+    AREA: "AREA",
+    EXACT: "EXACT",
+    STREET: "STREET",
+} as const;
+
 export const GeocodingProvider = {
-    GEOAPIFY: "GEOAPIFY",
-    LOCATIONIQ: "LOCATIONIQ",
-    NOMINATIM: "NOMINATIM",
     NONE: "NONE",
+    PHOTON: "PHOTON",
 } as const;
 
 export const GuardianCondition = {
@@ -84496,6 +86637,11 @@ export const PublicKbMode = {
     OFF: "OFF",
 } as const;
 
+export const QueueOrder = {
+    FAIRNESS: "FAIRNESS",
+    TIME: "TIME",
+} as const;
+
 export const QuizQuestionType = {
     CONNECT: "CONNECT",
     ENUMERATION: "ENUMERATION",
@@ -84527,6 +86673,7 @@ export const RegistrationStatus = {
     DECLINED: "DECLINED",
     DENIED: "DENIED",
     PENDING: "PENDING",
+    QUEUED: "QUEUED",
     WITHDRAWN: "WITHDRAWN",
 } as const;
 
@@ -84600,6 +86747,72 @@ export const RevocationStatus = {
     GOOD: "GOOD",
     REVOKED: "REVOKED",
     UNKNOWN: "UNKNOWN",
+} as const;
+
+export const RuleNeed = {
+    ANSWERS: "ANSWERS",
+    DATE: "DATE",
+    DURATION: "DURATION",
+    NOTHING: "NOTHING",
+    NUMBER: "NUMBER",
+    NUMBER_RANGE: "NUMBER_RANGE",
+    STATES: "STATES",
+    TEXT: "TEXT",
+    USER_TYPES: "USER_TYPES",
+    YEARS: "YEARS",
+    YEARS_RANGE: "YEARS_RANGE",
+} as const;
+
+export const RuleNodeKind = {
+    ALL: "ALL",
+    ANY: "ANY",
+    CHECK: "CHECK",
+    NONE: "NONE",
+} as const;
+
+export const RuleOperator = {
+    AT_LEAST: "AT_LEAST",
+    BEFORE: "BEFORE",
+    BETWEEN: "BETWEEN",
+    CONTAINS: "CONTAINS",
+    EMPTY: "EMPTY",
+    EQ: "EQ",
+    EQUALS: "EQUALS",
+    EXPIRED: "EXPIRED",
+    EXPIRES_WITHIN: "EXPIRES_WITHIN",
+    GE: "GE",
+    GT: "GT",
+    IN: "IN",
+    IS_NO: "IS_NO",
+    IS_NOT_YES: "IS_NOT_YES",
+    IS_YES: "IS_YES",
+    LE: "LE",
+    LESS_THAN: "LESS_THAN",
+    LT: "LT",
+    NONE_OF: "NONE_OF",
+    NOT_EMPTY: "NOT_EMPTY",
+    NOT_IN: "NOT_IN",
+    ONE_OF: "ONE_OF",
+    ON_OR_AFTER: "ON_OR_AFTER",
+    STATE_IN: "STATE_IN",
+    WITHIN_LAST: "WITHIN_LAST",
+    WITHIN_NEXT: "WITHIN_NEXT",
+} as const;
+
+export const RuleSubject = {
+    AGE: "AGE",
+    CLUSTER_FIELD: "CLUSTER_FIELD",
+    FIELD: "FIELD",
+    GROUP: "GROUP",
+    MEMBER_SINCE: "MEMBER_SINCE",
+    TAG: "TAG",
+    USER_TYPE: "USER_TYPE",
+} as const;
+
+export const RuleUnit = {
+    DAYS: "DAYS",
+    MONTHS: "MONTHS",
+    YEARS: "YEARS",
 } as const;
 
 export const RunStatus = {
@@ -85196,4 +87409,9 @@ export const WebFontFormat = {
     TRUETYPE: "TRUETYPE",
     WOFF: "WOFF",
     WOFF2: "WOFF2",
+} as const;
+
+export const WhenFull = {
+    OVER_LIMIT: "OVER_LIMIT",
+    QUEUE: "QUEUE",
 } as const;

@@ -23,7 +23,7 @@ const {t} = useI18n()
           {{ t('eventsRegistrations.deadline') }}: 20.05.2026 18:00
         </MutedText>
         <MutedText class="ml-2">
-          ({{ t('eventsRegistrations.limit') }}: 12)
+          ({{ t('registrationQueue.placesTaken', {taken: 10, limit: 12}) }})
         </MutedText>
       </div>
       <div class="flex items-center gap-2">

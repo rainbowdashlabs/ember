@@ -2,9 +2,9 @@
 {% block body %}
       <h2>Hallo {{ name }},</h2>
       {% if duringTrial %}
-      <p><strong>{{ stationName }}</strong> hat deine Probezeit beendet, du stehst nicht mehr auf der Warteliste.</p>
+      <p><strong>{{ stationName }}</strong> hat deine Probezeit beendet, du stehst nicht mehr auf der Bewerberliste.</p>
       {% else %}
-      <p><strong>{{ stationName }}</strong> hat dich von der Warteliste genommen.</p>
+      <p><strong>{{ stationName }}</strong> hat dich von der Bewerberliste genommen.</p>
       {% endif %}
       {% if message %}
       <ul class="notification-list">

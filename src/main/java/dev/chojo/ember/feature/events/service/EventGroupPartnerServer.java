@@ -8,17 +8,20 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventGroupSummary;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
+import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupConfirmed;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupDetail;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupMember;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupQuery;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupSignUpRequest;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupSummary;
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemotePlaces;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.federation.transport.FederationServer;
 import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -70,6 +73,15 @@ public class EventGroupPartnerServer implements FederationServer {
                             body.memberUid(),
                             partsOf(body));
                 });
+        endpoints.<RemoteEventGroupMember, RemoteEventGroupConfirmed>serve(
+                RemoteEventGroupRoutes.CONFIRM_OWN, (partner, params, body) -> {
+                    int eventGroupId = partners.requireSharedWith(partner, params.integer("id"));
+                    var standing = partners.confirmOwn(
+                            partner.servingStationId(), eventGroupId, partner.partnerId(), body.memberUid());
+                    var eventGroup = eventGroups.requireEventGroup(partner.servingStationId(), eventGroupId);
+                    return new RemoteEventGroupConfirmed(
+                            standing, eventGroup.details().name());
+                });
         endpoints.<RemoteEventGroupMember, Void>serve(RemoteEventGroupRoutes.WITHDRAW, (partner, params, body) -> {
             int eventGroupId = params.integer("id");
             if (!partners.holdsPlace(eventGroupId, partner.partnerId(), body.memberUid()))
@@ -91,7 +103,14 @@ public class EventGroupPartnerServer implements FederationServer {
                 partners.standings(eventGroupId, partner.partnerId(), asked),
                 eventGroups.findFields(eventGroupId).stream()
                         .filter(AppointmentField::isPublic)
-                        .toList());
+                        .toList(),
+                placesFor(eventGroupId, partner));
+    }
+
+    /** The places the partner asking was given, told only to a partner that decides its own sign-ups. */
+    private @Nullable RemotePlaces placesFor(int eventGroupId, ServingPartner partner) {
+        var arranged = partners.arrangementWith(eventGroupId, partner.partnerId());
+        return arranged.decidedByHost() ? null : new RemotePlaces(arranged.slotBudget(), true);
     }
 
     private static Set<Integer> partsOf(RemoteEventGroupSignUpRequest request) {

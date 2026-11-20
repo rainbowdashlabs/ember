@@ -23,6 +23,9 @@ import {emptyRestriction, toRestriction} from '@/components/input/restriction'
 import type {RestrictionSelection} from '@/api/types'
 import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
+import BatchTemplateNote from './batchcreateview/BatchTemplateNote.vue'
+import {useBatchTemplate} from './batchcreateview/useBatchTemplate'
+import {useQuestionsRequireSignUp} from './eventshared/useQuestionsRequireSignUp'
 import {nextDraftRow, type KeyedDraftRow, type ScheduleMode} from './batchcreateview/draftRows'
 import type {
     AttendanceTemplateField,
@@ -31,22 +34,29 @@ import type {
     EventFieldEntry,
     EventTemplate,
 } from '@/api/generated/schema'
+import {StationPermission} from '@/api/generated/schema'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
-import {describeFailure} from '@/util/failure'
-import {localInputToInstant} from '@/util/format'
+import {describeFailure, saying} from '@/util/failure'
 import {asSaved} from './eventshared/eventQuestions'
 
 const {t} = useI18n()
 const router = useRouter()
 const eventRoutes = useEventRoutes()
-const {loaded} = useSession()
+const {loaded, hasPermission, stationTimezone} = useSession()
+const batchTemplate = useBatchTemplate(computed(() => hasPermission(StationPermission.EVENTS_FEDERATE)))
+const templateLeftOut = computed(() => batchTemplate.leftOut(selectedTemplateId.value))
 
 const step = ref(1)
 const success = ref('')
+/**
+ * Whether the batch was created. The form is put away from then on, also where sharing the
+ * appointments with partners failed afterwards, so creating again cannot make the batch twice.
+ */
+const done = ref(false)
 
 const {categories, templates, groups, tags, reload: reloadDeps} = useEventEditDeps({autoLoad: false})
 const attendanceFields = ref<AttendanceTemplateField[]>([])
@@ -59,9 +69,9 @@ const eventDescription = ref('')
 const selectedCategoryId = ref('')
 const selectedTemplateId = ref('')
 const requiresRegistration = ref(false)
+const {signUpHeld} = useQuestionsRequireSignUp(
+    () => (batchTemplate.applied.value?.questions ?? 0) > 0, requiresRegistration)
 const requiresConfirmation = ref(false)
-const hasDeadline = ref(false)
-const registrationDeadline = ref('')
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 
@@ -94,6 +104,11 @@ watch(loaded, (isLoaded) => {
   if (isLoaded) reload()
 })
 
+/**
+ * Fills the batch from an appointment template: the form takes what it shows, and what it does not
+ * show goes with the batch request or is named as left out, the way the single editor and the event
+ * group editor take a template.
+ */
 async function applyTemplate() {
   if (selectedSourceTemplateId.value == null) return
   try {
@@ -118,6 +133,7 @@ async function applyTemplate() {
       attendanceFieldId: f.attendanceFieldId,
       isPublic: f.isPublic,
     }))
+    await batchTemplate.apply(detail, tpl.id)
   } catch (e) {
     failure.value = describeFailure(e, t)
   }
@@ -139,15 +155,6 @@ function onScheduleDone(newRows: BatchRow[]) {
   step.value = 3
 }
 
-/**
- * The registration deadline as the instant the server reads, or nothing where the batch takes no
- * registration or the switch is off. The field holds the local date and time picked, without a zone.
- */
-function deadlineToSend(): string | undefined {
-  if (!requiresRegistration.value || !hasDeadline.value) return undefined
-  return localInputToInstant(registrationDeadline.value) || undefined
-}
-
 const {running: saving, failure: createFailure, run: createBatch} = useAsyncAction(async () => {
   failure.value = null
   const inlineFields: BatchFieldEntryDto[] = fieldDefs.value.map(asSaved).flatMap(f => (f.name?.trim() ? [{
@@ -166,13 +173,25 @@ const {running: saving, failure: createFailure, run: createBatch} = useAsyncActi
     rows: rows.value,
     requiresRegistration: requiresRegistration.value,
     requiresConfirmation: requiresConfirmation.value,
-    registrationDeadline: deadlineToSend(),
     restriction: restriction.value,
     viewRestriction: viewRestriction.value,
+    ...batchTemplate.requestPart(requiresRegistration.value),
   })
+  done.value = true
   success.value = t('batchCreate.success', {count: created.length})
-  setTimeout(() => router.push({name: eventRoutes.index}), 1500)
+  try {
+    await batchTemplate.shareEach(created.map(event => event.id))
+  } catch (e) {
+    failure.value = saying(describeFailure(e, t), t('batchCreate.shareFailed'))
+    return
+  }
+  setTimeout(openOverview, 1500)
 })
+
+/** Leaves the batch for the list of appointments. */
+function openOverview() {
+  router.push({name: eventRoutes.index})
+}
 </script>
 
 <template>
@@ -185,72 +204,86 @@ const {running: saving, failure: createFailure, run: createBatch} = useAsyncActi
       <FailureAlert :failure="failure ?? createFailure"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
-      <StepProgressBar class="mb-4"
-          :steps="[
-            { label: t('batchCreate.stepFields') },
-            { label: t('batchCreate.stepSchedule'), disabled: fieldDefs.length === 0 },
-            { label: t('batchCreate.stepTable'), disabled: rows.length === 0 },
-          ]"
-          :current-step="step - 1"
-          @update:current-step="step = $event + 1"
-      />
+      <div v-if="done && (failure ?? createFailure)" class="flex justify-end">
+        <PrimaryButton data-testid="batch-open-overview" @click="openOverview">{{ t('batchCreate.toOverview') }}</PrimaryButton>
+      </div>
 
-      <NeutralContainer v-if="step === 1" class="space-y-6">
-        <div v-if="eventTemplates.length > 0" class="space-y-2">
-          <FieldLabel>{{ t('batchCreate.applyTemplate') }}</FieldLabel>
-          <SelectInput :model-value="String(selectedSourceTemplateId ?? '')"
-                       @update:model-value="selectedSourceTemplateId = $event ? Number($event) : null; applyTemplate()">
-            <option value="">-</option>
-            <option v-for="tpl in eventTemplates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
-          </SelectInput>
-        </div>
-
-        <EventFormPanel
-            v-model:name="eventName"
-            v-model:description="eventDescription"
-            v-model:category-id="selectedCategoryId"
-            v-model:template-id="selectedTemplateId"
-            v-model:requires-registration="requiresRegistration"
-            v-model:requires-confirmation="requiresConfirmation"
-            v-model:has-deadline="hasDeadline"
-            v-model:registration-deadline="registrationDeadline"
-            v-model:restriction="restriction"
-            v-model:view-restriction="viewRestriction"
-            v-model:fields="fieldDefs"
-            :categories="categories"
-            :templates="templates"
-            :attendance-fields="sheetFields"
-            :groups="groups"
-            :tags="tags"
+      <template v-if="!done">
+        <StepProgressBar class="mb-4"
+            :steps="[
+              { label: t('batchCreate.stepFields') },
+              { label: t('batchCreate.stepSchedule'), disabled: fieldDefs.length === 0 },
+              { label: t('batchCreate.stepTable'), disabled: rows.length === 0 },
+            ]"
+            :current-step="step - 1"
+            @update:current-step="step = $event + 1"
         />
 
-        <div class="flex justify-end">
-          <PrimaryButton @click="step = 2">
-            {{ t('common.next') }}
-          </PrimaryButton>
-        </div>
-      </NeutralContainer>
+        <NeutralContainer v-if="step === 1" class="space-y-6">
+          <div v-if="eventTemplates.length > 0" class="space-y-2">
+            <FieldLabel>{{ t('batchCreate.applyTemplate') }}</FieldLabel>
+            <SelectInput :model-value="String(selectedSourceTemplateId ?? '')"
+                         @update:model-value="selectedSourceTemplateId = $event ? Number($event) : null; applyTemplate()">
+              <option value="">-</option>
+              <option v-for="tpl in eventTemplates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
+            </SelectInput>
+          </div>
 
-      <BatchScheduleStep
-          v-if="step === 2"
-          v-model:mode="scheduleMode"
-          v-model:drafts="drafts"
-          :field-defs="fieldDefs"
-          @done="onScheduleDone"
-          @error="failure = $event"
-      />
+          <EventFormPanel
+              v-model:name="eventName"
+              v-model:description="eventDescription"
+              v-model:category-id="selectedCategoryId"
+              v-model:template-id="selectedTemplateId"
+              v-model:requires-registration="requiresRegistration"
+              v-model:requires-confirmation="requiresConfirmation"
+              v-model:registration-deadline="batchTemplate.settings.registrationDeadline"
+              v-model:restriction="restriction"
+              v-model:view-restriction="viewRestriction"
+              v-model:fields="fieldDefs"
+              v-model:registration-limit="batchTemplate.settings.registrationLimit"
+              v-model:queue-order="batchTemplate.settings.queueOrder"
+              v-model:min-registrations="batchTemplate.settings.minRegistrations"
+              v-model:threshold-days="batchTemplate.settings.thresholdDays"
+              :categories="categories"
+              :templates="templates"
+              :attendance-fields="sheetFields"
+              :groups="groups"
+              :tags="tags"
+              :sign-up-held="signUpHeld"
+              :time-zone="stationTimezone"
+              open-fields
+          />
 
-      <template v-if="step === 3">
-        <BatchEditTable v-model:rows="rows" :field-defs="fieldDefs"/>
+          <BatchTemplateNote :carried="batchTemplate.carried.value" :left-out="templateLeftOut"/>
 
-        <div class="flex justify-between mt-4">
-          <MutedText tag="span" size="sm">
-            {{ t('batchCreate.eventsCount', {count: rows.length}) }}
-          </MutedText>
-          <PrimaryButton :disabled="saving || rows.length === 0" @click="createBatch">
-            {{ saving ? t('batchCreate.creating') : t('batchCreate.create') }}
-          </PrimaryButton>
-        </div>
+          <div class="flex justify-end">
+            <PrimaryButton @click="step = 2">
+              {{ t('common.next') }}
+            </PrimaryButton>
+          </div>
+        </NeutralContainer>
+
+        <BatchScheduleStep
+            v-if="step === 2"
+            v-model:mode="scheduleMode"
+            v-model:drafts="drafts"
+            :field-defs="fieldDefs"
+            @done="onScheduleDone"
+            @error="failure = $event"
+        />
+
+        <template v-if="step === 3">
+          <BatchEditTable v-model:rows="rows" :field-defs="fieldDefs"/>
+
+          <div class="flex justify-between mt-4">
+            <MutedText tag="span" size="sm">
+              {{ t('batchCreate.eventsCount', {count: rows.length}) }}
+            </MutedText>
+            <PrimaryButton :disabled="saving || rows.length === 0" @click="createBatch">
+              {{ saving ? t('batchCreate.creating') : t('batchCreate.create') }}
+            </PrimaryButton>
+          </div>
+        </template>
       </template>
     </template>
   </ViewContent>

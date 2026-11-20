@@ -18,7 +18,7 @@ function mountFor(people: {key: number; name: string}[], hasManagedMembers = fal
             people,
             answers: [],
             requiresRegistration: true,
-            registrationDeadline: null,
+            closesAt: null,
             hasManagedMembers,
             registering: false,
         },
@@ -81,7 +81,7 @@ describe('EventRegistrationActions', () => {
                 people,
                 answers: [{key: SELF, name: 'Ich', status: 'WITHDRAWN', undo: 41, placeGivenUp: true}],
                 requiresRegistration: true,
-                registrationDeadline: null,
+                closesAt: null,
                 hasManagedMembers: false,
                 registering: false,
             },
@@ -104,7 +104,7 @@ describe('EventRegistrationActions', () => {
                 people,
                 answers: [],
                 requiresRegistration: true,
-                registrationDeadline: '2020-01-01T00:00:00Z',
+                closesAt: '2020-01-01T00:00:00Z',
                 hasManagedMembers: false,
                 registering: false,
             },
@@ -121,7 +121,7 @@ describe('EventRegistrationActions', () => {
                 people,
                 answers: [{key: SELF, name: 'Ich', status: 'WITHDRAWN', undo: 41, placeGivenUp: true}],
                 requiresRegistration: true,
-                registrationDeadline: '2020-01-01T00:00:00Z',
+                closesAt: '2020-01-01T00:00:00Z',
                 hasManagedMembers: false,
                 registering: false,
             },
@@ -146,7 +146,7 @@ describe('EventRegistrationActions', () => {
                 people,
                 answers: [],
                 requiresRegistration: true,
-                registrationDeadline: null,
+                closesAt: null,
                 hasManagedMembers: false,
                 registering: false,
                 declinable: false,
@@ -165,7 +165,7 @@ describe('EventRegistrationActions', () => {
                 people,
                 answers: [],
                 requiresRegistration: false,
-                registrationDeadline: null,
+                closesAt: null,
                 hasManagedMembers: false,
                 registering: false,
             },
@@ -174,5 +174,65 @@ describe('EventRegistrationActions', () => {
         expect(actions.findAll('[data-testid="answer-selected"]')).toHaveLength(1)
         expect(actions.get('[data-testid="answer-selected"]').text()).toContain('Abmelden')
         expect(actions.find('[data-testid="decline-registration"]').exists()).toBe(false)
+    })
+
+    /** A full appointment that takes sign-ups as they come puts the next one on the waiting list, and says so. */
+    it('offers the waiting list on a full date', async () => {
+        const people = answerableMembers(1, {1: [SELF]}, SELF, [], 'Ich')
+        const actions = await mountSuspended(EventRegistrationActions, {
+            props: {
+                people,
+                answers: [],
+                requiresRegistration: true,
+                closesAt: null,
+                hasManagedMembers: false,
+                registering: false,
+                signUpQueues: true,
+            },
+        })
+
+        expect(actions.get('[data-testid="answer-selected"]').text()).toContain('Auf die Nachrückliste')
+    })
+
+    /** Whoever waits sees their place in line and leaves the list at once: leaving gives up no place. */
+    it('shows the place in line and leaves the waiting list without asking', async () => {
+        const people = answerableMembers(1, {1: [SELF]}, SELF, [], 'Ich')
+        const actions = await mountSuspended(EventRegistrationActions, {
+            props: {
+                people,
+                answers: [{key: SELF, name: 'Ich', status: 'QUEUED', undo: 41, queuePosition: 2}],
+                requiresRegistration: true,
+                closesAt: null,
+                hasManagedMembers: false,
+                registering: false,
+            },
+        })
+
+        expect(actions.get('[data-testid="registration-status"]').text()).toBe('Nachrückliste, Platz 2')
+        const leave = actions.get(`[data-testid="undo-answer-${SELF}"]`)
+        expect(leave.text()).toContain('Nachrückliste verlassen')
+        await leave.trigger('click')
+
+        expect(actions.emitted('withdraw')?.[0]).toEqual([41])
+        expect(actions.find('[data-testid="answer-selected"]').exists()).toBe(false)
+    })
+
+    /** Once the date is over, a wait nobody moved up from reads as no place, with nothing left to leave. */
+    it('reads a wait on a past date as no place', async () => {
+        const people = answerableMembers(1, {1: [SELF]}, SELF, [], 'Ich')
+        const actions = await mountSuspended(EventRegistrationActions, {
+            props: {
+                people,
+                answers: [{key: SELF, name: 'Ich', status: 'QUEUED', undo: 41, queuePosition: 1}],
+                requiresRegistration: true,
+                closesAt: null,
+                hasManagedMembers: false,
+                registering: false,
+                past: true,
+            },
+        })
+
+        expect(actions.get('[data-testid="registration-status"]').text()).toBe('Keinen Platz bekommen')
+        expect(actions.find(`[data-testid="undo-answer-${SELF}"]`).exists()).toBe(false)
     })
 })

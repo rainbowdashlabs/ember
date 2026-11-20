@@ -11,15 +11,18 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
-import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
+import dev.chojo.ember.feature.events.entity.PartnerPlaces;
+import dev.chojo.ember.feature.events.entity.PlacesKind;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventPartnerRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
+import dev.chojo.ember.feature.events.service.EventShareService;
 import dev.chojo.ember.feature.events.service.EventSharingGuards;
 import dev.chojo.ember.feature.events.service.FederatedRegistrantService;
-import dev.chojo.ember.feature.generator.service.EventRequirementService;
+import dev.chojo.ember.feature.events.service.PartnerPlacesService;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -35,6 +38,7 @@ import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** The registrations partners sent for an event are listed with the member the registrant service names. */
@@ -44,7 +48,8 @@ class EventSharingRoutesTest {
     @Test
     void eachPartnerRegistrationCarriesItsMember() {
         var crud = mock(EventCrudService.class);
-        var events = mock(EventFederationService.class);
+        var shares = mock(EventShareService.class);
+        var events = mock(EventPartnerRegistrationService.class);
         var registrants = mock(FederatedRegistrantService.class);
         var event = mock(StationEvent.class);
         when(event.stationId()).thenReturn(STATION);
@@ -56,7 +61,7 @@ class EventSharingRoutesTest {
         when(registrants.identify(registration))
                 .thenReturn(new MemberIdentity(UUID.fromString("00000000-0000-0000-0000-000000000099"), member)
                         .withDisplay("Kim", "Wache Nord", null, null));
-        var harness = RouteHarness.serving(routes(crud, events, registrants));
+        var harness = RouteHarness.serving(routes(crud, shares, events, registrants));
 
         var answer = harness.request(client -> client.get(
                 PREFIX + "/events/4/federation-registrations?date=2026-05-01",
@@ -69,14 +74,17 @@ class EventSharingRoutesTest {
     @Test
     void partnerPlacesHaveOneShapeAndCountTheTakenOnlyForADay() {
         var crud = mock(EventCrudService.class);
-        var events = mock(EventFederationService.class);
+        var shares = mock(EventShareService.class);
+        var events = mock(EventPartnerRegistrationService.class);
         var event = mock(StationEvent.class);
         when(event.stationId()).thenReturn(STATION);
         when(crud.findById(4)).thenReturn(Optional.of(event));
-        when(events.partnerPlaces(4)).thenReturn(List.of(new EventPartnerPlaces(4, 7, 5, true)));
+        var places = mock(PartnerPlacesService.class);
+        when(places.arrangements(PlacesKind.APPOINTMENT, 4)).thenReturn(List.of(new PartnerPlaces(4, 7, 5, true)));
         when(events.countPartnerPlaces(4, 7, LocalDate.of(2026, 5, 1)))
-                .thenReturn(new EventFederationService.PartnerPlaceCount(2, 5, true));
-        var harness = RouteHarness.serving(routes(crud, events, mock(FederatedRegistrantService.class)));
+                .thenReturn(new EventPartnerRegistrationService.PartnerPlaceCount(2, 5, true));
+        var harness =
+                RouteHarness.serving(routes(crud, shares, events, places, mock(FederatedRegistrantService.class)));
 
         harness.run((server, client) -> {
             var registrar = harness.as(TestSessions.member(STATION, StationPermission.EVENT_REGISTRATION));
@@ -91,15 +99,38 @@ class EventSharingRoutesTest {
         });
     }
 
+    /** Sharing an appointment hands the request to the sharing service, which decides whether it may be shared. */
     @Test
-    void aPartOfAnEventGroupIsSharedWithItsEventGroupAndNotOnItsOwn() {
+    void sharingAnAppointmentIsLeftToTheSharingService() {
         var crud = mock(EventCrudService.class);
-        var events = mock(EventFederationService.class);
+        var shares = mock(EventShareService.class);
+        var event = mock(StationEvent.class);
+        when(event.stationId()).thenReturn(STATION);
+        when(crud.findById(4)).thenReturn(Optional.of(event));
+        var harness = RouteHarness.serving(routes(
+                crud, shares, mock(EventPartnerRegistrationService.class), mock(FederatedRegistrantService.class)));
+
+        harness.run((server, client) -> {
+            var sharer = harness.as(TestSessions.member(STATION, StationPermission.EVENTS_FEDERATE));
+            assertEquals(
+                    200,
+                    client.put(PREFIX + "/events/4/federation", body("{\"scope\": \"ALL_PARTNERS\"}"), sharer)
+                            .code());
+            verify(shares).share(event, ShareScope.ALL_PARTNERS, List.of());
+        });
+    }
+
+    /** A part of an event group takes its places and its share from the event group, so neither is changed on the part. */
+    @Test
+    void aPartOfAnEventGroupKeepsNoPlacesOrShareOfItsOwn() {
+        var crud = mock(EventCrudService.class);
+        var shares = mock(EventShareService.class);
+        var events = mock(EventPartnerRegistrationService.class);
         var event = mock(StationEvent.class);
         when(event.stationId()).thenReturn(STATION);
         when(crud.findById(4)).thenReturn(Optional.of(event));
         when(crud.isEventGroupPart(4)).thenReturn(true);
-        var harness = RouteHarness.serving(routes(crud, events, mock(FederatedRegistrantService.class)));
+        var harness = RouteHarness.serving(routes(crud, shares, events, mock(FederatedRegistrantService.class)));
 
         harness.run((server, client) -> {
             var sharer = harness.as(TestSessions.member(
@@ -110,10 +141,6 @@ class EventSharingRoutesTest {
             assertEquals(
                     EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP,
                     refusalOf(client.put(
-                            PREFIX + "/events/4/federation", body("{\"scope\": \"ALL_PARTNERS\"}"), sharer)));
-            assertEquals(
-                    EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP,
-                    refusalOf(client.put(
                             PREFIX + "/events/4/partner-places/7", body("{\"partnerConfirms\": true}"), sharer)));
             assertEquals(
                     EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP,
@@ -121,13 +148,95 @@ class EventSharingRoutesTest {
         });
     }
 
+    /** A decision on a partner's member reaches the host service with the limit choice, for the station's own appointments only. */
+    @Test
+    void aDecisionOnAPartnersMemberCarriesTheLimitChoice() {
+        var crud = mock(EventCrudService.class);
+        var shares = mock(EventShareService.class);
+        var events = mock(EventPartnerRegistrationService.class);
+        var event = mock(StationEvent.class);
+        when(event.stationId()).thenReturn(STATION);
+        when(crud.findById(4)).thenReturn(Optional.of(event));
+        var registration = new EventFederationRegistration(
+                1, 4, 7, UUID.randomUUID(), LocalDate.of(2026, 5, 1), RegistrationStatus.QUEUED, Instant.EPOCH, null);
+        when(events.findRegistrationById(1)).thenReturn(Optional.of(registration));
+        var harness = RouteHarness.serving(routes(crud, shares, events, mock(FederatedRegistrantService.class)));
+
+        harness.run((server, client) -> {
+            var registrar = harness.as(TestSessions.member(STATION, StationPermission.EVENT_REGISTRATION));
+            assertEquals(
+                    200,
+                    client.put(
+                                    PREFIX + "/events/federation-registrations/1/status",
+                                    body("{\"status\": \"ACCEPTED\", \"overLimit\": true}"),
+                                    registrar)
+                            .code());
+            verify(events).decide(1, RegistrationStatus.ACCEPTED, true);
+            assertEquals(
+                    EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION,
+                    refusalOf(client.put(
+                            PREFIX + "/events/federation-registrations/2/status",
+                            body("{\"status\": \"DENIED\"}"),
+                            registrar)));
+        });
+    }
+
+    @Test
+    void whoeverDecidesPutsPartnersMembersOnTheListAndReordersIt() {
+        var crud = mock(EventCrudService.class);
+        var shares = mock(EventShareService.class);
+        var events = mock(EventPartnerRegistrationService.class);
+        var event = mock(StationEvent.class);
+        when(event.stationId()).thenReturn(STATION);
+        when(crud.findById(4)).thenReturn(Optional.of(event));
+        var registration = new EventFederationRegistration(
+                1, 4, 7, UUID.randomUUID(), LocalDate.of(2026, 5, 1), RegistrationStatus.PENDING, Instant.EPOCH, null);
+        when(events.findRegistrationById(1)).thenReturn(Optional.of(registration));
+        var harness = RouteHarness.serving(routes(crud, shares, events, mock(FederatedRegistrantService.class)));
+
+        harness.run((server, client) -> {
+            var registrar = harness.as(TestSessions.member(STATION, StationPermission.EVENT_REGISTRATION));
+            var member = harness.as(TestSessions.member(STATION, StationPermission.USER));
+            String queue = PREFIX + "/events/federation-registrations/queue";
+            assertEquals(
+                    403,
+                    client.post(queue, body("{\"registrationIds\": [1]}"), member)
+                            .code());
+            assertEquals(
+                    204,
+                    client.post(queue, body("{\"registrationIds\": [1]}"), registrar)
+                            .code());
+            verify(events).moveToQueue(List.of(1));
+
+            String position = PREFIX + "/events/federation-registrations/1/queue-position";
+            assertEquals(EventRefusal.QUEUE_POSITION_MISSING, refusalOf(client.put(position, body("{}"), registrar)));
+            assertEquals(
+                    204,
+                    client.put(position, body("{\"position\": 2}"), registrar).code());
+            verify(events).moveInQueue(1, 2);
+        });
+    }
+
     private static EventSharingRoutes routes(
-            EventCrudService crud, EventFederationService events, FederatedRegistrantService registrants) {
+            EventCrudService crud,
+            EventShareService shares,
+            EventPartnerRegistrationService events,
+            FederatedRegistrantService registrants) {
+        return routes(crud, shares, events, mock(PartnerPlacesService.class), registrants);
+    }
+
+    private static EventSharingRoutes routes(
+            EventCrudService crud,
+            EventShareService shares,
+            EventPartnerRegistrationService events,
+            PartnerPlacesService places,
+            FederatedRegistrantService registrants) {
         return new EventSharingRoutes(
                 crud,
+                shares,
                 events,
+                places,
                 registrants,
-                mock(EventRequirementService.class),
                 mock(EventRegistrationService.class),
                 new EventSharingGuards(crud));
     }

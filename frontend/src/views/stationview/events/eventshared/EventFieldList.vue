@@ -53,7 +53,13 @@ const {t} = useI18n()
 const existingNames = computed(() => new Set(fields.value.map(f => (f.name ?? '').toLowerCase())))
 
 function addQuickField(qf: QuickField) {
-  fields.value = [...fields.value, {...blankQuestion(), name: qf.name, overview: qf.overview, isPublic: qf.isPublic}]
+  fields.value = [...fields.value, {
+    ...blankQuestion(),
+    name: qf.name,
+    fieldType: qf.fieldType,
+    overview: qf.overview,
+    isPublic: qf.isPublic,
+  }]
 }
 
 function addField() {

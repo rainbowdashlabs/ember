@@ -67,6 +67,7 @@ const NECESSITY: Record<string, StorageNecessityName> = {
     document_groups: StorageNecessity.COMFORT,
     page_drafts: StorageNecessity.FUNCTIONAL,
     form_drafts: StorageNecessity.FUNCTIONAL,
+    push_endpoint: StorageNecessity.FUNCTIONAL,
 }
 
 /**

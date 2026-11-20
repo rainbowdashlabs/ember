@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.form.entity.Form;
@@ -211,9 +212,8 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
                 days.at(today, 19, 30),
                 template != null ? template.id() : null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -455,11 +455,10 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
                 days.at(day, 16, 0),
                 null,
                 true,
-                days.at(days.today().plusDays(2), 23, 59),
+                RegistrationDeadline.fixed(days.at(days.today().plusDays(2), 23, 59)),
                 false,
                 null,
                 20,
-                null,
                 null,
                 null);
         log.info("Demo: Event with registration and a near deadline for the videos");

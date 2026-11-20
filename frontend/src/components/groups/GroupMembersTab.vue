@@ -23,6 +23,8 @@ const props = defineProps<{
   availableMembers: MemberOption[]
   /** The kinds of member still on offer, for the filter beside the search. */
   offeredUserTypes: string[]
+  /** Whether a rule decides the members, so they are shown but not changed by hand. */
+  locked?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -37,6 +39,7 @@ const {picked, take} = useMemberPick(memberId => emit('add', memberId))
 
 /** The panel is one panel, but a list of stations is not called a list of members. */
 const capabilities = useGroupsCapabilities()
+const editable = computed(() => capabilities.canEdit && !props.locked)
 const holdsStations = computed(() => capabilities.holds === 'stations')
 const words = computed(() => capabilities.holds === 'stations'
     ? {
@@ -61,16 +64,16 @@ const words = computed(() => capabilities.holds === 'stations'
     <MutedText v-if="current.length === 0" tag="div" size="sm" class="py-2">
       {{ words.none }}
     </MutedText>
-    <div class="space-y-1">
+    <div class="space-y-1" data-testid="group-current-members">
       <div v-for="member in current" :key="member.value"
            class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
         <MemberName :identity="identityOf(member)" class="text-sm font-medium"/>
-        <IconButton v-if="capabilities.canEdit" :icon="['fas', 'xmark']" :label="words.remove" class="text-error hover:text-error/80 text-sm" @click="emit('remove', Number(member.value))"/>
+        <IconButton v-if="editable" :icon="['fas', 'xmark']" :label="words.remove" class="text-error hover:text-error/80 text-sm" @click="emit('remove', Number(member.value))"/>
       </div>
     </div>
   </div>
 
-  <div v-if="capabilities.canEdit" class="space-y-1">
+  <div v-if="editable" class="space-y-1">
     <FieldLabel class="text-(--text-muted)">{{ words.add }}</FieldLabel>
     <MutedText v-if="availableMembers.length === 0" tag="div" size="sm" class="py-2">
       {{ words.allAdded }}

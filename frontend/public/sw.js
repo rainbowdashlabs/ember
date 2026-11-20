@@ -19,6 +19,11 @@
  * installed app that navigation is the whole window, so the reader loses the page they were on and
  * gets no file. Answered from here the bytes arrive as an ordinary response from the network, under a
  * header that says to save them, which is the one thing every browser does the same way.
+ *
+ * It also shows push messages. Ember sends each as a small JSON object of title, body, the address
+ * a tap opens and a tag; a push about the same thing carries the same tag and replaces the earlier
+ * one on the device. A tap focuses an Ember window that is already open and leads it there, or opens
+ * one. Only addresses of this installation are opened.
  */
 
 /** Where a saved file is asked for. Matched by the page, which puts an identifier after it. */
@@ -74,4 +79,86 @@ function saved(id) {
             'Content-Disposition': `${file.disposition}; filename*=UTF-8''${encodeURIComponent(file.filename)}`,
         },
     })
+}
+
+/** What a push says when its content cannot be read, so the device still shows that something came. */
+const FALLBACK_TITLE = 'Ember'
+const FALLBACK_BODY = 'Neue Benachrichtigung in Ember'
+
+self.addEventListener('push', event => {
+    let message = {}
+    try {
+        message = event.data ? event.data.json() : {}
+    } catch {
+        message = {}
+    }
+    const title = typeof message.title === 'string' && message.title ? message.title : FALLBACK_TITLE
+    const options = {
+        body: typeof message.body === 'string' && message.body ? message.body : FALLBACK_BODY,
+        tag: typeof message.tag === 'string' ? message.tag : undefined,
+        icon: '/favicon/android-chrome-192x192.png',
+        badge: '/favicon/android-chrome-192x192.png',
+        data: {url: sameOrigin(message.url)},
+    }
+    event.waitUntil(self.registration.showNotification(title, options))
+})
+
+/**
+ * The browser moved this worker's push address, or dropped it. A new subscription is taken with the old one's
+ * options where the browser did not hand one over, and every open page is told, so it registers the new address
+ * for whoever is signed in there. The worker cannot do that itself: the sign-in lives in the page.
+ */
+self.addEventListener('pushsubscriptionchange', event => {
+    event.waitUntil(resubscribe(event).then(() => tellPages({type: 'push-subscription-changed'})))
+})
+
+/** Takes a new subscription with the options of the old one, unless the browser already made one. */
+async function resubscribe(event) {
+    if (event.newSubscription || !event.oldSubscription) return
+    try {
+        await self.registration.pushManager.subscribe(event.oldSubscription.options)
+    } catch {
+        return
+    }
+}
+
+/** Sends a message to every page of Ember this browser has open. */
+async function tellPages(message) {
+    const pages = await self.clients.matchAll({type: 'window', includeUncontrolled: true})
+    for (const page of pages) page.postMessage(message)
+}
+
+self.addEventListener('notificationclick', event => {
+    event.notification.close()
+    const target = sameOrigin(event.notification.data && event.notification.data.url)
+    event.waitUntil(open(target))
+})
+
+/** The address if it belongs to this installation, otherwise its start page. */
+function sameOrigin(url) {
+    try {
+        const parsed = new URL(url, self.location.origin)
+        return parsed.origin === self.location.origin ? parsed.href : self.location.origin + '/'
+    } catch {
+        return self.location.origin + '/'
+    }
+}
+
+/**
+ * Leads an open Ember window to the address, or opens a new one. A window the worker does not
+ * control refuses to be led, so a new one is opened instead.
+ */
+async function open(url) {
+    const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true})
+    for (const client of windows) {
+        if (new URL(client.url).origin !== self.location.origin) continue
+        try {
+            await client.focus()
+            const led = 'navigate' in client ? await client.navigate(url) : null
+            if (led) return led
+        } catch {
+            break
+        }
+    }
+    return self.clients.openWindow(url)
 }

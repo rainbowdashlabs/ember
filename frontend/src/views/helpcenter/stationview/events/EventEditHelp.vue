@@ -10,6 +10,7 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FormSection from '@/components/container/FormSection.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -24,7 +25,19 @@ import RepeatEndField from '@/views/stationview/events/eventshared/RepeatEndFiel
 import RegistrationFieldsEditor from '@/views/stationview/events/eventshared/RegistrationFieldsEditor.vue'
 import {emptySettings} from '@/views/stationview/events/eventshared/eventQuestions'
 import InheritedSettingsCard from '@/views/stationview/events/eventeditview/InheritedSettingsCard.vue'
-import type {AttendanceTemplate, EventCategory, EventGroupSettings, RegistrationFieldDefinition} from '@/api/generated/schema'
+import QueueOrderField from '@/views/stationview/events/eventshared/QueueOrderField.vue'
+import PartLimitCard from '@/views/stationview/events/eventeditview/PartLimitCard.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
+import RegistrationDeadlineInput from '@/views/stationview/events/eventshared/RegistrationDeadlineInput.vue'
+import {
+  DeadlineAnchor,
+  type AttendanceTemplate,
+  type EventCategory,
+  type EventGroupSettings,
+  DeadlineKind,
+  type RegistrationDeadline,
+  type RegistrationFieldDefinition,
+} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -47,6 +60,7 @@ const groupCategories = computed(() => [
   {id: 1, name: t('helpCenter.eventEdit.exampleGroupCategory')},
   {id: 2, name: t('helpCenter.eventEdit.examplePartCategory')},
 ] as EventCategory[])
+const exampleDeadline: RegistrationDeadline = {kind: DeadlineKind.RELATIVE, at: null, offsetMinutes: 7 * 1440, anchor: DeadlineAnchor.MIDNIGHT}
 const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleGroupTemplate')}] as AttendanceTemplate[])
 </script>
 
@@ -54,6 +68,11 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
   <HelpArticle :title="t('helpCenter.eventEdit.title')" :subtitle="t('helpCenter.eventEdit.subtitle')">
     <HelpSection :title="t('helpCenter.eventEdit.whatShown')">
       <p>{{ t('helpCenter.eventEdit.whatShownText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.sectionsText') }}</p>
+      <NeutralContainer sheet class="mt-3">
+        <FormSection :title="t('formSections.reminders')" :summary="t('formSections.remindersSet', {days: '1, 7'})"/>
+        <FormSection :title="t('formSections.questions')" :summary="t('formSections.questionsSet', {count: 3})"/>
+      </NeutralContainer>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventEdit.loadTemplateTitle')">
@@ -118,6 +137,10 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
       <p>{{ t('helpCenter.eventEdit.fieldsLineText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventEdit.placeTitle')">
+      <p>{{ t('helpCenter.eventEdit.placeText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventEdit.fieldDefaultsTitle')">
       <p>{{ t('helpCenter.eventEdit.fieldDefaultsText') }}</p>
     </HelpSection>
@@ -148,17 +171,30 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
           <span class="text-sm">{{ t('events.requiresConfirmation') }}</span>
           <HintIcon :text="t('events.requiresConfirmationHint')"/>
         </div>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-1">
-            <FieldLabel>{{ t('events.registrationDeadline') }}</FieldLabel>
-            <DateTimeInput model-value="2026-05-24T18:00" disabled/>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
-            <NumberInput :model-value="15" disabled/>
-          </div>
+        <RegistrationDeadlineInput
+            :model-value="exampleDeadline"
+            next-start="2026-05-30T08:00:00Z"
+            time-zone="Europe/Berlin"
+            recurring
+            disabled
+        />
+        <div class="space-y-1">
+          <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
+          <NumberInput :model-value="15" disabled/>
+          <FieldHint>{{ t('registrationQueue.limitHint') }}</FieldHint>
         </div>
+        <QueueOrderField model-value="TIME"/>
       </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventEdit.deadlineTitle')">
+      <p>{{ t('helpCenter.eventEdit.deadlineText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.deadlineAfterText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventEdit.queueTitle')">
+      <p>{{ t('helpCenter.eventEdit.queueText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.queueOrderText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventEdit.minimumTitle')">
@@ -214,6 +250,7 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
 
     <HelpSection :title="t('helpCenter.eventEdit.federationTitle')">
       <p>{{ t('helpCenter.eventEdit.federationText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.federationPlacesText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventEdit.saveTitle')">
@@ -226,6 +263,8 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
 
     <HelpSection :title="t('helpCenter.eventEdit.inheritedSettingsTitle')">
       <p>{{ t('helpCenter.eventEdit.inheritedSettingsText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.partLimitText') }}</p>
+      <PartLimitCard :model-value="undefined" :inherited="10"/>
       <p>{{ t('helpCenter.eventEdit.inheritedFilesText') }}</p>
       <InheritedSettingsCard
           class="mt-3"

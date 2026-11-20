@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.entity.QueueOrder;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationTemplateField;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -26,9 +27,10 @@ public class EventTemplateRepository {
 
     private static final String EVENT_TEMPLATE_COLUMNS = """
             id, station_id, name, title, description, category_id, event_type, requires_registration,
-            (EXTRACT(EPOCH FROM registration_deadline_offset) / 3600)::INTEGER AS registration_deadline_offset_hours,
+            NULL::TIMESTAMP AS registration_deadline, registration_deadline_kind,
+            registration_deadline_offset_minutes, registration_deadline_anchor,
             requires_confirmation, restriction_mode, view_restriction_mode, attendance_template_id,
-            registration_limit, min_registrations, threshold_days, registration_close_days""";
+            registration_limit, min_registrations, threshold_days, queue_order""";
 
     public List<EventTemplate> findByStation(int stationId) {
         return query("""
@@ -70,30 +72,30 @@ public class EventTemplateRepository {
                     category_id = :category_id,
                     event_type = :event_type,
                     requires_registration = :requires_registration,
-                    registration_deadline_offset = make_interval(hours => CAST(:offset_hours AS INTEGER)),
+                    %s,
                     requires_confirmation = :requires_confirmation,
                     restriction_mode = :restriction_mode,
                     attendance_template_id = :attendance_template_id,
                     registration_limit = :registration_limit,
                     min_registrations = :min_registrations,
                     threshold_days = :threshold_days,
-                    registration_close_days = :registration_close_days
-                WHERE id = :id;""")
-                .single(call().bind("id", id)
+                    queue_order = :queue_order
+                WHERE id = :id;""", RegistrationDeadlineSql.RULE_SET)
+                .single(RegistrationDeadlineSql.bindRule(call(), settings.registrationDeadline())
+                        .bind("id", id)
                         .bind("name", settings.name())
                         .bind("title", settings.title())
                         .bind("description", settings.description())
                         .bind("category_id", settings.categoryId())
                         .bind("event_type", settings.eventType())
                         .bind("requires_registration", settings.requiresRegistration())
-                        .bind("offset_hours", settings.registrationDeadlineOffsetHours())
                         .bind("requires_confirmation", settings.requiresConfirmation())
                         .bind("restriction_mode", settings.restrictionMode())
                         .bind("attendance_template_id", settings.attendanceTemplateId())
                         .bind("registration_limit", settings.registrationLimit())
                         .bind("min_registrations", settings.minRegistrations())
                         .bind("threshold_days", settings.thresholdDays())
-                        .bind("registration_close_days", settings.registrationCloseDays()))
+                        .bind("queue_order", settings.queueOrder() == null ? QueueOrder.TIME : settings.queueOrder()))
                 .update()
                 .changed();
     }

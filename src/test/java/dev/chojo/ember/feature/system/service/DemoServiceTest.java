@@ -42,8 +42,9 @@ import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupSettingsRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.repository.PartnerAnswerRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
-import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupPartFactory;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
@@ -52,6 +53,7 @@ import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.events.service.EventGroupSettingsService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
+import dev.chojo.ember.feature.events.service.PartnerQuestionService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
@@ -67,6 +69,7 @@ import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
+import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
@@ -86,6 +89,9 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
+import dev.chojo.ember.feature.maps.entity.GeocodingProvider;
+import dev.chojo.ember.feature.maps.entity.MapsGeocodingConfig;
+import dev.chojo.ember.feature.maps.service.MapsConfigService;
 import dev.chojo.ember.feature.media.MediaTestSupport;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -130,6 +136,7 @@ import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestEventFederation;
 import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.BeforeAll;
@@ -144,6 +151,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -309,7 +317,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 new ModuleAvailability(stationRepo, clusterRepo));
 
         var groupService = newMemberGroupService();
-        var tagService = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
+        var tagService = new UserTagService(
+                userTagRepo, memberGroupRepo, memberRuleRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
         var memberNameResolver = new MemberNameResolver(
                 newStationMemberService(accountRepo, mock(AuthService.class)),
                 accountRepo,
@@ -318,7 +327,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo,
                 groupService,
                 tagService);
-        var eventFederationService = new EventFederationService(
+        var eventFederationService = TestEventFederation.of(new TestEventFederation.Parts(
                 eventFederationRepo,
                 federationService,
                 federationTransport,
@@ -337,12 +346,16 @@ class DemoServiceTest extends RepositoryTestBase {
                         eventRepo,
                         attendanceRepo,
                         eventFieldRegistrationService,
-                        new EventGroupRepository()),
+                        new EventGroupRepository(),
+                        occurrenceCalendar),
                 occurrenceCalendar,
                 mock(MediaLibraryService.class),
                 new Api(),
                 new EventGroupRepository(),
-                eventServices.registration());
+                eventServices.registration(),
+                new PartnerQuestionService(
+                        new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility),
+                mock(EventRequirementService.class)));
         var newsFederationService = new NewsFederationService(
                 newsFederationRepo,
                 federationService,
@@ -418,7 +431,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 profileFieldChangeRepo,
                 userTagRepo,
                 stationRepo,
-                new StationFieldSetRepository());
+                new StationFieldSetRepository(),
+                memberRuleRepo);
         var eventSeeder = new DemoEventSeeder(
                 eventCategoryRepo,
                 eventRegistrationRepo,
@@ -428,6 +442,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventTemplateService,
                 eventServices.restriction(),
                 new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility),
+                eventServices.registration(),
                 demoClock);
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo, stationMemberRepo, demoClock);
         var eventGroupQuestions =
@@ -450,7 +465,9 @@ class DemoServiceTest extends RepositoryTestBase {
                         noOpBus,
                         memberNameResolver,
                         eventGroupQuestions,
-                        newEventGroupSignUpRules()),
+                        newEventGroupSignUpRules(),
+                        newEventGroupQueue(eventServices.registration(), noOpBus),
+                        new RegistrationQueueRepository()),
                 eventGroupQuestions,
                 new EventGroupPartFactory(eventServices.crud(), eventGroupService),
                 new EventGroupSettingsService(
@@ -469,7 +486,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         eventRepo,
                         attendanceRepo,
                         eventFieldRegistrationService,
-                        new EventGroupRepository()),
+                        new EventGroupRepository(),
+                        occurrenceCalendar),
                 demoClock);
         var containerSvc =
                 new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
@@ -532,7 +550,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 protocolService,
                 eventServices.crud(),
                 eventServices.category(),
-                eventFederationService,
+                eventFederationService.shares(),
+                eventFederationService.comments(),
                 eventFederationRepo,
                 accountRepo,
                 stationMemberRepo,
@@ -607,7 +626,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 demoConfig,
                 apiConfig);
         var sessionSeeder = new DemoSessionSeeder(accountRepo);
-        var settingsSeeder = new DemoSettingsSeeder(feedTokenService, stationRepo, applicationSettingRepo);
+        var settingsSeeder = new DemoSettingsSeeder(
+                feedTokenService, stationRepo, applicationSettingRepo, new MapsConfigService(applicationSettingRepo));
         var setupSeeder = new DemoSetupSeeder(stationRepo);
         var freshStationSeeder = new DemoFreshStationSeeder(stationRepo, accountRepo, stationMemberRepo);
         var demoInstance = mock(Demo.class);
@@ -718,6 +738,15 @@ class DemoServiceTest extends RepositoryTestBase {
                 "Station 'Jugendfeuerwehr Musterstadt' should exist");
     }
 
+    /** The demo looks addresses up on the public Photon server, so places can be found on the map right away. */
+    @Test
+    @Order(3)
+    void verifyTheAddressSearchIsOn() {
+        var geocoding = new MapsConfigService(applicationSettingRepo).geocodingConfig();
+        assertEquals(GeocodingProvider.PHOTON, geocoding.provider());
+        assertEquals(MapsGeocodingConfig.DEFAULT_BASE_URL, geocoding.resolvedBaseUrl());
+    }
+
     /** The demo station runs a Jugendflamme event group with people signed up, one of them short of the rules. */
     @Test
     @Order(4)
@@ -758,6 +787,84 @@ class DemoServiceTest extends RepositoryTestBase {
                                 .findLinkedToEventGroup(signUp.id())
                                 .size()
                         == 4));
+    }
+
+    /**
+     * The demo station has a drill whose places are all taken, with a short waiting list that is a
+     * real one: every waiting sign-up holds a place in line, first come first in line.
+     */
+    @Test
+    @Order(4)
+    void verifyTheFullDrillHasAWaitingList() {
+        var station = demoStation();
+        var drill = eventRepo.findByStation(station.id()).stream()
+                .filter(event -> event.name().equals(DemoEventSeeder.FULL_DRILL))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo should have the full drill"));
+        var registrations = eventRegistrationRepo.findByEvent(drill.id());
+        assertEquals(
+                DemoEventSeeder.FULL_DRILL_PLACES,
+                registrations.stream()
+                        .filter(registration -> registration.status() == RegistrationStatus.ACCEPTED)
+                        .count());
+        var waiting = registrations.stream()
+                .filter(registration -> registration.status() == RegistrationStatus.QUEUED)
+                .toList();
+        assertEquals(DemoEventSeeder.FULL_DRILL_WAITING, waiting.size());
+        var date = waiting.getFirst().eventDate();
+        var queue = new RegistrationQueueRepository().entries(RegistrationQueueRepository.ofDate(drill.id(), date));
+        assertEquals(
+                waiting.stream().map(registration -> registration.id()).sorted().toList(),
+                queue.stream().map(entry -> entry.localId()).toList());
+    }
+
+    /**
+     * The first aid course offers exactly one of two dates with three places each: the Saturday is full
+     * and somebody waits for it on the event group's waiting list, the Sunday still has a free place.
+     */
+    @Test
+    @Order(4)
+    void verifyTheFirstAidCourseHasAFullAlternative() {
+        var station = demoStation();
+        var eventGroupRepository = new EventGroupRepository();
+        var course = eventGroupRepository.findByStation(station.id()).stream()
+                .filter(group -> group.details().name().equals(DemoEventGroupSeeder.ERSTE_HILFE))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo should have the first aid course"));
+        assertEquals(DemoEventGroupSeeder.ERSTE_HILFE_PLACES, course.details().partRegistrationLimit());
+        var set = eventGroupRepository.findSets(course.id()).getFirst();
+        assertEquals(1, set.minimum());
+        assertEquals(1, set.maximum());
+
+        var accepted = new HashMap<String, Long>();
+        for (var part : eventGroupRepository.findParts(course.id())) {
+            var name = eventRepo.findById(part.eventId()).orElseThrow().name();
+            accepted.put(
+                    name,
+                    eventRegistrationRepo.findByEvent(part.eventId()).stream()
+                            .filter(registration -> registration.status() == RegistrationStatus.ACCEPTED)
+                            .count());
+        }
+        assertEquals(
+                (long) DemoEventGroupSeeder.ERSTE_HILFE_PLACES, accepted.get(DemoEventGroupSeeder.ERSTE_HILFE_FULL));
+        assertTrue(accepted.get(DemoEventGroupSeeder.ERSTE_HILFE_FREE) < DemoEventGroupSeeder.ERSTE_HILFE_PLACES);
+
+        var waiting = new EventGroupRegistrationRepository()
+                .findByEventGroup(course.id()).stream()
+                        .filter(signUp -> signUp.status() == RegistrationStatus.QUEUED)
+                        .toList();
+        assertEquals(1, waiting.size());
+        var queue = new RegistrationQueueRepository().entries(RegistrationQueueRepository.ofEventGroup(course.id()));
+        assertEquals(
+                List.of(waiting.getFirst().id()),
+                queue.stream().map(entry -> entry.localId()).toList());
+    }
+
+    private Station demoStation() {
+        return stationRepo.findAll().stream()
+                .filter(s -> "Jugendfeuerwehr Musterstadt".equals(s.name()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo station should exist"));
     }
 
     /**

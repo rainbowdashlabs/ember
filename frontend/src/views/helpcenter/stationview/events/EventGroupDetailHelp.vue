@@ -18,7 +18,8 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import ActionsMenu from '@/components/button/ActionsMenu.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
@@ -76,7 +77,10 @@ const exampleVisitors = computed((): WaitingListVisitor[] => [{
         <p class="text-sm">{{ t('helpCenter.eventGroupDetail.day2') }}</p>
         <p class="text-sm"><span class="line-through text-(--text-muted)">{{ t('helpCenter.eventGroupDetail.day3') }}</span> <ErrorBadge>{{ t('eventGroups.partCalledOff') }}</ErrorBadge></p>
         <SubHeader>{{ t('helpCenter.eventGroupDetail.test') }} <MutedText tag="span" size="sm">({{ t('eventGroups.setAll') }})</MutedText></SubHeader>
-        <p class="text-sm">{{ t('helpCenter.eventGroupDetail.day4') }}</p>
+        <p class="text-sm">
+          {{ t('helpCenter.eventGroupDetail.day4') }}
+          <MutedText tag="span" size="sm">{{ t('registrationQueue.placesTaken', {taken: 8, limit: 12}) }}</MutedText>
+        </p>
       </NeutralContainer>
       <p>{{ t('helpCenter.eventGroupDetail.calledOffText') }}</p>
       <p>{{ t('helpCenter.eventGroupDetail.requiredText') }}</p>
@@ -100,6 +104,25 @@ const exampleVisitors = computed((): WaitingListVisitor[] => [{
         <p class="text-sm text-error">{{ t('eventGroups.setShort', {name: t('helpCenter.eventGroupDetail.practice'), missing: 1}) }}</p>
       </NeutralContainer>
       <p>{{ t('helpCenter.eventGroupDetail.dialogText') }}</p>
+    </HelpSection>
+    <HelpSection :title="t('helpCenter.eventGroupDetail.fullTitle')">
+      <p>{{ t('helpCenter.eventGroupDetail.fullText') }}</p>
+      <NeutralContainer class="space-y-2">
+        <SubHeader>{{ t('helpCenter.eventGroupDetail.practice') }} <MutedText tag="span" size="sm">({{ t('eventGroups.setRuleOne', {count: 2}) }})</MutedText></SubHeader>
+        <FieldLabel inline>
+          <CheckboxInput :model-value="true"/> {{ t('helpCenter.eventGroupDetail.day1') }} <ErrorBadge>{{ t('eventGroups.partFull') }}</ErrorBadge>
+        </FieldLabel>
+        <FieldLabel inline><CheckboxInput :model-value="false"/> {{ t('helpCenter.eventGroupDetail.day2') }}</FieldLabel>
+        <MutedText tag="p" size="sm">{{ t('eventGroups.choiceWaits') }}</MutedText>
+      </NeutralContainer>
+      <p>{{ t('helpCenter.eventGroupDetail.queueText') }}</p>
+      <NeutralContainer class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span>{{ t('helpCenter.eventGroupDetail.exampleMember') }}</span>
+          <RegistrationStatusBadge :status="RegistrationStatus.QUEUED" :queue-position="2"/>
+        </div>
+        <SecondaryButton :icon="['fas', 'xmark']">{{ t('registrationQueue.leave') }}</SecondaryButton>
+      </NeutralContainer>
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupDetail.memberFieldsTitle')">
       <p>{{ t('helpCenter.eventGroupDetail.memberFieldsText') }}</p>
@@ -129,20 +152,25 @@ const exampleVisitors = computed((): WaitingListVisitor[] => [{
         <p>{{ t('helpCenter.eventGroupDetail.manageText') }}</p>
         <p>{{ t('helpCenter.eventGroupDetail.tableText') }}</p>
         <p>{{ t('helpCenter.eventGroupDetail.incompleteText') }}</p>
+        <p>{{ t('helpCenter.eventGroupDetail.queueManageText') }}</p>
         <SignUpTableExample/>
         <p>{{ t('helpCenter.eventGroupDetail.exportText') }}</p>
         <p>{{ t('helpCenter.eventGroupDetail.partnerText') }}</p>
+        <p>{{ t('helpCenter.eventGroupDetail.partnerDecidesText') }}</p>
         <p>{{ t('helpCenter.eventGroupDetail.attendanceText') }}</p>
         <AttendanceTableExample/>
         <p>{{ t('helpCenter.eventGroupDetail.signersText') }}</p>
       </HelpPermissionGuard>
       <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">
         <p>{{ t('helpCenter.eventGroupDetail.editText') }}</p>
-        <ButtonRow align="end">
-          <SecondaryButton :icon="['fas', 'pen']">{{ t('eventGroups.edit') }}</SecondaryButton>
-          <SecondaryButton :icon="['fas', 'ban']">{{ t('eventGroups.cancel') }}</SecondaryButton>
-          <ErrorButton :icon="['fas', 'trash']">{{ t('eventGroups.delete') }}</ErrorButton>
-        </ButtonRow>
+        <div class="flex items-center justify-end gap-2">
+          <SecondaryButton :icon="['fas', 'arrow-left']"><span class="max-sm:sr-only">{{ t('common.back') }}</span></SecondaryButton>
+          <PrimaryButton :icon="['fas', 'pen']">{{ t('eventGroups.edit') }}</PrimaryButton>
+          <ActionsMenu :label="t('common.actions')" test-id="help-event-group-actions">
+            <DropdownMenuItem :icon="['fas', 'ban']" destructive>{{ t('eventGroups.cancel') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'trash']" destructive>{{ t('eventGroups.delete') }}</DropdownMenuItem>
+          </ActionsMenu>
+        </div>
       </HelpPermissionGuard>
     </HelpSection>
     <HelpPermissionGuard :permissions="[StationPermission.WAITLIST_READ]" :label="t('helpCenter.permissionLabel.waitlistRead')">

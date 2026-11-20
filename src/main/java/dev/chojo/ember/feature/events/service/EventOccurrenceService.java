@@ -38,6 +38,9 @@ import java.util.function.UnaryOperator;
  */
 @Singleton
 public class EventOccurrenceService {
+    /** How far ahead the upcoming list reaches for a one-time appointment when only series are bounded. */
+    private static final int ONE_TIME_REACH_YEARS = 100;
+
     private final EventCrudService eventCrudService;
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventGroupRepository eventGroupRepository;
@@ -80,7 +83,8 @@ public class EventOccurrenceService {
                                 .event()
                                 .withEventGroup(parts.get(occurrence.event().id())),
                         occurrence.date(),
-                        occurrence.cancellation()))
+                        occurrence.cancellation(),
+                        occurrence.registrationClosesAt()))
                 .toList();
     }
 
@@ -118,10 +122,17 @@ public class EventOccurrenceService {
 
         var calendar = occurrenceCalendar.forStation(stationId);
         LocalDate first = notBefore(calendar.today(), query.from());
-        LocalDate last = notAfter(first.plusDays(OccurrenceCalendar.LOOKAHEAD_DAYS), query.to());
+        LocalDate seriesTo = query.seriesTo();
+        LocalDate last = seriesTo == null
+                ? notAfter(first.plusDays(OccurrenceCalendar.LOOKAHEAD_DAYS), query.to())
+                : notAfter(first.plusYears(ONE_TIME_REACH_YEARS), query.to());
+        LocalDate seriesLast = seriesTo == null ? last : notAfter(seriesTo, last);
 
-        BiFunction<StationEvent, LocalDate, Optional<LocalDate>> next =
-                query.registrationOpen() ? (event, day) -> nextOpenDate(event, day, last, calendar) : calendar::next;
+        BiFunction<StationEvent, LocalDate, Optional<LocalDate>> next = (event, day) -> {
+            LocalDate bound = event.isRecurring() ? seriesLast : last;
+            var date = query.registrationOpen() ? nextOpenDate(event, day, bound, calendar) : calendar.next(event, day);
+            return date.filter(found -> !found.isAfter(bound));
+        };
         if (query.notBegun()) next = notBegun(next, calendar, Instant.now());
         var walk = new Walk(next, day -> day.plusDays(1), day -> !day.isAfter(last), Comparator.naturalOrder());
         return withEventGroups(
@@ -151,12 +162,12 @@ public class EventOccurrenceService {
      */
     private static Optional<LocalDate> nextOpenDate(
             StationEvent event, LocalDate day, LocalDate last, StationCalendar calendar) {
-        LocalDate today = calendar.today();
         Instant now = Instant.now();
         Optional<LocalDate> candidate = calendar.next(event, day);
         while (candidate.isPresent() && !candidate.get().isAfter(last)) {
             LocalDate date = candidate.get();
-            if (event.registrationOpenOn(date, today, now) && !calendar.isCancelled(event, date)) return candidate;
+            if (event.registrationOpenOn(date, calendar.zone(), now) && !calendar.isCancelled(event, date))
+                return candidate;
             candidate = calendar.next(event, date.plusDays(1));
         }
         return Optional.empty();
@@ -280,7 +291,10 @@ public class EventOccurrenceService {
         var onThisDate = new ArrayList<UpcomingEventOccurrence>();
         for (var ev : events) {
             onThisDate.add(new UpcomingEventOccurrence(
-                    EventSummary.of(ev), date, calendar.noticeOn(ev, date).orElse(null)));
+                    EventSummary.of(ev),
+                    date,
+                    calendar.noticeOn(ev, date).orElse(null),
+                    ev.registrationClosesOn(date, calendar.zone()).orElse(null)));
         }
         onThisDate.sort(Comparator.comparing((UpcomingEventOccurrence o) -> timeOfDay(o, calendar.zone()))
                 .thenComparing(occurrence -> occurrence.event().id()));
@@ -396,6 +410,10 @@ public class EventOccurrenceService {
      * @param offset               how many entries to pass over before the page begins
      * @param notBegun             whether the upcoming list leaves out the dates of today that have
      *                             already begun; the other listings do not read it
+     * @param seriesTo             the upcoming list only: the last date a repeating appointment is
+     *                             listed on, while one-time appointments are listed however far away
+     *                             they are, within {@code to} where that is set; null for one window
+     *                             for both kinds
      */
     public record OccurrenceQuery(
             @Nullable Integer categoryId,
@@ -406,7 +424,22 @@ public class EventOccurrenceService {
             @Nullable LocalDate to,
             int limit,
             int offset,
-            boolean notBegun) {
+            boolean notBegun,
+            @Nullable LocalDate seriesTo) {
+
+        /** A query with one window for both kinds of appointment. */
+        public OccurrenceQuery(
+                @Nullable Integer categoryId,
+                @Nullable Boolean requiresRegistration,
+                boolean registrationOpen,
+                @Nullable String search,
+                @Nullable LocalDate from,
+                @Nullable LocalDate to,
+                int limit,
+                int offset,
+                boolean notBegun) {
+            this(categoryId, requiresRegistration, registrationOpen, search, from, to, limit, offset, notBegun, null);
+        }
 
         /** A query that keeps the dates of today which have already begun. */
         public OccurrenceQuery(

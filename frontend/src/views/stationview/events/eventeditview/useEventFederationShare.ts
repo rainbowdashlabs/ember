@@ -26,7 +26,7 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
     federationScope: 'ALL_PARTNERS',
     federationPartnerIds: [] as number[],
     /**
-     * What each partner may do with this appointment, keyed by partner.
+     * What each partner may do with this appointment or event group, keyed by partner.
      *
      * <p>A partner missing from here is the arrangement nobody configured: this station decides, with
      * no cap, which is how every shared appointment worked before this existed.
@@ -38,22 +38,27 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
 
   const props = computed(() => ({partners: partners.value, ...modelProps.value}))
 
-  async function load(port: FederationSharePort) {
+  /** Reads the partners the picker offers, for a share that does not exist yet. None where they cannot be read. */
+  async function loadPartners() {
     try {
       partners.value = await federation.listPartners()
     } catch {
       partners.value = []
     }
+  }
+
+  /**
+   * Reads the partners and how the opened appointment or template is shared. A share that cannot be
+   * read fails the load, since a form left at "not shared" would stop the sharing on the next save.
+   */
+  async function load(port: FederationSharePort) {
+    await loadPartners()
     if (!canFederate.value) return
-    try {
-      const share = await port.get()
-      state.federationShared = share.shared
-      if (share.shared) {
-        state.federationScope = share.scope ?? 'ALL_PARTNERS'
-        state.federationPartnerIds = share.partnerIds ?? []
-      }
-    } catch {
-      state.federationShared = false
+    const share = await port.get()
+    state.federationShared = share.shared
+    if (share.shared) {
+      state.federationScope = share.scope ?? 'ALL_PARTNERS'
+      state.federationPartnerIds = share.partnerIds ?? []
     }
     if (!port.places) return
     try {
@@ -97,8 +102,8 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
   }
 
   /**
-   * Writes the share, and only then what each partner was given, because a partner that is no longer
-   * shared with has nothing to arrange and the server would have nothing to hang it on.
+   * Writes the share, and only then what each partner the share covers was given, because a partner
+   * that is no longer shared with has nothing to arrange and the server would have nothing to hang it on.
    *
    * <p>Both of these used to swallow whatever came back, apparently on the belief that they refuse a
    * no-op. They do not: taking a share away answers the same whether or not one was there, and
@@ -118,9 +123,22 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
     }
     if (!port.places) return
     for (const [partnerId, place] of Object.entries(state.federationPlaces)) {
+      if (!coveredByShare(Number(partnerId))) continue
       await port.places.set(Number(partnerId), place.budget, place.decides)
     }
   }
 
-  return {props, handlers, state, partners, load, takeFrom, save}
+  /**
+   * Whether the share as saved covers a partner, and so whether there is anything to arrange with it:
+   * nobody where nothing is shared, the partners named where the share names some, and everybody where
+   * it goes to every partner. The server drops the arrangements a share no longer covers and refuses
+   * new ones for such a partner.
+   */
+  function coveredByShare(partnerId: number): boolean {
+    if (!state.federationShared) return false
+    if (shareScopeOf(state.federationScope) !== 'SPECIFIC') return true
+    return state.federationPartnerIds.includes(partnerId)
+  }
+
+  return {props, handlers, state, partners, load, loadPartners, takeFrom, save}
 }

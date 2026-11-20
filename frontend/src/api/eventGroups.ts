@@ -32,9 +32,11 @@ import type {
     RegistrationFieldDefinition,
     EventRegistrationFieldValue,
     FederationShareResponse,
+    PartnerPlacesView,
     RegistrationStatus,
     RestrictionAudience,
     ShareScope,
+    WhenFull,
 } from './generated/schema'
 
 const EVENT_GROUPS = '/events/groups'
@@ -118,8 +120,9 @@ export async function signUp(
     parts: number[],
     answers: EventRegistrationFieldValue[],
     memberId?: number,
+    whenFull?: WhenFull,
 ): Promise<EventGroupSignUp> {
-    return (await client.post<EventGroupSignUp>(`${EVENT_GROUPS}/${eventGroupId}/sign-up`, {parts, answers, memberId})).data
+    return (await client.post<EventGroupSignUp>(`${EVENT_GROUPS}/${eventGroupId}/sign-up`, {parts, answers, memberId, whenFull})).data
 }
 
 /** Changes the answers given with a standing sign-up. */
@@ -146,9 +149,28 @@ export async function listSignUps(eventGroupId: number): Promise<EventGroupSignU
     return (await client.get<EventGroupSignUp[]>(`${EVENT_GROUPS}/${eventGroupId}/sign-ups`)).data
 }
 
-/** Accepts or turns down a sign-up and every part chosen with it. */
-export async function decide(eventGroupId: number, memberId: number, status: RegistrationStatus): Promise<EventGroupSignUp> {
-    return (await client.put<EventGroupSignUp>(`${EVENT_GROUPS}/${eventGroupId}/sign-ups/${memberId}/status`, {status})).data
+/**
+ * Accepts or turns down a sign-up and every part chosen with it. Accepting where the people or a chosen
+ * part is full is refused unless `overLimit` says it goes beyond the limit on purpose; accepting a
+ * sign-up on the waiting list moves it up by hand.
+ */
+export async function decide(
+    eventGroupId: number,
+    memberId: number,
+    status: RegistrationStatus,
+    overLimit?: boolean,
+): Promise<EventGroupSignUp> {
+    return (await client.put<EventGroupSignUp>(`${EVENT_GROUPS}/${eventGroupId}/sign-ups/${memberId}/status`, {status, overLimit})).data
+}
+
+/** Puts members' sign-ups waiting for a decision onto the event group's waiting list. */
+export async function queueSignUps(eventGroupId: number, memberIds: number[]): Promise<void> {
+    await client.post(`${EVENT_GROUPS}/${eventGroupId}/sign-ups/queue`, {ids: memberIds})
+}
+
+/** Moves a member's sign-up on the waiting list to a place in line, 1 moving up next. */
+export async function moveSignUpInQueue(eventGroupId: number, memberId: number, position: number): Promise<void> {
+    await client.put(`${EVENT_GROUPS}/${eventGroupId}/sign-ups/${memberId}/queue-position`, {position})
 }
 
 /** The event group an appointment is a part of, or null for an appointment of its own. */
@@ -177,14 +199,45 @@ export async function removeFederationShare(eventGroupId: number): Promise<void>
     await client.delete(`${EVENT_GROUPS}/${eventGroupId}/federation`)
 }
 
+/**
+ * What each partner station may do with a shared event group. Absent from the list means this station
+ * decides about each of the partner's sign-ups, with no cap.
+ */
+export async function getPartnerPlaces(eventGroupId: number): Promise<PartnerPlacesView[]> {
+    return (await client.get<PartnerPlacesView[]>(`${EVENT_GROUPS}/${eventGroupId}/partner-places`)).data
+}
+
+/**
+ * Lets a partner station decide its own sign-ups for the whole event group, optionally within a number
+ * of places, or takes the arrangement back.
+ */
+export async function setPartnerPlaces(eventGroupId: number, partnerId: number, slotBudget: number | null, partnerConfirms: boolean): Promise<void> {
+    await client.put(`${EVENT_GROUPS}/${eventGroupId}/partner-places/${partnerId}`, {slotBudget, partnerConfirms})
+}
+
 /** The sign-ups partner stations' members sent for an event group. */
 export async function listPartnerSignUps(eventGroupId: number): Promise<EventGroupPartnerSignUp[]> {
     return (await client.get<EventGroupPartnerSignUp[]>(`${EVENT_GROUPS}/${eventGroupId}/partner-sign-ups`)).data
 }
 
-/** Accepts or turns down a partner member's sign-up and every part chosen with it. */
-export async function decidePartner(eventGroupId: number, signUpId: number, status: RegistrationStatus): Promise<void> {
-    await client.put(`${EVENT_GROUPS}/${eventGroupId}/partner-sign-ups/${signUpId}/status`, {status})
+/** Accepts or turns down a partner member's sign-up and every part chosen with it, as {@link decide} does. */
+export async function decidePartner(
+    eventGroupId: number,
+    signUpId: number,
+    status: RegistrationStatus,
+    overLimit?: boolean,
+): Promise<void> {
+    await client.put(`${EVENT_GROUPS}/${eventGroupId}/partner-sign-ups/${signUpId}/status`, {status, overLimit})
+}
+
+/** Puts partners' members' sign-ups waiting for a decision onto the event group's waiting list. */
+export async function queuePartnerSignUps(eventGroupId: number, signUpIds: number[]): Promise<void> {
+    await client.post(`${EVENT_GROUPS}/${eventGroupId}/partner-sign-ups/queue`, {ids: signUpIds})
+}
+
+/** Moves a partner's member's sign-up on the waiting list to a place in line, 1 moving up next. */
+export async function movePartnerSignUpInQueue(eventGroupId: number, signUpId: number, position: number): Promise<void> {
+    await client.put(`${EVENT_GROUPS}/${eventGroupId}/partner-sign-ups/${signUpId}/queue-position`, {position})
 }
 
 /** How the accepted participants of an event group attended its parts. */
@@ -287,6 +340,15 @@ export async function getSettings(eventGroupId: number): Promise<EventGroupSetti
 /** Sets what an event group hands to every part without a setting of its own. */
 export async function setSettings(eventGroupId: number, request: EventGroupSettingsRequest): Promise<EventGroupSettings> {
     return (await client.put<EventGroupSettings>(`${EVENT_GROUPS}/${eventGroupId}/settings`, request)).data
+}
+
+/**
+ * Gives a part of an event group places of its own, or with null takes its event group's again.
+ *
+ * @return what the part now sets itself and takes over
+ */
+export async function setPartLimit(eventId: number, limit: number | null): Promise<EventGroupPartSettings> {
+    return (await client.put<EventGroupPartSettings>(`/events/${eventId}/group-settings/limit`, {limit})).data
 }
 
 /** What a part sets itself and what it takes over from its event group, or null for an appointment of its own. */

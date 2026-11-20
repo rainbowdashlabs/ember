@@ -29,9 +29,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Singleton
@@ -46,6 +49,7 @@ public class EventReminderChecker implements TaskSource {
     private final StationReadOnlyGuard readOnlyGuard;
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventAudience audience;
+    private final ClosingDates closingDates;
     private final ClosingWarnings closingWarnings;
 
     @Inject
@@ -58,7 +62,8 @@ public class EventReminderChecker implements TaskSource {
             EventRestrictionService restrictionService,
             StationReadOnlyGuard readOnlyGuard,
             OccurrenceCalendar occurrenceCalendar,
-            EventAudience audience) {
+            EventAudience audience,
+            ClosingDates closingDates) {
         this.eventRepository = eventRepository;
         this.reminderRepository = reminderRepository;
         this.registrationRepository = registrationRepository;
@@ -68,6 +73,7 @@ public class EventReminderChecker implements TaskSource {
         this.occurrenceCalendar = occurrenceCalendar;
         this.audience = audience;
         this.closingWarnings = new ClosingWarnings(notifier, memberNameResolver, readOnlyGuard);
+        this.closingDates = closingDates;
     }
 
     /**
@@ -145,17 +151,26 @@ public class EventReminderChecker implements TaskSource {
      * override the restriction: somebody the appointment is closed to has nothing to answer.
      */
     private void warnAboutClosingRegistrations() {
+        var now = Instant.now();
+        var candidates = datesClosingBetween(now, now.plus(Duration.ofDays(ClosingWarnings.MAX_LEAD_DAYS)));
+        var sent = new HashSet<>(reminderRepository.findDeadlineWarningsSent(
+                candidates.stream().map(ClosingDate::eventId).distinct().toList()));
         closingWarnings.warn(new ClosingWarnings.Closable() {
             @Override
             public List<ClosingWarnings.Closing> closingIn(int daysBefore) {
-                return eventRepository.findEventsClosingIn(daysBefore).stream()
-                        .map(event -> new ClosingWarnings.Closing(event.eventId(), event.stationId(), event.name()))
+                var limit = now.plus(Duration.ofDays(daysBefore));
+                return candidates.stream()
+                        .filter(date -> !date.closes().isAfter(limit))
+                        .filter(date -> !sent.contains(new EventReminderRepository.DeadlineWarning(
+                                date.eventId(), date.date(), daysBefore, date.closes())))
+                        .map(ClosingDate::closing)
                         .toList();
             }
 
             @Override
             public List<Integer> unansweredMemberIds(ClosingWarnings.Closing closing) {
-                return registrationRepository.findUnansweredMemberIds(closing.id(), closing.stationId());
+                return registrationRepository.findUnansweredMemberIds(
+                        closing.id(), closing.stationId(), Objects.requireNonNull(closing.date()));
             }
 
             @Override
@@ -164,8 +179,11 @@ public class EventReminderChecker implements TaskSource {
             }
 
             @Override
-            public void markWarned(int id, int daysBefore) {
-                reminderRepository.markDeadlineWarningSent(id, daysBefore);
+            public void markWarned(ClosingWarnings.Closing closing, int daysBefore) {
+                var date = Objects.requireNonNull(closing.date());
+                reminderRepository.markDeadlineWarningSent(closing.id(), date, daysBefore, closing.closesAt());
+                sent.add(new EventReminderRepository.DeadlineWarning(
+                        closing.id(), date, daysBefore, closing.closesAt()));
             }
 
             @Override
@@ -173,6 +191,44 @@ public class EventReminderChecker implements TaskSource {
                 return NotificationLinks.event(id);
             }
         });
+    }
+
+    /**
+     * The dates whose sign-up closes after one instant and no later than another, once per sweep for
+     * every lead time.
+     *
+     * @param from  the earliest close, excluded
+     * @param until the latest close, included
+     * @return one entry per appointment and date
+     */
+    private List<ClosingDate> datesClosingBetween(Instant from, Instant until) {
+        return closingDates.between(from, until).stream()
+                .map(date -> new ClosingDate(
+                        new ClosingWarnings.Closing(
+                                date.event().id(),
+                                date.event().stationId(),
+                                date.event().name(),
+                                date.date(),
+                                date.event().closesPerDate(),
+                                date.closes()),
+                        date.closes()))
+                .toList();
+    }
+
+    /**
+     * One date of an appointment whose sign-up closes soon.
+     *
+     * @param closing what the warning is about
+     * @param closes  when that date closes
+     */
+    private record ClosingDate(ClosingWarnings.Closing closing, Instant closes) {
+        int eventId() {
+            return closing.id();
+        }
+
+        LocalDate date() {
+            return Objects.requireNonNull(closing.date());
+        }
     }
 
     @Override

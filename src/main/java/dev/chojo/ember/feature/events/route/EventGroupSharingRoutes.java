@@ -7,13 +7,17 @@ package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupDecisionRequest;
 import dev.chojo.ember.feature.events.route.EventSharingRoutes.FederationShareResponse;
+import dev.chojo.ember.feature.events.route.EventSharingRoutes.PartnerPlacesView;
 import dev.chojo.ember.feature.events.route.EventSharingRoutes.SetFederationShareRequest;
+import dev.chojo.ember.feature.events.route.EventSharingRoutes.SetPartnerPlacesRequest;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService;
 import dev.chojo.ember.feature.events.service.EventGroupRules.SetResult;
 import io.javalin.http.Context;
@@ -59,6 +63,121 @@ public class EventGroupSharingRoutes implements Routes {
                 prefix + EVENT_GROUP + "/partner-sign-ups/{signUpId}/status",
                 this::decide,
                 StationPermission.EVENT_REGISTRATION);
+        routes.post(
+                prefix + EVENT_GROUP + "/partner-sign-ups/queue",
+                this::moveToQueue,
+                StationPermission.EVENT_REGISTRATION);
+        routes.put(
+                prefix + EVENT_GROUP + "/partner-sign-ups/{signUpId}/queue-position",
+                this::moveInQueue,
+                StationPermission.EVENT_REGISTRATION);
+        routes.get(
+                prefix + EVENT_GROUP + "/partner-places",
+                this::listPartnerPlaces,
+                StationPermission.EVENT_REGISTRATION);
+        routes.put(
+                prefix + EVENT_GROUP + "/partner-places/{partnerId}",
+                this::setPartnerPlaces,
+                StationPermission.EVENT_MANAGER);
+    }
+
+    /**
+     * What each partner was given for an event group, with the places it has taken, which whoever handles
+     * the sign-ups needs to know whose decision a waiting partner's member is.
+     */
+    @OpenApi(
+            path = "/api/v1/events/groups/{eventGroupId}/partner-places",
+            methods = HttpMethod.GET,
+            summary = "List what each partner station may do with an event group",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "eventGroupId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PartnerPlacesView[].class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void listPartnerPlaces(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        ctx.json(partners.partnerPlaces(session.stationId(), pathInt(ctx, "eventGroupId")).stream()
+                .map(entry -> new PartnerPlacesView(
+                        entry.arrangement().partnerId(),
+                        entry.arrangement().slotBudget(),
+                        entry.arrangement().partnerConfirms(),
+                        entry.taken()))
+                .toList());
+    }
+
+    /** Hands a partner places at an event group, or takes the arrangement back. */
+    @OpenApi(
+            path = "/api/v1/events/groups/{eventGroupId}/partner-places/{partnerId}",
+            methods = HttpMethod.PUT,
+            summary = "Hand a partner station places at an event group, or take them back",
+            tags = {"Events"},
+            pathParams = {
+                @OpenApiParam(name = "eventGroupId", type = Integer.class, required = true),
+                @OpenApiParam(name = "partnerId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetPartnerPlacesRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setPartnerPlaces(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(SetPartnerPlacesRequest.class);
+        partners.arrangePartnerPlaces(
+                session.stationId(),
+                pathInt(ctx, "eventGroupId"),
+                pathInt(ctx, "partnerId"),
+                request.slotBudget(),
+                request.partnerConfirms());
+        ctx.json(new MessageResponse("Places updated"));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/queue",
+            methods = HttpMethod.POST,
+            summary = "Put partner members' event group sign-ups waiting for a decision onto the waiting list",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "eventGroupId", type = Integer.class, required = true),
+            requestBody =
+                    @OpenApiRequestBody(
+                            content = @OpenApiContent(from = EventGroupRoutes.EventGroupQueueRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void moveToQueue(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var ids = ctx.bodyAsClass(EventGroupRoutes.EventGroupQueueRequest.class).ids();
+        partners.moveToQueue(session.stationId(), pathInt(ctx, "eventGroupId"), ids == null ? List.of() : ids);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/queue-position",
+            methods = HttpMethod.PUT,
+            summary = "Move a partner member's event group sign-up to another place in line on the waiting list",
+            tags = {"Events"},
+            pathParams = {
+                @OpenApiParam(name = "eventGroupId", type = Integer.class, required = true),
+                @OpenApiParam(name = "signUpId", type = Integer.class, required = true)
+            },
+            requestBody =
+                    @OpenApiRequestBody(
+                            content = @OpenApiContent(from = EventGroupRoutes.EventGroupQueuePositionRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void moveInQueue(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var position = ctx.bodyAsClass(EventGroupRoutes.EventGroupQueuePositionRequest.class)
+                .position();
+        if (position == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
+        partners.moveInQueue(session.stationId(), pathInt(ctx, "eventGroupId"), pathInt(ctx, "signUpId"), position);
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     @OpenApi(
@@ -142,7 +261,12 @@ public class EventGroupSharingRoutes implements Routes {
     private void decide(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(EventGroupDecisionRequest.class);
-        partners.decide(session.stationId(), pathInt(ctx, "eventGroupId"), pathInt(ctx, "signUpId"), request.status());
+        partners.decide(
+                session.stationId(),
+                pathInt(ctx, "eventGroupId"),
+                pathInt(ctx, "signUpId"),
+                request.status(),
+                Boolean.TRUE.equals(request.overLimit()));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -150,28 +274,38 @@ public class EventGroupSharingRoutes implements Routes {
      * A partner member's event group sign-up as the event group page lists it.
      *
      * @param id           the sign-up, which decisions name
+     * @param partnerId    this station's record of the partner the member came with
+     * @param partnerDecides whether that partner decides its own sign-ups, so this station neither
+     *                     accepts, turns down nor queues them
      * @param member       the member, or null where the partnership is gone
      * @param status       where the sign-up stands
      * @param registeredAt when they signed up
      * @param parts        the parts that count for the rules
      * @param sets         how those parts meet every set
+     * @param queuePosition the place in line on the waiting list, or null where the sign-up does not wait
      */
     public record EventGroupPartnerSignUp(
             int id,
+            int partnerId,
+            boolean partnerDecides,
             @Nullable MemberIdentity member,
             @Nullable RegistrationStatus status,
             @Nullable Instant registeredAt,
             List<Integer> parts,
-            List<SetResult> sets) {
+            List<SetResult> sets,
+            @Nullable Integer queuePosition) {
         static EventGroupPartnerSignUp of(EventGroupPartnerService.PartnerSignUp signUp) {
             var standing = signUp.standing();
             return new EventGroupPartnerSignUp(
                     signUp.id(),
+                    signUp.partnerId(),
+                    signUp.partnerDecides(),
                     signUp.member(),
                     standing.status(),
                     standing.registeredAt(),
                     standing.parts(),
-                    standing.sets());
+                    standing.sets(),
+                    standing.queuePosition());
         }
     }
 }

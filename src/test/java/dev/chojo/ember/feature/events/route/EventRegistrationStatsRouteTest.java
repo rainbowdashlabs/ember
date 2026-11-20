@@ -11,6 +11,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.AwaitingAnswers;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
@@ -116,7 +117,8 @@ class EventRegistrationStatsRouteTest {
                 mock(StationService.class),
                 mock(OccurrenceCalendar.class),
                 visibility,
-                new EventSignUpGuards(mock(GuardianPolicy.class)));
+                new EventSignUpGuards(mock(GuardianPolicy.class)),
+                mock(AwaitingAnswers.class));
     }
 
     private void askForTheRanking(String query) {

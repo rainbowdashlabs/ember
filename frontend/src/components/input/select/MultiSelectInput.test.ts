@@ -44,7 +44,12 @@ describe('MultiSelectInput', () => {
     it('takes a chip away', async () => {
         const wrapper = mount(MultiSelectInput, {props: {modelValue: ['crew', 'lead'], options: ROLES}})
         await wrapper.get('span button').trigger('click')
-        expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([['lead']])
+        expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([['crew']])
+    })
+
+    it('shows the chips in the order of the options, not in the order they were picked', () => {
+        const wrapper = mount(MultiSelectInput, {props: {modelValue: ['guest', 'lead'], options: ROLES}})
+        expect(wrapper.findAll('span').map(chip => chip.text()).filter(Boolean)).toEqual(['Leitung', 'Gast'])
     })
 
     it('closes on a press outside', async () => {

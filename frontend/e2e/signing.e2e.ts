@@ -69,7 +69,7 @@ async function appointment(manager: Page, withConsent = true): Promise<{eventId:
             startTime: start.toISOString(),
             endTime: new Date(start.getTime() + 3_600_000).toISOString(),
             requiresRegistration: true,
-            registrationDeadline: new Date(Date.now() + 3 * DAY).toISOString(),
+            registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() + 3 * DAY).toISOString(), offsetMinutes: null, anchor: null},
         },
     })
     expect(created.ok(), `the organiser made an appointment (${await created.text()})`).toBeTruthy()
@@ -221,7 +221,7 @@ test.describe('Signing documents to bring', () => {
     test('a document added after signing up is asked for', async ({browser, request, managerPage}) => {
         const story = await scene(browser, request, managerPage, false)
         await signUpChild(story)
-        await expect(story.guardian.getByTestId(`my-answer-${story.child.memberId}`)).toHaveText(/Bestätigt|Ausstehend/,
+        await expect(story.guardian.getByTestId(`my-answer-${story.child.memberId}`)).toHaveText(/Bestätigt|Offen/,
             {timeout: 15_000})
         expect(await openFields(story.guardian), 'nothing is asked while the appointment asks for nothing')
             .toEqual(expect.not.arrayContaining([expect.objectContaining({memberName: expect.stringContaining(story.child.surname)})]))

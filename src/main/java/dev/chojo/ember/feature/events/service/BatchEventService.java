@@ -8,16 +8,20 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventsBatchCreated;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
+import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -44,6 +48,9 @@ public class BatchEventService {
     private final EventBreakRepository breakRepository;
     private final StationRepository stationRepository;
     private final DomainEventBus eventBus;
+    private final EventTemplateService templateService;
+    private final EventReminderService reminderService;
+    private final EventFieldDefaultService fieldDefaultService;
 
     @Inject
     public BatchEventService(
@@ -52,18 +59,39 @@ public class BatchEventService {
             EventFieldService eventFieldService,
             EventBreakRepository breakRepository,
             StationRepository stationRepository,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            EventTemplateService templateService,
+            EventReminderService reminderService,
+            EventFieldDefaultService fieldDefaultService) {
         this.crudService = crudService;
         this.restrictionService = restrictionService;
         this.eventFieldService = eventFieldService;
         this.breakRepository = breakRepository;
         this.stationRepository = stationRepository;
         this.eventBus = eventBus;
+        this.templateService = templateService;
+        this.reminderService = reminderService;
+        this.fieldDefaultService = fieldDefaultService;
     }
 
     /**
      * Creates one event per row. Each is created without its own announcement, and one aggregate
      * announcement covers the whole batch, so members get a single notification.
+     *
+     * <p>Every appointment carries what the batch sets for all of them, the way a single appointment
+     * made in the editor would: its places, minimum, waiting list order, reminders and its sign-up
+     * deadline, a fixed one shared by all and a relative one counted from each start. A batch made
+     * from an appointment template hands each appointment the template's questions, documents to
+     * bring and files, and its field starting values where the batch keeps the template's attendance
+     * sheet. The template is asked for before
+     * the first appointment is written, so another station's template refuses the whole batch.
+     *
+     * <p>All appointments are written in one transaction: a row refused halfway leaves no appointment
+     * behind, and the announcement goes out only once the whole batch is committed.
+     *
+     * <p>Single creation applies the reminders, the waiting list order and the field starting values in
+     * the editor, while a batch has them applied here on the server; the
+     * questions, documents to bring and files go through {@link EventTemplateService#copyInto} for both.
      *
      * @param stationId the station the events belong to
      * @param request   the rows and what they share
@@ -72,8 +100,29 @@ public class BatchEventService {
     public List<StationEvent> createBatch(int stationId, BatchRequest request) {
         request.rows().forEach(row -> nameOf(row, request));
         var fieldDefs = resolveFieldDefs(request);
-        var created = new ArrayList<StationEvent>();
+        var template = templateOf(stationId, request);
+        var templateDefaults = templateDefaultsOf(template, request);
+        var created = Transactions.call(() -> writeAll(stationId, request, fieldDefs, template, templateDefaults));
+        if (!created.isEmpty()) {
+            eventBus.publish(new EventsBatchCreated(stationId, List.copyOf(created)));
+            log.info("Created batch of {} events for station {}", created.size(), stationId);
+        } else {
+            log.warn("Batch event creation for station {} produced no events", stationId);
+        }
+        return created;
+    }
 
+    /**
+     * Writes every appointment of the batch with what it shares. Runs inside the batch's one
+     * transaction, so a row that is refused leaves none of the rows before it behind.
+     */
+    private List<StationEvent> writeAll(
+            int stationId,
+            BatchRequest request,
+            List<BatchFieldEntry> fieldDefs,
+            @Nullable EventTemplate template,
+            List<EventFieldDefault> templateDefaults) {
+        var created = new ArrayList<StationEvent>();
         for (var row : request.rows()) {
             Instant startTime = row.startTime();
             Instant endTime = row.endTime();
@@ -89,13 +138,12 @@ public class BatchEventService {
                     endTime,
                     request.templateId(),
                     Boolean.TRUE.equals(request.requiresRegistration()),
-                    request.registrationDeadline(),
+                    request.deadline(),
                     Boolean.TRUE.equals(request.requiresConfirmation()),
                     request.categoryId(),
-                    null,
-                    null,
-                    null,
-                    null);
+                    request.registrationLimit(),
+                    request.minRegistrations(),
+                    request.minRegistrations() == null ? null : request.thresholdDays());
 
             if (request.restriction() != null) {
                 restrictionService.setRestrictions(event.id(), request.restriction());
@@ -115,15 +163,51 @@ public class BatchEventService {
                             false))
                     .toList();
             eventFieldService.replaceFields(event.id(), fieldEntries);
+            carryShared(event.id(), request, template, templateDefaults);
             created.add(event);
         }
-        if (!created.isEmpty()) {
-            eventBus.publish(new EventsBatchCreated(stationId, List.copyOf(created)));
-            log.info("Created batch of {} events for station {}", created.size(), stationId);
-        } else {
-            log.warn("Batch event creation for station {} produced no events", stationId);
-        }
         return created;
+    }
+
+    /**
+     * The appointment template the batch is made from, where it names one.
+     *
+     * @throws io.javalin.http.HttpResponseException where the template is gone or another station's
+     */
+    private @Nullable EventTemplate templateOf(int stationId, BatchRequest request) {
+        Integer templateId = request.eventTemplateId();
+        return templateId == null ? null : templateService.requireOwn(stationId, templateId);
+    }
+
+    /**
+     * The field starting values of the template, kept only where the batch takes its attendance on the
+     * template's sheet: they name fields of that sheet, and another one does not have them.
+     */
+    private List<EventFieldDefault> templateDefaultsOf(@Nullable EventTemplate template, BatchRequest request) {
+        if (template == null) return List.of();
+        Integer sheet = template.attendanceTemplateId();
+        if (sheet == null || !sheet.equals(request.templateId())) return List.of();
+        return fieldDefaultService.find(AppointmentOwner.TEMPLATE, template.id());
+    }
+
+    /**
+     * Writes what every appointment of the batch shares beyond the appointment itself: the waiting list
+     * order, the reminders and what the template hands over.
+     */
+    private void carryShared(
+            int eventId, BatchRequest request, @Nullable EventTemplate template, List<EventFieldDefault> defaults) {
+        var queueOrder = request.queueOrder();
+        if (queueOrder != null) crudService.setQueueOrder(eventId, queueOrder);
+        if (!request.reminderDays().isEmpty()) reminderService.setDays(eventId, request.reminderDays());
+        if (template == null) return;
+        templateService.copyInto(template, eventId);
+        if (defaults.isEmpty()) return;
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                eventId,
+                defaults.stream()
+                        .map(value -> new EventFieldDefault(eventId, value.fieldId(), value.source(), value.value()))
+                        .toList());
     }
 
     /**

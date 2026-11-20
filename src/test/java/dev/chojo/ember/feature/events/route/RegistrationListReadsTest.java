@@ -14,9 +14,11 @@ import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.route.EventRegistrationRoutes.RegistrationResponse;
+import dev.chojo.ember.feature.events.service.AwaitingAnswers;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventMemberTableService;
@@ -56,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -83,6 +86,7 @@ class RegistrationListReadsTest {
     private EventRegistrationService registrationService;
     private EventRegistrationFieldService registrationFieldService;
     private EventRegistrationRoutes routes;
+    private OccurrenceCalendar calendar;
 
     private static StationMember member(int id) {
         return new StationMember(id, STATION_ID, UUID.randomUUID(), id, false, null, "", StationUserType.MEMBER, null);
@@ -131,11 +135,13 @@ class RegistrationListReadsTest {
         eventFieldService = mock(EventFieldService.class);
         registrationService = mock(EventRegistrationService.class);
         registrationFieldService = mock(EventRegistrationFieldService.class);
+        calendar = mock(OccurrenceCalendar.class);
         var nameResolver = mock(MemberNameResolver.class);
         var identityFactory = mock(MemberIdentityFactory.class);
 
         StationEvent event = mock(StationEvent.class);
         when(event.name()).thenReturn("Zeltlager");
+        when(event.registrationDeadline()).thenReturn(RegistrationDeadline.none());
         when(crudService.findById(EVENT_ID)).thenReturn(Optional.of(event));
         when(registrationFieldService.findValuesByRegistration(anyList())).thenReturn(Map.of());
         when(registrationFieldService.requiredFieldIds(anyInt())).thenReturn(Set.of());
@@ -158,9 +164,10 @@ class RegistrationListReadsTest {
                 mock(MemberTableService.class),
                 mock(MemberTableRenderer.class),
                 mock(StationService.class),
-                mock(OccurrenceCalendar.class),
+                calendar,
                 mock(EventVisibility.class),
-                new EventSignUpGuards(mock(GuardianPolicy.class)));
+                new EventSignUpGuards(mock(GuardianPolicy.class)),
+                mock(AwaitingAnswers.class));
     }
 
     private void placed(List<Integer> memberIds) {
@@ -223,8 +230,27 @@ class RegistrationListReadsTest {
                         true,
                         "Fahrer",
                         null,
-                        false),
+                        false,
+                        Instant.parse("2026-08-01T10:00:00Z"),
+                        null,
+                        null),
                 row);
+    }
+
+    /** Each row carries when sign-up for its date closes, as the server places it. */
+    @Test
+    void aRowCarriesWhenSignUpForItsDateCloses() {
+        placed(List.of(7));
+        var closes = Instant.parse("2026-08-30T22:00:00Z");
+        var event = mock(StationEvent.class);
+        when(event.name()).thenReturn("Zeltlager");
+        when(event.registrationDeadline()).thenReturn(RegistrationDeadline.fixed(closes));
+        when(event.registrationClosesOn(eq(DATE), any())).thenReturn(Optional.of(closes));
+        when(crudService.findById(EVENT_ID)).thenReturn(Optional.of(event));
+
+        var row = list(List.of(placedByTheGuardian(1009, 7))).getFirst();
+
+        assertEquals(closes, row.registrationClosesAt());
     }
 
     /** A member the station no longer knows keeps an empty name and no identity, as before. */

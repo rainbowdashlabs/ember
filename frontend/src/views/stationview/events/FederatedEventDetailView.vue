@@ -14,10 +14,12 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import {partnerEventCommentSource} from '@/api/comments'
 import {
+  RegistrationStatus,
   StationPermission,
   type PartnerAgreementOffer,
   type PartnerDocumentToSign,
   type PartnerEventDetail,
+  type EventRegistrationFieldValue,
   type RemoteMemberRegistration,
 } from '@/api/generated/schema'
 import {events} from '@/api'
@@ -35,6 +37,10 @@ import AgreementOfferCard from './federatedeventdetailview/AgreementOfferCard.vu
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CommentSection from '@/components/comment/CommentSection.vue'
 import PartnerSigningStep from './eventshared/PartnerSigningStep.vue'
+import RegistrationFieldsModal from './eventshared/RegistrationFieldsModal.vue'
+import {usePartnerSignUp} from './federatedeventdetailview/usePartnerSignUp'
+import {partnerDateState} from './federatedeventdetailview/partnerDatePlaces'
+import {ourPartnerPlaces} from './eventshared/ourPartnerPlaces'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -82,28 +88,9 @@ const publicFields = computed(() => detail.value?.publicFields ?? [])
  */
 const pageTitle = computed(() => eventData.value?.name || t('pages.federated-event-detail.title'))
 
-/**
- * What the station holding this appointment has given us, where it has given anything.
- *
- * <p>Absent is the ordinary arrangement: they decide about each of our members, as they always did.
- * Present means we choose who comes, and where they also named a number, how many.
- */
-const ourPlaces = computed(() => detail.value?.places ?? null)
-
-/**
- * What we were given, in words, without claiming how much of it is left.
- *
- * <p>Only the station holding the appointment can count that: what this one can see is its own
- * members' places and not the rest of the station's, and a number worked out from those alone would
- * read as the whole and be wrong for everybody with colleagues. They answer when the places are
- * full, and that answer is the one that counts.
- */
-const placesSummary = computed(() => {
-  const places = ourPlaces.value
-  if (!places) return ''
-  if (places.slotBudget === null) return t('eventsUpcoming.placesUncapped')
-  return t('eventsUpcoming.placesGiven', {total: places.slotBudget})
-})
+/** What the station holding this appointment has given us, and whether the reader chooses who of us comes. */
+const ourPlaces = computed(() =>
+    ourPartnerPlaces(detail.value?.places, hasPermission(StationPermission.EVENT_REGISTRATION), t))
 
 /**
  * Gives one of our own a place, which only works where the other station handed us the choosing.
@@ -152,15 +139,16 @@ function selectedUidForRegister(): string | null {
   return selectedMemberUid.value || null
 }
 
-const {running: registering, failure: registrationFailure, run: runRegistration} = useAsyncAction(
-    async (kind: 'register' | 'withdraw', uid: string) => {
+const {running: registering, failure: registrationFailure, run: runRegistration, runOrReject} = useAsyncAction(
+    async (kind: 'register' | 'withdraw', uid: string, answers: EventRegistrationFieldValue[] = []) => {
       if (kind === 'register') {
-        const answer = await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid)
+        const answer = await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid, answers)
         myRegistrations.value.push({
           eventId: eventId.value, remoteMemberId: uid,
           eventDate: getEventDate(), status: answer.status, partnerId: 0,
         })
         toSign.value = answer.toSign
+        if (answer.status === RegistrationStatus.QUEUED) showToast(t('eventsUpcoming.queuedAtPartner'), 'info')
       } else {
         await events.withdrawFederatedRegistration(stationUid.value, eventId.value, getEventDate(), uid)
         myRegistrations.value = myRegistrations.value.filter(r => !(r.eventId === eventId.value && r.remoteMemberId === uid))
@@ -185,10 +173,17 @@ async function undoWithdrawal(uid: string) {
   await refreshMyRegistrations()
 }
 
+const {open: askingQuestions, start: startSignUp, answer: answerQuestions} = usePartnerSignUp(
+    computed(() => detail.value?.questions ?? []),
+    (uid, answers) => runOrReject('register', uid, answers))
+
+/** How a sign-up for the date would land: on a full date the button offers the waiting list. */
+const dateState = computed(() => partnerDateState(detail.value, getEventDate()))
+
 function registerForEvent() {
   const uid = selectedUidForRegister()
   if (!uid) return
-  return runRegistration('register', uid)
+  return startSignUp(uid)
 }
 
 function withdrawRegistration(uid: string) {
@@ -249,8 +244,10 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
             :registrations="myRegistrations"
             :event-id="eventId"
             :registering="registering"
-            :we-decide="(ourPlaces?.decidesItself ?? false) && hasPermission(StationPermission.EVENT_REGISTRATION)"
-            :places-summary="placesSummary"
+            :we-decide="ourPlaces.weDecide"
+            :places-summary="ourPlaces.summary"
+            :full="dateState.full"
+            :joins-queue="dateState.joinsQueue"
             @register="registerForEvent"
             @withdraw="withdrawRegistration"
             @confirm="confirmOwn"
@@ -271,5 +268,12 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
       </EventGroupFrame>
     </div>
     <PartnerSigningStep v-if="signingStepOpen" v-model="signingStepOpen" :documents="toSign"/>
+    <RegistrationFieldsModal
+        v-model="askingQuestions"
+        :fields="detail?.questions ?? []"
+        :busy="registering"
+        :failure="registrationFailure"
+        @confirm="answerQuestions"
+    />
   </ViewContent>
 </template>

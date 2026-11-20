@@ -24,6 +24,10 @@
     "status.DENIED": "Denied",
     "status.DECLINED": "Declined",
     "status.WITHDRAWN": "Withdrawn",
+    "status.QUEUED": "Waiting list",
+    "status.MOVED_UP": "Moved up from the waiting list",
+    "status.SHORT_NOTICE": "short notice",
+    "status.QUEUE_PLACE": "place {position}",
     "status.NONE": "Not registered",
     "status.ANNOUNCED": "Announced",
     "status.RECEIVED": "Received",
@@ -336,6 +340,8 @@
     "notification.boardTicketUpdate": "{ticketKey} on \"{boardName}\": {changeDescription}",
     "notification.registrationDeadlineExpired.one": "Registration deadline expired for {eventName} ({pendingCount} pending)",
     "notification.registrationDeadlineExpired.other": "Registration deadline expired for {eventName} ({pendingCount} pending)",
+    "notification.registrationDeadlineExpired.DATE.one": "Registration deadline expired for {eventName} on {eventDate} ({pendingCount} pending)",
+    "notification.registrationDeadlineExpired.DATE.other": "Registration deadline expired for {eventName} on {eventDate} ({pendingCount} pending)",
     "notification.eventCancelled": "Event cancelled: {eventName}",
     "notification.eventCancelled.EVENT_GROUP": "Event group cancelled: {eventName}",
     "notification.eventCancelled.DATE": "{eventName} on {eventDate} was cancelled",
@@ -383,6 +389,8 @@
     "notification.expiryReminder.MEMBERS_DUE.other": "{fieldName}: due for {count} members ({members})",
     "notification.registrationClosing.one": "{eventName}: registration closes tomorrow, {memberName} has not answered yet",
     "notification.registrationClosing.other": "{eventName}: registration closes in {daysBefore} days, {memberName} has not answered yet",
+    "notification.registrationClosing.DATE.one": "{eventName} on {eventDate}: registration closes tomorrow, {memberName} has not answered yet",
+    "notification.registrationClosing.DATE.other": "{eventName} on {eventDate}: registration closes in {daysBefore} days, {memberName} has not answered yet",
     "notification.registrationAnswerMissing": "{eventName} on {eventDate}: a new question was added and {memberName} has not answered it yet",
     "notification.eventDateDropped": "{eventName} has moved and no longer takes place on {eventDate}: the registration of {memberName} was withdrawn. The next date is {nextDate}",
     "notification.eventDateDropped.LAST": "{eventName} no longer takes place on {eventDate}: the registration of {memberName} was withdrawn. No later date is left",
@@ -408,5 +416,11 @@
     "notification.signatureWithdrawn": "{withdrawnByName} withdrew the signature on {documentTitle} for {memberName}",
     "notification.partnerSignatureWithdrawn": "A signature on {documentTitle} was withdrawn at {stationName}",
     "notification.partnerSignatureWithdrawn.NAMED": "The signature on {documentTitle} for {memberName} was withdrawn at {stationName}"
+  },
+  "push": {
+    "testTitle": "Push notifications are set up",
+    "testBody": "This is how notifications from Ember look on this device.",
+    "summaryTitle": "New notifications in Ember",
+    "summaryBody": "{count} new notifications are waiting for you in Ember."
   }
 }

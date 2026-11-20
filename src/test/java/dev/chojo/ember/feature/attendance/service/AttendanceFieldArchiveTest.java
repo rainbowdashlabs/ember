@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
@@ -189,7 +190,20 @@ class AttendanceFieldArchiveTest extends RepositoryTestBase {
         eventTemplates.update(
                 eventTemplate,
                 new EventTemplateSettings(
-                        "Dienst", null, null, null, null, null, null, null, null, templateId, null, null, null, null));
+                        "Dienst",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        RegistrationDeadline.none(),
+                        null,
+                        null,
+                        templateId,
+                        null,
+                        null,
+                        null,
+                        null));
         eventTemplateRepo.replaceFields(
                 eventTemplate,
                 List.of(new AppointmentTemplateFieldDraft(
@@ -252,9 +266,8 @@ class AttendanceFieldArchiveTest extends RepositoryTestBase {
                         END,
                         templateId,
                         false,
-                        null,
+                        RegistrationDeadline.none(),
                         false,
-                        null,
                         null,
                         null,
                         null,

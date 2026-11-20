@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
@@ -70,10 +71,9 @@ public class EventGroupPartFactory {
                     endTime,
                     null,
                     true,
-                    null,
+                    RegistrationDeadline.none(),
                     false,
                     categoryId,
-                    null,
                     null,
                     null,
                     null);

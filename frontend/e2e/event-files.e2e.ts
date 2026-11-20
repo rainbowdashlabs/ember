@@ -7,6 +7,7 @@ import {test, expect, apiHeaders, demoAccounts, pageAsThrowaway, type Page} from
 import {unique} from './fixtures/unique'
 import type {APIRequestContext, Browser} from '@playwright/test'
 import {must} from './fixtures/must'
+import {openFormSection} from './fixtures/formSection'
 
 /**
  * A file the demo seeder puts in the main station's library. Picking one is what attaching an event
@@ -93,6 +94,7 @@ test.describe('Event files', () => {
     test('a manager hangs a library file on an event and keeps it back', async ({managerPage: page}) => {
         const eventId = await someEventId(page)
         await page.goto(`/station/events/${eventId}/edit`)
+        await openFormSection(page, 'documents')
 
         const card = page.getByTestId('event-attachments')
         await expect(card).toBeVisible()

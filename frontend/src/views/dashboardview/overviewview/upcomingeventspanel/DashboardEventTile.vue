@@ -12,15 +12,21 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
 import EventGroupTile from '@/views/stationview/events/eventshared/EventGroupTile.vue'
 import type {EventCategory, EventSummary, RegistrationResponse} from '@/api/generated/schema'
 import {formatDate, formatTime} from '@/util/format'
+import {hasPassed} from '@/views/stationview/events/eventshared/registrationDeadline'
 
 const props = defineProps<{
   event: EventSummary
   date: string
   dayLabel: string
+  /** When sign-up for this date closes, as the server sends it; null where it does not close. */
+  registrationClosesAt: string | null
+  /** Whether this date was called off, which the tile says and which leaves nothing to decline. */
+  cancelled?: boolean
   /** What kind of appointment this is, absent where it was put in no category. */
   category?: EventCategory | null
   /** What the household has answered for this date, one entry per person. */
@@ -48,10 +54,9 @@ const {t} = useI18n()
  * the day; one that has to be signed up for takes it while registration is open, so that whoever has no
  * time stops being reminded of a list they will not join.
  */
-const canDecline = computed(() => props.openCount > 0
+const canDecline = computed(() => props.openCount > 0 && !props.cancelled
     && (!props.event.requiresRegistration
-        || !props.event.registrationDeadline
-        || new Date(props.event.registrationDeadline).getTime() > Date.now()))
+        || !hasPassed(props.registrationClosesAt)))
 </script>
 
 <template>
@@ -73,7 +78,8 @@ const canDecline = computed(() => props.openCount > 0
         </div>
 
         <div class="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
-          <SecondaryBadge v-if="event.requiresRegistration && answers.length === 0 && openCount === 0"
+          <ErrorBadge v-if="cancelled" :data-testid="`dashboard-cancelled-${event.id}`">{{ t('events.cancelled') }}</ErrorBadge>
+          <SecondaryBadge v-else-if="event.requiresRegistration && answers.length === 0 && openCount === 0"
                           :data-testid="`dashboard-not-open-${event.id}`">
             {{ t('dashboard.registrationNotOpen') }}
           </SecondaryBadge>
@@ -95,7 +101,7 @@ const canDecline = computed(() => props.openCount > 0
       <div v-if="answers.length > 0" class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
         <span v-for="answer in answers" :key="answer.registration.id" class="flex items-center gap-1">
           <span v-if="showNames" class="text-xs text-(--text-muted)">{{ answer.name }}</span>
-          <RegistrationStatusBadge :status="answer.registration.status"/>
+          <RegistrationStatusBadge :status="answer.registration.status" :queue-position="answer.registration.queuePosition"/>
         </span>
       </div>
     </EventGroupTile>

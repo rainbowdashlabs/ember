@@ -17,6 +17,7 @@ import {useClusterNotificationCount} from '@/composables/useClusterNotificationC
 import {clusterInbox} from '@/api/notifications'
 import NotificationInbox from '@/components/notifications/NotificationInbox.vue'
 import ClusterMailSwitch from './clusternotificationsview/ClusterMailSwitch.vue'
+import {usePushAvailability} from '@/composables/usePushAvailability'
 
 const {t} = useI18n()
 const {refresh: refreshUnreadNotifications} = useClusterNotificationCount()
@@ -39,6 +40,20 @@ async function toggleMail() {
     return updated
   })
 }
+
+/** Whether this instance pushes; without it the push switch stays hidden. */
+const {available: pushAvailable} = usePushAvailability()
+
+async function togglePush() {
+  if (!settings.value) return
+  saved.value = false
+  const wanted = !settings.value.pushEnabled
+  await runWith(async () => {
+    const updated = await clusters.updatePushSetting(wanted)
+    saved.value = true
+    return updated
+  })
+}
 </script>
 
 <template>
@@ -48,7 +63,8 @@ async function toggleMail() {
       <FailureAlert :failure="failure"/>
       <Alert v-if="saved" variant="success">{{ t('clusterNotifications.saved') }}</Alert>
       <NotificationInbox :api="clusterInbox" @changed="refreshUnreadNotifications"/>
-      <ClusterMailSwitch v-if="!loading && settings" :settings="settings" @toggle="toggleMail"/>
+      <ClusterMailSwitch v-if="!loading && settings" :settings="settings" :push-available="pushAvailable"
+                         @toggle="toggleMail" @toggle-push="togglePush"/>
     </div>
   </ViewContent>
 </template>

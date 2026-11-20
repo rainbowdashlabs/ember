@@ -20,11 +20,24 @@ import type {EventGroupDetail, EventGroupPartnerSignUp} from '@/api/generated/sc
 import {RegistrationStatus} from '@/api/generated/schema'
 import {eventGroups} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {useAsyncAction} from '@/composables/useAsyncAction'
+import type {Failure} from '@/util/failure'
+import {fullPeoplePlaces, keepsWaitingList} from '@/util/eventGroupChoice'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import QueueDialogs from '../eventshared/QueueDialogs.vue'
+import {useQueueActions} from '../eventshared/useQueueActions'
+import {eventGroupQueueRoutes} from '../eventshared/queueRoutes'
 
 /**
  * The sign-ups partner stations' members sent for a shared event group, decided the same way as the
  * station's own. Nothing is shown while no partner member signed up.
+ *
+ * <p>A partner's member on the waiting list says their place in line, which counts over the one list
+ * the station's own wait in too, and is moved up by hand from here. One waiting for a decision can be
+ * put on the list. Accepting where the people or a chosen part is full asks first.
+ *
+ * <p>Where a partner decides its own sign-ups, its rows offer no accepting, denying or putting on the
+ * list, and say who chooses instead: the server refuses all three, and a row that simply refused when
+ * pressed would leave the reader guessing why. Moving within the waiting list stays with this station.
  */
 const props = defineProps<{
   detail: EventGroupDetail
@@ -39,16 +52,21 @@ const {failure: loadFailure, reload} = useAsyncLoader(async () => {
   signUps.value = await eventGroups.listPartnerSignUps(props.detail.eventGroup.id)
 }, {autoLoad: false})
 
+/** Whether the event group keeps a waiting list, which needs a limit on people or on parts. */
+const keepsQueue = computed(() => keepsWaitingList(props.detail.eventGroup.details, props.detail.parts))
+
 /**
- * Accepts or declines one partner sign-up. While one decision is on its way every decision button
- * waits, so a second click is not dropped without a word.
+ * Deciding the partners' sign-ups and keeping them on the waiting list. While one action is on its way
+ * every button waits, so a second click is not dropped without a word.
  */
-const {running: deciding, failure: decideFailure, run: decide} = useAsyncAction(
-    async (entry: EventGroupPartnerSignUp, status: RegistrationStatus) => {
-      await eventGroups.decidePartner(props.detail.eventGroup.id, entry.id, status)
-      await reload()
-      await props.onChanged?.()
-    })
+const decideFailure = ref<Failure | null>(null)
+const actions = useQueueActions(
+    () => fullPeoplePlaces(props.detail.eventGroup),
+    async () => { await props.onChanged?.() },
+    decideFailure,
+    eventGroupQueueRoutes(props.detail.eventGroup.id),
+    id => signUps.value.find(entry => entry.id === id)?.status)
+const deciding = actions.busy
 const failure = computed(() => decideFailure.value ?? loadFailure.value)
 
 watch(() => props.detail.eventGroup.id, reload, {immediate: true})
@@ -65,21 +83,29 @@ defineExpose({reload})
           data-testid="event-group-partner-sign-up-row">
         <div class="flex flex-wrap items-center gap-2 min-w-0">
           <MemberName :identity="entry.member ?? null"/>
-          <RegistrationStatusBadge v-if="entry.status" :status="entry.status"/>
+          <RegistrationStatusBadge v-if="entry.status" :status="entry.status" :queue-position="entry.queuePosition"/>
           <MutedText tag="span" size="sm">{{ t('eventGroups.chosen', {count: entry.parts.length}) }}</MutedText>
           <EventGroupShortfall :sets="entry.sets"/>
         </div>
-        <ButtonRow pair align="end">
+        <MutedText v-if="entry.partnerDecides" tag="span" size="sm" :data-testid="`event-group-partner-decides-${entry.id}`">
+          {{ t('eventDetail.federatedPartnerDecides') }}
+        </MutedText>
+        <ButtonRow v-else :pair="!keepsQueue" align="end">
           <SuccessButton v-if="entry.status !== RegistrationStatus.ACCEPTED" compact :disabled="deciding"
-                         data-testid="event-group-partner-accept" @click="decide(entry, RegistrationStatus.ACCEPTED)">
-            {{ t('eventGroups.accept') }}
+                         data-testid="event-group-partner-accept" @click="actions.acceptPartner(entry.id)">
+            {{ entry.status === RegistrationStatus.QUEUED ? t('registrationQueue.moveUp') : t('eventGroups.accept') }}
           </SuccessButton>
+          <SecondaryButton v-if="keepsQueue && entry.status === RegistrationStatus.PENDING" compact :disabled="deciding"
+                           :data-testid="`event-group-partner-queue-${entry.id}`" @click="actions.queuePartners([entry.id])">
+            {{ t('registrationQueue.putOnList') }}
+          </SecondaryButton>
           <ErrorButton v-if="entry.status !== RegistrationStatus.DENIED" compact :disabled="deciding"
-                       data-testid="event-group-partner-deny" @click="decide(entry, RegistrationStatus.DENIED)">
+                       data-testid="event-group-partner-deny" @click="actions.deny(entry.id, true)">
             {{ t('eventGroups.deny') }}
           </ErrorButton>
         </ButtonRow>
       </li>
     </ul>
+    <QueueDialogs :actions="actions"/>
   </NeutralContainer>
 </template>

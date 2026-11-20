@@ -18,6 +18,8 @@ import EventProbeVisitors from './EventProbeVisitors.vue'
 import EventDetailHeader from './EventDetailHeader.vue'
 import EventInfoTab from './EventInfoTab.vue'
 import EventEquipmentTab from './EventEquipmentTab.vue'
+import EventAttendanceTab from './EventAttendanceTab.vue'
+import {detailTabs, showsAttendanceTab, type DetailTabFacts, type DetailTabKey} from './detailTabs'
 import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -34,15 +36,19 @@ import type {
 } from '@/api/generated/schema'
 import {attendance, events} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {StationModule, StationPermission} from '@/api/generated/schema'
+import {DeadlineKind, StationModule, StationPermission} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {formatDateTime} from '@/util/format'
+import {hasPassed} from '../eventshared/registrationDeadline'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
+import {placesFromResponse, placesLabel, signUpQueues, type Places} from '@/util/eventPlaces'
 import {useSession} from '@/composables/useSession'
 
 const props = defineProps<{
   /** Whether the appointment is a part of an event group, whose sign-up goes through the event group. */
   eventGroupPart?: boolean
+  /** The event group the appointment is a part of, which deleting it leaves. */
+  eventGroupName?: string | null
   event: StationEvent
   eventId: number
   fields: AppointmentField[]
@@ -86,7 +92,7 @@ const emit = defineEmits<{
 const currentMemberIds = computed(() => props.allMembers.map(member => member.id))
 
 const {t} = useI18n()
-const {isModuleEnabled} = useSession()
+const {isModuleEnabled, stationTimezone} = useSession()
 const router = useRouter()
 
 /**
@@ -151,24 +157,72 @@ const answers = computed(() =>
     localAnswers(props.registrableMembers, props.myRegistrations, registrationFields.value.length > 0))
 
 /**
+ * How the places of the date stand, as the server counts them with partners' members included.
+ * Null where the appointment limits nothing or the date is not known.
+ */
+const places = ref<Places | null>(null)
+
+/** Reads the places of the date on screen again; an answer for a date already left is dropped. */
+async function loadPlaces() {
+  const date = props.effectiveDate
+  if (!date || !props.event.registrationLimit) {
+    places.value = null
+    return
+  }
+  const loaded = await events.getPlaces(props.eventId, date).then(placesFromResponse).catch(() => null)
+  if (date === props.effectiveDate) places.value = loaded
+}
+
+watch(() => [props.eventId, props.effectiveDate, props.event.registrationLimit, props.myRegistrations] as const,
+    loadPlaces, {immediate: true})
+
+/** Whether signing up now puts somebody on the waiting list rather than giving them a place. */
+const joinsQueue = computed(() => signUpQueues(places.value, !!props.event.requiresConfirmation))
+
+/**
+ * When sign-up for the date on screen closes, as the server works it out, or for the date it would
+ * show while none is chosen yet. Null where sign-up does not close.
+ */
+const closesAt = ref<string | null>(null)
+
+/** Whether the server has answered for the date on screen, before which nothing offers an answer. */
+const closesAtKnown = ref(false)
+
+/**
+ * Asks the server when the date on screen closes; an answer for a date already left is dropped.
+ * Where the server cannot be asked, a fixed deadline still says when, and a relative one counts as open.
+ */
+async function loadClosesAt() {
+  const date = props.effectiveDate
+  closesAtKnown.value = false
+  const deadlines = await events.getDateDeadlines(props.eventId, date).catch(() => null)
+  if (date !== props.effectiveDate) return
+  const rule = props.event.registrationDeadline
+  closesAt.value = deadlines ? deadlines.registrationClosesAt : rule.kind === DeadlineKind.FIXED ? rule.at : null
+  closesAtKnown.value = true
+}
+
+watch(() => [props.eventId, props.effectiveDate, props.event.registrationDeadline] as const,
+    loadClosesAt, {immediate: true})
+
+/**
  * Whether an answer can still be given at all, which is the same rule the buttons follow: an
  * appointment that has to be signed up for stops taking answers at its deadline.
  */
-const stillTakingAnswers = computed(() => {
-  if (!props.event.requiresRegistration) return true
-  if (!props.event.registrationDeadline) return true
-  return new Date(props.event.registrationDeadline).getTime() > Date.now()
-})
+const stillTakingAnswers = computed(() => !props.event.requiresRegistration || !hasPassed(closesAt.value))
 
 /**
  * Whether the block is worth drawing at all.
  *
  * <p>An answer to show, or one that can still be given. Where the appointment is open to nobody in
  * the household it stays, because the block is then the one place saying why: an empty box is what
- * this used to be on a date whose deadline had passed with nobody having answered.
+ * this used to be on a date whose deadline had passed with nobody having answered. Until the server
+ * has said when sign-up closes, an appointment that needs sign-up shows no block at all, so no button
+ * appears open only to vanish a moment later.
  */
 const showAnswerBlock = computed(() => {
   if (props.eventGroupPart) return false
+  if (props.event.requiresRegistration && !closesAtKnown.value) return false
   if (!props.effectiveDate || props.cancellation) return false
   if (answers.value.length > 0) return true
   if (props.registrableMembers.length === 0) return true
@@ -196,7 +250,7 @@ const {running: savingAnswers, failure: answersFailure, run: saveAnswers} = useA
       emit('answers-updated')
     })
 
-const activeTab = ref<'info' | 'registrations' | 'equipment'>('info')
+const activeTab = ref<DetailTabKey>('info')
 
 /**
  * Whether what the appointment needs can be read at all. The gear lives in the inventory, so a
@@ -218,26 +272,23 @@ const canReadEquipment = computed(() =>
  */
 const canBorrowGear = computed(() => props.hasPermission(StationPermission.INVENTORY_LENDING_REQUEST))
 
-/**
- * What the second tab is called, which follows what the appointment asks of people.
- *
- * <p>Where it has to be signed up for, the tab holds the sign-ups. Where it does not, everybody is
- * expected and the only answer anybody gives is a refusal, so the tab holds who is not coming. It
- * used to be absent entirely on such an appointment, which left the refusals with nowhere to be
- * read: they can be given from the appointment's own page, and then went nowhere anybody looked.
- */
-const answerTabLabel = computed(() =>
-    props.event.requiresRegistration ? t('eventDetail.tabRegistrations') : t('eventDetail.tabAttendance'))
+/** What decides the tabs of the page, read off the appointment, the reader and the date on screen. */
+const tabFacts = computed<DetailTabFacts>(() => ({
+  requiresRegistration: props.event.requiresRegistration,
+  canManageAttendance: props.canManageAttendance,
+  hasAttendanceTemplate: props.event.templateId != null,
+  hasDate: props.effectiveDate != null,
+  attendanceSessionId: attendanceSessionId.value,
+  cancelled: !!props.cancellation,
+  canReadEquipment: canReadEquipment.value,
+}))
 
-const tabs = computed(() => {
-  const entries = [
-    {key: 'info', label: t('eventDetail.tabInfo')},
-    {key: 'registrations', label: answerTabLabel.value},
-  ]
-  if (canReadEquipment.value) {
-    entries.push({key: 'equipment', label: t('eventDetail.tabEquipment')})
-  }
-  return entries
+const showsAttendance = computed(() => showsAttendanceTab(tabFacts.value))
+
+const tabs = computed(() => detailTabs(tabFacts.value, t))
+
+watch(tabs, entries => {
+  if (!entries.some(entry => entry.key === activeTab.value)) activeTab.value = 'info'
 })
 
 /**
@@ -279,6 +330,7 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
         :category-name="categoryName"
         :attendance-session-id="attendanceSessionId"
         :can-take-attendance="canTakeAttendance && !cancellation"
+        :event-group-name="eventGroupName"
         @cancel-date="cancelling = 'date'"
         @cancel-series="cancelling = 'series'"
         @restore-date="restoreDate"
@@ -288,7 +340,8 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
     <div v-if="event.requiresRegistration" class="flex flex-wrap gap-3 text-sm">
       <SuccessBadge>{{ t('events.requiresRegistration') }}</SuccessBadge>
       <InfoBadge v-if="event.requiresConfirmation">{{ t('events.requiresConfirmation') }}</InfoBadge>
-      <span v-if="event.registrationDeadline" class="text-(--text-muted)">{{ t('events.registrationDeadline') }}: {{ formatDateTime(event.registrationDeadline) }}</span>
+      <span v-if="closesAt" class="text-(--text-muted)" data-testid="event-closes-at">{{ t('events.registrationDeadline') }}: {{ formatDateTime(closesAt, stationTimezone) }}</span>
+      <span v-if="places" class="text-(--text-muted)" data-testid="event-places">{{ placesLabel(places, t) }}</span>
       <span v-if="event.minRegistrations" class="text-(--text-muted)">{{ t('events.minRegistrations') }}: {{ event.minRegistrations }}</span>
       <span v-if="event.minRegistrations && event.thresholdDays != null" class="text-(--text-muted)">{{ t('events.thresholdDays') }}: {{ t('events.thresholdDaysValue', {days: event.thresholdDays}) }}</span>
     </div>
@@ -299,9 +352,11 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
           :people="registrableMembers"
           :answers="answers"
           :requires-registration="!!event.requiresRegistration"
-          :registration-deadline="event.registrationDeadline"
+          :closes-at="closesAt"
           :has-managed-members="hasManagedMembers"
           :registering="registering"
+          :sign-up-queues="joinsQueue"
+          :past="datePast"
           @register="people => emit('register', people)"
           @decline="people => emit('decline', people)"
           @withdraw="registrationId => emit('withdraw', registrationId)"
@@ -362,6 +417,15 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
         :has-managed-members="hasManagedMembers"
         :effective-date="effectiveDate"
         :current-member-ids="currentMemberIds"
+        :date-past="datePast"
+        :date-places="places"
+        @changed="loadPlaces"
+    />
+
+    <EventAttendanceTab
+        v-if="activeTab === 'attendance' && showsAttendance"
+        :attendance-session-id="attendanceSessionId"
+        @attendance="toAttendance"
     />
 
     <EventEquipmentTab

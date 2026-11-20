@@ -3,8 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {EventType, type EventFieldEntry} from '@/api/generated/schema'
+import {EventType, QueueOrder, type EventFieldEntry, type RegistrationDeadline} from '@/api/generated/schema'
 import {emptyRestriction} from '@/components/input/restriction'
+import {noDeadline} from '../eventshared/registrationDeadline'
 
 /**
  * The values a freshly opened event editor starts with. Every key is named
@@ -24,12 +25,11 @@ export function createEventFormState() {
     repeatCount: undefined as number | undefined,
     requiresRegistration: false,
     requiresConfirmation: false,
-    hasDeadline: false,
-    registrationDeadline: '',
+    registrationDeadline: noDeadline() as RegistrationDeadline,
     registrationLimit: undefined as number | undefined,
+    queueOrder: QueueOrder.TIME as QueueOrder,
     minRegistrations: undefined as number | undefined,
     thresholdDays: undefined as number | undefined,
-    registrationCloseDays: undefined as number | undefined,
     restriction: emptyRestriction(),
     viewRestriction: emptyRestriction(),
     fields: [] as EventFieldEntry[],

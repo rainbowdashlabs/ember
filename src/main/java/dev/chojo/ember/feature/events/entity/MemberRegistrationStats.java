@@ -6,11 +6,17 @@
 package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 
 public record MemberRegistrationStats(
-        int memberId, int registered, int accepted, int denied, int declined, LocalDate lastDenied) {
+        int memberId,
+        int registered,
+        int accepted,
+        int denied,
+        int declined,
+        @Nullable LocalDate lastDenied) {
 
     public static RowMapping<MemberRegistrationStats> map() {
         return row -> new MemberRegistrationStats(

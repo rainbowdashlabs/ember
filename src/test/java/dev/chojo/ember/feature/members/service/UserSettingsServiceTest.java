@@ -45,7 +45,7 @@ class UserSettingsServiceTest extends RepositoryTestBase {
         var settings = service.findOrCreate(member.id());
         assertNotNull(settings);
         assertEquals(member.id(), settings.memberId());
-        assertFalse(settings.emailEnabled());
+        assertTrue(settings.emailEnabled(), "mail is on by default");
     }
 
     @Test

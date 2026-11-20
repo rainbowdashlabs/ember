@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupDetail;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupSummary;
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemotePlaces;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.PartnerEventGroupService;
@@ -81,16 +82,20 @@ class FederatedEventGroupRoutesTest {
         var identities = mock(MemberIdentityFactory.class);
         when(identities.local(anyInt(), anyInt()))
                 .thenAnswer(call -> new MemberIdentity(UUID.randomUUID(), UUID.randomUUID()));
-        var standing =
-                new PartnerStanding(CHILD_UID, RegistrationStatus.ACCEPTED, Instant.now(), List.of(101), List.of());
+        var standing = new PartnerStanding(
+                CHILD_UID, RegistrationStatus.ACCEPTED, Instant.now(), List.of(101), List.of(), null);
         when(partnerEventGroups.signUp(anyInt(), any(), anyInt(), any(), any())).thenReturn(standing);
         var eventGroup = EventGroupFixtures.eventGroup(70, 9, "Jugendflamme 1");
         when(partnerEventGroups.eventGroup(anyInt(), eq(HOLDER), eq(70), any()))
                 .thenReturn(new RemoteEventGroupDetail(
-                        RemoteEventGroupSummary.of(EventGroupSummary.of(eventGroup, new EventGroupTally(1, 1))),
+                        RemoteEventGroupSummary.of(
+                                EventGroupSummary.of(eventGroup, new EventGroupTally(1, 1, 0, 0, null, null))),
                         List.of(),
                         List.of(),
-                        List.of(standing, new PartnerStanding(UUID.randomUUID(), null, null, List.of(), List.of())),
+                        List.of(
+                                standing,
+                                new PartnerStanding(UUID.randomUUID(), null, null, List.of(), List.of(), null)),
+                        null,
                         null));
         harness = RouteHarness.serving(new FederatedEventGroupRoutes(
                 partnerEventGroups,
@@ -147,5 +152,46 @@ class FederatedEventGroupRoutesTest {
         assertEquals(204, call("DELETE", EVENT_GROUP + "/sign-up", null).code());
 
         verify(partnerSignatures).after(any(), eq(HOLDER), eq(held), eq(Set.of()), any());
+    }
+
+    /**
+     * Whoever handles registrations confirms a member of this station at the partner holding the event
+     * group; anybody else is refused, and so is a member of another station. The page carries what the
+     * partner gave this station.
+     */
+    @Test
+    void whoeverHandlesRegistrationsConfirmsAMemberAtThePartner() {
+        var standing = new PartnerStanding(
+                CHILD_UID, RegistrationStatus.ACCEPTED, Instant.now(), List.of(101), List.of(), null);
+        when(partnerEventGroups.confirm(STATION_ID, HOLDER, 70, CHILD_UID)).thenReturn(standing);
+        String body = "{\"memberId\": 12}";
+
+        assertEquals(403, call("POST", EVENT_GROUP + "/confirm", body).code());
+        var confirmed =
+                harness.call(STATION_ID, "POST", EVENT_GROUP + "/confirm", body, StationPermission.EVENT_REGISTRATION);
+        assertEquals(200, confirmed.code());
+        assertEquals("ACCEPTED", json(confirmed).get("status").asString());
+        verify(partnerEventGroups).confirm(STATION_ID, HOLDER, 70, CHILD_UID);
+        assertEquals(
+                EventRefusal.EVENT_GROUP_MEMBER_NOT_HERE,
+                refusalOf(harness.call(
+                        STATION_ID,
+                        "POST",
+                        EVENT_GROUP + "/confirm",
+                        "{\"memberId\": 99}",
+                        StationPermission.EVENT_REGISTRATION)));
+
+        when(partnerEventGroups.eventGroup(anyInt(), eq(HOLDER), eq(70), any()))
+                .thenReturn(new RemoteEventGroupDetail(
+                        RemoteEventGroupSummary.of(EventGroupSummary.of(
+                                EventGroupFixtures.eventGroup(70, 9, "Jugendflamme 1"),
+                                new EventGroupTally(1, 1, 0, 0, null, null))),
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        null,
+                        new RemotePlaces(3, true)));
+        var page = json(call("GET", EVENT_GROUP, null));
+        assertEquals(3, page.get("places").get("slotBudget").asInt());
     }
 }

@@ -8,7 +8,7 @@ import {ownEventGroupPort, partnerEventGroupPort} from './eventGroupSignUpPort'
 
 const {eventGroups, partnerEventGroups} = vi.hoisted(() => ({
   eventGroups: {signUp: vi.fn(), changeParts: vi.fn(), withdraw: vi.fn()},
-  partnerEventGroups: {signUp: vi.fn(), changeParts: vi.fn(), withdraw: vi.fn()},
+  partnerEventGroups: {signUp: vi.fn(), changeParts: vi.fn(), withdraw: vi.fn(), confirm: vi.fn()},
 }))
 
 vi.mock('@/api', () => ({eventGroups, partnerEventGroups}))
@@ -17,7 +17,7 @@ describe('eventGroupSignUpPort', () => {
   it('sends a sign-up for an event group of this station with its answers', async () => {
     await ownEventGroupPort(70).signUp([11], [{fieldId: 5, value: 'M'}], 12)
 
-    expect(eventGroups.signUp).toHaveBeenCalledWith(70, [11], [{fieldId: 5, value: 'M'}], 12)
+    expect(eventGroups.signUp).toHaveBeenCalledWith(70, [11], [{fieldId: 5, value: 'M'}], 12, undefined)
   })
 
   it('signs the documents of an own event group here and leaves a partner\'s to the partner', () => {
@@ -34,5 +34,12 @@ describe('eventGroupSignUpPort', () => {
     expect(partnerEventGroups.signUp).toHaveBeenCalledWith('station-b', 70, [11, 12], 12)
     expect(partnerEventGroups.changeParts).toHaveBeenCalledWith('station-b', 70, [12], 12)
     expect(partnerEventGroups.withdraw).toHaveBeenCalledWith('station-b', 70, 12)
+  })
+
+  it('confirms the station\'s own sign-up at the partner, which an own event group never offers', async () => {
+    await partnerEventGroupPort('station-b', 70).confirm?.(12)
+
+    expect(partnerEventGroups.confirm).toHaveBeenCalledWith('station-b', 70, 12)
+    expect(ownEventGroupPort(70).confirm).toBeUndefined()
   })
 })

@@ -119,6 +119,27 @@ public class EventGroupPartnerRepository {
     }
 
     /**
+     * How many of one partner's sign-ups for an event group stand at a status, which is what its places
+     * are counted in: a sign-up holds one place for the whole group, whatever parts it chose.
+     *
+     * @param eventGroupId the event group
+     * @param partnerId    the station's record of the partner
+     * @param status       the status counted, such as ACCEPTED for the places taken
+     * @return the number of the partner's sign-ups at that status
+     */
+    public int countForPartner(int eventGroupId, int partnerId, RegistrationStatus status) {
+        return query("""
+                SELECT count(*) AS counted FROM event_group_partner_registration
+                WHERE event_group_id = :event_group_id AND partner_id = :partner_id AND status = :status;""")
+                .single(call().bind("event_group_id", eventGroupId)
+                        .bind("partner_id", partnerId)
+                        .bind("status", status))
+                .map(row -> row.getInt("counted"))
+                .first()
+                .orElse(0);
+    }
+
+    /**
      * A partner member's sign-up for an event group.
      *
      * @param eventGroupId   the event group

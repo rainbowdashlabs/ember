@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -107,9 +108,8 @@ class EventGroupAttachmentsTest extends RepositoryTestBase {
                 start.plus(Duration.ofHours(4)),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

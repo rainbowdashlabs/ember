@@ -15,6 +15,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import HintedSubHeader from '@/components/typography/HintedSubHeader.vue'
+import FormSection from '@/components/container/FormSection.vue'
+import {audienceSummary} from './eventshared/sectionSummaries'
+import {deadlineRuleOf, noDeadline} from './eventshared/registrationDeadline'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -37,7 +40,7 @@ import EventGroupTemplateStart from './eventgroupeditview/EventGroupTemplateStar
 import {groupFieldsOf, groupQuestionsOf, useEventGroupTemplate, newByName} from './eventgroupeditview/eventGroupTemplate'
 import {emptyRestriction, toRestriction} from '@/components/input/restriction'
 import {entryOf, namedEntries} from './eventshared/eventQuestions'
-import type {EventGroupDetail, EventGroupDetails, MemberGroup, MemberWithName, EventFieldEntry, RegistrationFieldDefinition, StationEvent, UserTag} from '@/api/generated/schema'
+import type {EventGroupDetail, EventGroupDetails, EventGroupSet, MemberGroup, MemberWithName, EventFieldEntry, RegistrationFieldDefinition, StationEvent, UserTag} from '@/api/generated/schema'
 import {EventType, StationPermission} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import {eventGroups, events, memberGroups as memberGroupsApi, stationMembers, userTags as userTagsApi} from '@/api'
@@ -48,15 +51,15 @@ import {showToast} from '@/util/toast'
 
 /**
  * Creates or edits an event group: its name, description and sign-up (places, deadline, confirmation),
- * its sets with their minimums, who may see and sign up, and, once it exists, its parts. Saving
- * stores all of it in one request, so a refusal leaves nothing half saved, and hands the sign-up and
- * the audiences down to every part. Changing parts reads only the parts again and leaves unsaved
- * edits in the form alone.
+ * its sets with their minimums, who may see and sign up, how it is shared with partners, and, once it
+ * exists, its parts. Saving stores the event group itself in one request, so a refusal leaves nothing
+ * half saved, and hands the sign-up and the audiences down to every part. Changing parts reads only the
+ * parts again and leaves unsaved edits in the form alone.
  */
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded, hasPermission} = useSession()
+const {loaded, hasPermission, stationTimezone} = useSession()
 const canFederate = computed(() => hasPermission(StationPermission.EVENTS_FEDERATE))
 const federationShare = useEventFederationShare(canFederate)
 
@@ -68,10 +71,10 @@ const members = ref<MemberWithName[]>([])
 const groupMembers = ref(new Map<number, MemberWithName[]>())
 
 const details = ref<EventGroupDetails>({
-  name: '', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false,
-  color: null, minRegistrations: null, thresholdDays: null,
+  name: '', description: null, registrationLimit: null, registrationDeadline: noDeadline(), requiresConfirmation: false,
+  color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null,
 })
-const sets = ref<SetRow[]>([{id: null, name: t('eventGroups.defaultSet'), minimum: 1}])
+const sets = ref<SetRow[]>([{id: null, name: t('eventGroups.defaultSet'), minimum: 1, maximum: null}])
 const registration = ref<RestrictionSelection>(emptyRestriction())
 const view = ref<RestrictionSelection>(emptyRestriction())
 const questions = ref<RegistrationFieldDefinition[]>([])
@@ -122,7 +125,7 @@ const saveFailure = ref<Failure | null>(null)
 function fill(loadedDetail: EventGroupDetail) {
   detail.value = loadedDetail
   details.value = {...loadedDetail.eventGroup.details}
-  sets.value = loadedDetail.sets.map(set => ({id: set.id, name: set.name, minimum: set.minimum}))
+  sets.value = loadedDetail.sets.map(set => ({id: set.id, name: set.name, minimum: set.minimum, maximum: set.maximum}))
   registration.value = toRestriction(loadedDetail.registration)
   view.value = toRestriction(loadedDetail.view)
   questions.value = loadedDetail.questions.map(({name, fieldType, config, overview}) => ({name, fieldType, config, overview}))
@@ -152,6 +155,7 @@ const {loading, failure} = useAsyncLoader(async () => {
     await federationShare.load(eventGroupFederationPort(eventGroupId.value))
   } else {
     await requirements.load(null)
+    await federationShare.loadPartners()
     await fromTemplate.loadTemplates()
     await takeStartingAppointment()
   }
@@ -192,8 +196,10 @@ function dropStartingAppointment() {
 async function refreshParts() {
   if (eventGroupId.value == null) return
   const before = new Map((detail.value?.sets ?? []).map(set => [set.id, set.minimum]))
+  const maximumsBefore = new Map((detail.value?.sets ?? []).map(set => [set.id, set.maximum]))
   detail.value = await eventGroups.getEventGroup(eventGroupId.value)
   for (const set of detail.value.sets) {
+    takeRaisedMaximum(set, maximumsBefore.get(set.id) ?? null)
     const parts = partCounts.value[set.id] ?? 0
     const row = sets.value.find(candidate => candidate.id === set.id)
     if (row && set.minimum > (before.get(set.id) ?? set.minimum) && row.minimum < set.minimum) {
@@ -206,6 +212,18 @@ async function refreshParts() {
     sets.value = sets.value.map(candidate => (candidate.id === set.id ? {...candidate, minimum: to} : candidate))
     showToast(t('eventGroups.setMinimumLowered', {set: set.name, from: before.get(set.id) ?? row.minimum, to}))
   }
+}
+
+/**
+ * Takes a maximum the server raised because a part of the set became required, the same way a raised
+ * minimum is taken, and says so. A maximum the form already holds at least as high is left alone.
+ */
+function takeRaisedMaximum(set: EventGroupSet, before: number | null) {
+  const row = sets.value.find(candidate => candidate.id === set.id)
+  if (!row || set.maximum == null || before == null || set.maximum <= before) return
+  if (row.maximum != null && row.maximum >= set.maximum) return
+  sets.value = sets.value.map(candidate => (candidate.id === set.id ? {...candidate, maximum: set.maximum} : candidate))
+  showToast(t('eventGroups.setMaximumRaised', {set: set.name, from: before, to: set.maximum}))
 }
 
 /** The minimum each saved set was stored with, which a set still filling up may keep. */
@@ -226,60 +244,73 @@ function detailsToSave(): EventGroupDetails {
     name: entered.name ?? '',
     description: entered.description?.trim() ? entered.description : null,
     registrationLimit: entered.registrationLimit ?? null,
-    registrationDeadline: entered.registrationDeadline ?? null,
+    registrationDeadline: deadlineRuleOf(entered.registrationDeadline),
     requiresConfirmation: entered.requiresConfirmation ?? false,
     color: entered.color || null,
     minRegistrations: entered.minRegistrations || null,
     thresholdDays: entered.minRegistrations ? entered.thresholdDays ?? null : null,
+    partRegistrationLimit: entered.partRegistrationLimit || null,
+    queueOrder: entered.queueOrder ?? null,
   }
 }
 
 /**
- * The event group this form created, once it did. The settings, documents and files are saved after
- * the group itself; where one of those is refused, the group already exists, and saving again has to
- * change it rather than create a second one.
+ * The event group this form created, once it did. The settings, documents, share and files are saved
+ * after the group itself; where one of those is refused, the group already exists, and saving again has
+ * to change it rather than create a second one.
  */
 const createdEventGroupId = ref<number | null>(null)
 
+/** The files section, which keeps the files added before the event group existed until it is created. */
+const filesSection = ref<InstanceType<typeof EventGroupFilesSection> | null>(null)
+
+/** Creates the event group with everything that goes in the same request, and fills the form from it. */
+async function createEventGroup(drafts: SetRow[]): Promise<number> {
+  const created = await eventGroups.createEventGroup({
+    details: detailsToSave(),
+    sets: drafts,
+    registration: registration.value,
+    view: view.value,
+    questions: savedQuestions(),
+    fields: namedEntries(fields.value),
+    appointmentId: startingAppointment.value?.id ?? null,
+  })
+  createdEventGroupId.value = created.eventGroup.id
+  startingAppointment.value = null
+  fill(created)
+  return created.eventGroup.id
+}
+
+/**
+ * Saves the event group, then its settings, documents and share. A new event group is shared in the
+ * same save, the way a new appointment is; one that is not shared sends nothing about sharing, since
+ * there is nothing to take away. The template's files go last, followed by the files added before the
+ * group existed, and the form moves to the saved group.
+ */
 async function save() {
   saving.value = true
   saveFailure.value = null
   try {
-    const drafts = sets.value.map(set => ({id: set.id, name: set.name, minimum: set.minimum}))
-    const savedId = eventGroupId.value ?? createdEventGroupId.value
-    if (savedId == null) {
-      const created = await eventGroups.createEventGroup({
-        details: detailsToSave(),
-        sets: drafts,
+    const drafts = sets.value.map(set => ({id: set.id, name: set.name, minimum: set.minimum, maximum: set.maximum}))
+    const storedId = eventGroupId.value ?? createdEventGroupId.value
+    const savedId = storedId ?? await createEventGroup(drafts)
+    if (storedId != null) {
+      fill(await eventGroups.updateEventGroup(storedId, detailsToSave(), drafts, {
         registration: registration.value,
         view: view.value,
-        questions: savedQuestions(),
-        fields: namedEntries(fields.value),
-        appointmentId: startingAppointment.value?.id ?? null,
-      })
-      createdEventGroupId.value = created.eventGroup.id
-      startingAppointment.value = null
-      fill(created)
-      await dateSettings.save(created.eventGroup.id)
-      await requirements.save(requirementOwner(created.eventGroup.id))
-      reportGoneFiles(await fromTemplate.attachFiles(created.eventGroup.id))
-      showToast(t('eventGroups.saved'), 'success')
-      await router.replace({name: 'event-group-edit', params: {eventGroupId: created.eventGroup.id}})
-      return
+      }, savedQuestions(), namedEntries(fields.value)))
     }
-    fill(await eventGroups.updateEventGroup(savedId, detailsToSave(), drafts, {
-      registration: registration.value,
-      view: view.value,
-    }, savedQuestions(), namedEntries(fields.value)))
     await dateSettings.save(savedId)
     await requirements.save(requirementOwner(savedId))
-    if (eventGroupId.value == null) {
-      reportGoneFiles(await fromTemplate.attachFiles(savedId))
-      showToast(t('eventGroups.saved'), 'success')
-      await router.replace({name: 'event-group-edit', params: {eventGroupId: savedId}})
-      return
+    if (storedId != null || federationShare.state.federationShared) {
+      await federationShare.save(eventGroupFederationPort(savedId))
     }
-    await federationShare.save(eventGroupFederationPort(savedId))
+    if (eventGroupId.value != null) return
+    const fromTemplateFiles = new Set(fromTemplate.files.value.map(file => file.fileId))
+    reportGoneFiles(await fromTemplate.attachFiles(savedId))
+    await filesSection.value?.attachPendingTo(savedId, fromTemplateFiles)
+    showToast(t('eventGroups.saved'), 'success')
+    await router.replace({name: 'event-group-edit', params: {eventGroupId: savedId}})
   } catch (e) {
     saveFailure.value = describeFailure(e, t)
     throw e
@@ -306,24 +337,26 @@ async function save() {
               :members="members" :groups="groups" :group-members="groupMembers" :tags="tags"
           />
 
-          <EventGroupSignUpFields v-model="details"/>
+          <EventGroupSignUpFields v-model="details" :parts="detail?.parts ?? []" :time-zone="stationTimezone"/>
 
           <div class="space-y-3">
             <HintedSubHeader :hint="t('eventGroups.setsHint')">{{ t('eventGroups.sets') }}</HintedSubHeader>
             <EventGroupSetsEditor v-model="sets" :part-counts="partCounts" :stored-minimums="storedMinimums"/>
           </div>
 
-          <div class="space-y-3">
-            <HintedSubHeader :hint="t('eventGroups.audienceHint')">{{ t('eventGroups.audiences') }}</HintedSubHeader>
+          <FormSection
+              :title="t('eventGroups.audiences')" :summary="audienceSummary(registration, view, t)" :attention="!!saveFailure" data-testid="form-section-audience"
+          >
+            <MutedText tag="p" size="sm">{{ t('eventGroups.audienceHint') }}</MutedText>
             <AudienceRestrictions
                 v-model:registration="registration" v-model:visibility="view" :groups="groups" :tags="tags"
                 :registration-hint="t('eventGroups.registerAudienceHint')" :visibility-hint="t('eventGroups.viewAudienceHint')"
             />
-          </div>
+          </FormSection>
 
           <EventGroupQuestionsCard v-model="questions" compact/>
-          <EventGroupFilesSection :event-group-id="eventGroupId" :requirements="requirements" compact/>
-          <EventGroupShareCard v-if="detail" :federation-share="federationShare" :can-federate="canFederate" compact/>
+          <EventGroupFilesSection ref="filesSection" :event-group-id="eventGroupId" :requirements="requirements" compact/>
+          <EventGroupShareCard :federation-share="federationShare" :can-federate="canFederate" :attention="!!saveFailure" compact/>
 
           <div class="space-y-3">
             <FailureAlert v-if="saveFailure" :failure="saveFailure"/>

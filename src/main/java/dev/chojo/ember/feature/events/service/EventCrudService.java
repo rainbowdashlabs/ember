@@ -15,8 +15,11 @@ import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
+import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
+import dev.chojo.ember.feature.events.entity.QueueOrder;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -200,7 +203,7 @@ public class EventCrudService {
      * @param endTime              the end time
      * @param templateId           the optional attendance template ID
      * @param requiresRegistration whether registration is required
-     * @param registrationDeadline the registration deadline, or null
+     * @param registrationDeadline when sign-up closes
      * @param requiresConfirmation whether registrations require manager confirmation
      * @param categoryId           the optional category ID
      * @return the created event
@@ -215,13 +218,12 @@ public class EventCrudService {
             Instant endTime,
             @Nullable Integer templateId,
             boolean requiresRegistration,
-            @Nullable Instant registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             boolean requiresConfirmation,
             @Nullable Integer categoryId,
             @Nullable Integer registrationLimit,
             @Nullable Integer minRegistrations,
-            @Nullable Integer thresholdDays,
-            @Nullable Integer registrationCloseDays) {
+            @Nullable Integer thresholdDays) {
         var event = createWithoutEvent(
                 stationId,
                 name,
@@ -237,8 +239,7 @@ public class EventCrudService {
                 categoryId,
                 registrationLimit,
                 minRegistrations,
-                thresholdDays,
-                registrationCloseDays);
+                thresholdDays);
         eventBus.publish(new EventCreated(stationId, event));
         return event;
     }
@@ -270,14 +271,14 @@ public class EventCrudService {
             Instant endTime,
             @Nullable Integer templateId,
             boolean requiresRegistration,
-            @Nullable Instant registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             boolean requiresConfirmation,
             @Nullable Integer categoryId,
             @Nullable Integer registrationLimit,
             @Nullable Integer minRegistrations,
-            @Nullable Integer thresholdDays,
-            @Nullable Integer registrationCloseDays) {
+            @Nullable Integer thresholdDays) {
         requireUsableSpan(startTime, endTime, EventRefusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CREATE);
+        requireValidDeadline(registrationDeadline);
         attendanceTemplateGuards.requireOpenForNewWork(templateId);
         var event = eventRepository.create(
                 stationId,
@@ -294,8 +295,7 @@ public class EventCrudService {
                 categoryId,
                 registrationLimit,
                 minRegistrations,
-                thresholdDays,
-                registrationCloseDays);
+                thresholdDays);
         log.info("Created event {} for station {} ({}, type={})", event.id(), stationId, name, eventType);
         return event;
     }
@@ -315,7 +315,7 @@ public class EventCrudService {
      * @param endTime              the new end time
      * @param templateId           the new template ID, or null
      * @param requiresRegistration whether registration is required
-     * @param registrationDeadline the new registration deadline, or null
+     * @param registrationDeadline when sign-up closes
      * @param requiresConfirmation whether registrations require confirmation
      * @param categoryId           the new category ID, or null
      * @return the updated event, or empty if not found
@@ -330,18 +330,20 @@ public class EventCrudService {
             Instant endTime,
             @Nullable Integer templateId,
             boolean requiresRegistration,
-            @Nullable Instant registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             boolean requiresConfirmation,
             @Nullable Integer categoryId,
             @Nullable Boolean isPublic,
             @Nullable Integer registrationLimit,
             @Nullable Integer minRegistrations,
-            @Nullable Integer thresholdDays,
-            @Nullable Integer registrationCloseDays) {
+            @Nullable Integer thresholdDays) {
         requireUsableSpan(startTime, endTime, EventRefusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CHANGE);
+        requireValidDeadline(registrationDeadline);
         attendanceTemplateGuards.requireOpenForNewWork(templateId);
         var stored = new AtomicReference<StationEvent>();
         boolean updated = Transactions.call(() -> {
+            var groupOfPart = eventGroups.findPart(id).map(EventGroupPart::eventGroupId);
+            groupOfPart.ifPresent(eventGroups::lockEventGroup);
             eventRepository.lockForSignUp(id);
             var before = eventRepository.findById(id).orElse(null);
             stored.set(before);
@@ -349,7 +351,7 @@ public class EventCrudService {
             if (part && eventType != StationEvent.EventType.ONE_TIME) {
                 throw EventRefusal.EVENT_GROUP_PART_STAYS_ONE_TIME.raise();
             }
-            return eventRepository.update(
+            boolean changed = eventRepository.update(
                     id,
                     name,
                     description,
@@ -359,14 +361,14 @@ public class EventCrudService {
                     endTime,
                     templateId,
                     part ? before.requiresRegistration() : requiresRegistration,
-                    part ? before.registrationDeadline() : registrationDeadline,
+                    part ? RegistrationDeadline.none() : registrationDeadline,
                     part ? before.requiresConfirmation() : requiresConfirmation,
                     categoryId,
                     isPublic,
                     part ? before.registrationLimit() : registrationLimit,
                     part ? before.minRegistrations() : minRegistrations,
-                    part ? before.thresholdDays() : thresholdDays,
-                    part ? before.registrationCloseDays() : registrationCloseDays);
+                    part ? before.thresholdDays() : thresholdDays);
+            return changed;
         });
         if (updated) {
             log.info("Updated event {}", id);
@@ -473,6 +475,19 @@ public class EventCrudService {
     }
 
     /**
+     * Sets how the waiting lists of an appointment's dates are ordered from now on: by sign-up time or
+     * by fairness score. Whoever waits already keeps their place.
+     *
+     * @param id    the appointment
+     * @param order the order
+     * @return the appointment as it is now, or empty where it is gone
+     */
+    public Optional<StationEvent> setQueueOrder(int id, QueueOrder order) {
+        if (!eventRepository.setQueueOrder(id, order)) return Optional.empty();
+        return eventRepository.findById(id);
+    }
+
+    /**
      * Deletes a station event by ID. Where it was a part of an event group whose set asked for every
      * one of its parts, the set asks for all it still holds afterwards.
      *
@@ -535,5 +550,14 @@ public class EventCrudService {
      */
     public Instant findMaxEventUpdatedAt(int stationId) {
         return eventRepository.findMaxEventUpdatedAt(stationId);
+    }
+
+    /**
+     * Refuses a sign-up deadline that cannot be placed.
+     *
+     * @param deadline the rule
+     */
+    public static void requireValidDeadline(RegistrationDeadline deadline) {
+        if (!deadline.isValid()) throw EventRefusal.REGISTRATION_DEADLINE_INVALID.raise();
     }
 }

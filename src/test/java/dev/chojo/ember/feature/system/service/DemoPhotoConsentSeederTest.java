@@ -156,6 +156,7 @@ class DemoPhotoConsentSeederTest extends DemoTestBase {
                         new AttendanceTemplateGuards(attendanceRepo)),
                 events.restriction(),
                 new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility),
+                events.registration(),
                 clock);
     }
 
@@ -430,7 +431,7 @@ class DemoPhotoConsentSeederTest extends DemoTestBase {
         assertEquals(today.plusWeeks(1), day);
         assertTrue(festival.requiresRegistration());
         assertTrue(
-                Objects.requireNonNull(festival.registrationDeadline()).isAfter(Instant.now()),
+                Objects.requireNonNull(festival.registrationDeadline().at()).isAfter(Instant.now()),
                 "registration is still open");
         assertEquals(
                 DemoEventSeeder.BUERGERFEST_PLACE,

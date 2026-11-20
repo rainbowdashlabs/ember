@@ -26,8 +26,12 @@ import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
 import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.IntervalType;
+import dev.chojo.ember.feature.events.entity.OccurrenceRule;
 import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
+import dev.chojo.ember.feature.events.entity.QueueOrder;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
+import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.service.BatchEventService;
@@ -178,7 +182,17 @@ public class EventRoutes implements Routes {
 
         routes.get(prefix + "/events/{id}", this::get, StationPermission.USER, StationModule.EVENTS);
         routes.get(prefix + "/events/{id}/next-date", this::getNextDate, StationPermission.USER, StationModule.EVENTS);
+        routes.get(
+                prefix + "/events/{id}/date-deadlines",
+                this::getDateDeadlines,
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.put(prefix + "/events/{id}", this::update, StationPermission.EVENT_EDIT, StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/{id}/queue-order",
+                this::setQueueOrder,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
         routes.post(
                 prefix + "/events/{id}/change-notice",
                 this::sendChangeNotice,
@@ -325,7 +339,12 @@ public class EventRoutes implements Routes {
                         description = "Max number of occurrences (default 10)"),
                 @OpenApiParam(name = "offset", type = Integer.class, description = "Pagination offset (default 0)"),
                 @OpenApiParam(name = "from", description = "Earliest date to list, ISO yyyy-MM-dd (default today)"),
-                @OpenApiParam(name = "to", description = "Latest date to list, ISO yyyy-MM-dd")
+                @OpenApiParam(name = "to", description = "Latest date to list, ISO yyyy-MM-dd"),
+                @OpenApiParam(
+                        name = "seriesTo",
+                        description = "Latest date a repeating appointment is listed on, ISO yyyy-MM-dd; one-time "
+                                + "appointments are then listed however far away they are (still within to). "
+                                + "Without it one window applies to both kinds")
             },
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = UpcomingEventOccurrence[].class)))
@@ -409,7 +428,8 @@ public class EventRoutes implements Routes {
                 parseDate(ctx.queryParam("to")),
                 ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10),
                 ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0),
-                Boolean.parseBoolean(ctx.queryParam("notBegun")));
+                Boolean.parseBoolean(ctx.queryParam("notBegun")),
+                parseDate(ctx.queryParam("seriesTo")));
     }
 
     /** An optional date bound, absent where the parameter was not sent or was sent empty. */
@@ -478,13 +498,12 @@ public class EventRoutes implements Routes {
                 req.endTime(),
                 req.templateId(),
                 Boolean.TRUE.equals(req.requiresRegistration()),
-                req.registrationDeadline(),
+                Objects.requireNonNullElse(req.registrationDeadline(), RegistrationDeadline.none()),
                 Boolean.TRUE.equals(req.requiresConfirmation()),
                 req.categoryId(),
                 req.registrationLimit(),
                 req.minRegistrations(),
-                req.thresholdDays(),
-                req.registrationCloseDays());
+                req.thresholdDays());
         applyAudiences(event.id(), req);
         if (template != null) templateService.copyInto(template, event.id());
         if (source != null) copyService.copyInto(source, event.id());
@@ -522,6 +541,33 @@ public class EventRoutes implements Routes {
         ctx.json(visibility.requireVisibleEvent(session, id));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{id}/queue-order",
+            methods = HttpMethod.PUT,
+            summary = "Set how the waiting lists of an appointment's dates are ordered",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QueueOrderRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setQueueOrder(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        requireOwnedEvent(crudService, id, session);
+        var req = ctx.bodyAsClass(QueueOrderRequest.class);
+        var order = req.queueOrder() == null ? QueueOrder.TIME : req.queueOrder();
+        ctx.json(crudService.setQueueOrder(id, order).orElseThrow(EventRefusal.EVENT_NOT_HERE::raise));
+    }
+
+    /**
+     * How the waiting lists of an appointment's dates are ordered.
+     *
+     * @param queueOrder by sign-up time or by fairness score; null for by time
+     */
+    public record QueueOrderRequest(@Nullable QueueOrder queueOrder) {}
+
     /**
      * The next day this appointment falls on, today counting as next.
      *
@@ -546,6 +592,59 @@ public class EventRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var event = visibility.requireVisibleEvent(session, id);
         ctx.json(new NextDate(occurrenceCalendar.dateInView(event).orElse(null)));
+    }
+
+    /**
+     * The moments of one date of an appointment, as the server places them on the station's clock:
+     * when sign-up closes and when the minimum of sign-ups is checked. A screen showing the date reads
+     * them here rather than working them out from the rules.
+     *
+     * <p>Without a date the date a screen is read for is taken, see
+     * {@link OccurrenceCalendar#dateInView(StationEvent)}. A one-time appointment answers for its own
+     * date; a series refuses a day it does not fall on.
+     */
+    @OpenApi(
+            path = "/api/v1/events/{id}/date-deadlines",
+            methods = HttpMethod.GET,
+            summary = "When sign-up for a date of an appointment closes and when its minimum is checked",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            queryParams = @OpenApiParam(name = "date", type = LocalDate.class),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = DateDeadlines.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getDateDeadlines(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
+        var calendar = occurrenceCalendar.forStation(event.stationId());
+        var date = deadlineDate(event, calendar, EventStructureRoutes.askedDate(ctx));
+        if (date == null) {
+            ctx.json(new DateDeadlines(null, null, null));
+            return;
+        }
+        ctx.json(new DateDeadlines(
+                date,
+                event.registrationClosesOn(date, calendar.zone()).orElse(null),
+                event.thresholdOn(date, calendar.zone()).orElse(null)));
+    }
+
+    /**
+     * The date the moments are read for. A one-time appointment has only its own, whatever was asked.
+     * A series answers for a date it falls on, a called-off one or one in a break included, since the
+     * page of such a date still shows it; a day it does not fall on is refused.
+     */
+    private static @Nullable LocalDate deadlineDate(
+            StationEvent event, StationCalendar calendar, @Nullable LocalDate asked) {
+        if (!event.isRecurring()) {
+            return calendar.ruleOf(event).map(OccurrenceRule::first).orElse(null);
+        }
+        if (asked == null) return calendar.dateInView(event).orElse(null);
+        if (calendar.check(event, asked) == StationCalendar.DateCheck.NOT_AN_OCCURRENCE) {
+            throw EventRefusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE.raise();
+        }
+        return asked;
     }
 
     @OpenApi(
@@ -655,14 +754,13 @@ public class EventRoutes implements Routes {
                 req.endTime(),
                 req.templateId(),
                 Boolean.TRUE.equals(req.requiresRegistration()),
-                req.registrationDeadline(),
+                Objects.requireNonNullElse(req.registrationDeadline(), RegistrationDeadline.none()),
                 Boolean.TRUE.equals(req.requiresConfirmation()),
                 req.categoryId(),
                 req.isPublic(),
                 req.registrationLimit(),
                 req.minRegistrations(),
                 req.thresholdDays(),
-                req.registrationCloseDays(),
                 req.repeatUntil(),
                 req.repeatCount());
     }
@@ -879,6 +977,11 @@ public class EventRoutes implements Routes {
         if (req.rows() == null || req.rows().isEmpty()) {
             throw EventRefusal.BATCH_NEEDS_ROWS.raise();
         }
+        ctx.json(batchEventService.createBatch(session.stationId(), batchRequestOf(req)));
+    }
+
+    /** What the batch service is asked for, read from the request with its missing lists as empty ones. */
+    private static BatchRequest batchRequestOf(BatchCreateRequest req) {
         var requestedInlineFields = req.inlineFields();
         List<BatchFieldEntry> inlineFields = requestedInlineFields != null
                 ? requestedInlineFields.stream()
@@ -892,7 +995,7 @@ public class EventRoutes implements Routes {
                         r.endTime(),
                         Objects.requireNonNullElse(r.fieldValues(), Map.<String, String>of())))
                 .toList();
-        var batchReq = new BatchRequest(
+        return new BatchRequest(
                 req.name(),
                 req.description(),
                 req.templateId(),
@@ -903,9 +1006,13 @@ public class EventRoutes implements Routes {
                 req.requiresConfirmation(),
                 req.registrationDeadline(),
                 Objects.requireNonNullElse(req.restriction(), RestrictionSelection.empty()),
-                Objects.requireNonNullElse(req.viewRestriction(), RestrictionSelection.empty()));
-        var created = batchEventService.createBatch(session.stationId(), batchReq);
-        ctx.json(created);
+                Objects.requireNonNullElse(req.viewRestriction(), RestrictionSelection.empty()),
+                req.registrationLimit(),
+                req.minRegistrations(),
+                req.thresholdDays(),
+                req.queueOrder(),
+                Objects.requireNonNullElse(req.reminderDays(), List.<Integer>of()),
+                req.eventTemplateId());
     }
 
     @OpenApi(
@@ -970,7 +1077,7 @@ public class EventRoutes implements Routes {
             @Nullable Integer templateId,
             @Nullable Integer eventTemplateId,
             @Nullable Boolean requiresRegistration,
-            @Nullable Instant registrationDeadline,
+            @Nullable RegistrationDeadline registrationDeadline,
             @Nullable Boolean requiresConfirmation,
             @Nullable Integer categoryId,
             @Nullable RestrictionSelection restriction,
@@ -979,7 +1086,6 @@ public class EventRoutes implements Routes {
             @Nullable Integer registrationLimit,
             @Nullable Integer minRegistrations,
             @Nullable Integer thresholdDays,
-            @Nullable Integer registrationCloseDays,
             @Nullable LocalDate repeatUntil,
             @Nullable Integer repeatCount,
             @Nullable EditScope scope,
@@ -992,6 +1098,20 @@ public class EventRoutes implements Routes {
      * @param date the day, named the way the station's own clock names it
      */
     public record NextDate(@Nullable LocalDate date) {}
+
+    /**
+     * The moments of one date of an appointment.
+     *
+     * @param date                 the date, null for an appointment without any date
+     * @param registrationClosesAt when sign-up for it closes, null where no deadline applies
+     * @param minimumCheckedAt     when its minimum of sign-ups is checked, at midnight the set days
+     *                             before; the last day to reach the minimum is the day before. Null
+     *                             without a minimum
+     */
+    public record DateDeadlines(
+            @Nullable LocalDate date,
+            @Nullable Instant registrationClosesAt,
+            @Nullable Instant minimumCheckedAt) {}
 
     /**
      * Both audiences of an event, as the editor reads and writes them in one go.
@@ -1019,6 +1139,10 @@ public class EventRoutes implements Routes {
             /** The zone the times of day are meant in, as the browser names it; the station's where left out. */
             @Nullable String timeZone) {}
 
+    /**
+     * A batch of appointments as the batch screen sends it; the fields after the audiences are read as
+     * {@link BatchRequest} describes them.
+     */
     public record BatchCreateRequest(
             @Nullable String name,
             @Nullable String description,
@@ -1028,9 +1152,15 @@ public class EventRoutes implements Routes {
             List<BatchRowEntry> rows,
             @Nullable Boolean requiresRegistration,
             @Nullable Boolean requiresConfirmation,
-            @Nullable Instant registrationDeadline,
+            @Nullable RegistrationDeadline registrationDeadline,
             @Nullable RestrictionSelection restriction,
-            @Nullable RestrictionSelection viewRestriction) {}
+            @Nullable RestrictionSelection viewRestriction,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable QueueOrder queueOrder,
+            @Nullable List<Integer> reminderDays,
+            @Nullable Integer eventTemplateId) {}
 
     public record BatchFieldEntryDto(
             String name,

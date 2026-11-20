@@ -97,7 +97,7 @@ public class EventChangePreviewService {
         if (!current.isRecurring() && !after.isRecurring()) {
             LocalDate day = calendar.ruleOf(current).map(OccurrenceRule::first).orElse(null);
             if (day == null || day.isBefore(from)) return List.of();
-            return registrationRepository.findRegisteredMemberIds(current.id(), day);
+            return registrationRepository.findConcernedMemberIds(current.id(), day);
         }
         var kept = new ArrayList<Integer>();
         registrationRepository.findHeldDatesFrom(current.id(), from).forEach((member, dates) -> {
@@ -160,7 +160,6 @@ public class EventChangePreviewService {
                 current.cancelReason(),
                 draft.minRegistrations(),
                 draft.thresholdDays(),
-                draft.registrationCloseDays(),
                 draft.repeatUntil(),
                 draft.repeatCount());
     }

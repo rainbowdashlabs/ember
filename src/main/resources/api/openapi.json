@@ -14684,7 +14684,7 @@
         }
       },
       "put" : {
-        "summary" : "Switch the caller's mail for the association's notifications on or off",
+        "summary" : "Switch the caller's mail or pushes for the association's notifications on or off",
         "tags" : [ "Cluster" ],
         "responses" : {
           "200" : {
@@ -19058,6 +19058,105 @@
         }
       }
     },
+    "/api/v1/events/federation-registrations/queue" : {
+      "post" : {
+        "summary" : "Put partners' members waiting for this station's decision onto the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueueRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/federation-registrations/{id}/queue-position" : {
+      "put" : {
+        "summary" : "Move a partner's member to another place in line on the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueuePositionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/federation-registrations/{id}/status" : {
       "put" : {
         "summary" : "Accept or deny a partner station's registration",
@@ -20119,6 +20218,110 @@
         } ]
       }
     },
+    "/api/v1/events/groups/{eventGroupId}/partner-places" : {
+      "get" : {
+        "summary" : "List what each partner station may do with an event group",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PartnerPlacesView"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/partner-places/{partnerId}" : {
+      "put" : {
+        "summary" : "Hand a partner station places at an event group, or take them back",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "partnerId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetPartnerPlacesRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/groups/{eventGroupId}/partner-sign-ups" : {
       "get" : {
         "summary" : "The sign-ups partner stations' members sent for an event group",
@@ -20147,6 +20350,102 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/queue" : {
+      "post" : {
+        "summary" : "Put partner members' event group sign-ups waiting for a decision onto the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupQueueRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/queue-position" : {
+      "put" : {
+        "summary" : "Move a partner member's event group sign-up to another place in line on the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "signUpId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupQueuePositionRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/status" : {
@@ -20823,6 +21122,122 @@
         } ]
       }
     },
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/queue" : {
+      "post" : {
+        "summary" : "Put event group sign-ups waiting for a decision onto the event group's waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupQueueRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/queue-position" : {
+      "put" : {
+        "summary" : "Move an event group sign-up to another place in line on the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupQueuePositionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/status" : {
       "put" : {
         "summary" : "Accept or turn down an event group sign-up and every part chosen with it",
@@ -21036,7 +21451,7 @@
     },
     "/api/v1/events/registrations/awaiting" : {
       "get" : {
-        "summary" : "Events still waiting on an answer from the reader or anyone they answer for",
+        "summary" : "Dates still waiting on an answer from the reader or anyone they answer for",
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
@@ -21112,6 +21527,46 @@
                     "$ref" : "#/components/schemas/RegistrationResponse"
                   }
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/registrations/queue" : {
+      "post" : {
+        "summary" : "Put sign-ups waiting for a decision onto the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RegistrationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueueRequest"
               }
             }
           }
@@ -21244,6 +21699,65 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/RegistrationFieldsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/registrations/{id}/queue-position" : {
+      "put" : {
+        "summary" : "Move a sign-up to another place in line on the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueuePositionRequest"
               }
             }
           }
@@ -21432,6 +21946,12 @@
           }
         }, {
           "name" : "to",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "seriesTo",
           "in" : "query",
           "schema" : {
             "type" : "string"
@@ -22088,6 +22608,62 @@
         } ]
       }
     },
+    "/api/v1/events/{eventId}/group-settings/limit" : {
+      "put" : {
+        "summary" : "Give a part of an event group places of its own, or take its event group's again",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventGroupPartSettings"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PartLimitRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/{eventId}/register" : {
       "post" : {
         "summary" : "Register for an event",
@@ -22346,6 +22922,50 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/events/{eventId}/sign-up-places" : {
+      "get" : {
+        "summary" : "How many places a date of an appointment has, how many are taken and how many wait",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Places"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
       }
     },
     "/api/v1/events/{id}" : {
@@ -22951,6 +23571,59 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/events/{id}/date-deadlines" : {
+      "get" : {
+        "summary" : "When sign-up for a date of an appointment closes and when its minimum is checked",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DateDeadlines"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          }
+        } ]
       }
     },
     "/api/v1/events/{id}/dates/{date}/cancel" : {
@@ -24164,6 +24837,36 @@
         } ]
       }
     },
+    "/api/v1/events/{id}/partner-answers" : {
+      "get" : {
+        "summary" : "The answers partner stations' members gave to an event's registration questions",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PartnerAnswers"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/{id}/partner-places" : {
       "get" : {
         "summary" : "List what each partner station may do with an event",
@@ -24213,6 +24916,98 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/SetPartnerPlacesRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/{id}/places" : {
+      "get" : {
+        "summary" : "The pins of an appointment's place fields",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StationPlace"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/{id}/queue-order" : {
+      "put" : {
+        "summary" : "Set how the waiting lists of an appointment's dates are ordered",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationEvent"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueueOrderRequest"
               }
             }
           }
@@ -26341,6 +27136,69 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/confirm" : {
+      "post" : {
+        "summary" : "Confirm one of this station's members for a partner station's event group",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventGroupSignUp"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationuid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupConfirmRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/sign-up" : {
@@ -29487,6 +30345,171 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/SetGroupPermissionsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/groups/{id}/rule" : {
+      "get" : {
+        "summary" : "The rule a group takes its members from, if any",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberRuleResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Save the rule a group takes its members from; the group is filled by it from then on",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberRuleResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberRuleRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Remove a group's rule; it keeps its members and is kept by hand from then on",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/groups/{id}/rule/preview" : {
+      "post" : {
+        "summary" : "Who a rule would put into a group today, without saving it",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RulePreview"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberRuleRequest"
               }
             }
           }
@@ -35362,6 +36385,63 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/member-rules" : {
+      "get" : {
+        "summary" : "The groups and tags of the station that take their members from a rule",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RuleOwners"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/member-rules/fields" : {
+      "get" : {
+        "summary" : "The fields a check of a group or tag rule can read, the station's and its association's",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RuleField"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/member-rules/operators" : {
+      "get" : {
+        "summary" : "The operators a check of a group or tag rule can use, and how large a rule may grow",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RuleOperatorTable"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/member-table" : {
@@ -45141,6 +46221,113 @@
         }
       }
     },
+    "/api/v1/push/key" : {
+      "get" : {
+        "summary" : "The key a browser subscribes to push messages with, and whether push is on",
+        "tags" : [ "Push" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PushKey"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/push/subscriptions" : {
+      "get" : {
+        "summary" : "The account's browsers that receive push messages",
+        "tags" : [ "Push" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PushDevice"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Register or refresh this browser for push messages",
+        "tags" : [ "Push" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PushDevice"
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "A renewal of a browser this account did not allow"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubscribeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/push/subscriptions/{id}" : {
+      "delete" : {
+        "summary" : "Forget one of the account's browsers",
+        "tags" : [ "Push" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/push/subscriptions/{id}/test" : {
+      "post" : {
+        "summary" : "Send a test push to one of the account's browsers",
+        "tags" : [ "Push" ],
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/quiz/answers/{id}/grade" : {
       "post" : {
         "responses" : {
@@ -50685,6 +51872,73 @@
         }
       }
     },
+    "/api/v1/station/location/geocode" : {
+      "post" : {
+        "summary" : "Find where the station's address lies",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeocodeAnswer"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Service Unavailable",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddressSearch"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/station/mail-import/log" : {
       "get" : {
         "summary" : "What became of each attachment the mailboxes read",
@@ -51815,6 +53069,151 @@
         }
       }
     },
+    "/api/v1/station/places" : {
+      "get" : {
+        "summary" : "The stored pin of a place text",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlaceAnswer"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "text",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Store the pin of a place text",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationPlace"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PlaceDraft"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Take the pin off a place text",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "text",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/station/places/geocode" : {
+      "post" : {
+        "summary" : "Find where a place text lies",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeocodeAnswer"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Service Unavailable",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PlaceSearch"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/station/setup/complete" : {
       "post" : {
         "summary" : "Mark the station setup wizard as finished",
@@ -52562,6 +53961,161 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/TagSetMembersRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tags/{id}/rule" : {
+      "get" : {
+        "summary" : "The rule a tag takes its members from, if any",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberRuleResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Save the rule a tag takes its members from; the tag is filled by it from then on",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberRuleResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberRuleRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Remove a tag's rule; it keeps its members and is kept by hand from then on",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/tags/{id}/rule/preview" : {
+      "post" : {
+        "summary" : "Who a rule would put into a tag today, without saving it",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RulePreview"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberRuleRequest"
               }
             }
           }
@@ -53775,9 +55329,13 @@
           },
           "location" : {
             "type" : [ "string", "null" ]
+          },
+          "pushDeviceId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "userAgent", "createdAt", "lastUsedAt", "expiresAt", "isCurrent", "location" ]
+        "required" : [ "id", "userAgent", "createdAt", "lastUsedAt", "expiresAt", "isCurrent", "location", "pushDeviceId" ]
       },
       "Actual" : {
         "type" : "string",
@@ -53847,6 +55405,23 @@
           }
         }
       },
+      "AddressSearch" : {
+        "type" : "object",
+        "properties" : {
+          "addressLine" : {
+            "type" : [ "string", "null" ]
+          },
+          "postalCode" : {
+            "type" : [ "string", "null" ]
+          },
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "country" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "AdminMapsConfig" : {
         "type" : "object",
         "properties" : {
@@ -53859,9 +55434,12 @@
           "tileCacheMaxMb" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "defaultGeocodingServer" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "tiles", "geocoding", "tileCacheMaxMb" ]
+        "required" : [ "tiles", "geocoding", "tileCacheMaxMb", "defaultGeocodingServer" ]
       },
       "AdminOverview" : {
         "type" : "object",
@@ -54417,6 +55995,13 @@
         "properties" : {
           "attending" : {
             "type" : "boolean"
+          },
+          "whenFull" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/WhenFull"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -54519,6 +56104,9 @@
           "messagesEnabled" : {
             "type" : "boolean"
           },
+          "pushEnabled" : {
+            "type" : [ "boolean", "null" ]
+          },
           "instanceDefaultTheme" : {
             "type" : "string"
           },
@@ -54541,7 +56129,7 @@
             }
           }
         },
-        "required" : [ "stationRegistrationEnabled", "messagesEnabled", "instanceDefaultTheme", "instanceDefaultFeel", "instanceLockFeel", "forcePrideFlag", "defaultMailLocale", "availableMailLocales" ]
+        "required" : [ "stationRegistrationEnabled", "messagesEnabled", "pushEnabled", "instanceDefaultTheme", "instanceDefaultFeel", "instanceLockFeel", "forcePrideFlag", "defaultMailLocale", "availableMailLocales" ]
       },
       "ApplicationStatus" : {
         "type" : "string",
@@ -55481,10 +57069,13 @@
           "name" : {
             "type" : "string"
           },
+          "eventDate" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
           "startTime" : {
             "$ref" : "#/components/schemas/Instant"
           },
-          "registrationDeadline" : {
+          "registrationClosesAt" : {
             "$ref" : "#/components/schemas/Instant"
           },
           "categoryId" : {
@@ -55498,7 +57089,7 @@
             }
           }
         },
-        "required" : [ "eventId", "name", "startTime", "registrationDeadline", "categoryId", "members" ]
+        "required" : [ "eventId", "name", "eventDate", "startTime", "registrationClosesAt", "categoryId", "members" ]
       },
       "AwaitingMember" : {
         "type" : "object",
@@ -55686,7 +57277,7 @@
           },
           "registrationDeadline" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
+              "$ref" : "#/components/schemas/RegistrationDeadline"
             }, {
               "type" : "null"
             } ]
@@ -55704,6 +57295,36 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "registrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "minRegistrations" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "thresholdDays" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "reminderDays" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "eventTemplateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },
@@ -58501,15 +60122,21 @@
           },
           "mailAvailable" : {
             "type" : "boolean"
+          },
+          "pushEnabled" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "emailEnabled", "mailAvailable" ]
+        "required" : [ "emailEnabled", "mailAvailable", "pushEnabled" ]
       },
       "ClusterMailRequest" : {
         "type" : "object",
         "properties" : {
           "emailEnabled" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
+          },
+          "pushEnabled" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -60682,6 +62309,33 @@
         },
         "required" : [ "kind" ]
       },
+      "DateDeadlines" : {
+        "type" : "object",
+        "properties" : {
+          "date" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "registrationClosesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "minimumCheckedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "date", "registrationClosesAt", "minimumCheckedAt" ]
+      },
       "DateFormatCheck" : {
         "type" : "object",
         "properties" : {
@@ -60827,6 +62481,14 @@
           }
         },
         "required" : [ "day", "count" ]
+      },
+      "DeadlineAnchor" : {
+        "type" : "string",
+        "enum" : [ "EXACT", "MIDNIGHT" ]
+      },
+      "DeadlineKind" : {
+        "type" : "string",
+        "enum" : [ "NONE", "FIXED", "RELATIVE" ]
       },
       "DeclineBody" : {
         "type" : "object",
@@ -62665,9 +64327,13 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "queuePosition" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "registration", "memberIdentity" ]
+        "required" : [ "registration", "memberIdentity", "queuePosition" ]
       },
       "EnrichedItem" : {
         "type" : "object",
@@ -63298,11 +64964,14 @@
               "type" : "null"
             } ]
           },
+          "comingOrAsking" : {
+            "type" : "boolean"
+          },
           "standing" : {
             "type" : "boolean"
           }
         },
-        "required" : [ "id", "eventId", "partnerId", "remoteMemberId", "eventDate", "status", "createdAt", "agreementWithdrawnAt", "standing" ]
+        "required" : [ "id", "eventId", "partnerId", "remoteMemberId", "eventDate", "status", "createdAt", "agreementWithdrawnAt", "comingOrAsking", "standing" ]
       },
       "EventFieldDefault" : {
         "type" : "object",
@@ -63429,7 +65098,7 @@
           "name" : {
             "type" : "string"
           },
-          "registrationDeadline" : {
+          "registrationClosesAt" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/Instant"
             }, {
@@ -63443,13 +65112,22 @@
             }
           }
         },
-        "required" : [ "eventGroupId", "name", "registrationDeadline", "members" ]
+        "required" : [ "eventGroupId", "name", "registrationClosesAt", "members" ]
       },
       "EventGroupCancelRequest" : {
         "type" : "object",
         "properties" : {
           "reason" : {
             "type" : [ "string", "null" ]
+          }
+        }
+      },
+      "EventGroupConfirmRequest" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },
@@ -63502,6 +65180,9 @@
         "properties" : {
           "status" : {
             "$ref" : "#/components/schemas/RegistrationStatus"
+          },
+          "overLimit" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -63546,9 +65227,16 @@
             "items" : {
               "$ref" : "#/components/schemas/EventGroupSignUp"
             }
+          },
+          "places" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RemotePlaces"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "eventGroup", "sets", "parts", "registration", "view", "questions", "fields", "household" ]
+        "required" : [ "eventGroup", "sets", "parts", "registration", "view", "questions", "fields", "household", "places" ]
       },
       "EventGroupDetails" : {
         "type" : "object",
@@ -63564,11 +65252,7 @@
             "format" : "int32"
           },
           "registrationDeadline" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/RegistrationDeadline"
           },
           "requiresConfirmation" : {
             "type" : "boolean"
@@ -63583,9 +65267,20 @@
           "thresholdDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "partRegistrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "name", "description", "registrationLimit", "registrationDeadline", "requiresConfirmation", "color", "minRegistrations", "thresholdDays" ]
+        "required" : [ "name", "description", "registrationLimit", "registrationDeadline", "requiresConfirmation", "color", "minRegistrations", "thresholdDays", "partRegistrationLimit", "queueOrder" ]
       },
       "EventGroupDetailsRequest" : {
         "type" : "object",
@@ -63724,9 +65419,17 @@
           },
           "eventGroup" : {
             "$ref" : "#/components/schemas/EventGroupSettings"
+          },
+          "ownRegistrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "partRegistrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "eventGroupId", "ownTemplateId", "ownCategoryId", "eventGroup" ]
+        "required" : [ "eventGroupId", "ownTemplateId", "ownCategoryId", "eventGroup", "ownRegistrationLimit", "partRegistrationLimit" ]
       },
       "EventGroupPartState" : {
         "type" : "object",
@@ -63756,9 +65459,17 @@
           },
           "required" : {
             "type" : "boolean"
+          },
+          "places" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "accepted" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "eventId", "setId", "name", "startTime", "endTime", "calledOff", "tookPlace", "required" ]
+        "required" : [ "eventId", "setId", "name", "startTime", "endTime", "calledOff", "tookPlace", "required", "places", "accepted" ]
       },
       "EventGroupPartSummary" : {
         "type" : "object",
@@ -63804,6 +65515,13 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerDecides" : {
+            "type" : "boolean"
+          },
           "member" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/MemberIdentity"
@@ -63837,9 +65555,34 @@
             "items" : {
               "$ref" : "#/components/schemas/SetResult"
             }
+          },
+          "queuePosition" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "member", "status", "registeredAt", "parts", "sets" ]
+        "required" : [ "id", "partnerId", "partnerDecides", "member", "status", "registeredAt", "parts", "sets", "queuePosition" ]
+      },
+      "EventGroupQueuePositionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "position" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
+      "EventGroupQueueRequest" : {
+        "type" : "object",
+        "properties" : {
+          "ids" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
       },
       "EventGroupSet" : {
         "type" : "object",
@@ -63862,9 +65605,13 @@
           "position" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "maximum" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "eventGroupId", "name", "minimum", "position" ]
+        "required" : [ "id", "eventGroupId", "name", "minimum", "position", "maximum" ]
       },
       "EventGroupSetDraft" : {
         "type" : "object",
@@ -63878,6 +65625,10 @@
           },
           "minimum" : {
             "type" : "integer",
+            "format" : "int32"
+          },
+          "maximum" : {
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -63994,9 +65745,13 @@
           },
           "mayRegister" : {
             "type" : "boolean"
+          },
+          "queuePosition" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "memberId", "member", "status", "registeredAt", "parts", "sets", "answers", "answersMissing", "mayRegister" ]
+        "required" : [ "memberId", "member", "status", "registeredAt", "parts", "sets", "answers", "answersMissing", "mayRegister", "queuePosition" ]
       },
       "EventGroupSignUpRequest" : {
         "type" : "object",
@@ -64017,6 +65772,13 @@
             "items" : {
               "$ref" : "#/components/schemas/EventRegistrationFieldValue"
             }
+          },
+          "whenFull" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/WhenFull"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -64043,9 +65805,38 @@
           "holding" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "queued" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pending" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "firstStart" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "lastEnd" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "closesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding" ]
+        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding", "queued", "pending", "firstStart", "lastEnd", "closesAt" ]
       },
       "EventItem" : {
         "type" : "object",
@@ -64169,6 +65960,13 @@
             "items" : {
               "$ref" : "#/components/schemas/EventRegistrationFieldValue"
             }
+          },
+          "whenFull" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/WhenFull"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -64343,7 +66141,7 @@
           },
           "registrationDeadline" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
+              "$ref" : "#/components/schemas/RegistrationDeadline"
             }, {
               "type" : "null"
             } ]
@@ -64381,10 +66179,6 @@
             "format" : "int32"
           },
           "thresholdDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "registrationCloseDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
@@ -64465,11 +66259,10 @@
             "type" : "boolean"
           },
           "registrationDeadline" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/RegistrationDeadline"
+          },
+          "requiresConfirmation" : {
+            "type" : "boolean"
           },
           "categoryId" : {
             "type" : [ "integer", "null" ],
@@ -64497,7 +66290,7 @@
             } ]
           }
         },
-        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "requiresRegistration", "registrationDeadline", "categoryId", "templateId", "restricted", "seriesCancelled", "registrationLimit", "eventGroup" ]
+        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "templateId", "restricted", "seriesCancelled", "registrationLimit", "eventGroup" ]
       },
       "EventTemplate" : {
         "type" : "object",
@@ -64533,9 +66326,8 @@
           "requiresRegistration" : {
             "type" : [ "boolean", "null" ]
           },
-          "registrationDeadlineOffsetHours" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
+          "registrationDeadline" : {
+            "$ref" : "#/components/schemas/RegistrationDeadline"
           },
           "requiresConfirmation" : {
             "type" : [ "boolean", "null" ]
@@ -64566,12 +66358,15 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
-          "registrationCloseDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadlineOffsetHours", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit", "minRegistrations", "thresholdDays", "registrationCloseDays" ]
+        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit", "minRegistrations", "thresholdDays", "queueOrder" ]
       },
       "EventTemplateFieldData" : {
         "type" : "object",
@@ -64658,6 +66453,10 @@
       "Expected" : {
         "type" : "string",
         "enum" : [ "ITS_OWN", "THE_CLUSTERS", "INSTANCE_DEFAULT", "WHEREVER_IT_IS" ]
+      },
+      "ExpiryState" : {
+        "type" : "string",
+        "enum" : [ "VALID", "EXPIRING", "EXPIRED", "EMPTY" ]
       },
       "ExportColumnRequest" : {
         "type" : "object",
@@ -65075,6 +66874,12 @@
           "memberId" : {
             "type" : [ "string", "null" ],
             "format" : "uuid"
+          },
+          "answers" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/EventRegistrationFieldValue"
+            }
           }
         }
       },
@@ -67669,9 +69474,41 @@
         },
         "required" : [ "questions", "done" ]
       },
+      "GeocodeAnswer" : {
+        "type" : "object",
+        "properties" : {
+          "match" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/GeocodeResult"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "match" ]
+      },
+      "GeocodePrecision" : {
+        "type" : "string",
+        "enum" : [ "EXACT", "STREET", "AREA" ]
+      },
+      "GeocodeResult" : {
+        "type" : "object",
+        "properties" : {
+          "latitude" : {
+            "type" : "number"
+          },
+          "longitude" : {
+            "type" : "number"
+          },
+          "precision" : {
+            "$ref" : "#/components/schemas/GeocodePrecision"
+          }
+        },
+        "required" : [ "latitude", "longitude", "precision" ]
+      },
       "GeocodingProvider" : {
         "type" : "string",
-        "enum" : [ "NONE", "NOMINATIM", "LOCATIONIQ", "GEOAPIFY" ]
+        "enum" : [ "NONE", "PHOTON" ]
       },
       "GradingScope" : {
         "type" : "object",
@@ -72456,14 +74293,11 @@
           "provider" : {
             "$ref" : "#/components/schemas/GeocodingProvider"
           },
-          "apiKey" : {
-            "type" : "string"
-          },
-          "contactEmail" : {
-            "type" : "string"
+          "baseUrl" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "provider", "apiKey", "contactEmail" ]
+        "required" : [ "provider", "baseUrl" ]
       },
       "MapsTilesConfig" : {
         "type" : "object",
@@ -73395,6 +75229,27 @@
         },
         "required" : [ "required", "unassigned" ]
       },
+      "MemberRuleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "rule" : {
+            "$ref" : "#/components/schemas/RuleNode"
+          }
+        }
+      },
+      "MemberRuleResponse" : {
+        "type" : "object",
+        "properties" : {
+          "rule" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RuleNode"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "rule" ]
+      },
       "MemberSearchResult" : {
         "type" : "object",
         "properties" : {
@@ -73830,6 +75685,9 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "push" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -73848,9 +75706,12 @@
           },
           "stationDigest" : {
             "$ref" : "#/components/schemas/StationDigest"
+          },
+          "push" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "available", "unread", "mail", "stationDigest" ]
+        "required" : [ "available", "unread", "mail", "stationDigest", "push" ]
       },
       "MetricsBatch" : {
         "type" : "object",
@@ -75417,9 +77278,12 @@
           },
           "feed" : {
             "type" : "boolean"
+          },
+          "push" : {
+            "type" : [ "boolean", "null" ]
           }
         },
-        "required" : [ "app", "email", "feed" ]
+        "required" : [ "app", "email", "feed", "push" ]
       },
       "NotificationType" : {
         "type" : "string",
@@ -76238,6 +78102,15 @@
         },
         "required" : [ "headers", "rows" ]
       },
+      "PartLimitRequest" : {
+        "type" : "object",
+        "properties" : {
+          "limit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
       "ParticipantDocuments" : {
         "type" : "object",
         "properties" : {
@@ -76281,6 +78154,22 @@
         "type" : "string",
         "enum" : [ "MISSING", "ASKED", "SIGNED", "PAPER_CONFIRMED", "WITHDRAWN" ]
       },
+      "PartnerAnswers" : {
+        "type" : "object",
+        "properties" : {
+          "registrationId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "answers" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EventRegistrationFieldValue"
+            }
+          }
+        },
+        "required" : [ "registrationId", "answers" ]
+      },
       "PartnerDocumentToSign" : {
         "type" : "object",
         "properties" : {
@@ -76318,9 +78207,22 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "questions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EventRegistrationField"
+            }
+          },
+          "datePlaces" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RemoteDatePlaces"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "event", "publicFields", "places" ]
+        "required" : [ "event", "publicFields", "places", "questions", "datePlaces" ]
       },
       "PartnerPlacesView" : {
         "type" : "object",
@@ -77023,6 +78925,48 @@
         },
         "required" : [ "pageUid", "title", "slug", "updatedAt" ]
       },
+      "PlaceAnswer" : {
+        "type" : "object",
+        "properties" : {
+          "place" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationPlace"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "place" ]
+      },
+      "PlaceDraft" : {
+        "type" : "object",
+        "properties" : {
+          "text" : {
+            "type" : [ "string", "null" ]
+          },
+          "latitude" : {
+            "type" : [ "number", "null" ]
+          },
+          "longitude" : {
+            "type" : [ "number", "null" ]
+          },
+          "precision" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/GeocodePrecision"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
+      "PlaceSearch" : {
+        "type" : "object",
+        "properties" : {
+          "text" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "Placeholder" : {
         "type" : "object",
         "properties" : {
@@ -77129,6 +79073,24 @@
           }
         },
         "required" : [ "stationUid", "name", "homeStation", "actual", "expected", "inPlace" ]
+      },
+      "Places" : {
+        "type" : "object",
+        "properties" : {
+          "limit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "accepted" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "queued" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "limit", "accepted", "queued" ]
       },
       "PlannedLanding" : {
         "type" : "object",
@@ -79084,9 +81046,12 @@
           "maxZoom" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "geocoding" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "provider", "urlTemplate", "attribution", "minZoom", "maxZoom" ]
+        "required" : [ "provider", "urlTemplate", "attribution", "minZoom", "maxZoom", "geocoding" ]
       },
       "PublicModeResponse" : {
         "type" : "object",
@@ -79359,6 +81324,44 @@
         },
         "required" : [ "id", "name", "description" ]
       },
+      "PushDevice" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastSuccessAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "current" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "label", "createdAt", "lastSuccessAt", "current" ]
+      },
+      "PushKey" : {
+        "type" : "object",
+        "properties" : {
+          "publicKey" : {
+            "type" : "string"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "publicKey", "enabled" ]
+      },
       "QuestionAnswerCount" : {
         "type" : "object",
         "properties" : {
@@ -79498,6 +81501,43 @@
           }
         },
         "required" : [ "earliest", "latest", "maxLength", "format", "min", "max", "whole", "choices" ]
+      },
+      "QueueOrder" : {
+        "type" : "string",
+        "enum" : [ "TIME", "FAIRNESS" ]
+      },
+      "QueueOrderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
+      "QueuePositionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "position" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
+      "QueueRequest" : {
+        "type" : "object",
+        "properties" : {
+          "registrationIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
       },
       "QuizAccessRequest" : {
         "type" : "object",
@@ -80947,6 +82987,33 @@
         },
         "required" : [ "eventId", "eventDate", "status", "count" ]
       },
+      "RegistrationDeadline" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/DeadlineKind"
+          },
+          "at" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "offsetMinutes" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "anchor" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DeadlineAnchor"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "kind", "at", "offsetMinutes", "anchor" ]
+      },
       "RegistrationFieldDefinition" : {
         "type" : "object",
         "properties" : {
@@ -81058,9 +83125,23 @@
           },
           "placeGivenUp" : {
             "type" : "boolean"
+          },
+          "statusChangedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "queuePosition" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "registrationClosesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp" ]
+        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp", "statusChangedAt", "queuePosition", "registrationClosesAt" ]
       },
       "RegistrationStatsResponse" : {
         "type" : "object",
@@ -81105,7 +83186,7 @@
       },
       "RegistrationStatus" : {
         "type" : "string",
-        "enum" : [ "PENDING", "ACCEPTED", "DENIED", "DECLINED", "WITHDRAWN" ]
+        "enum" : [ "PENDING", "ACCEPTED", "DENIED", "DECLINED", "WITHDRAWN", "QUEUED" ]
       },
       "RegistrationTableRequest" : {
         "type" : "object",
@@ -81296,6 +83377,27 @@
           }
         },
         "required" : [ "catalog", "categories", "questions" ]
+      },
+      "RemoteDatePlaces" : {
+        "type" : "object",
+        "properties" : {
+          "date" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "limit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "taken" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "waiting" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "date", "limit", "taken", "waiting" ]
       },
       "RemoteKbFile" : {
         "type" : "object",
@@ -82613,6 +84715,201 @@
         },
         "required" : [ "kind", "freeBytes", "totalBytes" ]
       },
+      "RuleField" : {
+        "type" : "object",
+        "properties" : {
+          "origin" : {
+            "$ref" : "#/components/schemas/FieldOrigin"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "fieldType" : {
+            "$ref" : "#/components/schemas/FieldType"
+          },
+          "options" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "origin", "id", "name", "fieldType", "options" ]
+      },
+      "RuleMember" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ]
+      },
+      "RuleNeed" : {
+        "type" : "string",
+        "enum" : [ "NOTHING", "ANSWERS", "USER_TYPES", "STATES", "NUMBER", "NUMBER_RANGE", "TEXT", "DATE", "DURATION", "YEARS", "YEARS_RANGE" ]
+      },
+      "RuleNode" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/RuleNodeKind"
+          },
+          "children" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RuleNode"
+            }
+          },
+          "subject" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RuleSubject"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "operator" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RuleOperator"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "fieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "clusterFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "groupId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "tagId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "value" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RuleValue"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "referenceDate" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "kind", "children", "subject", "operator", "fieldId", "clusterFieldId", "groupId", "tagId", "value", "referenceDate" ]
+      },
+      "RuleNodeKind" : {
+        "type" : "string",
+        "enum" : [ "ALL", "ANY", "NONE", "CHECK" ]
+      },
+      "RuleOperator" : {
+        "type" : "string",
+        "enum" : [ "IN", "NOT_IN", "ONE_OF", "NONE_OF", "AT_LEAST", "LESS_THAN", "BETWEEN", "IS_YES", "IS_NO", "IS_NOT_YES", "EMPTY", "NOT_EMPTY", "EQUALS", "CONTAINS", "EQ", "LT", "LE", "GT", "GE", "BEFORE", "ON_OR_AFTER", "WITHIN_NEXT", "WITHIN_LAST", "EXPIRES_WITHIN", "EXPIRED", "STATE_IN" ]
+      },
+      "RuleOperatorOption" : {
+        "type" : "object",
+        "properties" : {
+          "subject" : {
+            "$ref" : "#/components/schemas/RuleSubject"
+          },
+          "fieldType" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FieldType"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "operator" : {
+            "$ref" : "#/components/schemas/RuleOperator"
+          },
+          "need" : {
+            "$ref" : "#/components/schemas/RuleNeed"
+          }
+        },
+        "required" : [ "subject", "fieldType", "operator", "need" ]
+      },
+      "RuleOperatorTable" : {
+        "type" : "object",
+        "properties" : {
+          "operators" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RuleOperatorOption"
+            }
+          },
+          "maxDepth" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "maxChecks" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "operators", "maxDepth", "maxChecks" ]
+      },
+      "RuleOwners" : {
+        "type" : "object",
+        "properties" : {
+          "groupIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "tagIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "groupIds", "tagIds" ]
+      },
+      "RulePreview" : {
+        "type" : "object",
+        "properties" : {
+          "matching" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RuleMember"
+            }
+          },
+          "joining" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RuleMember"
+            }
+          },
+          "leaving" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RuleMember"
+            }
+          }
+        },
+        "required" : [ "matching", "joining", "leaving" ]
+      },
       "RuleRequest" : {
         "type" : "object",
         "properties" : {
@@ -82749,6 +85046,69 @@
           }
         },
         "required" : [ "id", "mailboxId", "name", "position", "enabled", "subjectFilter", "attachmentNameFilter", "acceptedTypes", "minSizeBytes", "includeInline", "titleSource", "hidden", "keepOnArchive", "readSubjectForMember", "action", "moveToFolder", "senderPatterns", "tags" ]
+      },
+      "RuleSubject" : {
+        "type" : "string",
+        "enum" : [ "GROUP", "TAG", "USER_TYPE", "MEMBER_SINCE", "AGE", "FIELD", "CLUSTER_FIELD" ]
+      },
+      "RuleUnit" : {
+        "type" : "string",
+        "enum" : [ "DAYS", "MONTHS", "YEARS" ]
+      },
+      "RuleValue" : {
+        "type" : "object",
+        "properties" : {
+          "answers" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "userTypes" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/StationUserType"
+            }
+          },
+          "states" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/ExpiryState"
+            }
+          },
+          "number" : {
+            "type" : [ "number", "null" ]
+          },
+          "numberTo" : {
+            "type" : [ "number", "null" ]
+          },
+          "text" : {
+            "type" : [ "string", "null" ]
+          },
+          "date" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "amount" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "amountTo" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "unit" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RuleUnit"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "answers", "userTypes", "states", "number", "numberTo", "text", "date", "amount", "amountTo", "unit" ]
       },
       "RunDetailResponse" : {
         "type" : "object",
@@ -84422,9 +86782,17 @@
               "type" : "integer",
               "format" : "int32"
             }
+          },
+          "maximum" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "tooMany" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "setId", "name", "required", "chosen", "missingRequired" ]
+        "required" : [ "setId", "name", "required", "chosen", "missingRequired", "maximum", "tooMany" ]
       },
       "SetSessionFieldsRequest" : {
         "type" : "object",
@@ -85977,11 +88345,7 @@
             "type" : "boolean"
           },
           "registrationDeadline" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/RegistrationDeadline"
           },
           "requiresConfirmation" : {
             "type" : "boolean"
@@ -86027,10 +88391,6 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
-          "registrationCloseDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
           "repeatUntil" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/LocalDate"
@@ -86042,11 +88402,18 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
+          },
           "recurring" : {
             "type" : "boolean"
           }
         },
-        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "registrationCloseDays", "repeatUntil", "repeatCount", "recurring" ]
+        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "repeatUntil", "repeatCount", "queueOrder", "recurring" ]
       },
       "StationFailedMails" : {
         "type" : "object",
@@ -86539,6 +88906,31 @@
         },
         "required" : [ "stationUid", "name", "city", "country", "logoUrl", "selectable" ]
       },
+      "StationPlace" : {
+        "type" : "object",
+        "properties" : {
+          "text" : {
+            "type" : "string"
+          },
+          "latitude" : {
+            "type" : "number"
+          },
+          "longitude" : {
+            "type" : "number"
+          },
+          "precision" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/GeocodePrecision"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "updatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "text", "latitude", "longitude", "precision", "updatedAt" ]
+      },
       "StationPoolUse" : {
         "type" : "object",
         "properties" : {
@@ -86812,6 +89204,9 @@
         "properties" : {
           "status" : {
             "$ref" : "#/components/schemas/RegistrationStatus"
+          },
+          "overLimit" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -87145,6 +89540,29 @@
           }
         },
         "required" : [ "value" ]
+      },
+      "SubscribeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "endpoint" : {
+            "type" : [ "string", "null" ]
+          },
+          "p256dh" : {
+            "type" : [ "string", "null" ]
+          },
+          "auth" : {
+            "type" : [ "string", "null" ]
+          },
+          "label" : {
+            "type" : [ "string", "null" ]
+          },
+          "renewal" : {
+            "type" : "boolean"
+          },
+          "previousEndpoint" : {
+            "type" : [ "string", "null" ]
+          }
+        }
       },
       "SuggestedAnswer" : {
         "type" : "object",
@@ -89282,9 +91700,16 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "registrationClosesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "event", "date", "cancellation" ]
+        "required" : [ "event", "date", "cancellation", "registrationClosesAt" ]
       },
       "UpcomingEventsConfig" : {
         "type" : "object",
@@ -89548,9 +91973,12 @@
           "requiresRegistration" : {
             "type" : [ "boolean", "null" ]
           },
-          "registrationDeadlineOffsetHours" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
+          "registrationDeadline" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RegistrationDeadline"
+            }, {
+              "type" : "null"
+            } ]
           },
           "requiresConfirmation" : {
             "type" : [ "boolean", "null" ]
@@ -89578,9 +92006,12 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
-          "registrationCloseDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -90820,6 +93251,10 @@
             "type" : "string"
           }
         }
+      },
+      "WhenFull" : {
+        "type" : "string",
+        "enum" : [ "QUEUE", "OVER_LIMIT" ]
       },
       "WikiAudienceRequest" : {
         "type" : "object",

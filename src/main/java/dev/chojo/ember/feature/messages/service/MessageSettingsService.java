@@ -65,22 +65,30 @@ public class MessageSettingsService {
     public MessagesStatus status(int accountId) {
         boolean available = instance.messagesEnabled() && people.usable(accountId);
         int unread = available ? conversations.unreadTotal(accountId) : 0;
-        return new MessagesStatus(available, unread, people.mailWanted(accountId), people.stationDigest(accountId));
+        return new MessagesStatus(
+                available,
+                unread,
+                people.mailWanted(accountId),
+                people.stationDigest(accountId),
+                people.pushWanted(accountId));
     }
 
     /**
-     * Changes the daily mail: whether it comes at all, and what it takes from station chats. A
-     * setting left out stays as it is.
+     * Changes the daily mail (whether it comes at all, and what it takes from station chats) and
+     * whether new messages are pushed. A setting left out stays as it is.
      *
      * @param accountId     the account
      * @param mail          whether it wants the mail, or null to leave it
      * @param stationDigest what the mail takes from station chats, or null to leave it
+     * @param push          whether new messages are pushed to the account's devices, or null to leave it
      * @return the status after the change
      */
-    public MessagesStatus update(int accountId, @Nullable Boolean mail, @Nullable StationDigest stationDigest) {
+    public MessagesStatus update(
+            int accountId, @Nullable Boolean mail, @Nullable StationDigest stationDigest, @Nullable Boolean push) {
         guards.requireUsable(accountId);
         if (mail != null) people.setMailWanted(accountId, mail);
         if (stationDigest != null) people.setStationDigest(accountId, stationDigest);
+        if (push != null) people.setPushWanted(accountId, push);
         return status(accountId);
     }
 

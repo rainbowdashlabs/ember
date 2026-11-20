@@ -19,14 +19,18 @@ import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 
 /**
  * The rules of a group in its form: the set it belongs to, and the member types it takes. No type
- * ticked means every type, which is what a group has always been.
+ * ticked means every type, which is what a group has always been. A group that takes its members from a
+ * rule cannot join a set, so its set choice is closed and says why.
  */
 withDefaults(defineProps<{
   sets: MemberGroupSet[]
   /** The members of the group of none of the ticked types, who saving would take out. */
   misfits?: GroupHolder[]
+  /** Whether the group takes its members from a rule. */
+  kept?: boolean
 }>(), {
   misfits: () => [],
+  kept: false,
 })
 
 const setId = defineModel<number | null>('setId', {required: true})
@@ -50,11 +54,11 @@ function pickSet(value: unknown) {
 <template>
   <div class="space-y-1">
     <FieldLabel>{{ t('memberGroups.rules.set') }}</FieldLabel>
-    <SelectInput :model-value="setId ?? ''" @update:model-value="pickSet">
+    <SelectInput :model-value="setId ?? ''" :disabled="kept" @update:model-value="pickSet">
       <option value="">{{ t('memberGroups.rules.noSet') }}</option>
       <option v-for="set in sets" :key="set.id" :value="set.id">{{ set.name }}</option>
     </SelectInput>
-    <MutedText tag="p">{{ t('memberGroups.rules.setHint') }}</MutedText>
+    <MutedText tag="p">{{ kept ? t('memberRules.notInASet') : t('memberGroups.rules.setHint') }}</MutedText>
   </div>
   <div class="space-y-1">
     <FieldLabel>{{ t('memberGroups.rules.userTypes') }}</FieldLabel>

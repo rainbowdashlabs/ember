@@ -14,12 +14,14 @@ import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -35,6 +37,7 @@ import org.mockito.ArgumentCaptor;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -97,7 +100,10 @@ class EventGroupThresholdCheckerTest extends RepositoryTestBase {
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                newEventGroupSignUpRules());
+                newEventGroupSignUpRules(),
+                newEventGroupQueue(
+                        newEventServices(new DomainEventBus(Set.of())).registration(), mock(DomainEventBus.class)),
+                new RegistrationQueueRepository());
         cancellation = new EventGroupCancellationService(
                 eventGroupRepo,
                 signUpRepo,
@@ -138,9 +144,8 @@ class EventGroupThresholdCheckerTest extends RepositoryTestBase {
                     start.plus(Duration.ofHours(8)),
                     null,
                     false,
-                    null,
+                    RegistrationDeadline.none(),
                     false,
-                    null,
                     null,
                     null,
                     null,
@@ -202,6 +207,26 @@ class EventGroupThresholdCheckerTest extends RepositoryTestBase {
         checker.check();
 
         assertFalse(cancelled(eventGroup));
+    }
+
+    /**
+     * An event group starts on its first part as it stands: a first part called off still sets the
+     * moment of the minimum, as it sets the moment sign-up closes.
+     */
+    @Test
+    void aCalledOffFirstPartStillCountsAsTheStart() {
+        var eventGroup = withMinimum("Erster abgesagt", 2, 5, 2, 10);
+        var first = eventGroups.findParts(eventGroup.id()).stream()
+                .map(part -> eventRepo.findById(part.eventId()).orElseThrow())
+                .min(Comparator.comparing(StationEvent::startTime))
+                .orElseThrow();
+        var zone = occurrenceCalendar.zoneOf(station.id());
+        eventDateCancellationRepo.cancel(
+                first.id(), LocalDate.ofInstant(first.startTime(), zone), CancellationCause.MANUAL, null, null);
+
+        checker.check();
+
+        assertTrue(cancelled(eventGroup), "five days before the called-off first part has passed");
     }
 
     @Test

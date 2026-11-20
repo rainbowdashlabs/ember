@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventGroupSettings;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventFieldService;
@@ -112,6 +113,64 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                 station.stationId(),
                 members.anfaenger(),
                 station.events().evUebung().categoryId());
+        seedErsteHilfe(days, station.stationId(), members.fortgeschritten());
+    }
+
+    /** What the first aid course is called, the event group with two alternative dates. */
+    static final String ERSTE_HILFE = "Erste-Hilfe-Kurs";
+
+    /** How many places each date of the first aid course has. */
+    static final int ERSTE_HILFE_PLACES = 3;
+
+    /** The name of the first aid course's date that is full. */
+    static final String ERSTE_HILFE_FULL = "Kurs Samstag";
+
+    /** The name of the first aid course's date that still has places. */
+    static final String ERSTE_HILFE_FREE = "Kurs Sonntag";
+
+    /**
+     * A first aid course held twice, on a Saturday and on the Sunday after, of which every sign-up
+     * takes exactly one: two alternatives, each with three places. The Saturday is full and one more
+     * member waits for it on the waiting list, while the Sunday still has places, so the demo shows a
+     * full alternative and the free one beside it. The members sign up the way members do, so the
+     * waiting sign-up is on the list in order.
+     *
+     * @param days      today and the hours of a day as the station has them
+     * @param stationId the station
+     * @param members   the members who sign up
+     */
+    private void seedErsteHilfe(DemoStationDays days, int stationId, List<StationMember> members) {
+        LocalDate saturday = days.today().plusWeeks(5).with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
+        var eventGroup = eventGroups.create(
+                stationId,
+                new EventGroupDetails(
+                        ERSTE_HILFE,
+                        "Der Kurs findet zweimal statt. Jede Anmeldung wählt einen der beiden Tage.",
+                        null,
+                        RegistrationDeadline.none(),
+                        false,
+                        "#00c507",
+                        null,
+                        null,
+                        ERSTE_HILFE_PLACES,
+                        null),
+                List.of(new EventGroupSetDraft(null, "Kurstag", 1, 1)),
+                youthAndTeam(),
+                youthAndTeam(),
+                new EventGroupContent(null, List.of()));
+        int courseDay = eventGroups.findSets(eventGroup.id()).getFirst().id();
+        int full = part(days, stationId, eventGroup.id(), courseDay, ERSTE_HILFE_FULL, saturday, 9, 8, null);
+        int free =
+                part(days, stationId, eventGroup.id(), courseDay, ERSTE_HILFE_FREE, saturday.plusDays(1), 9, 8, null);
+        int onSaturday = Math.min(ERSTE_HILFE_PLACES + 1, members.size());
+        for (int i = 0; i < onSaturday; i++) {
+            signUps.register(stationId, eventGroup.id(), members.get(i).id(), Set.of(full), Map.of(), null, false);
+        }
+        if (members.size() > onSaturday) {
+            signUps.register(
+                    stationId, eventGroup.id(), members.get(onSaturday).id(), Set.of(free), Map.of(), null, false);
+        }
+        log.info("Demo: Created the {} event group with a full and a free alternative", ERSTE_HILFE);
     }
 
     /**
@@ -128,7 +187,7 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                         "Grundlehrgang",
                         "Acht Abende Grundausbildung für die Neuen. Sechs davon müssen besucht werden.",
                         null,
-                        days.at(firstThursday, 17, 0),
+                        RegistrationDeadline.fixed(days.at(firstThursday, 17, 0)),
                         false,
                         null),
                 List.of(new EventGroupSetDraft(null, "Ausbildungsabende", 6)),
@@ -229,7 +288,7 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                         "Die erste Stufe der Jugendflamme. Von den drei Übungstagen müssen zwei besucht werden,"
                                 + " die Prüfung ist Pflicht.",
                         12,
-                        days.at(saturday.minusDays(7), 23, 59),
+                        RegistrationDeadline.relative(7 * 1440, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
                         true,
                         "#8b5cf6"),
                 List.of(new EventGroupSetDraft(null, "Übung", 2), new EventGroupSetDraft(null, "Prüfung", 1)),

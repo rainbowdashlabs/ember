@@ -10,7 +10,7 @@ import type {SettingsResponse} from '@/api/generated/schema'
  * section, so the three channels and the nine kinds are the ones the screen really offers.
  */
 function toggle(app: boolean, email: boolean, feed: boolean) {
-    return {app, email, feed}
+    return {app, email, feed, push: app}
 }
 
 export const NOTIFICATION_SETTINGS: SettingsResponse = {

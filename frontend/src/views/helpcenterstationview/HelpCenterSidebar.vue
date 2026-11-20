@@ -138,10 +138,6 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
                    to="/helpcenter/station/dashboard/overview" @navigate="close">
         {{ t('sidebar.overview') }}
       </SidebarLink>
-      <SidebarLink :icon="['fas', 'chart-line']" name="help-dashboard-statistics"
-                   to="/helpcenter/station/dashboard/statistics" @navigate="close">
-        {{ t('sidebar.statistics') }}
-      </SidebarLink>
     </SidebarGroup>
 
     <SidebarGroup :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')"
@@ -254,6 +250,10 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
       <SidebarLink :icon="['fas', 'hard-drive']" name="help-station-storage"
                    to="/helpcenter/station/monitoring/storage" @navigate="close">
         {{ t('sidebar.storage') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'chart-line']" name="help-station-statistics"
+                   to="/helpcenter/station/monitoring/statistics" @navigate="close">
+        {{ t('sidebar.statistics') }}
       </SidebarLink>
     </SidebarGroup>
 

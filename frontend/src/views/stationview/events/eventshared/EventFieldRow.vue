@@ -12,6 +12,8 @@ import CompactQuestionRow from '@/components/input/questionsettings/CompactQuest
 import {fieldTypeLabel} from '@/api/fieldTypes'
 import EventFieldMarks from './EventFieldMarks.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
+import PlacePinModal from './PlacePinModal.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import EventQuestionEditor from './EventQuestionEditor.vue'
 import {offersFieldValue} from './eventQuestions'
 
@@ -52,6 +54,12 @@ const valueName = computed(() =>
 const attendanceName = computed(() =>
     props.attendanceFields?.find(candidate => candidate.id === field.value.attendanceFieldId)?.name)
 
+const placeOpen = ref(false)
+
+/** A place field with a text can have its pin found and corrected on the map. */
+const pinsPlace = computed(() =>
+    offersValue.value && fieldType.value === FieldType.LOCATION && (field.value.value ?? '').trim() !== '')
+
 function update(patch: Partial<EventFieldEntry>) {
   field.value = {...field.value, ...patch}
 }
@@ -67,10 +75,11 @@ function update(patch: Partial<EventFieldEntry>) {
       @remove="emit('remove')"
   >
     <template #value>
-      <div class="min-w-0 grow-[2] basis-48" :role="offersValue ? 'group' : undefined"
+      <div class="flex min-w-0 grow-[2] basis-48 items-center gap-1" :role="offersValue ? 'group' : undefined"
            :aria-label="offersValue ? valueName : undefined">
         <EventFieldValueInput
             v-if="offersValue"
+            class="min-w-0 grow"
             :aria-label="valueName"
             :all-members="allMembers"
             :config="field.config"
@@ -81,6 +90,15 @@ function update(patch: Partial<EventFieldEntry>) {
             data-testid="event-field-row-value"
             @update:model-value="value => update({value})"
         />
+        <IconButton
+            v-if="pinsPlace"
+            :icon="['fas', 'map-location-dot']"
+            :label="t('places.onMap')"
+            class="shrink-0 text-primary"
+            data-testid="event-field-row-place"
+            @click="placeOpen = true"
+        />
+        <PlacePinModal v-if="pinsPlace && placeOpen" v-model="placeOpen" :text="(field.value ?? '').trim()"/>
       </div>
     </template>
     <template #marks>

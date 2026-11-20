@@ -32,6 +32,7 @@ import EventDetailBody from './eventdetailview/EventDetailBody.vue'
 import EventGroupFrame from './eventshared/EventGroupFrame.vue'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import RegistrationSigningStep from './eventshared/RegistrationSigningStep.vue'
+import FullDateDialog from './eventshared/FullDateDialog.vue'
 import {useEventAnswer} from '@/composables/useEventAnswer'
 import {answerableMembers, type AnswerablePerson} from '@/util/eventAnswers'
 import {formatTime, formatWeekdayDate, stationDayOf} from '@/util/format'
@@ -200,7 +201,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
     stationMembers.listCompletions().catch(() => []),
     events.getNextDate(eventId.value).catch(() => null),
     events.listCancelledDates(eventId.value).catch(() => []),
-    eventGroups.eventGroupOfEvent(eventId.value).catch(() => null),
+    eventGroups.eventGroupOfEvent(eventId.value),
   ])
   event.value = ev
   eventGroupPart.value = part
@@ -304,6 +305,7 @@ function onFieldUpdated(field: AppointmentField) {
         :my-registrations="myRegistrations"
         :registering="answer.registering.value !== null"
         :event-group-part="eventGroupPart !== null"
+        :event-group-name="eventGroupPart?.eventGroupName ?? null"
         @cancelled="onEventCancelled"
         @answers-updated="reloadMyRegistrations"
         @field-updated="onFieldUpdated"
@@ -324,5 +326,6 @@ function onFieldUpdated(field: AppointmentField) {
     />
     <RegistrationSigningStep v-if="answer.signingStep.value" :model-value="true" :step="answer.signingStep.value"
                              @update:model-value="shown => { if (!shown) answer.closeSigningStep() }"/>
+    <FullDateDialog :question="answer.fullDateQuestion.value" @answer="answer.answerFullDate"/>
   </ViewContent>
 </template>

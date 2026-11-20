@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.events.entity.StationEvent.EventType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Objects;
+
 /**
  * An appointment template: the settings an appointment made from it starts with.
  *
@@ -21,7 +23,8 @@ import org.jspecify.annotations.Nullable;
  * @param categoryId                      the category the appointment takes
  * @param eventType                       how the appointment repeats
  * @param requiresRegistration            whether the appointment takes sign-ups
- * @param registrationDeadlineOffsetHours how many hours before the start sign-up closes, or null for no deadline
+ * @param registrationDeadline            when sign-up closes, counted from each date's start; a
+ *                                        template knows no date, so it holds no fixed deadline
  * @param requiresConfirmation            whether sign-ups wait for a manager to confirm them
  * @param restrictionMode                 how the sign-up audience combines
  * @param viewRestrictionMode             how the view audience combines
@@ -29,7 +32,7 @@ import org.jspecify.annotations.Nullable;
  * @param registrationLimit               how many places the appointment has, or null for no limit
  * @param minRegistrations                how many accepted sign-ups each date needs, or null for no minimum
  * @param thresholdDays                   how many days before each date the minimum must be reached
- * @param registrationCloseDays           how many days before each date sign-up closes
+ * @param queueOrder                      how the waiting lists of appointments made from it are ordered
  */
 public record EventTemplate(
         int id,
@@ -40,7 +43,7 @@ public record EventTemplate(
         @Nullable Integer categoryId,
         @Nullable EventType eventType,
         @Nullable Boolean requiresRegistration,
-        @Nullable Integer registrationDeadlineOffsetHours,
+        RegistrationDeadline registrationDeadline,
         @Nullable Boolean requiresConfirmation,
         @Nullable RestrictionMode restrictionMode,
         RestrictionMode viewRestrictionMode,
@@ -48,7 +51,52 @@ public record EventTemplate(
         @Nullable Integer registrationLimit,
         @Nullable Integer minRegistrations,
         @Nullable Integer thresholdDays,
-        @Nullable Integer registrationCloseDays) {
+        @Nullable QueueOrder queueOrder) {
+
+    /** Reads a missing deadline as none. */
+    public EventTemplate {
+        registrationDeadline = Objects.requireNonNullElse(registrationDeadline, RegistrationDeadline.none());
+    }
+
+    /**
+     * A template that sets no waiting list order.
+     */
+    public EventTemplate(
+            int id,
+            int stationId,
+            String name,
+            @Nullable String title,
+            @Nullable String description,
+            @Nullable Integer categoryId,
+            @Nullable EventType eventType,
+            @Nullable Boolean requiresRegistration,
+            RegistrationDeadline registrationDeadline,
+            @Nullable Boolean requiresConfirmation,
+            @Nullable RestrictionMode restrictionMode,
+            RestrictionMode viewRestrictionMode,
+            @Nullable Integer attendanceTemplateId,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays) {
+        this(
+                id,
+                stationId,
+                name,
+                title,
+                description,
+                categoryId,
+                eventType,
+                requiresRegistration,
+                registrationDeadline,
+                requiresConfirmation,
+                restrictionMode,
+                viewRestrictionMode,
+                attendanceTemplateId,
+                registrationLimit,
+                minRegistrations,
+                thresholdDays,
+                null);
+    }
 
     public static RowMapping<EventTemplate> map() {
         return row -> new EventTemplate(
@@ -60,7 +108,7 @@ public record EventTemplate(
                 row.getObject("category_id", Integer.class),
                 row.getEnum("event_type", EventType.class),
                 row.getObject("requires_registration", Boolean.class),
-                row.getObject("registration_deadline_offset_hours", Integer.class),
+                RegistrationDeadline.read(row),
                 row.getObject("requires_confirmation", Boolean.class),
                 row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getEnum("view_restriction_mode", RestrictionMode.class),
@@ -68,6 +116,6 @@ public record EventTemplate(
                 row.getObject("registration_limit", Integer.class),
                 row.getObject("min_registrations", Integer.class),
                 row.getObject("threshold_days", Integer.class),
-                row.getObject("registration_close_days", Integer.class));
+                row.getEnum("queue_order", QueueOrder.class));
     }
 }

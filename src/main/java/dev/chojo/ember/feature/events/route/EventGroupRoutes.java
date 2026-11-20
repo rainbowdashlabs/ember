@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupSummary;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.WhenFull;
 import dev.chojo.ember.feature.events.route.EventStructureRoutes.EventFieldEntry;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupCancellationService;
@@ -176,6 +177,16 @@ public class EventGroupRoutes implements Routes {
                 this::decide,
                 StationPermission.EVENT_REGISTRATION,
                 StationModule.EVENTS);
+        routes.post(
+                prefix + EVENT_GROUP + "/sign-ups/queue",
+                this::moveToQueue,
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
+        routes.put(
+                prefix + EVENT_GROUP + "/sign-ups/{memberId}/queue-position",
+                this::moveInQueue,
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
     }
 
     @OpenApi(
@@ -271,6 +282,7 @@ public class EventGroupRoutes implements Routes {
                 request.registration(),
                 request.view(),
                 new EventGroupContent(draftsOf(request.questions()), fieldDraftsOf(request.fields())));
+        signUps.moveUp(session.stationId(), eventGroup.id());
         ctx.json(view.detailOf(session, eventGroup));
     }
 
@@ -491,7 +503,9 @@ public class EventGroupRoutes implements Routes {
     private void removePart(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
-        eventGroups.removePart(session.stationId(), pathInt(ctx, "eventGroupId"), eventId);
+        int eventGroupId = pathInt(ctx, "eventGroupId");
+        eventGroups.removePart(session.stationId(), eventGroupId, eventId);
+        signUps.moveUp(session.stationId(), eventGroupId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -520,7 +534,8 @@ public class EventGroupRoutes implements Routes {
                 partsOf(request),
                 EventRegistrationRoutes.answersOf(request.answers()),
                 createdBy(session, memberId),
-                override);
+                override,
+                override ? request.whenFull() : null);
         ctx.status(HttpStatus.CREATED).json(view.signUpOf(session, eventGroup.id(), memberId));
     }
 
@@ -633,8 +648,59 @@ public class EventGroupRoutes implements Routes {
         int eventGroupId = pathInt(ctx, "eventGroupId");
         int memberId = pathInt(ctx, "memberId");
         var request = ctx.bodyAsClass(EventGroupDecisionRequest.class);
-        signUps.decide(session.stationId(), eventGroupId, memberId, request.status());
+        signUps.decide(
+                session.stationId(),
+                eventGroupId,
+                memberId,
+                request.status(),
+                Boolean.TRUE.equals(request.overLimit()));
         ctx.json(view.signUpOf(session, eventGroupId, memberId));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/groups/{eventGroupId}/sign-ups/queue",
+            methods = HttpMethod.POST,
+            summary = "Put event group sign-ups waiting for a decision onto the event group's waiting list",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "eventGroupId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventGroupQueueRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void moveToQueue(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(EventGroupQueueRequest.class);
+        signUps.moveToQueue(
+                session.stationId(),
+                pathInt(ctx, "eventGroupId"),
+                Objects.requireNonNullElse(request.ids(), List.of()));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/queue-position",
+            methods = HttpMethod.PUT,
+            summary = "Move an event group sign-up to another place in line on the waiting list",
+            tags = {"Events"},
+            pathParams = {
+                @OpenApiParam(name = "eventGroupId", type = Integer.class, required = true),
+                @OpenApiParam(name = "memberId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventGroupQueuePositionRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void moveInQueue(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var position = ctx.bodyAsClass(EventGroupQueuePositionRequest.class).position();
+        if (position == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
+        signUps.moveInQueue(session.stationId(), pathInt(ctx, "eventGroupId"), pathInt(ctx, "memberId"), position);
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private EventGroup visibleEventGroup(Context ctx, StationSession session) {
@@ -748,11 +814,14 @@ public class EventGroupRoutes implements Routes {
      * @param memberId who signs up, or null for the reader
      * @param parts    the chosen parts
      * @param answers  the answers to the event group's questions, read on a new sign-up only
+     * @param whenFull what whoever runs events chose for a choice that does not fit; null asks them first,
+     *                 and is all a member signing up can send
      */
     public record EventGroupSignUpRequest(
             @Nullable Integer memberId,
             @Nullable List<Integer> parts,
-            @Nullable List<EventRegistrationFieldValue> answers) {}
+            @Nullable List<EventRegistrationFieldValue> answers,
+            @Nullable WhenFull whenFull) {}
 
     /**
      * New answers for a standing event group sign-up.
@@ -782,6 +851,27 @@ public class EventGroupRoutes implements Routes {
     /** @param reason why the event group is called off, as told to the people signed up, or null */
     public record EventGroupCancelRequest(@Nullable String reason) {}
 
-    /** @param status {@code ACCEPTED} or {@code DENIED} */
-    public record EventGroupDecisionRequest(RegistrationStatus status) {}
+    /**
+     * A decision on an event group sign-up.
+     *
+     * @param status    {@code ACCEPTED} or {@code DENIED}
+     * @param overLimit whether an acceptance may go beyond the limit; without it a choice that does not fit
+     *                  is refused
+     */
+    public record EventGroupDecisionRequest(
+            RegistrationStatus status, @Nullable Boolean overLimit) {}
+
+    /**
+     * Sign-ups to put onto an event group's waiting list.
+     *
+     * @param ids the members, or for partners' members the partner sign-ups, each waiting for a decision
+     */
+    public record EventGroupQueueRequest(@Nullable List<Integer> ids) {}
+
+    /**
+     * A place in line on an event group's waiting list.
+     *
+     * @param position the place, 1 moving up next; beyond the end goes last
+     */
+    public record EventGroupQueuePositionRequest(@Nullable Integer position) {}
 }

@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
@@ -54,7 +55,8 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService,
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                occurrenceCalendar);
         templates = new EventTemplateService(
                 new EventTemplateRepository(),
                 attendanceRepo,
@@ -87,9 +89,8 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
                         start.plus(2, ChronoUnit.HOURS),
                         null,
                         false,
-                        null,
+                        RegistrationDeadline.none(),
                         false,
-                        null,
                         null,
                         null,
                         null,

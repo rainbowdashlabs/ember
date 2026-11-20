@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.PickerMode;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -21,10 +22,13 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -59,9 +63,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 end,
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -69,11 +72,11 @@ class EventRepositoryTest extends RepositoryTestBase {
     }
 
     /**
-     * An event closing inside the window is offered once for that lead time and never again, which is
-     * what keeps a sweep running every few minutes from warning every few minutes.
+     * Every appointment taking sign-ups with a deadline can close, however far away; an appointment
+     * without a deadline or without sign-ups cannot.
      */
     @Test
-    void anEventClosingSoonIsOfferedUntilItsWarningIsRecorded() {
+    void theAppointmentsWithADeadlineAreThoseThatCanClose() {
         var closing = eventRepo.create(
                 station.id(),
                 "Bald zu",
@@ -84,9 +87,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.now().plus(java.time.Duration.ofDays(10)).plusSeconds(3600),
                 null,
                 true,
-                Instant.now().plus(java.time.Duration.ofDays(2)),
+                RegistrationDeadline.fixed(Instant.now().plus(java.time.Duration.ofDays(2))),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -101,34 +103,44 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.now().plus(java.time.Duration.ofDays(40)).plusSeconds(3600),
                 null,
                 true,
-                Instant.now().plus(java.time.Duration.ofDays(30)),
+                RegistrationDeadline.fixed(Instant.now().plus(java.time.Duration.ofDays(30))),
                 false,
                 null,
+                null,
+                null,
+                null);
+        var open = eventRepo.create(
+                station.id(),
+                "Ohne Schluss",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(java.time.Duration.ofDays(10)),
+                Instant.now().plus(java.time.Duration.ofDays(10)).plusSeconds(3600),
+                null,
+                true,
+                RegistrationDeadline.none(),
+                false,
                 null,
                 null,
                 null,
                 null);
         try {
-            var due = eventRepo.findEventsClosingIn(3);
-            assertTrue(due.stream().anyMatch(e -> e.eventId() == closing.id()));
-            assertTrue(due.stream().noneMatch(e -> e.eventId() == later.id()), "a distant deadline waits");
-
-            eventReminderRepo.markDeadlineWarningSent(closing.id(), 3);
-            assertTrue(
-                    eventRepo.findEventsClosingIn(3).stream().noneMatch(e -> e.eventId() == closing.id()),
-                    "a warning already given is not given again");
-            assertTrue(
-                    eventRepo.findEventsClosingIn(1).stream().noneMatch(e -> e.eventId() == closing.id()),
-                    "and one day out is still two days away");
+            var closable =
+                    eventRepo.findWithDeadline().stream().map(StationEvent::id).toList();
+            assertTrue(closable.contains(closing.id()));
+            assertTrue(closable.contains(later.id()), "a distant deadline is the checker's to weigh");
+            assertFalse(closable.contains(open.id()), "no deadline closes nothing");
         } finally {
             eventRepo.delete(closing.id());
             eventRepo.delete(later.id());
+            eventRepo.delete(open.id());
         }
     }
 
-    /** A one-time appointment whose date was called off has no list closing and nobody owing an answer. */
+    /** A one-time appointment whose date was called off has nobody owing an answer. */
     @Test
-    void aCancelledOneOffIsNeitherClosingNorAwaitingAnswers() {
+    void aCancelledOneOffAwaitsNoAnswers() {
         Instant start = Instant.now().plus(java.time.Duration.ofDays(10));
         var called = eventRepo.create(
                 station.id(),
@@ -140,24 +152,20 @@ class EventRepositoryTest extends RepositoryTestBase {
                 start.plusSeconds(3600),
                 null,
                 true,
-                Instant.now().plus(java.time.Duration.ofDays(2)),
+                RegistrationDeadline.fixed(Instant.now().plus(java.time.Duration.ofDays(2))),
                 false,
-                null,
                 null,
                 null,
                 null,
                 null);
         try {
-            assertTrue(eventRepo.findEventsClosingIn(3).stream().anyMatch(e -> e.eventId() == called.id()));
-            assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
-                    .anyMatch(a -> a.eventId() == called.id()));
+            assertTrue(awaitingAnswers().find(List.of(member.id())).stream().anyMatch(a -> a.eventId() == called.id()));
 
             var day = occurrenceCalendar.dateInView(called).orElseThrow();
             eventDateCancellationRepo.cancel(called.id(), day, CancellationCause.MANUAL, null, null);
 
-            assertTrue(eventRepo.findEventsClosingIn(3).stream().noneMatch(e -> e.eventId() == called.id()));
-            assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
-                    .noneMatch(a -> a.eventId() == called.id()));
+            assertTrue(
+                    awaitingAnswers().find(List.of(member.id())).stream().noneMatch(a -> a.eventId() == called.id()));
         } finally {
             eventRepo.delete(called.id());
         }
@@ -180,9 +188,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 start.plusSeconds(3600),
                 null,
                 true,
-                Instant.now().plus(java.time.Duration.ofDays(2)),
+                RegistrationDeadline.fixed(Instant.now().plus(java.time.Duration.ofDays(2))),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -190,21 +197,18 @@ class EventRepositoryTest extends RepositoryTestBase {
         try {
             var day = occurrenceCalendar.dateInView(asked).orElseThrow();
             assertTrue(
-                    eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
-                            .anyMatch(a -> a.eventId() == asked.id()),
+                    awaitingAnswers().find(List.of(member.id())).stream().anyMatch(a -> a.eventId() == asked.id()),
                     "nobody has answered yet");
 
             var answer = eventRegistrationRepo.create(asked.id(), member.id(), day, RegistrationStatus.DECLINED, null);
             assertTrue(
-                    eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
-                            .noneMatch(a -> a.eventId() == asked.id()),
+                    awaitingAnswers().find(List.of(member.id())).stream().noneMatch(a -> a.eventId() == asked.id()),
                     "a decline is an answer");
 
             eventRegistrationRepo.recordAnswer(answer.id(), RegistrationStatus.ACCEPTED);
             eventRegistrationRepo.recordAnswer(answer.id(), RegistrationStatus.WITHDRAWN);
             assertTrue(
-                    eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
-                            .noneMatch(a -> a.eventId() == asked.id()),
+                    awaitingAnswers().find(List.of(member.id())).stream().noneMatch(a -> a.eventId() == asked.id()),
                     "and so is a place given up");
         } finally {
             eventRepo.delete(asked.id());
@@ -223,9 +227,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2026-06-15T12:00:00Z"),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -246,11 +249,10 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2026-07-01T13:00:00Z"),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 true,
                 null,
                 false,
-                null,
                 null,
                 null,
                 null));
@@ -276,9 +278,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2026-06-16T15:00:00Z"),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -292,7 +293,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    void createEventWithCloseDaysAndFindThem() {
+    void aRelativeDeadlineIsStoredAndReadBack() {
         var event = eventRepo.create(
                 station.id(),
                 "Close Days Event",
@@ -303,16 +304,18 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2026-06-15T12:00:00Z"),
                 null,
                 true,
-                null,
+                RegistrationDeadline.relative(2880, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
                 false,
                 null,
                 null,
                 null,
-                null,
-                2);
+                null);
         try {
-            assertEquals(2, event.registrationCloseDays());
-            assertTrue(eventRepo.findRecurringEventsWithCloseDays().stream().anyMatch(e -> e.id() == event.id()));
+            var read = eventRepo.findById(event.id()).orElseThrow();
+            assertEquals(
+                    RegistrationDeadline.relative(2880, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
+                    read.registrationDeadline());
+            assertTrue(eventRepo.findWithDeadline().stream().anyMatch(e -> e.id() == event.id()));
         } finally {
             eventRepo.delete(event.id());
         }
@@ -336,11 +339,10 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.now(),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 false,
-                null,
                 null,
                 null,
                 null));
@@ -402,10 +404,9 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2027-03-15T12:00:00Z"),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 category.id(),
-                null,
                 null,
                 null,
                 null);
@@ -465,13 +466,12 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2027-09-15T12:00:00Z"),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 null,
                 5,
-                1000,
-                null);
+                1000);
         try {
             assertTrue(eventRepo.findThresholdCandidates().stream().anyMatch(e -> e.id() == event.id()));
             eventRepo.cancelEvent(event.id(), null);
@@ -495,13 +495,12 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2027-10-13T12:00:00Z"),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 null,
                 3,
-                2,
-                null);
+                2);
         try {
             var read = eventRepo.findById(event.id()).orElseThrow();
             assertEquals(3, read.minRegistrations());
@@ -511,8 +510,15 @@ class EventRepositoryTest extends RepositoryTestBase {
         }
     }
 
+    /**
+     * A date with sign-ups waiting is offered with the close its passed deadline was handled for, so the
+     * caller can tell a handled close from one that moved since, and a fixed deadline handled for the
+     * instant it still has is not offered at all. The record is per date and the latest close replaces
+     * the earlier one.
+     */
     @Test
-    void markDeadlineNotifiedAndFindExpiredDeadlines() {
+    void aPendingDateCarriesTheCloseItWasHandledFor() {
+        var closes = Instant.now().minus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.SECONDS);
         var event = eventRepo.create(
                 station.id(),
                 "Expired Deadline",
@@ -523,29 +529,156 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.now().plus(1, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                Instant.now().minus(1, ChronoUnit.HOURS),
+                RegistrationDeadline.fixed(closes),
                 false,
                 null,
                 null,
                 null,
-                null,
                 null);
+        LocalDate date = LocalDate.now().plusDays(1);
         try {
-            eventRegistrationRepo.create(
-                    event.id(), member.id(), LocalDate.now().plusDays(1), RegistrationStatus.PENDING, null);
-            var expired = eventRepo.findOneTimeEventsWithExpiredDeadline().stream()
-                    .filter(e -> e.eventId() == event.id())
-                    .findFirst()
-                    .orElseThrow();
-            assertEquals(station.id(), expired.stationId());
-            assertEquals("Expired Deadline", expired.name());
-            assertEquals(1, expired.pendingCount());
+            eventRegistrationRepo.create(event.id(), member.id(), date, RegistrationStatus.PENDING, null);
+            assertEquals(List.of(new EventRepository.PendingDate(event.id(), date, null, 1)), pendingOf(event));
 
-            eventRepo.markDeadlineNotified(event.id());
-            assertFalse(
-                    eventRepo.findOneTimeEventsWithExpiredDeadline().stream().anyMatch(e -> e.eventId() == event.id()));
+            eventRepo.markDeadlineExpired(event.id(), date.plusDays(7), closes);
+            assertEquals(
+                    List.of(new EventRepository.PendingDate(event.id(), date, null, 1)),
+                    pendingOf(event),
+                    "another date's record leaves this one unhandled");
+
+            var earlier = closes.minus(1, ChronoUnit.DAYS);
+            eventRepo.markDeadlineExpired(event.id(), date, earlier);
+            assertEquals(
+                    List.of(new EventRepository.PendingDate(event.id(), date, earlier, 1)),
+                    pendingOf(event),
+                    "handled for a close the fixed deadline no longer has");
+
+            eventRepo.markDeadlineExpired(event.id(), date, closes);
+            assertEquals(List.of(), pendingOf(event), "handled for the fixed deadline it still has");
         } finally {
             eventRepo.delete(event.id());
+        }
+    }
+
+    private List<EventRepository.PendingDate> pendingOf(StationEvent event) {
+        return eventRepo.findPendingDatesWithDeadline().stream()
+                .filter(pending -> pending.eventId() == event.id())
+                .toList();
+    }
+
+    private StationEvent withDeadline(
+            String name, StationEvent.EventType type, Instant start, RegistrationDeadline deadline) {
+        return eventRepo.create(
+                station.id(),
+                name,
+                "desc",
+                type,
+                type == StationEvent.EventType.ONE_TIME
+                        ? null
+                        : start.atZone(ZoneOffset.UTC).getDayOfWeek().getValue(),
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                deadline,
+                false,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    /** A one-time appointment already begun and a series already ended have nothing left to close. */
+    @Test
+    void whatIsOverCannotClose() {
+        var deadline = RegistrationDeadline.relative(24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT);
+        var past = withDeadline(
+                "Vorbei", StationEvent.EventType.ONE_TIME, Instant.now().minus(1, ChronoUnit.DAYS), deadline);
+        var ended = withDeadline(
+                "Beendet", StationEvent.EventType.RECURRING, Instant.now().minus(30, ChronoUnit.DAYS), deadline);
+        var running = withDeadline(
+                "Läuft", StationEvent.EventType.RECURRING, Instant.now().minus(30, ChronoUnit.DAYS), deadline);
+        try {
+            query("UPDATE station_event SET repeat_until = current_date - 1 WHERE id = :id;")
+                    .single(call().bind("id", ended.id()))
+                    .update();
+            query("UPDATE station_event SET repeat_until = current_date + 30 WHERE id = :id;")
+                    .single(call().bind("id", running.id()))
+                    .update();
+
+            var closable =
+                    eventRepo.findWithDeadline().stream().map(StationEvent::id).toList();
+            assertFalse(closable.contains(past.id()), "a one-time appointment already begun");
+            assertFalse(closable.contains(ended.id()), "a series whose last day has passed");
+            assertTrue(closable.contains(running.id()), "a series still running");
+        } finally {
+            eventRepo.delete(past.id());
+            eventRepo.delete(ended.id());
+            eventRepo.delete(running.id());
+        }
+    }
+
+    /**
+     * Only dates whose deadline may have passed are offered: a fixed deadline once its instant is
+     * behind, a relative one up to its span plus two days ahead, and nothing more than a week back.
+     */
+    @Test
+    void onlyDatesWhoseDeadlineMayHavePassedAreOffered() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        var ahead = withDeadline(
+                "Fest, noch offen",
+                StationEvent.EventType.RECURRING,
+                Instant.now().minus(30, ChronoUnit.DAYS),
+                RegistrationDeadline.fixed(Instant.now().plus(1, ChronoUnit.DAYS)));
+        var relative = withDeadline(
+                "Relativ",
+                StationEvent.EventType.RECURRING,
+                Instant.now().minus(30, ChronoUnit.DAYS),
+                RegistrationDeadline.relative(2 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT));
+        try {
+            eventRegistrationRepo.create(ahead.id(), member.id(), today.plusDays(1), RegistrationStatus.PENDING, null);
+            eventRegistrationRepo.create(
+                    relative.id(), member.id(), today.plusDays(3), RegistrationStatus.PENDING, null);
+            eventRegistrationRepo.create(
+                    relative.id(), member.id(), today.plusDays(10), RegistrationStatus.PENDING, null);
+            eventRegistrationRepo.create(
+                    relative.id(), member.id(), today.minusDays(8), RegistrationStatus.PENDING, null);
+
+            var offered = eventRepo.findPendingDatesWithDeadline();
+            assertTrue(
+                    offered.stream().noneMatch(date -> date.eventId() == ahead.id()), "a fixed deadline still ahead");
+            assertEquals(
+                    List.of(today.plusDays(3)),
+                    offered.stream()
+                            .filter(date -> date.eventId() == relative.id())
+                            .map(EventRepository.PendingDate::date)
+                            .toList(),
+                    "inside the span plus two days, neither beyond it nor more than a week back");
+        } finally {
+            eventRepo.delete(ahead.id());
+            eventRepo.delete(relative.id());
+        }
+    }
+
+    /** A relative deadline of a one-time appointment asks for an answer until its computed close. */
+    @Test
+    void anAnswerIsAwaitedUntilTheRelativeDeadline() {
+        var deadline = RegistrationDeadline.relative(2 * 24 * 60, RegistrationDeadline.DeadlineAnchor.EXACT);
+        var open = withDeadline(
+                "Noch offen", StationEvent.EventType.ONE_TIME, Instant.now().plus(10, ChronoUnit.DAYS), deadline);
+        var closed = withDeadline(
+                "Schon zu", StationEvent.EventType.ONE_TIME, Instant.now().plus(1, ChronoUnit.DAYS), deadline);
+        try {
+            var awaiting = awaitingAnswers().find(List.of(member.id()));
+            var listed = awaiting.stream()
+                    .filter(answer -> answer.eventId() == open.id())
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(open.startTime().minus(2, ChronoUnit.DAYS), listed.registrationClosesAt());
+            assertTrue(awaiting.stream().noneMatch(answer -> answer.eventId() == closed.id()));
+        } finally {
+            eventRepo.delete(open.id());
+            eventRepo.delete(closed.id());
         }
     }
 
@@ -597,9 +730,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                     Instant.parse("2027-10-10T11:00:00Z"),
                     null,
                     true,
-                    null,
+                    RegistrationDeadline.none(),
                     false,
-                    null,
                     null,
                     null,
                     null,
@@ -647,10 +779,9 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.now().plus(30, ChronoUnit.DAYS).plusSeconds(3600),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 category.id(),
-                null,
                 null,
                 null,
                 null);
@@ -664,10 +795,9 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.now().minus(60, ChronoUnit.DAYS).plusSeconds(3600),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 category.id(),
-                null,
                 null,
                 null,
                 null);

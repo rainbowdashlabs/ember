@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.entity.QueueOrder;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationTemplateField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventTemplateRestrictionService;
@@ -35,6 +37,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -291,8 +294,10 @@ public class EventTemplateRoutes implements Routes {
     /**
      * A template's settings as the editor sends them.
      *
-     * @param registrationDeadlineOffsetHours how many hours before the start sign-up closes, or null
+     * @param registrationDeadline            when sign-up closes, counted from each date's start, or null for none
      *                                        for no deadline
+     * @param queueOrder                      how the waiting lists of appointments made from it are
+     *                                        ordered, or null for by time
      */
     public record UpdateTemplateRequest(
             String name,
@@ -301,14 +306,14 @@ public class EventTemplateRoutes implements Routes {
             @Nullable Integer categoryId,
             StationEvent.@Nullable EventType eventType,
             @Nullable Boolean requiresRegistration,
-            @Nullable Integer registrationDeadlineOffsetHours,
+            @Nullable RegistrationDeadline registrationDeadline,
             @Nullable Boolean requiresConfirmation,
             @Nullable RestrictionMode restrictionMode,
             @Nullable Integer attendanceTemplateId,
             @Nullable Integer registrationLimit,
             @Nullable Integer minRegistrations,
             @Nullable Integer thresholdDays,
-            @Nullable Integer registrationCloseDays) {
+            @Nullable QueueOrder queueOrder) {
 
         EventTemplateSettings toSettings() {
             return new EventTemplateSettings(
@@ -318,14 +323,14 @@ public class EventTemplateRoutes implements Routes {
                     categoryId,
                     eventType,
                     requiresRegistration,
-                    registrationDeadlineOffsetHours,
+                    Objects.requireNonNullElse(registrationDeadline, RegistrationDeadline.none()),
                     requiresConfirmation,
                     restrictionMode,
                     attendanceTemplateId,
                     registrationLimit,
                     minRegistrations,
                     thresholdDays,
-                    registrationCloseDays);
+                    queueOrder);
         }
     }
 

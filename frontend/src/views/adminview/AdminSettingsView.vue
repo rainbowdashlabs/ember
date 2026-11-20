@@ -28,6 +28,7 @@ const {message: savedMessage, flash} = useFlashMessage(2000)
 const saving = ref(false)
 const registrationEnabled = ref(true)
 const messagesEnabled = ref(true)
+const pushEnabled = ref(true)
 const forcePrideFlag = ref(false)
 const instanceDefaultTheme = ref('ember')
 const instanceDefaultFeel = ref('ROUNDED')
@@ -39,6 +40,7 @@ const {loading, failure} = useAsyncLoader(async () => {
   const settings = await adminSettings.getSettings()
   registrationEnabled.value = settings.stationRegistrationEnabled
   messagesEnabled.value = settings.messagesEnabled
+  pushEnabled.value = settings.pushEnabled ?? true
   forcePrideFlag.value = settings.forcePrideFlag ?? false
   instanceDefaultTheme.value = settings.instanceDefaultTheme ?? 'ember'
   instanceDefaultFeel.value = settings.instanceDefaultFeel ?? 'ROUNDED'
@@ -51,6 +53,7 @@ function buildSettings() {
   return {
     stationRegistrationEnabled: registrationEnabled.value,
     messagesEnabled: messagesEnabled.value,
+    pushEnabled: pushEnabled.value,
     instanceDefaultTheme: instanceDefaultTheme.value,
     instanceDefaultFeel: instanceDefaultFeel.value,
     instanceLockFeel: instanceLockFeel.value,
@@ -106,6 +109,14 @@ function toggleRegistration(value: boolean) {
   }, () => { registrationEnabled.value = !value })
 }
 
+/** Turns push messages on or off for the whole instance; off, nothing queued goes out later either. */
+function togglePush(value: boolean) {
+  return saveInstantly(async () => {
+    const result = await adminSettings.updateSettings({...buildSettings(), pushEnabled: value})
+    pushEnabled.value = result.pushEnabled ?? value
+  }, () => { pushEnabled.value = !value })
+}
+
 /** Turns messages on or off for everybody on the instance, then reads the session again so this tab follows. */
 function toggleMessages(value: boolean) {
   return saveInstantly(async () => {
@@ -149,11 +160,13 @@ async function saveInstanceTheme() {
             v-model:default-mail-locale="defaultMailLocale"
             :registration-enabled="registrationEnabled"
             :messages-enabled="messagesEnabled"
+            :push-enabled="pushEnabled"
             :available-mail-locales="availableMailLocales"
             @save-pride="savePride"
             @save-mail-locale="saveMailLocale"
             @toggle-registration="toggleRegistration"
             @toggle-messages="toggleMessages"
+            @toggle-push="togglePush"
         />
         <ThemePanel
             v-model:default-feel="instanceDefaultFeel"

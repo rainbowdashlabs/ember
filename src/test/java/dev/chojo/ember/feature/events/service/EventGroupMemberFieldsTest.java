@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupContent;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.SelfRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -83,7 +84,8 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService,
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                occurrenceCalendar);
     }
 
     private static EventFieldDraft memberField(FieldType type, String value) {
@@ -94,7 +96,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     private EventGroup groupWith(EventFieldDraft field, Instant deadline) {
         return groups.create(
                 station.id(),
-                new EventGroupDetails("Jugendflamme", null, null, deadline, false, null),
+                new EventGroupDetails("Jugendflamme", null, null, RegistrationDeadline.fixed(deadline), false, null),
                 List.of(new EventGroupSetDraft(null, "Tage", 1)),
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),

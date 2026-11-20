@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.maps.route;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.refusal.MapRefusal;
 import dev.chojo.ember.conf.file.elements.Network;
+import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
+import dev.chojo.ember.feature.maps.service.GeocodingService;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService.CacheStatus;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService.TileResponse;
@@ -25,8 +27,10 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteHarness.header;
+import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -45,6 +49,7 @@ class PublicMapsRoutesTest {
 
     private MapTileCacheService cache;
     private RouteHarness harness;
+    private GeocodingService geocoding;
 
     @BeforeEach
     void setup() {
@@ -53,10 +58,14 @@ class PublicMapsRoutesTest {
                 .thenReturn(new TileResponse(TILE, "image/png", CacheStatus.HIT));
         var network = mock(Network.class);
         when(network.trustedProxies()).thenReturn(List.of("127.0.0.1/32", "::1/128"));
+        geocoding = mock(GeocodingService.class);
+        var config = mock(MapsConfigService.class);
+        when(config.tilesConfig()).thenReturn(MapsTilesConfig.DEFAULT);
         harness = RouteHarness.serving(new PublicMapsRoutes(
-                        mock(MapsConfigService.class),
+                        config,
                         cache,
-                        new MapTileRateLimiter(Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC))))
+                        new MapTileRateLimiter(Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC)),
+                        geocoding))
                 .withNetwork(network);
     }
 
@@ -92,6 +101,17 @@ class PublicMapsRoutesTest {
             assertEquals(200, other.code());
             assertTrue(header(other, "Content-Type").startsWith("image/png"));
             assertEquals(new String(TILE, StandardCharsets.UTF_8), other.body().string());
+        });
+    }
+
+    @Test
+    void theSettingsSayWhetherAddressesCanBeLookedUp() {
+        harness.run((server, client) -> {
+            var off = json(client.get(RouteHarness.PREFIX + "/public/settings/maps"));
+            assertFalse(off.path("geocoding").asBoolean());
+            when(geocoding.enabled()).thenReturn(true);
+            var on = json(client.get(RouteHarness.PREFIX + "/public/settings/maps"));
+            assertTrue(on.path("geocoding").asBoolean());
         });
     }
 }

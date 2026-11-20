@@ -14,9 +14,12 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -36,6 +39,10 @@ final class ClosingWarnings {
     private static final Logger log = LoggerFactory.getLogger(ClosingWarnings.class);
     /** The lead times warned about in days, nearest first. */
     private static final List<Integer> LEAD_DAYS = List.of(1, 3);
+
+    /** The widest lead time warned about, in days. */
+    static final int MAX_LEAD_DAYS =
+            LEAD_DAYS.stream().mapToInt(Integer::intValue).max().orElseThrow();
 
     private final Notifier notifier;
     private final MemberNameResolver names;
@@ -62,7 +69,7 @@ final class ClosingWarnings {
                     warned += warnAbout(kind, closing, memberId, daysBefore) ? 1 : 0;
                 }
                 for (int wider : LEAD_DAYS) {
-                    if (wider >= daysBefore) kind.markWarned(closing.id(), wider);
+                    if (wider >= daysBefore) kind.markWarned(closing, wider);
                 }
                 log.info(
                         "Warned {} member(s) that registration for '{}' (id={}) closes in {} day(s)",
@@ -79,7 +86,8 @@ final class ClosingWarnings {
                 StationAudience.household(List.of(memberId)),
                 NotificationType.REGISTRATION_CLOSING,
                 NotificationData.of(
-                        new NotificationParams.RegistrationClosing(closing.name(), daysBefore, names.called(memberId)),
+                        new NotificationParams.RegistrationClosing(
+                                closing.name(), daysBefore, names.called(memberId), closing.namedDate()),
                         kind.linkTo(closing.id())),
                 Delivery.EVERY_TIME);
         return told > 0;
@@ -91,8 +99,24 @@ final class ClosingWarnings {
      * @param id        its id
      * @param stationId its station
      * @param name      its name, as the warning shows it
+     * @param date      the date of an appointment whose deadline this is, since a series closes each
+     *                  date on its own; null for an event group, which closes once
+     * @param series    whether the appointment repeats, so the warning names the date
+     * @param closesAt  when it closes, the instant a warning is recorded for
      */
-    record Closing(int id, int stationId, String name) {}
+    record Closing(
+            int id, int stationId, String name, @Nullable LocalDate date, boolean series, Instant closesAt) {
+        /** Something that closes once, or a date not worth naming. */
+        Closing(int id, int stationId, String name, @Nullable LocalDate date, Instant closesAt) {
+            this(id, stationId, name, date, false, closesAt);
+        }
+
+        /** The date the warning names: the one of a series, which closes each date on its own. */
+        @Nullable
+        LocalDate namedDate() {
+            return series ? date : null;
+        }
+    }
 
     /** One kind of thing with a sign-up deadline: what differs between an appointment and an event group. */
     interface Closable {
@@ -124,10 +148,10 @@ final class ClosingWarnings {
         /**
          * Notes that the warning for a lead time went out.
          *
-         * @param id         the thing
+         * @param closing    the thing
          * @param daysBefore the lead time
          */
-        void markWarned(int id, int daysBefore);
+        void markWarned(Closing closing, int daysBefore);
 
         /**
          * Where the warning leads.

@@ -29,15 +29,20 @@ import type {
 } from '@/api/generated/schema'
 import {renderMarkdown} from '@/util/markdown'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
+import {placesLabel, signUpQueues} from '@/util/eventPlaces'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import type {RegistrationSummary} from './registrationSummary'
 
 const props = defineProps<{
   event: EventSummary
   date: string
   endDate: string | null
+  /** When sign-up for this date closes, null where it does not close before the appointment. */
+  closesAt: string | null
   /** What kind of appointment this is, absent where it was put in no category. */
   category?: EventCategory | null
   overviewFields: AppointmentField[]
-  registrationSummary: { accepted: number; pending: number; declined: number; total: number }
+  registrationSummary: RegistrationSummary
   detailRoute: RouteLocationRaw
   eligibleMembers: AnswerablePerson[]
   /** Why seeing this appointment does not mean being able to answer it, absent where it does. */
@@ -77,7 +82,7 @@ const containerClass = computed(() => [
       data-testid="upcoming-event" :data-event="event.id" :data-date="date" :data-cancelled="!!cancellation"
       :event-group="event.eventGroup" :class="containerClass">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <div>
+      <div class="grow basis-80 min-w-0">
         <EventHeadline
             :name="event.name" :to="detailRoute" :date="date" :end-date="endDate"
             :start-time="event.startTime" :end-time="event.endTime" :format-time="formatTime"
@@ -90,7 +95,7 @@ const containerClass = computed(() => [
           <InfoBadge v-if="event.requiresRegistration" data-testid="upcoming-event-registration">
             {{ t('eventsUpcoming.registrationRequired') }}
           </InfoBadge>
-          <MutedText v-if="event.requiresRegistration && event.registrationDeadline" class="text-xs text-(--text-muted)">({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(event.registrationDeadline) }})</MutedText>
+          <MutedText v-if="event.requiresRegistration && closesAt" class="text-xs text-(--text-muted)">({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(closesAt) }})</MutedText>
         </EventHeadline>
         <p v-if="restrictionNote" class="text-xs text-(--text-muted) mt-0.5" data-testid="upcoming-event-restriction-note">
           <font-awesome-icon :icon="['fas', 'lock']" class="mr-1"/>{{ restrictionNote }}
@@ -100,9 +105,15 @@ const containerClass = computed(() => [
           <span v-for="f in overviewFields" :key="f.id" class="text-(--text-muted)"><span class="font-medium">{{ f.name }}:</span> <QuestionValueDisplay :field-type="f.fieldType" :value="f.value"/></span>
         </div>
       </div>
-      <div v-if="registrationSummary.total > 0" class="flex items-center gap-2 text-xs">
+      <div v-if="registrationSummary.total > 0 || registrationSummary.places" class="flex shrink-0 flex-wrap items-center gap-2 text-xs">
+        <MutedText v-if="registrationSummary.places" data-testid="upcoming-event-places">
+          {{ placesLabel(registrationSummary.places, t) }}
+        </MutedText>
         <SuccessBadge v-if="registrationSummary.accepted">{{ registrationSummary.accepted }} {{ t('eventsUpcoming.accepted') }}</SuccessBadge>
         <InfoBadge v-if="registrationSummary.pending">{{ registrationSummary.pending }} {{ t('eventsUpcoming.pendingCount') }}</InfoBadge>
+        <SecondaryBadge v-if="registrationSummary.queued && !registrationSummary.places">
+          {{ t('registrationQueue.waitingCount', {count: registrationSummary.queued}) }}
+        </SecondaryBadge>
         <ErrorBadge v-if="registrationSummary.declined">{{ registrationSummary.declined }} {{ t('eventsUpcoming.declinedCount') }}</ErrorBadge>
       </div>
     </div>
@@ -117,9 +128,10 @@ const containerClass = computed(() => [
         :people="eligibleMembers"
         :answers="answers"
         :requires-registration="!!event.requiresRegistration"
-        :registration-deadline="event.registrationDeadline"
+        :closes-at="closesAt"
         :has-managed-members="hasManagedMembers"
         :registering="registering"
+        :sign-up-queues="signUpQueues(registrationSummary.places, event.requiresConfirmation)"
         @register="emit('register', $event)"
         @decline="emit('decline', $event)"
         @withdraw="emit('withdraw', $event)"

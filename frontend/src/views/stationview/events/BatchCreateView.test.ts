@@ -13,6 +13,7 @@ import StepProgressBar from '@/components/display/StepProgressBar.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
 import BatchCreateView from './BatchCreateView.vue'
 import ManualRowsEditor from './batchcreateview/ManualRowsEditor.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
@@ -21,10 +22,24 @@ import {events} from '@/api'
 import {localInputToInstant} from '@/util/format'
 
 vi.mock('@/api', () => ({
-    events: {listTemplates: vi.fn(async () => []), getTemplate: vi.fn(), createBatchEvents: vi.fn(async () => []), generateDates: vi.fn()},
+    events: {
+        listTemplates: vi.fn(async () => []),
+        getTemplate: vi.fn(),
+        createBatchEvents: vi.fn(async () => []),
+        generateDates: vi.fn(),
+        listTemplateAttachments: vi.fn(async () => []),
+        getTemplateFieldDefaults: vi.fn(async () => []),
+        getTemplateFederationShare: vi.fn(async () => ({shared: false, scope: null, partnerIds: null})),
+        setFederationShare: vi.fn(async () => undefined),
+    },
     attendance: {listTemplateFields: vi.fn(async () => [])},
+    appointmentDocuments: {listRequirements: vi.fn(async () => [])},
+    federation: {listPartners: vi.fn(async () => [])},
 }))
-vi.mock('@/composables/useSession', () => ({useSession: () => ({loaded: ref(false)})}))
+const session = vi.hoisted(() => ({loaded: false, federate: false}))
+vi.mock('@/composables/useSession', () => ({
+    useSession: () => ({loaded: ref(session.loaded), stationTimezone: ref('Europe/Berlin'), hasPermission: () => session.federate}),
+}))
 vi.mock('@/composables/useEventRoutes', () => ({useEventRoutes: () => ({index: 'events'})}))
 vi.mock('@/composables/useEventEditDeps', () => ({
     useEventEditDeps: () => ({
@@ -62,16 +77,59 @@ const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/
 
 /** The keys the server reads in a batch and in each of its rows; any other key, or a value of another shape, is refused. */
 const REQUEST_KEYS = ['name', 'description', 'templateId', 'categoryId', 'inlineFields', 'rows', 'requiresRegistration',
-    'requiresConfirmation', 'registrationDeadline', 'restriction', 'viewRestriction']
+    'requiresConfirmation', 'registrationDeadline', 'restriction', 'viewRestriction', 'registrationLimit', 'queueOrder',
+    'minRegistrations', 'thresholdDays', 'reminderDays', 'eventTemplateId']
 const ROW_KEYS = ['name', 'startTime', 'endTime', 'fieldValues']
 
-/** Sets the registration deadline the way the details panel does: a switch and a local date and time. */
-async function setDeadline(wrapper: VueWrapper, on: boolean, value: string) {
+const FIXED_DEADLINE = {kind: 'FIXED', at: localInputToInstant('2026-12-01T18:00'), offsetMinutes: null, anchor: null}
+const NO_DEADLINE = {kind: 'NONE', at: null, offsetMinutes: null, anchor: null}
+
+/** Sets the registration deadline the way the details panel does, with sign-up on or off. */
+async function setDeadline(wrapper: VueWrapper, signUp: boolean, rule: Record<string, unknown>) {
     const panel = wrapper.findComponent(EventFormPanel)
-    panel.vm.$emit('update:requiresRegistration', true)
-    panel.vm.$emit('update:registrationDeadline', value)
-    panel.vm.$emit('update:hasDeadline', on)
+    panel.vm.$emit('update:requiresRegistration', signUp)
+    panel.vm.$emit('update:registrationDeadline', rule)
     await flushPromises()
+}
+
+/** Writes one appointment by hand, on the fourth of December from half past four to seven. */
+async function writeOneRow(wrapper: VueWrapper) {
+    await openManualEntry(wrapper)
+    const editor = wrapper.findComponent(ManualRowsEditor)
+    editor.findComponent(DateInput).vm.$emit('update:modelValue', '2026-12-04')
+    await flushPromises()
+    editor.findAllComponents(TimeShortInput)[0]!.vm.$emit('update:modelValue', '16:30')
+    await flushPromises()
+    editor.findAllComponents(TimeShortInput)[1]!.vm.$emit('update:modelValue', '19:00')
+    await flushPromises()
+}
+
+/** An appointment template for repeating drills that sets everything a batch can take from it. */
+const DRILL_TEMPLATE = {
+    template: {
+        id: 9, stationId: 1, name: 'Atemschutz', title: 'Atemschutzübung', description: null, categoryId: null,
+        eventType: 'RECURRING', requiresRegistration: true, requiresConfirmation: false,
+        registrationDeadline: {kind: 'RELATIVE', at: null, offsetMinutes: 1440, anchor: 'EXACT'},
+        restrictionMode: null, viewRestrictionMode: 'AND', attendanceTemplateId: null, registrationLimit: 12,
+        minRegistrations: 3, thresholdDays: 2, queueOrder: 'FAIRNESS',
+    },
+    fields: [],
+    registrationFields: [{id: 1, name: 'Größe', fieldType: 'TEXT', config: {}, overview: false}],
+    reminderDays: [7, 1],
+    restriction: null,
+}
+
+/** Mounts the batch screen with the drill template on offer and applies it. */
+async function applyDrillTemplate() {
+    session.loaded = true
+    vi.mocked(events.listTemplates).mockResolvedValue([{id: 9, name: 'Atemschutz'}] as never)
+    vi.mocked(events.getTemplate).mockResolvedValue(DRILL_TEMPLATE as never)
+    const wrapper = await mountSuspended(BatchCreateView, {global: {stubs: {EventFormPanel: true}}})
+    await flushPromises()
+    wrapper.findComponent(SelectInput).vm.$emit('update:modelValue', '9')
+    await flushPromises()
+    session.loaded = false
+    return wrapper
 }
 
 async function create(wrapper: VueWrapper) {
@@ -90,7 +148,9 @@ function expectReadable(sent: Record<string, unknown> & {rows: Record<string, un
         expect(row.startTime).toMatch(INSTANT)
         expect(row.endTime).toMatch(INSTANT)
     }
-    if (sent.registrationDeadline !== undefined) expect(sent.registrationDeadline).toMatch(INSTANT)
+    const deadline = sent.registrationDeadline as {kind: string; at: string | null}
+    expect(['NONE', 'FIXED', 'RELATIVE']).toContain(deadline.kind)
+    if (deadline.at !== null) expect(deadline.at).toMatch(INSTANT)
 }
 
 /** Creating appointments in a batch, from the details through the dates to the table. */
@@ -136,7 +196,7 @@ describe('BatchCreateView', () => {
 
     it('sends the imported file and the registration deadline in a shape the server reads', async () => {
         const wrapper = await mountSuspended(BatchCreateView, {global: {stubs: {EventFormPanel: true}}})
-        await setDeadline(wrapper, true, '2026-12-01T18:00')
+        await setDeadline(wrapper, true, FIXED_DEADLINE)
         await clickNext(wrapper)
         await wrapper.findAllComponents(SelectionToggleButton).find(button => button.text() === 'CSV-Import')!.trigger('click')
         await flushPromises()
@@ -149,7 +209,7 @@ describe('BatchCreateView', () => {
         const sent = await create(wrapper)
 
         expectReadable(sent)
-        expect(sent.registrationDeadline).toBe(localInputToInstant('2026-12-01T18:00'))
+        expect(sent.registrationDeadline).toEqual(FIXED_DEADLINE)
         expect(sent.rows).toEqual([
             {name: 'Adventszauber Freitag 1', startTime: localInputToInstant('2026-12-04T16:30'), endTime: localInputToInstant('2026-12-04T19:00'), fieldValues: {}},
             {name: 'Adventszauber Freitag 2', startTime: localInputToInstant('2026-12-04T19:00'), endTime: localInputToInstant('2026-12-04T21:30'), fieldValues: {}},
@@ -158,9 +218,9 @@ describe('BatchCreateView', () => {
         ])
     })
 
-    it('sends a row written by hand without a deadline that was switched off again', async () => {
+    it('sends a row written by hand without a deadline where sign-up was switched off again', async () => {
         const wrapper = await mountSuspended(BatchCreateView, {global: {stubs: {EventFormPanel: true}}})
-        await setDeadline(wrapper, false, '2026-12-01T18:00')
+        await setDeadline(wrapper, false, FIXED_DEADLINE)
         await openManualEntry(wrapper)
         const editor = wrapper.findComponent(ManualRowsEditor)
         editor.findComponent(DateInput).vm.$emit('update:modelValue', '2026-12-04')
@@ -173,9 +233,78 @@ describe('BatchCreateView', () => {
         const sent = await create(wrapper)
 
         expectReadable(sent)
-        expect(sent.registrationDeadline).toBeUndefined()
+        expect(sent.registrationDeadline).toEqual(NO_DEADLINE)
         expect(sent.rows).toEqual([
             {name: null, startTime: localInputToInstant('2026-12-04T16:30'), endTime: localInputToInstant('2026-12-04T19:00'), fieldValues: {}},
         ])
+    })
+
+    it('sends what the applied template sets for every appointment and names what it leaves out', async () => {
+        const wrapper = await applyDrillTemplate()
+
+        expect(wrapper.find('[data-testid="batch-template-carried"]').text()).toContain('Fragen zur Anmeldung: 1')
+        expect(wrapper.find('[data-testid="batch-template-carried"]').text()).toContain('Erinnerungen 1, 7 Tage vorher')
+        expect(wrapper.find('[data-testid="batch-template-carried"]').text()).not.toContain('Anmeldeschluss')
+        expect(wrapper.find('[data-testid="batch-template-left-out"]').text()).toContain('keine wiederkehrenden Termine')
+
+        await writeOneRow(wrapper)
+        const sent = await create(wrapper)
+
+        expectReadable(sent)
+        expect(sent).toMatchObject({
+            requiresRegistration: true,
+            registrationLimit: 12,
+            queueOrder: 'FAIRNESS',
+            minRegistrations: 3,
+            thresholdDays: 2,
+            registrationDeadline: {kind: 'RELATIVE', at: null, offsetMinutes: 1440, anchor: 'EXACT'},
+            reminderDays: [7, 1],
+            eventTemplateId: 9,
+        })
+    })
+
+    it('shares every appointment of the batch the way the template shares, for somebody who may share', async () => {
+        session.federate = true
+        vi.mocked(events.getTemplateFederationShare).mockResolvedValue({shared: true, scope: 'ALL_PARTNERS', partnerIds: null} as never)
+        vi.mocked(events.createBatchEvents).mockResolvedValue([{id: 31}, {id: 32}] as never)
+        try {
+            const wrapper = await applyDrillTemplate()
+            await writeOneRow(wrapper)
+            await create(wrapper)
+
+            expect(vi.mocked(events.setFederationShare).mock.calls.map(call => call[0])).toEqual([31, 32])
+        } finally {
+            session.federate = false
+        }
+    })
+
+    it('treats the batch as created and puts the form away where sharing the appointments fails', async () => {
+        session.federate = true
+        vi.mocked(events.getTemplateFederationShare).mockResolvedValue({shared: true, scope: 'ALL_PARTNERS', partnerIds: null} as never)
+        vi.mocked(events.createBatchEvents).mockResolvedValue([{id: 41}] as never)
+        vi.mocked(events.setFederationShare).mockRejectedValueOnce(new Error('refused'))
+        try {
+            const wrapper = await applyDrillTemplate()
+            await writeOneRow(wrapper)
+            await create(wrapper)
+
+            expect(wrapper.text()).toContain('1 Termine erstellt')
+            expect(wrapper.text()).toContain('nicht alle für Partnerwachen freigegeben')
+            expect(wrapper.findComponent(BatchEditTable).exists()).toBe(false)
+            expect(wrapper.find('[data-testid="batch-open-overview"]').exists()).toBe(true)
+        } finally {
+            session.federate = false
+        }
+    })
+
+    it('holds sign-up on where the applied template asks questions', async () => {
+        const wrapper = await applyDrillTemplate()
+        const panel = wrapper.findComponent(EventFormPanel)
+        expect(panel.props('signUpHeld')).toBe(true)
+
+        panel.vm.$emit('update:requiresRegistration', false)
+        await flushPromises()
+
+        expect(wrapper.findComponent(EventFormPanel).props('requiresRegistration')).toBe(true)
     })
 })

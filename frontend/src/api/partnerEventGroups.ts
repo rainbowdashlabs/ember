@@ -33,6 +33,14 @@ export async function withdraw(stationUid: string, eventGroupId: number, memberI
 }
 
 /**
+ * Gives one of this station's own a place in a partner's event group, which only works where the partner
+ * handed this station the choosing of its own sign-ups.
+ */
+export async function confirm(stationUid: string, eventGroupId: number, memberId: number): Promise<EventGroupSignUp> {
+    return (await client.post<EventGroupSignUp>(`${base(stationUid, eventGroupId)}/confirm`, {memberId})).data
+}
+
+/**
  * The thread under an event group a partner station shares, kept at the partner. A mention offers
  * this station's own members, who are the ones reading along here; only authors change or remove
  * anything.

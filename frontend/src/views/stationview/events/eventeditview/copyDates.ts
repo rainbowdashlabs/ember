@@ -7,7 +7,6 @@ import {EventType} from '@/api/generated/schema'
 import {shiftIsoDate, utcDayOf} from '@/util/format'
 
 const DAY_MS = 86_400_000
-const HOUR_MS = 3_600_000
 
 /** A `yyyy-MM-dd` date as a moment at midnight UTC, which day arithmetic can step through without a clock change. */
 function dayOf(isoDate: string): Date {
@@ -138,22 +137,6 @@ export function placedOn(start: string, end: string, day: string): {startTime: s
     if (!end) return {startTime, endTime: ''}
     const endDay = shiftIsoDate(day, daysBetween(start.slice(0, 10), end.slice(0, 10)))
     return {startTime, endTime: `${endDay}${end.slice(10)}`}
-}
-
-/**
- * How many whole hours before the start the deadline closed sign-up, which a copy keeps while its
- * date is new. Nothing where there was no deadline or it lay after the start.
- *
- * @param startTime            the original start, as an instant
- * @param registrationDeadline the original deadline, as an instant
- */
-export function deadlineHoursBefore(
-    startTime: string | null | undefined,
-    registrationDeadline: string | null | undefined,
-): number | null {
-    if (!startTime || !registrationDeadline) return null
-    const hours = Math.round((new Date(startTime).getTime() - new Date(registrationDeadline).getTime()) / HOUR_MS)
-    return Number.isFinite(hours) && hours >= 0 ? hours : null
 }
 
 /**

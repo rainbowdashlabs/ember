@@ -17,6 +17,7 @@ import GroupListPanel from '@/components/groups/GroupListPanel.vue'
 import GroupDetailPanel from '@/components/groups/GroupDetailPanel.vue'
 import GroupRulesFields from '@/views/stationview/members/groupsview/GroupRulesFields.vue'
 import GroupSetPanel from '@/views/stationview/members/groupsview/GroupSetPanel.vue'
+import RuleBlockEditor from '@/components/memberrules/RuleBlockEditor.vue'
 import {StationUserType} from '@/api/generated/schema'
 import {
   DEMO_GROUP_GRANTS,
@@ -25,6 +26,8 @@ import {
   demoGroupMembers,
   demoGroups,
   demoGroupSets,
+  demoRule,
+  demoRuleCatalog,
 } from './fixtures'
 
 const {t} = useI18n()
@@ -36,6 +39,8 @@ const offeredUserTypes = [StationUserType.MEMBER]
 const grantedIds = new Set(DEMO_GROUP_GRANTS.map(grant => grant.id))
 const setId = ref<number | null>(1)
 const boundUserTypes = ref<StationUserType[]>([StationUserType.MEMBER])
+const ruleCatalog = demoRuleCatalog(t)
+const rule = ref(demoRule())
 </script>
 
 <template>
@@ -97,6 +102,18 @@ const boundUserTypes = ref<StationUserType[]>([StationUserType.MEMBER])
       <NeutralContainer class="space-y-4">
         <GroupRulesFields v-model:set-id="setId" v-model:user-types="boundUserTypes" :sets="sets"/>
       </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersGroups.rulesTitle')">
+      <p>{{ t('helpCenter.membersGroups.rulesText') }}</p>
+      <p>{{ t('helpCenter.membersGroups.rulesChecks') }}</p>
+      <p>{{ t('helpCenter.membersGroups.rulesDates') }}</p>
+      <p>{{ t('helpCenter.membersGroups.rulesRuns') }}</p>
+      <p>{{ t('helpCenter.membersGroups.rulesLimits') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersGroups.rulesExampleTitle')">
+      <RuleBlockEditor :block="rule" :catalog="ruleCatalog" root @change="next => rule = next"/>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersGroups.conflictTitle')">

@@ -79,6 +79,16 @@ public final class NotificationLinks {
     }
 
     /**
+     * The link to the sign-ups of one appointment, where whoever runs it decides on them.
+     *
+     * @param eventId the appointment
+     * @return the link its deadline notices carry
+     */
+    public static NotificationLink eventRegistrations(int eventId) {
+        return new NotificationLink("events-registrations", Map.of("id", eventId));
+    }
+
+    /**
      * The link to one occasion of an appointment. The date rides along as a path segment, so that a
      * reminder about a repeating appointment opens the instance it is actually about.
      *

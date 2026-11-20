@@ -15,7 +15,7 @@ test.describe('Dashboard', () => {
     })
 
     test('the station statistics render', async ({managerPage: page}) => {
-        await page.goto('/station/dashboard/statistics')
+        await page.goto('/station/monitoring/statistics')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByText('Statistiken').first()).toBeVisible()
@@ -40,7 +40,7 @@ test.describe('Dashboard', () => {
                     startTime: new Date(Date.now() + 9 * 86400000).toISOString(),
                     endTime: new Date(Date.now() + 9 * 86400000 + 3600000).toISOString(),
                     requiresRegistration: true,
-                    registrationDeadline: new Date(Date.now() + 2 * 86400000).toISOString(),
+                    registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() + 2 * 86400000).toISOString(), offsetMinutes: null, anchor: null},
                 },
             })
             expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()

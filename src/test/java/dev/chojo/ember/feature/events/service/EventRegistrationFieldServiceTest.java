@@ -11,6 +11,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -79,9 +80,8 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                 start.plus(4, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -157,9 +157,8 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                 Instant.now().plus(2, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -472,9 +471,8 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                 Instant.now().plus(5, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

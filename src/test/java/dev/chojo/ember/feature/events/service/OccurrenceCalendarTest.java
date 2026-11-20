@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationCalendar.DateCheck;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -48,9 +49,8 @@ class OccurrenceCalendarTest extends RepositoryTestBase {
                 start == null ? null : start.plus(2, ChronoUnit.HOURS),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -20,6 +21,7 @@ import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestEventPlaces;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -55,13 +57,15 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService,
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                occurrenceCalendar);
         registrationService = new EventRegistrationService(
                 eventRegistrationRepo,
                 new EventRegistrationFieldRepository(),
                 eventRepo,
                 new DomainEventBus(Set.of()),
-                memberNameResolver);
+                memberNameResolver,
+                TestEventPlaces.of(eventRegistrationRepo));
 
         station = stationRepo.create("Named In A Field Station");
         var accA = accountRepo.create("a@named.test", "Alice", "Anders");
@@ -88,9 +92,8 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 requiresRegistration,
-                registrationDeadline,
+                RegistrationDeadline.fixed(registrationDeadline),
                 requiresConfirmation,
-                null,
                 null,
                 null,
                 null,
@@ -244,9 +247,8 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

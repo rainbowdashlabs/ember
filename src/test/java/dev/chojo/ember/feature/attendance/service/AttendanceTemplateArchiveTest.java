@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
@@ -216,9 +217,8 @@ class AttendanceTemplateArchiveTest extends RepositoryTestBase {
                         END,
                         templateId,
                         false,
-                        null,
+                        RegistrationDeadline.none(),
                         false,
-                        null,
                         null,
                         null,
                         null,
@@ -237,7 +237,7 @@ class AttendanceTemplateArchiveTest extends RepositoryTestBase {
                                 null,
                                 null,
                                 null,
-                                null,
+                                RegistrationDeadline.none(),
                                 null,
                                 null,
                                 templateId,
@@ -265,9 +265,8 @@ class AttendanceTemplateArchiveTest extends RepositoryTestBase {
                 END,
                 templateId,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -282,7 +281,7 @@ class AttendanceTemplateArchiveTest extends RepositoryTestBase {
                         null,
                         null,
                         null,
-                        null,
+                        RegistrationDeadline.none(),
                         null,
                         null,
                         templateId,

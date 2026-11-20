@@ -11,6 +11,7 @@ import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.push.service.PushService;
 import org.junit.jupiter.api.Test;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
@@ -24,8 +25,8 @@ import static org.mockito.Mockito.verify;
  */
 class AccountSessionRoutesTest {
     private final AuthService auth = mock(AuthService.class);
-    private final RouteHarness harness = RouteHarness.serving(
-            new AccountSessionRoutes(auth, TokenHasher.forTesting("pepper"), mock(SessionCookies.class)));
+    private final RouteHarness harness = RouteHarness.serving(new AccountSessionRoutes(
+            auth, TokenHasher.forTesting("pepper"), mock(SessionCookies.class), mock(PushService.class)));
 
     @Test
     void aSessionIsEndedForTheReadersAccount() {

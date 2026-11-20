@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.MemberAnswersChanged;
 import dev.chojo.ember.feature.members.entity.ExpirySettings;
 import dev.chojo.ember.feature.members.entity.FieldDraft;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
@@ -28,6 +30,7 @@ import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
+import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -74,18 +77,24 @@ public class ProfileFieldCore {
     private final ProfileFieldChangeRepository changeRepository;
     private final StationMemberRepository memberRepository;
     private final MemberPermissionResolver permissionResolver;
+    private final DomainEventBus eventBus;
+    private final Provider<SelfAnsweredRules> selfAnswered;
 
     @Inject
     public ProfileFieldCore(
             Map<FieldOrigin, ProfileFieldOwner> owners,
             ProfileFieldChangeRepository changeRepository,
             StationMemberRepository memberRepository,
-            MemberPermissionResolver permissionResolver) {
+            MemberPermissionResolver permissionResolver,
+            DomainEventBus eventBus,
+            Provider<SelfAnsweredRules> selfAnswered) {
+        this.selfAnswered = selfAnswered;
         this.owners = new EnumMap<>(FieldOrigin.class);
         this.owners.putAll(owners);
         this.changeRepository = changeRepository;
         this.memberRepository = memberRepository;
         this.permissionResolver = permissionResolver;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -186,16 +195,28 @@ public class ProfileFieldCore {
         var member = memberRepository.findById(memberId).orElse(null);
         if (member == null) return List.of();
         ProfileAuthor recorded = authorAt(member, author);
-        List<String> changed = Transactions.call(() -> writeAll(member, entries, recorded, writer));
+        List<String> changed = Transactions.call(() -> {
+            var keys = new ArrayList<FieldKey>();
+            var names = writeAll(member, entries, recorded, writer, keys);
+            if (writer.management() && !keys.isEmpty()) {
+                selfAnswered.get().requireMayChangeAnswers(member.stationId(), keys, writer.held());
+            }
+            return names;
+        });
         if (!changed.isEmpty()) {
             for (ProfileFieldOwner owner : ordered()) owner.changed(member, recorded.memberId(), writer, changed);
+            eventBus.publish(new MemberAnswersChanged(member.stationId(), memberId));
             log.info("Profile answers changed: member={}, author={}, fields={}", memberId, recorded, changed);
         }
         return answersOf(memberId);
     }
 
     private List<String> writeAll(
-            StationMember member, List<FieldValueEntry> entries, ProfileAuthor author, ProfileWriter writer) {
+            StationMember member,
+            List<FieldValueEntry> entries,
+            ProfileAuthor author,
+            ProfileWriter writer,
+            List<FieldKey> changedKeys) {
         Set<FieldKey> writable = fieldsFor(member).stream()
                 .filter(field -> ProfileAnswers.writable(field, writer))
                 .map(MergedField::key)
@@ -219,6 +240,7 @@ public class ProfileFieldCore {
             owner.keep(member.id(), field.id(), kept);
             record(field, member.id(), old, ProfileAnswers.recorded(kept), author, !seenByTheStation);
             changed.add(field.name());
+            changedKeys.add(new FieldKey(field.origin(), field.id()));
         }
         return changed;
     }

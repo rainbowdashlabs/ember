@@ -7,17 +7,33 @@
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StatusSection from './StatusSection.vue'
+import QueueSection from '../eventshared/QueueSection.vue'
 import type {RegistrationResponse, RegistrationStatsResponse, RegistrationStatus} from '@/api/generated/schema'
+import type {QueueEntry} from '@/util/registrationQueue'
 
+/**
+ * The sign-ups of one date by their status: those waiting for a decision first, then the waiting
+ * list in the order it moves up in, then everybody already decided.
+ */
 defineProps<{
   loading: boolean
   byStatus: Record<RegistrationStatus, RegistrationResponse[]>
+  /** Everybody waiting for a place, first in line first, partners' members included. */
+  queue: QueueEntry[]
+  /** Whether a partner decides about its own people, whose rows on the waiting list then offer nothing. */
+  partnerDecides: (partnerId: number) => boolean
+  /** Whether the date keeps a waiting list, which only an appointment with a participant limit does. */
+  canQueue: boolean
+  busy: boolean
   stats: RegistrationStatsResponse[]
 }>()
 
 const emit = defineEmits<{
   accept: [regId: number]
   deny: [regId: number]
+  queue: [regIds: number[]]
+  reorder: [entry: QueueEntry, position: number]
+  moveUp: [entry: QueueEntry]
 }>()
 
 const {t} = useI18n()
@@ -33,8 +49,19 @@ const {t} = useI18n()
           :registrations="byStatus.PENDING"
           :stats="stats"
           show-actions
+          :can-queue="canQueue"
+          :busy="busy"
           @accept="(id) => emit('accept', id)"
           @deny="(id) => emit('deny', id)"
+          @queue="(ids) => emit('queue', ids)"
+      />
+      <QueueSection
+          :entries="queue"
+          can-manage
+          :partner-decides="partnerDecides"
+          :busy="busy"
+          @reorder="(entry, position) => emit('reorder', entry, position)"
+          @move-up="(entry) => emit('moveUp', entry)"
       />
       <StatusSection
           icon="check"
@@ -59,6 +86,7 @@ const {t} = useI18n()
           :title="t('eventsRegistrations.groupDeclined')"
           :registrations="byStatus.DECLINED"
           :stats="stats"
+          declined
       />
     </template>
   </div>

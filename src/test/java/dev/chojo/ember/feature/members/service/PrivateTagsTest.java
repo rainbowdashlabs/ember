@@ -36,7 +36,8 @@ class PrivateTagsTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        tags = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
+        tags = new UserTagService(
+                userTagRepo, memberGroupRepo, memberRuleRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
         station = stationRepo.create("PrivateTagStation");
         account = accountRepo.create("private-tags@test.com", "Private", "Tagged");
         member = stationMemberRepo.create(station.id(), account.id());

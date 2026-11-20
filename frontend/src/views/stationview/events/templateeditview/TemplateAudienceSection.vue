@@ -5,19 +5,19 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import RestrictionsField from '@/components/input/RestrictionsField.vue'
+import AudienceRestrictions from '../eventshared/AudienceRestrictions.vue'
 import type {RestrictionSelection} from '@/api/types'
 import type {MemberGroup, UserTag} from '@/api/generated/schema'
 
 /**
  * What the appointments written from this template start with: who they are for, and who may know
- * they exist.
+ * they exist, picked the way the appointment form picks them. Each is added with its own button and
+ * shows on its own once it names somebody.
  *
  * <p>Neither is a lock on the template itself, because nobody attends a template. Both are handed to
  * the appointment when the template is applied, and the appointment can be widened or narrowed
- * afterwards without the template noticing.
+ * afterwards without the template noticing. The folded section around it carries the heading and the
+ * card.
  */
 defineProps<{
   groups: MemberGroup[]
@@ -31,13 +31,12 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <NeutralContainer class="space-y-2">
-    <FieldLabel>{{ t('eventTemplates.restriction') }}</FieldLabel>
-    <p class="text-xs text-(--text-muted)">{{ t('eventTemplates.restrictionHint') }}</p>
-    <RestrictionsField v-model="restriction" :groups="groups" :tags="tags"/>
-
-    <FieldLabel>{{ t('eventTemplates.viewRestriction') }}</FieldLabel>
-    <p class="text-xs text-(--text-muted)">{{ t('eventTemplates.viewRestrictionHint') }}</p>
-    <RestrictionsField v-model="viewRestriction" :groups="groups" :tags="tags"/>
-  </NeutralContainer>
+  <AudienceRestrictions
+      v-model:registration="restriction"
+      v-model:visibility="viewRestriction"
+      :groups="groups"
+      :tags="tags"
+      :registration-hint="t('eventTemplates.restrictionHint')"
+      :visibility-hint="t('eventTemplates.viewRestrictionHint')"
+  />
 </template>

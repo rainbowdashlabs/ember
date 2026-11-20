@@ -744,7 +744,7 @@ public enum EventRefusal implements Refusal {
     REGISTRATION_THROUGH_EVENT_GROUP(
             198,
             HttpStatus.CONFLICT,
-            "That appointment is a part of an event group, sign up through the event group instead"),
+            "That appointment is a part of an event group, sign-ups are taken and decided through the event group"),
 
     /** A sign-up for an event group that was called off. */
     EVENT_GROUP_CANCELLED(199, HttpStatus.CONFLICT, "That event group was called off"),
@@ -838,7 +838,95 @@ public enum EventRefusal implements Refusal {
      * caller may not see.
      */
     EVENT_TO_COPY_NOT_HERE(
-            222, HttpStatus.NOT_FOUND, "The appointment to copy is not here any more, nothing was saved");
+            222, HttpStatus.NOT_FOUND, "The appointment to copy is not here any more, nothing was saved"),
+
+    /** A place pinned or looked up without saying which place. */
+    PLACE_TEXT_MISSING(223, HttpStatus.BAD_REQUEST, "Name the place first"),
+
+    /** A place pinned or looked up under a name longer than a place may have to carry a pin. */
+    PLACE_TEXT_TOO_LONG(224, HttpStatus.BAD_REQUEST, "The name of the place is too long, nothing was saved"),
+
+    /** A place pinned at a point that does not lie on the map, or without saying where. */
+    PLACE_OFF_THE_MAP(225, HttpStatus.BAD_REQUEST, "That point does not lie on the map, nothing was saved"),
+
+    /**
+     * Whoever runs an appointment lets somebody in while every place is taken, without saying whether
+     * beyond the limit or onto the waiting list. Carries the number of places.
+     */
+    REGISTRATION_FULL(
+            226,
+            HttpStatus.CONFLICT,
+            "Every place is taken: accept beyond the limit or put the member on the waiting list"),
+
+    /** Somebody put on the waiting list by hand whose sign-up is not waiting for a decision. */
+    REGISTRATION_NOT_PENDING_FOR_QUEUE(
+            227,
+            HttpStatus.CONFLICT,
+            "Only sign-ups waiting for a decision can go onto the waiting list, nothing was changed"),
+
+    /** A place in line asked for a sign-up that does not wait on the waiting list. */
+    REGISTRATION_NOT_QUEUED(228, HttpStatus.CONFLICT, "This sign-up does not wait on the waiting list"),
+
+    /** A sign-up put on the waiting list of an appointment or event group that limits no places. */
+    QUEUE_WITHOUT_LIMIT(
+            229, HttpStatus.CONFLICT, "Without a participant limit there is no waiting list, nothing was changed"),
+
+    /** A place in line asked for without saying which. */
+    QUEUE_POSITION_MISSING(230, HttpStatus.BAD_REQUEST, "Say which place in line the sign-up takes"),
+
+    /** A set maximum below one or below the set's minimum. Carries the least maximum the set allows. */
+    EVENT_GROUP_SET_MAXIMUM_OUT_OF_RANGE(
+            231, HttpStatus.BAD_REQUEST, "A set cannot allow fewer parts than it asks for, nothing was saved"),
+
+    /** A choice holding more parts of a set than the set allows. Carries the set's name. */
+    EVENT_GROUP_SET_TOO_MANY(232, HttpStatus.BAD_REQUEST, "Too many parts of one set are chosen"),
+
+    /** A sign-up holding a place adds a part that has no place left. Carries the part's name. */
+    EVENT_GROUP_PART_FULL(233, HttpStatus.CONFLICT, "That part has no place left, choose another one"),
+
+    /** Somebody moved onto an event group's waiting list whose sign-up is not waiting for a decision. */
+    EVENT_GROUP_NOT_PENDING_FOR_QUEUE(
+            234,
+            HttpStatus.CONFLICT,
+            "Only sign-ups waiting for a decision can go onto the waiting list, nothing was changed"),
+
+    /** A place in line asked for a sign-up that does not wait on the event group's waiting list. */
+    EVENT_GROUP_NOT_QUEUED(235, HttpStatus.CONFLICT, "This sign-up does not wait on the waiting list"),
+
+    /** The places of an appointment asked without a date, or with something that is not one. */
+    PLACES_DATE_NOT_A_DATE(236, HttpStatus.BAD_REQUEST, "Say which date the places are for"),
+
+    /**
+     * A partner station signed one of its members up without answering a question the appointment
+     * requires, which a partner on an older version that never asks the questions does too.
+     */
+    PARTNER_REQUIRED_ANSWER_MISSING(
+            237,
+            HttpStatus.BAD_REQUEST,
+            "The appointment requires an answer to one of its questions, so the sign-up was not taken"),
+    /**
+     * A sign-up deadline that cannot be placed: a fixed one without a time, or a span before the
+     * start that is less than zero.
+     */
+    REGISTRATION_DEADLINE_INVALID(
+            238,
+            HttpStatus.BAD_REQUEST,
+            "The sign-up deadline needs a time, or a span before the start of zero or more"),
+
+    /**
+     * Places handed to a partner station the appointment or event group is not shared with, which
+     * that partner could never fill.
+     */
+    PLACES_PARTNER_NOT_SHARED_WITH(
+            239, HttpStatus.BAD_REQUEST, "Places can only be given to a partner station this is shared with"),
+
+    /** Whoever runs an event group deciding about a partner's member, where the partner decides its own. */
+    PARTNER_DECIDES_ITS_OWN_FOR_EVENT_GROUP(
+            240, HttpStatus.FORBIDDEN, "This partner decides its own sign-ups for this event group"),
+
+    /** A partner confirming one of its own members for an event group where the host did not let it. */
+    PARTNER_DOES_NOT_CONFIRM_ITS_OWN_FOR_EVENT_GROUP(
+            241, HttpStatus.FORBIDDEN, "This station decides the sign-ups for this event group");
 
     private final Definition definition;
 

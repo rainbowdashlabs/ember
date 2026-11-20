@@ -12,6 +12,7 @@ import type {AnyEvent} from '@/api/events'
 import type {EventRegistrationFieldValue, EventRegistrationField} from '@/api/generated/schema'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useRegistrationSigningStep} from '@/composables/useRegistrationSigningStep'
+import {useFullDateChoice} from '@/composables/useFullDateChoice'
 import {describeFailure, type Failure} from '@/util/failure'
 import type {AnswerablePerson} from '@/util/eventAnswers'
 
@@ -38,6 +39,10 @@ export interface AnswerPrompt {
  * <p>A sign-up ends on the signing step where the appointment's documents to bring still wait for a
  * signature of the people just registered (`signingStep`), which the screen renders and closes.
  *
+ * <p>Whoever runs the appointment and signs up somebody of their household on a full date is asked
+ * whether that goes beyond the limit or onto the waiting list (`fullDateQuestion`), which the screen
+ * renders and answers with `answerFullDate`.
+ *
  * @param currentMemberId the acting member, whose own answer is sent without naming an id
  * @param afterChange     run once an answer has landed, to reload whatever the screen shows
  * @param failure         the screen's failure channel, written to rather than thrown at
@@ -61,6 +66,7 @@ export function useEventAnswer(
     const answerPrompt = ref<AnswerPrompt | null>(null)
 
     const {signingStep, offerSigning, closeSigningStep} = useRegistrationSigningStep()
+    const fullDate = useFullDateChoice()
 
     /**
      * Opens a gesture the reader has just made. The screen's failure belongs to that gesture and not to
@@ -128,10 +134,13 @@ export function useEventAnswer(
         fields?: EventRegistrationFieldValue[],
     ): Promise<boolean> {
         registering.value = `${ev.id}-${date}-${memberId}`
+        let sent = false
         try {
-            return await changeRegistration(
-                () => events.registerForEvent(ev.id, {eventDate: date, memberId: memberIdParam(memberId), fields}),
-                t('eventsUpcoming.registrationClosedAskLead'))
+            const landed = await changeRegistration(async () => {
+                sent = await fullDate.sendAsking('signUp', null, whenFull => events.registerForEvent(
+                    ev.id, {eventDate: date, memberId: memberIdParam(memberId), fields, whenFull}))
+            }, t('eventsUpcoming.registrationClosedAskLead'))
+            return landed && sent
         } finally {
             registering.value = null
         }
@@ -248,5 +257,7 @@ export function useEventAnswer(
         cancelAnswerPrompt,
         signingStep,
         closeSigningStep,
+        fullDateQuestion: fullDate.question,
+        answerFullDate: fullDate.answer,
     }
 }

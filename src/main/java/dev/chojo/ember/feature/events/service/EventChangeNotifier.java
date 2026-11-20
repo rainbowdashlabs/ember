@@ -269,14 +269,19 @@ public class EventChangeNotifier implements TaskSource {
         return !effect.parts().isEmpty() || !notice.parts().isEmpty();
     }
 
-    /** Everybody holding a place on the appointment's dates from the first one on. */
+    /** Everybody holding or waiting for a place on the appointment's dates from the first one on. */
     private List<Integer> placeHolders(StationEvent event, LocalDate first) {
-        if (!event.isRecurring()) return registrationRepository.findRegisteredMemberIds(event.id(), first);
-        return registrationRepository.findRegisteredMemberIdsFrom(event.id(), first);
+        if (!event.isRecurring()) return registrationRepository.findConcernedMemberIds(event.id(), first);
+        return registrationRepository.findConcernedMemberIdsFrom(event.id(), first);
     }
 
-    /** Everybody the appointment concerns on its dates from the first one on. */
+    /**
+     * Everybody the appointment concerns on its dates from the first one on. Where it has to be signed
+     * up for, those are the people holding or waiting for a place, so whoever waits on the waiting list
+     * hears of the change too; the reminders' audience leaves them out.
+     */
     private List<Integer> concerned(StationEvent event, LocalDate first) {
+        if (event.requiresRegistration()) return placeHolders(event, first);
         if (!event.isRecurring()) return audience.onDate(event, first);
         return audience.fromDate(event, first);
     }

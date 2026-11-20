@@ -15,8 +15,8 @@ import java.util.List;
  *
  * @param eventGroupId         the event group
  * @param name                 its name
- * @param registrationDeadline when sign-ups close
+ * @param registrationClosesAt when sign-ups close
  * @param members              who still owes an answer
  */
 public record EventGroupAwaiting(
-        int eventGroupId, String name, @Nullable Instant registrationDeadline, List<AwaitingMember> members) {}
+        int eventGroupId, String name, @Nullable Instant registrationClosesAt, List<AwaitingMember> members) {}

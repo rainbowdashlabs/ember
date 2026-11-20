@@ -17,9 +17,10 @@ import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.util.Map;
-
-/** Tells the event managers that registration closed with answers still waiting for them. */
+/**
+ * Tells the event managers that sign-up for an appointment, one date of a series or an event group
+ * closed with answers still waiting for them.
+ */
 @Singleton
 public class RegistrationDeadlineExpiredHandler implements DomainEventHandler<RegistrationDeadlineExpired> {
     private final Notifier notifier;
@@ -37,8 +38,8 @@ public class RegistrationDeadlineExpiredHandler implements DomainEventHandler<Re
     @Override
     public void handle(RegistrationDeadlineExpired event) {
         var data = NotificationData.of(
-                new NotificationParams.RegistrationDeadlineExpired(event.eventName(), event.pendingCount()),
-                new NotificationData.NotificationLink("events-registrations", Map.of("id", event.eventId())));
+                new NotificationParams.RegistrationDeadlineExpired(event.name(), event.pendingCount(), event.date()),
+                event.link());
         notifier.notify(
                 StationAudience.holders(event.stationId(), StationPermission.EVENT_MANAGER),
                 NotificationType.REGISTRATION_DEADLINE_EXPIRED,

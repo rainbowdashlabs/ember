@@ -28,6 +28,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.eventsOverview.filterText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventsOverview.eventGroupsTitle')">
+      <p>{{ t('helpCenter.eventsOverview.eventGroupsText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.eventsOverview.overviewTip') }}</HelpTip>
   </HelpArticle>
 </template>

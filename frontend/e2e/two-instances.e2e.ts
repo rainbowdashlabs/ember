@@ -692,7 +692,9 @@ async function sharedEventTakingRegistrations(api: APIRequestContext, deadline: 
             startTime: start,
             endTime: start,
             requiresRegistration: true,
-            registrationDeadline: deadline ? deadline.toISOString() : null,
+            registrationDeadline: deadline
+                ? {kind: 'FIXED', at: deadline.toISOString(), offsetMinutes: null, anchor: null}
+                : {kind: 'NONE', at: null, offsetMinutes: null, anchor: null},
         },
     })
     expect(created.status(), await created.text()).toBe(201)

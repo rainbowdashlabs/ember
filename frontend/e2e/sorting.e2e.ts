@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, type Page} from './fixtures/auth'
+import {openFormSection} from './fixtures/formSection'
 
 /**
  * Sorting a list works the same way wherever a list can be sorted.
@@ -24,6 +25,7 @@ async function openTemplateQuestions(page: Page) {
     await page.locator('[data-testid="template-row"][data-name="Standard-Übung"]').first()
         .getByRole('button').first().click()
     await page.waitForURL(/\/station\/events\/templates\/\d+/)
+    await openFormSection(page, 'fields')
     await page.getByTestId('question-name').first().waitFor()
 }
 

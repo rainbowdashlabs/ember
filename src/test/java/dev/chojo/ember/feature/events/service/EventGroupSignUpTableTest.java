@@ -13,12 +13,14 @@ import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerSignUp;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.members.entity.MemberTable;
@@ -101,7 +103,10 @@ class EventGroupSignUpTableTest extends RepositoryTestBase {
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                newEventGroupSignUpRules());
+                newEventGroupSignUpRules(),
+                newEventGroupQueue(
+                        newEventServices(new DomainEventBus(Set.of())).registration(), mock(DomainEventBus.class)),
+                new RegistrationQueueRepository());
         partners = mock(EventGroupPartnerService.class);
         table = new EventGroupSignUpTable(
                 eventGroups,
@@ -138,9 +143,8 @@ class EventGroupSignUpTableTest extends RepositoryTestBase {
                 start.plus(Duration.ofHours(8)),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -201,6 +205,8 @@ class EventGroupSignUpTableTest extends RepositoryTestBase {
         when(partners.signUps(station.id(), eventGroup.id()))
                 .thenReturn(List.of(new PartnerSignUp(
                         4,
+                        7,
+                        false,
                         new MemberIdentity(
                                 UUID.randomUUID(), UUID.randomUUID(), "Mara Seeger", "Wache Nord", null, null),
                         new PartnerStanding(
@@ -208,7 +214,8 @@ class EventGroupSignUpTableTest extends RepositoryTestBase {
                                 RegistrationStatus.ACCEPTED,
                                 Instant.now(),
                                 List.of(saturday),
-                                List.of()))));
+                                List.of(),
+                                null))));
 
         var drawn = table.table(station, eventGroup.id(), Set.of(StationPermission.EVENT_REGISTRATION), false);
 

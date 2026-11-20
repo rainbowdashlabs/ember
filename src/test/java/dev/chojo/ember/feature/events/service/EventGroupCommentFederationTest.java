@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -119,7 +120,10 @@ class EventGroupCommentFederationTest extends RepositoryTestBase {
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                newEventGroupSignUpRules());
+                newEventGroupSignUpRules(),
+                newEventGroupQueue(
+                        newEventServices(new DomainEventBus(Set.of())).registration(), mock(DomainEventBus.class)),
+                new RegistrationQueueRepository());
         var httpClient = mock(FederationHttpClient.class);
         when(httpClient.canSign(anyInt())).thenReturn(true);
         var transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
@@ -131,7 +135,11 @@ class EventGroupCommentFederationTest extends RepositoryTestBase {
                 mock(EventRequirementService.class),
                 mock(FederatedRegistrantService.class),
                 federationRepo,
-                transport.transport());
+                transport.transport(),
+                newEventGroupQueue(
+                        newEventServices(new DomainEventBus(Set.of())).registration(), new DomainEventBus(Set.of())),
+                newPartnerPlacesService(),
+                new DomainEventBus(Set.of()));
         comments = newCommentService(BUS);
         federation = new EventGroupCommentFederation(
                 comments,

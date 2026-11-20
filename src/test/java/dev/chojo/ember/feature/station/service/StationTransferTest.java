@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.accountlink.entity.LinkOrigin;
 import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
@@ -252,10 +253,9 @@ class StationTransferTest extends RepositoryTestBase {
                 now.plusSeconds(5400),
                 templateStandard.id(),
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 catTraining.id(),
-                null,
                 null,
                 null,
                 null);
@@ -269,10 +269,9 @@ class StationTransferTest extends RepositoryTestBase {
                 now.plusSeconds(5400),
                 null,
                 true,
-                now.plusSeconds(86400),
+                RegistrationDeadline.fixed(now.plusSeconds(86400)),
                 true,
                 catTraining.id(),
-                null,
                 null,
                 null,
                 null);
@@ -286,10 +285,9 @@ class StationTransferTest extends RepositoryTestBase {
                 now.plusSeconds(2592000 + 14400),
                 null,
                 true,
-                now.plusSeconds(2505600),
+                RegistrationDeadline.fixed(now.plusSeconds(2505600)),
                 false,
                 catSonder.id(),
-                null,
                 null,
                 null,
                 null);

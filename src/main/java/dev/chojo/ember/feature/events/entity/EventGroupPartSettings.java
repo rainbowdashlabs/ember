@@ -15,9 +15,13 @@ import org.jspecify.annotations.Nullable;
  * @param ownTemplateId  the part's own attendance template, or null where it follows the event group
  * @param ownCategoryId  the part's own category, or null where it follows the event group
  * @param eventGroup     what the event group hands to its parts
+ * @param ownRegistrationLimit  the part's own places, or null where it takes the event group's
+ * @param partRegistrationLimit the places per part the event group gives, or null for no limit
  */
 public record EventGroupPartSettings(
         int eventGroupId,
         @Nullable Integer ownTemplateId,
         @Nullable Integer ownCategoryId,
-        EventGroupSettings eventGroup) {}
+        EventGroupSettings eventGroup,
+        @Nullable Integer ownRegistrationLimit,
+        @Nullable Integer partRegistrationLimit) {}

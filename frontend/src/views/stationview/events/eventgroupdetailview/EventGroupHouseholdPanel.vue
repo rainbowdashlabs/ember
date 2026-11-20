@@ -21,14 +21,23 @@ import EventGroupSignUpDialog from './EventGroupSignUpDialog.vue'
 import EventGroupShortfall from './EventGroupShortfall.vue'
 import EventGroupAnswersButton from './EventGroupAnswersButton.vue'
 import RegistrationFieldAnswers from '../eventdetailview/RegistrationFieldAnswers.vue'
-import type {EventGroupDetail, EventGroupSignUp} from '@/api/generated/schema'
-import {holdsOrWaitsForPlace} from '@/util/eventGroupChoice'
+import {RegistrationStatus, type EventGroupDetail, type EventGroupSignUp} from '@/api/generated/schema'
+import {eventGroupPlaces, holdsOrWaitsForPlace} from '@/util/eventGroupChoice'
 import {ownEventGroupPort, type EventGroupSignUpPort} from './eventGroupSignUpPort'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {hasPassed} from '../eventshared/registrationDeadline'
+import type {OurPartnerPlaces} from '../eventshared/ourPartnerPlaces'
 
 /**
  * The sign-up of the reader and of everybody they look after: whether each is signed up, which parts
  * they chose, and the buttons to sign up, change the parts or withdraw.
+ *
+ * <p>A full event group still takes sign-ups: they wait on the waiting list, which the button then
+ * says, and whoever waits sees their place in line and can leave it. Once no part is left, a wait
+ * nobody moved up from reads as no place.
+ *
+ * <p>On a partner's event group that handed this station the choosing, the places given stand above
+ * the list, and a reader who keeps the station's sign-ups confirms a waiting one from here.
  */
 const props = defineProps<{
   detail: EventGroupDetail
@@ -36,6 +45,8 @@ const props = defineProps<{
   onChanged?: () => void | Promise<void>
   /** Where sign-ups go; an event group of this station unless a partner's event group page says otherwise. */
   port?: EventGroupSignUpPort
+  /** What a partner holding the event group gave this station, where this is a partner's event group. */
+  ourPlaces?: OurPartnerPlaces
 }>()
 
 const {t} = useI18n()
@@ -45,10 +56,7 @@ const withdrawFor = ref<EventGroupSignUp | null>(null)
 const withdrawOpen = ref(false)
 
 /** Whether sign-ups closed with the deadline. */
-const deadlinePassed = computed(() => {
-  const deadline = props.detail.eventGroup.details.registrationDeadline
-  return deadline != null && new Date(deadline).getTime() < Date.now()
-})
+const deadlinePassed = computed(() => hasPassed(props.detail.eventGroup.closesAt))
 
 /** Whether no part is left to choose: none yet, or every one past or called off. */
 const nothingLeft = computed(() =>
@@ -62,14 +70,19 @@ const changeClosed = computed(() => {
   return null
 })
 
-/** Why nobody can newly sign up, or null while the event group takes sign-ups; a full event group closes here too. */
-const signUpClosed = computed(() => {
-  if (changeClosed.value) return changeClosed.value
-  const eventGroup = props.detail.eventGroup
-  if (eventGroup.details.registrationLimit != null && eventGroup.holding >= eventGroup.details.registrationLimit) return t('eventGroups.closedFull')
-  return null
-})
+/** Why nobody can newly sign up, or null while the event group takes sign-ups. A full one still does. */
+const signUpClosed = computed(() => changeClosed.value)
 
+/**
+ * Whether a sign-up now waits on the waiting list because every place for people is taken. Where
+ * sign-ups are confirmed, they wait for the decision instead. A full part is shown in the dialog.
+ */
+const joinsQueue = computed(() =>
+    !props.detail.eventGroup.details.requiresConfirmation && !!eventGroupPlaces(props.detail.eventGroup)?.full)
+
+function isQueued(entry: EventGroupSignUp): boolean {
+  return entry.status === RegistrationStatus.QUEUED
+}
 
 function askWithdraw(entry: EventGroupSignUp) {
   withdrawFor.value = entry
@@ -79,6 +92,16 @@ function askWithdraw(entry: EventGroupSignUp) {
 const {running: busy, failure, run: withdraw} = useAsyncAction(async (entry: EventGroupSignUp) => {
   await (props.port ?? ownEventGroupPort(props.detail.eventGroup.id)).withdraw(entry.memberId)
   withdrawOpen.value = false
+  await props.onChanged?.()
+})
+
+/** Whether the reader may give this waiting sign-up its place here, which only a partner that handed over the choosing allows. */
+function confirmable(entry: EventGroupSignUp): boolean {
+  return !!props.ourPlaces?.weDecide && !!props.port?.confirm && entry.status === RegistrationStatus.PENDING
+}
+
+const {running: confirming, failure: confirmFailure, run: confirm} = useAsyncAction(async (entry: EventGroupSignUp) => {
+  await props.port?.confirm?.(entry.memberId)
   await props.onChanged?.()
 })
 
@@ -94,12 +117,13 @@ async function confirmWithdraw() {
 <template>
   <NeutralContainer class="space-y-3" data-testid="event-group-household">
     <SectionHeader>{{ t('eventGroups.household') }}</SectionHeader>
-    <FailureAlert v-if="failure" :failure="failure"/>
+    <MutedText v-if="ourPlaces?.summary" tag="p" size="sm" data-testid="event-group-our-places">{{ ourPlaces.summary }}</MutedText>
+    <FailureAlert v-if="failure ?? confirmFailure" :failure="failure ?? confirmFailure"/>
     <div v-for="entry in detail.household" :key="entry.memberId"
          class="flex flex-wrap items-center justify-between gap-2" data-testid="event-group-household-entry">
       <div class="flex flex-wrap items-center gap-2 min-w-0">
         <MemberName :identity="entry.member"/>
-        <RegistrationStatusBadge v-if="entry.status" :status="entry.status"/>
+        <RegistrationStatusBadge v-if="entry.status" :status="entry.status" :queue-position="entry.queuePosition" :past="nothingLeft"/>
         <MutedText v-else tag="span" size="sm">{{ t('eventGroups.notSignedUp') }}</MutedText>
         <MutedText v-if="holdsOrWaitsForPlace(entry.status)" tag="span" size="sm">{{ t('eventGroups.chosen', {count: entry.parts.length}) }}</MutedText>
         <EventGroupShortfall v-if="holdsOrWaitsForPlace(entry.status)" :sets="entry.sets"/>
@@ -112,11 +136,15 @@ async function confirmWithdraw() {
       <ButtonRow v-else-if="!detail.eventGroup.cancelled" align="end">
         <template v-if="!holdsOrWaitsForPlace(entry.status)">
           <MutedText v-if="signUpClosed" tag="span" size="sm" data-testid="event-group-closed">{{ signUpClosed }}</MutedText>
-          <PrimaryButton v-else :icon="['fas', 'check']" data-testid="event-group-sign-up" @click="dialogFor = entry">
-            {{ t('eventGroups.signUp') }}
+          <PrimaryButton v-else :icon="['fas', joinsQueue ? 'list-ol' : 'check']" data-testid="event-group-sign-up" @click="dialogFor = entry">
+            {{ joinsQueue ? t('registrationQueue.join') : t('eventGroups.signUp') }}
           </PrimaryButton>
         </template>
         <template v-else>
+          <PrimaryButton v-if="confirmable(entry)" :icon="['fas', 'check']" :disabled="confirming"
+                         data-testid="event-group-confirm-own" @click="confirm(entry)">
+            {{ t('common.confirm') }}
+          </PrimaryButton>
           <SecondaryButton
               v-if="!changeClosed"
               :icon="['fas', 'pen']"
@@ -127,8 +155,13 @@ async function confirmWithdraw() {
           </SecondaryButton>
           <EventGroupAnswersButton v-if="!changeClosed && detail.questions.length > 0" :event-group-id="detail.eventGroup.id"
                                :entry="entry" :questions="detail.questions" @saved="onChanged?.()"/>
-          <SecondaryButton :icon="['fas', 'xmark']" data-testid="event-group-withdraw" @click="askWithdraw(entry)">
-            {{ t('eventGroups.withdraw') }}
+          <SecondaryButton
+              v-if="!(isQueued(entry) && nothingLeft)"
+              :icon="['fas', 'xmark']"
+              data-testid="event-group-withdraw"
+              @click="askWithdraw(entry)"
+          >
+            {{ isQueued(entry) ? t('registrationQueue.leave') : t('eventGroups.withdraw') }}
           </SecondaryButton>
         </template>
       </ButtonRow>
@@ -145,8 +178,9 @@ async function confirmWithdraw() {
         v-model="withdrawOpen"
         :title="t('eventGroups.withdrawTitle')"
         :message="t('eventGroups.withdrawText', {name: withdrawFor?.member.name ?? ''})"
-        :confirm-label="t('eventGroups.withdraw')"
+        :confirm-label="withdrawFor && isQueued(withdrawFor) ? t('registrationQueue.leave') : t('eventGroups.withdraw')"
         :busy="busy"
+        neutral
         @confirm="confirmWithdraw"
     />
   </NeutralContainer>

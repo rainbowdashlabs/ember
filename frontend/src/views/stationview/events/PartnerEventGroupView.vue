@@ -14,7 +14,8 @@ import EventGroupHouseholdPanel from './eventgroupdetailview/EventGroupHousehold
 import {partnerEventGroupPort} from './eventgroupdetailview/eventGroupSignUpPort'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CommentSection from '@/components/comment/CommentSection.vue'
-import type {EventGroupDetail} from '@/api/generated/schema'
+import {StationPermission, type EventGroupDetail} from '@/api/generated/schema'
+import {ourPartnerPlaces} from './eventshared/ourPartnerPlaces'
 import {partnerEventGroups} from '@/api'
 import {partnerEventGroupCommentSource} from '@/api/partnerEventGroups'
 import {useSession} from '@/composables/useSession'
@@ -22,16 +23,19 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
  * An event group a partner station shares with this one: its parts by set, the sign-up of the reader and
- * everybody they look after, and its comments, all sent to the partner that holds it.
+ * everybody they look after, and its comments, all sent to the partner that holds it. Where the partner
+ * handed this station the choosing of its own sign-ups, the places it gave count for the whole event group.
  */
 const {t} = useI18n()
 const route = useRoute()
-const {loaded} = useSession()
+const {loaded, hasPermission} = useSession()
 
 const stationUid = computed(() => route.params.stationUid as string)
 const eventGroupId = computed(() => Number(route.params.eventGroupId))
 const detail = ref<EventGroupDetail | null>(null)
 const port = computed(() => partnerEventGroupPort(stationUid.value, eventGroupId.value))
+const ourPlaces = computed(() => ourPartnerPlaces(
+    detail.value?.places, hasPermission(StationPermission.EVENT_REGISTRATION), t, 'eventGroups.placesGiven'))
 const commentSource = computed(() => partnerEventGroupCommentSource(stationUid.value, eventGroupId.value))
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
@@ -51,7 +55,7 @@ function partLink(eventId: number) {
     <AsyncSection :loading="loading && !detail" :failure="failure">
       <div v-if="detail" class="space-y-6">
         <EventGroupOverview :detail="detail" :part-link="partLink"/>
-        <EventGroupHouseholdPanel :detail="detail" :port="port" :on-changed="reload"/>
+        <EventGroupHouseholdPanel :detail="detail" :port="port" :our-places="ourPlaces" :on-changed="reload"/>
         <NeutralContainer>
           <CommentSection :source="commentSource"/>
         </NeutralContainer>

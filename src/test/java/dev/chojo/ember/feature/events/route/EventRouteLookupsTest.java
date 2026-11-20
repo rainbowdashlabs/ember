@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.AwaitingAnswers;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
@@ -291,6 +292,7 @@ class EventRouteLookupsTest {
                 stationService,
                 mock(OccurrenceCalendar.class),
                 visibility,
-                new EventSignUpGuards(mock(GuardianPolicy.class)));
+                new EventSignUpGuards(mock(GuardianPolicy.class)),
+                mock(AwaitingAnswers.class));
     }
 }

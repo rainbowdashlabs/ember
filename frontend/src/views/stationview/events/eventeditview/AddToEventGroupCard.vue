@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -39,8 +39,8 @@ const setId = ref('')
 
 const openEventGroups = computed(() => eventGroups.value.filter(eventGroup => !eventGroup.cancelled))
 
-onMounted(async () => {
-  eventGroups.value = await eventGroupsApi.listEventGroups().catch(() => [])
+const {failure: listFailure} = useAsyncLoader(async () => {
+  eventGroups.value = await eventGroupsApi.listEventGroups()
 })
 
 /**
@@ -61,7 +61,7 @@ const {running: busy, failure: addFailure, run: add, clearError} = useAsyncActio
   await eventGroupsApi.addPart(Number(eventGroupId.value), props.eventId, Number(setId.value))
   await props.onAdded?.()
 })
-const failure = computed(() => addFailure.value ?? setsFailure.value)
+const failure = computed(() => addFailure.value ?? setsFailure.value ?? listFailure.value)
 
 watch(eventGroupId, () => {
   clearError()

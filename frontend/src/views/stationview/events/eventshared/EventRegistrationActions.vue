@@ -15,6 +15,8 @@ import AnsweredAnswers from './eventregistrationactions/AnsweredAnswers.vue'
 import SignOffConfirm from './eventregistrationactions/SignOffConfirm.vue'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {isRefusal, notOpenLabelKey, type AnswerablePerson, type GivenAnswer} from '@/util/eventAnswers'
+import {RegistrationStatus} from '@/api/generated/schema'
+import {hasPassed} from './registrationDeadline'
 
 /**
  * Answering an appointment, for oneself and for whoever one answers for.
@@ -37,8 +39,11 @@ const props = withDefaults(defineProps<{
   /** What each of them has said so far. */
   answers: GivenAnswer<K, U>[]
   requiresRegistration: boolean
-  /** When answers stop being taken, or nothing where they are taken until the appointment itself. */
-  registrationDeadline?: string | null
+  /**
+   * When answers stop being taken for the date shown, or nothing where they are taken until the
+   * appointment itself.
+   */
+  closesAt?: string | null
   hasManagedMembers: boolean
   registering: boolean
   /**
@@ -46,7 +51,14 @@ const props = withDefaults(defineProps<{
    * takes sign-ups only, so its appointments are not.
    */
   declinable?: boolean
-}>(), {declinable: true, registrationDeadline: null})
+  /**
+   * Whether signing up now puts somebody on the waiting list rather than giving them a place, which
+   * the button then says.
+   */
+  signUpQueues?: boolean
+  /** Whether the date is already over. */
+  past?: boolean
+}>(), {declinable: true, closesAt: null, signUpQueues: false, past: false})
 
 const emit = defineEmits<{
   register: [people: AnswerablePerson<K>[]]
@@ -67,10 +79,7 @@ const peopleWithoutAnswer = computed(() => props.people.filter(person => !answer
  * <p>The server refuses one once the deadline has passed, and the button offering to give one stayed
  * where it was, so the only thing pressing it produced was an error.
  */
-const stillOpen = computed(() => {
-  if (!props.registrationDeadline) return true
-  return new Date(props.registrationDeadline).getTime() > Date.now()
-})
+const stillOpen = computed(() => !hasPassed(props.closesAt))
 
 /** The one thing somebody who has not answered yet can say, where it can still be said. */
 const canAnswer = computed(() => !props.requiresRegistration || stillOpen.value)
@@ -78,9 +87,16 @@ const canAnswer = computed(() => !props.requiresRegistration || stillOpen.value)
 /** Why there is nothing to press, where the appointment is open to nobody in this household. */
 const notOpenLabel = computed(() => props.people.length > 0 ? '' : t(notOpenLabelKey(props.hasManagedMembers)))
 
-/** What the button says for somebody who has not answered: coming, or not coming. */
-const answerLabel = computed(() =>
-    props.requiresRegistration ? t('eventsUpcoming.register') : t('eventsUpcoming.decline'))
+/** What the button says for somebody who has not answered: coming, onto the waiting list, or not coming. */
+const answerLabel = computed(() => {
+  if (!props.requiresRegistration) return t('eventsUpcoming.decline')
+  return props.signUpQueues ? t('registrationQueue.join') : t('eventsUpcoming.register')
+})
+
+/** The name of the one person a button answers for, said along with what it does. */
+function registerForLabel(name: string): string {
+  return props.signUpQueues ? t('registrationQueue.joinFor', {name}) : t('eventsUpcoming.registerFor', {name})
+}
 
 /**
  * What the one button says. Where it answers for a single named person out of a household, it says
@@ -89,8 +105,8 @@ const answerLabel = computed(() =>
 const buttonLabel = computed(() => {
   const open = peopleWithoutAnswer.value
   if (!props.hasManagedMembers || open.length !== 1) return answerLabel.value
-  const forLabel = props.requiresRegistration ? 'eventsUpcoming.registerFor' : 'eventsUpcoming.declineFor'
-  return t(forLabel, {name: open[0]!.name})
+  const name = open[0]!.name
+  return props.requiresRegistration ? registerForLabel(name) : t('eventsUpcoming.declineFor', {name})
 })
 
 /** What the refusal beside the sign-up says, naming the person where it answers for one of a household. */
@@ -146,8 +162,9 @@ function declineRegistration() {
 }
 
 /**
- * Taking an answer back. Only giving up a place asks first: undoing a refusal costs nobody anything. A
- * place already given up is not taken back but asked for anew.
+ * Taking an answer back. Only giving up a place asks first: undoing a refusal costs nobody anything,
+ * and leaving the waiting list gives up no place. A place already given up is not taken back but
+ * asked for anew.
  */
 function undoAnswer(answered: GivenAnswer<K, U>) {
   if (answered.placeGivenUp) {
@@ -155,7 +172,7 @@ function undoAnswer(answered: GivenAnswer<K, U>) {
     if (person) emit('register', [person])
     return
   }
-  if (isRefusal(answered.status)) {
+  if (isRefusal(answered.status) || answered.status === RegistrationStatus.QUEUED) {
     emit('withdraw', answered.undo)
     return
   }
@@ -172,7 +189,7 @@ function onUndo(reference: U) {
   <div data-onboarding="events.item.pending" class="space-y-1">
     <AnsweredAnswers
         :rows="answers" :show-names="hasManagedMembers" :requires-registration="requiresRegistration"
-        :sign-up-open="stillOpen" :registering="registering" @undo="onUndo" @update="reference => emit('update', reference)"/>
+        :sign-up-open="stillOpen" :registering="registering" :past="past" @undo="onUndo" @update="reference => emit('update', reference)"/>
 
     <MutedText v-if="notOpenLabel" class="text-sm">{{ notOpenLabel }}</MutedText>
 

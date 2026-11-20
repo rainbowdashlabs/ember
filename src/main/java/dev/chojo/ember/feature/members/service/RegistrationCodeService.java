@@ -89,8 +89,9 @@ public class RegistrationCodeService {
      * Replaces the groups somebody registering with the code is put into.
      *
      * <p>Every group has to be one of the code's station and take members, because that is what
-     * somebody registering becomes. A group that does not is refused here, where the manager sets the
-     * code up, rather than left out silently when somebody registers.
+     * somebody registering becomes, and none may take its members from a rule. A group that does not is
+     * refused here, where the manager sets the code up, rather than left out silently when somebody
+     * registers.
      *
      * @param stationId       the station asking, which has to own the code
      * @param codeId          the code

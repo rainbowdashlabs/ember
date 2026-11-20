@@ -5,14 +5,30 @@
  */
 package dev.chojo.ember.feature.maps.entity;
 
+import org.jspecify.annotations.Nullable;
+
+import java.util.Arrays;
+
 /**
- * Geocoding provider for the (currently UI-less) "type address → suggest pin" feature.
- * Disabled by default; the config slot is in place so a future frontend implementation
- * doesn't need a schema change.
+ * Who looks up addresses for this instance. {@link #NONE} keeps every address on the instance;
+ * {@link #PHOTON} asks a Photon server, the public one or one the operator runs.
  */
 public enum GeocodingProvider {
     NONE,
-    NOMINATIM,
-    LOCATIONIQ,
-    GEOAPIFY
+    PHOTON;
+
+    /**
+     * Reads a stored provider name. A provider this version no longer offers, or no name at all,
+     * reads as {@link #NONE}, so a setting saved by an older version switches the lookup off
+     * rather than failing to load.
+     *
+     * @param name the stored name, or null
+     * @return the provider it names, or {@link #NONE}
+     */
+    public static GeocodingProvider fromStored(@Nullable String name) {
+        return Arrays.stream(values())
+                .filter(provider -> provider.name().equals(name))
+                .findFirst()
+                .orElse(NONE);
+    }
 }

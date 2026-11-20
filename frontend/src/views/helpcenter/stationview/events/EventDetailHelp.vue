@@ -25,6 +25,10 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
 import EventCancellationBanner from '@/views/stationview/events/eventdetailview/EventCancellationBanner.vue'
 import DocumentsReviewSample from './eventdetailhelp/DocumentsReviewSample.vue'
+import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
+import QueueSection from '@/views/stationview/events/eventshared/QueueSection.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import {SAMPLE_QUEUE} from './eventdetailhelp/sampleQueue'
 import {CancellationCause, StationPermission, type CancellationNotice} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -42,6 +46,10 @@ const sampleCancellation: CancellationNotice = {
     <HelpSection :title="t('helpCenter.eventDetail.whatIs')">
       <p>{{ t('helpCenter.eventDetail.whatIsText') }}</p>
       <p>{{ t('helpCenter.eventDetail.memberAccess') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventDetail.placesTitle')">
+      <p>{{ t('helpCenter.eventDetail.placesText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventDetail.linksTitle')">
@@ -74,8 +82,8 @@ const sampleCancellation: CancellationNotice = {
           <SectionHeader>{{ t('helpCenter.sample.events.competitionPrep') }}</SectionHeader>
           <SecondaryBadge>{{ t('events.typeOneTime') }}</SecondaryBadge>
         </div>
-        <ButtonRow>
-          <SecondaryButton><font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>{{ t('common.back') }}</SecondaryButton>
+        <div class="flex items-center gap-2 ml-auto">
+          <SecondaryButton :icon="['fas', 'arrow-left']"><span class="max-sm:sr-only">{{ t('common.back') }}</span></SecondaryButton>
           <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">
             <PrimaryButton><font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/>{{ t('events.editEvent') }}</PrimaryButton>
           </HelpPermissionGuard>
@@ -84,8 +92,9 @@ const sampleCancellation: CancellationNotice = {
             <DropdownMenuItem :icon="['fas', 'copy']">{{ t('events.copyEvent') }}</DropdownMenuItem>
             <DropdownMenuItem :icon="['fas', 'ban']" destructive>{{ t('events.cancelDate') }}</DropdownMenuItem>
             <DropdownMenuItem :icon="['fas', 'calendar-xmark']" destructive>{{ t('events.cancelSeries') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'trash']" destructive>{{ t('common.delete') }}</DropdownMenuItem>
           </ActionsMenu>
-        </ButtonRow>
+        </div>
       </div>
 
       <NeutralContainer class="space-y-3 mt-3">
@@ -127,6 +136,31 @@ const sampleCancellation: CancellationNotice = {
         </ButtonRow>
       </NeutralContainer>
     </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventDetail.queueTitle')">
+      <p>{{ t('helpCenter.eventDetail.queueText') }}</p>
+      <p>{{ t('helpCenter.eventDetail.queueLeaveText') }}</p>
+      <NeutralContainer class="space-y-3">
+        <MutedText size="sm" tag="p">{{ t('registrationQueue.fullWaiting', {waiting: 3}) }}</MutedText>
+        <ButtonRow>
+          <PrimaryButton :icon="['fas', 'list-ol']" disabled>{{ t('registrationQueue.join') }}</PrimaryButton>
+        </ButtonRow>
+        <ButtonRow>
+          <RegistrationStatusBadge status="QUEUED" :queue-position="2"/>
+          <SecondaryButton :icon="['fas', 'rotate-left']" compact disabled>{{ t('registrationQueue.leave') }}</SecondaryButton>
+        </ButtonRow>
+      </NeutralContainer>
+    </HelpSection>
+
+    <HelpPermissionGuard :permissions="[StationPermission.EVENT_REGISTRATION]" :label="t('helpCenter.permissionLabel.eventManage')">
+      <HelpSection :title="t('helpCenter.eventDetail.queueManageTitle')">
+        <p>{{ t('helpCenter.eventDetail.queueManageText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.queueFullText') }}</p>
+        <NeutralContainer>
+          <QueueSection :entries="SAMPLE_QUEUE" can-manage/>
+        </NeutralContainer>
+      </HelpSection>
+    </HelpPermissionGuard>
 
     <HelpPermissionGuard :permissions="[StationPermission.EVENT_REGISTRATION]" :label="t('helpCenter.permissionLabel.eventManage')">
       <HelpSection :title="t('eventDetail.registrations')">
@@ -175,6 +209,8 @@ const sampleCancellation: CancellationNotice = {
         <InfoBadge>{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
         <ErrorBadge>{{ t('eventsUpcoming.statusDenied') }}</ErrorBadge>
         <ErrorBadge>{{ t('eventsUpcoming.statusDeclined') }}</ErrorBadge>
+        <RegistrationStatusBadge status="QUEUED" :queue-position="1"/>
+        <RegistrationStatusBadge status="QUEUED" past/>
       </div>
     </HelpSection>
 

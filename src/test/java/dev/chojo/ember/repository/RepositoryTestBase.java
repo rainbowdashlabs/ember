@@ -87,16 +87,22 @@ import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.repository.PartnerPlacesRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.route.EventVisibility;
+import dev.chojo.ember.feature.events.service.AwaitingAnswers;
 import dev.chojo.ember.feature.events.service.EventBlockReferences;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCancellationService;
+import dev.chojo.ember.feature.events.service.EventCapacity;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCommentTarget;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -106,6 +112,7 @@ import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupCommentTarget;
 import dev.chojo.ember.feature.events.service.EventGroupGuards;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
+import dev.chojo.ember.feature.events.service.EventGroupQueue;
 import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.events.service.EventGroupSignUpRules;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
@@ -113,6 +120,8 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
+import dev.chojo.ember.feature.events.service.PartnerPlacesService;
+import dev.chojo.ember.feature.events.service.QueuePlacement;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
@@ -176,6 +185,7 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.MemberRuleRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
@@ -195,6 +205,7 @@ import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
 import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.members.service.ProfileFieldCore;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
+import dev.chojo.ember.feature.members.service.SelfAnsweredRules;
 import dev.chojo.ember.feature.members.service.StationMemberEligibility;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.StationProfileFields;
@@ -250,6 +261,7 @@ import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.util.TestEventPlaces;
 import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
 import dev.chojo.ember.util.sql.Transactions;
@@ -357,6 +369,7 @@ public abstract class RepositoryTestBase {
 
     protected static ClusterItemHandoverService clusterItemHandoverService;
     protected static MemberGroupRepository memberGroupRepo;
+    protected static MemberRuleRepository memberRuleRepo;
     protected static ProfileFieldRepository profileFieldRepo;
     protected static DocumentRepository memberDocumentRepo;
     protected static MailRuleRepository mailRuleRepo;
@@ -683,6 +696,7 @@ public abstract class RepositoryTestBase {
                 new DomainEventBus(Set.of()),
                 newDocumentIntake());
         memberGroupRepo = new MemberGroupRepository();
+        memberRuleRepo = new MemberRuleRepository();
         profileFieldRepo = new ProfileFieldRepository();
         memberDocumentRepo = new DocumentRepository();
         mailRuleRepo = new MailRuleRepository();
@@ -825,7 +839,8 @@ public abstract class RepositoryTestBase {
         var fedRepo = new FederationRepository();
         var memberSvc = newStationMemberService(accountRepo, null);
         var groupSvc = newMemberGroupService();
-        var tagSvc = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
+        var tagSvc = new UserTagService(
+                userTagRepo, memberGroupRepo, memberRuleRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
@@ -988,7 +1003,9 @@ public abstract class RepositoryTestBase {
                         new AssociationProfileFields(clusterProfileFieldRepo, stationRepo, clusterRepo, eventBus)),
                 profileFieldChangeRepo,
                 stationMemberRepo,
-                memberPermissionResolver);
+                memberPermissionResolver,
+                eventBus,
+                RepositoryTestBase::newSelfAnsweredRules);
     }
 
     /**
@@ -1006,7 +1023,9 @@ public abstract class RepositoryTestBase {
                 memberGroupRepo,
                 core,
                 new GenderFields(core, stationRepo),
-                new StationFieldSetRepository());
+                new StationFieldSetRepository(),
+                memberRuleRepo,
+                newSelfAnsweredRules());
     }
 
     /**
@@ -1023,6 +1042,15 @@ public abstract class RepositoryTestBase {
     }
 
     /**
+     * The list of answers owed, over the shared repositories.
+     *
+     * @return the service
+     */
+    protected static AwaitingAnswers awaitingAnswers() {
+        return new AwaitingAnswers(eventRepo, eventRegistrationRepo, occurrenceCalendar);
+    }
+
+    /**
      * The appointment field service over the shared repositories.
      *
      * @return the service
@@ -1035,7 +1063,8 @@ public abstract class RepositoryTestBase {
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService,
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                occurrenceCalendar);
     }
 
     /**
@@ -1058,9 +1087,49 @@ public abstract class RepositoryTestBase {
      *
      * @return the rules
      */
+
+    /**
+     * The waiting list of event groups, wired to the test database.
+     *
+     * @param registrations the registrations whoever moves up is recorded through
+     * @param bus           where whoever moves up is announced
+     * @return the waiting list
+     */
+    protected static EventGroupQueue newEventGroupQueue(EventRegistrationService registrations, DomainEventBus bus) {
+        var queue = new RegistrationQueueRepository();
+        return new EventGroupQueue(
+                newEventGroupSignUpRules(),
+                new EventGroupRegistrationRepository(),
+                new EventGroupPartnerRepository(),
+                new PartnerPlacesRepository(),
+                eventRegistrationRepo,
+                queue,
+                new QueuePlacement(queue, eventRegistrationRepo),
+                registrations,
+                bus,
+                memberNameResolver);
+    }
+
+    /**
+     * The partner places of appointments and event groups, wired to the test database.
+     *
+     * @return the service
+     */
+    protected static PartnerPlacesService newPartnerPlacesService() {
+        return new PartnerPlacesService(
+                new PartnerPlacesRepository(),
+                new EventFederationRepository(),
+                new FederationRepository(),
+                new EventGroupPartnerRepository());
+    }
+
     protected static EventGroupSignUpRules newEventGroupSignUpRules() {
         return new EventGroupSignUpRules(
-                newEventGroupService(), new EventGroupRepository(), eventRepo, occurrenceCalendar);
+                newEventGroupService(),
+                new EventGroupRepository(),
+                eventRepo,
+                occurrenceCalendar,
+                new EventCapacity(new RegistrationQueueRepository()));
     }
 
     private static EventGroupCommentTarget eventGroupCommentTarget() {
@@ -1129,7 +1198,12 @@ public abstract class RepositoryTestBase {
                 boardRepo,
                 memberService,
                 newMemberGroupService(),
-                new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of())),
+                new UserTagService(
+                        userTagRepo,
+                        memberGroupRepo,
+                        memberRuleRepo,
+                        newGroupMemberships(),
+                        new DomainEventBus(Set.of())),
                 privateTags);
         var tickets = new BoardTicketService(
                 boardTicketRepo,
@@ -1231,7 +1305,8 @@ public abstract class RepositoryTestBase {
                         new EventRegistrationFieldRepository(),
                         eventRepo,
                         eventBus,
-                        memberNameResolver),
+                        memberNameResolver,
+                        TestEventPlaces.of(eventRegistrationRepo, eventBus)),
                 new EventReminderService(eventReminderRepo),
                 new EquipmentNeedService(
                         equipmentNeedRepo,
@@ -1290,6 +1365,7 @@ public abstract class RepositoryTestBase {
         return new GroupMembershipService(
                 memberGroupRepo,
                 stationMemberRepo,
+                memberRuleRepo,
                 mock(StepUpGuard.class),
                 () -> mock(MemberNameResolver.class),
                 new DomainEventBus(Set.of()));
@@ -1301,7 +1377,18 @@ public abstract class RepositoryTestBase {
      */
     protected static MemberGroupService newMemberGroupService() {
         return new MemberGroupService(
-                memberGroupRepo, stationMemberRepo, userTagRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
+                memberGroupRepo,
+                stationMemberRepo,
+                userTagRepo,
+                memberRuleRepo,
+                newGroupMemberships(),
+                newSelfAnsweredRules(),
+                new DomainEventBus(Set.of()));
+    }
+
+    /** The guard against groups granting permissions from answers members give themselves, over this class's repositories. */
+    protected static SelfAnsweredRules newSelfAnsweredRules() {
+        return new SelfAnsweredRules(profileFieldRepo, memberGroupRepo, memberRuleRepo);
     }
 
     /**

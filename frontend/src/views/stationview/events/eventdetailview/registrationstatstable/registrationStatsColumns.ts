@@ -13,6 +13,7 @@ export interface RankedRegistration {
 }
 
 export const SCORE_KEY = 'score'
+export const DECLINED_AT_KEY = 'declinedAt'
 
 /** How much of the member's sign-ups were accepted, in whole percent. */
 function acceptPercent(row: RankedRegistration): number | null {
@@ -49,6 +50,29 @@ export function registrationStatsColumns(t: (key: string) => string): TableColum
             label: t('eventsRegistrations.registeredAt'),
             type: ColumnTypes.DATE_TIME,
             value: row => row.registration.createdAt,
+            align: 'center',
+        },
+    ]
+}
+
+/**
+ * The columns for answers that need no decision: the member and when they declined. The ranking says
+ * nothing about somebody who is not coming, so it is left out.
+ */
+export function declinedColumns(t: (key: string) => string): TableColumn<RankedRegistration>[] {
+    return [
+        {
+            key: 'member',
+            label: t('registrationStats.member'),
+            type: ColumnTypes.TEXT,
+            value: row => row.registration.memberIdentity?.name ?? row.registration.memberName,
+            pinned: true,
+        },
+        {
+            key: DECLINED_AT_KEY,
+            label: t('eventsRegistrations.declinedAt'),
+            type: ColumnTypes.DATE_TIME,
+            value: row => row.registration.statusChangedAt,
             align: 'center',
         },
     ]

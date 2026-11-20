@@ -15,22 +15,21 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import DashboardEventTile from './upcomingeventspanel/DashboardEventTile.vue'
 import EventAnswerDialog from '@/views/stationview/events/eventshared/EventAnswerDialog.vue'
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
-import {isQuarterMonthOf, isRecurringEvent} from '@/api/events'
-import {
-  EventType,
-  type EventBreak,
-  type EventCategory,
-  type EventSummary,
-  type FeedStatusResponse,
-  type ManagedMember,
-  type RegistrationResponse,
+import {isRecurringEvent} from '@/api/events'
+import type {
+  EventCategory,
+  EventSummary,
+  FeedStatusResponse,
+  ManagedMember,
+  RegistrationResponse,
+  UpcomingEventOccurrence,
 } from '@/api/generated/schema'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
 import {getFeedStatus} from '@/api/feedToken'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useSession} from '@/composables/useSession'
-import {toIsoDate, todayIsoDate, utcDayOf, weekdayName} from '@/util/format'
+import {shiftIsoDate, stationToday, weekdayName} from '@/util/format'
 import {answerableMembers, isMembersAnswer} from '@/util/eventAnswers'
 
 const emit = defineEmits<{
@@ -40,11 +39,10 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 const router = useRouter()
-const {sessionInfo, isGuardian} = useSession()
+const {sessionInfo, isGuardian, stationTimezone} = useSession()
 
-const allEvents = ref<EventSummary[]>([])
+const occurrences = ref<UpcomingEventOccurrence[]>([])
 const categories = ref<EventCategory[]>([])
-const eventBreaks = ref<EventBreak[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
 const feedStatus = ref<FeedStatusResponse | null>(null)
 const myRegistrations = ref<RegistrationResponse[]>([])
@@ -71,11 +69,27 @@ function categoryOf(ev: EventSummary): EventCategory | undefined {
   return ev.categoryId != null ? categoriesById.value.get(ev.categoryId) : undefined
 }
 
+/** How far ahead the panel lists the dates of a series, in days from today on the station's calendar. */
+const DAYS_AHEAD = 14
 
+/** How many dates the panel shows at most. */
+const MAX_DATES = 10
+
+/** One date of an appointment as a tile shows it. */
 interface UpcomingEvent {
   event: EventSummary
   date: string
   dayLabel: string
+  /** When sign-up for this date closes, as the server worked it out; null where it does not close. */
+  closesAt: string | null
+  /** Whether this date was called off. */
+  cancelled: boolean
+}
+
+/** The name of the weekday a calendar date falls on. */
+function dayLabelOf(date: string): string {
+  const day = new Date(`${date}T00:00:00Z`).getUTCDay()
+  return weekdayName(day === 0 ? 7 : day)
 }
 
 /**
@@ -89,67 +103,30 @@ function eventPage(item: UpcomingEvent) {
       : {name: 'event-detail', params: {id: item.event.id}}
 }
 
-const upcomingEvents = computed((): UpcomingEvent[] => {
-  const now = new Date()
-  const todayStr = todayIsoDate()
-  const upcoming: UpcomingEvent[] = []
-
-  for (const ev of allEvents.value) {
-    if (ev.eventType === EventType.ONE_TIME && ev.startTime) {
-      const d = new Date(ev.startTime)
-      const eventDateStr = toIsoDate(d)
-      if (eventDateStr >= todayStr) {
-        const dow = d.getDay() === 0 ? 7 : d.getDay()
-        upcoming.push({event: ev, date: eventDateStr, dayLabel: weekdayName(dow)})
-      }
-    }
-  }
-
-  for (let offset = 0; offset <= 14; offset++) {
-    const date = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + offset))
-    const dateStr = utcDayOf(date)
-    const dow = date.getUTCDay() === 0 ? 7 : date.getUTCDay()
-    const dayOfMonth = date.getUTCDate()
-    const month = date.getUTCMonth()
-    const inBreak = eventBreaks.value.some(b => b.startDate && b.endDate && dateStr >= b.startDate && dateStr <= b.endDate)
-    if (inBreak) continue
-
-    for (const ev of allEvents.value) {
-      if (!isRecurringEvent(ev.eventType)) continue
-      if (!ev.dayOfWeek || ev.dayOfWeek !== dow) continue
-
-      if (ev.eventType === EventType.RECURRING) {
-        upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
-      } else if (ev.eventType === EventType.MONTHLY_FIRST) {
-        if (dayOfMonth <= 7) upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
-      } else if (ev.eventType === EventType.QUARTERLY) {
-        if (dayOfMonth <= 7 && isQuarterMonthOf(ev, date.getUTCFullYear(), month)) upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
-      } else if (ev.eventType === EventType.YEARLY && ev.startTime) {
-        const refDate = new Date(ev.startTime)
-        if (refDate.getMonth() === month && refDate.getDate() === dayOfMonth) {
-          upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
-        }
-      }
-    }
-  }
-
-  upcoming.sort((a, b) => a.date.localeCompare(b.date))
-  return upcoming.slice(0, 10)
-})
+/**
+ * The dates coming up, as the server lists them: a series with each of its dates in the next two
+ * weeks on its own, a one-time appointment however far ahead it lies, each with its own closing time
+ * and a date called off included and marked as such.
+ */
+const upcomingEvents = computed((): UpcomingEvent[] => occurrences.value.map(occurrence => ({
+  event: occurrence.event,
+  date: occurrence.date,
+  dayLabel: dayLabelOf(occurrence.date),
+  closesAt: occurrence.registrationClosesAt,
+  cancelled: occurrence.cancellation !== null,
+})))
 
 async function loadData() {
   await Promise.all([
-    events.listEvents(),
+    events.listUpcomingOccurrences({seriesTo: shiftIsoDate(stationToday(stationTimezone.value), DAYS_AHEAD), limit: MAX_DATES}),
     events.listCategories().catch(() => []),
-    events.listBreaks().catch(() => []),
     events.listEligibleMembers().catch(() => ({})),
     getFeedStatus().catch(() => null),
     events.listMyRegistrations().catch(() => []),
     isGuardian() ? managedMembersApi.listManaged().catch(() => []) : Promise.resolve([]),
-  ]).then(([ev, cats, br, elig, fs, regs, mine]) => {
-    allEvents.value = ev
+  ]).then(([dates, cats, elig, fs, regs, mine]) => {
+    occurrences.value = dates
     categories.value = cats
-    eventBreaks.value = br
     eligibleMembers.value = elig
     feedStatus.value = fs
     myRegistrations.value = regs
@@ -304,6 +281,8 @@ onMounted(loadData)
           :event="item.event"
           :date="item.date"
           :day-label="item.dayLabel"
+          :registration-closes-at="item.closesAt"
+          :cancelled="item.cancelled"
           :category="categoryOf(item.event)"
           :answers="answersOn(item)"
           :open-count="item.event.eventGroup ? 0 : withoutAnswer(item).length"

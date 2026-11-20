@@ -165,7 +165,7 @@ class MemberTableRendererTest {
 
         var german = renderer.toCsv(table, stationSpeaking("de-DE"), CsvWriter.Separator.SEMICOLON);
         assertTrue(german.contains("Bestätigt"));
-        assertTrue(german.contains("Ausstehend"));
+        assertTrue(german.contains("Offen"));
         assertTrue(german.contains("Abgelehnt"));
         assertTrue(german.contains("Abgemeldet"));
         assertTrue(german.contains("Zurückgezogen"));

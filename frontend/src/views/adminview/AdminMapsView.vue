@@ -21,6 +21,7 @@ import {useMapsConfig} from '@/composables/useMapsConfig'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import {describeFailure} from '@/util/failure'
+import {GeocodingProvider} from '@/api/generated/schema'
 import type {
   AdminMapsConfig,
   CacheStats,
@@ -42,11 +43,11 @@ const tiles = ref<MapsTilesConfig>({
   maxZoom: 19,
 })
 const geocoding = ref<MapsGeocodingConfig>({
-  provider: 'NONE',
-  apiKey: '',
-  contactEmail: '',
+  provider: GeocodingProvider.NONE,
+  baseUrl: '',
 })
 const tileCacheMaxMb = ref(500)
+const defaultGeocodingServer = ref<string | null>(null)
 const cacheStats = ref<CacheStats | null>(null)
 const showPurgeModal = ref(false)
 
@@ -58,6 +59,7 @@ const {loading, failure} = useAsyncLoader(async () => {
   tiles.value = config.tiles
   geocoding.value = config.geocoding
   tileCacheMaxMb.value = config.tileCacheMaxMb
+  defaultGeocodingServer.value = config.defaultGeocodingServer
   cacheStats.value = stats
 })
 
@@ -68,6 +70,7 @@ async function save() {
       tiles: tiles.value,
       geocoding: geocoding.value,
       tileCacheMaxMb: tileCacheMaxMb.value,
+      defaultGeocodingServer: null,
     }
     const saved = await maps.updateAdminMapsConfig(payload)
     tiles.value = saved.tiles
@@ -107,7 +110,7 @@ async function purgeCache() {
       <template v-if="!loading">
         <TilesPanel v-model="tiles"/>
         <PreviewPanel/>
-        <GeocodingPanel v-model="geocoding"/>
+        <GeocodingPanel v-model="geocoding" :default-server="defaultGeocodingServer"/>
         <CachePanel
             v-model="tileCacheMaxMb"
             :cache-stats="cacheStats"

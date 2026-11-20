@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -15,6 +15,7 @@ import OverviewAgeFields from './OverviewAgeFields.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { MemberGroup, WaitingListField } from '@/api/generated/schema'
 import { fieldTypeLabel } from '@/api/fieldTypes'
+import { useRuleOwners } from '@/composables/useRuleOwners'
 
 const name = defineModel<string>('name', { required: true })
 const description = defineModel<string>('description', { required: true })
@@ -32,6 +33,17 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+
+/**
+ * The groups a list can put people into. A group that takes its members from a rule stays listed, so a list
+ * already naming one still shows it, but cannot be chosen, since the rule decides who is in it.
+ */
+const ruleOwners = useRuleOwners()
+onMounted(ruleOwners.load)
+
+function groupLabel(group: MemberGroup): string {
+  return ruleOwners.isGroupRuled(group.id) ? `${group.name} (${t('memberRules.keptByRule')})` : group.name ?? ''
+}
 
 const fieldInfos = computed(() => props.fields.map(f => ({ name: f.name, type: fieldTypeLabel(t, f.fieldType) })))
 </script>
@@ -69,7 +81,8 @@ const fieldInfos = computed(() => props.fields.map(f => ({ name: f.name, type: f
           @update:model-value="testingGroupId = $event ? Number($event) : null"
         >
           <option value="">{{ t('waitingList.noGroup') }}</option>
-          <option v-for="g in groups" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
+          <option v-for="g in groups" :key="g.id" :value="String(g.id)"
+                  :disabled="ruleOwners.isGroupRuled(g.id)">{{ groupLabel(g) }}</option>
         </SelectInput>
       </div>
       <div class="space-y-1">
@@ -79,7 +92,8 @@ const fieldInfos = computed(() => props.fields.map(f => ({ name: f.name, type: f
           @update:model-value="joinGroupId = $event ? Number($event) : null"
         >
           <option value="">{{ t('waitingList.noGroup') }}</option>
-          <option v-for="g in groups" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
+          <option v-for="g in groups" :key="g.id" :value="String(g.id)"
+                  :disabled="ruleOwners.isGroupRuled(g.id)">{{ groupLabel(g) }}</option>
         </SelectInput>
       </div>
       <div class="space-y-1">

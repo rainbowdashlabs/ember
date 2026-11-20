@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, ref} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {attendance, events} from '@/api'
 import {EventKinds, type EventKindName, type EventPageParams} from '@/api/events'
@@ -12,6 +12,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {usePagedList, PAGE_SIZE} from '@/composables/usePagedList'
 import {useSession} from '@/composables/useSession'
 import {useEventListFilters} from '@/composables/useEventListFilters'
+import {useEventRoutes} from '@/composables/useEventRoutes'
 import {describeFailure, saying} from '@/util/failure'
 
 /**
@@ -20,6 +21,9 @@ import {describeFailure, saying} from '@/util/failure'
  * that does have more of them should see them rather than silently lose the tail.
  */
 const SERIES_PAGE_SIZE = 50
+
+/** The tab of the overview that lists the event groups instead of the appointments. */
+export const EVENT_GROUPS_TAB = 'groups'
 
 /**
  * Everything the events dashboard shows, and the filters that decide which part of it.
@@ -33,6 +37,9 @@ const SERIES_PAGE_SIZE = 50
  * <p>The breaks and the attendance templates belong to the current tab and are loaded once. Attendance templates are asked for on their own and only by whoever may record
  * attendance: asking for them alongside the appointments sank the whole page for everybody else,
  * because one refused call beside the others left a member with an error instead of the list.
+ *
+ * <p>Nothing is fetched while the tab of event groups is open, which shows none of it. The first
+ * switch to a tab of appointments fetches it then.
  */
 export function useEventDashboard() {
     const {t} = useI18n()
@@ -44,6 +51,9 @@ export function useEventDashboard() {
     const overviewFields = ref<Record<number, AppointmentField[]>>({})
 
     const {tab, state, isPast, searchInput, categoryId, from, to} = useEventListFilters(() => refilter())
+    const eventRoutes = useEventRoutes()
+    const showsAppointments = computed(() => tab.value !== EVENT_GROUPS_TAB || !eventRoutes.eventGroupCreate)
+    let loadedOnce = false
 
     function pageParams(offset: number, kind: EventKindName, limit: number): EventPageParams {
         return {
@@ -81,6 +91,16 @@ export function useEventDashboard() {
         templates.value = hasPermission(StationPermission.ATTENDANCE_EDIT)
             ? await attendance.listTemplates().catch(() => [])
             : []
+        loadedOnce = true
+    }, {autoLoad: false})
+    loading.value = showsAppointments.value
+
+    onMounted(() => {
+        if (showsAppointments.value) reload()
+    })
+
+    watch(showsAppointments, shows => {
+        if (shows && !loadedOnce && !loading.value) reload()
     })
 
     /**
@@ -91,7 +111,7 @@ export function useEventDashboard() {
      * just set.
      */
     async function refilter() {
-        if (loading.value) return
+        if (loading.value || !loadedOnce || !showsAppointments.value) return
         try {
             await Promise.all([dates.load(), series.load()])
         } catch (e) {
@@ -110,6 +130,7 @@ export function useEventDashboard() {
 
     return {
         tab,
+        showsAppointments,
         isPast,
         searchInput,
         categoryId,

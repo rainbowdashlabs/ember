@@ -9,7 +9,7 @@ import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventShareService;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
@@ -42,7 +42,7 @@ class ClusterShareHandlerTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();
 
     private static NewsFederationService newsFederation;
-    private static EventFederationService eventFederation;
+    private static EventShareService shares;
     private static ClusterNewsShareHandler newsHandler;
     private static ClusterEventShareHandler eventHandler;
 
@@ -50,9 +50,9 @@ class ClusterShareHandlerTest extends RepositoryTestBase {
     static void setup() {
         var autoShare = new ClusterAutoShareService(clusterRepo, new FederationRepository());
         newsFederation = mock(NewsFederationService.class);
-        eventFederation = mock(EventFederationService.class);
+        shares = mock(EventShareService.class);
         newsHandler = new ClusterNewsShareHandler(autoShare, () -> newsFederation);
-        eventHandler = new ClusterEventShareHandler(autoShare, () -> eventFederation);
+        eventHandler = new ClusterEventShareHandler(autoShare, () -> shares);
     }
 
     private int clusterHomeStation() {
@@ -86,20 +86,20 @@ class ClusterShareHandlerTest extends RepositoryTestBase {
 
     @Test
     void anAppointmentMadeForAClusterGoesToItsStations() {
-        reset(eventFederation);
+        reset(shares);
 
         eventHandler.handle(new EventCreated(clusterHomeStation(), eventWithId(815)));
 
-        verify(eventFederation).setShare(eq(815), eq(ShareScope.ALL_PARTNERS), eq(List.of()));
+        verify(shares).setShare(eq(815), eq(ShareScope.ALL_PARTNERS), eq(List.of()));
     }
 
     @Test
     void anAppointmentMadeAtAStationStaysThere() {
-        reset(eventFederation);
+        reset(shares);
 
         eventHandler.handle(new EventCreated(ordinaryStation(), eventWithId(816)));
 
-        verify(eventFederation, never()).setShare(anyInt(), any(), any());
+        verify(shares, never()).setShare(anyInt(), any(), any());
     }
 
     private StationEvent eventWithId(int id) {
