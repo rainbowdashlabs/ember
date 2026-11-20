@@ -253,6 +253,14 @@ class ItemCustodyGuardTest extends RepositoryTestBase {
     }
 
     /**
+     * Writes a loss straight onto the row, the way one already stood in the data before a loss on a
+     * carried piece was refused: such rows exist and their movements still have to close.
+     */
+    private void missingBehindTheMovementsBack(int itemId) {
+        inventoryRepo.updateCustody(itemId, ItemCustody.LOST, station.id(), member.id(), null);
+    }
+
+    /**
      * A movement whose piece went missing on the way closes all the same, and the piece stays missing on
      * the record it was on: closing is no finding.
      */
@@ -260,13 +268,13 @@ class ItemCustodyGuardTest extends RepositoryTestBase {
     void aMovementWhosePieceWentMissingClosesAndLeavesItMissing() {
         int cancelled = pieceWithMember();
         ItemMovement first = exchange(cancelled);
-        itemCustodyService.markLost(cancelled, null, null);
+        missingBehindTheMovementsBack(cancelled);
         int declined = pieceWithMember();
         ItemMovement second = exchange(declined);
-        itemCustodyService.markLost(declined, null, null);
+        missingBehindTheMovementsBack(declined);
         int abandoned = pieceWithMember();
         ItemMovement third = exchange(abandoned);
-        itemCustodyService.markLost(abandoned, null, null);
+        missingBehindTheMovementsBack(abandoned);
 
         assertEquals(
                 MovementState.CANCELLED,

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.LendingMessageSent;
@@ -41,6 +42,7 @@ import dev.chojo.ember.feature.inventory.entity.BorrowedPiece;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
@@ -471,10 +473,12 @@ public class LendingService implements FederationServer {
      * @param requestItemId  the line of the request being filled
      * @param assignedItemId the piece being set aside
      * @param stationId      the station doing the lending, whose gear it has to be
-     * @throws RefusalResponse when the piece is not this station's to lend
+     * @throws RefusalResponse when the piece is not this station's to lend, is reported missing, or an
+     *                         open movement carries it
      */
     public boolean assignItem(int requestItemId, int assignedItemId, int stationId) {
         requireLendable(stationId, assignedItemId);
+        custodyService.requireFreeToActOn(assignedItemId, ItemCustodyService.Allowance.LOANS_ASIDE);
         boolean assigned = repository.assignItem(requestItemId, assignedItemId);
         if (assigned) log.info("Item {} was set aside for lending request item {}", assignedItemId, requestItemId);
         else log.warn("Assign of item {} to lending request item {} affected zero rows", assignedItemId, requestItemId);
@@ -597,7 +601,35 @@ public class LendingService implements FederationServer {
      * @return {@code true} when the request moved to lent
      */
     public boolean markLent(int requestId, int stationId) {
+        requireReadyToHandOver(requestId);
         return moveOn(requestId, stationId, LendingStatus.LENT, "Ausrüstung ausgeliehen", null);
+    }
+
+    /**
+     * Refuses to hand over a loan whose pieces have changed since it was agreed.
+     *
+     * <p>A loan is agreed days before the gear leaves, and in between a piece may have gone missing, been
+     * handed to a member or taken up by a movement. Handing it over regardless wrote the partner as
+     * having it while somebody else did. Every piece is asked before anything moves, so a loan is handed
+     * over whole or not at all.
+     *
+     * @param requestId the lending request about to be handed over
+     * @throws RefusalResponse when a piece set aside for it is reported missing, carried by an open
+     *                         movement, or no longer resting at the station
+     */
+    private void requireReadyToHandOver(int requestId) {
+        for (var line : repository.findItemsByRequest(requestId)) {
+            for (int itemId : repository.findAssignedItems(line.id())) {
+                custodyService.requireFreeToActOn(itemId, ItemCustodyService.Allowance.LOANS_ASIDE);
+                inventoryRepository
+                        .findItemById(itemId)
+                        .filter(item ->
+                                item.custody() != ItemCustody.WITH_OWNER && item.custody() != ItemCustody.AT_STATION)
+                        .ifPresent(item -> {
+                            throw InventoryRefusal.CUSTODY_NOT_HANDED_OUT_FROM_HERE.raise();
+                        });
+            }
+        }
     }
 
     /**
@@ -1031,6 +1063,8 @@ public class LendingService implements FederationServer {
                 inventoryRepository
                         .findItemById(namedPiece)
                         .filter(item -> isLendable(lender, item))
+                        .filter(item ->
+                                custodyService.isFreeToActOn(item.id(), ItemCustodyService.Allowance.LOANS_ASIDE))
                         .filter(item -> isFree(owningStation.id(), LineTarget.item(item.id()), from, to))
                         .ifPresent(item -> repository.assignItem(ri.id(), item.id()));
                 continue;
@@ -1041,6 +1075,7 @@ public class LendingService implements FederationServer {
                     .map(inventoryRepository::findItemById)
                     .flatMap(Optional::stream)
                     .filter(lender::owns)
+                    .filter(item -> custodyService.isFreeToActOn(item.id(), ItemCustodyService.Allowance.LOANS_ASIDE))
                     .toList();
             int room = availability
                             .availability(owningStation.id(), target, from, to, null, requestId)

@@ -1110,7 +1110,11 @@ public enum InventoryRefusal implements Refusal {
     CUSTODY_PIECE_SET_ASIDE_FOR_A_LOAN(
             285,
             HttpStatus.BAD_REQUEST,
-            "This piece is set aside for a loan to a partner station, so take it off that loan first");
+            "This piece is set aside for a loan to a partner station, so take it off that loan first"),
+
+    /** A piece to be put in a box while it is with a partner station or on its way somewhere. */
+    CUSTODY_PIECE_NOT_HERE_TO_PUT_AWAY(
+            286, HttpStatus.BAD_REQUEST, "This piece is not at the station right now, so it cannot be put away");
 
     private final Definition definition;
 

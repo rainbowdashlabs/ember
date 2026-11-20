@@ -347,4 +347,5 @@ export default {
     'I-283': 'Gib an, ob das Stück der Wache oder dem Träger gehört',
     'I-284': 'Dieses Stück ist als verloren gemeldet. Melde es zuerst als gefunden',
     'I-285': 'Dieses Stück ist für eine Ausleihe an eine Partnerwache vorgesehen. Nimm es zuerst aus der Ausleihe',
+    'I-286': 'Dieses Stück ist gerade nicht auf der Wache und kann deshalb nicht eingeräumt werden',
 }

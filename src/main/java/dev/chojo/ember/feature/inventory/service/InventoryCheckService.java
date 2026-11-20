@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -50,6 +51,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -257,6 +259,7 @@ public class InventoryCheckService {
      * @return the created inventory check record
      */
     public InventoryCheck completeCheck(int stationId, int memberId, int checkedBy, List<CheckItemRequest> results) {
+        requireTheMissingMayBeMarked(results);
         InventoryCheck check = checkRepository.createCheck(stationId, memberId, checkedBy);
 
         for (CheckItemRequest result : results) {
@@ -330,6 +333,7 @@ public class InventoryCheckService {
      */
     public InventoryCheck completeContainerCheck(
             int stationId, int containerId, int checkedBy, boolean deep, List<CheckItemRequest> results) {
+        requireTheMissingMayBeMarked(results);
         InventoryCheck check = checkRepository.createContainerCheck(stationId, containerId, checkedBy, deep);
         for (CheckItemRequest result : results) {
             checkRepository.createCheckItem(
@@ -361,8 +365,53 @@ public class InventoryCheckService {
      * @param checkedBy the member walking it
      */
     private void markMissing(CheckItemRequest result, int checkedBy) {
+        if (!marksAMissingPiece(result)) return;
+        custodyService.markLost(Objects.requireNonNull(result.itemId()), result.note(), checkedBy);
+    }
+
+    /**
+     * Refuses a walk that reports a piece missing which may not be marked so, before any of it is written.
+     *
+     * <p>A piece an open movement carries or a loan holds is told about there, not here. Asking each
+     * piece first keeps a walk from stopping halfway with some losses written and the rest not. The
+     * refusal names the piece, since a walk holds many and the reader has to find the one it means.
+     *
+     * @param results the walk's lines
+     * @throws RefusalResponse when a piece reported missing is carried by an open movement or a loan
+     */
+    private void requireTheMissingMayBeMarked(List<CheckItemRequest> results) {
+        for (CheckItemRequest result : results) {
+            if (!marksAMissingPiece(result)) continue;
+            int itemId = Objects.requireNonNull(result.itemId());
+            custodyService
+                    .whyNotFreeToActOn(itemId, ItemCustodyService.Allowance.THE_LOSS_ITSELF)
+                    .ifPresent(refusal -> {
+                        throw refusal.raise(RefusalDetail.text(recognisableName(itemId)));
+                    });
+        }
+    }
+
+    /**
+     * What a piece is called where a station would recognise it: its name and the identifier written on
+     * it, which is what tells two helmets apart in a refusal about one of them.
+     */
+    private String recognisableName(int itemId) {
+        return inventoryRepository
+                .findItemById(itemId)
+                .map(item -> {
+                    String internalId = item.internalId();
+                    return internalId == null || internalId.isBlank() ? item.name() : item.name() + " " + internalId;
+                })
+                .orElse("#" + itemId);
+    }
+
+    /**
+     * Whether a line of a walk writes a loss: it says the piece was not there, names one, and the piece
+     * is not borrowed, whose loss travels on its loan instead.
+     */
+    private boolean marksAMissingPiece(CheckItemRequest result) {
         Integer itemId = result.itemId();
-        if (result.result() != CheckResult.LOST || itemId == null) return;
+        if (result.result() != CheckResult.LOST || itemId == null) return false;
         boolean borrowed = inventoryRepository
                 .findItemById(itemId)
                 .map(InventoryItem::borrowed)
@@ -372,9 +421,9 @@ public class InventoryCheckService {
                     "Check found borrowed item {} missing; the loss stays on the check and goes to the owner "
                             + "on the lending request",
                     itemId);
-            return;
+            return false;
         }
-        custodyService.markLost(itemId, result.note(), checkedBy);
+        return true;
     }
 
     /**
@@ -652,7 +701,7 @@ public class InventoryCheckService {
         if (holder == null || holder != memberId) {
             throw InventoryRefusal.INVENTORY_CHECK_REPLACED_ITEM_NOT_THE_MEMBERS.raise();
         }
-        if (item.custody() == ItemCustody.LOST) {
+        if (item.custody() == ItemCustody.LOST || item.lostAt() != null) {
             inventoryRepository.markSpellCorrected(itemId, memberId);
             custodyService.releaseLost(itemId);
             return;

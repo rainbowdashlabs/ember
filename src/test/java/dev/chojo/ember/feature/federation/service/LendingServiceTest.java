@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -893,6 +894,59 @@ class LendingServiceTest extends RepositoryTestBase {
 
         assertTrue(service.approveRequest(request, stationA.id()));
         assertEquals(own.id(), assignedItemOf(request, line));
+    }
+
+    /** A piece reported missing cannot be set aside for a loan by hand. */
+    @Test
+    @Order(307)
+    void assignItemRefusesAMissingPiece() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcMissingInv", InventoryType.INTERNAL, false);
+        var missing = inventoryRepo.createItem(inv.id(), "MI-001", "Verschwundene Leiter", null, null);
+        itemCustodyService.markLost(missing.id(), null, null);
+        var line = lineOn(stationA, inv.id(), null);
+
+        var refused = assertThrows(RefusalResponse.class, () -> service.assignItem(line, missing.id(), stationA.id()));
+        assertEquals(InventoryRefusal.CUSTODY_PIECE_LOST, refused.refusal());
+    }
+
+    /** Filling a loan by itself passes over a piece reported missing, the way it passes over held gear. */
+    @Test
+    @Order(308)
+    void approveLeavesAMissingPieceUnassigned() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcMissingOnlyInv", InventoryType.INTERNAL, false);
+        var missing = inventoryRepo.createItem(inv.id(), "MO-001", "Verschwundene Pumpe", null, null);
+        itemCustodyService.markLost(missing.id(), null, null);
+        var request = requestOn(stationA);
+        var line = lendingRepo
+                .addRequestItem(request, inv.id(), null, null, 1, null)
+                .id();
+
+        assertTrue(service.approveRequest(request, stationA.id()));
+        assertNull(assignedItemOf(request, line));
+    }
+
+    /**
+     * A piece that is no longer on the shelf when the loan is handed over stops the hand-over, and the
+     * loan stays agreed rather than writing the partner as having what somebody else holds.
+     */
+    @Test
+    @Order(309)
+    void markLentRefusesAPieceThatLeftTheShelfSinceApproval() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcLeftShelfInv", InventoryType.INTERNAL, false);
+        var piece = inventoryRepo.createItem(inv.id(), "LS-001", "Wachen-Pumpe", null, null);
+        var request = requestOn(stationA);
+        var line = lendingRepo
+                .addRequestItem(request, inv.id(), null, null, 1, null)
+                .id();
+        assertTrue(service.approveRequest(request, stationA.id()));
+        assertEquals(piece.id(), assignedItemOf(request, line));
+        inventoryRepo.updateCustody(piece.id(), ItemCustody.WITH_MEMBER, stationA.id(), memberA.id(), null);
+
+        var refused = assertThrows(RefusalResponse.class, () -> service.markLent(request, stationA.id()));
+        assertEquals(InventoryRefusal.CUSTODY_NOT_HANDED_OUT_FROM_HERE, refused.refusal());
+        assertEquals(
+                LendingStatus.APPROVED,
+                service.findRequest(request).orElseThrow().status());
     }
 
     @Test

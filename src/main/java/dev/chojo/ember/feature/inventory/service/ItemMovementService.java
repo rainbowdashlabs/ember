@@ -296,7 +296,8 @@ public class ItemMovementService {
      * <p>The rest of the load is recorded before the first step is walked, because that step moves the whole
      * consignment. A piece picked before the step that names it is written on the movement at once as a
      * promise, so nothing else can promise it. An actor speaking for a body above the station is recorded
-     * without a member, since none of the station's people did it.
+     * without a member, since none of the station's people did it. A piece reported missing sets out only
+     * on a loss report: an ordinary chain would have to move a thing nobody can find.
      *
      * @param carriedIncoming the further arriving pieces this movement carries
      * @see #create(int, MovementPurpose, Integer, String, Integer, Integer, Integer, Integer, String, Actor, Integer)
@@ -316,6 +317,9 @@ public class ItemMovementService {
             boolean lostReport,
             List<Integer> carriedIncoming) {
         requireThePiecesExist(outgoingItemId, pickedItemId);
+        if (!lostReport && outgoingItemId != null && isMissing(outgoingItemId)) {
+            throw InventoryRefusal.CUSTODY_PIECE_LOST.raise();
+        }
         requireItIsNotAlreadyOnItsWay(outgoingItemId, pickedItemId);
         requireSomethingToSwapFor(purpose, inventoryId);
         var target = targeting.resolve(stationId, purpose, memberId, outgoingItemId, pickedItemId, inventoryId);
@@ -410,6 +414,7 @@ public class ItemMovementService {
                 .findById(movementId)
                 .orElseThrow(InventoryRefusal.MOVEMENT_NOT_HERE_TO_CORRECT::raise);
         if (movement.flowId() == null) throw InventoryRefusal.MOVEMENT_FLOW_GONE_BEFORE_CORRECTION.raise();
+        requireItsPiecesAreStillItsOwn(movement, correction);
 
         if (correction.detachArrival()) movementRepository.setIncomingItem(movementId, null);
         applyCorrectedCustody(movement, StepSubject.OUTGOING, correction.outgoing());
@@ -445,6 +450,37 @@ public class ItemMovementService {
                 reason);
         confirmReceiptsThatDoNotWait(movementId);
         return movementRepository.findById(movementId).orElseThrow();
+    }
+
+    /**
+     * Refuses a correction that would move or reopen a movement on a piece another open movement has
+     * taken up since.
+     *
+     * <p>A movement that was closed may be put right long after, and its pieces may be walking another
+     * chain by then. Writing their custody, or reopening this one around them, would have two chains
+     * read each other's work again. A correction that only closes the movement and moves nothing is left
+     * alone, since it claims nothing about the pieces.
+     *
+     * @param movement   the movement as it stands
+     * @param correction what is to be made true
+     * @throws RefusalResponse when another open movement carries a piece the correction touches
+     */
+    private void requireItsPiecesAreStillItsOwn(ItemMovement movement, Correction correction) {
+        boolean reopens = correction.closeAs() == null;
+        Integer outgoing = movement.outgoingItemId();
+        if (outgoing != null && (reopens || correction.outgoing() != null)) {
+            requireNoOtherMovementCarries(outgoing, movement.id());
+        }
+        Integer incoming = movement.incomingItemId();
+        if (incoming != null && !correction.detachArrival() && (reopens || correction.incoming() != null)) {
+            requireNoOtherMovementCarries(incoming, movement.id());
+        }
+        if (!reopens) return;
+        for (StepSubject subject : StepSubject.values()) {
+            for (int carried : carried(movement.id(), subject)) {
+                requireNoOtherMovementCarries(carried, movement.id());
+            }
+        }
     }
 
     private void applyCorrectedCustody(ItemMovement movement, StepSubject subject, @Nullable ItemCustody custody) {
@@ -1212,7 +1248,8 @@ public class ItemMovementService {
             custodyService.applyStepCustody(
                     movement.outgoingItemId(), ItemCustody.WITH_MEMBER, movement.memberId(), null);
         } else {
-            custodyService.takeBack(movement.outgoingItemId());
+            custodyService.takeBack(
+                    movement.outgoingItemId(), ItemCustodyService.Allowance.walking(movement.id(), false));
         }
     }
 
