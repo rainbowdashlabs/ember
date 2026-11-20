@@ -105,6 +105,7 @@ const {
     openBulkMove,
     runBulkMove,
     dropOnFolder,
+    requestBulkDelete,
     runBulkDelete,
     showPruneConfirm,
     pruning,
@@ -179,6 +180,7 @@ onMounted(load)
             @save-folder="saveFolder"
             @save-tag="saveTag"
             @bulk-move="runBulkMove"
+            @request-bulk-delete="requestBulkDelete"
             @bulk-delete="runBulkDelete"
         />
         <ConfirmDeleteModal

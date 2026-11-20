@@ -21,6 +21,7 @@ import {buildFeedUrl, type FeedPreset} from '@/api/feedToken'
 import type {FeedTokenResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useFlashMessage} from '@/composables/useFlashMessage'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import FeedCard from './feedsection/FeedCard.vue'
 import RssFallback from './feedsection/RssFallback.vue'
 
@@ -34,8 +35,6 @@ const {config: token, loading, failure, runWith} = useConfigPanel<FeedTokenRespo
 })
 
 const {message: copied, flash} = useFlashMessage(2000)
-const regenerateConfirmOpen = ref(false)
-const revokeConfirmOpen = ref(false)
 
 const PRESET_STORAGE_KEY = 'ember.feedPreset'
 const validPresets: FeedPreset[] = ['rich', 'compact', 'minimal']
@@ -54,18 +53,16 @@ async function createToken() {
   await runWith(() => feedToken.createFeedToken())
 }
 
-async function confirmRegenerate() {
-  regenerateConfirmOpen.value = false
-  await runWith(() => feedToken.regenerateFeedToken())
-}
+const {show: regenerateConfirmOpen, request: requestRegenerate, confirm: confirmRegenerate} = useConfirmAction<true>({
+  onConfirm: () => runWith(() => feedToken.regenerateFeedToken()),
+})
 
-async function confirmRevoke() {
-  revokeConfirmOpen.value = false
-  await runWith(async () => {
+const {show: revokeConfirmOpen, request: requestRevoke, confirm: confirmRevoke} = useConfirmAction<true>({
+  onConfirm: () => runWith(async () => {
     await feedToken.revokeFeedToken()
     return null
-  })
-}
+  }),
+})
 
 async function copyUrl(url: string) {
   await navigator.clipboard.writeText(url)
@@ -130,8 +127,8 @@ async function copyUrl(url: string) {
         </div>
 
         <div class="flex items-center gap-2">
-          <SecondaryButton :icon="['fas', 'rotate']" @click="regenerateConfirmOpen = true">{{ t('userSettings.feedRegenerate') }}</SecondaryButton>
-          <DeleteButton @click="revokeConfirmOpen = true"/>
+          <SecondaryButton :icon="['fas', 'rotate']" @click="requestRegenerate(true)">{{ t('userSettings.feedRegenerate') }}</SecondaryButton>
+          <DeleteButton @click="requestRevoke(true)"/>
         </div>
       </template>
 

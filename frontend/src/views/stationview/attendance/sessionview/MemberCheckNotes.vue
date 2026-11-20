@@ -4,13 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {actionCount, hasBirthday} from './memberNotes'
 import type {MemberNotes, SwapNote} from '@/api/generated/schema'
 
@@ -47,18 +48,13 @@ const showsBirthday = computed(() => props.part !== 'actions' && hasBirthday(pro
 const showsActions = computed(() => props.part !== 'birthday' && actionCount(props.notes) > 0)
 const anything = computed(() => showsBirthday.value || showsActions.value)
 
-/** The swap asked to be called off, held until said twice: a mis-press here cannot be got back. */
-const dropping = ref<SwapNote | null>(null)
-const confirming = computed({
-  get: () => dropping.value !== null,
-  set: open => { if (!open) dropping.value = null },
+/**
+ * The swap asked to be called off, held until said twice unless shift is held: a mis-press here cannot
+ * be got back.
+ */
+const {show: confirming, target: dropping, request: askDrop, confirm: dropConfirmed} = useConfirmAction<SwapNote>({
+  onConfirm: async swap => { emit('dropSwap', swap.movementId) },
 })
-
-function dropConfirmed() {
-  const swap = dropping.value
-  dropping.value = null
-  if (swap) emit('dropSwap', swap.movementId)
-}
 
 /**
  * What the note is about: the piece the step names, falling back to the inventory it is out of for a
@@ -118,7 +114,7 @@ const birthdayText = computed(() => {
         {{ swap.stepLabel }}
       </PrimaryButton>
       <InfoBadge v-else data-testid="note-swap-waiting">{{ swap.stepLabel }}</InfoBadge>
-      <DeleteButton v-if="canManageSwap && swap.droppable" data-testid="note-swap-drop" @click="dropping = swap"/>
+      <DeleteButton v-if="canManageSwap && swap.droppable" data-testid="note-swap-drop" @click="askDrop(swap)"/>
     </ButtonRow>
 
     <div

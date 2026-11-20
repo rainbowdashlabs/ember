@@ -30,6 +30,7 @@ import {
 } from '@/api/generated/schema'
 import {stationMembers, memberGroups} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useRuleOwners} from '@/composables/useRuleOwners'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -119,7 +120,6 @@ async function onPermissionsChange(newIds: Set<number>) {
   }
 }
 
-const showFormerModal = ref(false)
 const formerSuccess = ref(false)
 
 const formerBlockReasons = computed(() => {
@@ -135,12 +135,24 @@ const formerBlockReasons = computed(() => {
 })
 const canMarkFormer = computed(() => formerBlockReasons.value.length === 0)
 
-const {running: markingFormer, failure: formerFailure, run: confirmMarkFormer} = useAsyncAction(async () => {
+const {running: markingFormer, failure: formerFailure, run: markFormer} = useAsyncAction(async () => {
   failure.value = null
   await stationMembers.markFormer(props.memberId)
   formerSuccess.value = true
-  showFormerModal.value = false
 })
+
+const {show: showFormerModal, request: requestMarkFormer, confirm: confirmMarkFormer} = useConfirmAction<true>({
+  onConfirm: async () => { await markFormer() },
+})
+
+/**
+ * Asks before marking the member former, which shift skips. A member who cannot be marked yet gets
+ * the dialog either way, since it is what names the reasons.
+ */
+function openFormerModal() {
+  if (canMarkFormer.value) requestMarkFormer(true)
+  else showFormerModal.value = true
+}
 </script>
 
 <template>
@@ -173,7 +185,7 @@ const {running: markingFormer, failure: formerFailure, run: confirmMarkFormer} =
     </NeutralContainer>
 
     <div class="flex items-center justify-end">
-      <ErrorButton v-if="!formerSuccess" :icon="['fas', 'user-slash']" @click="showFormerModal = true">
+      <ErrorButton v-if="!formerSuccess" :icon="['fas', 'user-slash']" @click="openFormerModal">
         {{ t('memberDetail.markFormer') }}
       </ErrorButton>
     </div>

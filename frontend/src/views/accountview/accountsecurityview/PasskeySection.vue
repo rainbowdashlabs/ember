@@ -15,12 +15,11 @@ import Alert from '@/components/feedback/Alert.vue'
 import PasskeyList from '@/views/accountview/accountsecurityview/PasskeyList.vue'
 import PasskeyCreateModal from '@/views/accountview/accountsecurityview/PasskeyCreateModal.vue'
 import PasskeyRenameModal from '@/views/accountview/accountsecurityview/PasskeyRenameModal.vue'
-import PasskeyRemoveModal from '@/views/accountview/accountsecurityview/PasskeyRemoveModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import PasskeySwitches from '@/views/accountview/accountsecurityview/PasskeySwitches.vue'
 import {getPasskeysStatus, removePasskey, renamePasskey, setAskWithPassword, setPasswordLogin} from '@/api/passkeys'
 import type {PasskeyEntryResponse, PasskeysStatusResponse} from '@/api/generated/schema'
 import {isWebAuthnSupported, signalAcceptedCredentials} from '@/util/webauthn'
-import {apiErrorStatus} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 
@@ -49,6 +48,13 @@ async function reload() {
 
 onMounted(reload)
 
+/**
+ * Removing a passkey, after asking unless shift is held.
+ *
+ * <p>The refusal worth naming is the last passkey on an account with no password: that leaves nobody
+ * a way back in, so the server turns it down, and its refusal says in the alert that the reader has to
+ * be onboarded again first.
+ */
 const removal = useConfirmDelete<PasskeyEntryResponse>({
   onDelete: async (entry) => {
     const before = status.value
@@ -70,23 +76,6 @@ async function forgetOnDevice(before: PasskeysStatusResponse | null, removedId: 
       .filter(p => p.id !== removedId && p.credentialId)
       .map(p => p.credentialId as string)
   await signalAcceptedCredentials(before.rpId, before.userHandle, remaining)
-}
-
-/**
- * Removes the passkey, and says which refusal it was.
- *
- * <p>The one worth naming is the last passkey on an account with no password: that leaves nobody a
- * way back in, so the server turns it down and the reader has to set a password first.
- */
-async function confirmRemoval() {
-  try {
-    await removal.confirm()
-  } catch (e) {
-    const described = describeFailure(e, t)
-    failure.value = apiErrorStatus(e) === 409
-        ? {...described, message: t('passkeys.section.removeRefusedNoPassword'), reportable: false}
-        : described
-  }
 }
 
 async function saveRename(id: number, label: string) {
@@ -152,8 +141,11 @@ async function toggleAskWithPassword(enabled: boolean) {
 
     <PasskeyCreateModal v-model="showCreate" @created="reload"/>
     <PasskeyRenameModal v-model="renameTarget" @save="saveRename"/>
-    <PasskeyRemoveModal v-model="removal.show.value"
-                        :label="removal.target.value?.label ?? ''"
-                        @confirm="confirmRemoval"/>
+    <ConfirmDeleteModal v-model="removal.show.value"
+                        :title="t('passkeys.section.removeTitle')"
+                        :message="t('passkeys.section.removeConfirm', {label: removal.target.value?.label ?? ''})"
+                        :confirm-label="t('passkeys.section.remove')"
+                        neutral
+                        @confirm="removal.confirm"/>
   </NeutralContainer>
 </template>

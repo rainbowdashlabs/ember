@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {flushPromises, mount} from '@vue/test-utils'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from 'vitest'
+import {followModifierKeys} from '@/util/modifierKeys'
 import MemberRuleEditor from './MemberRuleEditor.vue'
 import {RuleNeed, RuleOperator, RuleSubject, type RuleNode} from '@/api/generated/schema'
 import {emptyBlock, emptyCheck} from './ruleDraft'
@@ -39,6 +40,11 @@ vi.mock('@/composables/useSession', () => ({
     useSession: () => ({hasPermission: () => session.readsMembers}),
 }))
 
+/** Presses and releases shift the way a reader holding it down would. */
+function holdShift(held: boolean) {
+    window.dispatchEvent(new KeyboardEvent(held ? 'keydown' : 'keyup', {key: 'Shift'}))
+}
+
 const RULE: RuleNode = {...emptyBlock(), children: [{...emptyCheck(), groupId: 4}]}
 
 /**
@@ -48,11 +54,13 @@ const RULE: RuleNode = {...emptyBlock(), children: [{...emptyCheck(), groupId: 4
  * @vitest-environment happy-dom
  */
 describe('MemberRuleEditor', () => {
+    beforeAll(() => followModifierKeys())
     beforeEach(() => {
         vi.clearAllMocks()
         session.readsMembers = false
         listFields.mockResolvedValue([])
     })
+    afterEach(() => holdShift(false))
 
     /** Adds one condition asking about the group Team, which leaves a first rule ready to save. */
     async function addGroupCheck(wrapper: ReturnType<typeof editor>) {
@@ -211,6 +219,42 @@ describe('MemberRuleEditor', () => {
 
         expect(removeRule).not.toHaveBeenCalled()
         expect(document.body.textContent).toContain('Die jetzigen Mitglieder bleiben')
+        wrapper.unmount()
+    })
+
+    it('saves a first rule at once while shift is held', async () => {
+        getRule.mockResolvedValue(null)
+        saveRule.mockResolvedValue(RULE)
+        const wrapper = editor()
+        await flushPromises()
+        await wrapper.find('select').setValue('rule')
+        await addGroupCheck(wrapper)
+
+        holdShift(true)
+        const save = wrapper.findAll('button').find(button => button.text().includes('Regel speichern'))
+        await save!.trigger('click', {shiftKey: true})
+        await flushPromises()
+
+        expect(saveRule).toHaveBeenCalledTimes(1)
+        expect(document.body.textContent).not.toContain('Ab jetzt bestimmt die Regel die Mitglieder')
+        wrapper.unmount()
+    })
+
+    it('removes a rule at once while shift is held', async () => {
+        getRule.mockResolvedValue(RULE)
+        removeRule.mockResolvedValue(undefined)
+        const onChanged = vi.fn()
+        const wrapper = editor(onChanged)
+        await flushPromises()
+
+        holdShift(true)
+        const remove = wrapper.findAll('button').find(button => button.text().includes('Regel entfernen'))
+        await remove!.trigger('click', {shiftKey: true})
+        await flushPromises()
+
+        expect(removeRule).toHaveBeenCalledWith('group', 4)
+        expect(onChanged).toHaveBeenCalled()
+        expect(document.body.textContent).not.toContain('Die jetzigen Mitglieder bleiben')
         wrapper.unmount()
     })
 })

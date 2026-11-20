@@ -17,6 +17,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import MovementWizard from '@/views/stationview/inventory/movementwizard/MovementWizard.vue'
 import type {WizardPrefill} from '@/views/stationview/inventory/movementwizard/useMovementWizard'
 import {
@@ -46,7 +47,9 @@ const emit = defineEmits<{
   exchangeStarted: []
 }>()
 
-const showFormerModal = ref(false)
+const {show: showFormerModal, request: requestMarkFormer, confirm: confirmMarkFormer} = useConfirmAction<true>({
+  onConfirm: async () => { emit('markFormer') },
+})
 
 const showDeleteModal = ref(false)
 const showDeleteConfirm = ref(false)
@@ -63,7 +66,14 @@ const reassignTargets = computed(() =>
 
 const reassignUserTypes = computed(() => userTypesOf(reassignTargets.value))
 
-function openFormerModal() { showFormerModal.value = true }
+/**
+ * Asks before marking the member former, which shift skips. A member who cannot be marked yet gets
+ * the dialog either way, since it is what names the reasons.
+ */
+function openFormerModal() {
+  if (props.canMarkFormer) requestMarkFormer(true)
+  else showFormerModal.value = true
+}
 
 function openDeleteModal() { showDeleteModal.value = true }
 
@@ -114,7 +124,7 @@ defineExpose({
         <p class="text-xs text-(--text-muted)">{{ t('memberDetail.markFormerHint') }}</p>
         <ButtonRow pair align="end">
           <SecondaryButton @click="showFormerModal = false">{{ t('common.cancel') }}</SecondaryButton>
-          <ErrorButton :disabled="markingFormer" @click="emit('markFormer'); showFormerModal = false">
+          <ErrorButton :disabled="markingFormer" @click="confirmMarkFormer">
             {{ markingFormer ? t('common.loading') : t('memberDetail.markFormer') }}
           </ErrorButton>
         </ButtonRow>

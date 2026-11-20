@@ -23,6 +23,7 @@ import { waitingList } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
 import { useFlashMessage } from '@/composables/useFlashMessage'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useLinkAccessedResource } from '@/composables/useLinkAccessedResource'
 
 const { t } = useI18n()
@@ -41,7 +42,6 @@ const {
 
 const { message: success, flash } = useFlashMessage(5000)
 
-const showRemoveModal = ref(false)
 const removed = ref(false)
 
 /**
@@ -71,7 +71,10 @@ const { running: confirming, failure: confirmFailure, run: confirmInterest } = u
 const { running: removing, failure: removeFailure, run: removeFromList } = useAsyncAction(async () => {
   await waitingList.removeEntry(token.value)
   removed.value = true
-  showRemoveModal.value = false
+})
+
+const { show: showRemoveModal, request: requestRemove, confirm: confirmRemove } = useConfirmAction<true>({
+  onConfirm: async () => { await removeFromList() },
 })
 
 const answerNote = ref('')
@@ -154,7 +157,7 @@ const failure = computed(() => confirmFailure.value
           v-if="status.status === 'WAITING'"
           :confirming="confirming"
           @confirm="confirmInterest"
-          @remove="showRemoveModal = true"
+          @remove="requestRemove(true)"
         />
         <TrialMessage v-if="status.status === 'TESTING' && status.trialMessage" :message="status.trialMessage" />
         <template v-if="status.status === 'INVITED'">
@@ -187,7 +190,7 @@ const failure = computed(() => confirmFailure.value
       :message="t('waitingList.publicStatus.removeConfirm')"
       :confirm-label="t('waitingList.publicStatus.removeFromList')"
       :busy="removing"
-      @confirm="removeFromList"
+      @confirm="confirmRemove"
     >
       <MutedText tag="p">{{ t('waitingList.publicStatus.removeHint') }}</MutedText>
     </ConfirmDeleteModal>

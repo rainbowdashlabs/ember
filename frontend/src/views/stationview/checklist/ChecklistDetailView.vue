@@ -19,6 +19,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {describeFailure, type Failure} from '@/util/failure'
 import {useSession} from '@/composables/useSession'
 import {showToast} from '@/util/toast'
@@ -64,7 +65,6 @@ const columnFilters = ref<Record<number, 'any' | 'checked' | 'unchecked'>>({})
 const showRemoved = ref(false)
 
 const showAddMembers = ref(false)
-const showDeleteConfirm = ref(false)
 const showEditMeta = ref(false)
 const showMembership = ref(false)
 
@@ -270,18 +270,16 @@ const {failure: membershipFailure, runOrReject: runSaveMembership} = useAsyncAct
     },
 )
 
-const {failure: deleteFailure, run: runDeleteChecklist} = useAsyncAction(
-    async () => {
-      if (!detail.value) return
-      await checklists.deleteChecklist(detail.value.id)
-      showDeleteConfirm.value = false
+const deleteFailure = ref<Failure | null>(null)
+
+const {show: showDeleteConfirm, requestDelete: requestDeleteChecklist, confirm: confirmDeleteChecklist} =
+  useConfirmDelete<number>({
+    onDelete: id => checklists.deleteChecklist(id),
+    onSuccess: async () => {
       await router.push({name: 'checklist-list'})
     },
-)
-
-function confirmDeleteChecklist() {
-  return runDeleteChecklist()
-}
+    failure: deleteFailure,
+  })
 
 /**
  * The one failure the page shows. What the reader last did comes before what the page failed to
@@ -346,7 +344,7 @@ const pageSubtitle = computed(() => detail.value?.description || t('pages.checkl
             <ChecklistAddMembersButton @click="showAddMembers = true"/>
           </template>
           <ChecklistExportMenu :checklist-id="detail.id"/>
-          <DeleteButton v-if="canManage" @click="showDeleteConfirm = true">
+          <DeleteButton v-if="canManage" @click="requestDeleteChecklist(detail.id)">
             {{ t('checklist.deleteChecklist') }}
           </DeleteButton>
         </ButtonRow>

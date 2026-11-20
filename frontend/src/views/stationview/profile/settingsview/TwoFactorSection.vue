@@ -12,7 +12,6 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -21,8 +20,10 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import WebAuthnSection from './twofactorsection/WebAuthnSection.vue'
 import TrustedDevicesSection from './twofactorsection/TrustedDevicesSection.vue'
 import {describeFailure} from '@/util/failure'
@@ -42,7 +43,6 @@ const confirmCode = ref('')
 const confirmLoading = ref(false)
 const confirmError = ref('')
 
-const showRemoveModal = ref(false)
 const removeLoading = ref(false)
 
 const showRegenerateModal = ref(false)
@@ -90,14 +90,18 @@ function finishSetup() {
   loadStatus()
 }
 
-async function handleRemove() {
-  removeLoading.value = true
-  await removeTotp().then(async () => {
-    showRemoveModal.value = false
-    await loadStatus()
-  }).catch(() => {})
-  removeLoading.value = false
-}
+const {show: showRemoveModal, request: requestRemove, confirm: handleRemove} = useConfirmAction<true>({
+  onConfirm: async () => {
+    removeLoading.value = true
+    try {
+      await removeTotp()
+    } finally {
+      removeLoading.value = false
+    }
+  },
+  onSuccess: () => loadStatus(),
+  failure,
+})
 
 async function handleRegenerate() {
   await regenerateBackupCodes().then(async result => {
@@ -169,7 +173,7 @@ async function handleRegenerate() {
               <font-awesome-icon :icon="['fas', 'mobile-screen']" class="text-(--text-muted)"/>
               <span class="font-medium">{{ t('twoFactor.authenticator') }}</span>
             </div>
-            <ErrorButton compact @click="showRemoveModal = true">{{ t('common.remove') }}</ErrorButton>
+            <ErrorButton compact @click="requestRemove(true)">{{ t('common.remove') }}</ErrorButton>
           </div>
         </NeutralContainer>
         <NeutralContainer v-else class="space-y-3">
@@ -201,16 +205,14 @@ async function handleRegenerate() {
       </template>
     </template>
 
-    <Modal v-model="showRemoveModal">
-      <div class="space-y-4 p-4">
-        <SubHeader>{{ t('twoFactor.remove.title') }}</SubHeader>
-        <Alert variant="error">{{ t('twoFactor.remove.warning') }}</Alert>
-        <ButtonRow pair align="end">
-          <SecondaryButton @click="showRemoveModal = false">{{ t('common.cancel') }}</SecondaryButton>
-          <ErrorButton :disabled="removeLoading" @click="handleRemove">{{ t('twoFactor.remove.confirm') }}</ErrorButton>
-        </ButtonRow>
-      </div>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="showRemoveModal"
+        :title="t('twoFactor.remove.title')"
+        :message="t('twoFactor.remove.warning')"
+        :confirm-label="t('twoFactor.remove.confirm')"
+        :busy="removeLoading"
+        @confirm="handleRemove"
+    />
 
     <Modal v-model="showRegenerateModal">
       <div class="space-y-4 p-4">

@@ -225,11 +225,10 @@ const {
                           @remove-and-save="removeMisfitsAndSave"/>
       <ConfirmDeleteModal v-model="showDeleteModal" :message="t('memberGroups.deleteConfirm', {name: deleteTarget?.name})"
                           @confirm="confirmDelete"/>
-      <ConfirmDeleteModal :model-value="moves.pending.value !== null"
+      <ConfirmDeleteModal v-model="moves.show.value"
                           :title="t('memberGroups.moveTitle')"
                           :message="t('memberGroups.moveConfirm', {name: moves.pending.value?.from ?? ''})"
                           :confirm-label="t('memberGroups.move')"
-                          @update:model-value="open => { if (!open) moves.pending.value = null }"
                           @confirm="moves.confirm"/>
       <GroupConvertModal v-model="showConvertModal" :target="convertTarget" @confirm="confirmConvertToTag"/>
     </div>

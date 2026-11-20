@@ -348,7 +348,6 @@ export default {
             remove: 'Löschen',
             removeTitle: 'Passkey löschen',
             removeConfirm: 'Passkey "{label}" wirklich löschen? Auf dem Gerät, das ihn hält, wird er dann nicht mehr angeboten.',
-            removeRefusedNoPassword: 'Das ist der einzige Weg in dein Konto. Lass dich zuerst neu onboarden, dann kannst du diesen Passkey löschen.',
             passwordReenabled: 'Dein letzter Passkey ist gelöscht. Die Anmeldung mit Passwort ist wieder eingeschaltet.',
             askWithPassword: 'Beim Anmelden mit Passwort zusätzlich nach dem Passkey fragen',
             askWithPasswordHint: 'Dein Passwort allein reicht dann nicht mehr. Nur einschalten, wenn du deinen Passkey immer dabei hast.',

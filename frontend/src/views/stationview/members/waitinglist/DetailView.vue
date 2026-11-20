@@ -29,6 +29,7 @@ import { waitingList, memberGroups } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useFlashMessage } from '@/composables/useFlashMessage'
 import { describeFailure, type Failure } from '@/util/failure'
 import { useListInvites } from './detailview/useListInvites'
@@ -54,8 +55,6 @@ const invites = ref<WaitingListInvite[]>([])
 const fields = ref<WaitingListField[]>([])
 const groups = ref<MemberGroup[]>([])
 const { message: success, flash } = useFlashMessage(3000)
-
-const showDeleteModal = ref(false)
 
 const sortedEntries = computed(() =>
   [...entries.value].sort((a, b) => b.score - a.score),
@@ -176,10 +175,14 @@ function goBack() {
   router.push({ name: 'waiting-lists' })
 }
 
-const { running: deletingList, failure: deleteListFailure, run: confirmDeleteList } = useAsyncAction(async () => {
+const { running: deletingList, failure: deleteListFailure, run: deleteList } = useAsyncAction(async () => {
   failure.value = null
   await waitingList.deleteList(listId.value)
   router.push({ name: 'waiting-lists' })
+})
+
+const { show: showDeleteModal, request: requestDeleteList, confirm: confirmDeleteList } = useConfirmAction<true>({
+  onConfirm: async () => { await deleteList() },
 })
 
 const actionFailure = computed(() =>
@@ -210,7 +213,7 @@ function showFailure(reported: Failure) {
         :can-manage="canManage"
         @back="goBack"
         @manage-fields="navigateToFields"
-        @delete-list="showDeleteModal = true"
+        @delete-list="requestDeleteList(true)"
       />
 
       <Spinner v-if="loading" size="lg" />

@@ -26,6 +26,7 @@ import {adminSettings} from '@/api'
 import type {MailingConfigResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
 
@@ -47,7 +48,6 @@ const {config: mailingConfig, loading, failure: configFailure, runWith, reload} 
   formatError: mailingFailed,
 })
 
-const showClearModal = ref(false)
 const testMailSent = ref(false)
 
 const {sessionInfo} = useSession()
@@ -110,10 +110,13 @@ const {running: sendingTestMail, failure: testMailFailure, run: sendTestMail} = 
 
 const {running: clearing, failure: clearFailure, run: clearMailingConfig} = useAsyncAction(async () => {
   await adminSettings.clearMailingConfig()
-  showClearModal.value = false
   providers.value = []
   await reload()
 }, {formatError: mailingFailed})
+
+const {show: showClearModal, request: requestClear, confirm: confirmClear} = useConfirmAction<true>({
+  onConfirm: async () => { await clearMailingConfig() },
+})
 </script>
 
 <template>
@@ -136,7 +139,7 @@ const {running: clearing, failure: clearFailure, run: clearMailingConfig} = useA
             :test-results="testResults"
             show-display-fields
             @test="test"
-            @clear="showClearModal = true"
+            @clear="requestClear(true)"
         >
           <template #webhook="{provider, position}">
             <MailWebhookPanel
@@ -154,7 +157,7 @@ const {running: clearing, failure: clearFailure, run: clearMailingConfig} = useA
             :test-mail-sent="testMailSent"
             :has-provider="providers.length > 0"
             :save="saveMailingConfig"
-            @clear="showClearModal = true"
+            @clear="requestClear(true)"
             @test-mail="sendTestMail"
         />
 
@@ -163,7 +166,7 @@ const {running: clearing, failure: clearFailure, run: clearMailingConfig} = useA
         <MailProviderFreeTiers/>
       </template>
 
-      <ClearProvidersModal v-model="showClearModal" :clearing="clearing" @confirm="clearMailingConfig"/>
+      <ClearProvidersModal v-model="showClearModal" :clearing="clearing" @confirm="confirmClear"/>
     </div>
   </ViewContent>
 </template>
