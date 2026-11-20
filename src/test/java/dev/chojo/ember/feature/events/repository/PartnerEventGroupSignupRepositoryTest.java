@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
-import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
