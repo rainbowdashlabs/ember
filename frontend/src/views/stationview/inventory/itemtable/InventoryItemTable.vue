@@ -55,7 +55,14 @@ function dimmedWhenLost(item: InventoryItem): string {
 </script>
 
 <template>
-  <RecordTable :row-class="dimmedWhenLost" :subset="subset" :table="items.table" plain test-id="items-table">
+  <RecordTable
+      :row-class="dimmedWhenLost"
+      :subset="subset"
+      :table="items.table"
+      menu-actions
+      plain
+      test-id="items-table"
+  >
     <template #cell-name="{row}">
       <router-link :to="{name: routes.item, params: {id: row.id}}" class="font-medium hover:text-primary hover:underline">{{ row.name }}</router-link>
       <span v-if="row.lostAt" class="ml-2 text-xs text-error font-normal">{{ t('inventory.edit.lost') }} ({{ formatDate(row.lostAt) }})</span>
