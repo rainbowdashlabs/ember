@@ -953,6 +953,35 @@ public class InventoryRepository {
     }
 
     /**
+     * The pieces of an inventory that may be handed to a member right now, ordered by name: free stock that
+     * no open movement carries and no loan holds.
+     *
+     * <p>What a picker offers has to be what the custody guard allows, or the reader picks a piece and is
+     * refused for it. Free stock alone also offered a piece promised on a planned hand-out or set aside
+     * for a partner.
+     *
+     * @param inventoryId the inventory
+     * @return the pieces free to hand out
+     */
+    public List<InventoryItem> findFreeToHandOut(int inventoryId) {
+        return query(
+                        """
+                SELECT %s FROM inventory_item
+                WHERE inventory_id = :inventory_id
+                  AND %s
+                  AND %s
+                  AND %s
+                ORDER BY name;""",
+                        INVENTORY_ITEM_COLUMNS,
+                        ItemCustodySql.freeStock("inventory_item"),
+                        ItemCustodySql.notOnAMovement("inventory_item"),
+                        ItemCustodySql.notSetAsideForALoan("inventory_item"))
+                .single(call().bind("inventory_id", inventoryId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
+    /**
      * The free stock of one size in an inventory that no open movement names, ordered by name.
      *
      * @param inventoryId the inventory
@@ -1437,14 +1466,26 @@ public class InventoryRepository {
      * @return {@code true} when such a loan holds it
      */
     public boolean isSetAsideForALoan(int itemId) {
-        return SqlSupport.exists("""
-                SELECT 1
-                FROM federation_lending_request_item_assignment a
-                    JOIN federation_lending_request_item ri ON ri.id = a.request_item_id
-                    JOIN federation_lending_request r ON r.id = ri.request_id
-                WHERE a.item_id = :item_id
-                  AND r.status IN ('APPROVED', 'LENT')
-                  AND (r.requested_date_to IS NULL OR r.requested_date_to >= current_date);""", call().bind("item_id", itemId));
+        return SqlSupport.exists(
+                "SELECT 1 FROM inventory_item WHERE id = :item_id AND NOT %s;",
+                call().bind("item_id", itemId), ItemCustodySql.notSetAsideForALoan("inventory_item"));
+    }
+
+    /**
+     * Whether a loan other than the given one holds a piece, approved or running and not over yet.
+     *
+     * <p>A loan acting on the pieces it holds itself is not held up by them; any other loan is, from its
+     * approval until its end date has passed, whatever dates it was asked for.
+     *
+     * @param itemId    the piece
+     * @param requestId the loan asking
+     * @return {@code true} when another such loan holds it
+     */
+    public boolean isSetAsideForAnotherLoan(int itemId, int requestId) {
+        return SqlSupport.exists(
+                "SELECT 1 FROM inventory_item WHERE id = :item_id AND NOT %s;",
+                call().bind("item_id", itemId).bind("own_loan", requestId),
+                ItemCustodySql.notSetAsideForAnotherLoan("inventory_item"));
     }
 
     /**

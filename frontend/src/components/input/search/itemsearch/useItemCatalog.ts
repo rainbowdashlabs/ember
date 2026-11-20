@@ -9,7 +9,7 @@ import type {ItemChipSource} from '@/components/inventory/ItemChip.vue'
 import {containerPathFor} from '@/util/containerPath'
 import {glyphFor} from '@/util/glyph'
 import {inventory, inventoryArts, inventoryContainers, movements, stationMembers} from '@/api'
-import {MovementState} from '@/api/generated/schema'
+import {piecesOnOpenMovements} from '@/util/movementPieces'
 import type {
     Inventory,
     InventoryArt,
@@ -19,8 +19,9 @@ import type {
     MemberWithName,
 } from '@/api/generated/schema'
 import type {ItemSearchText} from './itemRanking'
+import {isWithinReach} from './itemFilters'
 
-type ItemState = 'member' | 'storage' | 'lost' | 'free'
+type ItemState = 'member' | 'storage' | 'lost' | 'away' | 'free'
 
 /** The badge a row of the picker carries for where its piece is. */
 export interface ItemStateBadge {
@@ -28,25 +29,28 @@ export interface ItemStateBadge {
     variant: 'success' | 'info' | 'error' | 'neutral' | 'warning'
 }
 
+/**
+ * Where a piece is, as the picker words it. A piece with a partner, in the post or back with an owner
+ * that is not the station is away, which the row says rather than calling it free.
+ */
 function itemState(item: InventoryItem): ItemState {
     if (item.lostAt) return 'lost'
     if (item.assignedTo != null) return 'member'
+    if (!isWithinReach(item)) return 'away'
     if (item.containerId != null) return 'storage'
     return 'free'
 }
 
 /**
- * The pieces open movements have already named, which are free on the shelf and promised all the same.
+ * The pieces open movements carry, setting out or promised, which may look free on the shelf and are
+ * spoken for all the same.
  *
- * <p>A failure here leaves the set empty rather than the picker: the engine refuses a promised piece
- * anyway, so the worst of it is a refusal after the press instead of before.
+ * <p>A failure here leaves the set empty rather than the picker: the engine refuses such a piece anyway,
+ * so the worst of it is a refusal after the press instead of before.
  */
 async function promisedPieces(): Promise<Set<number>> {
     try {
-        const open = await movements.listOpenMovements()
-        return new Set(open
-            .filter(movement => movement.state === MovementState.OPEN && movement.incomingItemId != null)
-            .map(movement => movement.incomingItemId as number))
+        return new Set(piecesOnOpenMovements(await movements.listOpenMovements()).keys())
     } catch {
         return new Set()
     }
@@ -110,6 +114,7 @@ export function useItemCatalog(wantedSizeId: () => number | null | undefined, wi
     function locationLabel(item: InventoryItem): string {
         switch (itemState(item)) {
             case 'lost': return t('inventory.itemPicker.lost')
+            case 'away': return t('inventory.itemPicker.away')
             case 'member': return t('inventory.itemPicker.heldBy', {name: memberName(item.assignedTo)})
             case 'storage': {
                 const path = containerPathFor(containerById.value, item.containerId)
@@ -159,6 +164,7 @@ export function useItemCatalog(wantedSizeId: () => number | null | undefined, wi
             case 'member': return {text: t('inventory.itemPicker.badgeMember'), variant: 'info'}
             case 'storage': return {text: t('inventory.itemPicker.badgeStorage'), variant: 'success'}
             case 'lost': return {text: t('inventory.itemPicker.badgeLost'), variant: 'error'}
+            case 'away': return {text: t('inventory.itemPicker.badgeAway'), variant: 'warning'}
             default: return {text: t('inventory.itemPicker.badgeFree'), variant: 'neutral'}
         }
     }

@@ -6164,7 +6164,8 @@ volumes:
             itemsText: 'Hier siehst du alle Gegenstände in einer Tabelle mit Aktionen zum Bearbeiten, Zuweisen und Löschen.',
             movementText: 'Gehört ein Gegenstand gerade zu einem laufenden Vorgang, steht neben seinem Namen „Im Vorgang“ '
                 + 'mit der Nummer. Das gilt auch, wenn er nur für eine Ausgabe vorgesehen ist und noch im Lager liegt. '
-                + 'Ein Klick darauf öffnet den Vorgang.',
+                + 'Ein Klick darauf öffnet den Vorgang. Im Menü des Gegenstands fehlen dann Zuweisen, Aufheben, '
+                + 'Verloren und Löschen.',
             tip: 'Klicke auf einen Gegenstand, um seinen Verlauf zu sehen.',
         },
         inventoryEdit: {
@@ -6408,6 +6409,7 @@ volumes:
             dummyLostSince: 'Verloren seit 01.05.2026',
             actionsTitle: 'Aktionen',
             actionsText: 'Als Verwalter kannst du zuweisen, aufheben, als verloren oder gefunden markieren.',
+            actionsMovementText: 'Gehört der Gegenstand gerade zu einem laufenden Vorgang oder ist er für eine Ausleihe an eine Partnerwache vorgesehen, fehlen Zuweisen, Aufheben und Verloren, bis der Vorgang oder die Ausleihe vorbei ist. Ein verlorener Gegenstand lässt sich weder zuweisen noch aufheben: Er kommt über „Als gefunden melden“ zurück.',
             assignModalTitle: 'Zuweisen',
             assignModalText: 'Wähle ein Mitglied aus der Liste.',
             historyTitle: 'Zuweisungsverlauf',

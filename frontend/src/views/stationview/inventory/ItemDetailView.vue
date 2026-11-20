@@ -13,8 +13,12 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {inventory, inventoryContainers, stationMembers} from '@/api'
-import {ItemOwner, StationPermission} from '@/api/generated/schema'
+import {inventory, inventoryContainers, movements, stationMembers} from '@/api'
+import {ItemOwner, StationModule, StationPermission} from '@/api/generated/schema'
+import {piecesOnOpenMovements} from '@/util/movementPieces'
+import {piecesHeldByLoans} from '@/util/loanHolds'
+import {todayIsoDate} from '@/util/format'
+import {getLentOutByInventory} from '@/api/lending'
 import type {
   HistoryResponse,
   InventoryItem,
@@ -35,7 +39,7 @@ import AssignItemModal from './itemdetailview/AssignItemModal.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {hasPermission} = useSession()
+const {hasPermission, isModuleEnabled} = useSession()
 const routes = useInventoryRoutes()
 const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 
@@ -50,6 +54,34 @@ const sizes = ref<InventorySize[]>([])
  */
 const members = ref<MemberWithName[]>([])
 const location = ref<ItemLocationResponse | null>(null)
+const onMovement = ref(false)
+const heldByLoan = ref(false)
+
+/**
+ * Whether a loan to a partner station holds this piece. A failure reads as no, since acting on a held
+ * piece is refused anyway; the worst of it is a refusal after the press.
+ */
+async function heldByALoan(id: number, inventoryId: number): Promise<boolean> {
+  if (!isModuleEnabled(StationModule.INVENTORY_LENDING)) return false
+  try {
+    return piecesHeldByLoans(await getLentOutByInventory(inventoryId), todayIsoDate()).has(id)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Whether an open movement carries this piece. A failure reads as no, since the station is refused for
+ * acting on a carried piece anyway; the worst of it is a refusal after the press.
+ */
+async function carriedByAMovement(id: number): Promise<boolean> {
+  if (!isModuleEnabled(StationModule.INVENTORY_MOVEMENTS)) return false
+  try {
+    return piecesOnOpenMovements(await movements.listOpenMovements()).has(id)
+  } catch {
+    return false
+  }
+}
 const {message: success, flash} = useFlashMessage(3000)
 
 const isManager = computed(() => hasPermission('INVENTORY_MANAGER') || hasPermission('STATION_ADMINISTRATOR'))
@@ -113,6 +145,8 @@ const {loading, failure} = useAsyncLoader(async () => {
   sizes.value = s
   members.value = m
   location.value = loc
+  onMovement.value = await carriedByAMovement(itemId.value)
+  heldByLoan.value = await heldByALoan(itemId.value, i.inventoryId)
 })
 
 function onError(reported: Failure) {
@@ -227,6 +261,8 @@ async function doMarkFound() {
         :can-assign="!!routes.member"
         :owned-elsewhere="ownedElsewhere"
         :is-manager="isManager"
+        :on-movement="onMovement"
+        :held-by-loan="heldByLoan"
         @updated="onUpdated"
         @error="onError"
         @reload="reloadItem"

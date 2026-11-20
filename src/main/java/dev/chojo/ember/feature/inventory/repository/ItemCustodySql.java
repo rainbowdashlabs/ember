@@ -138,6 +138,36 @@ public final class ItemCustodySql {
     }
 
     /**
+     * A predicate matching the items no loan to a partner station holds: none that is approved or running
+     * and not over before today has set them aside.
+     *
+     * @param itemAlias the alias of {@code inventory_item}, or the bare table name
+     * @return the SQL predicate, needing no bind of its own
+     */
+    public static String notSetAsideForALoan(String itemAlias) {
+        return loanHold(itemAlias, "");
+    }
+
+    /**
+     * The same, leaving out one loan, which is the loan asking about its own pieces.
+     *
+     * @param itemAlias the alias of {@code inventory_item}, or the bare table name
+     * @return the SQL predicate, expecting {@code :own_loan} to be bound to the request id
+     */
+    public static String notSetAsideForAnotherLoan(String itemAlias) {
+        return loanHold(itemAlias, " AND loan.id <> :own_loan");
+    }
+
+    private static String loanHold(String itemAlias, String except) {
+        return """
+                NOT EXISTS (SELECT 1 FROM federation_lending_request_item_assignment loan_piece \
+                JOIN federation_lending_request_item loan_line ON loan_line.id = loan_piece.request_item_id \
+                JOIN federation_lending_request loan ON loan.id = loan_line.request_id \
+                WHERE loan_piece.item_id = %1$s.id AND loan.status IN ('APPROVED', 'LENT') \
+                AND (loan.requested_date_to IS NULL OR loan.requested_date_to >= current_date)%2$s)""".formatted(itemAlias, except);
+    }
+
+    /**
      * A predicate matching the gear a station can actually put its hands on.
      *
      * <p>Narrower than {@link #heldBy(String, String)} and wider than {@link #freeStock(String)}, and

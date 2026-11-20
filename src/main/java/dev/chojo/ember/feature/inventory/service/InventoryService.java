@@ -991,13 +991,14 @@ public class InventoryService {
     }
 
     /**
-     * Every piece of one inventory that is in nobody's hands, so a caller can offer them.
+     * Every piece of one inventory that may be handed to a member right now, so a caller can offer them:
+     * in nobody's hands, carried by no open movement and held by no loan.
      *
      * @param inventoryId the inventory to look in
-     * @return the pieces currently assigned to nobody
+     * @return the pieces free to hand out
      */
     public List<InventoryItem> unassignedItems(int inventoryId) {
-        return inventoryRepository.findUnassignedItems(inventoryId);
+        return inventoryRepository.findFreeToHandOut(inventoryId);
     }
 
     /**

@@ -156,11 +156,58 @@ class ItemCustodyGuardRepositoryTest extends RepositoryTestBase {
         assertFalse(inventoryRepo.isSetAsideForALoan(free));
     }
 
-    private void loan(int itemId, LendingStatus status, LocalDate until) {
+    private int loan(int itemId, LendingStatus status, LocalDate until) {
         var request = LENDING.createRequest(
                 partner.uid(), station.uid(), LocalDate.now().minusDays(3), until, member.id(), null, null, "");
         var line = LENDING.addRequestItem(request.id(), inventoryId, null, null, 1, null);
         LENDING.assignItem(line.id(), itemId);
         LENDING.updateRequestStatus(request.id(), status);
+        return request.id();
+    }
+
+    /** The loan holding a piece does not hold it against itself, and holds it against every other. */
+    @Test
+    void aPieceIsHeldAgainstEveryLoanButItsOwn() {
+        int radio = piece();
+        int holding = loan(radio, LendingStatus.APPROVED, LocalDate.now().plusDays(2));
+        int other = LENDING.createRequest(
+                        partner.uid(), station.uid(), LocalDate.now(), null, member.id(), null, null, "")
+                .id();
+
+        assertFalse(inventoryRepo.isSetAsideForAnotherLoan(radio, holding));
+        assertTrue(inventoryRepo.isSetAsideForAnotherLoan(radio, other));
+    }
+
+    /** What a picker offers is what the guard lets through: on the shelf, carried by nothing, held by no loan. */
+    @Test
+    void onlyPiecesFreeToHandOutAreOffered() {
+        int free = piece();
+        int withMember = piece();
+        itemCustodyService.assignToMember(withMember, member.id(), "Gu Ard");
+        int missing = piece();
+        itemCustodyService.markLost(missing, null, null);
+        int promised = piece();
+        itemMovementService.create(
+                station.id(),
+                MovementPurpose.ISSUE,
+                member.id(),
+                "Gu Ard",
+                null,
+                inventoryId,
+                null,
+                null,
+                "Für den Dienst",
+                new ItemMovementService.Actor(member.id(), true),
+                promised);
+        int onLoan = piece();
+        loan(onLoan, LendingStatus.APPROVED, LocalDate.now().plusDays(2));
+
+        var offered = inventoryRepo.findFreeToHandOut(inventoryId).stream()
+                .map(item -> item.id())
+                .toList();
+        assertTrue(offered.contains(free));
+        for (int notFree : List.of(withMember, missing, promised, onLoan)) {
+            assertFalse(offered.contains(notFree), "piece " + notFree + " is not free to hand out");
+        }
     }
 }

@@ -32,7 +32,7 @@ const props = withDefaults(defineProps<{
   /** The pieces of this part, where the inventory is shown a block per kind. */
   subset?: readonly InventoryItem[]
   showActions?: boolean
-  lentItemMap?: Map<number, string>
+  lentItemMap?: ReadonlyMap<number, string>
   /** The movement carrying each piece an open movement carries, promised or on its way. */
   movementItemMap?: ReadonlyMap<number, number>
   containerPathById?: Map<number, string>
@@ -101,6 +101,7 @@ function dimmedWhenLost(item: InventoryItem): string {
       <ItemActions
           :item="row"
           :lent-out="lentItemMap.has(row.id)"
+          :on-movement="movementItemMap.has(row.id)"
           :show-actions="showActions"
           @assign="emit('assign', $event)"
           @delete="emit('delete', $event)"

@@ -49,26 +49,41 @@ public class ItemCustodyService {
      * finding the piece again, and a movement walking its own step may of course find its own piece on
      * it.
      *
-     * <p>Lending and shelving leave loans out of it. Lending reckons a loan by its window, and two loans of
-     * one radio a month apart are no clash; the guard knows no window and would call every later loan one.
-     * A piece set aside for a loan still sits on the shelf, and putting it in a box changes nothing for
-     * the partner.
+     * <p>A loan holds its pieces from its approval until its end date has passed, against everything
+     * else, other loans included. A loan acting on the pieces it holds itself is not held up by them.
+     * Putting a piece in a box leaves loans out of it altogether: the piece still sits on the shelf, and
+     * the partner gets it all the same.
      *
-     * @param mayBeLost  whether the piece may be reported missing, which only the loss and its finding allow
-     * @param movementId the movement walking a step on the piece, which does not count as carrying it
-     *                   against itself, or {@code null}
-     * @param loansAside whether loans are left out of the question, because the write settles them itself
-     *                   or does not touch them
+     * @param mayBeLost     whether the piece may be reported missing, which only the loss and its finding allow
+     * @param movementId    the movement walking a step on the piece, which does not count as carrying it
+     *                      against itself, or {@code null}
+     * @param loansAside    whether loans are left out of the question, because the write does not touch them
+     * @param loanRequestId the loan acting on its own pieces, which does not count as holding them against
+     *                      itself, or {@code null}
      */
-    public record Allowance(boolean mayBeLost, @Nullable Integer movementId, boolean loansAside) {
+    public record Allowance(
+            boolean mayBeLost,
+            @Nullable Integer movementId,
+            boolean loansAside,
+            @Nullable Integer loanRequestId) {
         /** An ordinary write, which finds nothing standing in its way. */
-        public static final Allowance NONE = new Allowance(false, null, false);
+        public static final Allowance NONE = new Allowance(false, null, false, null);
 
         /** Reporting a piece missing, or reporting it found again, or deleting a piece that is missing. */
-        public static final Allowance THE_LOSS_ITSELF = new Allowance(true, null, false);
+        public static final Allowance THE_LOSS_ITSELF = new Allowance(true, null, false, null);
 
-        /** Lending a piece or putting it in a box, which leaves loans to the lending's own reckoning. */
-        public static final Allowance LOANS_ASIDE = new Allowance(false, null, true);
+        /** Putting a piece in a box, which changes nothing for a loan that holds it. */
+        public static final Allowance LOANS_ASIDE = new Allowance(false, null, true, null);
+
+        /**
+         * A loan setting aside or handing over a piece, which may be one it holds itself and no other's.
+         *
+         * @param requestId the loan
+         * @return the allowance
+         */
+        public static Allowance lending(int requestId) {
+            return new Allowance(false, null, false, requestId);
+        }
 
         /**
          * A movement walking a step on its own piece.
@@ -78,7 +93,7 @@ public class ItemCustodyService {
          * @return the allowance
          */
         public static Allowance walking(int movementId, boolean lossReport) {
-            return new Allowance(lossReport, movementId, false);
+            return new Allowance(lossReport, movementId, false, null);
         }
 
         /**
@@ -87,7 +102,7 @@ public class ItemCustodyService {
          * @return this allowance with a missing piece refused
          */
         public Allowance butNeverLost() {
-            return new Allowance(false, movementId, loansAside);
+            return new Allowance(false, movementId, loansAside, loanRequestId);
         }
     }
 
@@ -148,10 +163,16 @@ public class ItemCustodyService {
         if (movementRepository.findOpenCarrying(itemId).stream().anyMatch(id -> !id.equals(own))) {
             return Optional.of(InventoryRefusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT);
         }
-        if (!allowance.loansAside() && inventoryRepository.isSetAsideForALoan(itemId)) {
+        if (!allowance.loansAside() && heldByALoan(itemId, allowance.loanRequestId())) {
             return Optional.of(InventoryRefusal.CUSTODY_PIECE_SET_ASIDE_FOR_A_LOAN);
         }
         return Optional.empty();
+    }
+
+    private boolean heldByALoan(int itemId, @Nullable Integer ownLoan) {
+        return ownLoan == null
+                ? inventoryRepository.isSetAsideForALoan(itemId)
+                : inventoryRepository.isSetAsideForAnotherLoan(itemId, ownLoan);
     }
 
     private static boolean isMissing(InventoryItem item) {
@@ -393,6 +414,9 @@ public class ItemCustodyService {
      * lender, because that is what keeps the piece in the lender's own lists while it is away. The
      * partner station is who actually has it, which until now lived in the lending request, one join
      * away from anything asking where a radio is.
+     *
+     * <p>The loan handing it over has asked about other loans already, piece by piece, before anything
+     * moved; here only the loss and the movements are asked again.
      *
      * @param itemId           the item ID
      * @param partnerStationId the partner taking it, or {@code null} when the partner is on another

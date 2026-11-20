@@ -33,7 +33,7 @@ const props = withDefaults(
       items: ItemTableApi
       arts: InventoryArt[]
       memberIdentity: (memberId: number) => PersonIdentity | null | undefined
-      lentItemStationMap: Map<number, string>
+      lentItemStationMap: ReadonlyMap<number, string>
       /** The movement carrying each piece an open movement carries. */
       movementItemMap?: ReadonlyMap<number, number>
       containerPathById: Map<number, string>

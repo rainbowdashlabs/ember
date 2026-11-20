@@ -321,4 +321,31 @@ class ItemCustodyWritersTest extends RepositoryTestBase {
         assertNull(item.assignedTo());
         assertFalse(itemMovementService.isOnAMovement(missing));
     }
+
+    /** A correction that picks a promised piece is refused before the old piece comes off the member. */
+    @Test
+    void aCorrectionCannotPickAPiecePromisedElsewhere() {
+        int old = pieceWithMember();
+        int promised = piece();
+        plannedHandOut(promised);
+
+        refusedWith(
+                InventoryRefusal.CUSTODY_PIECE_PROMISED,
+                () -> inventoryCheckService.correct(
+                        member.id(), new ItemCorrection(inventoryId, old, promised, null, null, null, null)));
+        assertEquals(member.id(), inventoryRepo.findItemById(old).orElseThrow().assignedTo(), "the old piece stays");
+    }
+
+    /** A correction cannot pick a piece that is with a partner, though nobody is named against it. */
+    @Test
+    void aCorrectionCannotPickAPieceThatIsNotOnTheShelf() {
+        int old = pieceWithMember();
+        int lent = piece();
+        itemCustodyService.lendToPartner(lent, partner.id());
+
+        refusedWith(
+                InventoryRefusal.INVENTORY_CHECK_PICKED_ITEM_TAKEN,
+                () -> inventoryCheckService.correct(
+                        member.id(), new ItemCorrection(inventoryId, old, lent, null, null, null, null)));
+    }
 }

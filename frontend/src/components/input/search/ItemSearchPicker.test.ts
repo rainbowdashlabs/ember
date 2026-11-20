@@ -24,6 +24,7 @@ const PROMISED = 13
 const ON_A_MEMBER = 14
 const LOST = 15
 const ANOTHER_BODYS = 16
+const SETTING_OUT = 21
 
 function piece(id: number, over: Partial<InventoryItem> = {}): InventoryItem {
     return {
@@ -54,6 +55,7 @@ const ITEMS: InventoryItem[] = [
     piece(ON_A_MEMBER, {assignedTo: 4}),
     piece(LOST, {lostAt: '2026-01-01T00:00:00Z'}),
     piece(ANOTHER_BODYS, {ownerKind: 'CLUSTER', ownerClusterId: 'body-2'}),
+    piece(SETTING_OUT),
 ]
 
 vi.mock('@/api', () => ({
@@ -74,6 +76,7 @@ vi.mock('@/api', () => ({
     movements: {
         listOpenMovements: () => Promise.resolve([
             {id: 1, state: 'OPEN', incomingItemId: PROMISED},
+            {id: 3, state: 'OPEN', itemId: SETTING_OUT, incomingItemId: null},
             {id: 2, state: 'DONE', incomingItemId: OURS},
         ]),
     },
@@ -161,6 +164,7 @@ describe('ItemSearchPicker', () => {
         expect(free, 'somebody is holding it').not.toContain(ON_A_MEMBER)
         expect(free, 'nobody knows where it is').not.toContain(LOST)
         expect(free, 'another movement is bringing it to somebody').not.toContain(PROMISED)
+        expect(free, 'another movement is taking it away').not.toContain(SETTING_OUT)
     })
 
     /**

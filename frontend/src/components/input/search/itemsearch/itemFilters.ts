@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {InventoryType, ItemOwner, type InventoryItem} from '@/api/generated/schema'
+import {InventoryType, ItemCustody, ItemOwner, type InventoryItem} from '@/api/generated/schema'
 
 /** Which pieces an item picker may offer, as its caller asked for them. */
 export interface ItemFilterCriteria {
@@ -15,7 +15,25 @@ export interface ItemFilterCriteria {
     ownerClusterId?: string | null
     inventoryType?: InventoryType | null
     excludeSpokenFor?: boolean
+    excludeUnavailable?: boolean
     keepItemId?: number | null
+}
+
+/**
+ * Whether a piece is somewhere it can be handed out from: on the station's shelf, at the station for its
+ * owner, or with a member. A piece with a partner, in the post, missing, or back in the store of an owner
+ * that is not the station is out of reach, however empty its row looks.
+ */
+export function isWithinReach(item: InventoryItem): boolean {
+    switch (item.custody) {
+        case ItemCustody.AT_STATION:
+        case ItemCustody.WITH_MEMBER:
+            return !item.lostAt
+        case ItemCustody.WITH_OWNER:
+            return !item.lostAt && (item.ownerKind ?? ItemOwner.STATION) === ItemOwner.STATION
+        default:
+            return false
+    }
 }
 
 /** What the filters need to know beyond the piece itself. */
@@ -70,5 +88,6 @@ export function passesItemFilters(item: InventoryItem, criteria: ItemFilterCrite
     if (criteria.excludeLost && item.lostAt) return false
     if (criteria.excludeContainerless && item.containerId == null && item.assignedTo == null) return false
     if (criteria.excludeSpokenFor && isSpokenForElsewhere(item, criteria, context)) return false
+    if (criteria.excludeUnavailable && !isWithinReach(item)) return false
     return ownedByTheSameParty(item, criteria)
 }

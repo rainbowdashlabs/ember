@@ -223,7 +223,7 @@ public class InventoryCheckService {
         MemberGear gear = readGear(stationId, memberId);
         Map<Integer, List<InventoryItem>> unassigned = new HashMap<>();
         for (RequiredInventoryItem req : gear.required()) {
-            unassigned.put(req.inventoryId(), inventoryRepository.findUnassignedItems(req.inventoryId()));
+            unassigned.put(req.inventoryId(), inventoryRepository.findFreeToHandOut(req.inventoryId()));
         }
         return new MemberCheckState(
                 gear.memberName(),
@@ -664,6 +664,10 @@ public class InventoryCheckService {
     /**
      * The free piece a correction picked, once it is certain it is free and belongs to the inventory
      * the correction is about.
+     *
+     * <p>Asked before the old piece comes off the member, so a refused pick leaves the record as it was.
+     * Free means on the shelf, with nobody, and asked for by no movement and no loan: the same pieces the
+     * walk offers.
      */
     private InventoryItem fromStock(int itemId, int inventoryId) {
         InventoryItem item = inventoryRepository
@@ -672,9 +676,12 @@ public class InventoryCheckService {
         if (item.inventoryId() != inventoryId) {
             throw InventoryRefusal.INVENTORY_CHECK_PICKED_ITEM_IN_OTHER_INVENTORY.raise();
         }
-        if (item.assignedTo() != null) {
+        boolean resting = item.custody() == ItemCustody.AT_STATION
+                || (item.custody() == ItemCustody.WITH_OWNER && item.ownedByStation());
+        if (item.assignedTo() != null || !resting) {
             throw InventoryRefusal.INVENTORY_CHECK_PICKED_ITEM_TAKEN.raise();
         }
+        custodyService.requireFreeToActOn(itemId, ItemCustodyService.Allowance.NONE);
         return item;
     }
 

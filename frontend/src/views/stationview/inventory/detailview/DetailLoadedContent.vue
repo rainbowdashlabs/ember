@@ -66,7 +66,7 @@ const props = withDefaults(defineProps<{
   memberMap: Map<number, MemberLike>
   openProcurement: ProcurementResponse[]
   lentOutItems: LentOutItem[]
-  lentItemStationMap: Map<number, string>
+  lentItemStationMap: ReadonlyMap<number, string>
   /** The movement carrying each piece an open movement carries. */
   movementItemMap?: ReadonlyMap<number, number>
   containerPathById: Map<number, string>

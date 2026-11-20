@@ -25,6 +25,8 @@ import type {
 } from '@/api/generated/schema'
 import { inventory, inventoryArts, inventoryContainers, movements, stationMembers, procurement } from '@/api'
 import { piecesOnOpenMovements } from '@/util/movementPieces'
+import { piecesHeldByLoans } from '@/util/loanHolds'
+import { todayIsoDate } from '@/util/format'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { getLentOutByInventory } from '@/api/lending'
@@ -151,17 +153,8 @@ const actions = computed(() => ({
   assignFree: (itemId: number) => modals.value?.openAssign(itemId),
 }))
 
-const activeLendingStatuses = new Set(['APPROVED', 'LENT'])
-
-const lentItemStationMap = computed(() => {
-  const map = new Map<number, string>()
-  for (const l of lentOutItems.value) {
-    if (l.assignedItemId && activeLendingStatuses.has(l.status)) {
-      map.set(l.assignedItemId, l.requestingStationName)
-    }
-  }
-  return map
-})
+/** The pieces a loan holds, from its approval until its end date has passed, as the station is refused for them. */
+const lentItemStationMap = computed(() => piecesHeldByLoans(lentOutItems.value, todayIsoDate()))
 
 function isLentOut(itemId: number): boolean {
   return lentItemStationMap.value.has(itemId)

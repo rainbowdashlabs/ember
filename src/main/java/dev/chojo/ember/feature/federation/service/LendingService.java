@@ -473,12 +473,15 @@ public class LendingService implements FederationServer {
      * @param requestItemId  the line of the request being filled
      * @param assignedItemId the piece being set aside
      * @param stationId      the station doing the lending, whose gear it has to be
-     * @throws RefusalResponse when the piece is not this station's to lend, is reported missing, or an
-     *                         open movement carries it
+     * @throws RefusalResponse when the piece is not this station's to lend, is reported missing, an open
+     *                         movement carries it, or another loan holds it
      */
     public boolean assignItem(int requestItemId, int assignedItemId, int stationId) {
         requireLendable(stationId, assignedItemId);
-        custodyService.requireFreeToActOn(assignedItemId, ItemCustodyService.Allowance.LOANS_ASIDE);
+        repository
+                .findRequestIdOfLine(requestItemId)
+                .ifPresent(requestId -> custodyService.requireFreeToActOn(
+                        assignedItemId, ItemCustodyService.Allowance.lending(requestId)));
         boolean assigned = repository.assignItem(requestItemId, assignedItemId);
         if (assigned) log.info("Item {} was set aside for lending request item {}", assignedItemId, requestItemId);
         else log.warn("Assign of item {} to lending request item {} affected zero rows", assignedItemId, requestItemId);
@@ -487,7 +490,8 @@ public class LendingService implements FederationServer {
 
     /**
      * The gear of one inventory a station may offer a partner, which is what the picker behind a
-     * manual assignment shows.
+     * manual assignment shows. A piece an open movement carries or a loan already holds is left out, as
+     * filling a loan by itself leaves it out.
      *
      * @param stationId   the station doing the lending
      * @param inventoryId the inventory being picked from
@@ -496,7 +500,7 @@ public class LendingService implements FederationServer {
     public List<InventoryItem> findAssignableItems(int stationId, int inventoryId) {
         var lender = lenderAt(stationId);
         if (!ownsInventory(stationId, inventoryId)) return List.of();
-        return inventoryRepository.findUnassignedItems(inventoryId).stream()
+        return inventoryRepository.findFreeToHandOut(inventoryId).stream()
                 .filter(lender::owns)
                 .toList();
     }
@@ -615,12 +619,12 @@ public class LendingService implements FederationServer {
      *
      * @param requestId the lending request about to be handed over
      * @throws RefusalResponse when a piece set aside for it is reported missing, carried by an open
-     *                         movement, or no longer resting at the station
+     *                         movement, held by another loan, or no longer resting at the station
      */
     private void requireReadyToHandOver(int requestId) {
         for (var line : repository.findItemsByRequest(requestId)) {
             for (int itemId : repository.findAssignedItems(line.id())) {
-                custodyService.requireFreeToActOn(itemId, ItemCustodyService.Allowance.LOANS_ASIDE);
+                custodyService.requireFreeToActOn(itemId, ItemCustodyService.Allowance.lending(requestId));
                 inventoryRepository
                         .findItemById(itemId)
                         .filter(item ->
@@ -1063,8 +1067,8 @@ public class LendingService implements FederationServer {
                 inventoryRepository
                         .findItemById(namedPiece)
                         .filter(item -> isLendable(lender, item))
-                        .filter(item ->
-                                custodyService.isFreeToActOn(item.id(), ItemCustodyService.Allowance.LOANS_ASIDE))
+                        .filter(item -> custodyService.isFreeToActOn(
+                                item.id(), ItemCustodyService.Allowance.lending(requestId)))
                         .filter(item -> isFree(owningStation.id(), LineTarget.item(item.id()), from, to))
                         .ifPresent(item -> repository.assignItem(ri.id(), item.id()));
                 continue;
@@ -1075,7 +1079,8 @@ public class LendingService implements FederationServer {
                     .map(inventoryRepository::findItemById)
                     .flatMap(Optional::stream)
                     .filter(lender::owns)
-                    .filter(item -> custodyService.isFreeToActOn(item.id(), ItemCustodyService.Allowance.LOANS_ASIDE))
+                    .filter(item ->
+                            custodyService.isFreeToActOn(item.id(), ItemCustodyService.Allowance.lending(requestId)))
                     .toList();
             int room = availability
                             .availability(owningStation.id(), target, from, to, null, requestId)
@@ -1198,7 +1203,9 @@ public class LendingService implements FederationServer {
 
     /**
      * What this station offers a partner: the inventories with something free in them, counted per
-     * kind of thing, and whether it offers the partner anything at all.
+     * kind of thing, and whether it offers the partner anything at all. Free is what lending accepts:
+     * on the shelf, carried by no open movement and held by no loan, so a partner is not offered a piece
+     * it could only be refused.
      *
      * @param partner  the partnership the question arrived on
      * @param query    part of an inventory's name to narrow by, or {@code null}
@@ -1231,7 +1238,7 @@ public class LendingService implements FederationServer {
             var offered = shareService
                     .filterShared(
                             policy,
-                            inventoryRepository.findUnassignedItems(inv.id()).stream()
+                            inventoryRepository.findFreeToHandOut(inv.id()).stream()
                                     .filter(lender::owns)
                                     .toList())
                     .stream()

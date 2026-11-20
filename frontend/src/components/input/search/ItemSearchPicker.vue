@@ -45,8 +45,14 @@ const props = defineProps<{
    * it is.
    */
   inventoryType?: InventoryType | null
-  /** Whether pieces another open movement has already promised somebody are left out. */
+  /** Whether pieces an open movement carries, setting out or promised to somebody, are left out. */
   excludeSpokenFor?: boolean
+  /**
+   * Whether pieces out of reach are left out: with a partner, in the post, missing, or back with an
+   * owner that is not the station. Handing one out is refused, so a picker for a hand-out does not offer
+   * it.
+   */
+  excludeUnavailable?: boolean
   /**
    * The piece the asking movement already names, which stays on offer although it is spoken for: it is
    * spoken for by that very movement.
