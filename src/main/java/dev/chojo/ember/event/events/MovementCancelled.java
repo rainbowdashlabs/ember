@@ -6,6 +6,7 @@
 package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Somebody has called the movement off, and it is closed.
@@ -28,7 +29,7 @@ import dev.chojo.ember.event.DomainEvent;
 public record MovementCancelled(
         int stationId,
         int movementId,
-        Integer memberId,
+        @Nullable Integer memberId,
         Integer inventoryId,
         String inventoryName,
         String itemName,

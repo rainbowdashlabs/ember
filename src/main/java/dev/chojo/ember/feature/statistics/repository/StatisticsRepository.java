@@ -147,9 +147,11 @@ public class StatisticsRepository {
         return query("""
                         SELECT
                             i.name,
-                            count(ii.id)                                         AS total,
-                            count(ii.id) FILTER (WHERE ii.assigned_to IS NOT NULL) AS assigned,
-                            count(ii.id) FILTER (WHERE ii.lost_at IS NOT NULL)     AS lost
+                            count(ii.id)                                             AS total,
+                            count(ii.id) FILTER (WHERE ii.custody = 'WITH_MEMBER')   AS assigned,
+                            count(ii.id) FILTER (WHERE ii.custody = 'LOST')          AS lost,
+                            count(ii.id) FILTER (WHERE ii.custody IN ('WITH_PARTNER', 'IN_TRANSIT')
+                                OR (ii.custody = 'WITH_OWNER' AND ii.owner_kind <> 'STATION')) AS away
                         FROM
                             inventory i
                             LEFT JOIN inventory_item ii ON ii.inventory_id = i.id
@@ -158,7 +160,11 @@ public class StatisticsRepository {
                         ORDER BY i.name;""")
                 .single(call().bind("station_id", stationId))
                 .map(row -> new InventoryStatus(
-                        row.getString("name"), row.getInt("total"), row.getInt("assigned"), row.getInt("lost")))
+                        row.getString("name"),
+                        row.getInt("total"),
+                        row.getInt("assigned"),
+                        row.getInt("lost"),
+                        row.getInt("away")))
                 .all();
     }
 

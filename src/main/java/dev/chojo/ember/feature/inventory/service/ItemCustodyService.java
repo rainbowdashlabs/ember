@@ -274,6 +274,27 @@ public class ItemCustodyService {
     }
 
     /**
+     * Takes a piece off the record of a member who is being deleted, without asking anything first.
+     *
+     * <p>The one write that does not ask whether the piece is free: erasing a person may not fail over
+     * their gear. Another movement or a loan may still name the piece, and goes on naming it; the piece
+     * itself rests in its store again, with nobody named against it. A missing piece is not written here
+     * at all, since taking it off a record is {@link #releaseLost(int)}.
+     *
+     * @param itemId the piece
+     * @return the updated item, or empty if the item was not found
+     */
+    public Optional<InventoryItem> takeOffTheRecord(int itemId) {
+        var found = inventoryRepository.findItemById(itemId);
+        if (found.isEmpty()) return Optional.empty();
+        var item = found.get();
+        closeCurrentSpell(item);
+        writeResting(item);
+        log.info("Item {} came off the record of a deleted member (was {})", itemId, item.custody());
+        return inventoryRepository.findItemById(itemId);
+    }
+
+    /**
      * Places an item in a container, or takes it out of one. A container says where in the store an
      * item is, not who has it, so the custody only moves when the item was with a member: somebody
      * putting gear on a shelf is handing it back at the same time.

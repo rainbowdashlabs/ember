@@ -6,9 +6,12 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestFederationServices;
@@ -16,7 +19,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -128,6 +133,57 @@ class InventoryTagRepositoryTest extends RepositoryTestBase {
         inventoryRepo.deleteItem(first.id());
         inventoryRepo.deleteItem(second.id());
         inventoryRepo.deleteItem(bare.id());
+    }
+
+    /** Available is read off where a piece is: a lent or posted piece is not free, though nobody holds it. */
+    @Test
+    void aPieceAwayFromTheStationIsNotAvailable() {
+        var tag = inventoryTagRepo.create(station.id(), "Leihgabe", null);
+        var home = inventoryRepo.createItem(inventoryId, "TG-400", "Funkgerät daheim", null, null);
+        var lent = inventoryRepo.createItem(inventoryId, "TG-401", "Funkgerät verliehen", null, null);
+        inventoryRepo.updateCustody(lent.id(), ItemCustody.WITH_PARTNER, station.id(), null, null);
+        inventoryTagRepo.setItemTags(home.id(), station.id(), List.of(tag.id()));
+        inventoryTagRepo.setItemTags(lent.id(), station.id(), List.of(tag.id()));
+
+        var found = inventoryTagRepo.findItemsByTag(List.of(station.id()), "Leihgabe");
+
+        assertTrue(found.stream()
+                .filter(item -> item.name().equals("Funkgerät daheim"))
+                .allMatch(item -> item.available()));
+        assertTrue(found.stream()
+                .filter(item -> item.name().equals("Funkgerät verliehen"))
+                .noneMatch(item -> item.available()));
+
+        inventoryTagRepo.delete(tag.id(), station.id());
+        inventoryRepo.deleteItem(home.id());
+        inventoryRepo.deleteItem(lent.id());
+    }
+
+    /** A piece set aside for a loan is not available either, though it still sits on the shelf. */
+    @Test
+    void aPieceSetAsideForALoanIsNotAvailable() {
+        var tag = inventoryTagRepo.create(station.id(), "Vorgemerkt", null);
+        var held = inventoryRepo.createItem(inventoryId, "TG-410", "Funkgerät vorgemerkt", null, null);
+        inventoryTagRepo.setItemTags(held.id(), station.id(), List.of(tag.id()));
+        var lending = new LendingRepository();
+        var request = lending.createRequest(
+                UUID.randomUUID(),
+                neighbour.uid(),
+                station.uid(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(3),
+                null,
+                null,
+                null,
+                "");
+        var line = lending.addRequestItem(request.id(), inventoryId, null, null, 1, null);
+        lending.assignItem(line.id(), held.id());
+        lending.updateRequestStatus(request.id(), LendingStatus.APPROVED);
+
+        var found = inventoryTagRepo.findItemsByTag(List.of(station.id()), "Vorgemerkt");
+
+        assertTrue(found.stream().noneMatch(item -> item.available()), "the loan holds it");
+        inventoryTagRepo.delete(tag.id(), station.id());
     }
 
     @Test

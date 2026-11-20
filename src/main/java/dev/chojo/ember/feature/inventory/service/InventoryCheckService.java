@@ -522,7 +522,9 @@ public class InventoryCheckService {
      *
      * <p>The cluster's requirements count too, read at the station and never copied. A piece handed in
      * for an exchange counts towards what the member has, since an exchange can take weeks and would
-     * otherwise report a gap for gear already in the post; the row says how many are away that way.
+     * otherwise report a gap for gear already in the post; the row says how many are away that way. A
+     * piece reported missing does not count, though it stays on the member's record: the gap shows and
+     * a hand-out is offered for it.
      *
      * @param stationId the station ID
      * @param memberId  the member ID
@@ -546,7 +548,9 @@ public class InventoryCheckService {
             requiredByInventory.merge(req.inventoryId(), req.quantity(), Integer::sum);
         }
 
-        List<InventoryItem> assignedItems = inventoryRepository.findItemsByMember(memberId);
+        List<InventoryItem> assignedItems = inventoryRepository.findItemsByMember(memberId).stream()
+                .filter(item -> item.custody() != ItemCustody.LOST && item.lostAt() == null)
+                .toList();
         Map<Integer, Integer> assignedByInventory = new HashMap<>();
         for (InventoryItem item : assignedItems) {
             assignedByInventory.merge(item.inventoryId(), 1, Integer::sum);

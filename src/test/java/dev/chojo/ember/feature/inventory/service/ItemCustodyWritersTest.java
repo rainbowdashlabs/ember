@@ -348,4 +348,27 @@ class ItemCustodyWritersTest extends RepositoryTestBase {
                 () -> inventoryCheckService.correct(
                         member.id(), new ItemCorrection(inventoryId, old, lent, null, null, null, null)));
     }
+
+    /** A missing piece stays on the member's record but leaves what they count as holding. */
+    @Test
+    void aMissingPieceLeavesTheRequirementCount() {
+        int jackets = inventoryRepo
+                .create(station.id(), "Jacken " + CODES.incrementAndGet(), InventoryType.INTERNAL, false)
+                .id();
+        inventoryRepo.createRequirement(
+                jackets, stationMemberRepo.findById(member.id()).orElseThrow().userType(), 0, null, 2);
+        for (int i = 0; i < 2; i++) {
+            int jacket = inventoryRepo
+                    .createItem(jackets, "J-" + CODES.incrementAndGet(), "Jacke", null, null, ItemOwner.STATION, null)
+                    .id();
+            itemCustodyService.assignToMember(jacket, member.id(), "Wri Ter");
+            if (i == 0) itemCustodyService.markLost(jacket, null, null);
+        }
+
+        var requirement = inventoryCheckService.getRequiredItems(station.id(), member.id()).stream()
+                .filter(required -> required.inventoryId() == jackets)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(1, requirement.assignedQuantity(), "the missing jacket does not count");
+    }
 }

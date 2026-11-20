@@ -45,10 +45,12 @@ public record StationStatistics(
      *
      * @param name     the inventory's name
      * @param total    every item in it
-     * @param assigned items handed to somebody
+     * @param assigned items a member holds, a missing one not among them
      * @param lost     items reported lost
+     * @param away     items that are not at the station: with a partner, in the post, or back with an
+     *                 owner that is not the station
      */
-    public record InventoryStatus(String name, int total, int assigned, int lost) {}
+    public record InventoryStatus(String name, int total, int assigned, int lost, int away) {}
 
     /**
      * The registrations of one upcoming appointment.

@@ -75970,6 +75970,8 @@ export interface components {
             /** Format: int32 */
             assigned: number;
             /** Format: int32 */
+            away: number;
+            /** Format: int32 */
             lost: number;
             name: string;
             /** Format: int32 */
@@ -77438,6 +77440,8 @@ export interface components {
         };
         MemberRequirement: {
             /** Format: int32 */
+            heldQuantity: number;
+            /** Format: int32 */
             inventoryId: number;
             inventoryName: string;
             /** Format: int32 */
@@ -77862,6 +77866,8 @@ export interface components {
         };
         MyQuizAttempt: components["schemas"]["NoQuizAttempt"] | components["schemas"]["QuizAttemptDetail"];
         MyRequirement: {
+            /** Format: int32 */
+            heldQuantity: number;
             /** Format: int32 */
             inventoryId: number;
             inventoryName: string;

@@ -295,12 +295,19 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
         var handedOut = inventoryRepo.createItem(radios.id(), "F-1", "Funk", null, InventoryItemMetadata.empty());
         var lost = inventoryRepo.createItem(radios.id(), "F-2", "Funk", null, InventoryItemMetadata.empty());
         inventoryRepo.createItem(radios.id(), "F-3", "Funk", null, InventoryItemMetadata.empty());
+        var lostOnAMember = inventoryRepo.createItem(radios.id(), "F-4", "Funk", null, InventoryItemMetadata.empty());
+        var lent = inventoryRepo.createItem(radios.id(), "F-5", "Funk", null, InventoryItemMetadata.empty());
         inventoryRepo.updateCustody(handedOut.id(), ItemCustody.WITH_MEMBER, station.id(), member, null);
         inventoryRepo.updateCustody(lost.id(), ItemCustody.LOST, station.id(), null, null);
+        inventoryRepo.updateCustody(lostOnAMember.id(), ItemCustody.LOST, station.id(), member, null);
+        inventoryRepo.updateCustody(lent.id(), ItemCustody.WITH_PARTNER, station.id(), null, null);
 
         var inventories = statistics.stationStatistics(station.id()).inventoryStatus();
 
-        assertEquals(List.of(new InventoryStatus("Funk", 3, 1, 1), new InventoryStatus("Leer", 0, 0, 0)), inventories);
+        assertEquals(
+                List.of(new InventoryStatus("Funk", 5, 1, 2, 1), new InventoryStatus("Leer", 0, 0, 0, 0)),
+                inventories,
+                "a missing piece on a member is lost and not also held, and a lent one is away, not free");
     }
 
     @Test

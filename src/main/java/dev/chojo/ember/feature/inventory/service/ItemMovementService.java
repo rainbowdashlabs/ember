@@ -1217,8 +1217,9 @@ public class ItemMovementService {
      * <p>Deleting them took the record of where the pieces went with them, and left a piece in the post
      * pointing at a movement that no longer existed. Closing keeps the record. Nothing is put back on the
      * member, who holds nothing any more; whatever is in the post settles with its owner, and a promised
-     * piece is free again. Each one is announced as called off, so an association running its side of it
-     * learns that it ended, with the reason and no member of the station named as having done it.
+     * piece is free again. Each one is announced as called off, so the station team learns that it ended,
+     * with the reason and nobody named as having done it. The leaving member is not among those told: they
+     * are leaving, or being erased.
      *
      * @param memberId the member leaving
      * @param reason   what the closed movements record
@@ -1234,7 +1235,7 @@ public class ItemMovementService {
             announce(new MovementCancelled(
                     cancelled.stationId(),
                     cancelled.id(),
-                    cancelled.memberId(),
+                    null,
                     cancelled.inventoryId(),
                     inventoryName(cancelled.inventoryId()),
                     itemName,

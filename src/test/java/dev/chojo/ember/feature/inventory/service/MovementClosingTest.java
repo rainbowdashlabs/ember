@@ -185,6 +185,7 @@ class MovementClosingTest extends RepositoryTestBase {
         assertEquals(1, told.size());
         assertEquals(open.id(), told.getFirst().movementId());
         assertEquals("Mitglied ist ausgeschieden", told.getFirst().reason());
+        assertNull(told.getFirst().memberId(), "the leaving member is not among those told");
     }
 
     /** Asking everything back passes over a piece a dispatch carries as a further piece. */

@@ -7321,6 +7321,7 @@ export default {
         declined: 'Abgemeldet',
         assigned: 'Zugewiesen',
         unassigned: 'Verfügbar',
+        away: 'Nicht auf der Wache',
         lost: 'Verloren',
         accepted: 'Bestätigt',
         pending: 'Offen',

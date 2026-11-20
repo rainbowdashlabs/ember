@@ -71112,9 +71112,13 @@
           "lost" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "away" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "name", "total", "assigned", "lost" ]
+        "required" : [ "name", "total", "assigned", "lost", "away" ]
       },
       "InventorySummary" : {
         "type" : "object",
@@ -75225,9 +75229,13 @@
           "requiredQuantity" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "heldQuantity" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "inventoryId", "inventoryName", "requiredQuantity" ]
+        "required" : [ "inventoryId", "inventoryName", "requiredQuantity", "heldQuantity" ]
       },
       "MemberRequirements" : {
         "type" : "object",
@@ -76497,9 +76505,13 @@
           "requiredQuantity" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "heldQuantity" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "inventoryId", "inventoryName", "requiredQuantity" ]
+        "required" : [ "inventoryId", "inventoryName", "requiredQuantity", "heldQuantity" ]
       },
       "NameChangeView" : {
         "type" : "object",
