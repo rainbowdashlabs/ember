@@ -3,10 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import AccountSignatureView from './AccountSignatureView.vue'
+import {followModifierKeys} from '@/util/modifierKeys'
 import type {SignatureSettingsResponse} from '@/api/generated/schema'
 
 const getSignatureSettings = vi.hoisted(() => vi.fn())
@@ -39,6 +40,10 @@ async function open() {
  * request, and the consent given and taken back, with a warning while no picture backs it.
  */
 describe('AccountSignatureView', () => {
+    beforeAll(() => followModifierKeys())
+    afterEach(() => {
+        window.dispatchEvent(new KeyboardEvent('keyup', {key: 'Shift'}))
+    })
     beforeEach(() => {
         vi.clearAllMocks()
         URL.createObjectURL = vi.fn(() => 'blob:signature')
@@ -46,7 +51,7 @@ describe('AccountSignatureView', () => {
         getSignatureImage.mockResolvedValue(new Blob(['png'], {type: 'image/png'}))
     })
 
-    it('shows the saved picture and deletes it on request', async () => {
+    it('shows the saved picture and deletes it once the question is answered', async () => {
         getSignatureSettings.mockResolvedValue(settings({
             hasImage: true, imageSource: 'DRAWN', imageSavedAt: '2026-10-08T09:25:00Z',
         }))
@@ -58,10 +63,26 @@ describe('AccountSignatureView', () => {
         expect(saved.text()).toContain('Gezeichnet am')
 
         await view.get('[data-testid="signature-delete"]').trigger('click')
+        expect(deleteSignatureImage).not.toHaveBeenCalled()
+        view.findComponent({name: 'ConfirmDeleteModal'}).vm.$emit('confirm')
         await flushPromises()
 
         expect(deleteSignatureImage).toHaveBeenCalled()
         expect(view.get('[data-testid="signature-saved"]').text()).toContain('Noch keine Unterschrift gespeichert')
+        view.unmount()
+    })
+
+    it('deletes the saved picture at once while shift is held', async () => {
+        getSignatureSettings.mockResolvedValue(settings({hasImage: true, imageSource: 'DRAWN', imageSavedAt: '2026-10-08T09:25:00Z'}))
+        deleteSignatureImage.mockResolvedValue(settings())
+        const view = await open()
+
+        window.dispatchEvent(new KeyboardEvent('keydown', {key: 'Shift'}))
+        await view.get('[data-testid="signature-delete"]').trigger('click')
+        await flushPromises()
+
+        expect(deleteSignatureImage).toHaveBeenCalled()
+        expect(view.findComponent({name: 'ConfirmDeleteModal'}).props('modelValue')).toBe(false)
         view.unmount()
     })
 

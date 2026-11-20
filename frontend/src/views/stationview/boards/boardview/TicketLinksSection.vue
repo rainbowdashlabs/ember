@@ -23,8 +23,12 @@ import {
     type TicketSummary,
 } from '@/api/generated/schema'
 import { useBoardApi } from '@/composables/useBoardApi'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { useAttachmentPreview } from '@/views/stationview/boards/boardview/useAttachmentPreview'
 import { formatSize } from '@/util/format'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import { describeFailure, type Failure } from '@/util/failure'
 
 /**
  * The links, web links and attachments of a ticket.
@@ -123,14 +127,38 @@ async function addLink(linkedTicketId: number, linkedTicketNumber: number) {
     await api.createLink(linkedTicketId, linkedTicketNumber, linkType.value)
     showAddLink.value = false; linkSearchQuery.value = ''; emit('reload')
 }
-async function removeLink(linkedTicketId: number, linkedTicketNumber: number) { await api.deleteLink(linkedTicketId, linkedTicketNumber); emit('reload') }
+/** What removing a link, a weblink or an attachment ran into, said beside them. */
+const removeFailure = ref<Failure | null>(null)
+
+/** Removes one thing hanging off the ticket, then has the ticket read again, or says why it could not. */
+async function removeThen(removal: () => Promise<unknown>) {
+    removeFailure.value = null
+    try {
+        await removal()
+    } catch (e) {
+        removeFailure.value = describeFailure(e, t)
+        return
+    }
+    emit('reload')
+}
+
+async function removeLink(linkedTicketId: number, linkedTicketNumber: number) { await removeThen(() => api.deleteLink(linkedTicketId, linkedTicketNumber)) }
 async function handleAddWeblink() {
     if (!newWeblinkUrl.value.trim()) return
     await boards.addWeblink(props.boardKey, props.ticketNumber, { url: newWeblinkUrl.value.trim(), title: newWeblinkTitle.value.trim() || undefined })
     newWeblinkUrl.value = ''; newWeblinkTitle.value = ''; showAddWeblink.value = false; emit('reload')
 }
-async function removeWeblink(id: number) { await boards.deleteWeblink(props.boardKey, props.ticketNumber, id); emit('reload') }
-async function removeAttachment(id: number) { await boards.deleteAttachment(props.boardKey, props.ticketNumber, id); emit('reload') }
+async function removeWeblink(id: number) { await removeThen(() => boards.deleteWeblink(props.boardKey, props.ticketNumber, id)) }
+/** Deletes an attachment, after asking unless shift is held. */
+const {show: confirmingRemoveAttachment, target: removingAttachment, requestDelete: removeAttachment, confirm: confirmRemoveAttachment} =
+    useConfirmDelete<BoardTicketAttachment>({
+        onDelete: async att => {
+            removeFailure.value = null
+            await boards.deleteAttachment(props.boardKey, props.ticketNumber, att.id)
+        },
+        onSuccess: () => emit('reload'),
+        failure: removeFailure,
+    })
 
 const {
     srcFor,
@@ -160,6 +188,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
 
 <template>
     <div v-if="hasAnyContent" class="space-y-4">
+        <FailureAlert :failure="removeFailure"/>
         <div v-if="links.length > 0 || showAddLink">
             <div class="flex items-center justify-between mb-2">
                 <SubHeader class="text-sm">{{ t('boards.linkedTickets') }}</SubHeader>
@@ -247,7 +276,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                         <div class="flex gap-1" @click.stop>
                             <IconButton v-if="canPreview(att)" :icon="['fas', 'eye']" :label="t('common.preview')" class="text-white text-xs" @click="openPreview(att)" />
                             <IconButton :icon="['fas', 'download']" :label="t('common.download')" class="text-white text-xs" @click="handleDownload(att)" />
-                            <IconButton v-if="!readonly" :icon="['fas', 'trash']" :label="t('common.remove')" class="text-white text-xs" @click="removeAttachment(att.id)" />
+                            <IconButton v-if="!readonly" :icon="['fas', 'trash']" :label="t('common.remove')" class="text-white text-xs" @click="removeAttachment(att)" />
                         </div>
                     </div>
                 </div>
@@ -267,5 +296,11 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                 </div>
             </template>
         </ImageLightbox>
+
+        <ConfirmDeleteModal
+            v-model="confirmingRemoveAttachment"
+            :message="t('boards.deleteAttachmentConfirm', {name: removingAttachment?.originalName ?? ''})"
+            @confirm="confirmRemoveAttachment"
+        />
     </div>
 </template>

@@ -271,6 +271,11 @@ function showFailure(reported: Failure) {
       @confirm="invitation.confirm"
     />
     <ConfirmDeleteModal
+      v-model="invite.confirmingRemove.value"
+      :message="t('waitingList.deleteInviteConfirm')"
+      @confirm="invite.confirmRemove"
+    />
+    <ConfirmDeleteModal
       v-model="showDeleteEntryModal"
       :title="t('waitingList.deleteEntryTitle')"
       :message="deleteEntryMessage"

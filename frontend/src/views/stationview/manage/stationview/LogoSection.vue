@@ -9,6 +9,8 @@ import FileUploadField from '@/components/input/FileUploadField.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 
 const props = defineProps<{
   hasLogo: boolean
@@ -24,6 +26,13 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+/** Removing the logo asks first, unless shift is held; the page removing it hears of it only once agreed. */
+const {show: confirmingRemove, request: requestRemove, confirm: confirmRemove} = useConfirmAction<true>({
+  onConfirm: async () => {
+    emit('remove')
+  },
+})
 </script>
 
 <template>
@@ -47,7 +56,7 @@ const {t} = useI18n()
             :label="props.uploading ? t('common.loading') : t('stationManage.changeLogo')"
             @select="(file: File) => emit('upload', file)"
         />
-        <DeleteButton @click="emit('remove')"/>
+        <DeleteButton @click="requestRemove(true)"/>
       </div>
     </div>
 
@@ -63,5 +72,11 @@ const {t} = useI18n()
           @select="(file: File) => emit('upload', file)"
       />
     </div>
+
+    <ConfirmDeleteModal
+        v-model="confirmingRemove"
+        :message="t('stationManage.logoDeleteConfirm')"
+        @confirm="confirmRemove"
+    />
   </NeutralContainer>
 </template>

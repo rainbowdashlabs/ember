@@ -20,7 +20,9 @@ import {inventory} from '@/api'
 import type {Inventory, InventoryBlock, InventoryItem} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {describeFailure} from '@/util/failure'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import {formatDate} from '@/util/format'
 
 const routes = useInventoryRoutes()
 
@@ -109,24 +111,26 @@ watch(loaded, (v) => {
 })
 
 /**
- * Lifts a whole block, one row at a time.
+ * Lifts a whole block, one row at a time, after asking unless shift is held.
  *
  * <p>It used to swallow whatever came back, so a refused lifting looked like a button that does
  * nothing. The rows are lifted one by one, so a failure halfway leaves the earlier ones gone, which is
- * what the reload afterwards is for.
+ * why the list is fetched again whether it worked or not.
  */
-async function handleDeleteGroup(group: GroupedBlock) {
-  failure.value = null
-  try {
-    for (const id of group.blockIds) {
-      await lending.deleteBlock(id)
-    }
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
-  await loadBlocks()
-}
-
+const {show: showDeleteGroup, target: deletingGroup, requestDelete: handleDeleteGroup, confirm: confirmDeleteGroup} =
+  useConfirmDelete<GroupedBlock>({
+    onDelete: async group => {
+      failure.value = null
+      try {
+        for (const id of group.blockIds) {
+          await lending.deleteBlock(id)
+        }
+      } finally {
+        await loadBlocks()
+      }
+    },
+    failure,
+  })
 </script>
 
 <template>
@@ -155,5 +159,14 @@ async function handleDeleteGroup(group: GroupedBlock) {
         <LendingBlockGroupTile v-for="group in groupedBlocks" :key="group.key" :group="group" @delete="handleDeleteGroup(group)"/>
       </div>
     </AsyncSection>
+
+    <ConfirmDeleteModal
+        v-model="showDeleteGroup"
+        :message="t('lending.deleteBlockConfirm', {
+          from: deletingGroup ? formatDate(deletingGroup.blockFrom) : '',
+          to: deletingGroup ? formatDate(deletingGroup.blockTo) : '',
+        })"
+        @confirm="confirmDeleteGroup"
+    />
   </ViewContent>
 </template>

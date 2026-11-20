@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
@@ -17,7 +17,9 @@ import {mailImport} from '@/api'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {MailboxResponse, TestResult} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import type {Failure} from '@/util/failure'
 
 /** One mailbox: how it is doing, what it is set to, and the rules under it. */
 const props = defineProps<{
@@ -66,14 +68,14 @@ const {running: resuming, failure: resumeFailure, run: resume} = useAsyncAction(
 
 const busy = computed(() => testing.value || importing.value || resuming.value)
 
-async function remove() {
-  try {
+/** Deletes the mailbox, after asking unless shift is held. */
+const {show: confirmingRemove, requestDelete, confirm: remove, failure: removeFailure} = useConfirmDelete<true>({
+  onDelete: async () => {
     await mailImport.deleteMailbox(props.mailbox.id)
-    emit('changed')
-  } catch (e) {
-    emit('error', describeFailure(e, t))
-  }
-}
+  },
+  onSuccess: () => emit('changed'),
+})
+watch(removeFailure, failure => { if (failure) emit('error', failure) })
 </script>
 
 <template>
@@ -83,7 +85,7 @@ async function remove() {
           :busy="busy"
           :mailbox="mailbox"
           @edit="emit('edit', mailbox)"
-          @remove="remove"
+          @remove="requestDelete(true)"
           @resume="resume"
           @run="runNow"
           @test="test"
@@ -107,5 +109,10 @@ async function remove() {
           @error="emit('error', $event)"
       />
     </div>
+    <ConfirmDeleteModal
+        v-model="confirmingRemove"
+        :message="t('mailImport.deleteMailboxConfirm')"
+        @confirm="remove"
+    />
   </NeutralContainer>
 </template>

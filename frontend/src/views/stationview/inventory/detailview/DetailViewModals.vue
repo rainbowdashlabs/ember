@@ -11,6 +11,7 @@ import ProcurementModal from './ProcurementModal.vue'
 import HistoryModal from './HistoryModal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ItemModals from '../editview/ItemModals.vue'
+import ItemReturnAndLossModals from '../editview/ItemReturnAndLossModals.vue'
 import { inventory, procurement } from '@/api'
 import {InventoryType, type InventoryDetail, type InventoryItem} from '@/api/generated/schema'
 import type { MemberLike } from '@/components/input/select/memberOption'
@@ -92,21 +93,10 @@ async function submitProcurement() {
   } catch (e) { fail(e) }
 }
 
-async function unassign(item: InventoryItem) {
-  try {
-    if (props.detail?.inventoryType === InventoryType.EXTERNAL) {
-      await inventory.deleteItem(item.id)
-    } else {
-      await inventory.assignItem(item.id, { memberId: null, memberName: '' })
-    }
-    emit('reload')
-  } catch (e) { fail(e) }
-}
+const returnAndLoss = ref<InstanceType<typeof ItemReturnAndLossModals> | null>(null)
 
-async function markLost(item: InventoryItem) {
-  try { await inventory.markLost(item.id); emit('reload') }
-  catch (e) { fail(e) }
-}
+function unassign(item: InventoryItem) { void returnAndLoss.value?.unassign(item) }
+function markLost(item: InventoryItem) { returnAndLoss.value?.markLost(item) }
 
 async function markFound(item: InventoryItem) {
   try { await inventory.markFound(item.id); emit('reload') }
@@ -176,5 +166,12 @@ defineExpose({
     v-model="showDeleteModal"
     :message="t('inventory.edit.deleteConfirm', { name: deleteTarget?.name })"
     @confirm="confirmDelete"
+  />
+
+  <ItemReturnAndLossModals
+    ref="returnAndLoss"
+    :external="detail?.inventoryType === InventoryType.EXTERNAL"
+    @changed="emit('reload')"
+    @error="emit('error', $event)"
   />
 </template>

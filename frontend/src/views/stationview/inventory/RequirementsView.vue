@@ -17,6 +17,8 @@ import { inventory, memberGroups, clusterStationGroups  } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import RequirementGroupCard from './requirementsview/RequirementGroupCard.vue'
 import RequirementAddModal from './requirementsview/RequirementAddModal.vue'
 import { userTypeFriendlyNames, type RequirementGroup } from './requirementsview/types'
@@ -169,16 +171,16 @@ async function updateQuantity(req: RequirementResponse, newQuantity: number) {
   await refreshAfterWrite()
 }
 
-async function removeRequirement(req: RequirementResponse) {
-  failure.value = null
-  try {
-    await inventory.deleteRequirement(req.id)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    return
-  }
-  await refreshAfterWrite()
-}
+/** Drops a requirement, after asking unless shift is held. */
+const {show: showRemove, target: removing, requestDelete: removeRequirement, confirm: confirmRemove} =
+  useConfirmDelete<RequirementResponse>({
+    onDelete: async req => {
+      failure.value = null
+      await inventory.deleteRequirement(req.id)
+    },
+    onSuccess: () => refreshAfterWrite(),
+    failure,
+  })
 
 /**
  * Writes the new order back one requirement at a time. A failure halfway leaves the order part
@@ -251,5 +253,11 @@ async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: nu
         @submit="submitAdd"
       />
     </div>
+
+    <ConfirmDeleteModal
+      v-model="showRemove"
+      :message="t('inventory.requirements.deleteConfirm', {name: removing ? inventoryName(removing.inventoryId) : ''})"
+      @confirm="confirmRemove"
+    />
   </ViewContent>
 </template>

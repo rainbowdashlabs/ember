@@ -14,6 +14,8 @@ import NewSignatureSection from './accountsignatureview/NewSignatureSection.vue'
 import SignatureConsentSection from './accountsignatureview/SignatureConsentSection.vue'
 import {useOwnSignature} from '@/composables/useOwnSignature'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {SignatureImageSource} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -49,6 +51,11 @@ async function change(action: () => Promise<void>) {
 function saveImage(image: Blob, source: SignatureImageSource) {
   void change(() => save(image, source))
 }
+
+/** Deletes the saved picture, after asking unless shift is held. */
+const {show: confirmingRemove, requestDelete: requestRemove, confirm: confirmRemove} = useConfirmDelete<true>({
+  onDelete: () => change(remove),
+})
 </script>
 
 <template>
@@ -57,10 +64,15 @@ function saveImage(image: Blob, source: SignatureImageSource) {
       <Spinner v-if="loading"/>
       <FailureAlert :failure="loadFailure ?? failure"/>
       <template v-if="!loading && settings">
-        <SavedSignatureSection :settings="settings" :image-url="imageUrl" :busy="busy" @remove="change(remove)"/>
+        <SavedSignatureSection :settings="settings" :image-url="imageUrl" :busy="busy" @remove="requestRemove(true)"/>
         <NewSignatureSection :busy="busy" @save="saveImage"/>
         <SignatureConsentSection :settings="settings" :busy="busy" @change="value => change(() => consent(value))"/>
       </template>
     </div>
+    <ConfirmDeleteModal
+        v-model="confirmingRemove"
+        :message="t('accountSignature.saved.deleteConfirm')"
+        @confirm="confirmRemove"
+    />
   </ViewContent>
 </template>

@@ -32,6 +32,8 @@ import {useActsForOwner} from '@/composables/useActsForOwner'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
+import {useConfirmAction} from '@/composables/useConfirmAction'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {describeFailure, type Failure} from '@/util/failure'
 import ItemPanels from './itemdetailview/ItemPanels.vue'
 import AssignItemModal from './itemdetailview/AssignItemModal.vue'
@@ -211,15 +213,15 @@ async function doUnassign() {
   await refreshHistory()
 }
 
-async function doMarkLost() {
-  failure.value = null
-  try {
+/** Marks the piece lost, after asking unless shift is held. */
+const {show: confirmingMarkLost, request: requestMarkLost, confirm: doMarkLost} = useConfirmAction<true>({
+  onConfirm: async () => {
+    failure.value = null
     item.value = await inventory.markLost(itemId.value)
     flash(t('itemDetail.markedLost'))
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
-}
+  },
+  failure,
+})
 
 async function doMarkFound() {
   failure.value = null
@@ -268,7 +270,7 @@ async function doMarkFound() {
         @reload="reloadItem"
         @assign="showAssignModal = true"
         @unassign="doUnassign"
-        @mark-lost="doMarkLost"
+        @mark-lost="requestMarkLost(true)"
         @mark-found="doMarkFound"
       />
 
@@ -276,6 +278,13 @@ async function doMarkFound() {
         v-model="showAssignModal"
         :members="members"
         @assign="doAssign"
+      />
+
+      <ConfirmDeleteModal
+        v-model="confirmingMarkLost"
+        :message="t('inventory.edit.markLostConfirm', {name: item?.name ?? ''})"
+        :confirm-label="t('inventory.edit.markLostAction')"
+        @confirm="doMarkLost"
       />
     </div>
   </ViewContent>

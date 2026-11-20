@@ -19,6 +19,8 @@ import type {MemberGroup, Permission} from '@/api/generated/schema'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {goToNextStep} from '@/views/stationview/setup/steps'
 import {describeFailure} from '@/util/failure'
 
@@ -68,8 +70,9 @@ function addGroup() {
     return runAddGroup()
 }
 
-async function removeGroup(id: number) {
-    try {
+/** Deletes a group, after asking unless shift is held. */
+const {show: confirmingRemove, target: removing, requestDelete: requestRemove, confirm: confirmRemove} = useConfirmDelete<number>({
+    onDelete: async id => {
         await memberGroups.deleteGroup(id)
         groups.value = groups.value.filter((g) => g.id !== id)
         permissionsByGroup.delete(id)
@@ -77,10 +80,11 @@ async function removeGroup(id: number) {
             selectedId.value = groups.value[0]?.id ?? null
             if (selectedId.value) await selectGroup(selectedId.value)
         }
-    } catch (e) {
-        failure.value = describeFailure(e, t)
-    }
-}
+    },
+    failure,
+})
+
+const removingName = computed(() => groups.value.find(g => g.id === removing.value)?.name ?? '')
 
 async function selectGroup(id: number) {
     selectedId.value = id
@@ -169,7 +173,7 @@ const {running: saving, run: save} = useAsyncAction(async () => {
           :selected-id="selectedId"
           @select="selectGroup"
           @move="moveGroup"
-          @remove="removeGroup"
+          @remove="requestRemove"
           @add="addGroup"
       />
 
@@ -185,5 +189,10 @@ const {running: saving, run: save} = useAsyncAction(async () => {
       />
       <MutedText v-else size="sm">{{ t('setup.steps.groups.selectHint') }}</MutedText>
     </div>
+    <ConfirmDeleteModal
+        v-model="confirmingRemove"
+        :message="t('memberGroups.deleteConfirm', {name: removingName})"
+        @confirm="confirmRemove"
+    />
   </SetupLayout>
 </template>

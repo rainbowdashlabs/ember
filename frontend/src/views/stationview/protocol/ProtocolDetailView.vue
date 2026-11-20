@@ -33,6 +33,8 @@ import ProtocolSectionModal from './protocoldetailview/ProtocolSectionModal.vue'
 import ProtocolItemModal from './protocoldetailview/ProtocolItemModal.vue'
 import ProtocolEditModal from './protocoldetailview/ProtocolEditModal.vue'
 import { maxPointsOf } from './protocolPoints'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -151,9 +153,11 @@ async function handleSaveSection() {
   })
 }
 
-async function handleDeleteSection(id: number) {
-  await writeThenReload(() => protocol.deleteSection(id))
-}
+/** Deletes a section, after asking unless shift is held. */
+const {show: confirmingDeleteSection, target: deletingSectionId, requestDelete: handleDeleteSection, confirm: confirmDeleteSection} =
+  useConfirmDelete<number>({
+    onDelete: id => writeThenReload(() => protocol.deleteSection(id)),
+  })
 
 function openAddItem(sectionId: number) {
   editItemId.value = null
@@ -199,9 +203,11 @@ async function handleSaveItem() {
   })
 }
 
-async function handleDeleteItem(id: number) {
-  await writeThenReload(() => protocol.deleteItem(id))
-}
+/** Deletes a checkpoint, after asking unless shift is held. */
+const {show: confirmingDeleteItem, target: deletingItemId, requestDelete: handleDeleteItem, confirm: confirmDeleteItem} =
+  useConfirmDelete<number>({
+    onDelete: id => writeThenReload(() => protocol.deleteItem(id)),
+  })
 
 /**
  * Moves one entry of a level, on screen at once and then on the server, which takes the whole level
@@ -358,6 +364,18 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       v-model:description="editProtoDescription"
       v-model:pass-threshold="editProtoPassThreshold"
       @submit="handleSaveProtocol"
+    />
+
+    <ConfirmDeleteModal
+      v-model="confirmingDeleteSection"
+      :message="t('protocol.deleteSectionConfirm', {name: sections.find(s => s.id === deletingSectionId)?.name ?? ''})"
+      @confirm="confirmDeleteSection"
+    />
+
+    <ConfirmDeleteModal
+      v-model="confirmingDeleteItem"
+      :message="t('protocol.deleteItemConfirm', {name: items.find(i => i.id === deletingItemId)?.label ?? ''})"
+      @confirm="confirmDeleteItem"
     />
   </ViewContent>
 </template>
