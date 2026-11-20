@@ -34,7 +34,7 @@ export interface FieldDefaultsPort {
     set(entries: FieldDefaultEntry[]): Promise<EventFieldDefault[]>
 }
 
-/** What one partner station may do with a shared appointment; templates have no such arrangement. */
+/** What one partner station may do with a shared appointment or event group; templates have no such arrangement. */
 export interface PartnerPlacesPort {
     list(): Promise<PartnerPlacesView[]>
     set(partnerId: number, slotBudget: number | null, partnerConfirms: boolean): Promise<void>
@@ -45,7 +45,7 @@ export interface FederationSharePort {
     get(): Promise<FederationShareResponse>
     set(scope: ShareScope, partnerIds?: number[]): Promise<void>
     remove(): Promise<void>
-    /** Present for an appointment only, which is the one owner partners can be handed places of. */
+    /** Present for an appointment and an event group, the owners partners can be handed places of. */
     places?: PartnerPlacesPort
 }
 
@@ -118,6 +118,11 @@ export function eventGroupFederationPort(eventGroupId: number): FederationShareP
         get: () => eventGroups.getFederationShare(eventGroupId),
         set: (scope, partnerIds) => eventGroups.setFederationShare(eventGroupId, scope, partnerIds),
         remove: () => eventGroups.removeFederationShare(eventGroupId),
+        places: {
+            list: () => eventGroups.getPartnerPlaces(eventGroupId),
+            set: (partnerId, slotBudget, partnerConfirms) =>
+                eventGroups.setPartnerPlaces(eventGroupId, partnerId, slotBudget, partnerConfirms),
+        },
     }
 }
 

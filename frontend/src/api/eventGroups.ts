@@ -32,6 +32,7 @@ import type {
     RegistrationFieldDefinition,
     EventRegistrationFieldValue,
     FederationShareResponse,
+    PartnerPlacesView,
     RegistrationStatus,
     RestrictionAudience,
     ShareScope,
@@ -196,6 +197,22 @@ export async function setFederationShare(eventGroupId: number, scope: ShareScope
 /** Stops sharing an event group and its parts. */
 export async function removeFederationShare(eventGroupId: number): Promise<void> {
     await client.delete(`${EVENT_GROUPS}/${eventGroupId}/federation`)
+}
+
+/**
+ * What each partner station may do with a shared event group. Absent from the list means this station
+ * decides about each of the partner's sign-ups, with no cap.
+ */
+export async function getPartnerPlaces(eventGroupId: number): Promise<PartnerPlacesView[]> {
+    return (await client.get<PartnerPlacesView[]>(`${EVENT_GROUPS}/${eventGroupId}/partner-places`)).data
+}
+
+/**
+ * Lets a partner station decide its own sign-ups for the whole event group, optionally within a number
+ * of places, or takes the arrangement back.
+ */
+export async function setPartnerPlaces(eventGroupId: number, partnerId: number, slotBudget: number | null, partnerConfirms: boolean): Promise<void> {
+    await client.put(`${EVENT_GROUPS}/${eventGroupId}/partner-places/${partnerId}`, {slotBudget, partnerConfirms})
 }
 
 /** The sign-ups partner stations' members sent for an event group. */

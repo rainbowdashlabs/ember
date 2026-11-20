@@ -12,7 +12,8 @@ import type {useEventFederationShare} from '../eventeditview/useEventFederationS
 
 /**
  * Sharing an event group with partner stations: every part goes with it, parts added later included.
- * It is a folded section of the event group's form that says with whom it is shared.
+ * Each partner it is shared with can be left to decide its own sign-ups, within places counted for the
+ * whole event group. It is a folded section of the event group's form that says with whom it is shared.
  */
 defineProps<{
   federationShare: ReturnType<typeof useEventFederationShare>
@@ -41,10 +42,13 @@ const {t} = useI18n()
         :partners="federationShare.partners.value"
         :can-federate="canFederate"
         :hint="t('eventGroups.federationHint')"
+        :places-hint="t('eventGroups.partnerPlacesHint')"
         :compact="compact"
+        :places="federationShare.state.federationPlaces"
         @update:shared="federationShare.handlers['update:federationShared']"
         @update:scope="federationShare.handlers['update:federationScope']"
         @update:partner-ids="federationShare.handlers['update:federationPartnerIds']"
+        @update:places="federationShare.handlers['update:federationPlaces']"
     />
   </FormSection>
 </template>

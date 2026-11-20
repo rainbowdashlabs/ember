@@ -116,6 +116,17 @@ watch(() => props.detail.eventGroup.id, () => reload())
 /** Everybody waiting for a place, first in line first, partners' members included. */
 const queue = computed(() => eventGroupQueueOf(signUps.value, partnerSignUps.value))
 
+/**
+ * The partners that decide their own sign-ups, whose waiting members this station does not move up.
+ * Moving them within the list stays with this station.
+ */
+const decidingPartners = computed(() =>
+    new Set(partnerSignUps.value.filter(entry => entry.partnerDecides).map(entry => entry.partnerId)))
+
+function partnerDecides(partnerId: number): boolean {
+  return decidingPartners.value.has(partnerId)
+}
+
 /** Whether the event group keeps a waiting list, which needs a limit on people or on parts. */
 const keepsQueue = computed(() => keepsWaitingList(props.detail.eventGroup.details, props.detail.parts))
 
@@ -165,6 +176,7 @@ defineExpose({reload})
     <QueueSection
         :entries="queue"
         can-manage
+        :partner-decides="partnerDecides"
         :busy="actions.busy.value"
         @reorder="actions.reorder"
         @move-up="actions.moveUp"

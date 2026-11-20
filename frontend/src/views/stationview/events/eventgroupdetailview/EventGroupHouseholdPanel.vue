@@ -26,6 +26,7 @@ import {eventGroupPlaces, holdsOrWaitsForPlace} from '@/util/eventGroupChoice'
 import {ownEventGroupPort, type EventGroupSignUpPort} from './eventGroupSignUpPort'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {hasPassed} from '../eventshared/registrationDeadline'
+import type {OurPartnerPlaces} from '../eventshared/ourPartnerPlaces'
 
 /**
  * The sign-up of the reader and of everybody they look after: whether each is signed up, which parts
@@ -34,6 +35,9 @@ import {hasPassed} from '../eventshared/registrationDeadline'
  * <p>A full event group still takes sign-ups: they wait on the waiting list, which the button then
  * says, and whoever waits sees their place in line and can leave it. Once no part is left, a wait
  * nobody moved up from reads as no place.
+ *
+ * <p>On a partner's event group that handed this station the choosing, the places given stand above
+ * the list, and a reader who keeps the station's sign-ups confirms a waiting one from here.
  */
 const props = defineProps<{
   detail: EventGroupDetail
@@ -41,6 +45,8 @@ const props = defineProps<{
   onChanged?: () => void | Promise<void>
   /** Where sign-ups go; an event group of this station unless a partner's event group page says otherwise. */
   port?: EventGroupSignUpPort
+  /** What a partner holding the event group gave this station, where this is a partner's event group. */
+  ourPlaces?: OurPartnerPlaces
 }>()
 
 const {t} = useI18n()
@@ -89,6 +95,16 @@ const {running: busy, failure, run: withdraw} = useAsyncAction(async (entry: Eve
   await props.onChanged?.()
 })
 
+/** Whether the reader may give this waiting sign-up its place here, which only a partner that handed over the choosing allows. */
+function confirmable(entry: EventGroupSignUp): boolean {
+  return !!props.ourPlaces?.weDecide && !!props.port?.confirm && entry.status === RegistrationStatus.PENDING
+}
+
+const {running: confirming, failure: confirmFailure, run: confirm} = useAsyncAction(async (entry: EventGroupSignUp) => {
+  await props.port?.confirm?.(entry.memberId)
+  await props.onChanged?.()
+})
+
 /** Withdraws the sign-up asked about and closes the dialog, whether the withdrawal worked or not. */
 async function confirmWithdraw() {
   const entry = withdrawFor.value
@@ -101,7 +117,8 @@ async function confirmWithdraw() {
 <template>
   <NeutralContainer class="space-y-3" data-testid="event-group-household">
     <SectionHeader>{{ t('eventGroups.household') }}</SectionHeader>
-    <FailureAlert v-if="failure" :failure="failure"/>
+    <MutedText v-if="ourPlaces?.summary" tag="p" size="sm" data-testid="event-group-our-places">{{ ourPlaces.summary }}</MutedText>
+    <FailureAlert v-if="failure ?? confirmFailure" :failure="failure ?? confirmFailure"/>
     <div v-for="entry in detail.household" :key="entry.memberId"
          class="flex flex-wrap items-center justify-between gap-2" data-testid="event-group-household-entry">
       <div class="flex flex-wrap items-center gap-2 min-w-0">
@@ -124,6 +141,10 @@ async function confirmWithdraw() {
           </PrimaryButton>
         </template>
         <template v-else>
+          <PrimaryButton v-if="confirmable(entry)" :icon="['fas', 'check']" :disabled="confirming"
+                         data-testid="event-group-confirm-own" @click="confirm(entry)">
+            {{ t('common.confirm') }}
+          </PrimaryButton>
           <SecondaryButton
               v-if="!changeClosed"
               :icon="['fas', 'pen']"

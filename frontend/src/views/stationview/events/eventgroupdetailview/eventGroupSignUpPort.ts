@@ -17,6 +17,11 @@ export interface EventGroupSignUpPort {
     signUp(parts: number[], answers: EventRegistrationFieldValue[], memberId?: number, whenFull?: WhenFull): Promise<unknown>
     changeParts(parts: number[], memberId?: number): Promise<unknown>
     withdraw(memberId?: number): Promise<unknown>
+    /**
+     * Gives a waiting sign-up of this station's own a place. Present only for a partner's event group,
+     * where the partner may hand this station the choosing of its own sign-ups.
+     */
+    confirm?(memberId: number): Promise<unknown>
 }
 
 /** Sign-ups for an event group of this station. */
@@ -39,5 +44,6 @@ export function partnerEventGroupPort(stationUid: string, eventGroupId: number):
         signUp: (parts, _answers, memberId) => partnerEventGroups.signUp(stationUid, eventGroupId, parts, memberId),
         changeParts: (parts, memberId) => partnerEventGroups.changeParts(stationUid, eventGroupId, parts, memberId),
         withdraw: memberId => partnerEventGroups.withdraw(stationUid, eventGroupId, memberId),
+        confirm: memberId => partnerEventGroups.confirm(stationUid, eventGroupId, memberId),
     }
 }

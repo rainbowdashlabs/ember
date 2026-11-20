@@ -23,6 +23,8 @@ const props = defineProps<{
   note?: string
   /** Without a heading: the switch says what it does, and the explanation sits behind a hint icon. */
   compact?: boolean
+  /** What the places of a partner count, where the owner is not an appointment: an event group's count for all of it. */
+  placesHint?: string
 }>()
 
 const shared = defineModel<boolean>('shared', {required: true})
@@ -30,7 +32,7 @@ const scope = defineModel<string>('scope', {required: true})
 const partnerIds = defineModel<number[]>('partnerIds', {required: true})
 
 /**
- * What each partner may do with this appointment, keyed by partner.
+ * What each partner may do with this appointment or event group, keyed by partner.
  *
  * <p>Only the partners this is actually shared with are worth arranging anything for, so the list
  * follows the share above rather than naming everybody the station has ever federated with. An
@@ -75,12 +77,12 @@ const {t} = useI18n()
     />
 
     <template v-if="sharedWith.length > 0">
-      <HintedSubHeader v-if="compact" class="pt-2" :hint="t('events.partnerPlacesHint')">
+      <HintedSubHeader v-if="compact" class="pt-2" :hint="placesHint ?? t('events.partnerPlacesHint')">
         {{ t('events.partnerPlacesTitle') }}
       </HintedSubHeader>
       <template v-else>
         <SubHeader class="pt-2">{{ t('events.partnerPlacesTitle') }}</SubHeader>
-        <MutedText tag="p" size="sm">{{ t('events.partnerPlacesHint') }}</MutedText>
+        <MutedText tag="p" size="sm" data-testid="partner-places-hint">{{ placesHint ?? t('events.partnerPlacesHint') }}</MutedText>
       </template>
       <div class="space-y-3">
         <PartnerPlacesRow

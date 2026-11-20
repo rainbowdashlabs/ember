@@ -26,7 +26,7 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
     federationScope: 'ALL_PARTNERS',
     federationPartnerIds: [] as number[],
     /**
-     * What each partner may do with this appointment, keyed by partner.
+     * What each partner may do with this appointment or event group, keyed by partner.
      *
      * <p>A partner missing from here is the arrangement nobody configured: this station decides, with
      * no cap, which is how every shared appointment worked before this existed.
