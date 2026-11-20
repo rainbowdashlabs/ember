@@ -20,8 +20,6 @@ import {useSession} from '@/composables/useSession'
 import {mentionablesOf} from '@/util/messageText'
 import {timelineOf} from '@/util/messageTimeline'
 import {personName} from '@/util/conversationTitle'
-import {showToast} from '@/util/toast'
-import {describeFailure} from '@/util/failure'
 import ConversationHeader from './conversationpane/ConversationHeader.vue'
 import MessageTimeline from './conversationpane/MessageTimeline.vue'
 import MessageComposer from './conversationpane/MessageComposer.vue'
@@ -31,6 +29,7 @@ import ReportMessageModal from './conversationpane/ReportMessageModal.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MessageActionSheet from './conversationpane/MessageActionSheet.vue'
 import type {MessageActions} from './conversationpane/messageActions'
+import {useConversationConfirm} from './conversationpane/useConversationConfirm'
 
 /**
  * One open conversation: its header, its messages and the box to write in. Reading it at the
@@ -42,14 +41,6 @@ const props = defineProps<{
   uid: string
   onChanged: () => Promise<void> | void
 }>()
-
-/** A question asked before something that cannot be taken back, with what answering yes does. */
-interface Confirmation {
-  title: string
-  message: string
-  label: string
-  run: () => Promise<void>
-}
 
 const {t} = useI18n()
 const router = useRouter()
@@ -65,8 +56,7 @@ const editing = ref<ConversationMessageResponse | null>(null)
 const membersOpen = ref(false)
 const menuMessage = ref<ConversationMessageResponse | null>(null)
 const menuOpen = ref(false)
-const confirmation = ref<Confirmation | null>(null)
-const confirming = ref(false)
+const {confirmation, confirming, ask, confirm} = useConversationConfirm()
 const atBottom = ref(true)
 const reporting = ref<ConversationMessageResponse | null>(null)
 const reportOpen = ref(false)
@@ -96,22 +86,6 @@ watch([() => messages.value.length, atBottom], async () => {
 })
 
 watch(gone, isGone => { if (isGone) void props.onChanged() })
-
-function ask(question: Confirmation) {
-  confirmation.value = question
-  confirming.value = true
-}
-
-async function confirm() {
-  const question = confirmation.value
-  confirming.value = false
-  if (!question) return
-  try {
-    await question.run()
-  } catch (e) {
-    showToast(describeFailure(e, t).message, 'error')
-  }
-}
 
 function askBlock(person: MessagePersonResponse) {
   ask({

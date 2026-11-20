@@ -22,6 +22,8 @@ import {accountLinks, clusterMembers} from '@/api'
 import {ClusterUserType, type AssociationLinkState, type ClusterMemberResponse} from '@/api/generated/schema'
 import {ClusterPermission} from '@/api/clusters'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useSession} from '@/composables/useSession'
 import {apiErrorBody} from '@/util/apiError'
 import {showToast} from '@/util/toast'
@@ -82,13 +84,15 @@ async function loadRequests() {
 
 onMounted(loadRequests)
 
-async function remove(memberId: number) {
-  await runWith(async () => {
-    await clusterMembers.removeMember(memberId)
-    if (selectedId.value === memberId) selectedId.value = null
-    return clusterMembers.listMembers()
-  }, {busy})
-}
+/** Takes a person out of the association team, after asking unless shift is held. */
+const {show: confirmingRemove, target: removing, requestDelete: remove, confirm: confirmRemove} =
+  useConfirmDelete<ClusterMemberResponse>({
+    onDelete: member => runWith(async () => {
+      await clusterMembers.removeMember(member.id)
+      if (selectedId.value === member.id) selectedId.value = null
+      return clusterMembers.listMembers()
+    }, {busy}),
+  })
 
 async function reload() {
   await runWith(() => clusterMembers.listMembers(), {busy})
@@ -122,7 +126,7 @@ async function changeUserType(memberId: number, userType: string) {
         <NeutralContainer v-if="selected" class="space-y-4">
           <div class="flex items-center justify-between gap-3">
             <SectionHeader>{{ selected.name ?? selected.email }}</SectionHeader>
-            <DeleteButton v-if="editable" :disabled="busy" @click="remove(selected.id)"/>
+            <DeleteButton v-if="editable" :disabled="busy" @click="remove(selected)"/>
           </div>
 
           <div class="space-y-1">
@@ -146,6 +150,12 @@ async function changeUserType(memberId: number, userType: string) {
       </div>
 
       <AddMemberModal v-model="showAdd" :saving="busy" :needs-name="needsName" @add="add"/>
+      <ConfirmDeleteModal
+          v-model="confirmingRemove"
+          :message="t('clusterMembers.removeConfirm', {name: removing?.name ?? removing?.email ?? ''})"
+          :busy="busy"
+          @confirm="confirmRemove"
+      />
     </div>
   </ViewContent>
 </template>

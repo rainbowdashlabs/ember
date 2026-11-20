@@ -12,6 +12,7 @@ import {RegistrationStatus, WhenFull} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 import type {QueueEntry} from '@/util/registrationQueue'
 import {appointmentStatuses, useQueueActions} from './useQueueActions'
+import {followModifierKeys} from '@/util/modifierKeys'
 import type {EnrichedFederationRegistration, RegistrationResponse} from '@/api/generated/schema'
 
 const api = vi.hoisted(() => ({
@@ -54,6 +55,8 @@ function actionsWith(
 
 /** Whoever decides the sign-ups keeps the waiting list through the routes of each kind of sign-up. */
 describe('useQueueActions', () => {
+    followModifierKeys()
+
     beforeEach(() => {
         Object.values(api.events).forEach(mock => mock.mockReset())
         toast.showToast.mockReset()
@@ -127,6 +130,22 @@ describe('useQueueActions', () => {
 
         expect(statusOf).toHaveBeenCalledWith(9, true)
         expect(api.events.updateFederationRegistrationStatus).toHaveBeenCalledWith(9, RegistrationStatus.DENIED, undefined)
+    })
+
+    /** Shift skips this question as it does every plain confirmation. */
+    it('denies an accepted sign-up at once while shift is held', async () => {
+        api.events.updateRegistrationStatus.mockResolvedValue({message: 'ok'})
+        const {actions} = actionsWith(undefined, () => RegistrationStatus.ACCEPTED)
+
+        window.dispatchEvent(new KeyboardEvent('keydown', {key: 'Shift'}))
+        try {
+            expect(await actions.deny(5)).toBe(true)
+        } finally {
+            window.dispatchEvent(new KeyboardEvent('keyup', {key: 'Shift'}))
+        }
+
+        expect(actions.denyQuestion.value).toBe(false)
+        expect(api.events.updateRegistrationStatus).toHaveBeenCalledWith(5, RegistrationStatus.DENIED, undefined)
     })
 
     it('leaves an accepted sign-up where the question is turned down', async () => {

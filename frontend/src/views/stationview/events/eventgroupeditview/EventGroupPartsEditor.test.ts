@@ -4,22 +4,25 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount} from '@vue/test-utils'
 import {computed} from 'vue'
 import EventGroupPartsEditor from './EventGroupPartsEditor.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import type {EventGroupDetail} from '@/api/generated/schema'
 import {noDeadline} from '../eventshared/registrationDeadline'
+import {followModifierKeys} from '@/util/modifierKeys'
 
 const createPart = vi.fn(async (..._args: unknown[]) => ({}))
 const setPartRequired = vi.fn(async (..._args: unknown[]) => ({}))
+const removePart = vi.fn(async (..._args: unknown[]) => ({}))
 
 vi.mock('@/api', () => ({
   events: {listEvents: async () => []},
   eventGroups: {
     createPart: (...args: unknown[]) => createPart(...args),
     setPartRequired: (...args: unknown[]) => setPartRequired(...args),
+    removePart: (...args: unknown[]) => removePart(...args),
   },
 }))
 vi.mock('@/composables/useSession', () => ({useSession: () => ({stationTimezone: computed(() => 'Europe/Berlin')})}))
@@ -40,7 +43,47 @@ const detail: EventGroupDetail = {
   places: null,
 }
 
+/** Presses and releases shift the way a reader holding it down would. */
+function holdShift(held: boolean) {
+  window.dispatchEvent(new KeyboardEvent(held ? 'keydown' : 'keyup', {key: 'Shift'}))
+}
+
+const SATURDAY = {
+  eventId: 11, setId: 1, name: 'Samstag', startTime: '2027-03-06T08:00:00Z', endTime: '2027-03-06T16:00:00Z',
+  calledOff: false, tookPlace: false, required: false, accepted: 0, places: null,
+}
+
 describe('EventGroupPartsEditor', () => {
+  beforeAll(() => followModifierKeys())
+  afterEach(() => {
+    holdShift(false)
+    removePart.mockClear()
+  })
+
+  it('asks before taking a part out of the event group', async () => {
+    const editor = mount(EventGroupPartsEditor, {props: {detail: {...detail, parts: [SATURDAY]}}})
+    await flushPromises()
+
+    await editor.find('[aria-label="Aus der Terminreihe nehmen"]').trigger('click')
+
+    expect(editor.findComponent({name: 'ConfirmDeleteModal'}).props('modelValue')).toBe(true)
+    expect(removePart).not.toHaveBeenCalled()
+  })
+
+  it('takes a part out at once while shift is held and reloads the event group', async () => {
+    const onChanged = vi.fn()
+    const editor = mount(EventGroupPartsEditor, {props: {detail: {...detail, parts: [SATURDAY]}, onChanged}})
+    await flushPromises()
+
+    holdShift(true)
+    await editor.find('[aria-label="Aus der Terminreihe nehmen"]').trigger('click', {shiftKey: true})
+    await flushPromises()
+
+    expect(removePart).toHaveBeenCalledWith(70, 11)
+    expect(onChanged).toHaveBeenCalled()
+    expect(editor.findComponent({name: 'ConfirmDeleteModal'}).props('modelValue')).toBe(false)
+  })
+
   it('creates a new part with its name, times and set and reloads the event group', async () => {
     const onChanged = vi.fn()
     const editor = mount(EventGroupPartsEditor, {props: {detail, onChanged}})

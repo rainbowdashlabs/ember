@@ -4,17 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AssignItemModal from './AssignItemModal.vue'
 import ProcurementModal from './ProcurementModal.vue'
 import HistoryModal from './HistoryModal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ItemModals from '../editview/ItemModals.vue'
+import ItemReturnAndLossModals from '../editview/ItemReturnAndLossModals.vue'
 import { inventory, procurement } from '@/api'
 import {InventoryType, type InventoryDetail, type InventoryItem} from '@/api/generated/schema'
 import type { MemberLike } from '@/components/input/select/memberOption'
 import { useModalTarget } from '@/composables/useModalTarget'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
@@ -50,9 +52,14 @@ const {isOpen: showProcurementModal, open: openProcurement} = useModalTarget<nul
 
 const {isOpen: showHistoryModal, target: historyTarget, open: openHistory} = useModalTarget<InventoryItem>()
 
-const {isOpen: showDeleteModal, target: deleteTarget, open: openDelete} = useModalTarget<InventoryItem>()
-
 function fail(e: unknown) { emit('error', describeFailure(e, t)) }
+
+const {show: showDeleteModal, target: deleteTarget, requestDelete: openDelete, confirm: confirmDelete, failure: deleteFailure} =
+  useConfirmDelete<InventoryItem>({
+    onDelete: item => inventory.deleteItem(item.id),
+    onSuccess: () => emit('reload'),
+  })
+watch(deleteFailure, failure => { if (failure) emit('error', failure) })
 
 /**
  * Hands the piece to the chosen member.
@@ -86,35 +93,14 @@ async function submitProcurement() {
   } catch (e) { fail(e) }
 }
 
-async function unassign(item: InventoryItem) {
-  try {
-    if (props.detail?.inventoryType === InventoryType.EXTERNAL) {
-      await inventory.deleteItem(item.id)
-    } else {
-      await inventory.assignItem(item.id, { memberId: null, memberName: '' })
-    }
-    emit('reload')
-  } catch (e) { fail(e) }
-}
+const returnAndLoss = ref<InstanceType<typeof ItemReturnAndLossModals> | null>(null)
 
-async function markLost(item: InventoryItem) {
-  try { await inventory.markLost(item.id); emit('reload') }
-  catch (e) { fail(e) }
-}
+function unassign(item: InventoryItem) { void returnAndLoss.value?.unassign(item) }
+function markLost(item: InventoryItem) { returnAndLoss.value?.markLost(item) }
 
 async function markFound(item: InventoryItem) {
   try { await inventory.markFound(item.id); emit('reload') }
   catch (e) { fail(e) }
-}
-
-async function confirmDelete() {
-  if (!deleteTarget.value) return
-  try {
-    await inventory.deleteItem(deleteTarget.value.id)
-    showDeleteModal.value = false
-    deleteTarget.value = null
-    emit('reload')
-  } catch (e) { fail(e) }
 }
 
 async function fulfillProcurement(id: number) {
@@ -180,5 +166,12 @@ defineExpose({
     v-model="showDeleteModal"
     :message="t('inventory.edit.deleteConfirm', { name: deleteTarget?.name })"
     @confirm="confirmDelete"
+  />
+
+  <ItemReturnAndLossModals
+    ref="returnAndLoss"
+    :external="detail?.inventoryType === InventoryType.EXTERNAL"
+    @changed="emit('reload')"
+    @error="emit('error', $event)"
   />
 </template>

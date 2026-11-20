@@ -221,7 +221,7 @@ function handleClose() {
           @send="handleSendMessage"/>
     </template>
 
-    <Modal v-model="showDeclineModal">
+    <Modal v-model="showDeclineModal" data-confirm-always>
       <SectionHeader class="mb-4">{{ t('lending.declineTitle') }}</SectionHeader>
       <TextAreaInput v-model="declineReason" :placeholder="t('lending.declineReasonPlaceholder')" :rows="3"/>
       <ButtonRow pair align="end" class="mt-4">

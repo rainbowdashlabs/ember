@@ -4,16 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest'
 import {ref} from 'vue'
 import {useMediaBulkActions} from './useMediaBulkActions'
 import type {FileListing} from '@/api/generated/schema'
+import {followModifierKeys} from '@/util/modifierKeys'
 
 const moved: [number, number | null][] = []
+const removed: number[] = []
 
 vi.mock('@/api/media', () => ({
     moveMediaFileToFolder: async (id: number, folderId: number | null) => { moved.push([id, folderId]) },
-    removeMediaFile: async () => {},
+    removeMediaFile: async (id: number) => { removed.push(id) },
     pruneMediaFiles: async () => {},
 }))
 vi.mock('vue-i18n', () => ({useI18n: () => ({t: (key: string) => key})}))
@@ -53,5 +55,42 @@ describe('dropOnFolder', () => {
         expect(moved).toEqual([[3, 9]])
         expect(entries.value.map(e => e.file.folderId)).toEqual([null, null, 9])
         expect(selectedIds.value).toEqual([1, 2])
+    })
+})
+
+function holdShift(held: boolean) {
+    window.dispatchEvent(new KeyboardEvent(held ? 'keydown' : 'keyup', {key: 'Shift'}))
+}
+
+/** Deleting the selection asks first, and shift skips the question. */
+describe('bulk delete', () => {
+    beforeAll(() => followModifierKeys())
+    afterEach(() => holdShift(false))
+
+    it('asks before deleting the selected files', async () => {
+        removed.length = 0
+        const {bulk, selectedIds} = actions([1, 2])
+
+        bulk.requestBulkDelete()
+
+        expect(bulk.bulkDeleteOpen.value).toBe(true)
+        expect(removed).toEqual([])
+
+        await bulk.runBulkDelete()
+        expect(removed).toEqual([1, 2])
+        expect(selectedIds.value).toEqual([])
+        expect(bulk.bulkDeleteOpen.value).toBe(false)
+    })
+
+    it('deletes at once while shift is held', async () => {
+        removed.length = 0
+        const {bulk, selectedIds} = actions([3])
+
+        holdShift(true)
+        bulk.requestBulkDelete()
+
+        await vi.waitFor(() => expect(removed).toEqual([3]))
+        expect(bulk.bulkDeleteOpen.value).toBe(false)
+        await vi.waitFor(() => expect(selectedIds.value).toEqual([]))
     })
 })

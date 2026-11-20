@@ -309,6 +309,11 @@ export default {
             shortcutsSkip: 'Hältst du beim Klick auf Löschen oder eine andere Rückfrage die Umschalttaste, wird die '
                 + 'Frage übersprungen und die Aktion sofort ausgeführt. Praktisch, wenn du mehrere Einträge '
                 + 'nacheinander wegräumst.',
+            shortcutsSkipSafety: 'Ausgenommen sind die Sicherheitsstopps, die immer fragen: dein eigenes Konto löschen, '
+                + 'der letzte Schritt beim Löschen eines Mitglieds, ein Einmalpasswort ersetzen, eine Wache '
+                + 'importieren, Signaturschlüssel wiederherstellen und die Frage beim Verlassen ungespeicherter '
+                + 'Änderungen.',
+            shortcutsSkipInput: 'Ebenso fragen Dialoge immer, in denen du einen Grund, eine Notiz oder eine Auswahl angibst.',
             otherPagesText: 'Neben den Grundlagen gibt es detaillierte Hilfe-Seiten zu jedem Bereich der Anwendung:',
             goToStation: 'Wachen-Hilfe',
             goToAdmin: 'Admin-Hilfe',
@@ -359,7 +364,7 @@ export default {
                 blockText: 'Blockierst du jemanden, kann die Person keine direkte Unterhaltung mit dir mehr starten und dich in keine Gruppe holen. In gemeinsamen Gruppen sind ihre Nachrichten eingeklappt, und ihre Reaktionen siehst du nicht. Die Person erfährt davon nichts.',
                 reportTitle: 'Melden',
                 reportText: 'Direkte Unterhaltungen und Gruppen gehören den Leuten, die darin schreiben, und keiner Wache. Dort kann man nichts melden. Wenn dich jemand bedrängt, blockiere die Person und sprich mit jemandem, dem du vertraust.',
-                reportStationText: 'Wachenchats gehören dagegen der Wache. Dort kannst du eine Nachricht melden. Die Meldung geht an die, die die Chats der Wache betreuen. Sie sehen die Nachricht mit dem, was davor und danach geschrieben wurde, und können sie für die Wache entfernen.',
+                reportStationText: 'Wachenchats gehören dagegen der Wache. Dort kannst du eine Nachricht melden. Die Meldung geht an die, die die Chats moderieren. Sie sehen die Nachricht mit dem, was davor und danach geschrieben wurde, und können sie für die Wache entfernen.',
                 stationTitle: 'Wachenchats',
                 stationText: 'Eine Wache kann Chats für alle eröffnen oder für die, die sie auswählt, etwa eine Gruppe zusammen mit ihrer Leitung. Wer dazugehört, ist automatisch dabei, und wer geht, ist draußen. Verlassen kannst du so einen Chat nicht, aber stummschalten. Kinder sind erst dabei, wenn eine erziehungsberechtigte Person Nachrichten erlaubt hat. Die Wache kann auch die Erziehungsberechtigten dazuholen.',
                 storedTitle: 'Wo liegen meine Nachrichten?',
@@ -507,7 +512,7 @@ export default {
                 privacyText: 'Ember nimmt Datenschutz ernst:',
                 privacy1: 'Alle Daten bleiben auf dem Server, den du oder dein Betreiber kontrolliert.',
                 privacy2: 'Jedes Mitglied kann seine Daten als JSON exportieren (DSGVO-Export).',
-                privacy3: 'Beim Löschen eines Mitglieds werden persönliche Daten anonymisiert.',
+                privacy3: 'Beim Löschen eines Mitglieds werden persönliche Daten anonymisiert. Seine Ausrüstung kommt vorher zurück ins Lager, und laufende Vorgänge werden abgebrochen.',
                 tip: 'Ember ist Open Source (AGPL-3.0). Du kannst den Quellcode einsehen und eigene Anpassungen vornehmen.',
             },
             permissions: {
@@ -1191,7 +1196,7 @@ volumes:
             membersGroups: 'Mitglieder & Gruppen - Wie viele Mitglieder es gibt und wie sie auf Gruppen verteilt sind.',
             attendanceMonth: 'Anwesenheit nach Monat - Wie oft Leute bei Terminen anwesend waren.',
             sessionsMonth: 'Termine pro Monat - Wie viele Termine in den letzten Monaten stattgefunden haben.',
-            inventoryStatus: 'Inventar Status - Wie viel Ausrüstung zugewiesen, verfügbar oder verloren ist.',
+            inventoryStatus: 'Inventar Status - Wie viel Ausrüstung zugewiesen, verfügbar, verloren oder gerade nicht auf der Wache ist, etwa verliehen, unterwegs oder beim Träger. Ein verlorener Gegenstand zählt nur als verloren.',
             eventRegistrations: 'Anmeldungen - Wie viele Anmeldungen bestätigt, offen oder abgelehnt sind.',
             howToReadTitle: 'So liest du die Diagramme',
             howToReadText: 'Ein Balkendiagramm zeigt dir Zahlen als Balken nebeneinander. Je höher der Balken, desto größer die Zahl.',
@@ -1397,7 +1402,7 @@ volumes:
             stationTitle: 'Wachenchats',
             stationText: 'Ein Wachenchat gehört der Wache. Sie eröffnet ihn für alle oder für die, die sie auswählt, und wer dazugehört, ist automatisch dabei. In der Liste erkennst du ihn am Bild der Wache und an „Wachenchat". Über „Wachenchats" über der Liste siehst du nur diese Chats.',
             stationMembersText: 'Die Mitgliederliste eines Wachenchats kannst du nur ansehen. Namen stehen dort und an den Nachrichten in der Farbe ihrer Gruppe und mit ihrem Tag, so wie die Wache sie zeigt. Erziehungsberechtigte sind dort mit dem Namen der Person markiert, für die sie dabei sind. Verlassen kannst du den Chat nicht, aber stummschalten. Ein geschlossener Chat bleibt lesbar, nimmt aber nichts Neues mehr an.',
-            stationReportText: 'An einer fremden Nachricht im Wachenchat findest du „Melden". Die Meldung geht an die, die die Chats der Wache betreuen. Sie können eine Nachricht für die Wache entfernen, dann steht dort für alle „Von der Wache entfernt".',
+            stationReportText: 'An einer fremden Nachricht im Wachenchat findest du „Melden". Die Meldung geht an die, die die Chats moderieren. Sie können eine Nachricht für die Wache entfernen, dann steht dort für alle „Von der Wache entfernt".',
             noEncryptionText: 'Nachrichten sind nicht Ende-zu-Ende-verschlüsselt. Das heißt: Sie liegen lesbar auf dem Server, wie alles andere in Ember auch. Schreib deshalb keine Passwörter oder Geheimnisse in eine Nachricht.',
             tip: 'Hat ein Kind Erziehungsberechtigte, sieht es Nachrichten erst, wenn eine erziehungsberechtigte Person sie bei „Verwaltete Profile" erlaubt.',
             example: {
@@ -1433,8 +1438,8 @@ volumes:
             guardiansText: 'Den Schalter gibt es für jeden Chat, auch für einen für die ganze Wache. Ist er an, sind die Erziehungsberechtigten der Mitglieder ebenfalls im Chat. Sie lesen und schreiben wie alle anderen. Das gilt auch, wenn ihr Kind selbst noch keine Nachrichten hat. In der Mitgliederliste steht bei ihnen, für wen sie dabei sind.',
             closeTitle: 'Schließen und betreuen',
             closeText: 'Schließt du einen Chat, bleibt er für alle lesbar, nimmt aber nichts Neues mehr an. Mit „Wieder öffnen" geht er wieder auf. Wird eine Gruppe oder ein Tag aus seiner Zielgruppe gelöscht, oder ist niemand der einzeln Ausgewählten mehr da, schließt sich der Chat von selbst und sagt das. Gib ihm dann mit „Bearbeiten" eine neue Zielgruppe, danach lässt er sich wieder öffnen. Private Tags stehen nicht zur Auswahl, denn der Chat zeigt, wer dabei ist.',
-            moderateText: 'Bist du in einem Chat, kannst du jede Nachricht darin für die Wache entfernen. Gemeldete Nachrichten findest du unter „Gemeldete Nachrichten".',
-            tip: 'Dafür brauchst du die Berechtigung „Wachenchats verwalten".',
+            moderateText: 'Mit der Berechtigung „Chats moderieren" kannst du in jedem Chat, in dem du bist, jede Nachricht für die Wache entfernen. Gemeldete Nachrichten findest du unter „Gemeldete Nachrichten".',
+            tip: 'Chats anlegen, ändern und schließen erlaubt die Berechtigung „Chats bearbeiten". „Wachenchats verwalten" umfasst sie und „Chats moderieren".',
             example: {
                 youth: 'Jugendgruppe',
                 youthLeaders: 'Jugendleitung',
@@ -1451,10 +1456,10 @@ volumes:
             howTo: 'Eine Meldung ansehen',
             howToText: 'Oben stehen der Chat, wer gemeldet hat und wann, und der Grund, falls einer angegeben wurde. Darunter steht die Nachricht so, wie sie beim Melden lautete. Im Verlauf siehst du, was davor und danach geschrieben wurde. Die gemeldete Nachricht ist dort markiert, auch wenn sie inzwischen geändert wurde.',
             decideTitle: 'Entscheiden',
-            removeText: '„Für die Wache entfernen" fragt noch einmal nach und entfernt die Nachricht dann. Für alle steht dort „Von der Wache entfernt". Wer sie entfernt hat, sehen nur die, die die Chats betreuen.',
+            removeText: '„Für die Wache entfernen" fragt noch einmal nach und entfernt die Nachricht dann. Für alle steht dort „Von der Wache entfernt". Wer sie entfernt hat, sehen nur die, die die Chats moderieren.',
             dismissText: '„Meldung verwerfen" lässt die Nachricht stehen. Beides erledigt alle offenen Meldungen zu dieser Nachricht. Löscht die schreibende Person ihre Nachricht selbst, verschwindet die Meldung auch.',
             emptyTitle: 'Keine Meldungen',
-            tip: 'Dafür brauchst du die Berechtigung „Wachenchats verwalten".',
+            tip: 'Dafür brauchst du die Berechtigung „Chats moderieren". „Wachenchats verwalten" enthält sie.',
             example: {
                 reporterLast: 'Becker',
                 beforeLast: 'Wagner',
@@ -2693,11 +2698,11 @@ volumes:
             exchangeTitle: 'Tausch anfragen',
             exchangeText: 'Wenn ein Gegenstand nicht mehr passt oder kaputt ist, kannst du einen Tausch anfragen. Klicke auf den Button beim Gegenstand und wähle den Grund: zu klein, zu groß, kaputt oder ein anderer Grund in eigenen Worten. Die gewünschte Größe ist danach schon vorgewählt, eine Größe größer, kleiner oder gleich, und steht neben deiner aktuellen Größe. Du kannst sie ändern und eine Anmerkung dazuschreiben.',
             runningTitle: 'Laufende Vorgänge',
-            runningText: 'Deine Liste zeigt, was du gerade hast. Läuft für ein Teil ein Vorgang, steht daran der letzte erledigte Schritt und auf wen gerade gewartet wird, genau wie unter den laufenden Vorgängen. Sobald du ein Teil an der Wache abgibst, verschwindet es aus deiner Liste und steht nur noch unter den laufenden Vorgängen. Der Ersatz erscheint in deiner Liste, wenn er dir übergeben wird.',
+            runningText: 'Deine Liste zeigt, was du gerade hast. Läuft für ein Teil ein Vorgang, steht daran der letzte erledigte Schritt und auf wen gerade gewartet wird, genau wie unter den laufenden Vorgängen. Sobald du ein Teil an der Wache abgibst, verschwindet es aus deiner Liste und steht nur noch unter den laufenden Vorgängen. Der Ersatz erscheint in deiner Liste, wenn er dir übergeben wird. Die Zahl neben dem Inventar zählt wie die Wache: Ein Teil, das du für einen laufenden Tausch abgegeben hast, zählt noch mit. Was ein Vorgang dir bald bringt, steht als Karte „Kommt“ im passenden Inventar.',
             withdrawTitle: 'Tausch zurücknehmen',
             withdrawText: 'Solange du das Teil noch hast, kannst du deine Anfrage bei den laufenden Vorgängen selbst zurücknehmen. Danach entscheidet die Wache darüber, denn ab der Abgabe liegt das Teil bei ihr.',
             lostTitle: 'Als vermisst melden',
-            lostText: 'Findest du einen Gegenstand nicht mehr, meldest du ihn selbst als vermisst. Er gilt ab diesem Moment als vermisst und bleibt dir zugeordnet, bis er ersetzt wird. Betreust du jemanden, kannst du die Meldung auch für diese Person abgeben.',
+            lostText: 'Findest du einen Gegenstand nicht mehr, meldest du ihn selbst als vermisst. Er gilt ab diesem Moment als vermisst und bleibt dir zugeordnet, bis er ersetzt wird. In der Zählung neben dem Inventar zählt er aber nicht mehr mit, und einen Tausch kannst du für ihn nicht mehr anfragen. Betreust du jemanden, kannst du die Meldung auch für diese Person abgeben.',
             lostNoteText: 'Manche Wachen verlangen dabei eine kurze Notiz, was passiert ist. Steht sie im Formular als Pflichtfeld, kommt die Meldung ohne sie nicht durch.',
             lostReplacementText: 'Ein Ersatz kommt damit nicht automatisch. Ob welcher angefordert wird, entscheidet die Wache in einem zweiten Schritt.',
             tip: 'Taucht ein vermisster Gegenstand wieder auf, kann die Wache die Meldung zurücknehmen.',
@@ -3183,6 +3188,7 @@ volumes:
                 + 'In der Schnellprüfung steht der Geburtstag beim Namen, alles zu Erledigende unter den Knöpfen, damit die Statusknöpfe bei jedem Mitglied an derselben Stelle bleiben.',
             notesActionsText: 'Zwei davon lassen sich direkt erledigen: Bei einem Vorgang trägt der Button den Namen des Schritts, den du gerade erledigst, samt Teil und Größe. '
                 + 'Angezeigt werden nur Schritte, bei denen das Mitglied beteiligt ist; ist das Mitglied selbst am Zug, steht der Schritt da, ohne Button. '
+                + 'Mit dem Papierkorb entfernst du einen Tausch, solange noch nichts den Besitzer gewechselt hat. Ist schon ein Teil bewegt worden, fehlt der Papierkorb, und du brichst den Tausch auf seiner eigenen Seite ab. '
                 + 'Eine Fundsache wird mit "Übergeben" ausgehändigt und verschwindet damit aus der Liste.',
             notesRightsText: 'Angezeigt wird nur, wofür du auch sonst die Rechte hast: Tauschvorgänge brauchen Leserechte auf das Inventar, das Weiterbewegen zusätzlich das Recht für Tauschvorgänge, Fundsachen das Recht zur Verwaltung des Fundbüros. '
                 + 'Der Geburtstag folgt der Sichtbarkeit des Profilfelds. Wer nichts davon hat, sieht die Anwesenheitsliste unverändert.',
@@ -5886,7 +5892,8 @@ volumes:
             scanTitle: 'Gegenstände per Scan ausgeben',
             scanText: 'Scanne den Code eines Gegenstands oder tippe ihn ein, und er wird dem Mitglied zugewiesen. Mit „Ausgabe planen" wird er nur vorgemerkt und erst später übergeben. Ist der Code noch unbekannt, kannst du den Gegenstand gleich anlegen und ausgeben.',
             missingTitle: 'Fehlende Ausstattung',
-            missingText: 'Was für das Mitglied vorgesehen, aber noch nicht zugewiesen ist, steht als Karte „Fehlt“ direkt bei den anderen Gegenständen seines Inventars. Neben dem Namen des Inventars steht, wie viele es hat, wie viele es haben soll und wie viele fehlen. Das sind dieselben Vorgaben, mit denen auch die Überprüfung arbeitet: was die Rolle und die Gruppen des Mitglieds verlangen.',
+            missingText: 'Was für das Mitglied vorgesehen, aber noch nicht zugewiesen ist, steht als Karte „Fehlt“ direkt bei den anderen Gegenständen seines Inventars. Neben dem Namen des Inventars steht, wie viele es hat, wie viele es haben soll und wie viele fehlen. Das sind dieselben Vorgaben, mit denen auch die Überprüfung arbeitet: was die Rolle und die Gruppen des Mitglieds verlangen. Ein verlorener Gegenstand zählt dabei nicht mit, auch wenn er noch beim Mitglied steht, sodass für ihn eine Karte „Fehlt“ erscheint.',
+            incomingText: 'Bringt ein laufender Vorgang dem Mitglied etwas, steht dafür eine Karte „Kommt“ im passenden Inventar. Darauf steht das vorgesehene Teil oder, solange noch keins feststeht, das Inventar und die Größe. Darunter steht, welcher Schritt als Nächstes kommt, und der Link führt zum Vorgang. Die Karte füllt eine Lücke, deshalb zeigt dieses Inventar eine fehlende Karte weniger. Bei einem Tausch gilt das erst, wenn das alte Teil abgegeben ist. Du siehst die Karten, wenn du die Vorgänge sehen darfst.',
             missingHandOutText: '„Zuweisen“ auf einer fehlenden Karte öffnet ein Fenster für genau dieses Inventar. Hat es Größen, wählst du zuerst die Größe, dann stehen die passenden Gegenstände aus dem Lager oben in der Suche. Liegt nichts Passendes im Lager, legst du mit „Neu anlegen und zuweisen“ einen neuen Gegenstand an. Sobald die Vorgabe erfüllt ist, verschwindet die Karte.',
             changesTitle: 'Änderungsverlauf',
             changesText: 'Zeigt alle Profiländerungen dieses Mitglieds. Du kannst Änderungen bestätigen und optional einen Kommentar hinterlassen.',
@@ -6152,13 +6159,19 @@ volumes:
             lostTitle: 'Verlorene Gegenstände',
             lostText: 'Alle als verloren markierten Gegenstände werden hier aufgelistet.',
             freeTitle: 'Verfügbare Gegenstände',
-            freeText: 'Gegenstände, die keinem Mitglied zugewiesen sind. Du kannst sie direkt einem Mitglied zuweisen.',
+            freeText: 'Gegenstände, die keinem Mitglied zugewiesen sind. Du kannst sie direkt einem Mitglied zuweisen. '
+                + 'Ist ein Gegenstand schon für einen laufenden Vorgang vorgesehen, steht statt „Zuweisen“ der Vorgang '
+                + 'an der Karte.',
             procurementTitle: 'Offene Beschaffungen',
             procurementText: 'Beschaffungsanfragen für dieses Inventar. Du kannst hier auch neue Beschaffungen erstellen.',
             dummyCreateProcurement: 'Beschaffung erstellen',
             lentOut: 'Verliehen',
             itemsTitle: 'Alle Gegenstände',
             itemsText: 'Hier siehst du alle Gegenstände in einer Tabelle mit Aktionen zum Bearbeiten, Zuweisen und Löschen.',
+            movementText: 'Gehört ein Gegenstand gerade zu einem laufenden Vorgang, steht neben seinem Namen „Im Vorgang“ '
+                + 'mit der Nummer. Das gilt auch, wenn er nur für eine Ausgabe vorgesehen ist und noch im Lager liegt. '
+                + 'Ein Klick darauf öffnet den Vorgang. Im Menü des Gegenstands fehlen dann Zuweisen, Aufheben, '
+                + 'Verloren und Löschen.',
             tip: 'Klicke auf einen Gegenstand, um seinen Verlauf zu sehen.',
         },
         inventoryEdit: {
@@ -6366,8 +6379,14 @@ volumes:
             stepsText: 'Jeder Schritt sagt, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach ist. Erledigte Schritte tragen den Namen dessen, der sie bestätigt hat, und den Zeitpunkt. Beim aktuellen Schritt steht der Knopf, sofern du an der Reihe bist, sonst der Hinweis, auf wen gewartet wird.',
             acks: 'Bestätigt, vermerkt, erzwungen',
             acksText: 'Bestätigt heißt: die Partei, der der Schritt gehört, hat selbst bestätigt. Von der Wache vermerkt heißt: die Wache hat für einen Träger eingetragen, der Ember nicht nutzt und deshalb nicht antworten kann. Erzwungen heißt: jemand hat einen Schritt über eine Partei hinweg eingetragen, die hätte antworten können. Das steht dauerhaft im Verlauf.',
+            arrival: 'Das ankommende Teil',
+            arrivalText: 'Ein Schritt legt fest, welches Teil ankommt. Steht beim Vorgang schon ein Teil, weil es bei der Planung ausgesucht wurde, ist es dort bereits ausgewählt. Du bestätigst es einfach oder suchst ein anderes aus. Ein Teil, das schon ein anderer Vorgang versprochen hat, kannst du nicht wählen.',
             endings: 'Ablehnen und Abbrechen',
             endingsText: 'Wer an der Reihe ist, kann mit einer Begründung ablehnen. Der Vorgang endet dann, und das abgehende Teil geht dorthin zurück, wo es vorher war. Abbrechen geht, solange der Vorgang noch auf der eigenen Seite steht.',
+            callOff: 'Einen Tausch abbrechen',
+            callOffAtStationText: 'Brichst du einen Tausch ab, nachdem das alte Teil auf der Wache abgegeben wurde, fragt Ember: „Altes Teil dem Mitglied zurückgeben?“ Ja ist schon ausgewählt, dann hat das Mitglied das Teil wieder. Ist das Teil kaputt, wähle Nein, dann bleibt es auf der Wache.',
+            callOffAwayText: 'Ist das alte Teil schon unterwegs oder beim Träger, kann Ember den Rückweg planen. Dann startet eine neue Ausgabe genau dieses Teils an das Mitglied, die wie jede andere Ausgabe läuft. Dafür muss deine Wache einen Ablauf für Ausgaben des Trägers an Mitglieder haben, sonst wird das Abbrechen abgelehnt und der Tausch läuft weiter.',
+            callOffMemberText: 'Hat das Mitglied das alte Teil noch selbst, gibt es keine Frage: Es behält das Teil einfach.',
             rechain: 'Ablauf wechseln',
             rechainText: 'Manchmal ist ein Vorgang auf einem Ablauf gestartet, der nicht zu dem Teil gehört. Dann stehen dort Schritte, die für die Ausrüstung von jemand anderem geschrieben wurden, und über den Knopf neben der Überschrift des Ablaufs stellst du den Vorgang auf den richtigen Ablauf um. Dabei legst du fest, auf welchem Schritt er danach steht. Das geht nur bei offenen Vorgängen und nur mit dem Recht zur Inventarverwaltung.',
             lossReport: 'Verlustmeldungen',
@@ -6396,6 +6415,7 @@ volumes:
             dummyLostSince: 'Verloren seit 01.05.2026',
             actionsTitle: 'Aktionen',
             actionsText: 'Als Verwalter kannst du zuweisen, aufheben, als verloren oder gefunden markieren.',
+            actionsMovementText: 'Gehört der Gegenstand gerade zu einem laufenden Vorgang oder ist er für eine Ausleihe an eine Partnerwache vorgesehen, fehlen Zuweisen, Aufheben und Verloren, bis der Vorgang oder die Ausleihe vorbei ist. Ein verlorener Gegenstand lässt sich weder zuweisen noch aufheben: Er kommt über „Als gefunden melden“ zurück.',
             assignModalTitle: 'Zuweisen',
             assignModalText: 'Wähle ein Mitglied aus der Liste.',
             historyTitle: 'Zuweisungsverlauf',
@@ -6459,7 +6479,7 @@ volumes:
             whatIsText: 'Hier findest du alle Einstellungen, die deine Wache betreffen - vom Namen und Logo über den E-Mail-Versand bis hin zur Konfiguration von Anwesenheitsvorlagen und Profilfeldern. Nur Verwalter (Manager) haben Zugriff auf diesen Bereich.',
             pagesTitle: 'Was findest du hier?',
             pagesText: 'Die allgemeinen Wach-Einstellungen (Name, Logo, E-Mail, Module), die Konfiguration von Anwesenheitsvorlagen und die Konfiguration der Mitglieder-Profilfelder.',
-            chatsText: 'Unter „Wachenchats“ legst du Chats für die ganze Wache, eine Gruppe oder einen Tag an. Diesen Punkt siehst du, wenn du Wachenchats verwalten darfst, auch ohne andere Rechte in der Verwaltung.',
+            chatsText: 'Unter „Wachenchats“ legst du Chats für die ganze Wache, eine Gruppe oder einen Tag an. Diesen Punkt siehst du, wenn du Chats bearbeiten darfst, auch ohne andere Rechte in der Verwaltung.',
             pdfTitle: 'Adresse der Instanz auf PDFs',
             pdfText: 'In der Fußzeile jedes exportierten PDFs steht die Adresse dieser Instanz. Wenn deine Wache Listen an '
                 + 'Leute weitergibt, die hier kein Konto haben, oder die Instanz von außen gar nicht erreichbar ist, kannst du '

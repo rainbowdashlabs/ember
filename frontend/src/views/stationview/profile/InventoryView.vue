@@ -16,9 +16,11 @@ import {inventory, managedMembers} from '@/api'
 import {
   MovementPurpose,
   type ManagedMember,
+  type MovementResponse,
   type MyInventoryItem,
   type MyRequirement,
 } from '@/api/generated/schema'
+import {arrivingForMember} from '@/util/movementPieces'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -70,16 +72,37 @@ const tabs = computed<Tab[]>(() => {
   return list
 })
 
+const openMovements = ref<MovementResponse[]>([])
+
+/** Takes the open movements the movements panel read, which this page shows again where they arrive. */
+function takeMovements(open: MovementResponse[]) {
+  openMovements.value = open
+}
+
+/** What open movements are still bringing the member whose gear is shown. */
+const incoming = computed(() => arrivingForMember(
+    openMovements.value,
+    viewingMemberId.value ?? currentMemberId.value,
+    new Set(items.value.map(item => item.id))))
+
+/**
+ * The gear of one inventory as the page shows it: what the member holds, what is on its way to them,
+ * and what the station counts as held, which is the number the gap is read from. The station counts a
+ * piece handed in for an exchange as held while the exchange runs, and a missing one not at all.
+ */
 interface InventoryGroup {
   inventoryId: number
   inventoryName: string
   requiredQuantity: number
+  heldQuantity: number
   items: MyInventoryItem[]
+  incoming: MovementResponse[]
 }
 
 const grouped = computed((): InventoryGroup[] => {
   const groups: InventoryGroup[] = []
   const usedInventoryIds = new Set<number>()
+  const incomingOf = (inventoryId: number) => incoming.value.filter(m => m.inventoryId === inventoryId)
 
   for (const req of requirements.value) {
     const groupItems = items.value.filter(i => i.inventoryId === req.inventoryId)
@@ -87,7 +110,9 @@ const grouped = computed((): InventoryGroup[] => {
       inventoryId: req.inventoryId,
       inventoryName: req.inventoryName,
       requiredQuantity: req.requiredQuantity,
+      heldQuantity: req.heldQuantity,
       items: groupItems,
+      incoming: incomingOf(req.inventoryId),
     })
     usedInventoryIds.add(req.inventoryId)
   }
@@ -105,9 +130,26 @@ const grouped = computed((): InventoryGroup[] => {
         inventoryId: invId,
         inventoryName: invItems[0]?.inventoryName ?? '',
         requiredQuantity: 0,
+        heldQuantity: invItems.length,
         items: invItems,
+        incoming: incomingOf(invId),
       })
+      usedInventoryIds.add(invId)
     }
+  }
+
+  for (const movement of incoming.value) {
+    const inventoryId = movement.inventoryId
+    if (inventoryId == null || usedInventoryIds.has(inventoryId)) continue
+    usedInventoryIds.add(inventoryId)
+    groups.push({
+      inventoryId,
+      inventoryName: movement.inventoryName ?? '',
+      requiredQuantity: 0,
+      heldQuantity: 0,
+      items: [],
+      incoming: incomingOf(inventoryId),
+    })
   }
 
   return groups
@@ -265,7 +307,11 @@ const {
     <div class="space-y-6">
       <MemberTabSelector :tabs="tabs" :selected-id="selectedMemberId" @select="selectedMemberId = $event"/>
 
-      <MovementsPanel v-if="isModuleEnabled(StationModule.INVENTORY_MOVEMENTS)" @changed="loadOwnInventory"/>
+      <MovementsPanel
+          v-if="isModuleEnabled(StationModule.INVENTORY_MOVEMENTS)"
+          :on-loaded="takeMovements"
+          @changed="loadOwnInventory"
+      />
 
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :failure="failure"/>

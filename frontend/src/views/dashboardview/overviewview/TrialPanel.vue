@@ -14,6 +14,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {waitingList} from '@/api'
 import type {TrialOverview} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {formatDate} from '@/util/format'
 
 /**
@@ -27,23 +28,20 @@ import {formatDate} from '@/util/format'
 const {t} = useI18n()
 
 const trials = ref<TrialOverview[]>([])
-const ending = ref<TrialOverview | null>(null)
 
 /** Loads the panel, which says nothing when it cannot load rather than breaking the page. */
 async function load() {
   trials.value = await waitingList.listOwnTrials().catch(() => [])
 }
 
-const {running, failure, run: endTrial} = useAsyncAction(async () => {
-  if (!ending.value) return
-  await waitingList.endOwnTrial(ending.value.entryId)
-  ending.value = null
+const {running, failure, run: endTrial} = useAsyncAction(async (trial: TrialOverview) => {
+  await waitingList.endOwnTrial(trial.entryId)
   await load()
 })
 
-function onConfirmOpen(open: boolean) {
-  if (!open) ending.value = null
-}
+const {show: confirmingEnd, target: ending, request: requestEnd, confirm: confirmEnd} = useConfirmAction<TrialOverview>({
+  onConfirm: async trial => { await endTrial(trial) },
+})
 
 onMounted(load)
 </script>
@@ -72,20 +70,19 @@ onMounted(load)
           <template v-else>{{ t('dashboard.trial.visits', {visits: trial.visits}) }}</template>
         </p>
       </div>
-      <ErrorButton :icon="['fas', 'user-minus']" data-testid="trial-end" @click="ending = trial">
+      <ErrorButton :icon="['fas', 'user-minus']" data-testid="trial-end" @click="requestEnd(trial)">
         {{ t('dashboard.trial.end') }}
       </ErrorButton>
     </NeutralContainer>
     <FailureAlert :failure="failure"/>
     <ConfirmDeleteModal
-        :model-value="ending !== null"
+        v-model="confirmingEnd"
         :title="t('dashboard.trial.endTitle')"
         :message="t('dashboard.trial.endText', {name: ending?.name ?? ''})"
         :confirm-label="t('dashboard.trial.end')"
         :busy="running"
         confirm-test-id="trial-end-confirm"
-        @update:model-value="onConfirmOpen"
-        @confirm="endTrial"
+        @confirm="confirmEnd"
     />
   </NeutralContainer>
 </template>

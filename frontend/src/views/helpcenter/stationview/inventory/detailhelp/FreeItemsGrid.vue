@@ -8,12 +8,14 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import MovementPieceBadge from '@/components/inventory/MovementPieceBadge.vue'
 
 const {t} = useI18n()
 
 const items = [
   {size: 'M', id: 'INV-0010'},
   {size: 'L', id: 'INV-0011'},
+  {size: 'L', id: 'INV-0002', movementId: 12},
 ]
 </script>
 
@@ -24,7 +26,8 @@ const items = [
         <div class="text-sm font-medium">{{ t('helpCenter.sample.equipment.helmet') }} <SizeBadge>{{ item.size }}</SizeBadge></div>
         <div class="text-xs text-(--text-muted)">{{ item.id }}</div>
       </div>
-      <PrimaryButton>{{ t('inventory.detail.assign') }}</PrimaryButton>
+      <MovementPieceBadge v-if="item.movementId" :movement-id="item.movementId"/>
+      <PrimaryButton v-else>{{ t('inventory.detail.assign') }}</PrimaryButton>
     </NeutralContainer>
   </div>
 </template>

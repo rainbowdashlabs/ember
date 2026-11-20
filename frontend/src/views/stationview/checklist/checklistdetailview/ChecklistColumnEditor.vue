@@ -7,6 +7,7 @@
 import {ref, watchEffect} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -17,6 +18,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {checklists} from '@/api'
 import type {ColumnResponse as ChecklistColumn} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -38,7 +40,6 @@ const label = ref('')
 const description = ref('')
 const position = ref(0)
 const checkedCount = ref(0)
-const showDeleteConfirm = ref(false)
 
 watchEffect(() => {
   if (props.column) {
@@ -73,11 +74,16 @@ function save() {
   return runSave()
 }
 
+/**
+ * Asks before the column goes, saying how many ticks go with it. While shift is held the column goes
+ * at once, and nobody is left waiting for a count to read.
+ */
 async function askDelete() {
   if (!props.column) return
-  showDeleteConfirm.value = true
   checkedCount.value = 0
   countFailure.value = null
+  requestDelete(props.column.id)
+  if (!showDeleteConfirm.value) return
   try {
     const detail = await checklists.getChecklist(props.checklistId)
     const cells = detail.cells.filter(c => c.columnId === props.column?.id && c.checked)
@@ -96,11 +102,20 @@ async function askDelete() {
  */
 const countFailure = ref<Failure | null>(null)
 
-const {running: deleting, failure: deleteFailure, run: applyDelete} = useAsyncAction(async () => {
-  if (!props.column) return
-  await checklists.deleteColumn(props.checklistId, props.column.id)
-  showDeleteConfirm.value = false
-  emit('changed')
+const deleting = ref(false)
+const deleteFailure = ref<Failure | null>(null)
+
+const {show: showDeleteConfirm, requestDelete, confirm: applyDelete} = useConfirmDelete<number>({
+  onDelete: async columnId => {
+    deleting.value = true
+    try {
+      await checklists.deleteColumn(props.checklistId, columnId)
+    } finally {
+      deleting.value = false
+    }
+  },
+  onSuccess: () => emit('changed'),
+  failure: deleteFailure,
 })
 </script>
 
@@ -140,14 +155,13 @@ const {running: deleting, failure: deleteFailure, run: applyDelete} = useAsyncAc
     </div>
   </Modal>
 
-  <Modal v-if="column" v-model="showDeleteConfirm" size="sm">
-    <div class="space-y-3">
-      <div class="font-semibold">{{ t('checklist.deleteColumnTitle') }}</div>
-      <p>{{ t('checklist.deleteColumnMessage', {name: column.label, count: checkedCount}) }}</p>
-      <ButtonRow align="end">
-        <SecondaryButton @click="showDeleteConfirm = false">{{ t('checklist.cancel') }}</SecondaryButton>
-        <DeleteButton :disabled="deleting" @click="applyDelete">{{ t('checklist.deleteColumnTitle') }}</DeleteButton>
-      </ButtonRow>
-    </div>
-  </Modal>
+  <ConfirmDeleteModal
+      v-if="column"
+      v-model="showDeleteConfirm"
+      :title="t('checklist.deleteColumnTitle')"
+      :message="t('checklist.deleteColumnMessage', {name: column.label, count: checkedCount})"
+      :confirm-label="t('checklist.deleteColumnTitle')"
+      :busy="deleting"
+      @confirm="applyDelete"
+  />
 </template>

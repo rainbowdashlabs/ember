@@ -28,6 +28,8 @@ import { useBoardApi } from '@/composables/useBoardApi'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
+import { useConfirmAction } from '@/composables/useConfirmAction'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { moveWithin } from '@/util/reorder'
 import { describeFailure, type Failure } from '@/util/failure'
 import { priorityColor, priorityIcon, priorityOptions } from '@/util/ticketPriority'
@@ -220,7 +222,13 @@ async function moveTo(laneId: number) { await act(() => api.moveTicket({ toLaneI
 async function addChecklistItem() { if (!newChecklistTitle.value.trim()) return; const title = newChecklistTitle.value.trim(); await act(() => api.addChecklistItem({ title }), async () => { newChecklistTitle.value = ''; await loadDetails() }) }
 async function toggleChecklistItem(item: BoardChecklistItem) { await act(() => api.updateChecklistItem(item.id, { title: item.title, checked: !item.checked })) }
 async function reorderChecklist(fromIndex: number, toIndex: number) { const items = moveWithin(checklist.value, fromIndex, toIndex); checklist.value = items; await act(() => api.reorderChecklist({ orderedIds: items.map(i => i.id) }), () => Promise.resolve()) }
-async function removeAllChecklistItems() { const items = [...checklist.value]; await act(async () => { for (const item of items) { await api.deleteChecklistItem(item.id) } }, async () => { showChecklist.value = false; await loadDetails() }) }
+/** Deletes every item of the checklist, after asking unless shift is held. */
+const {show: confirmingClearChecklist, request: requestClearChecklist, confirm: removeAllChecklistItems} = useConfirmAction<true>({
+    onConfirm: async () => {
+        const items = [...checklist.value]
+        await act(async () => { for (const item of items) { await api.deleteChecklistItem(item.id) } }, async () => { showChecklist.value = false; await loadDetails() })
+    },
+})
 async function removeChecklistItem(itemId: number) { await act(() => api.deleteChecklistItem(itemId)) }
 
 async function saveFieldValue(fieldId: number, fieldType: BoardFieldTypeName, value: BoardFieldRaw | null) {
@@ -338,7 +346,7 @@ watch(ticketNumber, reload)
                 @add-checklist-item="addChecklistItem"
                 @toggle-checklist-item="toggleChecklistItem"
                 @remove-checklist-item="removeChecklistItem"
-                @remove-all-checklist-items="removeAllChecklistItems"
+                @remove-all-checklist-items="requestClearChecklist(true)"
                 @reorder-checklist="reorderChecklist"
                 @upload-files="handleFileUpload"
                 @kb-search="onKbSearch" @add-kb-link="addKbLinkFn" @remove-kb-link="removeKbLinkFn"
@@ -352,6 +360,11 @@ watch(ticketNumber, reload)
                     <DeleteButton @click="confirmDeleteTicket">{{ t('common.delete') }}</DeleteButton>
                 </div>
             </Modal>
+            <ConfirmDeleteModal
+                v-model="confirmingClearChecklist"
+                :message="t('boards.deleteChecklistConfirm', {count: checklist.length})"
+                @confirm="removeAllChecklistItems"
+            />
         </template>
     </ViewContent>
 </template>

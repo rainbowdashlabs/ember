@@ -172,7 +172,8 @@ public class ManagedMemberService {
     public List<MemberRequirement> requirements(int guardianId, int memberId) {
         var member = requireManaged(guardianId, memberId, MemberRefusal.MEMBER_NOT_HERE_ON_MANAGED_EQUIPMENT);
         return checkService.getRequiredItems(member.stationId(), memberId).stream()
-                .map(r -> new MemberRequirement(r.inventoryId(), r.inventoryName(), r.requiredQuantity()))
+                .map(r -> new MemberRequirement(
+                        r.inventoryId(), r.inventoryName(), r.requiredQuantity(), r.assignedQuantity()))
                 .toList();
     }
 
@@ -196,7 +197,13 @@ public class ManagedMemberService {
      */
     public record DataExport(Map<String, Object> data, String name) {}
 
-    public record MemberRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
+    /**
+     * What the station expects a managed member to hold of one inventory.
+     *
+     * @param requiredQuantity how many they should hold
+     * @param heldQuantity     how many the station counts as held, nothing reported missing among them
+     */
+    public record MemberRequirement(int inventoryId, String inventoryName, int requiredQuantity, int heldQuantity) {}
 
     public record ManagedMember(
             int id,

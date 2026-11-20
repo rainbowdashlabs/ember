@@ -33,6 +33,11 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class InventoryTagRepository {
     private static final String INVENTORY_TAG_COLUMNS = "id, station_id, name, canonical_name, color, position";
 
+    /**
+     * The tagged pieces with where they are. Available means free to hand out: resting in the station's
+     * own store by its custody, carried by no open movement and held by no loan. A piece lent out, in the
+     * post, promised or set aside for a partner is not free, however empty its assignment looks.
+     */
     private static final String TAGGED_ITEM_SELECT = """
             SELECT i.id                                                    AS item_id,
                    i.internal_id                                           AS internal_id,
@@ -43,13 +48,17 @@ public class InventoryTagRepository {
                    s.uid                                                   AS station_uid,
                    s.name                                                  AS station_name,
                    t.name                                                  AS tag_name,
-                   (i.assigned_to IS NULL AND i.lost_at IS NULL)           AS available
+                   %s AS available
             FROM inventory_item i
                      JOIN inventory inv ON inv.id = i.inventory_id
                      JOIN station s ON s.id = inv.station_id
                      JOIN inventory_item_tag it ON it.item_id = i.id
                      JOIN inventory_tag t ON t.id = it.tag_id AND t.station_id = inv.station_id
-            """;
+            """.formatted("(%s AND %s AND %s)"
+            .formatted(
+                    ItemCustodySql.freeStock("i"),
+                    ItemCustodySql.notOnAMovement("i"),
+                    ItemCustodySql.notSetAsideForALoan("i")));
 
     /**
      * Creates a tag, placing it after the station's existing ones.

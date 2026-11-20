@@ -911,11 +911,15 @@ public class InventoryService {
      * new list, and where it does not the item arrives without one. Nothing is invented and nothing
      * points at a size the item's inventory does not have.
      *
+     * <p>A piece that is not free to act on stays where it is: a movement or a loan names it under the
+     * inventory it was filed in, and one reported missing is not refiled while nobody can find it.
+     *
      * @param itemId          the item to move
      * @param inventoryId     the inventory it moves into
      * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
      * @return the moved item, or empty if it was not found
-     * @throws RefusalResponse when the target inventory belongs to another station
+     * @throws RefusalResponse when the target inventory belongs to another station, or the piece is not
+     *                         free to act on
      */
     public Optional<InventoryItem> moveItem(int itemId, int inventoryId, @Nullable Integer actingClusterId) {
         requireOwned(
@@ -939,6 +943,7 @@ public class InventoryService {
         if (target.id() == source.id()) {
             return Optional.of(item);
         }
+        custodyService.requireFreeToActOn(itemId, ItemCustodyService.Allowance.NONE);
 
         Integer sizeId = remappedSize(item, source, target);
         if (inventoryRepository.moveItemToInventory(itemId, inventoryId, sizeId)) {
@@ -986,13 +991,14 @@ public class InventoryService {
     }
 
     /**
-     * Every piece of one inventory that is in nobody's hands, so a caller can offer them.
+     * Every piece of one inventory that may be handed to a member right now, so a caller can offer them:
+     * in nobody's hands, carried by no open movement and held by no loan.
      *
      * @param inventoryId the inventory to look in
-     * @return the pieces currently assigned to nobody
+     * @return the pieces free to hand out
      */
     public List<InventoryItem> unassignedItems(int inventoryId) {
-        return inventoryRepository.findUnassignedItems(inventoryId);
+        return inventoryRepository.findFreeToHandOut(inventoryId);
     }
 
     /**
@@ -1041,9 +1047,15 @@ public class InventoryService {
     /**
      * Deletes an inventory item.
      *
+     * <p>A piece an open movement carries or a loan holds is refused, since both would go on walking a
+     * row that is gone. A piece reported missing may be deleted: writing off what nobody can find is the
+     * usual end of a loss.
+     *
      * @param id              the item ID
      * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
      * @return {@code true} if deleted
+     * @throws RefusalResponse when the item is not the caller's to delete, carried by an open movement or
+     *                         set aside for a loan
      */
     public boolean deleteItem(int id, @Nullable Integer actingClusterId) {
         requireOwned(
@@ -1051,6 +1063,7 @@ public class InventoryService {
                 InventoryRefusal.INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_DELETE,
                 InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DELETE,
                 actingClusterId);
+        custodyService.requireFreeToActOn(id, ItemCustodyService.Allowance.THE_LOSS_ITSELF);
         boolean deleted = inventoryRepository.deleteItem(id);
         if (deleted) log.info("Deleted item {}", id);
         else log.warn("Delete skipped: item {} not found", id);

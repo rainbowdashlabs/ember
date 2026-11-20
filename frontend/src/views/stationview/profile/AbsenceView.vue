@@ -16,6 +16,8 @@ import type {AbsenceResponse, ManagedMember} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import AbsenceAddForm from './absenceview/AbsenceAddForm.vue'
 import AbsenceListItem from './absenceview/AbsenceListItem.vue'
 
@@ -48,12 +50,16 @@ const {running: savingAbsence, failure: addFailure, run: addAbsence} = useAsyncA
     },
 )
 
-const {failure: removeFailure, run: removeAbsence} = useAsyncAction(
-    async (id: number) => {
-      await absences.deleteAbsence(id)
-      myAbsences.value = await absences.listMyAbsences()
-    },
-)
+/** Deletes an absence, after asking unless shift is held. */
+const {show: confirmingRemove, requestDelete: removeAbsence, confirm: confirmRemove, failure: removeFailure} = useConfirmDelete<number>({
+  onDelete: async id => {
+    removeFailure.value = null
+    await absences.deleteAbsence(id)
+  },
+  onSuccess: async () => {
+    myAbsences.value = await absences.listMyAbsences()
+  },
+})
 
 watch(loaded, (isLoaded) => {
   if (isLoaded) reload()
@@ -103,5 +109,10 @@ watch(loaded, (isLoaded) => {
         </div>
       </template>
     </div>
+    <ConfirmDeleteModal
+        v-model="confirmingRemove"
+        :message="t('profile.absenceDeleteConfirm')"
+        @confirm="confirmRemove"
+    />
   </ViewContent>
 </template>

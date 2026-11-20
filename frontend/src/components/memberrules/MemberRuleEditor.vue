@@ -20,6 +20,7 @@ import {memberGroups, memberRules, userTags} from '@/api'
 import type {RuleOwnerKind} from '@/api/memberRules'
 import {StationPermission, type RuleNode, type RulePreview} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {describeFailure, type Failure} from '@/util/failure'
 import {showToast} from '@/util/toast'
 import type {RuleCatalog} from './ruleCatalog'
@@ -61,8 +62,6 @@ const catalog = ref<RuleCatalog | null>(null)
 const saved = ref<RuleNode | null>(null)
 const draft = ref<RuleNode | null>(null)
 const preview = ref<RulePreview | null>(null)
-const confirmSave = ref(false)
-const confirmRemove = ref(false)
 const busy = ref(false)
 
 const byRule = computed(() => draft.value !== null)
@@ -147,7 +146,7 @@ function chooseMode(mode: string | number | null | undefined) {
     draft.value = draft.value ?? saved.value ?? emptyBlock()
     return
   }
-  if (saved.value) confirmRemove.value = true
+  if (saved.value) askRemove(true)
   else draft.value = null
 }
 
@@ -164,7 +163,7 @@ async function runPreview() {
 
 function requestSave() {
   if (saved.value) void save()
-  else confirmSave.value = true
+  else askSave(true)
 }
 
 /**
@@ -185,7 +184,6 @@ async function save() {
     failure.value = describeFailure(e, t)
   } finally {
     busy.value = false
-    confirmSave.value = false
   }
 }
 
@@ -203,9 +201,11 @@ async function remove() {
     failure.value = describeFailure(e, t)
   } finally {
     busy.value = false
-    confirmRemove.value = false
   }
 }
+
+const {show: confirmSave, request: askSave, confirm: saveConfirmed} = useConfirmAction<true>({onConfirm: save})
+const {show: confirmRemove, request: askRemove, confirm: removeConfirmed} = useConfirmAction<true>({onConfirm: remove})
 </script>
 
 <template>
@@ -241,7 +241,7 @@ async function remove() {
           <PrimaryButton :icon="['fas', 'floppy-disk']" :disabled="!ready || busy" @click="requestSave">
             {{ t('memberRules.save') }}
           </PrimaryButton>
-          <ErrorButton v-if="saved" :icon="['fas', 'trash']" @click="confirmRemove = true">
+          <ErrorButton v-if="saved" :icon="['fas', 'trash']" @click="askRemove(true)">
             {{ t('memberRules.removeRule') }}
           </ErrorButton>
         </ButtonRow>
@@ -249,8 +249,8 @@ async function remove() {
     </template>
     <ConfirmDeleteModal v-model="confirmSave" :message="t('memberRules.switchConfirm')"
                         :confirm-label="t('memberRules.save')" :confirm-icon="['fas', 'floppy-disk']" :busy="busy"
-                        neutral @confirm="save"/>
+                        neutral @confirm="saveConfirmed"/>
     <ConfirmDeleteModal v-model="confirmRemove" :message="t('memberRules.removeConfirm')"
-                        :confirm-label="t('memberRules.removeRule')" :busy="busy" @confirm="remove"/>
+                        :confirm-label="t('memberRules.removeRule')" :busy="busy" @confirm="removeConfirmed"/>
   </div>
 </template>

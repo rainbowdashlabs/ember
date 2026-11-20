@@ -75,8 +75,9 @@ export function useSessionNotes(sessionId: Ref<number>, failure: Ref<Failure | n
     }
 
     /**
-     * Calls a swap off from the sheet, removing it rather than closing it. Only swaps where nothing
-     * has changed hands stand beside a name here, so there is never anything to put back.
+     * Calls a swap off from the sheet, removing it rather than closing it. The sheet offers it only for
+     * a swap where nothing has changed hands yet, so there is never anything to put back; once a piece has
+     * moved, the server refuses the removal and the swap is called off on its own page.
      */
     async function dropSwap(movementId: number) {
         await settle(() => movements.deleteMovement(movementId))

@@ -59,7 +59,7 @@ function both(first: Condition, second: Condition): Condition {
  * Whoever opens the station chats: they sit in the station's management, so this also opens that
  * section for somebody who holds no other right in it.
  */
-const managesChats = both(messagesOn, can(StationPermission.MESSAGE_CHAT_MANAGE))
+const managesChats = both(messagesOn, can(StationPermission.MESSAGE_CHAT_EDIT))
 
 /**
  * The media library is shared by everything that authors content, so any one of the three content
@@ -80,7 +80,7 @@ const runsQuiz = runs(StationModule.QUIZ)
 /** The station's own figures: traffic, insights, feeds and storage. */
 const stationAdmin = can(StationPermission.STATION_ADMINISTRATOR)
 /** Reported chat messages, for whoever looks after the station's chats while messaging is on. */
-const managesChatReports = both(messagesOn, can(StationPermission.MESSAGE_CHAT_MANAGE))
+const managesChatReports = both(messagesOn, can(StationPermission.MESSAGE_CHAT_MODERATE))
 const readsStatistics = can(StationPermission.STATION_STATISTICS)
 
 /**

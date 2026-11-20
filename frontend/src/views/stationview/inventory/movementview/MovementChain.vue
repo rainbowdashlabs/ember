@@ -15,6 +15,7 @@ import MovementRechainButton from './MovementRechainButton.vue'
 import {useMovementParties} from '@/composables/useMovementParties'
 import type {InventorySize, MovementDetail} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
+import type {CallOffChoice} from '@/api/movements'
 
 /**
  * The chain a movement walks: drawn, then listed step by step, with the answer to the step it stands
@@ -40,7 +41,7 @@ const emit = defineEmits<{
   acknowledge: [payload: AcknowledgePayload]
   force: [payload: AcknowledgePayload]
   decline: [reason: string]
-  cancel: [reason: string]
+  cancel: [reason: string, choice: CallOffChoice]
   rechain: [stepIndex: number | null]
   refused: [failure: Failure | null]
 }>()
@@ -104,6 +105,10 @@ const drawnSteps = computed(() =>
             :may-record="props.mayRecord"
             :owner-cluster-id="movement.ownerClusterId"
             :owner-kind="movement.ownerKind"
+            :old-piece="props.detail.oldPiece"
+            :for-member="movement.memberId != null"
+            :promised-item-id="movement.incomingItemId"
+            :promised-item-name="movement.incomingItemName"
             :sizes="props.sizes"
             :step="step"
             :wanted-size-id="movement.newSizeId ?? movement.oldSizeId"
@@ -111,7 +116,7 @@ const drawnSteps = computed(() =>
             @acknowledge="payload => emit('acknowledge', payload)"
             @force="payload => emit('force', payload)"
             @decline="reason => emit('decline', reason)"
-            @cancel="reason => emit('cancel', reason)"
+            @cancel="(reason, choice) => emit('cancel', reason, choice)"
         />
       </template>
     </MovementStep>

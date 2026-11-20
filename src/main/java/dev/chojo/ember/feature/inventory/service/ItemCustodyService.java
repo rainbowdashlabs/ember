@@ -17,6 +17,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -41,19 +42,156 @@ public class ItemCustodyService {
     }
 
     /**
-     * Refuses a piece another movement has promised to somebody.
+     * What a write may find on a piece that would otherwise make it not free to act on.
      *
-     * <p>A planned hand-out names its piece up front and leaves it where it is, which is exactly what
-     * makes it available to a second pair of hands. The counter is the one path that writes custody
-     * without walking a chain, so the promise has to be read here or it is no promise at all.
+     * <p>Most writes may find nothing: a piece reported missing, carried by an open movement or set aside
+     * for a loan is somebody else's business. Two writes are about the loss itself, reporting it and
+     * finding the piece again, and a movement walking its own step may of course find its own piece on
+     * it.
      *
-     * @param itemId the piece about to be handed over
-     * @throws RefusalResponse when a movement has promised it
+     * <p>A loan holds its pieces from its approval until its end date has passed, against everything
+     * else, other loans included. A loan acting on the pieces it holds itself is not held up by them.
+     * Putting a piece in a box leaves loans out of it altogether: the piece still sits on the shelf, and
+     * the partner gets it all the same.
+     *
+     * @param mayBeLost     whether the piece may be reported missing, which only the loss and its finding allow
+     * @param movementId    the movement walking a step on the piece, which does not count as carrying it
+     *                      against itself, or {@code null}
+     * @param loansAside    whether loans are left out of the question, because the write does not touch them
+     * @param loanRequestId the loan acting on its own pieces, which does not count as holding them against
+     *                      itself, or {@code null}
      */
-    private void requireNobodyIsWaitingForIt(int itemId) {
-        movementRepository.findOpenByIncomingItem(itemId).ifPresent(open -> {
-            throw InventoryRefusal.CUSTODY_PIECE_PROMISED.raise();
-        });
+    public record Allowance(
+            boolean mayBeLost,
+            @Nullable Integer movementId,
+            boolean loansAside,
+            @Nullable Integer loanRequestId) {
+        /** An ordinary write, which finds nothing standing in its way. */
+        public static final Allowance NONE = new Allowance(false, null, false, null);
+
+        /** Reporting a piece missing, or reporting it found again, or deleting a piece that is missing. */
+        public static final Allowance THE_LOSS_ITSELF = new Allowance(true, null, false, null);
+
+        /** Putting a piece in a box, which changes nothing for a loan that holds it. */
+        public static final Allowance LOANS_ASIDE = new Allowance(false, null, true, null);
+
+        /**
+         * A loan setting aside or handing over a piece, which may be one it holds itself and no other's.
+         *
+         * @param requestId the loan
+         * @return the allowance
+         */
+        public static Allowance lending(int requestId) {
+            return new Allowance(false, null, false, requestId);
+        }
+
+        /**
+         * A movement walking a step on its own piece.
+         *
+         * @param movementId the movement
+         * @param lossReport whether the movement reports the piece missing
+         * @return the allowance
+         */
+        public static Allowance walking(int movementId, boolean lossReport) {
+            return new Allowance(lossReport, movementId, false, null);
+        }
+
+        /**
+         * The same allowance for a write that must never find a loss, whatever it may find otherwise.
+         *
+         * @return this allowance with a missing piece refused
+         */
+        public Allowance butNeverLost() {
+            return new Allowance(false, movementId, loansAside, loanRequestId);
+        }
+    }
+
+    /**
+     * Refuses a piece that is not free to act on: reported missing, carried by an open movement, or set
+     * aside for a loan to a partner station.
+     *
+     * <p>Custody used to be written without reading it first. A loss was undone by the next write
+     * nobody meant as a finding, a piece promised to one member was handed to another, and the further
+     * pieces of a dispatch were invisible to every check because the movement names only one. This is
+     * the one place that says whether a piece is free, so every writer asks the same question.
+     *
+     * <p>A promised piece is refused with its own words, since the remedy differs: it is handed out on
+     * the movement that promised it. A piece that does not exist is left to the caller, which knows
+     * whether a missing row is a refusal or nothing to do.
+     *
+     * @param itemId    the piece
+     * @param allowance what the write may find on it
+     * @throws RefusalResponse when the piece is missing, carried by another open movement, or set aside
+     *                         for a loan
+     */
+    public void requireFreeToActOn(int itemId, Allowance allowance) {
+        Optional<InventoryRefusal> refusal = whyNotFreeToActOn(itemId, allowance);
+        if (refusal.isPresent()) throw refusal.get().raise();
+    }
+
+    /**
+     * Whether a piece is free to act on, for a caller that passes over what it may not touch rather than
+     * refusing, such as filling a loan by itself.
+     *
+     * @param itemId    the piece
+     * @param allowance what the write may find on it
+     * @return {@code true} when {@link #requireFreeToActOn(int, Allowance)} would let it through
+     */
+    public boolean isFreeToActOn(int itemId, Allowance allowance) {
+        return whyNotFreeToActOn(itemId, allowance).isEmpty();
+    }
+
+    /**
+     * Why a piece is not free to act on, for a caller that refuses in its own words, such as naming the
+     * piece among many it was asked about.
+     *
+     * @param itemId    the piece
+     * @param allowance what the write may find on it
+     * @return the refusal {@link #requireFreeToActOn(int, Allowance)} would raise, or empty when it is free
+     */
+    public Optional<InventoryRefusal> whyNotFreeToActOn(int itemId, Allowance allowance) {
+        var found = inventoryRepository.findItemById(itemId);
+        if (found.isEmpty()) return Optional.empty();
+        InventoryItem item = found.get();
+        if (!allowance.mayBeLost() && isMissing(item)) return Optional.of(InventoryRefusal.CUSTODY_PIECE_LOST);
+        Integer own = allowance.movementId();
+        boolean promisedElsewhere = movementRepository
+                .findOpenByIncomingItem(itemId)
+                .filter(open -> !Objects.equals(open.id(), own))
+                .isPresent();
+        if (promisedElsewhere) return Optional.of(InventoryRefusal.CUSTODY_PIECE_PROMISED);
+        if (movementRepository.findOpenCarrying(itemId).stream().anyMatch(id -> !id.equals(own))) {
+            return Optional.of(InventoryRefusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT);
+        }
+        if (!allowance.loansAside() && heldByALoan(itemId, allowance.loanRequestId())) {
+            return Optional.of(InventoryRefusal.CUSTODY_PIECE_SET_ASIDE_FOR_A_LOAN);
+        }
+        return Optional.empty();
+    }
+
+    private boolean heldByALoan(int itemId, @Nullable Integer ownLoan) {
+        return ownLoan == null
+                ? inventoryRepository.isSetAsideForALoan(itemId)
+                : inventoryRepository.isSetAsideForAnotherLoan(itemId, ownLoan);
+    }
+
+    private static boolean isMissing(InventoryItem item) {
+        return item.custody() == ItemCustody.LOST || item.lostAt() != null;
+    }
+
+    /**
+     * Refuses to write anything but the loss itself onto a piece reported missing.
+     *
+     * <p>The row keeps a loss until it is found again, and every other write leaves such a row as it was.
+     * Refusing here says so, where the write would otherwise report success and change nothing.
+     *
+     * @param item the piece
+     * @throws RefusalResponse when it is reported missing
+     */
+    private static void requireNotLost(InventoryItem item) {
+        if (isMissing(item)) {
+            throw InventoryRefusal.CUSTODY_PIECE_LOST.raise();
+        }
     }
 
     /**
@@ -75,7 +213,7 @@ public class ItemCustodyService {
         if (!item.custody().assignable()) {
             throw InventoryRefusal.CUSTODY_NOT_HANDED_OUT_FROM_HERE.raise();
         }
-        requireNobodyIsWaitingForIt(itemId);
+        requireFreeToActOn(itemId, Allowance.NONE);
 
         return writeAssignment(item, memberId, memberName);
     }
@@ -99,19 +237,60 @@ public class ItemCustodyService {
      * Takes an item back from whoever holds it and puts it in the store it rests in: the owner's
      * when the station owns it, the station's own when it does not.
      *
+     * <p>A piece that is not free to act on is refused: one reported missing stays missing until it is
+     * found, one an open movement carries is the movement's to move, and one set aside for a loan is the
+     * partner's from the moment the loan was agreed.
+     *
      * @param itemId the item ID
      * @return the updated item, or empty if the item was not found
+     * @throws RefusalResponse if the item is not free to act on
      */
     public Optional<InventoryItem> takeBack(int itemId) {
+        return takeBack(itemId, Allowance.NONE);
+    }
+
+    /**
+     * Takes an item back for a caller that may find more on it than an ordinary write, such as a movement
+     * putting its own piece back as it closes. A take-back never ends a loss, whatever the allowance says:
+     * a piece reported missing is refused here and ends its loss only by being found.
+     *
+     * @param itemId    the item ID
+     * @param allowance what the caller may find on it
+     * @return the updated item, or empty if the item was not found
+     * @throws RefusalResponse if the item is not free to act on under that allowance
+     */
+    public Optional<InventoryItem> takeBack(int itemId, Allowance allowance) {
         var found = inventoryRepository.findItemById(itemId);
         if (found.isEmpty()) {
             log.warn("Take-back skipped: item {} not found", itemId);
             return Optional.empty();
         }
         var item = found.get();
+        requireFreeToActOn(itemId, allowance.butNeverLost());
         closeCurrentSpell(item);
         writeResting(item);
         log.info("Item {} taken back into the store (was {})", itemId, item.custody());
+        return inventoryRepository.findItemById(itemId);
+    }
+
+    /**
+     * Takes a piece off the record of a member who is being deleted, without asking anything first.
+     *
+     * <p>The one write that does not ask whether the piece is free: erasing a person may not fail over
+     * their gear. Another movement or a loan may still name the piece, and goes on naming it; the piece
+     * itself rests in its store again, with nobody named against it. A missing piece is not written here
+     * at all, since taking it off a record is {@link #releaseLost(int)}.
+     *
+     * @param itemId the piece
+     * @return the updated item, or empty if the item was not found
+     */
+    public Optional<InventoryItem> takeOffTheRecord(int itemId) {
+        var found = inventoryRepository.findItemById(itemId);
+        if (found.isEmpty()) return Optional.empty();
+        var item = found.get();
+        closeCurrentSpell(item);
+        writeResting(item);
+        log.info("Item {} came off the record of a deleted member (was {})", itemId, item.custody());
         return inventoryRepository.findItemById(itemId);
     }
 
@@ -120,9 +299,15 @@ public class ItemCustodyService {
      * item is, not who has it, so the custody only moves when the item was with a member: somebody
      * putting gear on a shelf is handing it back at the same time.
      *
+     * <p>Only a piece that is here can be put away: one reported missing, one with a partner or in the
+     * post, and one an open movement carries are refused. One set aside for a loan still sits on the
+     * shelf and may be put in a box. Clearing a location is always allowed, since it claims nothing about
+     * the piece.
+     *
      * @param itemId      the item ID
      * @param containerId the container, or {@code null} to clear the location
      * @return the updated item, or empty if the item was not found
+     * @throws RefusalResponse if the piece is not here to be put away, or not free to act on
      */
     public Optional<InventoryItem> placeInContainer(int itemId, @Nullable Integer containerId) {
         var found = inventoryRepository.findItemById(itemId);
@@ -130,8 +315,13 @@ public class ItemCustodyService {
             log.warn("Container placement skipped: item {} not found", itemId);
             return Optional.empty();
         }
-        if (containerId != null && found.get().custody() == ItemCustody.WITH_MEMBER) {
-            takeBack(itemId);
+        if (containerId != null) {
+            ItemCustody custody = found.get().custody();
+            if (custody == ItemCustody.WITH_PARTNER || custody == ItemCustody.IN_TRANSIT) {
+                throw InventoryRefusal.CUSTODY_PIECE_NOT_HERE_TO_PUT_AWAY.raise();
+            }
+            requireFreeToActOn(itemId, Allowance.LOANS_ASIDE);
+            if (custody == ItemCustody.WITH_MEMBER) takeBack(itemId, Allowance.LOANS_ASIDE);
         }
         inventoryRepository.setItemContainer(itemId, containerId);
         return inventoryRepository.findItemById(itemId);
@@ -157,8 +347,12 @@ public class ItemCustodyService {
      * @param itemId the item ID
      * @param note   what whoever reported it wrote, or {@code null} when they wrote nothing
      * @param noteBy who wrote that note, which is the guardian when one acted for a member
+     * <p>A piece an open movement carries or a loan holds is refused: the movement or the loan is where
+     * its loss is told, and a loss written past them leaves both walking a piece nobody has.
+     *
      * @return the updated item, or empty if the item was not found
-     * @throws RefusalResponse if the item is borrowed from a federation partner
+     * @throws RefusalResponse if the item is borrowed from a federation partner, carried by an open
+     *                         movement or set aside for a loan
      */
     public Optional<InventoryItem> markLost(int itemId, @Nullable String note, @Nullable Integer noteBy) {
         var found = inventoryRepository.findItemById(itemId);
@@ -170,6 +364,7 @@ public class ItemCustodyService {
         if (item.borrowed()) {
             throw InventoryRefusal.CUSTODY_BORROWED_NOT_MARKED_LOST.raise();
         }
+        requireFreeToActOn(itemId, Allowance.THE_LOSS_ITSELF);
         Integer custodian = item.custodyStationId();
         Integer holder = custodian != null ? custodian : stationOf(item);
         inventoryRepository.updateCustody(itemId, ItemCustody.LOST, holder, item.assignedTo(), null);
@@ -219,11 +414,13 @@ public class ItemCustodyService {
             return Optional.empty();
         }
         var item = found.get();
-        if (item.assignedTo() != null) {
-            inventoryRepository.updateCustody(
-                    itemId, ItemCustody.WITH_MEMBER, stationOf(item), item.assignedTo(), null);
+        Integer holder = item.assignedTo();
+        if (holder != null) {
+            inventoryRepository.updateCustodyFoundAgain(itemId, ItemCustody.WITH_MEMBER, stationOf(item), holder);
         } else {
-            writeResting(item);
+            ItemCustody resting = restingCustody(item);
+            inventoryRepository.updateCustodyFoundAgain(
+                    itemId, resting, resting == ItemCustody.AT_STATION ? stationOf(item) : null, null);
         }
         inventoryRepository.setLostNote(itemId, null, null);
         log.info("Item {} marked found", itemId);
@@ -239,10 +436,14 @@ public class ItemCustodyService {
      * partner station is who actually has it, which until now lived in the lending request, one join
      * away from anything asking where a radio is.
      *
+     * <p>The loan handing it over has asked about other loans already, piece by piece, before anything
+     * moved; here only the loss and the movements are asked again.
+     *
      * @param itemId           the item ID
      * @param partnerStationId the partner taking it, or {@code null} when the partner is on another
      *                         instance and has no row here
      * @return the updated item, or empty if the item was not found
+     * @throws RefusalResponse if the item is reported missing or carried by an open movement
      */
     public Optional<InventoryItem> lendToPartner(int itemId, Integer partnerStationId) {
         var found = inventoryRepository.findItemById(itemId);
@@ -251,6 +452,8 @@ public class ItemCustodyService {
             return Optional.empty();
         }
         var item = found.get();
+        requireNotLost(item);
+        requireFreeToActOn(itemId, Allowance.LOANS_ASIDE);
         closeCurrentSpell(item);
         inventoryRepository.updateCustody(
                 itemId, ItemCustody.WITH_PARTNER, stationOf(item), null, null, partnerStationId);
@@ -286,7 +489,8 @@ public class ItemCustodyService {
      * @param stepStationId the station running the movement, which is where the item is once a step leaves
      *                      it at a station; for a cluster's gear it differs from the inventory's station
      * @return the updated item, or empty if the item was not found
-     * @throws RefusalResponse if the step hands an item to a member the movement does not name
+     * @throws RefusalResponse if the item is reported missing, or the step hands it to a member the
+     *                         movement does not name
      */
     public Optional<InventoryItem> applyStepCustody(
             int itemId,
@@ -300,6 +504,7 @@ public class ItemCustodyService {
             return Optional.empty();
         }
         var item = found.get();
+        requireNotLost(item);
         if (custody == ItemCustody.WITH_MEMBER) {
             if (memberId == null) throw InventoryRefusal.CUSTODY_STEP_NAMES_NO_MEMBER.raise();
             return writeAssignment(item, memberId, "");
@@ -319,7 +524,8 @@ public class ItemCustodyService {
      *
      * <p>Not the same as taking it back, which returns gear to the store of the station that holds it. This
      * one is for when the holding stops entirely: the station that had it is no longer connected to the
-     * owner, so there is no store of its at which the item could rest.
+     * owner, so there is no store of its at which the item could rest. A piece reported missing stays
+     * missing, now on nobody's record but its owner's.
      *
      * @param itemId the item
      * @return the updated item, or empty if the item was not found
@@ -332,7 +538,9 @@ public class ItemCustodyService {
         }
         var item = found.get();
         closeCurrentSpell(item);
-        inventoryRepository.updateCustody(itemId, ItemCustody.WITH_OWNER, null, null, null);
+        boolean missing = item.custody() == ItemCustody.LOST || item.lostAt() != null;
+        inventoryRepository.updateCustody(
+                itemId, missing ? ItemCustody.LOST : ItemCustody.WITH_OWNER, null, null, null);
         inventoryRepository.setItemContainer(itemId, null);
         log.info("Item {} returned to its owner (was {})", itemId, item.custody());
         return inventoryRepository.findItemById(itemId);

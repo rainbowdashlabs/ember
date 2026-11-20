@@ -14,6 +14,8 @@ import { procurement, inventory, stationMembers } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { describeFailure } from '@/util/failure'
 import ProcurementEntryRow from './procurementview/ProcurementEntryRow.vue'
 import ProcurementCreateModal from './procurementview/ProcurementCreateModal.vue'
@@ -78,16 +80,15 @@ async function fulfillEntry(id: number) {
   await reloadEntries()
 }
 
-async function deleteEntry(id: number) {
-  failure.value = null
-  try {
+/** Strikes an order out, after asking unless shift is held. */
+const {show: showDeleteEntry, requestDelete: deleteEntry, confirm: confirmDeleteEntry} = useConfirmDelete<number>({
+  onDelete: async id => {
+    failure.value = null
     await procurement.deleteProcurement(id)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    return
-  }
-  await reloadEntries()
-}
+  },
+  onSuccess: () => reloadEntries(),
+  failure,
+})
 
 const stockEntry = ref<ProcurementResponse | null>(null)
 const showStockModal = ref(false)
@@ -156,5 +157,11 @@ function onCreated() {
         @created="onCreated"
       />
     </div>
+
+    <ConfirmDeleteModal
+      v-model="showDeleteEntry"
+      :message="t('procurement.deleteConfirm')"
+      @confirm="confirmDeleteEntry"
+    />
   </ViewContent>
 </template>

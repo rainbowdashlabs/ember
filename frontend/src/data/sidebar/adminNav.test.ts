@@ -40,3 +40,20 @@ describe('ADMIN_NAV monitoring', () => {
         expect(monitoring(counts())?.badge).toBe(0)
     })
 })
+
+/** The statistics sit with the other figures under Monitoring, so the dashboard is one page. */
+describe('ADMIN_NAV layout', () => {
+    it('lists the statistics under Monitoring', () => {
+        const group = monitoring(counts())
+        const statistics = navPages(group ? [group] : []).find(page => page.key === 'admin-statistics')
+
+        expect(statistics?.to).toBe('/admin/monitoring/statistics')
+    })
+
+    it('shows the dashboard as a single page', () => {
+        const dashboard = resolveNav(ADMIN_NAV, {counts: counts(), dev: false}, key => key)
+            .find(node => node.key === 'admin-overview')
+
+        expect(dashboard?.kind).toBe('page')
+    })
+})

@@ -3,7 +3,19 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {InventoryType, ItemCustody, ItemOwner, type MyInventoryItem, type RequiredInventoryItem} from '@/api/generated/schema'
+import {
+    InventoryType,
+    ItemCustody,
+    ItemOwner,
+    MovementParty,
+    MovementPurpose,
+    MovementState,
+    StepActor,
+    StepSubject,
+    type MovementResponse,
+    type MyInventoryItem,
+    type RequiredInventoryItem,
+} from '@/api/generated/schema'
 
 /** A piece the member holds with nothing about it out of the ordinary. */
 function piece(fields: Pick<MyInventoryItem, 'id' | 'inventoryId' | 'inventoryName' | 'name'> & Partial<MyInventoryItem>): MyInventoryItem {
@@ -31,4 +43,17 @@ export const items: MyInventoryItem[] = [helmet, lostHelmet, jacket]
 export const requirements: RequiredInventoryItem[] = [{
     inventoryId: 2, inventoryName: 'Jacken', inventoryType: InventoryType.INTERNAL, requiredQuantity: 2, assignedQuantity: 1,
     inExchangeQuantity: 0, hasSizes: false, homogeneous: true, sizes: [],
+}]
+
+/** A planned hand-out of a second helmet, picked off the shelf and waiting for the station to hand it over. */
+export const incoming: MovementResponse[] = [{
+    actionable: true, belongsOnAnotherFlow: false, closedAt: null, closeReason: null, color: null,
+    createdAt: '2026-05-02T08:00:00Z', currentStepActor: StepActor.STATION, currentStepCustody: ItemCustody.WITH_MEMBER,
+    currentStepLabel: 'Ausgegeben', currentStepSubject: StepSubject.INCOMING, icon: null, id: 12,
+    incomingItemId: 4, incomingItemName: 'Helm', inventoryId: 1, inventoryName: 'Helme', inventoryType: InventoryType.INTERNAL,
+    itemId: null, itemInternalId: null, itemName: null, itemSizeName: null, itemStillWithMember: false, memberId: 1,
+    memberIdentity: null, memberName: null, newSizeId: null, newSizeName: null, oldSizeId: null, oldSizeName: null,
+    ownerAnswersHere: true, ownerClusterId: null, ownerKind: ItemOwner.STATION, ownerName: null, party: MovementParty.MEMBER,
+    purpose: MovementPurpose.ISSUE, reachedStepLabel: 'Ausgabe geplant', reason: '', state: MovementState.OPEN,
+    updatedAt: '2026-05-02T08:00:00Z',
 }]

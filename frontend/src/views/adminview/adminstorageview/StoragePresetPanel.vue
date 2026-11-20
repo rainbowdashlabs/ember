@@ -13,6 +13,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import QuotaFieldsInput from './QuotaFieldsInput.vue'
@@ -48,8 +50,6 @@ const tierFields = ref<QuotaFields>(defaultQuotaFields())
 const showApplyModal = ref(false)
 const applyTierId = ref<number | null>(null)
 const selectedStations = ref<string[]>([])
-const showDeleteModal = ref(false)
-const deletingTierId = ref<number | null>(null)
 
 function openCreate() {
   editingTier.value = null
@@ -88,16 +88,11 @@ function save() {
   showTierModal.value = false
 }
 
-function confirmDelete(tierId: number) {
-  deletingTierId.value = tierId
-  showDeleteModal.value = true
-}
-
-function handleDelete() {
-  if (deletingTierId.value === null) return
-  emit('remove', deletingTierId.value)
-  showDeleteModal.value = false
-}
+const {show: showDeleteModal, requestDelete: confirmDelete, confirm: handleDelete} = useConfirmDelete<number>({
+  onDelete: async tierId => {
+    emit('remove', tierId)
+  },
+})
 
 function openApply(tierId: number) {
   applyTierId.value = tierId
@@ -202,13 +197,11 @@ function toggleStation(id: string) {
       </ButtonRow>
     </Modal>
 
-    <Modal v-model="showDeleteModal">
-      <SubHeader>{{ t('storageMonitoring.confirmDeletePreset') }}</SubHeader>
-      <p class="mt-3">{{ t('storageMonitoring.confirmDeletePresetText') }}</p>
-      <div class="flex justify-end gap-2 mt-4">
-        <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>
-        <DeleteButton :label="t('common.delete')" @click="handleDelete"/>
-      </div>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="showDeleteModal"
+        :title="t('storageMonitoring.confirmDeletePreset')"
+        :message="t('storageMonitoring.confirmDeletePresetText')"
+        @confirm="handleDelete"
+    />
   </div>
 </template>

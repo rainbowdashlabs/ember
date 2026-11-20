@@ -16,6 +16,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {ConversationMessageResponse, ReportedMessageResponse} from '@/api/generated/schema'
 import {dismissReport, removeReported} from '@/api/messages'
 import {useMessageWords} from '@/composables/useMessageWords'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {plainTextOf} from '@/util/messageText'
 import {formatDateTime} from '@/util/format'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -34,7 +35,6 @@ const {t} = useI18n()
 const {nameOf, systemLine} = useMessageWords()
 const failure = ref<Failure | null>(null)
 const busy = ref(false)
-const confirmingRemoval = ref(false)
 
 function lineOf(message: ConversationMessageResponse): string {
   if (message.systemKind) return systemLine({...message, text: message.content})
@@ -56,6 +56,10 @@ async function handle(action: (reportId: number) => Promise<void>) {
     busy.value = false
   }
 }
+
+const {show: confirmingRemoval, request: requestRemoval, confirm: confirmRemoval} = useConfirmAction<true>({
+  onConfirm: () => handle(removeReported),
+})
 </script>
 
 <template>
@@ -89,12 +93,12 @@ async function handle(action: (reportId: number) => Promise<void>) {
         {{ t('messageReports.dismiss') }}
       </SecondaryButton>
       <ErrorButton :icon="['fas', 'trash']" :disabled="busy" :data-testid="`message-report-remove-${report.id}`"
-                   @click="confirmingRemoval = true">
+                   @click="requestRemoval(true)">
         {{ t('messageReports.remove') }}
       </ErrorButton>
     </ButtonRow>
     <ConfirmDeleteModal v-model="confirmingRemoval" :title="t('messages.moderateConfirm.title')"
                         :message="t('messageReports.removeConfirm')" :confirm-label="t('messageReports.remove')"
-                        @confirm="handle(removeReported)"/>
+                        @confirm="confirmRemoval"/>
   </NeutralContainer>
 </template>

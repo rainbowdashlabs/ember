@@ -1,5 +1,6 @@
 import {i18nRules} from './i18n/index.mjs'
 import buttonRow from './rules/button-row.mjs'
+import confirmThroughComposable from './rules/confirm-through-composable.mjs'
 import contextTitle from './rules/context-title.mjs'
 import maxFunctionLines from './rules/max-function-lines.mjs'
 import noDeadButtonSize from './rules/no-dead-button-size.mjs'
@@ -26,6 +27,7 @@ export default {
     rules: {
         ...i18nRules,
         'button-row': buttonRow,
+        'confirm-through-composable': confirmThroughComposable,
         'context-title': contextTitle,
         'max-function-lines': maxFunctionLines,
         'no-dead-button-size': noDeadButtonSize,

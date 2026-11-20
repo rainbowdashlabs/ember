@@ -7,6 +7,7 @@ import {ref, type Ref} from 'vue'
 import {removeMediaFile, moveMediaFileToFolder, pruneMediaFiles} from '@/api/media'
 import type {FileListing} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 
 interface PageFileBulkDeps {
     entries: Ref<FileListing[]>
@@ -18,15 +19,13 @@ interface PageFileBulkDeps {
 
 /**
  * Actions that operate on many files at once: moving or deleting the current selection and
- * pruning every file that no page references.
+ * pruning every file that no page references. Deleting and pruning ask first, unless shift is held.
  */
 export function useMediaBulkActions(deps: PageFileBulkDeps) {
     const {entries, selectedIds, activeFolder, clearSelection, reload} = deps
 
     const bulkMoveOpen = ref(false)
     const bulkMoveTarget = ref<number | null>(null)
-    const bulkDeleteOpen = ref(false)
-    const showPruneConfirm = ref(false)
 
     function openBulkMove() {
         bulkMoveTarget.value = activeFolder.value
@@ -58,9 +57,8 @@ export function useMediaBulkActions(deps: PageFileBulkDeps) {
         if (withSelection) selectedIds.value = []
     }
 
-    async function runBulkDelete() {
+    async function deleteSelected() {
         const ids = [...selectedIds.value]
-        bulkDeleteOpen.value = false
         for (const id of ids) {
             try {
                 await removeMediaFile(id)
@@ -72,27 +70,31 @@ export function useMediaBulkActions(deps: PageFileBulkDeps) {
         await reload()
     }
 
-    function runPrune() {
-        showPruneConfirm.value = true
-    }
+    const bulkDelete = useConfirmAction<true>({onConfirm: deleteSelected})
 
-    const {running: pruning, run: confirmPrune} = useAsyncAction(async () => {
-        showPruneConfirm.value = false
+    const {running: pruning, run: prune} = useAsyncAction(async () => {
         await pruneMediaFiles()
         await reload()
+    })
+
+    const pruneConfirm = useConfirmAction<true>({
+        onConfirm: async () => {
+            await prune()
+        },
     })
 
     return {
         bulkMoveOpen,
         bulkMoveTarget,
-        bulkDeleteOpen,
+        bulkDeleteOpen: bulkDelete.show,
         openBulkMove,
         runBulkMove,
         dropOnFolder,
-        runBulkDelete,
-        showPruneConfirm,
+        requestBulkDelete: () => bulkDelete.request(true),
+        runBulkDelete: bulkDelete.confirm,
+        showPruneConfirm: pruneConfirm.show,
         pruning,
-        runPrune,
-        confirmPrune,
+        runPrune: () => pruneConfirm.request(true),
+        confirmPrune: pruneConfirm.confirm,
     }
 }

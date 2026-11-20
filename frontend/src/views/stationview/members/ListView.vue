@@ -8,15 +8,13 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import MemberListPanel from './listview/MemberListPanel.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {StationPermission} from '@/api/generated/schema'
 import { STATION_MEMBER_SOURCE, type RosterMember } from './listview/useMemberData'
-import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useConfirmAction } from '@/composables/useConfirmAction'
+import type {Failure} from '@/util/failure'
 import { useSession } from '@/composables/useSession'
 import { useMemberListConfig, type MemberListPort } from './listview/useMemberListConfig'
 import { stationMembers } from '@/api'
@@ -38,24 +36,36 @@ const port: MemberListPort = {
 
 const config = useMemberListConfig(port)
 
-const resendTarget = ref<RosterMember | null>(null)
 const resendSuccess = ref('')
+const resending = ref(false)
+
+/** Why the last setup mail could not be sent, shown on the page once the question has closed. */
+const resendFailure = ref<Failure | null>(null)
 
 const {
-  running: resending,
+  show: confirmingResend,
+  target: resendTarget,
+  request: requestResend,
+  confirm: confirmResendSetup,
+} = useConfirmAction<RosterMember>({
+  onConfirm: async member => {
+    resending.value = true
+    try {
+      await stationMembers.resendSetupMail(member.id)
+    } finally {
+      resending.value = false
+    }
+  },
+  onSuccess: () => {
+    resendSuccess.value = t('membersList.resendSuccess')
+  },
   failure: resendFailure,
-  run: confirmResendSetup,
-  clearError: clearResendError,
-} = useAsyncAction(async () => {
-  if (!resendTarget.value) return
-  await stationMembers.resendSetupMail(resendTarget.value.id)
-  resendSuccess.value = t('membersList.resendSuccess')
-  resendTarget.value = null
 })
 
+/** Asks before sending the setup mail again, unless shift is held. */
 function openResendSetup(member: RosterMember) {
-  resendTarget.value = member
-  clearResendError()
+  resendFailure.value = null
+  requestResend(member)
 }
 
 /** The members chosen in the list, handed to a run that generates a document for each. */
@@ -76,18 +86,17 @@ const generatingDocuments = computed({
     <MemberListPanel :config="config" linked-tabs @resend-setup="openResendSetup" @generate-documents="(ids) => documentMembers = ids"/>
     <BulkGenerateModal v-if="documentMembers" v-model="generatingDocuments" :member-ids="documentMembers"/>
 
-    <Modal v-if="resendTarget" model-value @update:model-value="(v) => { if (!v) resendTarget = null }">
-      <div class="space-y-4">
-        <p>{{ t('membersList.resendConfirm', {name: resendTarget?.name ?? ''}) }}</p>
-        <FailureAlert :failure="resendFailure"/>
-        <ButtonRow align="end">
-          <SecondaryButton :disabled="resending" @click="resendTarget = null">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :icon="['fas', 'paper-plane']" :disabled="resending" @click="confirmResendSetup">
-            {{ t('membersList.resendAction') }}
-          </PrimaryButton>
-        </ButtonRow>
-      </div>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="confirmingResend"
+        :message="t('membersList.resendConfirm', {name: resendTarget?.name ?? ''})"
+        :confirm-label="t('membersList.resendAction')"
+        :confirm-icon="['fas', 'paper-plane']"
+        :busy="resending"
+        neutral
+        @confirm="confirmResendSetup"
+    />
+
+    <FailureAlert :failure="resendFailure" class="mt-4"/>
 
     <Alert v-if="resendSuccess" variant="success" class="mt-4">
       {{ resendSuccess }}

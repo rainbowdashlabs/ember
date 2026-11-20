@@ -6,6 +6,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {forms} from '@/api'
+import {shiftIsHeld} from '@/util/modifierKeys'
 import type {QuestionAnswerCount} from '@/api/generated/schema'
 
 /** The editor was asked whether answers may go and said no, so nothing was saved. */
@@ -85,11 +86,15 @@ export function useAnswerLossConsent() {
    * Resolves once the removal may go ahead, and rejects with {@link AnswerLossDeclined} where the
    * editor declines.
    *
+   * <p>Shift held as the save starts is consent given, as it is for every plain confirmation. It is
+   * read before the counts are fetched, so letting go while they load changes nothing.
+   *
    * @param formId the form being saved
    * @param removals the stored questions and options the save is about to remove
    */
   async function requireConsent(formId: number, removals: Removals): Promise<void> {
     if (removals.questionIds.length === 0 && removals.options.length === 0) return
+    if (shiftIsHeld()) return
     const {answers, selections} = answerLoss(await forms.getQuestionAnswerCounts(formId), removals)
     if (answers === 0 && selections === 0) return
     lostAnswers.value = answers

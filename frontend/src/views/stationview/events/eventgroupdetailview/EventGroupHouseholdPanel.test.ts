@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {afterEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount, type VueWrapper} from '@vue/test-utils'
 import EventGroupHouseholdPanel from './EventGroupHouseholdPanel.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
@@ -12,6 +12,7 @@ import type {EventGroupDetail, EventGroupSignUp} from '@/api/generated/schema'
 import {createIdentity} from '@/test/mocks/factories'
 import {computed} from 'vue'
 import type {EventGroupSignUpPort} from './eventGroupSignUpPort'
+import {followModifierKeys} from '@/util/modifierKeys'
 
 const withdraw = vi.fn(async (..._args: unknown[]) => ({}))
 const changeAnswers = vi.fn(async (..._args: unknown[]) => ({}))
@@ -49,7 +50,15 @@ function detail(
 
 let wrapper: VueWrapper | null = null
 
+/** Presses and releases shift the way a reader holding it down would. */
+function holdShift(held: boolean) {
+  window.dispatchEvent(new KeyboardEvent(held ? 'keydown' : 'keyup', {key: 'Shift'}))
+}
+
+beforeAll(() => followModifierKeys())
+
 afterEach(() => {
+  holdShift(false)
   wrapper?.unmount()
   wrapper = null
   document.body.innerHTML = ''
@@ -94,6 +103,23 @@ describe('EventGroupHouseholdPanel', () => {
 
     expect(withdraw).toHaveBeenCalledWith(70, 12)
     expect(onChanged).toHaveBeenCalled()
+  })
+
+  it('withdraws at once while shift is held', async () => {
+    const onChanged = vi.fn()
+    wrapper = mount(EventGroupHouseholdPanel, {
+      props: {detail: detail([entry(12, 'Mara', {status: 'ACCEPTED', parts: [11]})]), onChanged},
+      attachTo: document.body,
+      global: {stubs: {MemberName: true}},
+    })
+
+    holdShift(true)
+    await wrapper.find('[data-testid="event-group-withdraw"]').trigger('click', {shiftKey: true})
+    await flushPromises()
+
+    expect(withdraw).toHaveBeenCalledWith(70, 12)
+    expect(onChanged).toHaveBeenCalled()
+    expect(wrapper.findComponent(ConfirmDeleteModal).props('modelValue')).toBe(false)
   })
 
   it('shows the answers of a standing sign-up, marks one still owed and changes them', async () => {

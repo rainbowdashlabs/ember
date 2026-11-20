@@ -15,6 +15,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {MemberGroupSet} from '@/api/generated/schema'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 
 /**
  * The sets of groups beside the groups: each one a name, whose groups a member can be in only one of.
@@ -35,8 +36,10 @@ const {t} = useI18n()
 const naming = ref(false)
 const renaming = ref<MemberGroupSet | null>(null)
 const name = ref('')
-const deleting = ref<MemberGroupSet | null>(null)
-const confirmDelete = ref(false)
+const {show: confirmDelete, target: deleting, requestDelete: askDelete, confirm: removeSet} =
+  useConfirmDelete<MemberGroupSet>({
+    onDelete: async set => { emit('delete', set.id) },
+  })
 
 function openCreate() {
   renaming.value = null
@@ -54,16 +57,6 @@ function save() {
   if (renaming.value) emit('rename', renaming.value.id, name.value)
   else emit('create', name.value)
   naming.value = false
-}
-
-function askDelete(set: MemberGroupSet) {
-  deleting.value = set
-  confirmDelete.value = true
-}
-
-function removeSet() {
-  if (deleting.value) emit('delete', deleting.value.id)
-  confirmDelete.value = false
 }
 </script>
 

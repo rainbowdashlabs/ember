@@ -15,6 +15,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 
 ### Improvements
 
+- **Editing and moderating chats granted apart.** Running the station's chats and moderating them are two separate permissions now, so reports can be handled without the right to open or close chats. Whoever could manage the station's chats keeps both.
 - **Mail switches only where mail is sent.** A station without a mail provider of its own or one shared by the instance no longer shows the mail switch and the mail column in the notification settings. A note there says that notifications cannot arrive by mail.
 - **Finding the station address on the map.** "Find on map" in the station location settings moves the pin to the typed address. A hint says when only the street or the town was found, and nothing is saved until the location is saved.
 - **Declined answers folded away.** On the registrations page, the declined answers of a date stay closed until opened. Opened, they show who declined and when, without the place ranking.
@@ -35,6 +36,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Open answers for every date of a series.** The dashboard lists each date of a repeating appointment that still waits for an answer, not only one-time appointments, and leads to that date.
 - **Places per partner station for event groups.** A shared event group can let a partner station decide its own sign-ups, optionally with a number of places for the whole event group. Until now only shared appointments could do this.
 - **Partner members told about decisions.** Members of a partner station are told when the station holding it accepts or turns down their sign-up, puts it on the waiting list or moves it up. The same notice arrives when their own station confirms them.
+- **A way back for a piece already sent.** Calling off an exchange whose old piece is already in the post or back with the association offers to plan its way back. A new hand-out then brings exactly that piece back to the member.
 
 ### Changes
 
@@ -46,6 +48,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Event group sign-ups decided on the event group.** The open sign-ups list each event group with sign-ups waiting once and leads to it, instead of listing its appointments one by one. The count in the sidebar takes each such sign-up once.
 - **Sharing appointments needs this version on both sides.** Sharing appointments with a partner station on another server pauses until both run this version.
 - **Station statistics moved to Monitoring.** The statistics page of a station is found under Monitoring at `/station/monitoring/statistics`, so the dashboard is a single page again.
+- **Instance statistics moved to Monitoring.** The statistics page of the administration is found under Monitoring at `/admin/monitoring/statistics`, and the administration dashboard is a single page as well.
 - **Waiting sign-ups kept at the deadline.** Sign-ups still waiting for confirmation are no longer declined when the deadline passes. Whoever runs the appointment is told once per date and decides them as before.
 - **Minimum checked from midnight.** The minimum of an event group is checked from midnight the set number of days before its first appointment, a called-off first appointment included, as it already was for appointments.
 - **Places go with the share.** When an appointment or event group is no longer shared with a partner station, the arrangement about that station's places is removed. Sharing it again starts with the station holding the appointment or event group deciding each sign-up.
@@ -66,6 +69,18 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Called-off dates looked open on the dashboard.** In some cases the dashboard showed a called-off date of a repeating appointment as an ordinary date. It is now marked as called off and no longer offers to decline.
 - **Minimum date one day late in announcements.** The announcement sentence about a minimum named the day the check runs as the last day to sign up. It now names the day before.
 - **A moved deadline was not warned about again.** In some cases a deadline that was moved after its warning or its notice had gone out was not warned or told about a second time. Both now follow the deadline as it stands.
+- **A planned hand-out asked for its piece again.** When a hand-out was planned with a piece already chosen, the step that hands it over still asked for a piece and could not offer the chosen one. The step now starts with the planned piece, which can be confirmed or swapped for another free one.
+- **Planned pieces missing from a member's gear.** A member's inventory tab did not show gear a running movement was about to bring them. For readers who may see movements, each such piece now stands in its inventory with a link to the movement, in place of its "missing" card.
+- **Pieces on a movement looked free in the inventory.** In an inventory's item lists, a piece that a running movement had set aside or was moving showed as an ordinary free piece. It now carries a badge leading to the movement, and the lists only offer pieces that can be handed out.
+- **Called-off exchanges left the station's own piece on the shelf.** When an exchange of the station's own gear was called off after the old piece had been handed in, the piece stayed on the shelf and the member held nothing. Calling off now asks whether to give the old piece back, with yes chosen.
+- **Gear could be used although it was spoken for.** In some cases a piece that was missing, on a running movement or set aside for a loan could still be handed out, lent, moved or deleted. Such actions are now refused with a message saying why.
+- **Reported losses could vanish.** In some cases a piece reported missing counted as present again after the next change to it, without anybody finding it. A loss now stays until the piece is marked as found.
+- **Missing pieces counted as held.** A piece reported missing still counted towards what a member has to hold, so no gap showed for it. It no longer counts, and the gap offers a hand-out.
+- **A member's own inventory page counted differently.** A member's own inventory page counted a piece handed in for a running exchange as missing and did not show gear on its way. It now counts as the station does and shows such gear in its inventory.
+- **Deleted members kept their gear.** When a member or an account was deleted, their gear stayed assigned and their running movements went on. Their gear now goes back to the store first, and their running movements are called off.
+- **Movements deleted after pieces had moved.** Marking a member as former, or removing a swap on the attendance sheet, deleted the movement even when pieces had already changed hands. Such movements are now closed and kept, and the sheet offers removal only before anything has moved.
+- **Inventory statistics counted some gear twice.** The inventory chart counted a missing piece on a member both as missing and as handed out, and lent or posted gear as available. Each piece is now counted once, with gear away from the station shown on its own.
+- **Shift skipped only some questions.** Holding the Shift key skipped the question on only some delete buttons, and a few removals deleted stored data without asking at all. Shift now skips every plain question, and those removals ask first.
 
 ## v26.25.2
 

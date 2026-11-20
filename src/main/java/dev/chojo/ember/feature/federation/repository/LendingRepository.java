@@ -257,6 +257,19 @@ public class LendingRepository {
      * @param assignedItemId the piece
      * @return {@code true} when the piece is set aside for that line
      */
+    /**
+     * The request a line belongs to.
+     *
+     * @param requestItemId the line
+     * @return the request id, or empty when the line is gone
+     */
+    public Optional<Integer> findRequestIdOfLine(int requestItemId) {
+        return query("SELECT request_id FROM federation_lending_request_item WHERE id = :id;")
+                .single(call().bind("id", requestItemId))
+                .map(row -> row.getInt("request_id"))
+                .first();
+    }
+
     public boolean assignItem(int requestItemId, int assignedItemId) {
         return query("""
                 INSERT INTO federation_lending_request_item_assignment(request_item_id, item_id)

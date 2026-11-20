@@ -8,6 +8,7 @@ import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import MovementPieceBadge from '@/components/inventory/MovementPieceBadge.vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -19,6 +20,8 @@ defineProps<{
   size: string
   assignee?: string
   faded?: boolean
+  /** The movement carrying the piece, shown as its badge. */
+  movementId?: number
 }>()
 </script>
 
@@ -27,6 +30,7 @@ defineProps<{
     <Td class="font-medium">
       {{ name }}
       <span v-if="lostNote" class="ml-2 text-xs text-error font-normal">{{ lostNote }}</span>
+      <MovementPieceBadge :movement-id="movementId" class="ml-2"/>
     </Td>
     <Td muted>{{ inventoryId }}</Td>
     <Td><SizeBadge>{{ size }}</SizeBadge></Td>

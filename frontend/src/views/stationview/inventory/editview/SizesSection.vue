@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -16,6 +16,8 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import DragList from '@/components/input/DragList.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {InventorySize} from '@/api/generated/schema'
@@ -77,14 +79,14 @@ async function saveSize() {
   }
 }
 
-async function deleteSize(size: InventorySize) {
-  try {
-    await inventory.deleteSize(props.inventoryId, size.id)
-    emit('updated')
-  } catch (e) {
-    emit('error', describeFailure(e, t))
-  }
-}
+const {show: showDeleteSize, target: deletingSize, requestDelete: deleteSize, confirm: confirmDeleteSize, failure: deleteSizeFailure} =
+  useConfirmDelete<InventorySize>({
+    onDelete: async size => {
+      await inventory.deleteSize(props.inventoryId, size.id)
+    },
+    onSuccess: () => emit('updated'),
+  })
+watch(deleteSizeFailure, failure => { if (failure) emit('error', failure) })
 
 /**
  * Writes the new order back one size at a time.
@@ -157,4 +159,10 @@ async function onSizeReorder(fromIndex: number, toIndex: number) {
       </div>
     </div>
   </Modal>
+
+  <ConfirmDeleteModal
+      v-model="showDeleteSize"
+      :message="t('inventory.edit.deleteSizeConfirm', {label: deletingSize?.label ?? ''})"
+      @confirm="confirmDeleteSize"
+  />
 </template>

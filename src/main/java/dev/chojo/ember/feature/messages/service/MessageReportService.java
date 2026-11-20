@@ -102,7 +102,7 @@ public class MessageReportService {
         String kept = reasonOf(reason);
         if (!reports.report(messageId, accountId, kept)) return;
         log.info("Message {} in station chat {} reported by account {}", messageId, chat.id(), accountId);
-        var audience = StationAudience.holders(scope.stationId(), StationPermission.MESSAGE_CHAT_MANAGE);
+        var audience = StationAudience.holders(scope.stationId(), StationPermission.MESSAGE_CHAT_MODERATE);
         var reporterMember = stationChats.memberAt(accountId, scope.stationId());
         notifier.notify(
                 reporterMember.map(audience::except).orElse(audience),

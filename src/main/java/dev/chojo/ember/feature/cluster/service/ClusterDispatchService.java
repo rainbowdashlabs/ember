@@ -62,7 +62,8 @@ public class ClusterDispatchService {
      * The gear resting in the association's own store, which is what there is to send.
      *
      * <p>Anything already out at a station, on its way somewhere or missing is not in the store, however
-     * much the association owns it.
+     * much the association owns it. A piece an open movement already carries, as the one it names or as a
+     * further piece of a consignment, is spoken for and not sent twice.
      *
      * @param clusterId the association
      * @return its free stock
@@ -71,6 +72,7 @@ public class ClusterDispatchService {
         clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_DISPATCH_CLUSTER_NOT_HERE::raise);
         return inventoryRepository.findItemsOwnedByCluster(clusterId).stream()
                 .filter(item -> item.custody() == ItemCustody.WITH_OWNER)
+                .filter(item -> !movementService.isOnAMovement(item.id()))
                 .toList();
     }
 

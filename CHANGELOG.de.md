@@ -15,6 +15,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 
 ### Verbesserungen
 
+- **Chats bearbeiten und moderieren getrennt vergeben.** Die Chats der Wache zu führen und sie zu moderieren sind jetzt zwei eigene Berechtigungen, so lassen sich Meldungen bearbeiten, ohne Chats anlegen oder schließen zu dürfen. Wer die Wachenchats verwalten durfte, behält beides.
 - **Schalter für E-Mails nur bei E-Mail-Versand.** Hat eine Wache weder einen eigenen E-Mail-Versand noch einen, den die Instanz mit ihr teilt, fehlen in den Benachrichtigungseinstellungen der Schalter für E-Mails und die Spalte „E-Mail“. Ein Hinweis sagt dort, dass Benachrichtigungen nicht per E-Mail kommen können.
 - **Adresse der Wache auf der Karte finden.** „Auf der Karte finden“ in den Standort-Einstellungen setzt die Markierung auf die eingetippte Adresse. Ein Hinweis sagt, wenn nur die Straße oder der Ort gefunden wurde, und gespeichert wird erst mit dem Standort.
 - **Absagen eingeklappt.** Auf der Seite der Anmeldungen bleiben die Absagen zu einem Termin geschlossen, bis sie geöffnet werden. Geöffnet zeigen sie, wer wann abgesagt hat, ohne die Rangfolge für Plätze.
@@ -35,6 +36,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Offene Antworten auch bei wiederkehrenden Terminen.** Die Übersicht listet nicht nur einmalige Termine, sondern auch jedes Datum eines wiederkehrenden Termins, das noch auf eine Antwort wartet, und führt zu diesem Datum.
 - **Plätze für Partnerwachen bei Terminreihen.** Eine geteilte Terminreihe kann eine Partnerwache selbst über ihre Anmeldungen entscheiden lassen, auf Wunsch mit einer festen Zahl an Plätzen für die ganze Terminreihe. Das ging bisher nur bei geteilten Terminen.
 - **Partnerwachen erfahren von Entscheidungen.** Mitglieder einer Partnerwache bekommen eine Nachricht, wenn die ausrichtende Wache ihre Anmeldung bestätigt, ablehnt, auf die Nachrückliste setzt oder nachrücken lässt. Dieselbe Nachricht kommt, wenn die eigene Wache sie bestätigt.
+- **Rückweg für ein schon verschicktes Teil.** Wird ein Tausch abgebrochen, dessen altes Teil schon unterwegs oder wieder beim Träger ist, lässt sich der Rückweg planen. Eine neue Ausgabe bringt dann genau dieses Teil zurück zum Mitglied.
 
 ### Änderungen
 
@@ -46,6 +48,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Anmeldungen zu Terminreihen werden bei der Terminreihe entschieden.** Die offenen Anmeldungen führen jede Terminreihe mit wartenden Anmeldungen einmal auf und verweisen auf sie, statt ihre Termine einzeln zu zeigen. Die Zahl in der Seitenleiste zählt jede solche Anmeldung einmal.
 - **Geteilte Termine brauchen diese Version auf beiden Seiten.** Das Teilen von Terminen mit einer Partnerwache auf einem anderen Server ruht, bis beide diese Version haben.
 - **Statistiken der Wache unter Monitoring.** Die Statistikseite einer Wache steht unter Monitoring, unter `/station/monitoring/statistics`, und das Dashboard ist wieder eine einzelne Seite.
+- **Statistiken der Instanz unter Monitoring.** Die Statistikseite der Verwaltung steht unter Monitoring, unter `/admin/monitoring/statistics`, und auch das Dashboard der Verwaltung ist eine einzelne Seite.
 - **Offene Anmeldungen bleiben nach dem Anmeldeschluss bestehen.** Anmeldungen, die noch auf Bestätigung warten, werden beim Anmeldeschluss nicht mehr abgelehnt. Wer den Termin betreut, bekommt je Termin einen Hinweis und entscheidet wie bisher.
 - **Mindestanzahl ab Mitternacht geprüft.** Die Mindestanzahl einer Terminreihe wird ab Mitternacht die eingestellte Zahl an Tagen vor ihrem ersten Termin geprüft, auch wenn dieser abgesagt ist, so wie schon bei einzelnen Terminen.
 - **Plätze gehen mit der Freigabe.** Wird ein Termin oder eine Terminreihe nicht mehr mit einer Partnerwache geteilt, fällt auch die Vereinbarung über ihre Plätze weg. Wird wieder geteilt, entscheidet zunächst wieder die ausrichtende Wache über jede Anmeldung.
@@ -66,6 +69,18 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Abgesagte Termine wirkten auf der Übersicht offen.** In manchen Fällen zeigte die Übersicht ein abgesagtes Datum eines wiederkehrenden Termins wie ein normales Datum. Es ist jetzt als abgesagt markiert und bietet keine Abmeldung an.
 - **Datum der Mindestanzahl in Ankündigungen einen Tag zu spät.** Der Satz zur Mindestanzahl nannte den Tag der Prüfung als letzten Anmeldetag. Er nennt jetzt den Tag davor.
 - **Verschobener Anmeldeschluss ohne neue Erinnerung.** In manchen Fällen wurde ein Anmeldeschluss, der nach seiner Erinnerung oder seinem Hinweis verschoben wurde, kein zweites Mal angekündigt. Beides richtet sich jetzt nach dem Anmeldeschluss, wie er gerade gilt.
+- **Geplante Ausgabe fragte erneut nach dem Teil.** Wurde eine Ausgabe mit einem schon ausgesuchten Teil geplant, verlangte der Schritt der Übergabe trotzdem ein Teil und konnte das ausgesuchte nicht anbieten. Der Schritt beginnt jetzt mit dem geplanten Teil, das bestätigt oder gegen ein anderes freies getauscht werden kann.
+- **Geplante Teile fehlten im Inventar eines Mitglieds.** Der Inventar-Tab eines Mitglieds zeigte keine Ausrüstung, die ein laufender Vorgang ihm bald bringt. Wer Vorgänge sehen darf, findet jedes solche Teil jetzt in seinem Inventar anstelle seiner Karte „Fehlt“, mit einem Link zum Vorgang.
+- **Teile in einem Vorgang wirkten im Inventar frei.** In den Listen eines Inventars erschien ein Teil, das ein laufender Vorgang vorgemerkt hatte oder gerade bewegte, wie ein gewöhnliches freies Teil. Jetzt trägt es ein Abzeichen, das zum Vorgang führt, und die Listen bieten nur Stücke an, die sich ausgeben lassen.
+- **Abgebrochener Tausch ließ das eigene Teil im Lager.** Wurde ein Tausch eigener Ausrüstung abgebrochen, nachdem das alte Teil abgegeben war, blieb es im Lager und das Mitglied hatte nichts. Beim Abbrechen fragt Ember jetzt, ob das alte Teil zurückgehen soll, mit Ja als Vorgabe.
+- **Ausrüstung ließ sich nutzen, obwohl sie vergeben war.** In manchen Fällen ließ sich ein vermisstes, in einem laufenden Vorgang steckendes oder für eine Ausleihe vorgesehenes Stück trotzdem ausgeben, verleihen, verschieben oder löschen. Solche Aktionen werden jetzt mit einer Begründung abgelehnt.
+- **Gemeldete Verluste konnten verschwinden.** In manchen Fällen galt ein als vermisst gemeldetes Stück nach der nächsten Änderung wieder als vorhanden, ohne dass es jemand gefunden hatte. Ein Verlust bleibt jetzt bestehen, bis das Stück als gefunden markiert wird.
+- **Vermisste Stücke zählten als vorhanden.** Ein als vermisst gemeldetes Stück zählte weiter zu dem, was ein Mitglied haben soll, sodass keine Lücke zu sehen war. Jetzt zählt es nicht mehr, und die Lücke bietet eine Ausgabe an.
+- **Die eigene Inventarseite zählte anders.** Die eigene Inventarseite eines Mitglieds zählte ein für einen laufenden Tausch abgegebenes Stück als fehlend und zeigte keine Ausrüstung, die unterwegs zum Mitglied war. Jetzt zählt es wie die Wache und zeigt solche Ausrüstung im passenden Inventar.
+- **Gelöschte Mitglieder behielten ihre Ausrüstung.** Wurde ein Mitglied oder ein Konto gelöscht, blieb seine Ausrüstung zugewiesen und seine laufenden Vorgänge liefen weiter. Jetzt kommt die Ausrüstung vorher zurück ins Lager, und laufende Vorgänge werden abgebrochen.
+- **Vorgänge wurden gelöscht, obwohl schon Stücke bewegt waren.** Ein Mitglied als ehemalig zu markieren oder einen Tausch auf der Anwesenheitsliste zu entfernen, löschte den Vorgang auch dann, wenn schon Stücke den Besitzer gewechselt hatten. Solche Vorgänge werden jetzt abgeschlossen und bleiben erhalten, und die Liste bietet das Entfernen nur an, solange noch nichts bewegt wurde.
+- **Die Inventarstatistik zählte manche Ausrüstung doppelt.** Das Inventardiagramm zählte ein vermisstes Stück bei einem Mitglied als vermisst und als ausgegeben, und verliehene oder verschickte Ausrüstung als verfügbar. Jetzt zählt jedes Stück einmal, und Ausrüstung, die nicht auf der Wache ist, steht für sich.
+- **Die Umschalttaste übersprang nur manche Rückfragen.** Mit gedrückter Umschalttaste entfiel die Rückfrage nur bei manchen Löschknöpfen, und einige Löschungen entfernten gespeicherte Daten ganz ohne Nachfrage. Jetzt überspringt die Umschalttaste jede einfache Rückfrage, und diese Löschungen fragen vorher nach.
 
 ## v26.25.2
 

@@ -26,7 +26,8 @@ import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useFlashMessage } from '@/composables/useFlashMessage'
 import { formatDate, todayIsoDate } from '@/util/format'
-import { describeFailure } from '@/util/failure'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 
 const props = defineProps<{
   memberId: number
@@ -83,16 +84,15 @@ async function reloadAfterWrite() {
   if (failure.value) failure.value = {...failure.value, message: t('failure.staleAfterAction')}
 }
 
-async function remove(id: number) {
-  failure.value = null
-  try {
+/** Deletes an absence, after asking unless shift is held. */
+const {show: confirmingRemove, requestDelete: remove, confirm: confirmRemove} = useConfirmDelete<number>({
+  onDelete: async id => {
+    failure.value = null
     await deleteMemberAbsence(id)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    return
-  }
-  await reloadAfterWrite()
-}
+  },
+  onSuccess: () => reloadAfterWrite(),
+  failure,
+})
 </script>
 
 <template>
@@ -140,5 +140,10 @@ async function remove(id: number) {
         </PrimaryButton>
       </NeutralContainer>
     </template>
+    <ConfirmDeleteModal
+        v-model="confirmingRemove"
+        :message="t('memberDetail.absences.deleteConfirm')"
+        @confirm="confirmRemove"
+    />
   </div>
 </template>

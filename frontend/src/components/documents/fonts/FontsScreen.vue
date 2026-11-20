@@ -13,6 +13,7 @@ import type {DocumentFontView, DocumentFontsResponse, FontOrigin} from '@/api/ge
 import type {FontSource, FontUpload, WebFontUpload} from '@/api/documentFonts'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {provideFontSamples} from '@/composables/useFontSamples'
 import {showToast} from '@/util/toast'
 import FontUploadForm from './FontUploadForm.vue'
@@ -38,7 +39,6 @@ const {t} = useI18n()
 provideFontSamples(props.source.sample)
 
 const fonts = ref<DocumentFontsResponse>({own: [], reachable: [], defaultFamily: '', defaultStyles: []})
-const pending = ref<DocumentFontView | null>(null)
 
 const {loading, failure} = useAsyncLoader(async () => {
   fonts.value = await props.source.list()
@@ -86,12 +86,11 @@ async function upload(upload: FontUpload) {
   if (await uploading.run(upload)) showToast(t('documentFonts.uploaded'), 'success')
 }
 
-async function remove() {
-  const font = pending.value
-  if (!font) return
-  pending.value = null
-  if (await removing.run(font)) showToast(t('documentFonts.deleted'), 'success')
-}
+const {show: confirmingRemove, target: pending, requestDelete: requestRemove, confirm: remove} = useConfirmDelete<DocumentFontView>({
+  onDelete: async font => {
+    if (await removing.run(font)) showToast(t('documentFonts.deleted'), 'success')
+  },
+})
 </script>
 
 <template>
@@ -100,18 +99,17 @@ async function remove() {
     <Spinner v-if="loading" size="lg"/>
     <template v-else>
       <FontUploadForm :busy="uploading.running.value" @upload="upload"/>
-      <OwnFontList :fonts="fonts.own" :reachable="fonts.reachable" :default-family="fonts.defaultFamily" @remove="font => pending = font"
+      <OwnFontList :fonts="fonts.own" :reachable="fonts.reachable" :default-family="fonts.defaultFamily" @remove="requestRemove"
                    @web="font => webTarget = font" @remove-web="removeWeb"/>
       <ReachedFamilyList v-if="reached.length > 0 || fonts.defaultFamily" :families="reached"
                          :default-family="fonts.defaultFamily" :default-styles="fonts.defaultStyles"/>
     </template>
     <WebFontDialog :font="webTarget" :busy="uploadingWeb.running.value" @upload="uploadWeb" @close="webTarget = null"/>
     <ConfirmDeleteModal
-        :model-value="pending !== null"
+        v-model="confirmingRemove"
         :message="t('documentFonts.deleteConfirm', {family: pending?.family ?? '', style: pending ? t(`documentFonts.style.${pending.style}`) : ''})"
         :busy="removing.running.value"
         confirm-test-id="font-delete-confirm"
-        @update:model-value="open => { if (!open) pending = null }"
         @confirm="remove"
     />
   </div>

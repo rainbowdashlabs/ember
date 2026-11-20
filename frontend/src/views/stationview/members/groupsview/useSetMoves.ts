@@ -6,6 +6,7 @@
 import {ref, watch, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {memberGroups} from '@/api'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import type {AssignableMember} from '@/composables/useGroupsConfig'
 import type {GroupRow} from '@/util/groupRules'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -20,7 +21,8 @@ export interface PendingMove {
  * Adding somebody to a group of a set who is already in another group of it, which is a move.
  *
  * <p>Whoever is in a sibling group is known before they are picked, so the picker can say so beside
- * their name, and adding them asks "move from X?" instead of being refused by the server.
+ * their name, and adding them asks "move from X?" instead of being refused by the server. Shift
+ * skips the question and moves them at once.
  *
  * @param groups      every group of the station
  * @param open        the group the page has open
@@ -37,7 +39,6 @@ export function useSetMoves(
 ) {
     const {t} = useI18n()
     const inSibling = ref(new Map<number, string>())
-    const pending = ref<PendingMove | null>(null)
 
     async function loadSiblings() {
         const group = open.value
@@ -55,31 +56,28 @@ export function useSetMoves(
         loadSiblings().catch(e => { failure.value = describeFailure(e, t) })
     })
 
+    const move = useConfirmAction<PendingMove>({
+        onConfirm: async ({memberId}) => {
+            const group = open.value
+            if (!group) return
+            failure.value = null
+            members.value = await memberGroups.setGroupMembers(group.id, {
+                memberIds: [...members.value.map(member => member.id), memberId],
+                move: true,
+            })
+        },
+        onSuccess: () => loadSiblings(),
+        failure,
+    })
+
     async function add(memberId: number) {
         const from = inSibling.value.get(memberId)
         if (from === undefined) {
             await addDirectly(memberId)
             return
         }
-        pending.value = {memberId, from}
+        move.request({memberId, from})
     }
 
-    async function confirm() {
-        const move = pending.value
-        const group = open.value
-        pending.value = null
-        if (!move || !group) return
-        failure.value = null
-        try {
-            members.value = await memberGroups.setGroupMembers(group.id, {
-                memberIds: [...members.value.map(member => member.id), move.memberId],
-                move: true,
-            })
-            await loadSiblings()
-        } catch (e) {
-            failure.value = describeFailure(e, t)
-        }
-    }
-
-    return {inSibling, pending, add, confirm}
+    return {inSibling, pending: move.target, show: move.show, add, confirm: move.confirm}
 }

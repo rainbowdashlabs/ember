@@ -96,4 +96,78 @@ describe('MovementActionPanel', () => {
             held.inventoryRead = true
         }
     })
+
+    /**
+     * A planned hand-out names its piece when it is planned. The step that hands it over starts out with
+     * that piece chosen and answers with it, rather than asking for one the picker would not offer.
+     */
+    it('starts with the piece the movement already names, and keeps it on offer', async () => {
+        const wrapper = panel({promisedItemId: 57, promisedItemName: 'Sporttasche'})
+        const picker = wrapper.findComponent({name: 'ItemSearchPicker'})
+
+        expect(picker.props('modelValue'), 'the promised piece is chosen').toBe(57)
+        expect(picker.props('keepItemId'), 'and offered although it is spoken for').toBe(57)
+        expect(wrapper.find('[data-testid="movement-promised-item"]').exists()).toBe(true)
+
+        const button = wrapper.find('[data-testid="movement-acknowledge"]')
+        expect(button.attributes('disabled'), 'nothing is missing').toBeUndefined()
+        await button.trigger('click')
+        expect(wrapper.emitted('acknowledge')?.[0]?.[0]).toMatchObject({pickedItemId: 57})
+    })
+
+    /** Without a piece named, the step still waits for one. */
+    it('waits for a piece where the movement names none', () => {
+        const wrapper = panel()
+
+        expect(wrapper.find('[data-testid="movement-acknowledge"]').attributes('disabled')).toBeDefined()
+        expect(wrapper.find('[data-testid="movement-promised-item"]').exists()).toBe(false)
+    })
+
+    /** Somebody who may not read the shelf may still hand over the piece the movement names. */
+    it('lets somebody who may not pick hand over the promised piece', () => {
+        held.inventoryRead = false
+        try {
+            const wrapper = panel({promisedItemId: 57})
+
+            expect(wrapper.find('[data-testid="movement-acknowledge"]').attributes('disabled')).toBeUndefined()
+        } finally {
+            held.inventoryRead = true
+        }
+    })
+
+    /**
+     * Calling off asks about the piece the member handed in. At the station it goes back unless kept;
+     * once it has left, a way back is offered and not assumed.
+     */
+    describe('calling off', () => {
+        function callingOff(oldPiece: string, forMember = true) {
+            return panel({oldPiece, forMember})
+        }
+
+        it('gives a piece at the station back unless it is kept', async () => {
+            const wrapper = callingOff('AT_STATION')
+
+            expect(wrapper.find('[data-testid="call-off-give-back"]').exists()).toBe(true)
+            await wrapper.get('[data-testid="movement-cancel"]').trigger('click')
+            expect(wrapper.emitted('cancel')?.[0]?.[1]).toEqual({giveBack: true, planWayBack: false})
+
+            await wrapper.get('[data-testid="call-off-give-back"]').trigger('click')
+            await wrapper.get('[data-testid="movement-cancel"]').trigger('click')
+            expect(wrapper.emitted('cancel')?.[1]?.[1]).toEqual({giveBack: false, planWayBack: false})
+        })
+
+        it('offers the way back for a piece that has left', async () => {
+            const wrapper = callingOff('AWAY')
+
+            expect(wrapper.find('[data-testid="call-off-give-back"]').exists()).toBe(false)
+            await wrapper.get('[data-testid="call-off-way-back"]').trigger('click')
+            await wrapper.get('[data-testid="movement-cancel"]').trigger('click')
+            expect(wrapper.emitted('cancel')?.[0]?.[1]).toMatchObject({planWayBack: true})
+        })
+
+        it('asks nothing while the member holds it, or where the movement is for nobody', () => {
+            expect(callingOff('WITH_MEMBER').find('[data-testid="call-off-choice"]').exists()).toBe(false)
+            expect(callingOff('AT_STATION', false).find('[data-testid="call-off-choice"]').exists()).toBe(false)
+        })
+    })
 })

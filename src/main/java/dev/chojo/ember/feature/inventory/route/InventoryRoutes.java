@@ -352,7 +352,8 @@ public class InventoryRoutes implements Routes {
         var required = checkService.getRequiredItems(
                 session.stationId(), session.member().id());
         var result = required.stream()
-                .map(r -> new MyRequirement(r.inventoryId(), r.inventoryName(), r.requiredQuantity()))
+                .map(r -> new MyRequirement(
+                        r.inventoryId(), r.inventoryName(), r.requiredQuantity(), r.assignedQuantity()))
                 .toList();
         ctx.json(result);
     }
@@ -1309,7 +1310,14 @@ public class InventoryRoutes implements Routes {
             @Nullable Instant returned,
             boolean corrected) {}
 
-    public record MyRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
+    /**
+     * What the station expects the member to hold of one inventory.
+     *
+     * @param requiredQuantity how many they should hold
+     * @param heldQuantity     how many the station counts as held: what is on them and what is away in an
+     *                         exchange that is still running, and nothing reported missing
+     */
+    public record MyRequirement(int inventoryId, String inventoryName, int requiredQuantity, int heldQuantity) {}
 
     /**
      * @param homogeneous whether the inventory holds one thing in many copies rather than a drawer of

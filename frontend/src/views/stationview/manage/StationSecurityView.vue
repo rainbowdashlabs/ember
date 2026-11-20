@@ -18,6 +18,7 @@ import {twoFactorAdmin} from '@/api'
 import {StationPermission, type MemberStatus, type StationUserType, type TwoFactorPolicyEntry} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -90,27 +91,21 @@ function userTypeLabel(name: string): string {
   return translated === key ? name : translated
 }
 
-const resetTarget = ref<MemberStatus | null>(null)
 const resetLoading = ref(false)
 
-function openReset(member: MemberStatus) {
-  resetTarget.value = member
-}
-
-async function confirmReset() {
-  if (!resetTarget.value) return
-  resetLoading.value = true
-  try {
-    await twoFactorAdmin.resetAccount2FAByStationAdmin(resetTarget.value.accountId)
-    resetTarget.value = null
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    resetLoading.value = false
-    return
-  }
-  resetLoading.value = false
-  await load(t('failure.staleAfterAction'))
-}
+const {show: showReset, target: resetTarget, request: openReset, confirm: confirmReset} =
+  useConfirmAction<MemberStatus>({
+    onConfirm: async member => {
+      resetLoading.value = true
+      try {
+        await twoFactorAdmin.resetAccount2FAByStationAdmin(member.accountId)
+      } finally {
+        resetLoading.value = false
+      }
+    },
+    onSuccess: () => load(t('failure.staleAfterAction')),
+    failure,
+  })
 </script>
 
 <template>
@@ -137,12 +132,11 @@ async function confirmReset() {
       </template>
 
       <ConfirmDeleteModal
-          :model-value="resetTarget !== null"
+          v-model="showReset"
           :title="t('twoFactor.admin.resetConfirmTitle')"
           :message="t('twoFactor.admin.resetConfirmText', {name: `${resetTarget?.firstName} ${resetTarget?.lastName}`})"
           :confirm-label="t('twoFactor.admin.reset')"
           :busy="resetLoading"
-          @update:model-value="resetTarget = null"
           @confirm="confirmReset"
       >
         <Alert variant="error">{{ t('twoFactor.admin.resetWarning') }}</Alert>

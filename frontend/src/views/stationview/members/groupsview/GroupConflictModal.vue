@@ -36,7 +36,7 @@ const canRemove = computed(() => props.conflict?.code === BINDING_EXCLUDES_MEMBE
 </script>
 
 <template>
-  <Modal :model-value="conflict !== null" @update:model-value="open => { if (!open) emit('close') }">
+  <Modal data-confirm-always :model-value="conflict !== null" @update:model-value="open => { if (!open) emit('close') }">
     <div class="space-y-4">
       <SubHeader>{{ canRemove ? t('memberGroups.conflicts.bindingTitle') : t('memberGroups.conflicts.setTitle') }}</SubHeader>
       <p class="text-sm">{{ canRemove ? t('memberGroups.conflicts.bindingText') : t('memberGroups.conflicts.setText') }}</p>

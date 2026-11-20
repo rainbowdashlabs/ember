@@ -62,6 +62,8 @@ const sections = [
     <HelpSection :title="t('helpCenter.welcome.shortcutsTitle')">
       <p>{{ t('helpCenter.welcome.shortcutsConfirm') }}</p>
       <p>{{ t('helpCenter.welcome.shortcutsSkip') }}</p>
+      <p>{{ t('helpCenter.welcome.shortcutsSkipSafety') }}</p>
+      <p>{{ t('helpCenter.welcome.shortcutsSkipInput') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.welcome.otherPages')">

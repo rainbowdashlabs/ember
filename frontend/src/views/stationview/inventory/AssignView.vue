@@ -277,6 +277,8 @@ async function onUnknownScanCreated(item: InventoryItem) {
         <ItemSearchPicker
             v-model="pickedItemId"
             :disabled="!memberId || submitting"
+            exclude-spoken-for
+            exclude-unavailable
             @pick="onItemPicked"
             @scan-not-found="(code) => unknownScanCode = code"
         />

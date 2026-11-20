@@ -13,6 +13,8 @@ import DragList from '@/components/input/DragList.vue'
 import MailRuleRow from './MailRuleRow.vue'
 import MailRuleEditor from './MailRuleEditor.vue'
 import {mailImport} from '@/api'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {MailRuleDraft} from '@/api/mailImport'
 import type {RuleResponse} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
@@ -87,6 +89,13 @@ async function save(request: MailRuleDraft) {
   }
 }
 
+/** Deletes a rule, after asking unless shift is held. */
+const {show: confirmingRemove, requestDelete: requestRemove, confirm: confirmRemove} = useConfirmDelete<RuleResponse>({
+  onDelete: async rule => {
+    await act(mailImport.deleteRule(rule.id))
+  },
+})
+
 async function reorder(from: number, to: number) {
   const moved = moveWithin(rules.value, from, to)
   rules.value = moved
@@ -115,7 +124,7 @@ reload()
         <MailRuleRow
             :rule="item"
             @edit="editing = item; adding = false"
-            @delete="act(mailImport.deleteRule(item.id))"
+            @delete="requestRemove(item)"
         />
       </template>
     </DragList>
@@ -127,6 +136,11 @@ reload()
         :position="rules.length"
         @cancel="editing = null; adding = false"
         @save="save"
+    />
+    <ConfirmDeleteModal
+        v-model="confirmingRemove"
+        :message="t('mailImport.deleteRuleConfirm')"
+        @confirm="confirmRemove"
     />
   </div>
 </template>

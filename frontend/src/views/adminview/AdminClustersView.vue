@@ -21,7 +21,7 @@ import {clusters} from '@/api'
 import type {AccountSearchResult, ClusterResponse} from '@/api/generated/schema'
 import ClusterRow from './adminclustersview/ClusterRow.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {useModalTarget} from '@/composables/useModalTarget'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 
 const {t} = useI18n()
 
@@ -33,8 +33,6 @@ const {config: clusterList, loading, failure, runWith} = useConfigPanel<ClusterR
   initial: [],
   fetch: () => clusters.listAll(),
 })
-
-const {isOpen: showDelete, target: deleteTarget, open: openDelete} = useModalTarget<ClusterResponse>()
 
 async function appoint(cluster: ClusterResponse, account: AccountSearchResult) {
   await runWith(async () => {
@@ -56,15 +54,13 @@ async function create() {
   }, {busy})
 }
 
-async function confirmDelete() {
-  const target = deleteTarget.value
-  if (!target) return
-  await runWith(async () => {
-    await clusters.deleteCluster(target.uid)
-    showDelete.value = false
-    return clusters.listAll()
-  }, {busy})
-}
+const {show: showDelete, target: deleteTarget, requestDelete: openDelete, confirm: confirmDelete} =
+  useConfirmDelete<ClusterResponse>({
+    onDelete: target => runWith(async () => {
+      await clusters.deleteCluster(target.uid)
+      return clusters.listAll()
+    }, {busy}),
+  })
 </script>
 
 <template>

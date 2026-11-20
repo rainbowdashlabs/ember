@@ -18,6 +18,9 @@ import {acknowledgeAllReports, acknowledgeReport, deleteReport, listReports} fro
 import type {ProblemReport} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 
 const {t} = useI18n()
 const {refresh: refreshCounts} = useMonitoringCounts()
@@ -107,11 +110,15 @@ async function ackAll() {
   void refreshCounts()
 }
 
-async function remove(id: number) {
-  await deleteReport(id)
-  reports.value = reports.value.filter(r => r.id !== id)
-  void refreshCounts()
-}
+/** Deletes a report, after asking unless shift is held. */
+const {show: confirmingRemove, requestDelete: remove, confirm: confirmRemove, failure: removeFailure} = useConfirmDelete<number>({
+  onDelete: async id => {
+    removeFailure.value = null
+    await deleteReport(id)
+    reports.value = reports.value.filter(r => r.id !== id)
+    void refreshCounts()
+  },
+})
 
 function toggle(id: number) {
   expandedId.value = expandedId.value === id ? null : id
@@ -121,6 +128,7 @@ function toggle(id: number) {
 <template>
   <ViewContent :title="t('pages.admin-problem-reports.title')" :subtitle="t('pages.admin-problem-reports.subtitle')">
     <div class="space-y-4">
+      <FailureAlert :failure="removeFailure"/>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <label class="flex items-center gap-2 text-sm">
@@ -161,6 +169,11 @@ function toggle(id: number) {
         @sent="onForwarded"
       />
       <Alert v-if="forwarded" variant="success">{{ forwarded }}</Alert>
+      <ConfirmDeleteModal
+        v-model="confirmingRemove"
+        :message="t('problemReport.deleteConfirm')"
+        @confirm="confirmRemove"
+      />
     </div>
   </ViewContent>
 </template>

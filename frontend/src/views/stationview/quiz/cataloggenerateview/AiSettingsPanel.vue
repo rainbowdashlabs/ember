@@ -23,6 +23,8 @@ import AiKeyField from './AiKeyField.vue'
 import {AiVendor, type AiCredentialSummary, type ModelInfo} from '@/api/generated/schema'
 import {ai as aiApi} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 
 const {t} = useI18n()
 
@@ -83,9 +85,13 @@ const {failure: saveFailure, run: runSave} = useAsyncAction(async () => {
   aiApiKey.value = ''
 })
 
-const {failure: removeFailure, run: removeKey} = useAsyncAction(async () => {
-  await aiApi.deleteAiCredential()
-  stored.value = null
+/** Removes the stored key, after asking unless shift is held. */
+const {show: confirmingRemoveKey, requestDelete: requestRemoveKey, confirm: removeKey, failure: removeFailure} = useConfirmDelete<true>({
+  onDelete: async () => {
+    removeFailure.value = null
+    await aiApi.deleteAiCredential()
+    stored.value = null
+  },
 })
 
 async function save() {
@@ -153,11 +159,17 @@ defineExpose({getProvider, getModel})
         <FailureAlert :failure="saveFailure ?? removeFailure"/>
         <ButtonRow pair>
           <SaveButton :action="save" :disabled="!aiApiKey && !keptKey"/>
-          <ErrorButton v-if="stored?.provider" :icon="['fas', 'trash']" @click="removeKey">
+          <ErrorButton v-if="stored?.provider" :icon="['fas', 'trash']" @click="requestRemoveKey(true)">
             {{ t('quiz.ai.removeKey') }}
           </ErrorButton>
         </ButtonRow>
       </div>
     </NeutralContainer>
+    <ConfirmDeleteModal
+        v-model="confirmingRemoveKey"
+        :message="t('quiz.ai.removeKeyConfirm')"
+        :confirm-label="t('quiz.ai.removeKey')"
+        @confirm="removeKey"
+    />
   </div>
 </template>

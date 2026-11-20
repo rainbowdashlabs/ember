@@ -41,6 +41,10 @@ const props = defineProps<{
   canAssign: boolean
   ownedElsewhere: boolean
   isManager: boolean
+  /** Whether an open movement carries the piece, which takes the hand-out and loss actions away. */
+  onMovement?: boolean
+  /** Whether a loan to a partner station holds the piece, which takes the same actions away. */
+  heldByLoan?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -76,6 +80,8 @@ const emit = defineEmits<{
   <ItemActionsPanel
       v-if="props.canActOnItem"
       :can-assign="props.canAssign"
+      :on-movement="props.onMovement"
+      :held-by-loan="props.heldByLoan"
       :item="props.item"
       @assign="emit('assign')"
       @unassign="emit('unassign')"

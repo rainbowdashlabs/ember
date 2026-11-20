@@ -10,6 +10,7 @@ import type {
     AcknowledgeStepRequest,
     BindingRequest,
     BindingResponse,
+    CancelMovementRequest,
     ChosenLanding,
     CorrectMovementRequest,
     CreateMovementRequest,
@@ -32,6 +33,12 @@ export async function downloadDocument(movementId: number): Promise<DocumentFile
 
 export async function listMovements(): Promise<MovementResponse[]> {
     const res = await client.get<MovementResponse[]>('/movements')
+    return res.data
+}
+
+/** The running movements the caller may see, without the closed history of the station. */
+export async function listOpenMovements(): Promise<MovementResponse[]> {
+    const res = await client.get<MovementResponse[]>('/movements', {params: {open: true}})
     return res.data
 }
 
@@ -109,8 +116,12 @@ export async function declineMovement(id: number, reason: string): Promise<Movem
     return res.data
 }
 
-export async function cancelMovement(id: number, reason: string): Promise<MovementDetail> {
-    const res = await client.post<MovementDetail>(`/movements/${id}/cancel`, {reason})
+/** What calling off does with the piece that set out; left out, a piece at the station goes back. */
+export type CallOffChoice = Pick<CancelMovementRequest, 'giveBack' | 'planWayBack'>
+
+export async function cancelMovement(id: number, reason: string, choice: CallOffChoice = {}): Promise<MovementDetail> {
+    const body: CancelMovementRequest = {reason, ...choice}
+    const res = await client.post<MovementDetail>(`/movements/${id}/cancel`, body)
     return res.data
 }
 

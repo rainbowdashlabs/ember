@@ -30,6 +30,7 @@ import {documents as documentsApi, stationMembers} from '@/api'
 import type {DocumentFilter, DocumentUpload} from '@/api/documents'
 import {StationPermission, type MemberDocumentResponse, type MemberWithName} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {describeFailure} from '@/util/failure'
 
 /**
@@ -84,7 +85,7 @@ function currentFilter(): DocumentFilter {
 }
 
 const pruning = useDocumentPruning(currentFilter)
-const {selected, confirming, busy: pruneBusy} = pruning
+const {selected, busy: pruneBusy} = pruning
 
 /**
  * Whether the list on screen is about to be replaced by another filter's. A document ticked on it then
@@ -231,19 +232,16 @@ function signaturesChanged() {
   void act(Promise.resolve())
 }
 
-/** Deletes the chosen documents once the reader confirmed it, and shows the store without them. */
-async function prune() {
-  failure.value = null
-  try {
+/** Deletes the chosen documents once the reader confirmed it, or at once under shift, and shows the store without them. */
+const {show: confirming, request: requestPrune, confirm: prune} = useConfirmAction<true>({
+  onConfirm: async () => {
+    failure.value = null
     const count = await pruning.prune()
     showToast(t('documents.pruned', {count}), 'success')
-  } catch (e) {
-    confirming.value = false
-    failure.value = describeFailure(e, t)
-    return
-  }
-  await reload()
-}
+  },
+  onSuccess: () => reload(),
+  failure,
+})
 
 /** Chooses every document the filter matches, not only the page in front of the reader. */
 async function selectAll() {
@@ -283,7 +281,7 @@ async function selectAll() {
           :busy="pruneBusy || narrowing"
           @select-all="selectAll"
           @clear="pruning.clear()"
-          @prune="confirming = true"
+          @prune="requestPrune(true)"
       />
 
       <Spinner v-if="loading" size="md"/>

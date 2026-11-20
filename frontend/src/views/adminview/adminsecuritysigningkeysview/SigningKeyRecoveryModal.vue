@@ -42,7 +42,7 @@ watch(open, (isOpen) => {
 </script>
 
 <template>
-  <Modal v-model="open">
+  <Modal v-model="open" data-confirm-always>
     <div class="space-y-4">
       <SubHeader>{{ t('adminSecurity.signingKeys.confirmTitle') }}</SubHeader>
       <p>{{ t('adminSecurity.signingKeys.confirmText', {count}) }}</p>

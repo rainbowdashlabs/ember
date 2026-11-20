@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { waitingList } from '@/api'
 import type { WaitingListInvite } from '@/api/generated/schema'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { describeFailure, type Failure } from '@/util/failure'
 
 /**
@@ -55,31 +56,31 @@ export function useListInvites(
   })
 
   /**
-   * Withdraws one link, then fetches the rest.
+   * Withdraws one link after asking, unless shift is held, then fetches the rest.
    *
    * <p>Caught apart, because the link stops working the moment the first call goes through. A reader
    * told otherwise sees it still listed and hunts for why it will not go away.
    */
-  async function remove(inviteId: number) {
-    failure.value = null
-    try {
+  const removal = useConfirmDelete<number>({
+    onDelete: async inviteId => {
+      failure.value = null
       await waitingList.deleteInvite(listId.value, inviteId)
-    } catch (e) {
-      failure.value = describeFailure(e, t)
-      return
-    }
-
-    try {
+    },
+    onSuccess: async () => {
       invites.value = await waitingList.listInvites(listId.value)
-    } catch (e) {
-      failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
-    }
-  }
+    },
+    failure,
+  })
 
   async function copyLink(code: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/waiting-list/register?code=${code}`)
     flash(t('waitingList.linkCopied'))
   }
 
-  return {showModal, maxUses, expiresAt, creating, createFailure, openModal, create, remove, copyLink}
+  return {
+    showModal, maxUses, expiresAt, creating, createFailure, openModal, create, copyLink,
+    remove: removal.requestDelete,
+    confirmingRemove: removal.show,
+    confirmRemove: removal.confirm,
+  }
 }
