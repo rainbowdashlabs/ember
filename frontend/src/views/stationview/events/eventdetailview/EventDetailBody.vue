@@ -36,10 +36,10 @@ import type {
 } from '@/api/generated/schema'
 import {attendance, events} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {StationModule, StationPermission} from '@/api/generated/schema'
+import {DeadlineKind, StationModule, StationPermission} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
-import {formatDateTime, stationDayOf} from '@/util/format'
-import {closesOnDate, hasPassed} from '../eventshared/dateClosing'
+import {formatDateTime} from '@/util/format'
+import {hasPassed} from '../eventshared/registrationDeadline'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 import {placesFromResponse, placesLabel, signUpQueues, type Places} from '@/util/eventPlaces'
 import {useSession} from '@/composables/useSession'
@@ -180,13 +180,30 @@ watch(() => [props.eventId, props.effectiveDate, props.event.registrationLimit, 
 const joinsQueue = computed(() => signUpQueues(places.value, !!props.event.requiresConfirmation))
 
 /**
- * When sign-up for the date on screen closes, or for the first date while none is chosen yet. A fixed
- * deadline closes every date of a series at once, a relative one each date on its own.
+ * When sign-up for the date on screen closes, as the server works it out, or for the date it would
+ * show while none is chosen yet. Null where sign-up does not close.
  */
-const closesAt = computed(() => {
-  const day = props.effectiveDate ?? stationDayOf(new Date(props.event.startTime), stationTimezone.value)
-  return closesOnDate(props.event.registrationDeadline, props.event.startTime, day, stationTimezone.value)
-})
+const closesAt = ref<string | null>(null)
+
+/** Whether the server has answered for the date on screen, before which nothing offers an answer. */
+const closesAtKnown = ref(false)
+
+/**
+ * Asks the server when the date on screen closes; an answer for a date already left is dropped.
+ * Where the server cannot be asked, a fixed deadline still says when, and a relative one counts as open.
+ */
+async function loadClosesAt() {
+  const date = props.effectiveDate
+  closesAtKnown.value = false
+  const deadlines = await events.getDateDeadlines(props.eventId, date).catch(() => null)
+  if (date !== props.effectiveDate) return
+  const rule = props.event.registrationDeadline
+  closesAt.value = deadlines ? deadlines.registrationClosesAt : rule.kind === DeadlineKind.FIXED ? rule.at : null
+  closesAtKnown.value = true
+}
+
+watch(() => [props.eventId, props.effectiveDate, props.event.registrationDeadline] as const,
+    loadClosesAt, {immediate: true})
 
 /**
  * Whether an answer can still be given at all, which is the same rule the buttons follow: an
@@ -199,10 +216,13 @@ const stillTakingAnswers = computed(() => !props.event.requiresRegistration || !
  *
  * <p>An answer to show, or one that can still be given. Where the appointment is open to nobody in
  * the household it stays, because the block is then the one place saying why: an empty box is what
- * this used to be on a date whose deadline had passed with nobody having answered.
+ * this used to be on a date whose deadline had passed with nobody having answered. Until the server
+ * has said when sign-up closes, an appointment that needs sign-up shows no block at all, so no button
+ * appears open only to vanish a moment later.
  */
 const showAnswerBlock = computed(() => {
   if (props.eventGroupPart) return false
+  if (props.event.requiresRegistration && !closesAtKnown.value) return false
   if (!props.effectiveDate || props.cancellation) return false
   if (answers.value.length > 0) return true
   if (props.registrableMembers.length === 0) return true

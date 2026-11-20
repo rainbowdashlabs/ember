@@ -14,6 +14,7 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.Places;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.WhenFull;
@@ -109,6 +110,7 @@ class RegistrationPlaceRoutesTest {
         crudService = mock(EventCrudService.class);
         visibility = mock(EventVisibility.class);
         var event = mock(StationEvent.class);
+        when(event.registrationDeadline()).thenReturn(RegistrationDeadline.none());
         when(event.stationId()).thenReturn(STATION_ID);
         when(event.requiresRegistration()).thenReturn(true);
         when(crudService.findById(EVENT_ID)).thenReturn(Optional.of(event));
@@ -307,6 +309,7 @@ class RegistrationPlaceRoutesTest {
     @Test
     void aSignUpOfAnotherStationIsNotMovedInLine() {
         var foreign = mock(StationEvent.class);
+        when(foreign.registrationDeadline()).thenReturn(RegistrationDeadline.none());
         when(foreign.stationId()).thenReturn(STATION_ID + 1);
         when(crudService.findById(EVENT_ID)).thenReturn(Optional.of(foreign));
 
@@ -335,6 +338,7 @@ class RegistrationPlaceRoutesTest {
     @Test
     void aSignUpOfAnotherStationIsNotPutOntoTheList() {
         var foreign = mock(StationEvent.class);
+        when(foreign.registrationDeadline()).thenReturn(RegistrationDeadline.none());
         when(foreign.stationId()).thenReturn(STATION_ID + 1);
         when(crudService.findById(EVENT_ID)).thenReturn(Optional.of(foreign));
 

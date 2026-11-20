@@ -25292,6 +25292,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/date-deadlines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** When sign-up for a date of an appointment closes and when its minimum is checked */
+        get: {
+            parameters: {
+                query?: {
+                    date?: components["schemas"]["LocalDate"];
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DateDeadlines"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/dates/{date}/cancel": {
         parameters: {
             query?: never;
@@ -30646,6 +30704,7 @@ export interface paths {
                     registrationOpen?: boolean;
                     requiresRegistration?: boolean;
                     search?: string;
+                    seriesTo?: string;
                     to?: string;
                 };
                 header?: never;
@@ -72765,6 +72824,11 @@ export interface components {
              */
             kind: "DATE";
         };
+        DateDeadlines: {
+            date: components["schemas"]["LocalDate"] | null;
+            minimumCheckedAt: components["schemas"]["Instant"] | null;
+            registrationClosesAt: components["schemas"]["Instant"] | null;
+        };
         DatedEvent: {
             cancellation: components["schemas"]["CancellationNotice"] | null;
             event: components["schemas"]["EventSummary"];
@@ -79885,6 +79949,7 @@ export interface components {
             placeGivenUp: boolean;
             /** Format: int32 */
             queuePosition: number | null;
+            registrationClosesAt: components["schemas"]["Instant"] | null;
             status: components["schemas"]["RegistrationStatus"];
             statusChangedAt: components["schemas"]["Instant"];
         };
@@ -83799,6 +83864,7 @@ export type DataTracking = components['schemas']['DataTracking'];
 export type Date = components['schemas']['Date'];
 export type DateAnswer = components['schemas']['DateAnswer'];
 export type DateConfig = components['schemas']['DateConfig'];
+export type DateDeadlines = components['schemas']['DateDeadlines'];
 export type DatedEvent = components['schemas']['DatedEvent'];
 export type DateFormatCheck = components['schemas']['DateFormatCheck'];
 export type DateFormatCheckRequest = components['schemas']['DateFormatCheckRequest'];

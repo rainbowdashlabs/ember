@@ -16,6 +16,7 @@ function registration(id: number, name: string, agreementWithdrawnAt: string | n
         memberName: name,
         memberIdentity: null,
         eventDate: '2026-10-08',
+        registrationClosesAt: null,
         status: RegistrationStatus.ACCEPTED,
         createdAt: '2026-10-01T10:00:00Z',
         createdByName: null,

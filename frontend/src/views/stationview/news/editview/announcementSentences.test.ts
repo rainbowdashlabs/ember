@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {describe, expect, it} from 'vitest'
-import {announcementSentences, type AnnouncementSentence} from './announcementSentences'
-import type {RegistrationDeadline, StationEvent} from '@/api/generated/schema'
+import {announcementSentences, deadlineDay, type AnnouncementSentence} from './announcementSentences'
+import type {DateDeadlines, RegistrationDeadline, StationEvent} from '@/api/generated/schema'
 import {noDeadline} from '@/views/stationview/events/eventshared/registrationDeadline'
 
 const THREE_DAYS_AT_MIDNIGHT: RegistrationDeadline = {kind: 'RELATIVE', at: null, offsetMinutes: 3 * 1440, anchor: 'MIDNIGHT'}
@@ -23,12 +23,17 @@ const EVENT: StationEvent = {
     cancelled: false, cancelledAt: null, cancelReason: null,
 }
 
+/** What the server answers for a date: when sign-up closes and when the minimum is checked. */
+function deadlines(registrationClosesAt: string | null, minimumCheckedAt: string | null = null, date = '2026-07-20'): DateDeadlines {
+    return {date, registrationClosesAt, minimumCheckedAt}
+}
+
 describe('announcementSentences', () => {
     it('says nothing about signing up for an event without registration', () => {
         expect(announcementSentences({...EVENT, requiresRegistration: false, registrationLimit: 5}, null, say)).toEqual([])
     })
 
-    it('names each registration setting that is set, on the station\'s clock', () => {
+    it('names each registration setting that is set, the moments on the station\'s clock', () => {
         const sentences = announcementSentences(
             {
                 ...EVENT,
@@ -38,7 +43,7 @@ describe('announcementSentences', () => {
                 minRegistrations: 8,
                 thresholdDays: 5,
             },
-            '2026-07-20',
+            deadlines('2026-07-01T08:00:00Z', '2026-07-14T22:00:00Z'),
             say,
             'Europe/Berlin',
         )
@@ -47,27 +52,44 @@ describe('announcementSentences', () => {
             'registrationClosesOn {"date":"01.07.2026, 10:00"}',
             'registrationLimit {"count":30}',
             'registrationConfirmation',
-            'minimumRegistrationsBy {"count":8,"date":"Mittwoch, 15.07.2026"}',
+            'minimumRegistrationsBy {"count":8,"date":"Dienstag, 14.07.2026"}',
         ])
     })
 
-    it('keeps the minimum in days where there is no occurrence to count from', () => {
+    /**
+     * The minimum is checked at midnight at the start of the day the server names, so the last day to
+     * sign up on is the station's day before it, not that day itself.
+     */
+    it('names the day before the minimum check as the last day to reach it', () => {
+        const sentences = announcementSentences(
+            {...EVENT, minRegistrations: 8, thresholdDays: 5},
+            deadlines(null, '2026-07-14T22:00:00Z'),
+            say,
+            'Europe/Berlin',
+        )
+
+        expect(sentences).toContain('minimumRegistrationsBy {"count":8,"date":"Dienstag, 14.07.2026"}')
+        expect(sentences.join(' ')).not.toContain('15.07.2026')
+    })
+
+    it('names a fixed deadline by its own moment where the server gave none', () => {
+        const fixed: RegistrationDeadline = {kind: 'FIXED', at: '2026-07-01T08:00:00Z', offsetMinutes: null, anchor: null}
+        expect(announcementSentences({...EVENT, registrationDeadline: fixed}, null, say, 'Europe/Berlin'))
+            .toEqual(['registrationClosesOn {"date":"01.07.2026, 10:00"}'])
+    })
+
+    it('keeps the minimum in days where there is no date to count from', () => {
         expect(announcementSentences({...EVENT, minRegistrations: 8, thresholdDays: 5}, null, say))
             .toContain('minimumRegistrationsDaysBefore {"count":8,"days":5}')
     })
 
-    it('names the deadline of the announced date of a series', () => {
+    it('names the closing moment the server sends for the date', () => {
         const event = {...EVENT, ...WEEKLY, requiresConfirmation: true, registrationDeadline: THREE_DAYS_AT_MIDNIGHT}
-        expect(announcementSentences(event, '2026-07-31', say, 'Europe/Berlin'))
+        expect(announcementSentences(event, deadlines('2026-07-27T22:00:00Z', null, '2026-07-31'), say, 'Europe/Berlin'))
             .toEqual([
                 'registrationClosesOn {"date":"28.07.2026, 00:00"}',
                 'registrationConfirmation',
             ])
-    })
-
-    it('names the deadline of a one-off appointment announced without a date from its own start', () => {
-        expect(announcementSentences({...EVENT, registrationDeadline: THREE_DAYS_AT_MIDNIGHT}, null, say, 'Europe/Berlin'))
-            .toEqual(['registrationClosesOn {"date":"21.07.2026, 00:00"}'])
     })
 
     it('says the rule in words for a series announced without a date', () => {
@@ -82,5 +104,22 @@ describe('announcementSentences', () => {
         expect(announcementSentences({...EVENT, cancelled: true, cancelReason: ' Unwetter ', registrationLimit: 5}, null, say))
             .toEqual(['cancelledBecause {"reason":"Unwetter"}'])
         expect(announcementSentences({...EVENT, cancelled: true}, null, say)).toEqual(['cancelled'])
+    })
+})
+
+/** The date the deadlines are asked for: the announced one, or the first day where every date closes alike. */
+describe('deadlineDay', () => {
+    it('takes the announced date', () => {
+        expect(deadlineDay({...EVENT, ...WEEKLY}, '2026-07-31', 'Europe/Berlin')).toBe('2026-07-31')
+    })
+
+    it('takes the first day of a one-off appointment or of a series with a fixed deadline', () => {
+        expect(deadlineDay(EVENT, null, 'Europe/Berlin')).toBe('2026-07-24')
+        const fixed: RegistrationDeadline = {kind: 'FIXED', at: '2026-07-01T08:00:00Z', offsetMinutes: null, anchor: null}
+        expect(deadlineDay({...EVENT, ...WEEKLY, registrationDeadline: fixed}, null, 'Europe/Berlin')).toBe('2026-07-24')
+    })
+
+    it('has no day for a series with a relative deadline announced without a date', () => {
+        expect(deadlineDay({...EVENT, ...WEEKLY, registrationDeadline: THREE_DAYS_AT_MIDNIGHT}, null, 'Europe/Berlin')).toBeNull()
     })
 })

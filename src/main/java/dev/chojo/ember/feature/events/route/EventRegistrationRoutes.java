@@ -68,6 +68,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -77,6 +78,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -277,8 +279,10 @@ public class EventRegistrationRoutes implements Routes {
     private RegistrationResponse toRegistrationResponse(Context ctx, EventRegistration r) {
         var answers = registrationFieldService.findValues(r.id());
         var hidden = registrationFieldService.hiddenFieldIds(r.eventId(), readsAnswersOf(ctx, r));
+        var lookups = lookupsFor(List.of(r.memberId()));
         return toRegistrationResponse(
-                lookupsFor(List.of(r.memberId())),
+                lookups,
+                closesOn(lookups, r, new ClosingCache()),
                 registrationService.queueRanksOf(List.of(r.id())),
                 r,
                 answers.stream()
@@ -302,8 +306,32 @@ public class EventRegistrationRoutes implements Routes {
         return guardianPolicy.mayActFor(session.user(), registration.memberId());
     }
 
+    /**
+     * When sign-up for the date of a registration closes, each appointment and date worked out once
+     * for the list and each station's clock read once.
+     */
+    private @Nullable Instant closesOn(RegistrationRowLookups lookups, EventRegistration r, ClosingCache cache) {
+        return cache.closes()
+                .computeIfAbsent(new EventDay(r.eventId(), r.eventDate()), day -> lookups.event(day.eventId())
+                        .filter(event -> event.registrationDeadline().isSet())
+                        .flatMap(event -> event.registrationClosesOn(
+                                day.date(),
+                                cache.zones().computeIfAbsent(event.stationId(), occurrenceCalendar::zoneOf))))
+                .orElse(null);
+    }
+
+    /** What a list of registrations has worked out about closing times so far. */
+    private record ClosingCache(Map<EventDay, Optional<Instant>> closes, Map<Integer, ZoneId> zones) {
+        ClosingCache() {
+            this(new HashMap<>(), new HashMap<>());
+        }
+    }
+
+    private record EventDay(int eventId, LocalDate date) {}
+
     private static RegistrationResponse toRegistrationResponse(
             RegistrationRowLookups lookups,
+            @Nullable Instant closesAt,
             Map<Integer, Integer> queueRanks,
             EventRegistration r,
             List<EventRegistrationFieldValue> fields,
@@ -327,7 +355,8 @@ public class EventRegistrationRoutes implements Routes {
                 r.agreementWithdrawnAt(),
                 r.gaveUpPlace(),
                 r.statusChangedAt(),
-                queueRanks.get(r.id()));
+                queueRanks.get(r.id()),
+                closesAt);
     }
 
     /**
@@ -352,6 +381,7 @@ public class EventRegistrationRoutes implements Routes {
         var household = runsTheEvents ? Set.<Integer>of() : Set.copyOf(guardianPolicy.household(session.user()));
         var hiddenByEvent = new HashMap<Integer, Set<Integer>>();
         var requiredByEvent = new HashMap<Integer, Set<Integer>>();
+        var closes = new ClosingCache();
         return registrations.stream()
                 .map(r -> {
                     boolean reads = runsTheEvents || household.contains(r.memberId());
@@ -364,6 +394,7 @@ public class EventRegistrationRoutes implements Routes {
                     var carried = answers.getOrDefault(r.id(), List.of());
                     return toRegistrationResponse(
                             lookups,
+                            closesOn(lookups, r, closes),
                             queueRanks,
                             r,
                             carried.stream()
@@ -1159,7 +1190,12 @@ public class EventRegistrationRoutes implements Routes {
             /** When the registration got its current status, such as when the member declined. */
             Instant statusChangedAt,
             /** The place in line on the waiting list, 1 moves up next; null where the registration does not wait. */
-            @Nullable Integer queuePosition) {}
+            @Nullable Integer queuePosition,
+            /**
+             * When sign-up for the date of this registration closes, on the station's clock; null where
+             * no deadline applies.
+             */
+            @Nullable Instant registrationClosesAt) {}
 
     /**
      * A sign-up for an appointment date.

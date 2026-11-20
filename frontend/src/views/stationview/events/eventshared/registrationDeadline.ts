@@ -14,6 +14,11 @@ export function zoneOrLocal(timeZone?: string | null): string {
     return timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone
 }
 
+/** Whether an instant lies in the past, false where there is none. */
+export function hasPassed(instant: string | null | undefined, now: number = Date.now()): boolean {
+    return !!instant && new Date(instant).getTime() <= now
+}
+
 /** A rule that never closes sign-up. */
 export function noDeadline(): RegistrationDeadline {
     return {kind: DeadlineKind.NONE, at: null, offsetMinutes: null, anchor: null}

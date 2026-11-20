@@ -231,10 +231,11 @@ public record StationEvent(
      *
      * @param date the date
      * @param zone the station's clock
-     * @return the instant, empty without a minimum check or where the appointment has no times
+     * @return the instant, empty without a minimum, without days to check it by, or where the
+     *         appointment has no times
      */
     public Optional<Instant> thresholdOn(LocalDate date, ZoneId zone) {
-        if (thresholdDays == null) return Optional.empty();
+        if (thresholdDays == null || minRegistrations == null) return Optional.empty();
         var rule = RegistrationDeadline.daysBeforeAtMidnight(thresholdDays);
         return occurrenceOn(date, zone).flatMap(span -> rule.closesAt(span.start(), zone));
     }

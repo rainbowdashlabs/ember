@@ -21846,6 +21846,12 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "name" : "seriesTo",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
         } ]
       }
     },
@@ -23461,6 +23467,59 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/events/{id}/date-deadlines" : {
+      "get" : {
+        "summary" : "When sign-up for a date of an appointment closes and when its minimum is checked",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DateDeadlines"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          }
+        } ]
       }
     },
     "/api/v1/events/{id}/dates/{date}/cancel" : {
@@ -62083,6 +62142,33 @@
         },
         "required" : [ "kind" ]
       },
+      "DateDeadlines" : {
+        "type" : "object",
+        "properties" : {
+          "date" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "registrationClosesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "minimumCheckedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "date", "registrationClosesAt", "minimumCheckedAt" ]
+      },
       "DateFormatCheck" : {
         "type" : "object",
         "properties" : {
@@ -82856,9 +82942,16 @@
           "queuePosition" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "registrationClosesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp", "statusChangedAt", "queuePosition" ]
+        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp", "statusChangedAt", "queuePosition", "registrationClosesAt" ]
       },
       "RegistrationStatsResponse" : {
         "type" : "object",

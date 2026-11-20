@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {CellContentType, type AppointmentField, type StationEvent} from '@/api/generated/schema'
+import {CellContentType, type AppointmentField, type DateDeadlines, type StationEvent} from '@/api/generated/schema'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import type {RestrictionSelection} from '@/api/types'
 import {answerText} from '@/util/questions'
@@ -49,6 +49,11 @@ export interface AnnouncedEvent {
     eventUid: string | null
     /** The occurrence being announced, or null where the appointment has no date at all. */
     date: string | null
+    /**
+     * When sign-up closes and the minimum is checked for the date the text names, as the server works
+     * them out; null where the text names no date or the server could not be asked.
+     */
+    deadlines: DateDeadlines | null
     /** The appointment's custom fields, of which the overview ones are carried. */
     fields: AppointmentField[]
     /** The station's clock, which the moments in the text are written on. */
@@ -79,7 +84,7 @@ export function buildAnnouncementDraft(
     names: Map<number, string>,
     words: DraftWords,
 ): AnnouncementDraft {
-    const {event, eventUid, date, timezone} = announced
+    const {event, eventUid, date, deadlines, timezone} = announced
     const restricted =
         audience.userTypes.length > 0
         || audience.groupIds.length > 0
@@ -96,7 +101,7 @@ export function buildAnnouncementDraft(
         .filter(field => field.text !== '')
 
     const details = [
-        announcementSentences(event, date, words.say, timezone).join(' '),
+        announcementSentences(event, deadlines, words.say, timezone).join(' '),
         ...carried.map(field => `**${field.name}:** ${field.text}`),
     ].filter(Boolean).join('\n\n')
 

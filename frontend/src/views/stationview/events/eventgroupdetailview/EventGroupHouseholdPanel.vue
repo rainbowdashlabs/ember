@@ -25,7 +25,7 @@ import {RegistrationStatus, type EventGroupDetail, type EventGroupSignUp} from '
 import {eventGroupPlaces, holdsOrWaitsForPlace} from '@/util/eventGroupChoice'
 import {ownEventGroupPort, type EventGroupSignUpPort} from './eventGroupSignUpPort'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {hasPassed} from '../eventshared/dateClosing'
+import {hasPassed} from '../eventshared/registrationDeadline'
 
 /**
  * The sign-up of the reader and of everybody they look after: whether each is signed up, which parts

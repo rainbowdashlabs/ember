@@ -49,7 +49,7 @@ function audience(over: Partial<RestrictionSelection> = {}): RestrictionSelectio
 }
 
 function announced(over: Partial<AnnouncedEvent> = {}): AnnouncedEvent {
-    return {event: EVENT, eventUid: 'uid-7', date: '2026-09-08', fields: [], ...over}
+    return {event: EVENT, eventUid: 'uid-7', date: '2026-09-08', deadlines: null, fields: [], ...over}
 }
 
 function texts(draft: ReturnType<typeof buildAnnouncementDraft>): string[] {

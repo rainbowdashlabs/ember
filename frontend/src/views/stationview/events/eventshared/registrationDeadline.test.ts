@@ -5,7 +5,7 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {closesAt, noDeadline, sameRule} from './registrationDeadline'
+import {closesAt, hasPassed, noDeadline, sameRule} from './registrationDeadline'
 import type {RegistrationDeadline} from '@/api/generated/schema'
 
 const BERLIN = 'Europe/Berlin'
@@ -89,5 +89,13 @@ describe('sameRule', () => {
         expect(sameRule(relative(1440, 'EXACT'), relative(1440, 'MIDNIGHT'))).toBe(false)
         expect(sameRule(relative(60, 'EXACT'), null)).toBe(false)
         expect(sameRule(null, null)).toBe(true)
+    })
+})
+
+describe('hasPassed', () => {
+    it('reads an instant before now as passed and nothing as open', () => {
+        expect(hasPassed('2020-01-01T00:00:00Z')).toBe(true)
+        expect(hasPassed('2999-01-01T00:00:00Z')).toBe(false)
+        expect(hasPassed(null)).toBe(false)
     })
 })

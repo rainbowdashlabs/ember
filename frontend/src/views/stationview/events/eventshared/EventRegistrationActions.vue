@@ -16,7 +16,7 @@ import SignOffConfirm from './eventregistrationactions/SignOffConfirm.vue'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {isRefusal, notOpenLabelKey, type AnswerablePerson, type GivenAnswer} from '@/util/eventAnswers'
 import {RegistrationStatus} from '@/api/generated/schema'
-import {hasPassed} from './dateClosing'
+import {hasPassed} from './registrationDeadline'
 
 /**
  * Answering an appointment, for oneself and for whoever one answers for.

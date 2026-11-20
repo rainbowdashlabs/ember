@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.AwaitingAnswers;
@@ -107,6 +108,7 @@ class RegistrationAnswerAuthorTest {
         registrationFieldService = mock(EventRegistrationFieldService.class);
         var crudService = mock(EventCrudService.class);
         var event = mock(StationEvent.class);
+        when(event.registrationDeadline()).thenReturn(RegistrationDeadline.none());
         when(event.stationId()).thenReturn(STATION_ID);
         when(crudService.findById(EVENT_ID)).thenReturn(Optional.of(event));
         routes = new EventRegistrationRoutes(

@@ -40,6 +40,7 @@ function registration(id: number, status: RegistrationStatus, answers: Record<nu
     memberName: `Mitglied ${id}`,
     memberIdentity: null,
     eventDate: '2026-09-01',
+    registrationClosesAt: null,
     status,
     createdAt: '2026-08-01T10:00:00Z',
     createdByName: null,

@@ -30,12 +30,10 @@ import {useDatePlaces} from './eventshared/useDatePlaces'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {formatDateTime} from '@/util/format'
-import {useSession} from '@/composables/useSession'
-import {closesOnDate, hasPassed} from './eventshared/dateClosing'
+import {hasPassed} from './eventshared/registrationDeadline'
 import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
-const {stationTimezone} = useSession()
 
 const {registrationCounts, reload: reloadDeps} = useEventEditDeps({withMembers: true, withCounts: true, autoLoad: false})
 const pendingRegistrations = ref<RegistrationResponse[]>([])
@@ -99,7 +97,7 @@ const pendingDates = computed((): PendingDate[] => {
     if (!first || !event) continue
     const counts = countsByDate.get(key) ?? emptyCounts()
     if (counts.PENDING < regs.length) counts.PENDING = regs.length
-    const closesAt = closesOnDate(event.registrationDeadline, event.startTime, first.eventDate, stationTimezone.value)
+    const closesAt = first.registrationClosesAt
     result.push({key, event, date: first.eventDate, pending: regs, counts, closesAt, deadlineExpired: hasPassed(closesAt)})
   }
 

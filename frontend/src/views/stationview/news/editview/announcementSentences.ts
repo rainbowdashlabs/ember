@@ -3,9 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {DeadlineAnchor, DeadlineKind, EventType, type StationEvent} from '@/api/generated/schema'
+import {DeadlineAnchor, DeadlineKind, EventType, type DateDeadlines, type StationEvent} from '@/api/generated/schema'
 import {formatDateTime, formatWeekdayDate, shiftIsoDate, stationDayOf} from '@/util/format'
-import {closesOnDate} from '@/views/stationview/events/eventshared/dateClosing'
 import {MINUTES_PER_DAY, MINUTES_PER_HOUR} from '@/views/stationview/events/eventshared/registrationDeadline'
 
 /** The sentences an announcement can say about an event, each filled from one of its settings. */
@@ -37,19 +36,20 @@ export type Say = (sentence: AnnouncementSentence, values?: Record<string, strin
  * <p>A called-off event says so first, with its reason where one was given, and nothing about
  * signing up for something that no longer takes place.
  *
- * <p>The deadline is named as the moment it falls on for the announced date. Only a series announced
- * without a date, whose relative deadline falls differently for every date, has it said as the rule
- * itself. The minimum of registrations is counted back from the occurrence, since it has to be reached
- * a number of days before each date.
+ * <p>The deadline is named as the moment the server works out for the date of {@link deadlineDay}.
+ * Only a series announced without a date, whose relative deadline falls differently for every date,
+ * has it said as the rule itself. The minimum is checked at midnight at the start of the day the
+ * server names, so the last day it can be reached on is the day before that one.
  *
- * @param event    the event being announced
- * @param date     the occurrence being announced, which the deadline and the minimum are counted from
- * @param say      writes one sentence
- * @param timezone the station's clock, which the moments are written on
+ * @param event     the event being announced
+ * @param deadlines when sign-up for that date closes and when its minimum is checked, null where
+ *                  there is no such date or the server could not be asked
+ * @param say       writes one sentence
+ * @param timezone  the station's clock, which the moments are written on
  */
 export function announcementSentences(
     event: StationEvent,
-    date: string | null,
+    deadlines: DateDeadlines | null,
     say: Say,
     timezone?: string | null,
 ): string[] {
@@ -58,26 +58,39 @@ export function announcementSentences(
     }
     if (!event.requiresRegistration) return []
     return [
-        registration(event, date, say, timezone),
+        registration(event, deadlines, say, timezone),
         event.registrationLimit ? say('registrationLimit', {count: event.registrationLimit}) : '',
         event.requiresConfirmation ? say('registrationConfirmation') : '',
-        minimum(event, date, say),
+        minimum(event, deadlines, say, timezone),
     ].filter(sentence => sentence !== '')
 }
 
 /**
- * That signing up is needed, and until when: the moment for the announced date, or for a one-off
- * appointment or a fixed deadline the moment it closes, and the rule in words for a series announced
+ * The date an announcement names its deadlines for: the announced date, or for a one-off appointment
+ * or a fixed deadline the appointment's own first day. Null for a series announced without a date,
+ * whose deadline falls differently for every date.
+ *
+ * @param event    the event being announced
+ * @param date     the occurrence being announced, null where none was chosen
+ * @param timezone the station's clock, which names the day the appointment starts on
+ */
+export function deadlineDay(event: StationEvent, date: string | null, timezone?: string | null): string | null {
+    if (date) return date
+    const onOwnDate = event.eventType === EventType.ONE_TIME || event.registrationDeadline.kind === DeadlineKind.FIXED
+    return onOwnDate ? stationDayOf(new Date(event.startTime), timezone) : null
+}
+
+/**
+ * That signing up is needed, and until when: the moment the server names for the date, a fixed
+ * deadline's own moment where the server gave none, and the rule in words for a series announced
  * without a date.
  */
-function registration(event: StationEvent, date: string | null, say: Say, timezone?: string | null): string {
+function registration(event: StationEvent, deadlines: DateDeadlines | null, say: Say, timezone?: string | null): string {
     const rule = event.registrationDeadline
-    if (!rule || rule.kind === DeadlineKind.NONE) return say('registrationRequired')
-    const onOwnDate = event.eventType === EventType.ONE_TIME || rule.kind === DeadlineKind.FIXED
-    const day = date ?? (onOwnDate ? stationDayOf(new Date(event.startTime), timezone) : null)
-    const closes = day ? closesOnDate(rule, event.startTime, day, timezone) : null
+    if (rule.kind === DeadlineKind.NONE) return say('registrationRequired')
+    const closes = deadlines?.registrationClosesAt ?? (rule.kind === DeadlineKind.FIXED ? rule.at : null)
     if (closes) return say('registrationClosesOn', {date: formatDateTime(closes, timezone)})
-    if (rule.kind !== DeadlineKind.RELATIVE || day) return say('registrationRequired')
+    if (rule.kind !== DeadlineKind.RELATIVE || deadlines) return say('registrationRequired')
     const span = spanOf(rule.offsetMinutes ?? 0, say)
     return rule.anchor === DeadlineAnchor.MIDNIGHT
         ? say('registrationClosesBeforeAtMidnight', {span})
@@ -94,11 +107,17 @@ function spanOf(minutes: number, say: Say): string {
     return hours === 1 ? say('spanHoursOne') : say('spanHours', {count: hours})
 }
 
-function minimum(event: StationEvent, date: string | null, say: Say): string {
+/**
+ * How many sign-ups the date needs, and by when. The check runs at the midnight that begins the day
+ * the server names, so the sentence names the station's day before it as the last one to sign up on.
+ */
+function minimum(event: StationEvent, deadlines: DateDeadlines | null, say: Say, timezone?: string | null): string {
     const count = event.minRegistrations
     if (!count) return ''
     const days = event.thresholdDays
     if (days == null) return say('minimumRegistrations', {count})
-    if (!date) return say('minimumRegistrationsDaysBefore', {count, days})
-    return say('minimumRegistrationsBy', {count, date: formatWeekdayDate(shiftIsoDate(date, -days))})
+    const checkedAt = deadlines?.minimumCheckedAt
+    if (!checkedAt) return say('minimumRegistrationsDaysBefore', {count, days})
+    const lastDay = shiftIsoDate(stationDayOf(new Date(checkedAt), timezone), -1)
+    return say('minimumRegistrationsBy', {count, date: formatWeekdayDate(lastDay)})
 }

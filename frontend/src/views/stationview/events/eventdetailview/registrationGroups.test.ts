@@ -16,6 +16,7 @@ function pending(id: number, createdAt: string, fromField = false): Registration
         memberName: `Mitglied ${id}`,
         memberIdentity: null,
         eventDate: '2026-12-04',
+        registrationClosesAt: null,
         status: RegistrationStatus.PENDING,
         createdAt,
         createdByName: null,

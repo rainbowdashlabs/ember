@@ -20,6 +20,7 @@ function member(id: number, status: RegistrationStatus, queuePosition: number | 
         memberName: `Mitglied ${id}`,
         memberIdentity: null,
         eventDate: '2026-12-04',
+        registrationClosesAt: null,
         status,
         createdAt: '2026-11-01T10:00:00Z',
         createdByName: null,
