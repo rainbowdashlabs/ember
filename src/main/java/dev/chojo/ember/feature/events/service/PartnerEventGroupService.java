@@ -195,6 +195,37 @@ public class PartnerEventGroupService implements FederationServer {
     }
 
     /**
+     * Confirms one of this station's members for a partner's event group, where the partner handed this
+     * station the decision about its own members' sign-ups.
+     *
+     * <p>The places are the partner's and so is the counting, so this asks rather than decides. A refusal
+     * means either that the partner never handed the decision over or that the places it gave are full,
+     * and both are things to tell the person pressing the button rather than retry.
+     *
+     * @param stationId         this station
+     * @param partnerStationUid the partner holding the event group
+     * @param eventGroupId      the event group
+     * @param memberUid         the member
+     * @return where the member stands, as the partner recorded it
+     */
+    public PartnerStanding confirm(int stationId, UUID partnerStationUid, int eventGroupId, UUID memberUid) {
+        var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
+        var standing = PartnerCalls.answeredOr(
+                () -> transport.send(
+                        partner,
+                        RemoteEventGroupRoutes.CONFIRM_OWN.at(eventGroupId),
+                        new RemoteEventGroupMember(memberUid),
+                        PartnerStanding.class),
+                EventRefusal.NO_PLACES_LEFT_AT_HOLDER);
+        log.info(
+                "Station {} confirmed one of its own for event group {} at partner {}",
+                stationId,
+                eventGroupId,
+                partner.id());
+        return standing;
+    }
+
+    /**
      * Withdraws a member of this station from a partner's event group.
      *
      * @param stationId         this station

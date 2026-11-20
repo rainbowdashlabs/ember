@@ -13,12 +13,14 @@ import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGr
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupQuery;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupSignUpRequest;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupSummary;
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemotePlaces;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.federation.transport.FederationServer;
 import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -70,6 +72,12 @@ public class EventGroupPartnerServer implements FederationServer {
                             body.memberUid(),
                             partsOf(body));
                 });
+        endpoints.<RemoteEventGroupMember, PartnerStanding>serve(
+                RemoteEventGroupRoutes.CONFIRM_OWN, (partner, params, body) -> {
+                    int eventGroupId = partners.requireSharedWith(partner, params.integer("id"));
+                    return partners.confirmOwn(
+                            partner.servingStationId(), eventGroupId, partner.partnerId(), body.memberUid());
+                });
         endpoints.<RemoteEventGroupMember, Void>serve(RemoteEventGroupRoutes.WITHDRAW, (partner, params, body) -> {
             int eventGroupId = params.integer("id");
             if (!partners.holdsPlace(eventGroupId, partner.partnerId(), body.memberUid()))
@@ -91,7 +99,14 @@ public class EventGroupPartnerServer implements FederationServer {
                 partners.standings(eventGroupId, partner.partnerId(), asked),
                 eventGroups.findFields(eventGroupId).stream()
                         .filter(AppointmentField::isPublic)
-                        .toList());
+                        .toList(),
+                placesFor(eventGroupId, partner));
+    }
+
+    /** The places the partner asking was given, told only to a partner that decides its own sign-ups. */
+    private @Nullable RemotePlaces placesFor(int eventGroupId, ServingPartner partner) {
+        var arranged = partners.arrangementWith(eventGroupId, partner.partnerId());
+        return arranged.decidedByHost() ? null : new RemotePlaces(arranged.slotBudget(), true);
     }
 
     private static Set<Integer> partsOf(RemoteEventGroupSignUpRequest request) {

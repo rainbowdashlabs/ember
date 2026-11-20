@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupSummary;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentDeleteRequest;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentUpdateRequest;
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemotePlaces;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
@@ -67,6 +68,17 @@ public class RemoteEventGroupRoutes implements Routes {
             Void.class);
 
     /**
+     * A partner confirming one of its own members' sign-ups, where the station holding the event group
+     * handed it that decision. The answer is where the member stands afterwards: holding a place, or
+     * waiting for one where the event group is full.
+     */
+    public static final FederationEndpoint CONFIRM_OWN = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/groups/{id}/sign-up/confirm",
+            RemoteEventGroupMember.class,
+            PartnerStanding.class);
+
+    /**
      * The station holding an event group telling a partner that the event group was called off, naming the
      * partner's members who held or waited for a place.
      */
@@ -107,6 +119,7 @@ public class RemoteEventGroupRoutes implements Routes {
             SIGN_UP,
             CHANGE_PARTS,
             WITHDRAW,
+            CONFIRM_OWN,
             EVENT_GROUP_CANCELLED_WEBHOOK,
             LIST_COMMENTS,
             CREATE_COMMENT,
@@ -126,6 +139,7 @@ public class RemoteEventGroupRoutes implements Routes {
                 .serveCreated(SIGN_UP)
                 .serve(CHANGE_PARTS)
                 .serve(WITHDRAW)
+                .serve(CONFIRM_OWN)
                 .serve(EVENT_GROUP_CANCELLED_WEBHOOK)
                 .serve(LIST_COMMENTS)
                 .serveCreated(CREATE_COMMENT)
@@ -145,13 +159,15 @@ public class RemoteEventGroupRoutes implements Routes {
      * @param standings where each member asked about stands
      * @param fields    the fields it shows readers outside the station; a partner that has never
      *                  heard of them ignores them
+     * @param places    what the partner asking was given, only where it decides its own sign-ups
      */
     public record RemoteEventGroupDetail(
             RemoteEventGroupSummary eventGroup,
             List<EventGroupSet> sets,
             List<EventGroupPartState> parts,
             List<PartnerStanding> standings,
-            @Nullable List<AppointmentField> fields) {}
+            @Nullable List<AppointmentField> fields,
+            @Nullable RemotePlaces places) {}
 
     /**
      * A shared event group as its partner is told about it.

@@ -37,6 +37,7 @@ const detail: EventGroupDetail = {
   questions: [],
   fields: [],
   household: [],
+  places: null,
 }
 
 describe('EventGroupPartsEditor', () => {

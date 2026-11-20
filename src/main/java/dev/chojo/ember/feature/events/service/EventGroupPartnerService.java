@@ -307,6 +307,62 @@ public class EventGroupPartnerService {
     }
 
     /**
+     * A partner confirming one of its own members' sign-ups, where this station handed it that decision.
+     *
+     * <p>Only a sign-up waiting for a decision is confirmed: one already holding a place answers as it
+     * stands, and so does one already waiting on the list. A turned-down or withdrawn sign-up is not
+     * there to confirm. The partner's places are counted per sign-up, those waiting on the list included,
+     * and a confirmation beyond them is refused as an ordinary answer rather than a fault. Within its
+     * places, the sign-up takes a place where its parts and the event group have room, and otherwise
+     * waits on the list like everybody else. No deadline is asked, as for an appointment: the partner
+     * decides about a sign-up that came in on time. A called-off event group confirms nobody.
+     *
+     * @param stationId      this station
+     * @param eventGroupId   the event group
+     * @param partnerId      this station's record of the partner
+     * @param remoteMemberId the partner's member
+     * @return where the member stands now
+     */
+    public PartnerStanding confirmOwn(int stationId, int eventGroupId, int partnerId, UUID remoteMemberId) {
+        Transactions.run(() -> {
+            var eventGroup = rules.lock(stationId, eventGroupId);
+            if (eventGroup.cancelled()) throw EventRefusal.EVENT_GROUP_CANCELLED.raise();
+            var arranged = places.requirePartnerDecides(PlacesKind.EVENT_GROUP, eventGroupId, partnerId);
+            var current = requireActive(eventGroupId, partnerId, remoteMemberId);
+            if (current.status() != RegistrationStatus.PENDING) return;
+            int taken = partners.countForPartner(eventGroupId, partnerId, RegistrationStatus.ACCEPTED);
+            int waiting = partners.countForPartner(eventGroupId, partnerId, RegistrationStatus.QUEUED);
+            if (!arranged.admits(taken, waiting)) throw EventRefusal.NO_PLACES_LEFT_FOR_PARTNER.raise();
+            var parts = rules.lockParts(eventGroupId);
+            var tied = partners.findLinked(current.id());
+            var chosen = tied.stream().map(EventFederationRegistration::eventId).collect(Collectors.toSet());
+            var status = rules.fits(eventGroup, chosen, parts, rules.standing(stationId, parts))
+                    ? RegistrationStatus.ACCEPTED
+                    : RegistrationStatus.QUEUED;
+            partners.updateStatus(current.id(), status);
+            for (var registration : tied) {
+                partners.restate(registration.id(), status);
+            }
+            if (status == RegistrationStatus.QUEUED) {
+                queue.enqueue(eventGroup, QueueOwner.ofPartner(current.id()), null);
+            }
+        });
+        log.info("Partner {} confirmed one of its own for event group {}", partnerId, eventGroupId);
+        return standingOf(eventGroupId, partnerId, remoteMemberId);
+    }
+
+    /**
+     * What a partner was given for an event group, for the event group as the partner is shown it.
+     *
+     * @param eventGroupId the event group
+     * @param partnerId    this station's record of the partner
+     * @return the arrangement, the host deciding without a cap where none was made
+     */
+    public PartnerPlaces arrangementWith(int eventGroupId, int partnerId) {
+        return places.arrangement(PlacesKind.EVENT_GROUP, eventGroupId, partnerId);
+    }
+
+    /**
      * Accepts or turns down a partner member's sign-up, and every part chosen with it, an acceptance going
      * beyond the limit without being asked; routes use the form that takes the choice.
      *

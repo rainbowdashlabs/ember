@@ -27138,6 +27138,69 @@
         } ]
       }
     },
+    "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/confirm" : {
+      "post" : {
+        "summary" : "Confirm one of this station's members for a partner station's event group",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventGroupSignUp"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationuid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupConfirmRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/sign-up" : {
       "post" : {
         "summary" : "Sign the reader, or somebody they look after, up for a partner station's event group",
@@ -65059,6 +65122,15 @@
           }
         }
       },
+      "EventGroupConfirmRequest" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
       "EventGroupCreateRequest" : {
         "type" : "object",
         "properties" : {
@@ -65155,9 +65227,16 @@
             "items" : {
               "$ref" : "#/components/schemas/EventGroupSignUp"
             }
+          },
+          "places" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RemotePlaces"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "eventGroup", "sets", "parts", "registration", "view", "questions", "fields", "household" ]
+        "required" : [ "eventGroup", "sets", "parts", "registration", "view", "questions", "fields", "household", "places" ]
       },
       "EventGroupDetails" : {
         "type" : "object",

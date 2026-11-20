@@ -42,6 +42,7 @@ function detail(
     questions: [],
     fields: [],
     household,
+    places: null,
   }
 }
 

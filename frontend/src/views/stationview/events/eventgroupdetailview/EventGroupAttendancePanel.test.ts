@@ -37,6 +37,7 @@ function detail(): EventGroupDetail {
     questions: [],
     fields: [],
     household: [],
+    places: null,
   }
 }
 

@@ -31478,6 +31478,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm one of this station's members for a partner station's event group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    stationuid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupConfirmRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/sign-up": {
         parameters: {
             query?: never;
@@ -73873,6 +73934,10 @@ export interface components {
         EventGroupCancelRequest: {
             reason?: string | null;
         };
+        EventGroupConfirmRequest: {
+            /** Format: int32 */
+            memberId?: number;
+        };
         EventGroupCreateRequest: {
             /** Format: int32 */
             appointmentId?: number | null;
@@ -73892,6 +73957,7 @@ export interface components {
             fields: components["schemas"]["AppointmentField"][];
             household: components["schemas"]["EventGroupSignUp"][];
             parts: components["schemas"]["EventGroupPartState"][];
+            places: components["schemas"]["RemotePlaces"] | null;
             questions: components["schemas"]["EventRegistrationField"][];
             registration: components["schemas"]["RestrictionAudience"];
             sets: components["schemas"]["EventGroupSet"][];
@@ -84111,6 +84177,7 @@ export type EventGroupAttendance = components['schemas']['EventGroupAttendance']
 export type EventGroupAudiences = components['schemas']['EventGroupAudiences'];
 export type EventGroupAwaiting = components['schemas']['EventGroupAwaiting'];
 export type EventGroupCancelRequest = components['schemas']['EventGroupCancelRequest'];
+export type EventGroupConfirmRequest = components['schemas']['EventGroupConfirmRequest'];
 export type EventGroupCreateRequest = components['schemas']['EventGroupCreateRequest'];
 export type EventGroupDecisionRequest = components['schemas']['EventGroupDecisionRequest'];
 export type EventGroupDetail = components['schemas']['EventGroupDetail'];
