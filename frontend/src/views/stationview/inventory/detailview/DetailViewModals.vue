@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AssignItemModal from './AssignItemModal.vue'
 import ProcurementModal from './ProcurementModal.vue'
@@ -15,6 +15,7 @@ import { inventory, procurement } from '@/api'
 import {InventoryType, type InventoryDetail, type InventoryItem} from '@/api/generated/schema'
 import type { MemberLike } from '@/components/input/select/memberOption'
 import { useModalTarget } from '@/composables/useModalTarget'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
@@ -50,9 +51,14 @@ const {isOpen: showProcurementModal, open: openProcurement} = useModalTarget<nul
 
 const {isOpen: showHistoryModal, target: historyTarget, open: openHistory} = useModalTarget<InventoryItem>()
 
-const {isOpen: showDeleteModal, target: deleteTarget, open: openDelete} = useModalTarget<InventoryItem>()
-
 function fail(e: unknown) { emit('error', describeFailure(e, t)) }
+
+const {show: showDeleteModal, target: deleteTarget, requestDelete: openDelete, confirm: confirmDelete, failure: deleteFailure} =
+  useConfirmDelete<InventoryItem>({
+    onDelete: item => inventory.deleteItem(item.id),
+    onSuccess: () => emit('reload'),
+  })
+watch(deleteFailure, failure => { if (failure) emit('error', failure) })
 
 /**
  * Hands the piece to the chosen member.
@@ -105,16 +111,6 @@ async function markLost(item: InventoryItem) {
 async function markFound(item: InventoryItem) {
   try { await inventory.markFound(item.id); emit('reload') }
   catch (e) { fail(e) }
-}
-
-async function confirmDelete() {
-  if (!deleteTarget.value) return
-  try {
-    await inventory.deleteItem(deleteTarget.value.id)
-    showDeleteModal.value = false
-    deleteTarget.value = null
-    emit('reload')
-  } catch (e) { fail(e) }
 }
 
 async function fulfillProcurement(id: number) {

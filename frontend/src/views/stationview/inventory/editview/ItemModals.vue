@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -30,6 +30,7 @@ import type {
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {inventory, inventoryArts, inventoryFields} from '@/api'
 import {useModalTarget} from '@/composables/useModalTarget'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import AddItemFields from './itemmodals/AddItemFields.vue'
 import EditItemModal from '../detailview/EditItemModal.vue'
 import EditItemCustomFields from '../detailview/edititemmodal/EditItemCustomFields.vue'
@@ -242,19 +243,12 @@ async function openHistory(item: InventoryItem) {
   await loadHistory()
 }
 
-const {isOpen: showDeleteModal, target: deleteTarget, open: requestDelete} = useModalTarget<InventoryItem>()
-
-async function confirmDelete() {
-  if (!deleteTarget.value) return
-  try {
-    await inventory.deleteItem(deleteTarget.value.id)
-    showDeleteModal.value = false
-    deleteTarget.value = null
-    emit('itemsChanged')
-  } catch (e) {
-    emit('error', describeFailure(e, t))
-  }
-}
+const {show: showDeleteModal, target: deleteTarget, requestDelete, confirm: confirmDelete, failure: deleteFailure} =
+  useConfirmDelete<InventoryItem>({
+    onDelete: item => inventory.deleteItem(item.id),
+    onSuccess: () => emit('itemsChanged'),
+  })
+watch(deleteFailure, failure => { if (failure) emit('error', failure) })
 
 defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, requestDelete})
 </script>

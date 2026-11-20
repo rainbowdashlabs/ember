@@ -20,7 +20,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {clusterStations} from '@/api'
 import type {ClusterStationResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {useModalTarget} from '@/composables/useModalTarget'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useSession} from '@/composables/useSession'
 import {ClusterPermission} from '@/api/clusters'
 
@@ -35,8 +35,6 @@ const {config: stations, loading, failure, runWith} = useConfigPanel<ClusterStat
   fetch: () => clusterStations.listStations(),
 })
 
-const {isOpen: showRelease, target: releaseTarget, open: openRelease} = useModalTarget<ClusterStationResponse>()
-
 async function create() {
   if (!newName.value.trim()) return
   await runWith(async () => {
@@ -46,15 +44,13 @@ async function create() {
   }, {busy})
 }
 
-async function confirmRelease() {
-  const target = releaseTarget.value
-  if (!target) return
-  await runWith(async () => {
-    await clusterStations.releaseStation(target.uid)
-    showRelease.value = false
-    return clusterStations.listStations()
-  }, {busy})
-}
+const {show: showRelease, target: releaseTarget, requestDelete: openRelease, confirm: confirmRelease} =
+  useConfirmDelete<ClusterStationResponse>({
+    onDelete: target => runWith(async () => {
+      await clusterStations.releaseStation(target.uid)
+      return clusterStations.listStations()
+    }, {busy}),
+  })
 </script>
 
 <template>
