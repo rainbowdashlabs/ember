@@ -33,6 +33,8 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Dateien schon beim Anlegen.** Dateien lassen sich hinzufügen, während ein Termin oder eine Terminreihe noch angelegt wird, und werden beim Speichern in ihrer Reihenfolge angehängt.
 - **Anmeldeschluss vor Beginn.** Termine und Terminreihen schließen die Anmeldung zu einem festen Zeitpunkt oder eine gewisse Zeit vor Beginn, auf die Minute genau oder um Mitternacht. Vorlagen geben die Zeitspanne weiter, und wiederkehrende Termine schließen und erinnern für jeden Termin einzeln.
 - **Offene Antworten auch bei wiederkehrenden Terminen.** Die Übersicht listet nicht nur einmalige Termine, sondern auch jedes Datum eines wiederkehrenden Termins, das noch auf eine Antwort wartet, und führt zu diesem Datum.
+- **Plätze für Partnerwachen bei Terminreihen.** Eine geteilte Terminreihe kann eine Partnerwache selbst über ihre Anmeldungen entscheiden lassen, auf Wunsch mit einer festen Zahl an Plätzen für die ganze Terminreihe. Das ging bisher nur bei geteilten Terminen.
+- **Partnerwachen erfahren von Entscheidungen.** Mitglieder einer Partnerwache bekommen eine Nachricht, wenn die ausrichtende Wache ihre Anmeldung bestätigt, ablehnt, auf die Nachrückliste setzt oder nachrücken lässt. Dieselbe Nachricht kommt, wenn die eigene Wache sie bestätigt.
 
 ### Änderungen
 
@@ -46,6 +48,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Statistiken der Wache unter Monitoring.** Die Statistikseite einer Wache steht unter Monitoring, unter `/station/monitoring/statistics`, und das Dashboard ist wieder eine einzelne Seite.
 - **Offene Anmeldungen bleiben nach dem Anmeldeschluss bestehen.** Anmeldungen, die noch auf Bestätigung warten, werden beim Anmeldeschluss nicht mehr abgelehnt. Wer den Termin betreut, bekommt je Termin einen Hinweis und entscheidet wie bisher.
 - **Mindestanzahl ab Mitternacht geprüft.** Die Mindestanzahl einer Terminreihe wird ab Mitternacht die eingestellte Zahl an Tagen vor ihrem ersten Termin geprüft, auch wenn dieser abgesagt ist, so wie schon bei einzelnen Terminen.
+- **Plätze gehen mit der Freigabe.** Wird ein Termin oder eine Terminreihe nicht mehr mit einer Partnerwache geteilt, fällt auch die Vereinbarung über ihre Plätze weg. Wird wieder geteilt, entscheidet zunächst wieder die ausrichtende Wache über jede Anmeldung.
 
 ### Fehlerbehebungen
 

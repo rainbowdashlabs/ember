@@ -156,6 +156,7 @@ const exampleVisitors = computed((): WaitingListVisitor[] => [{
         <SignUpTableExample/>
         <p>{{ t('helpCenter.eventGroupDetail.exportText') }}</p>
         <p>{{ t('helpCenter.eventGroupDetail.partnerText') }}</p>
+        <p>{{ t('helpCenter.eventGroupDetail.partnerDecidesText') }}</p>
         <p>{{ t('helpCenter.eventGroupDetail.attendanceText') }}</p>
         <AttendanceTableExample/>
         <p>{{ t('helpCenter.eventGroupDetail.signersText') }}</p>

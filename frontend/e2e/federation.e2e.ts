@@ -161,7 +161,112 @@ test.describe('Federation', () => {
             await sharing.dispose()
         }
     })
+
+    /**
+     * A shared event group that hands a partner station the choosing of its own sign-ups, with one
+     * place. The partner's sign-ups wait for the partner itself, the first it confirms gets the place,
+     * and the second is refused because the place is taken.
+     */
+    test('a partner station confirms its own event group sign-ups within its places', async ({
+        homeAdminApi,
+        homeManagerApi,
+    }) => {
+        const manager = await stationManagerOf(homeBaseUrl())
+        const created = await homeAdminApi.post('/api/v1/stations', {
+            data: {name: unique('E2E-Kurswache'), managerEmail: manager.email},
+        })
+        expect(created.status()).toBe(201)
+        const {id: holdingStation} = await created.json()
+
+        const holder = await instanceRequestAs(homeBaseUrl(), {email: manager.email, stationId: holdingStation})
+        try {
+            const named = await partnerOf(holder, homeManagerApi)
+            const groupId = await sharedEventGroupWithOnePlace(holder, named)
+
+            const listed = await homeManagerApi.get('/api/v1/station-members')
+            expect(listed.ok(), await listed.text()).toBe(true)
+            const [first, second] = (await listed.json() as {id: number}[]).map(row => row.id)
+            const base = `/api/v1/federated/${holdingStation}/events/groups/${groupId}`
+            const partId = await onlyPartOf(holder, groupId)
+            for (const memberId of [must(first, 'a member'), must(second, 'a second member')]) {
+                const signedUp = await homeManagerApi.post(`${base}/sign-up`, {data: {parts: [partId], memberId}})
+                expect(signedUp.status(), await signedUp.text()).toBe(201)
+                expect((await signedUp.json()).status, 'the sign-up waits for the partner itself').toBe('PENDING')
+            }
+
+            const confirmed = await homeManagerApi.post(`${base}/confirm`, {data: {memberId: first}})
+            expect(confirmed.ok(), await confirmed.text()).toBe(true)
+            expect((await confirmed.json()).status).toBe('ACCEPTED')
+
+            const refused = await homeManagerApi.post(`${base}/confirm`, {data: {memberId: second}})
+            expect(refused.status(), await refused.text()).toBe(400)
+            expect((await refused.json()).code, 'the one place is taken').toBe(NO_PLACES_LEFT_FOR_PARTNER)
+        } finally {
+            await holder.dispose()
+        }
+    })
 })
+
+/** The refusal a partner's confirm meets once its places are taken. */
+const NO_PLACES_LEFT_FOR_PARTNER = 'E-039'
+
+/**
+ * Pairs the holding station with the home manager's station by an invite code, and answers the id the
+ * holding station knows its new partner by.
+ */
+async function partnerOf(holder: APIRequestContext, home: APIRequestContext): Promise<number> {
+    await proveFreshly(holder)
+    const invited = await holder.post('/api/v1/federation/invite')
+    expect(invited.ok(), await invited.text()).toBe(true)
+    const {inviteCode} = await invited.json()
+    await proveFreshly(home)
+    const accepted = await home.post('/api/v1/federation/accept', {data: {inviteCode}})
+    expect(accepted.status(), await accepted.text()).toBe(201)
+    const partners = await holder.get('/api/v1/federation/partners')
+    expect(partners.ok()).toBe(true)
+    const rows: {partner: {id: number}}[] = await partners.json()
+    return must(rows[0], 'the holding station holds the partner it just gained').partner.id
+}
+
+/**
+ * An event group a month ahead with one date, shared with the named partner only, which decides its
+ * own sign-ups within one place.
+ */
+async function sharedEventGroupWithOnePlace(holder: APIRequestContext, partnerId: number): Promise<number> {
+    const created = await holder.post('/api/v1/events/groups', {
+        data: {
+            details: {
+                name: unique('Geteilter Kurs'), description: null, registrationLimit: null, registrationDeadline: null,
+                requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null,
+                partRegistrationLimit: null, queueOrder: null,
+            },
+            sets: [{id: null, name: 'Kurstag', minimum: 1, maximum: null}],
+        },
+    })
+    expect(created.ok(), await created.text()).toBe(true)
+    const group = await created.json() as {eventGroup: {id: number}, sets: {id: number}[]}
+    const groupId = group.eventGroup.id
+    const start = new Date(Date.now() + 30 * 86_400_000)
+    start.setUTCHours(10, 0, 0, 0)
+    const part = await holder.post(`/api/v1/events/groups/${groupId}/parts/new`, {
+        data: {name: 'Kurstag', setId: must(group.sets[0], 'the set').id, startTime: start.toISOString(),
+            endTime: new Date(start.getTime() + 3_600_000).toISOString()},
+    })
+    expect(part.ok(), await part.text()).toBe(true)
+    const shared = await holder.put(`/api/v1/events/groups/${groupId}/federation`, {data: {scope: 'SPECIFIC', partnerIds: [partnerId]}})
+    expect(shared.ok(), await shared.text()).toBe(true)
+    const placed = await holder.put(`/api/v1/events/groups/${groupId}/partner-places/${partnerId}`,
+        {data: {slotBudget: 1, partnerConfirms: true}})
+    expect(placed.ok(), await placed.text()).toBe(true)
+    return groupId
+}
+
+/** The one date of an event group, as the holding station lists it. */
+async function onlyPartOf(holder: APIRequestContext, groupId: number): Promise<number> {
+    const read = await holder.get(`/api/v1/events/groups/${groupId}`)
+    expect(read.ok(), await read.text()).toBe(true)
+    return must((await read.json() as {parts: {eventId: number}[]}).parts[0], 'the date').eventId
+}
 
 /** A published entry of the station, with the title given. */
 async function publishedEntry(api: APIRequestContext, title: string): Promise<number> {

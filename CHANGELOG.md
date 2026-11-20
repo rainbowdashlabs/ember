@@ -33,6 +33,8 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Files on new appointments and event groups.** Files can be added while an appointment or event group is still being created, and they are attached in order as soon as it is saved.
 - **Sign-up deadlines before the start.** Appointments and event groups close sign-up at a fixed time or at a span before the start, to the minute or at midnight. Templates hand on the span, and repeating appointments close and warn for each date on its own.
 - **Open answers for every date of a series.** The dashboard lists each date of a repeating appointment that still waits for an answer, not only one-time appointments, and leads to that date.
+- **Places per partner station for event groups.** A shared event group can let a partner station decide its own sign-ups, optionally with a number of places for the whole event group. Until now only shared appointments could do this.
+- **Partner members told about decisions.** Members of a partner station are told when the station holding it accepts or turns down their sign-up, puts it on the waiting list or moves it up. The same notice arrives when their own station confirms them.
 
 ### Changes
 
@@ -46,6 +48,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Station statistics moved to Monitoring.** The statistics page of a station is found under Monitoring at `/station/monitoring/statistics`, so the dashboard is a single page again.
 - **Waiting sign-ups kept at the deadline.** Sign-ups still waiting for confirmation are no longer declined when the deadline passes. Whoever runs the appointment is told once per date and decides them as before.
 - **Minimum checked from midnight.** The minimum of an event group is checked from midnight the set number of days before its first appointment, a called-off first appointment included, as it already was for appointments.
+- **Places go with the share.** When an appointment or event group is no longer shared with a partner station, the arrangement about that station's places is removed. Sharing it again starts with the station holding the appointment or event group deciding each sign-up.
 
 ### Fixes
 
