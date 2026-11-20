@@ -6,7 +6,8 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
-import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventPartnerRegistrationService;
+import dev.chojo.ember.feature.events.service.EventShareService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -64,7 +65,8 @@ public class PartnerRequirementNotices implements TaskSource {
 
     private final PartnerRequirementChangeRepository changes;
     private final PartnerAgreementRepository agreements;
-    private final EventFederationService federation;
+    private final EventPartnerRegistrationService partnerRegistrations;
+    private final EventShareService shares;
     private final FederationRepository partners;
     private final StationRepository stations;
     private final FederationTransport transport;
@@ -75,19 +77,30 @@ public class PartnerRequirementNotices implements TaskSource {
     public PartnerRequirementNotices(
             PartnerRequirementChangeRepository changes,
             PartnerAgreementRepository agreements,
-            EventFederationService federation,
+            EventPartnerRegistrationService partnerRegistrations,
+            EventShareService shares,
             FederationRepository partners,
             StationRepository stations,
             FederationTransport transport,
             TaskScheduler scheduler) {
-        this(changes, agreements, federation, partners, stations, transport, scheduler.executor(), Clock.systemUTC());
+        this(
+                changes,
+                agreements,
+                partnerRegistrations,
+                shares,
+                partners,
+                stations,
+                transport,
+                scheduler.executor(),
+                Clock.systemUTC());
     }
 
     /** Builds the service with its own executor and clock, so a test sends on the calling thread. */
     PartnerRequirementNotices(
             PartnerRequirementChangeRepository changes,
             PartnerAgreementRepository agreements,
-            EventFederationService federation,
+            EventPartnerRegistrationService partnerRegistrations,
+            EventShareService shares,
             FederationRepository partners,
             StationRepository stations,
             FederationTransport transport,
@@ -95,7 +108,8 @@ public class PartnerRequirementNotices implements TaskSource {
             Clock clock) {
         this.changes = changes;
         this.agreements = agreements;
-        this.federation = federation;
+        this.partnerRegistrations = partnerRegistrations;
+        this.shares = shares;
         this.partners = partners;
         this.stations = stations;
         this.transport = transport;
@@ -185,7 +199,7 @@ public class PartnerRequirementNotices implements TaskSource {
 
     private RemoteRequirementChange noticeOf(PartnerRequirementChange change, FederationPartner partner) {
         var today = today(partner.stationId());
-        var registered = federation.findRegistrations(change.eventId(), null).stream()
+        var registered = partnerRegistrations.findRegistrations(change.eventId(), null).stream()
                 .filter(registration -> registration.partnerId() == partner.id())
                 .filter(EventFederationRegistration::isComingOrAsking)
                 .filter(registration -> !registration.eventDate().isBefore(today))
@@ -208,7 +222,7 @@ public class PartnerRequirementNotices implements TaskSource {
 
     private TreeSet<Integer> concernedPartners(int eventId, LocalDate from) {
         var concerned = new TreeSet<>(agreements.partnersFrom(eventId, from));
-        federation.findRegistrations(eventId, null).stream()
+        partnerRegistrations.findRegistrations(eventId, null).stream()
                 .filter(EventFederationRegistration::isComingOrAsking)
                 .filter(registration -> !registration.eventDate().isBefore(from))
                 .map(EventFederationRegistration::partnerId)
@@ -217,7 +231,7 @@ public class PartnerRequirementNotices implements TaskSource {
     }
 
     private boolean sharedWith(FederationPartner partner, int eventId) {
-        return federation.findSharedEventIds(partner.id(), partner.stationId()).contains(eventId);
+        return shares.findSharedEventIds(partner.id(), partner.stationId()).contains(eventId);
     }
 
     private Optional<FederationPartner> activePartner(int partnerId) {

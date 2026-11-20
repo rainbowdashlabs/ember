@@ -28,7 +28,7 @@ public class FederatedRegistrantService {
     private final StationRepository stationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberIdentityFactory memberIdentityFactory;
-    private final EventFederationService eventFederationService;
+    private final EventShareService shares;
 
     @Inject
     public FederatedRegistrantService(
@@ -36,12 +36,12 @@ public class FederatedRegistrantService {
             StationRepository stationRepository,
             StationMemberRepository stationMemberRepository,
             MemberIdentityFactory memberIdentityFactory,
-            EventFederationService eventFederationService) {
+            EventShareService shares) {
         this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberIdentityFactory = memberIdentityFactory;
-        this.eventFederationService = eventFederationService;
+        this.shares = shares;
     }
 
     /**
@@ -81,8 +81,7 @@ public class FederatedRegistrantService {
             }
         }
 
-        String cachedName =
-                eventFederationService.getCachedName(partnerId, remoteMemberId).orElse(null);
+        String cachedName = shares.getCachedName(partnerId, remoteMemberId).orElse(null);
         String stationName = partnerStation.map(Station::name).orElse(null);
         return new MemberIdentity(partnerStationUid, remoteMemberId).withDisplay(cachedName, stationName, null, null);
     }

@@ -43,7 +43,7 @@ class FederatedRegistrantServiceTest {
     private StationRepository stations;
     private StationMemberRepository members;
     private MemberIdentityFactory identities;
-    private EventFederationService events;
+    private EventShareService events;
     private FederatedRegistrantService service;
 
     @BeforeEach
@@ -52,7 +52,7 @@ class FederatedRegistrantServiceTest {
         stations = mock(StationRepository.class);
         members = mock(StationMemberRepository.class);
         identities = mock(MemberIdentityFactory.class);
-        events = mock(EventFederationService.class);
+        events = mock(EventShareService.class);
         service = new FederatedRegistrantService(partners, stations, members, identities, events);
         when(partners.findPartnerById(7))
                 .thenReturn(Optional.of(new FederationPartner(

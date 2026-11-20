@@ -5,25 +5,11 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.api.refusal.FederationRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.comment.entity.Comment;
-import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.entity.CommentFilter;
-import dev.chojo.ember.feature.comment.entity.CommentWriter;
-import dev.chojo.ember.feature.comment.entity.NewComment;
-import dev.chojo.ember.feature.comment.route.CommentResponse;
-import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
-import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
-import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.EventField;
-import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.Places;
@@ -34,21 +20,10 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
-import dev.chojo.ember.feature.federation.entity.FederationPartner;
-import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
-import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
-import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
-import dev.chojo.ember.feature.federation.service.FederationFanout;
-import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.federation.transport.FederationServer;
-import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -58,63 +33,45 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Supplier;
 
 /**
- * Federated event sharing and registrations: what this station serves its partners about the
- * appointments it shares, and how its members read, join and comment on the appointments partners
- * share with it.
+ * The host side of shared appointments: what this station serves its partners about the appointments
+ * it shares with them, and the registrations their members hold here.
  *
  * <p>What a partner may see and do is decided in the serving functions registered in
  * {@link #serveOn}. A partner on another instance reaches them through the {@code /remote} routes, a
  * partner on this instance through the local transport, and both are held to the share targets and
- * the rows of the station holding the appointment.
+ * the rows of the station holding the appointment. The same registrations are decided here by whoever
+ * runs the appointment: accepted, turned down, put on the waiting list or moved within it.
  */
 @Singleton
-public class EventFederationService implements FederationServer {
-    private static final Logger log = LoggerFactory.getLogger(EventFederationService.class);
+public class EventPartnerRegistrationService implements FederationServer {
+    private static final Logger log = LoggerFactory.getLogger(EventPartnerRegistrationService.class);
 
     private final EventFederationRepository federationRepository;
-    private final FederationService federationService;
-    private final FederationTransport transport;
-    private final FederationRepository partnerRepository;
-    private final StationRepository stationRepository;
+    private final EventShareService shares;
     private final EventCrudService crudService;
-    private final CommentService commentService;
-    private final MemberNameResolver memberNameResolver;
-    private final FederationFanout fanout;
-    private final FederationEntityResolver entityResolver;
     private final EventAttachmentService attachmentService;
     private final EventFieldService fieldService;
     private final OccurrenceCalendar occurrenceCalendar;
     private final MediaLibraryService media;
     private final Api apiConfig;
-
     private final EventGroupRepository eventGroupRepository;
     private final EventRegistrationService registrationService;
     private final PartnerQuestionService partnerQuestions;
 
     @Inject
-    public EventFederationService(
+    public EventPartnerRegistrationService(
             EventFederationRepository federationRepository,
-            FederationService federationService,
-            FederationTransport transport,
-            FederationRepository partnerRepository,
-            StationRepository stationRepository,
+            EventShareService shares,
             EventCrudService crudService,
-            CommentService commentService,
-            MemberNameResolver memberNameResolver,
-            FederationFanout fanout,
-            FederationEntityResolver entityResolver,
             EventAttachmentService attachmentService,
             EventFieldService fieldService,
             OccurrenceCalendar occurrenceCalendar,
@@ -124,15 +81,8 @@ public class EventFederationService implements FederationServer {
             EventRegistrationService registrationService,
             PartnerQuestionService partnerQuestions) {
         this.federationRepository = federationRepository;
-        this.federationService = federationService;
-        this.transport = transport;
-        this.partnerRepository = partnerRepository;
-        this.stationRepository = stationRepository;
+        this.shares = shares;
         this.crudService = crudService;
-        this.commentService = commentService;
-        this.memberNameResolver = memberNameResolver;
-        this.fanout = fanout;
-        this.entityResolver = entityResolver;
         this.attachmentService = attachmentService;
         this.fieldService = fieldService;
         this.occurrenceCalendar = occurrenceCalendar;
@@ -144,59 +94,48 @@ public class EventFederationService implements FederationServer {
     }
 
     /**
-     * Configures federation sharing for an event.
-     *
-     * @param eventId    the event ID
-     * @param scope      the sharing scope
-     * @param partnerIds the partner IDs to target (used when scope is SPECIFIC)
-     * @return the created or updated share
+     * Registers the serving functions of the appointments this station shares, apart from their
+     * comments, which {@link EventCommentFederation} serves.
      */
-    public EventFederationShare setShare(int eventId, ShareScope scope, List<Integer> partnerIds) {
-        var share = federationRepository.setShare(eventId, scope);
-        federationRepository.setShareTargets(share.id(), partnerIds);
-        log.info("Set federation share for event {} (scope {}, {} targets)", eventId, scope, partnerIds.size());
-        return share;
-    }
-
-    /**
-     * Removes federation sharing for an event.
-     *
-     * @param eventId the event ID
-     */
-    public void removeShare(int eventId) {
-        federationRepository.removeShare(eventId);
-        log.info("Removed federation share for event {}", eventId);
-    }
-
-    /**
-     * Finds the federation share configuration for an event.
-     *
-     * @param eventId the event ID
-     * @return the share, if configured
-     */
-    public Optional<EventFederationShare> findShareByEvent(int eventId) {
-        return federationRepository.findShareByEvent(eventId);
-    }
-
-    /**
-     * Retrieves the partner IDs targeted by a share.
-     *
-     * @param shareId the share ID
-     * @return the list of partner IDs
-     */
-    public List<Integer> findShareTargets(int shareId) {
-        return federationRepository.findShareTargets(shareId);
-    }
-
-    /**
-     * Finds event IDs shared with a partner for a given station.
-     *
-     * @param partnerId the federation partner ID
-     * @param stationId the station ID
-     * @return the list of shared event IDs
-     */
-    public List<Integer> findSharedEventIds(int partnerId, int stationId) {
-        return federationRepository.findSharedEventIds(partnerId, stationId);
+    @Override
+    public void serveOn(FederationEndpoints endpoints) {
+        endpoints.serve(RemoteEventRoutes.LIST_EVENTS, (partner, params, body) -> serveEvents(partner));
+        endpoints.serve(
+                RemoteEventRoutes.GET_EVENT, (partner, params, body) -> serveEvent(partner, params.integer("id")));
+        endpoints.serve(
+                RemoteEventRoutes.LIST_ATTACHMENTS,
+                (partner, params, body) -> serveAttachments(partner, params.integer("eventId")));
+        endpoints.serve(
+                RemoteEventRoutes.GET_ATTACHMENT_CONTENT,
+                (partner, params, body) ->
+                        serveAttachmentContent(partner, params.integer("eventId"), params.integer("attachmentId")));
+        endpoints.<RemoteEventRoutes.RemoteRegistrationRequest, EventFederationRegistration>serve(
+                RemoteEventRoutes.REGISTER,
+                (partner, params, body) -> serveRegistration(partner, params.integer("id"), body));
+        endpoints.<RemoteEventRoutes.RemoteRegistrationRequest, Void>serve(
+                RemoteEventRoutes.WITHDRAW, (partner, params, body) -> {
+                    serveWithdrawal(partner, params.integer("id"), body);
+                    return null;
+                });
+        endpoints.<RemoteEventRoutes.RemoteRegistrationRequest, Void>serve(
+                RemoteEventRoutes.UNDO_WITHDRAWAL, (partner, params, body) -> {
+                    serveUndoWithdrawal(partner, params.integer("id"), body);
+                    return null;
+                });
+        endpoints.<RemoteEventRoutes.RemoteRegistrationRequest, Void>serve(
+                RemoteEventRoutes.CONFIRM_OWN, (partner, params, body) -> {
+                    serveConfirmOwn(partner, params.integer("id"), body);
+                    return null;
+                });
+        endpoints.serve(
+                RemoteEventRoutes.LIST_REGISTRATIONS,
+                (partner, params, body) -> serveRegistrations(partner, params.integer("id")));
+        endpoints.serve(
+                RemoteEventRoutes.LIST_MEMBER_REGISTRATIONS,
+                (partner, params, body) -> serveMemberRegistrations(partner, params.uuid("memberUid")));
+        endpoints.serve(
+                RemoteEventRoutes.REGISTRATION_STATUS_WEBHOOK,
+                (partner, params, body) -> new FederatedEventRoutes.StatusResponse("ok"));
     }
 
     /**
@@ -315,31 +254,14 @@ public class EventFederationService implements FederationServer {
         }
     }
 
+    /**
+     * The registrations a partner's member holds here, whatever partner sent them.
+     *
+     * @param remoteMemberId the member
+     * @return every registration filed under that member
+     */
     public List<EventFederationRegistration> findRegistrationsByRemoteMember(UUID remoteMemberId) {
         return federationRepository.findRegistrationsByRemoteMember(remoteMemberId);
-    }
-
-    /**
-     * Every partner station's appointment these members stand on, asked of each partner.
-     *
-     * <p>Each partner answers only the places it keeps for this station and drops the ones that were
-     * taken back, or a member who signed off a partner's appointment would find themselves back on it
-     * at the next reload, with no way to sign up again. A partner that does not answer loses only its
-     * own entries.
-     */
-    public List<RemoteEventRoutes.RemoteMemberRegistration> findMyRegistrations(int stationId, List<UUID> memberUids) {
-        var partners = partnerRepository.findPartners(stationId).stream()
-                .filter(p -> p.status() == FederationStatus.ACTIVE)
-                .toList();
-        return fanout.fanOut(partners, partner -> memberUids.stream()
-                        .flatMap(uid -> transport
-                                .getList(
-                                        partner,
-                                        RemoteEventRoutes.LIST_MEMBER_REGISTRATIONS.at(uid),
-                                        RemoteEventRoutes.RemoteMemberRegistration.class)
-                                .stream())
-                        .toList())
-                .items();
     }
 
     /**
@@ -402,7 +324,7 @@ public class EventFederationService implements FederationServer {
                 if (registration.status() != RegistrationStatus.PENDING) {
                     throw EventRefusal.REGISTRATION_NOT_PENDING_FOR_QUEUE.raise();
                 }
-                if (partnerPlaces(registration.eventId(), registration.partnerId())
+                if (shares.partnerPlaces(registration.eventId(), registration.partnerId())
                         .partnerConfirms()) {
                     throw EventRefusal.PARTNER_DECIDES_ITS_OWN.raise();
                 }
@@ -524,32 +446,6 @@ public class EventFederationService implements FederationServer {
         return federationRepository.clearAgreementWithdrawn(eventId, partnerId, remoteMemberId, eventDate);
     }
 
-    /** What a partner may do with a shared appointment: how many places, and who decides. */
-    public EventPartnerPlaces partnerPlaces(int eventId, int partnerId) {
-        return federationRepository.findPartnerPlaces(eventId, partnerId);
-    }
-
-    /** Everything said per partner about one appointment, for the screen that sets it. */
-    public List<EventPartnerPlaces> partnerPlaces(int eventId) {
-        return federationRepository.findPartnerPlaces(eventId);
-    }
-
-    /**
-     * Hands a partner a number of places, or takes the arrangement back.
-     *
-     * <p>A budget means the partner decides: handing somebody five places and then choosing their
-     * five for them is not a thing anybody wants, and the database refuses the combination outright.
-     */
-    public void setPartnerPlaces(int eventId, int partnerId, @Nullable Integer slotBudget, boolean partnerConfirms) {
-        federationRepository.setPartnerPlaces(eventId, partnerId, slotBudget, partnerConfirms);
-        log.info(
-                "Event {} now gives partner {} {} places, decided by {}",
-                eventId,
-                partnerId,
-                slotBudget == null ? "as many as it likes" : slotBudget,
-                partnerConfirms ? "the partner" : "this station");
-    }
-
     /**
      * How many of a partner's places are taken on one date, and how many it may take.
      *
@@ -667,92 +563,6 @@ public class EventFederationService implements FederationServer {
     }
 
     /**
-     * Caches the display name for a federated member.
-     *
-     * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member UUID
-     * @param displayName    the display name to cache
-     */
-    public void cacheName(int partnerId, UUID remoteMemberId, String displayName) {
-        federationRepository.cacheName(partnerId, remoteMemberId, displayName);
-    }
-
-    /**
-     * Retrieves the cached display name for a federated member.
-     *
-     * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member UUID
-     * @return the display name, if cached
-     */
-    public Optional<String> getCachedName(int partnerId, UUID remoteMemberId) {
-        return federationRepository.getCachedName(partnerId, remoteMemberId);
-    }
-
-    /**
-     * Invalidates the cached name for a federated member.
-     *
-     * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member UUID
-     */
-    public void invalidateName(int partnerId, UUID remoteMemberId) {
-        federationRepository.invalidateName(partnerId, remoteMemberId);
-    }
-
-    /**
-     * Browses federated events from all active partners with parallel fetching.
-     * Local partners are queried via direct DB, remote partners via HTTP.
-     */
-    public List<FederatedEventItem> browseFederatedEvents(int stationId) {
-        var partners = federationService.findPartners(stationId).stream()
-                .filter(p -> p.status() == FederationStatus.ACTIVE)
-                .toList();
-        return fanout.fanOut(partners, this::browsePartner).items();
-    }
-
-    /**
-     * One partner station's appointment, as that station describes it.
-     *
-     * <p>What comes back is the same shape either way: the appointment, the questions it asks openly,
-     * and the places it set aside for us where it set any aside. A partner on this instance is read
-     * here and a remote one answers for itself, and both have to say the same things, or a member
-     * would find the choosing handed to their station on one and not on the other.
-     *
-     * <p>The places hang off the holder's own record of us, never ours of them, which is what the
-     * serving function reads.
-     */
-    public RemoteEventRoutes.RemoteEventDetail getFederatedEvent(
-            int localStationId, UUID partnerStationUid, int eventId) {
-        var partner = entityResolver.requireActivePartner(localStationId, partnerStationUid);
-        return transport.get(
-                partner, RemoteEventRoutes.GET_EVENT.at(eventId), RemoteEventRoutes.RemoteEventDetail.class);
-    }
-
-    /**
-     * The files a partner's event hands over, as that partner answers them.
-     *
-     * <p>What comes back is what the owning station is willing to hand out: the open files and
-     * nothing else. This instance does not filter again, because it is not the one that knows.
-     */
-    public List<RemoteEventRoutes.RemoteAttachment> listFederatedAttachments(
-            int localStationId, UUID partnerStationUid, int eventId) {
-        var partner = entityResolver.requireActivePartner(localStationId, partnerStationUid);
-        return transport.getList(
-                partner, RemoteEventRoutes.LIST_ATTACHMENTS.at(eventId), RemoteEventRoutes.RemoteAttachment.class);
-    }
-
-    /**
-     * One such file, bytes and all, as the owning station hands it over.
-     */
-    public RemoteEventRoutes.RemoteAttachmentContent getFederatedAttachment(
-            int localStationId, UUID partnerStationUid, int eventId, int attachmentId) {
-        var partner = entityResolver.requireActivePartner(localStationId, partnerStationUid);
-        return transport.get(
-                partner,
-                RemoteEventRoutes.GET_ATTACHMENT_CONTENT.at(eventId, attachmentId),
-                RemoteEventRoutes.RemoteAttachmentContent.class);
-    }
-
-    /**
      * The appointments this station shares with a partner.
      *
      * @param partner the partnership the request arrived on
@@ -760,7 +570,7 @@ public class EventFederationService implements FederationServer {
      */
     public List<SharedEvent> serveEvents(ServingPartner partner) {
         var eventGroups = eventGroupRepository.findPartSummaries(partner.servingStationId());
-        return sharedWith(partner).stream()
+        return shares.sharedWith(partner).stream()
                 .map(crudService::findById)
                 .flatMap(Optional::stream)
                 .map(event -> SharedEvent.of(event).withEventGroup(eventGroups.get(event.id())))
@@ -777,14 +587,14 @@ public class EventFederationService implements FederationServer {
      * @return the appointment as the partner may see it
      */
     public RemoteEventRoutes.RemoteEventDetail serveEvent(ServingPartner partner, int eventId) {
-        requireShared(partner, eventId);
+        shares.requireSharedWith(partner, eventId);
         var event = crudService.findById(eventId).orElseThrow(EventRefusal.SHARED_EVENT_NOT_HERE::raise);
         var dateInView = occurrenceCalendar.dateInView(event);
         var fields = fieldService.findByEvent(eventId, dateInView.orElse(null)).stream()
                 .filter(AppointmentField::isPublic)
                 .map(EventField::of)
                 .toList();
-        var places = partnerPlaces(eventId, partner.partnerId());
+        var places = shares.partnerPlaces(eventId, partner.partnerId());
         return new RemoteEventRoutes.RemoteEventDetail(
                 SharedEvent.of(event)
                         .withEventGroup(eventGroupRepository
@@ -811,7 +621,7 @@ public class EventFederationService implements FederationServer {
      * @return the files it hands over
      */
     public List<RemoteEventRoutes.RemoteAttachment> serveAttachments(ServingPartner partner, int eventId) {
-        requireShared(partner, eventId);
+        shares.requireSharedWith(partner, eventId);
         return attachmentService.listOpen(eventId).stream()
                 .map(RemoteEventRoutes.RemoteAttachment::of)
                 .toList();
@@ -831,7 +641,7 @@ public class EventFederationService implements FederationServer {
      */
     public RemoteEventRoutes.RemoteAttachmentContent serveAttachmentContent(
             ServingPartner partner, int eventId, int attachmentId) {
-        requireShared(partner, eventId);
+        shares.requireSharedWith(partner, eventId);
         var attachment = attachmentService
                 .findOn(eventId, attachmentId)
                 .filter(found -> !found.internal())
@@ -854,14 +664,14 @@ public class EventFederationService implements FederationServer {
      */
     private EventFederationRegistration serveRegistration(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
-        requireShared(partner, eventId);
+        shares.requireSharedWith(partner, eventId);
         return registerFederated(
                 eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate(), request.answers());
     }
 
     private void serveWithdrawal(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
-        requireShared(partner, eventId);
+        shares.requireSharedWith(partner, eventId);
         registrationService.requireOwnSignUp(eventId);
         withdrawRegistration(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate());
     }
@@ -875,7 +685,7 @@ public class EventFederationService implements FederationServer {
      */
     private void serveUndoWithdrawal(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
-        requireShared(partner, eventId);
+        shares.requireSharedWith(partner, eventId);
         registrationService.requireOwnSignUp(eventId);
         if (!undoWithdrawal(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate())) {
             throw EventRefusal.PARTNER_WITHDRAWAL_NO_LONGER_UNDONE.raise();
@@ -893,9 +703,9 @@ public class EventFederationService implements FederationServer {
      */
     private void serveConfirmOwn(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
-        requireShared(partner, eventId);
+        shares.requireSharedWith(partner, eventId);
         registrationService.requireOwnSignUp(eventId);
-        if (!partnerPlaces(eventId, partner.partnerId()).partnerConfirms()) {
+        if (!shares.partnerPlaces(eventId, partner.partnerId()).partnerConfirms()) {
             throw EventRefusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN.raise();
         }
         var registration = findRegistration(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate())
@@ -938,7 +748,7 @@ public class EventFederationService implements FederationServer {
      * withdrawn status at all.
      */
     private List<EventFederationRegistration> serveRegistrations(ServingPartner partner, int eventId) {
-        requireShared(partner, eventId);
+        shares.requireSharedWith(partner, eventId);
         return findRegistrationsByPartner(partner.partnerId()).stream()
                 .filter(r -> r.eventId() == eventId)
                 .filter(EventFederationRegistration::isStanding)
@@ -965,394 +775,4 @@ public class EventFederationService implements FederationServer {
                         r.partnerId()))
                 .toList();
     }
-
-    private CommentResponse serveNewComment(
-            ServingPartner partner, int eventId, RemoteEventRoutes.RemoteCommentRequest request) {
-        requireShared(partner, eventId);
-        if (request.content() == null || request.content().isBlank()) {
-            throw EventRefusal.PARTNER_COMMENT_NEEDS_TEXT.raise();
-        }
-        return createRemoteComment(
-                partner.row(),
-                eventId,
-                request.remoteMemberUid(),
-                request.displayName(),
-                request.parentId(),
-                request.content(),
-                commentDay(request.eventDate()));
-    }
-
-    /**
-     * Reads the optional occurrence date a comment is scoped to. Older peers omit the field
-     * entirely, which keeps the comment attached to the whole event rather than one date.
-     */
-    private static @Nullable LocalDate commentDay(@Nullable String eventDate) {
-        if (eventDate == null || eventDate.isBlank()) return null;
-        try {
-            return LocalDate.parse(eventDate);
-        } catch (DateTimeParseException e) {
-            throw EventRefusal.PARTNER_COMMENT_DAY_NOT_A_DATE.raise();
-        }
-    }
-
-    private CommentResponse serveCommentEdit(
-            ServingPartner partner, int commentId, RemoteEventRoutes.RemoteCommentUpdateRequest request) {
-        if (request.content() == null || request.content().isBlank()) {
-            throw EventRefusal.PARTNER_COMMENT_CHANGE_NEEDS_TEXT.raise();
-        }
-        return updateRemoteComment(partner.row(), commentId, request.remoteMemberUid(), request.content());
-    }
-
-    private void serveCommentDeletion(
-            ServingPartner partner, int commentId, RemoteEventRoutes.RemoteCommentDeleteRequest request) {
-        if (!deleteRemoteComment(partner.row(), commentId, request.remoteMemberUid())) {
-            throw EventRefusal.PARTNER_COMMENT_NOT_DELETED.raise();
-        }
-    }
-
-    /**
-     * Confirms the partner is allowed to see the given event, i.e. it is in the set this station
-     * shares with that partner. Guards every read and write so a partner cannot address
-     * never-federated events by enumerating ids.
-     */
-    private void requireShared(ServingPartner partner, int eventId) {
-        if (!sharedWith(partner).contains(eventId)) {
-            throw EventRefusal.EVENT_NOT_SHARED_WITH_PARTNER.raise();
-        }
-    }
-
-    private List<Integer> sharedWith(ServingPartner partner) {
-        return findSharedEventIds(partner.partnerId(), partner.servingStationId());
-    }
-
-    /**
-     * Registers the serving functions of the appointments this station shares.
-     */
-    @Override
-    public void serveOn(FederationEndpoints endpoints) {
-        endpoints.serve(RemoteEventRoutes.LIST_EVENTS, (partner, params, body) -> serveEvents(partner));
-        endpoints.serve(
-                RemoteEventRoutes.GET_EVENT, (partner, params, body) -> serveEvent(partner, params.integer("id")));
-        endpoints.serve(
-                RemoteEventRoutes.LIST_ATTACHMENTS,
-                (partner, params, body) -> serveAttachments(partner, params.integer("eventId")));
-        endpoints.serve(
-                RemoteEventRoutes.GET_ATTACHMENT_CONTENT,
-                (partner, params, body) ->
-                        serveAttachmentContent(partner, params.integer("eventId"), params.integer("attachmentId")));
-        endpoints.<RemoteEventRoutes.RemoteRegistrationRequest, EventFederationRegistration>serve(
-                RemoteEventRoutes.REGISTER,
-                (partner, params, body) -> serveRegistration(partner, params.integer("id"), body));
-        endpoints.<RemoteEventRoutes.RemoteRegistrationRequest, Void>serve(
-                RemoteEventRoutes.WITHDRAW, (partner, params, body) -> {
-                    serveWithdrawal(partner, params.integer("id"), body);
-                    return null;
-                });
-        endpoints.<RemoteEventRoutes.RemoteRegistrationRequest, Void>serve(
-                RemoteEventRoutes.UNDO_WITHDRAWAL, (partner, params, body) -> {
-                    serveUndoWithdrawal(partner, params.integer("id"), body);
-                    return null;
-                });
-        endpoints.<RemoteEventRoutes.RemoteRegistrationRequest, Void>serve(
-                RemoteEventRoutes.CONFIRM_OWN, (partner, params, body) -> {
-                    serveConfirmOwn(partner, params.integer("id"), body);
-                    return null;
-                });
-        endpoints.serve(
-                RemoteEventRoutes.LIST_REGISTRATIONS,
-                (partner, params, body) -> serveRegistrations(partner, params.integer("id")));
-        endpoints.serve(
-                RemoteEventRoutes.LIST_MEMBER_REGISTRATIONS,
-                (partner, params, body) -> serveMemberRegistrations(partner, params.uuid("memberUid")));
-        endpoints.serve(
-                RemoteEventRoutes.REGISTRATION_STATUS_WEBHOOK,
-                (partner, params, body) -> new FederatedEventRoutes.StatusResponse("ok"));
-        endpoints.serve(RemoteEventRoutes.LIST_COMMENTS, (partner, params, body) -> {
-            requireShared(partner, params.integer("eventId"));
-            return listComments(params.integer("eventId"));
-        });
-        endpoints.<RemoteEventRoutes.RemoteCommentRequest, CommentResponse>serve(
-                RemoteEventRoutes.CREATE_COMMENT,
-                (partner, params, body) -> serveNewComment(partner, params.integer("eventId"), body));
-        endpoints.<RemoteEventRoutes.RemoteCommentUpdateRequest, CommentResponse>serve(
-                RemoteEventRoutes.UPDATE_COMMENT,
-                (partner, params, body) -> serveCommentEdit(partner, params.integer("commentId"), body));
-        endpoints.<RemoteEventRoutes.RemoteCommentDeleteRequest, Void>serve(
-                RemoteEventRoutes.DELETE_COMMENT, (partner, params, body) -> {
-                    serveCommentDeletion(partner, params.integer("commentId"), body);
-                    return null;
-                });
-    }
-
-    /**
-     * Converts a comment to an enriched response with federated author information.
-     */
-    public CommentResponse toCommentResponse(Comment comment) {
-        return CommentResponseMapper.fromEvent(memberNameResolver, comment);
-    }
-
-    /**
-     * Lists comments for an event, enriched with federated author info.
-     */
-    public List<CommentResponse> listComments(int eventId) {
-        return commentService.list(CommentEntityType.EVENT, eventId, CommentFilter.ALL).stream()
-                .map(this::toCommentResponse)
-                .toList();
-    }
-
-    /**
-     * Creates a comment from a remote federated partner. Whom it tells here the appointment's comment
-     * target decides: a new top-level comment reaches the appointment managers, and nothing else does.
-     */
-    public CommentResponse createRemoteComment(
-            FederationPartner partner,
-            int eventId,
-            UUID remoteMemberUid,
-            String displayName,
-            @Nullable Integer parentId,
-            String content,
-            @Nullable LocalDate eventDate) {
-        var target = commentService
-                .target(CommentEntityType.EVENT, eventId)
-                .orElseThrow(EventRefusal.EVENT_NOT_SHARED_WITH_PARTNER::raise);
-        var author = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
-        var comment = commentService.createOn(
-                target, CommentWriter.partner(author, displayName), new NewComment(parentId, eventDate, content));
-        federationRepository.cacheName(partner.id(), remoteMemberUid, displayName);
-        log.info("Comment {} created on event {} (partner {})", comment.id(), eventId, partner.id());
-        return toCommentResponse(comment);
-    }
-
-    /**
-     * Updates a comment from a remote federated partner after verifying ownership.
-     */
-    public CommentResponse updateRemoteComment(
-            FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
-        var comment = requireCommentAuthor(
-                commentId,
-                partner,
-                remoteMemberUid,
-                EventRefusal.REMOTE_EVENT_COMMENT_NOT_HERE_ON_UPDATE,
-                EventRefusal.REMOTE_EVENT_COMMENT_NOT_YOURS_TO_EDIT);
-        var author = Objects.requireNonNull(comment.author(), "a comment without an author is refused as not theirs");
-        var updated = commentService
-                .update(comment, CommentWriter.partner(author, ""), content)
-                .orElseThrow(EventRefusal.REMOTE_EVENT_COMMENT_NOT_HERE_AFTER_UPDATE::raise);
-        log.info("Comment {} on an event edited (partner {})", commentId, partner.id());
-        return toCommentResponse(updated);
-    }
-
-    /**
-     * Deletes a comment from a remote federated partner after verifying ownership.
-     */
-    public boolean deleteRemoteComment(FederationPartner partner, int commentId, UUID remoteMemberUid) {
-        var comment = requireCommentAuthor(
-                commentId,
-                partner,
-                remoteMemberUid,
-                EventRefusal.REMOTE_EVENT_COMMENT_NOT_HERE_ON_DELETE,
-                EventRefusal.REMOTE_EVENT_COMMENT_NOT_YOURS_TO_DELETE);
-        boolean deleted = commentService.delete(comment);
-        if (deleted) log.info("Comment {} on an event deleted (partner {})", commentId, partner.id());
-        return deleted;
-    }
-
-    /**
-     * Lists the comments on a partner's appointment, as the partner answers them.
-     */
-    public List<CommentResponse> listFederatedComments(int stationId, UUID partnerStationUid, int eventId) {
-        var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        return transport.getList(partner, RemoteEventRoutes.LIST_COMMENTS.at(eventId), CommentResponse.class);
-    }
-
-    /**
-     * Comments on a partner's appointment as one of this station's members.
-     */
-    public CommentResponse createFederatedComment(
-            int stationId,
-            UUID partnerStationUid,
-            int eventId,
-            UUID memberUid,
-            String displayName,
-            Integer parentId,
-            String content,
-            LocalDate eventDate) {
-        var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        var body = new RemoteEventRoutes.RemoteCommentRequest(
-                memberUid, displayName, parentId, content, eventDate != null ? eventDate.toString() : null);
-        var created =
-                transport.send(partner, RemoteEventRoutes.CREATE_COMMENT.at(eventId), body, CommentResponse.class);
-        log.info("Station {} commented on event {} at partner {}", stationId, eventId, partner.id());
-        return created;
-    }
-
-    /**
-     * Edits a comment one of this station's members wrote on a partner's appointment.
-     */
-    public CommentResponse updateFederatedComment(
-            int stationId, UUID partnerStationUid, int commentId, UUID memberUid, String content) {
-        var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        var updated = transport.send(
-                partner,
-                RemoteEventRoutes.UPDATE_COMMENT.at(commentId),
-                new RemoteEventRoutes.RemoteCommentUpdateRequest(memberUid, content),
-                CommentResponse.class);
-        log.info("Station {} edited its comment {} at partner {}", stationId, commentId, partner.id());
-        return updated;
-    }
-
-    /**
-     * Deletes a comment one of this station's members wrote on a partner's appointment.
-     */
-    public void deleteFederatedComment(int stationId, UUID partnerStationUid, int commentId, UUID memberUid) {
-        var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        transport.deliver(
-                partner,
-                RemoteEventRoutes.DELETE_COMMENT.at(commentId),
-                new RemoteEventRoutes.RemoteCommentDeleteRequest(memberUid));
-        log.info("Station {} deleted its comment {} at partner {}", stationId, commentId, partner.id());
-    }
-
-    /**
-     * Verifies the comment exists and was authored by the given federated member.
-     *
-     * @param missing  what to refuse with when the comment is not here
-     * @param notYours what to refuse with when somebody else wrote it
-     */
-    private Comment requireCommentAuthor(
-            int commentId, FederationPartner partner, UUID memberUid, Refusal missing, Refusal notYours) {
-        var comment =
-                commentService.findById(CommentEntityType.EVENT, commentId).orElseThrow(missing::raise);
-        var expectedIdentity = new MemberIdentity(partner.partnerStationId(), memberUid);
-        var author = comment.author();
-        if (author == null || !author.sameMember(expectedIdentity)) {
-            throw notYours.raise();
-        }
-        return comment;
-    }
-
-    /**
-     * Registers one of our members for a partner's appointment, and reports what they said about it.
-     *
-     * <p>The status is theirs to decide and worth carrying back: an appointment that asks for no
-     * confirmation accepts at once, and telling our own member they are waiting for one would be
-     * telling them something the other station never said. A partner that cannot be reached is a
-     * registration that was not taken.
-     *
-     * @param answers the member's answers to the questions the partner asks, empty where it asks none
-     * @return the status the partner recorded
-     */
-    public RegistrationStatus registerForFederatedEvent(
-            int stationId,
-            UUID partnerStationUid,
-            int eventId,
-            UUID remoteMemberId,
-            LocalDate eventDate,
-            List<EventRegistrationFieldValue> answers) {
-        var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        var registered = answeredOr(
-                () -> transport.send(
-                        partner,
-                        RemoteEventRoutes.REGISTER.at(eventId),
-                        new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate, answers),
-                        EventFederationRegistration.class),
-                EventRefusal.FEDERATED_REGISTRATION_NOT_TAKEN);
-        log.info(
-                "Station {} registered a member for event {} at partner {} as {}",
-                stationId,
-                eventId,
-                partner.id(),
-                registered.status());
-        return registered.status();
-    }
-
-    /**
-     * Gives up a place one of our members held at a partner's appointment. A partner that cannot be
-     * reached is only noted, as the member's own list no longer shows the place either way.
-     */
-    public void withdrawFederatedRegistration(
-            int stationId, UUID partnerStationUid, int eventId, UUID remoteMemberId, LocalDate eventDate) {
-        var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        try {
-            transport.deliver(
-                    partner,
-                    RemoteEventRoutes.WITHDRAW.at(eventId),
-                    new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate));
-            log.info("Station {} withdrew a registration for event {} at partner {}", stationId, eventId, partner.id());
-        } catch (RefusalResponse e) {
-            if (e.refusal() != FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER) throw e;
-            log.warn("Withdrawal for event {} at partner {} did not arrive", eventId, partner.id());
-        }
-    }
-
-    /**
-     * Confirms one of our own members for a partner's appointment, where they handed us that decision.
-     *
-     * <p>The places are theirs and so is the counting, so this asks rather than decides. A refusal
-     * means either that they never handed the decision over or that the places they gave are full,
-     * and both are things to tell the person pressing the button rather than retry.
-     */
-    public void confirmOwnFederatedMember(
-            int stationId, UUID partnerStationUid, int eventId, UUID remoteMemberId, LocalDate eventDate) {
-        var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        deliveredOr(
-                () -> transport.deliver(
-                        partner,
-                        RemoteEventRoutes.CONFIRM_OWN.at(eventId),
-                        new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate)),
-                EventRefusal.NO_PLACES_LEFT_AT_HOLDER);
-        log.info("Station {} confirmed one of its own for event {} at partner {}", stationId, eventId, partner.id());
-    }
-
-    /**
-     * Asks the station that holds the appointment to put one of our members back after a withdrawal.
-     *
-     * <p>Their clock decides, not ours: two instances keep two clocks, and the row is theirs. A
-     * refusal here is the ordinary answer once the few minutes have passed.
-     */
-    public void undoFederatedWithdrawal(
-            int stationId, UUID partnerStationUid, int eventId, UUID remoteMemberId, LocalDate eventDate) {
-        var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        deliveredOr(
-                () -> transport.deliver(
-                        partner,
-                        RemoteEventRoutes.UNDO_WITHDRAWAL.at(eventId),
-                        new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate)),
-                EventRefusal.FEDERATED_WITHDRAWAL_NO_LONGER_UNDONE);
-        log.info("Station {} took a withdrawal back for event {} at partner {}", stationId, eventId, partner.id());
-    }
-
-    /**
-     * Runs a call to a partner and names a partner that did not answer in the words of the feature.
-     * A partner on another instance answers every refusal with silence, so what reaches the reader
-     * is the sentence this station had for it; a partner on this instance says what it refused.
-     */
-    private static <T> T answeredOr(Supplier<T> call, Refusal unanswered) {
-        try {
-            return call.get();
-        } catch (RefusalResponse e) {
-            if (e.refusal() == FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER) throw unanswered.raise();
-            throw e;
-        }
-    }
-
-    private static void deliveredOr(Runnable call, Refusal unanswered) {
-        answeredOr(
-                () -> {
-                    call.run();
-                    return Boolean.TRUE;
-                },
-                unanswered);
-    }
-
-    private List<FederatedEventItem> browsePartner(FederationPartner partner) {
-        String name = FederationDisplayNames.partnerName(stationRepository, partner, "?");
-        return transport.getList(partner, RemoteEventRoutes.LIST_EVENTS.at(), SharedEvent.class).stream()
-                .map(event -> new FederatedEventItem(
-                        partner.id(), name, partner.partnerStationId().toString(), event))
-                .toList();
-    }
-
-    public record FederatedEventItem(
-            int partnerId, String partnerStationName, String partnerStationUid, SharedEvent event) {}
 }

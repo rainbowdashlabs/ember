@@ -33,7 +33,7 @@ import java.util.UUID;
  * Server-to-server event routes. They serve this station's shared events, their registrations and
  * their comments to a federation partner, authenticated by the RSA signature that
  * {@code AccessManager} already verified, through the serving functions of
- * {@code EventFederationService}.
+ * {@code EventPartnerRegistrationService} and {@code EventCommentFederation}.
  */
 @Singleton
 public class RemoteEventRoutes implements Routes {

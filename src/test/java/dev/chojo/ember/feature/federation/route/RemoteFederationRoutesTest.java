@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.federation.route;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.refusal.FederationRefusal;
-import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventShareService;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.FederationChangeLog;
@@ -66,7 +66,7 @@ class RemoteFederationRoutesTest {
         harness = RouteHarness.serving(new RemoteFederationRoutes(
                 federation,
                 mock(FederationEnrollmentService.class),
-                mock(EventFederationService.class),
+                mock(EventShareService.class),
                 urls,
                 mock(StationReadOnlyGuard.class)));
     }

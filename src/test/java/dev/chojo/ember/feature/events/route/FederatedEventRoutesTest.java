@@ -16,9 +16,10 @@ import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventCommentFederation;
 import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
+import dev.chojo.ember.feature.events.service.PartnerEventService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.generator.entity.RequirementSignature;
@@ -78,7 +79,7 @@ class FederatedEventRoutesTest {
     private static final UUID OTHER_UID = UUID.fromString("00000000-0000-0000-0000-000000000013");
     private static final UUID ELSEWHERE_UID = UUID.fromString("00000000-0000-0000-0000-000000000014");
 
-    private EventFederationService events;
+    private PartnerEventService events;
     private FederationService federation;
     private StationMemberService members;
     private MemberLookupService lookup;
@@ -87,7 +88,7 @@ class FederatedEventRoutesTest {
 
     @BeforeEach
     void setup() {
-        events = mock(EventFederationService.class);
+        events = mock(PartnerEventService.class);
         federation = mock(FederationService.class);
         members = mock(StationMemberService.class);
         lookup = mock(MemberLookupService.class);
@@ -104,7 +105,14 @@ class FederatedEventRoutesTest {
 
     private FederatedEventRoutes routes(PartnerAppointmentSignatures signatures) {
         return new FederatedEventRoutes(
-                events, federation, members, lookup, guardians, signatures, new EventSignUpGuards(guardians));
+                events,
+                mock(EventCommentFederation.class),
+                federation,
+                members,
+                lookup,
+                guardians,
+                signatures,
+                new EventSignUpGuards(guardians));
     }
 
     private Consumer<Request.Builder> registrar() {

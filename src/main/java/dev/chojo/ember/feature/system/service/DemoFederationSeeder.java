@@ -19,8 +19,9 @@ import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
+import dev.chojo.ember.feature.events.service.EventCommentFederation;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventShareService;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -72,7 +73,8 @@ public class DemoFederationSeeder implements DemoSeeder {
     private final TestProtocolService protocolService;
     private final EventCrudService crudService;
     private final EventCategoryService categoryService;
-    private final EventFederationService eventFederationService;
+    private final EventShareService eventShares;
+    private final EventCommentFederation eventComments;
     private final EventFederationRepository eventFederationRepository;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
@@ -96,7 +98,8 @@ public class DemoFederationSeeder implements DemoSeeder {
             TestProtocolService protocolService,
             EventCrudService crudService,
             EventCategoryService categoryService,
-            EventFederationService eventFederationService,
+            EventShareService eventShares,
+            EventCommentFederation eventComments,
             EventFederationRepository eventFederationRepository,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
@@ -118,7 +121,8 @@ public class DemoFederationSeeder implements DemoSeeder {
         this.protocolService = protocolService;
         this.crudService = crudService;
         this.categoryService = categoryService;
-        this.eventFederationService = eventFederationService;
+        this.eventShares = eventShares;
+        this.eventComments = eventComments;
         this.eventFederationRepository = eventFederationRepository;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -446,7 +450,7 @@ public class DemoFederationSeeder implements DemoSeeder {
                 null,
                 null,
                 null);
-        eventFederationService.setShare(fedEvent.id(), ShareScope.ALL_PARTNERS, List.of());
+        eventShares.setShare(fedEvent.id(), ShareScope.ALL_PARTNERS, List.of());
 
         var partnerMember1Uid = UUID.fromString("00000000-0000-0000-0000-000000000001");
         var partnerMember2Uid = UUID.fromString("00000000-0000-0000-0000-000000000002");
@@ -566,7 +570,7 @@ public class DemoFederationSeeder implements DemoSeeder {
                 .findFirst()
                 .orElse(null);
         if (reversePartnerForEvents != null) {
-            var fc1 = eventFederationService.createRemoteComment(
+            var fc1 = eventComments.createRemoteComment(
                     reversePartnerForEvents,
                     fedEvent.id(),
                     primaryAdmin.uid(),
@@ -583,7 +587,7 @@ public class DemoFederationSeeder implements DemoSeeder {
                             fc1.id(),
                             null,
                             "Nein, wir haben genug Material da. Einfach nur Schutzkleidung mitbringen."));
-            eventFederationService.createRemoteComment(
+            eventComments.createRemoteComment(
                     reversePartnerForEvents,
                     fedEvent.id(),
                     primaryAdmin.uid(),
