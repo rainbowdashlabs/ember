@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.FederationRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
@@ -22,6 +21,7 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
+import dev.chojo.ember.feature.federation.transport.PartnerCalls;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Supplier;
 
 /**
  * The partner side of shared appointments: how this station's members read, join and leave the
@@ -164,7 +163,7 @@ public class PartnerEventService {
             LocalDate eventDate,
             List<EventRegistrationFieldValue> answers) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        var registered = answeredOr(
+        var registered = PartnerCalls.answeredOr(
                 () -> transport.send(
                         partner,
                         RemoteEventRoutes.REGISTER.at(eventId),
@@ -209,7 +208,7 @@ public class PartnerEventService {
     public void confirmOwnFederatedMember(
             int stationId, UUID partnerStationUid, int eventId, UUID remoteMemberId, LocalDate eventDate) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        deliveredOr(
+        PartnerCalls.deliveredOr(
                 () -> transport.deliver(
                         partner,
                         RemoteEventRoutes.CONFIRM_OWN.at(eventId),
@@ -227,36 +226,13 @@ public class PartnerEventService {
     public void undoFederatedWithdrawal(
             int stationId, UUID partnerStationUid, int eventId, UUID remoteMemberId, LocalDate eventDate) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        deliveredOr(
+        PartnerCalls.deliveredOr(
                 () -> transport.deliver(
                         partner,
                         RemoteEventRoutes.UNDO_WITHDRAWAL.at(eventId),
                         new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate)),
                 EventRefusal.FEDERATED_WITHDRAWAL_NO_LONGER_UNDONE);
         log.info("Station {} took a withdrawal back for event {} at partner {}", stationId, eventId, partner.id());
-    }
-
-    /**
-     * Runs a call to a partner and names a partner that did not answer in the words of the feature.
-     * A partner on another instance answers every refusal with silence, so what reaches the reader
-     * is the sentence this station had for it; a partner on this instance says what it refused.
-     */
-    private static <T> T answeredOr(Supplier<T> call, Refusal unanswered) {
-        try {
-            return call.get();
-        } catch (RefusalResponse e) {
-            if (e.refusal() == FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER) throw unanswered.raise();
-            throw e;
-        }
-    }
-
-    private static void deliveredOr(Runnable call, Refusal unanswered) {
-        answeredOr(
-                () -> {
-                    call.run();
-                    return Boolean.TRUE;
-                },
-                unanswered);
     }
 
     private List<FederatedEventItem> browsePartner(FederationPartner partner) {

@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.events.entity.PartnerPlaces;
+import dev.chojo.ember.feature.events.entity.PlacesKind;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -21,6 +23,7 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.PartnerAnswerRepository;
+import dev.chojo.ember.feature.events.repository.PartnerPlacesRepository;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -39,6 +42,7 @@ import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestEventFederation;
 import dev.chojo.ember.util.TestFederationServices;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
@@ -66,6 +70,7 @@ abstract class EventFederationTestBase extends RepositoryTestBase {
     protected static EventPartnerRegistrationService hostService;
     protected static PartnerEventService clientService;
     protected static EventCommentFederation commentFederation;
+    protected static PartnerPlacesService placesService;
     protected static EventRequirementService requirements;
     protected static FederationService federationService;
     protected static FederationRepository federationRepo;
@@ -141,6 +146,7 @@ abstract class EventFederationTestBase extends RepositoryTestBase {
         hostService = federation.host();
         clientService = federation.client();
         commentFederation = federation.comments();
+        placesService = federation.places();
         transport.serve(federation.servers());
 
         String run = UUID.randomUUID().toString();
@@ -195,6 +201,16 @@ abstract class EventFederationTestBase extends RepositoryTestBase {
         stationRepo.delete(stationB.id());
         stationRepo.delete(stationC.id());
         accountRepo.delete(testAccount.id());
+    }
+
+    /**
+     * Writes an arrangement straight into storage, without asking whether the appointment is shared with
+     * the partner, for the tests whose subject is what an arrangement does rather than who may make one.
+     */
+    protected static void givePlaces(
+            int eventId, int partnerId, @Nullable Integer slotBudget, boolean partnerConfirms) {
+        new PartnerPlacesRepository()
+                .set(PlacesKind.APPOINTMENT, PartnerPlaces.requested(eventId, partnerId, slotBudget, partnerConfirms));
     }
 
     /** A comment a member of station A wrote on the shared appointment. */

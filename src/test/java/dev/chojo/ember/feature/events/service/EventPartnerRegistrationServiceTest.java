@@ -260,7 +260,7 @@ class EventPartnerRegistrationServiceTest extends EventFederationTestBase {
         LocalDate day = LocalDate.of(2026, 9, 9);
         UUID first = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
         UUID second = UUID.fromString("00000000-0000-0000-0000-0000000000a2");
-        shareService.setPartnerPlaces(eventId, partnerId, 1, true);
+        givePlaces(eventId, partnerId, 1, true);
         var one = hostService.registerFederated(eventId, partnerId, first, day);
         var two = hostService.registerFederated(eventId, partnerId, second, day);
 
@@ -275,7 +275,7 @@ class EventPartnerRegistrationServiceTest extends EventFederationTestBase {
         assertEquals(1, counted.taken());
         assertEquals(1, counted.budget());
 
-        shareService.setPartnerPlaces(eventId, partnerId, null, false);
+        givePlaces(eventId, partnerId, null, false);
     }
 
     /**
@@ -290,11 +290,11 @@ class EventPartnerRegistrationServiceTest extends EventFederationTestBase {
         LocalDate day = LocalDate.of(2026, 9, 10);
         UUID held = UUID.fromString("00000000-0000-0000-0000-0000000000b1");
         UUID wanted = UUID.fromString("00000000-0000-0000-0000-0000000000b2");
-        shareService.setPartnerPlaces(eventId, partnerId, 2, true);
+        givePlaces(eventId, partnerId, 2, true);
         var standing = hostService.registerFederated(eventId, partnerId, held, day);
         assertTrue(hostService.acceptWithinBudget(standing.id(), eventId, partnerId, day));
 
-        shareService.setPartnerPlaces(eventId, partnerId, 1, true);
+        givePlaces(eventId, partnerId, 1, true);
         assertEquals(
                 1,
                 hostService.countPartnerPlaces(eventId, partnerId, day).taken(),
@@ -305,7 +305,7 @@ class EventPartnerRegistrationServiceTest extends EventFederationTestBase {
                 hostService.acceptWithinBudget(next.id(), eventId, partnerId, day),
                 "and the room that is gone is gone");
 
-        shareService.setPartnerPlaces(eventId, partnerId, null, false);
+        givePlaces(eventId, partnerId, null, false);
     }
 
     /**
@@ -480,7 +480,7 @@ class EventPartnerRegistrationServiceTest extends EventFederationTestBase {
         assertRefused(
                 EventRefusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN,
                 () -> clientService.confirmOwnFederatedMember(stationB.id(), stationA.uid(), eventId, member, day));
-        shareService.setPartnerPlaces(eventId, serving, 1, true);
+        givePlaces(eventId, serving, 1, true);
         var second = UUID.randomUUID();
         assertEquals(
                 RegistrationStatus.PENDING,
@@ -489,10 +489,10 @@ class EventPartnerRegistrationServiceTest extends EventFederationTestBase {
         assertRefused(
                 EventRefusal.NO_PLACES_LEFT_FOR_PARTNER,
                 () -> clientService.confirmOwnFederatedMember(stationB.id(), stationA.uid(), eventId, second, day));
-        shareService.setPartnerPlaces(eventId, serving, 2, true);
+        givePlaces(eventId, serving, 2, true);
         assertDoesNotThrow(
                 () -> clientService.confirmOwnFederatedMember(stationB.id(), stationA.uid(), eventId, second, day));
-        shareService.setPartnerPlaces(eventId, serving, null, false);
+        givePlaces(eventId, serving, null, false);
 
         var stranger = UUID.randomUUID();
         clientService.withdrawFederatedRegistration(stationB.id(), stationA.uid(), eventId, stranger, day);
@@ -687,6 +687,59 @@ class EventPartnerRegistrationServiceTest extends EventFederationTestBase {
         }
     }
 
+    /**
+     * Whoever runs the appointment accepts or turns down a partner's member, and only where the partner
+     * did not take that decision: otherwise neither a decision nor the waiting list is the host's.
+     */
+    @Test
+    void theHostDecidesAboutAPartnersMemberOnlyWhereThePartnerDoesNot() {
+        Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
+        var event = eventRepo.create(
+                stationA.id(),
+                "Zur Entscheidung",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                RegistrationDeadline.none(),
+                true,
+                null,
+                2,
+                null,
+                null);
+        var day = dayOf(event);
+        try {
+            var one = hostService.registerFederated(event.id(), partnerId, UUID.randomUUID(), day);
+            var two = hostService.registerFederated(event.id(), partnerId, UUID.randomUUID(), day);
+            assertRefused(
+                    EventRefusal.REGISTRATION_DECISION_UNKNOWN,
+                    () -> hostService.decide(one.id(), RegistrationStatus.QUEUED, false));
+            assertRefused(
+                    EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION,
+                    () -> hostService.decide(Integer.MAX_VALUE, RegistrationStatus.ACCEPTED, false));
+
+            hostService.decide(one.id(), RegistrationStatus.ACCEPTED, false);
+            assertEquals(RegistrationStatus.ACCEPTED, statusOf(event, one.remoteMemberId()));
+            hostService.decide(one.id(), RegistrationStatus.DENIED, false);
+            assertEquals(RegistrationStatus.DENIED, statusOf(event, one.remoteMemberId()));
+
+            givePlaces(event.id(), partnerId, null, true);
+            assertRefused(
+                    EventRefusal.PARTNER_DECIDES_ITS_OWN,
+                    () -> hostService.decide(two.id(), RegistrationStatus.ACCEPTED, false));
+            assertRefused(
+                    EventRefusal.PARTNER_DECIDES_ITS_OWN,
+                    () -> hostService.decide(two.id(), RegistrationStatus.DENIED, false));
+            assertRefused(EventRefusal.PARTNER_DECIDES_ITS_OWN, () -> hostService.moveToQueue(List.of(two.id())));
+            assertEquals(RegistrationStatus.PENDING, statusOf(event, two.remoteMemberId()));
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
     @Test
     void whoeverRunsTheAppointmentPutsPartnersMembersOnTheListAndReordersIt() {
         Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
@@ -747,7 +800,7 @@ class EventPartnerRegistrationServiceTest extends EventFederationTestBase {
         UUID member = UUID.randomUUID();
         try {
             shareService.setShare(event.id(), ShareScope.ALL_PARTNERS, List.of());
-            shareService.setPartnerPlaces(event.id(), serving, 2, true);
+            givePlaces(event.id(), serving, 2, true);
             clientService.registerForFederatedEvent(stationB.id(), stationA.uid(), event.id(), member, day, List.of());
             registrations.register(event.id(), held.id(), day, true, null);
 
@@ -797,7 +850,7 @@ class EventPartnerRegistrationServiceTest extends EventFederationTestBase {
         UUID third = UUID.randomUUID();
         try {
             shareService.setShare(event.id(), ShareScope.ALL_PARTNERS, List.of());
-            shareService.setPartnerPlaces(event.id(), serving, 2, true);
+            givePlaces(event.id(), serving, 2, true);
             for (var member : List.of(first, second, third)) {
                 clientService.registerForFederatedEvent(
                         stationB.id(), stationA.uid(), event.id(), member, day, List.of());
@@ -817,7 +870,7 @@ class EventPartnerRegistrationServiceTest extends EventFederationTestBase {
                     () -> clientService.confirmOwnFederatedMember(
                             stationB.id(), stationA.uid(), event.id(), third, day));
 
-            shareService.setPartnerPlaces(event.id(), serving, 1, true);
+            givePlaces(event.id(), serving, 1, true);
             var waitingHere = registrations.register(event.id(), behind.id(), day, true, null);
             registrations.withdraw(held.id());
             assertEquals(

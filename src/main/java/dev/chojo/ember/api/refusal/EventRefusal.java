@@ -911,7 +911,14 @@ public enum EventRefusal implements Refusal {
     REGISTRATION_DEADLINE_INVALID(
             238,
             HttpStatus.BAD_REQUEST,
-            "The sign-up deadline needs a time, or a span before the start of zero or more");
+            "The sign-up deadline needs a time, or a span before the start of zero or more"),
+
+    /**
+     * Places handed to a partner station the appointment or event group is not shared with, which
+     * that partner could never fill.
+     */
+    PLACES_PARTNER_NOT_SHARED_WITH(
+            239, HttpStatus.BAD_REQUEST, "Places can only be given to a partner station this is shared with");
 
     private final Definition definition;
 

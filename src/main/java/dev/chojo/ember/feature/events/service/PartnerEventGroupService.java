@@ -6,9 +6,6 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.api.refusal.FederationRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.repository.PartnerEventGroupSignupRepository;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupCancelled;
@@ -21,6 +18,7 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.federation.transport.FederationServer;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
+import dev.chojo.ember.feature.federation.transport.PartnerCalls;
 import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -41,7 +39,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Supplier;
 
 /**
  * This station's members and the event groups partner stations share with it: reading an event group and
@@ -126,7 +123,7 @@ public class PartnerEventGroupService implements FederationServer {
     public RemoteEventGroupDetail eventGroup(
             int stationId, UUID partnerStationUid, int eventGroupId, Map<UUID, Integer> household) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        var detail = answeredOr(
+        var detail = PartnerCalls.answeredOr(
                 () -> transport.send(
                         partner,
                         RemoteEventGroupRoutes.GET_EVENT_GROUP.at(eventGroupId),
@@ -159,7 +156,7 @@ public class PartnerEventGroupService implements FederationServer {
     public PartnerStanding signUp(
             int stationId, UUID partnerStationUid, int eventGroupId, StationMember member, Set<Integer> parts) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        var standing = answeredOr(
+        var standing = PartnerCalls.answeredOr(
                 () -> transport.send(
                         partner,
                         RemoteEventGroupRoutes.SIGN_UP.at(eventGroupId),
@@ -188,7 +185,7 @@ public class PartnerEventGroupService implements FederationServer {
     public PartnerStanding changeParts(
             int stationId, UUID partnerStationUid, int eventGroupId, UUID memberUid, Set<Integer> parts) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        return answeredOr(
+        return PartnerCalls.answeredOr(
                 () -> transport.send(
                         partner,
                         RemoteEventGroupRoutes.CHANGE_PARTS.at(eventGroupId),
@@ -207,14 +204,11 @@ public class PartnerEventGroupService implements FederationServer {
      */
     public void withdraw(int stationId, UUID partnerStationUid, int eventGroupId, StationMember member) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        answeredOr(
-                () -> {
-                    transport.deliver(
-                            partner,
-                            RemoteEventGroupRoutes.WITHDRAW.at(eventGroupId),
-                            new RemoteEventGroupMember(member.uid()));
-                    return Boolean.TRUE;
-                },
+        PartnerCalls.deliveredOr(
+                () -> transport.deliver(
+                        partner,
+                        RemoteEventGroupRoutes.WITHDRAW.at(eventGroupId),
+                        new RemoteEventGroupMember(member.uid())),
                 EventRefusal.FEDERATED_REGISTRATION_NOT_TAKEN);
         signedUp.forget(member.id(), partnerStationUid, eventGroupId);
         log.info(
@@ -222,14 +216,5 @@ public class PartnerEventGroupService implements FederationServer {
                 stationId,
                 eventGroupId,
                 partner.id());
-    }
-
-    private static <T> T answeredOr(Supplier<T> call, Refusal unanswered) {
-        try {
-            return call.get();
-        } catch (RefusalResponse e) {
-            if (e.refusal() == FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER) throw unanswered.raise();
-            throw e;
-        }
     }
 }

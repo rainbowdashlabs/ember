@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.Places;
+import dev.chojo.ember.feature.events.entity.PlacesKind;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -57,6 +58,7 @@ public class EventPartnerRegistrationService implements FederationServer {
 
     private final EventFederationRepository federationRepository;
     private final EventShareService shares;
+    private final PartnerPlacesService places;
     private final EventCrudService crudService;
     private final EventAttachmentService attachmentService;
     private final EventFieldService fieldService;
@@ -71,6 +73,7 @@ public class EventPartnerRegistrationService implements FederationServer {
     public EventPartnerRegistrationService(
             EventFederationRepository federationRepository,
             EventShareService shares,
+            PartnerPlacesService places,
             EventCrudService crudService,
             EventAttachmentService attachmentService,
             EventFieldService fieldService,
@@ -82,6 +85,7 @@ public class EventPartnerRegistrationService implements FederationServer {
             PartnerQuestionService partnerQuestions) {
         this.federationRepository = federationRepository;
         this.shares = shares;
+        this.places = places;
         this.crudService = crudService;
         this.attachmentService = attachmentService;
         this.fieldService = fieldService;
@@ -194,7 +198,8 @@ public class EventPartnerRegistrationService implements FederationServer {
         requireOpenForRegistration(event, eventDate);
         var resolved = partnerQuestions.resolve(eventId, answers);
         boolean somebodyChooses = event.requiresConfirmation()
-                || federationRepository.findPartnerPlaces(eventId, partnerId).partnerConfirms();
+                || !places.arrangement(PlacesKind.APPOINTMENT, eventId, partnerId)
+                        .decidedByHost();
         var moved = new ArrayList<EventRegistration>();
         var registration = registrationService.underSignUpLock(eventId, () -> {
             var standing = federationRepository
@@ -293,6 +298,37 @@ public class EventPartnerRegistrationService implements FederationServer {
     }
 
     /**
+     * Confirms or turns down a partner's member, which is this station's to do unless it handed the
+     * decision to the partner.
+     *
+     * <p>Where a partner decides its own, this station keeps the list but not the pen: taking the
+     * decision back is a change to the arrangement rather than something done one member at a time
+     * behind the partner's back. Accepting also spends one of that partner's places, so a host
+     * confirming somebody cannot put the partner over the number it was given.
+     *
+     * @param id        the partner's registration, already checked to be on one of the station's appointments
+     * @param status    ACCEPTED or DENIED
+     * @param overLimit whether an acceptance may go beyond the appointment's limit
+     */
+    public void decide(int id, RegistrationStatus status, boolean overLimit) {
+        if (status != RegistrationStatus.ACCEPTED && status != RegistrationStatus.DENIED) {
+            throw EventRefusal.REGISTRATION_DECISION_UNKNOWN.raise();
+        }
+        var registration =
+                findRegistrationById(id).orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise);
+        registrationService.requireOwnSignUp(registration.eventId());
+        places.requireHostDecides(PlacesKind.APPOINTMENT, registration.eventId(), registration.partnerId());
+        if (status == RegistrationStatus.DENIED) {
+            updateRegistrationStatus(id, status);
+            return;
+        }
+        if (!acceptWithinBudget(
+                id, registration.eventId(), registration.partnerId(), registration.eventDate(), overLimit)) {
+            throw EventRefusal.NO_PLACES_LEFT_FOR_THIS_PARTNER.raise();
+        }
+    }
+
+    /**
      * Puts partners' members waiting for this station's decision onto the waiting lists of their dates,
      * in sign-up order, placed by the order each list keeps. Nothing changes unless every one of them
      * waits for this station's decision on a date with a participant limit.
@@ -324,10 +360,7 @@ public class EventPartnerRegistrationService implements FederationServer {
                 if (registration.status() != RegistrationStatus.PENDING) {
                     throw EventRefusal.REGISTRATION_NOT_PENDING_FOR_QUEUE.raise();
                 }
-                if (shares.partnerPlaces(registration.eventId(), registration.partnerId())
-                        .partnerConfirms()) {
-                    throw EventRefusal.PARTNER_DECIDES_ITS_OWN.raise();
-                }
+                places.requireHostDecides(PlacesKind.APPOINTMENT, registration.eventId(), registration.partnerId());
                 registrationService.requireLimit(registration.eventId(), registration.eventDate());
             }
             for (var registration : current) {
@@ -452,11 +485,11 @@ public class EventPartnerRegistrationService implements FederationServer {
      * @return the places filled, and the budget, which is empty where there is no cap
      */
     public PartnerPlaceCount countPartnerPlaces(int eventId, int partnerId, LocalDate eventDate) {
-        var places = federationRepository.findPartnerPlaces(eventId, partnerId);
+        var arranged = places.arrangement(PlacesKind.APPOINTMENT, eventId, partnerId);
         return new PartnerPlaceCount(
                 federationRepository.countAcceptedForPartner(eventId, partnerId, eventDate),
-                places.slotBudget(),
-                places.partnerConfirms());
+                arranged.slotBudget(),
+                arranged.partnerConfirms());
     }
 
     /**
@@ -495,7 +528,8 @@ public class EventPartnerRegistrationService implements FederationServer {
                         .findById(eventId)
                         .ifPresent(event -> registrationService.requireRoomToAccept(event, eventDate, overLimit));
             }
-            return federationRepository.acceptWithinBudget(registrationId, eventId, partnerId, eventDate);
+            places.lock(PlacesKind.APPOINTMENT, eventId, partnerId);
+            return federationRepository.spendPlace(registrationId, eventId, partnerId, eventDate);
         });
         if (!granted) {
             log.info("Partner {} has no places left on event {} for {}", partnerId, eventId, eventDate);
@@ -594,14 +628,14 @@ public class EventPartnerRegistrationService implements FederationServer {
                 .filter(AppointmentField::isPublic)
                 .map(EventField::of)
                 .toList();
-        var places = shares.partnerPlaces(eventId, partner.partnerId());
+        var arranged = places.arrangement(PlacesKind.APPOINTMENT, eventId, partner.partnerId());
         return new RemoteEventRoutes.RemoteEventDetail(
                 SharedEvent.of(event)
                         .withEventGroup(eventGroupRepository
                                 .findPartSummaries(partner.servingStationId())
                                 .get(eventId)),
                 fields,
-                places.partnerConfirms() ? new RemoteEventRoutes.RemotePlaces(places.slotBudget(), true) : null,
+                arranged.partnerConfirms() ? new RemoteEventRoutes.RemotePlaces(arranged.slotBudget(), true) : null,
                 partnerQuestions.askedOfPartners(eventId).stream()
                         .map(RemoteEventRoutes.RemoteQuestion::of)
                         .toList(),
@@ -705,9 +739,7 @@ public class EventPartnerRegistrationService implements FederationServer {
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         shares.requireSharedWith(partner, eventId);
         registrationService.requireOwnSignUp(eventId);
-        if (!shares.partnerPlaces(eventId, partner.partnerId()).partnerConfirms()) {
-            throw EventRefusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN.raise();
-        }
+        places.requirePartnerDecides(PlacesKind.APPOINTMENT, eventId, partner.partnerId());
         var registration = findRegistration(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate())
                 .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE::raise);
         boolean queued = registrationService.underSignUpLock(eventId, () -> {
@@ -717,10 +749,10 @@ public class EventPartnerRegistrationService implements FederationServer {
                     .isPresent()) {
                 return true;
             }
-            var budget = countPartnerPlaces(eventId, partner.partnerId(), request.eventDate());
+            int taken = federationRepository.countAcceptedForPartner(eventId, partner.partnerId(), request.eventDate());
             int waiting = federationRepository.countQueuedForPartner(eventId, partner.partnerId(), request.eventDate());
-            Integer places = budget.budget();
-            if (places != null && budget.taken() + waiting >= places) {
+            if (!places.arrangement(PlacesKind.APPOINTMENT, eventId, partner.partnerId())
+                    .admits(taken, waiting)) {
                 throw EventRefusal.NO_PLACES_LEFT_FOR_PARTNER.raise();
             }
             var current =

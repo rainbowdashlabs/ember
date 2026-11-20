@@ -75,14 +75,14 @@ class PartnerEventServiceTest extends EventFederationTestBase {
                 .filter(p -> p.partnerStationId().equals(stationB.uid()))
                 .findFirst()
                 .orElseThrow();
-        shareService.setPartnerPlaces(eventId, hostPartner.id(), 2, true);
+        givePlaces(eventId, hostPartner.id(), 2, true);
         try {
             var detail = clientService.getFederatedEvent(stationB.id(), stationA.uid(), eventId);
             assertNotNull(detail.places(), "the arrangement reaches the station it was made with");
             assertTrue(detail.places().decidesItself(), "which is what says the choosing is theirs");
             assertEquals(2, detail.places().slotBudget(), "and how many places they were given");
         } finally {
-            shareService.setPartnerPlaces(eventId, hostPartner.id(), null, false);
+            givePlaces(eventId, hostPartner.id(), null, false);
         }
     }
 

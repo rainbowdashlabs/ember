@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
+import dev.chojo.ember.feature.events.repository.PartnerPlacesRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCommentFederation;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -19,6 +20,7 @@ import dev.chojo.ember.feature.events.service.EventShareService;
 import dev.chojo.ember.feature.events.service.EventSharingGuards;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.PartnerEventService;
+import dev.chojo.ember.feature.events.service.PartnerPlacesService;
 import dev.chojo.ember.feature.events.service.PartnerQuestionService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -39,12 +41,14 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
  * @param host     what this station serves partners and the registrations they hold here
  * @param client   what this station's members do at partners
  * @param comments the comments on shared appointments, from both ends
+ * @param places   what each partner was given
  */
 public record TestEventFederation(
         EventShareService shares,
         EventPartnerRegistrationService host,
         PartnerEventService client,
-        EventCommentFederation comments) {
+        EventCommentFederation comments,
+        PartnerPlacesService places) {
 
     /**
      * The collaborators the services are built over.
@@ -91,17 +95,23 @@ public record TestEventFederation(
             EventRequirementService requirements) {}
 
     /**
-     * Builds the four services over the given collaborators.
+     * Builds the services over the given collaborators.
      *
      * @param parts the collaborators
      * @return the services
      */
     public static TestEventFederation of(Parts parts) {
+        var places = new PartnerPlacesService(
+                new PartnerPlacesRepository(), parts.federationRepository(), parts.partnerRepository());
         var shares = new EventShareService(
-                parts.federationRepository(), new EventSharingGuards(parts.crudService()), parts.requirements());
+                parts.federationRepository(),
+                new EventSharingGuards(parts.crudService()),
+                parts.requirements(),
+                places);
         var host = new EventPartnerRegistrationService(
                 parts.federationRepository(),
                 shares,
+                places,
                 parts.crudService(),
                 parts.attachmentService(),
                 parts.fieldService(),
@@ -120,7 +130,7 @@ public record TestEventFederation(
                 parts.entityResolver());
         var comments = new EventCommentFederation(
                 parts.commentService(), shares, parts.memberNameResolver(), parts.transport(), parts.entityResolver());
-        return new TestEventFederation(shares, host, client, comments);
+        return new TestEventFederation(shares, host, client, comments, places);
     }
 
     /**

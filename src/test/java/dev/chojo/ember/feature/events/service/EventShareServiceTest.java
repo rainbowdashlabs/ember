@@ -26,6 +26,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -109,46 +112,6 @@ class EventShareServiceTest extends EventFederationTestBase {
     @Order(7)
     void findShareByEventMissing() {
         assertTrue(shareService.findShareByEvent(999999).isEmpty());
-    }
-
-    /**
-     * The three arrangements, and the default being the one the product always had.
-     *
-     * <p>Nobody has to configure anything for the host to decide: that is what holds where nothing is
-     * said, and it is what every shared appointment did before any of this existed.
-     */
-    @Test
-    @Order(19)
-    void aPartnerDecidesOnlyWhereTheHostSaidSo() {
-        shareService.setPartnerPlaces(eventId, partnerId, null, false);
-        assertFalse(
-                shareService.partnerPlaces(eventId, partnerId).partnerConfirms(),
-                "saying nothing leaves the decision with the station holding the appointment");
-        assertNull(
-                shareService.partnerPlaces(eventId, partnerId).slotBudget(),
-                "and leaves it uncapped, which is what no arrangement means");
-
-        shareService.setPartnerPlaces(eventId, partnerId, null, true);
-        assertTrue(
-                shareService.partnerPlaces(eventId, partnerId).partnerConfirms(), "the partner may be given the pen");
-        assertNull(shareService.partnerPlaces(eventId, partnerId).slotBudget(), "with no cap on how many come");
-
-        shareService.setPartnerPlaces(eventId, partnerId, 2, true);
-        assertEquals(2, shareService.partnerPlaces(eventId, partnerId).slotBudget(), "or with one");
-
-        shareService.setPartnerPlaces(eventId, partnerId, 3, true);
-        assertEquals(
-                1,
-                shareService.partnerPlaces(eventId).size(),
-                "the screen that arranges this reads every partner's arrangement for the appointment");
-
-        shareService.setPartnerPlaces(eventId, partnerId, null, false);
-        assertFalse(
-                shareService.partnerPlaces(eventId, partnerId).partnerConfirms(),
-                "and the host can take it back, which leaves no arrangement rather than a false one");
-        assertTrue(
-                shareService.partnerPlaces(eventId).isEmpty(),
-                "taking it back leaves no row, so nothing reads as an arrangement that is not one");
     }
 
     @Test
@@ -276,6 +239,39 @@ class EventShareServiceTest extends EventFederationTestBase {
         try {
             verify(requirements).requireShareable(eventId);
             assertEquals(List.of(partnerId), shareService.findShareTargets(share.id()));
+        } finally {
+            shareService.removeShare(eventId);
+        }
+    }
+
+    /**
+     * A share write takes the appointment first and the share after it, the order deleting an appointment
+     * takes them in. While somebody else holds the appointment, a second share write waits without having
+     * touched the share, and goes ahead once the appointment is let go.
+     */
+    @Test
+    @Order(10)
+    void aShareWriteWaitsForTheAppointmentBeforeTouchingTheShare() throws Exception {
+        shareService.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
+        try (var holder = dataSource.getConnection()) {
+            holder.setAutoCommit(false);
+            try (var statement = holder.createStatement()) {
+                statement.execute(
+                        "SELECT 1 FROM %s.station_event WHERE id = %d FOR UPDATE".formatted(schemaName, eventId));
+            }
+            var writing = CompletableFuture.runAsync(
+                    () -> shareService.setShare(eventId, ShareScope.SPECIFIC, List.of(partnerId)));
+            assertThrows(TimeoutException.class, () -> writing.get(1, TimeUnit.SECONDS));
+            try (var other = dataSource.getConnection();
+                    var statement = other.createStatement()) {
+                statement.execute("SELECT 1 FROM %s.event_federation_share WHERE event_id = %d FOR UPDATE NOWAIT"
+                        .formatted(schemaName, eventId));
+            }
+            holder.commit();
+            writing.get(30, TimeUnit.SECONDS);
+            assertEquals(
+                    ShareScope.SPECIFIC,
+                    shareService.findShareByEvent(eventId).orElseThrow().scope());
         } finally {
             shareService.removeShare(eventId);
         }

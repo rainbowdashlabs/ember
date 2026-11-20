@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
-import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
+import dev.chojo.ember.feature.events.entity.PlacesKind;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +26,9 @@ import java.util.UUID;
 /**
  * How this station shares its own appointments with partner stations: the share and its targets, what
  * each partner was given to decide, and the names partners' members are shown under here.
+ *
+ * <p>What each partner was given goes with the share: an arrangement with a partner the share no longer
+ * covers is dropped in the same transaction ({@link PartnerPlacesService#retainSharedWith}).
  *
  * <p>Every share of an appointment on its own is written here, whether a manager shares it, a cluster
  * shares it on its own or the demo seeds it, and the share and its targets are written as one. The parts
@@ -41,15 +43,18 @@ public class EventShareService {
     private final EventFederationRepository federationRepository;
     private final EventSharingGuards sharingGuards;
     private final EventRequirementService requirements;
+    private final PartnerPlacesService places;
 
     @Inject
     public EventShareService(
             EventFederationRepository federationRepository,
             EventSharingGuards sharingGuards,
-            EventRequirementService requirements) {
+            EventRequirementService requirements,
+            PartnerPlacesService places) {
         this.federationRepository = federationRepository;
         this.sharingGuards = sharingGuards;
         this.requirements = requirements;
+        this.places = places;
     }
 
     /**
@@ -79,7 +84,8 @@ public class EventShareService {
     }
 
     /**
-     * Writes the share of an appointment and its targets as one, without asking whether it may be shared.
+     * Writes the share of an appointment and its targets as one, without asking whether it may be shared,
+     * and drops what partners the share no longer names were given.
      * For the callers that decided that already, such as a cluster sharing every appointment of its
      * stations.
      *
@@ -90,8 +96,10 @@ public class EventShareService {
      */
     public EventFederationShare setShare(int eventId, ShareScope scope, List<Integer> partnerIds) {
         var share = Transactions.call(() -> {
+            places.lockOwner(PlacesKind.APPOINTMENT, eventId);
             var written = federationRepository.setShare(eventId, scope);
             federationRepository.setShareTargets(written.id(), partnerIds);
+            places.retainSharedWith(PlacesKind.APPOINTMENT, eventId, scope, partnerIds);
             return written;
         });
         log.info("Set federation share for event {} (scope {}, {} targets)", eventId, scope, partnerIds.size());
@@ -99,12 +107,16 @@ public class EventShareService {
     }
 
     /**
-     * Removes federation sharing for an event.
+     * Removes federation sharing for an event, and with it what each partner was given.
      *
      * @param eventId the event ID
      */
     public void removeShare(int eventId) {
-        federationRepository.removeShare(eventId);
+        Transactions.run(() -> {
+            places.lockOwner(PlacesKind.APPOINTMENT, eventId);
+            federationRepository.removeShare(eventId);
+            places.retainSharedWith(PlacesKind.APPOINTMENT, eventId, null, List.of());
+        });
         log.info("Removed federation share for event {}", eventId);
     }
 
@@ -161,48 +173,6 @@ public class EventShareService {
      */
     public List<Integer> sharedWith(ServingPartner partner) {
         return findSharedEventIds(partner.partnerId(), partner.servingStationId());
-    }
-
-    /**
-     * What a partner may do with a shared appointment: how many places, and who decides.
-     *
-     * @param eventId   the appointment
-     * @param partnerId this station's record of the partner
-     * @return the arrangement, the host deciding without a cap where none was made
-     */
-    public EventPartnerPlaces partnerPlaces(int eventId, int partnerId) {
-        return federationRepository.findPartnerPlaces(eventId, partnerId);
-    }
-
-    /**
-     * Everything said per partner about one appointment, for the screen that sets it.
-     *
-     * @param eventId the appointment
-     * @return one arrangement per partner that was given one
-     */
-    public List<EventPartnerPlaces> partnerPlaces(int eventId) {
-        return federationRepository.findPartnerPlaces(eventId);
-    }
-
-    /**
-     * Hands a partner a number of places, or takes the arrangement back.
-     *
-     * <p>A budget means the partner decides: handing somebody five places and then choosing their
-     * five for them is not a thing anybody wants, and the database refuses the combination outright.
-     *
-     * @param eventId         the appointment
-     * @param partnerId       this station's record of the partner
-     * @param slotBudget      how many places the partner fills itself, or {@code null} for no cap
-     * @param partnerConfirms whether the partner decides about its own people
-     */
-    public void setPartnerPlaces(int eventId, int partnerId, @Nullable Integer slotBudget, boolean partnerConfirms) {
-        federationRepository.setPartnerPlaces(eventId, partnerId, slotBudget, partnerConfirms);
-        log.info(
-                "Event {} now gives partner {} {} places, decided by {}",
-                eventId,
-                partnerId,
-                slotBudget == null ? "as many as it likes" : slotBudget,
-                partnerConfirms ? "the partner" : "this station");
     }
 
     /**

@@ -49,6 +49,32 @@ describe('useEventFederationShare', () => {
         expect(api.events.setPartnerPlaces).toHaveBeenCalledWith(12, 4, 2, true)
     })
 
+    /** Places go with the share: only a partner the saved share covers has anything to arrange. */
+    it('writes places only for the partners the share covers', async () => {
+        api.events.getPartnerPlaces.mockResolvedValue([
+            {partnerId: 4, partnerConfirms: true, slotBudget: 2},
+            {partnerId: 5, partnerConfirms: true, slotBudget: null},
+        ])
+        const share = useEventFederationShare(ref(true))
+        await share.load(eventFederationPort(12))
+
+        await share.save(eventFederationPort(12))
+        expect(api.events.setPartnerPlaces).toHaveBeenCalledTimes(1)
+        expect(api.events.setPartnerPlaces).toHaveBeenCalledWith(12, 4, 2, true)
+
+        vi.clearAllMocks()
+        share.state.federationScope = ShareScope.ALL_PARTNERS
+        await share.save(eventFederationPort(12))
+        expect(api.events.setPartnerPlaces).toHaveBeenCalledTimes(2)
+        expect(api.events.setPartnerPlaces).toHaveBeenCalledWith(12, 5, null, true)
+
+        vi.clearAllMocks()
+        share.state.federationShared = false
+        await share.save(eventFederationPort(12))
+        expect(api.events.removeFederationShare).toHaveBeenCalledWith(12)
+        expect(api.events.setPartnerPlaces).not.toHaveBeenCalled()
+    })
+
     /** A form left at "not shared" would stop the sharing on the next save, so a failed read fails the load. */
     it('fails the load where the share cannot be read', async () => {
         api.events.getFederationShare.mockRejectedValue({response: {status: 500, data: {}}})

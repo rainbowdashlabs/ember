@@ -748,3 +748,16 @@ WHERE event_group_set_id IS NOT NULL;
 
 COMMENT ON COLUMN ember_schema.event_group.threshold_days
     IS 'How many days before the first part, a called-off one included, the minimum must be reached, counted from midnight on the station''s clock. Set exactly when the minimum is.';
+
+-- Places now go with the share: an arrangement with a partner the appointment's share no longer covers
+-- is dropped when the share changes. The ones left behind by earlier unsharing go once here.
+
+DELETE FROM ember_schema.event_partner_places p
+WHERE NOT EXISTS (SELECT 1
+                  FROM ember_schema.event_federation_share s
+                  WHERE s.event_id = p.event_id
+                    AND (s.scope = 'ALL_PARTNERS'
+                      OR EXISTS (SELECT 1
+                                 FROM ember_schema.event_federation_share_target t
+                                 WHERE t.share_id = s.id
+                                   AND t.partner_id = p.partner_id)));
