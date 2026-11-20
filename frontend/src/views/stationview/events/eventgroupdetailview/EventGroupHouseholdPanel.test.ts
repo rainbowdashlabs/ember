@@ -11,6 +11,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {EventGroupDetail, EventGroupSignUp} from '@/api/generated/schema'
 import {createIdentity} from '@/test/mocks/factories'
 import {computed} from 'vue'
+import type {EventGroupSignUpPort} from './eventGroupSignUpPort'
 
 const withdraw = vi.fn(async (..._args: unknown[]) => ({}))
 const changeAnswers = vi.fn(async (..._args: unknown[]) => ({}))
@@ -42,6 +43,7 @@ function detail(
     questions: [],
     fields: [],
     household,
+    places: null,
   }
 }
 
@@ -160,5 +162,50 @@ describe('EventGroupHouseholdPanel', () => {
 
     expect(wrapper.get('[data-testid="registration-status"]').text()).toBe('Keinen Platz bekommen')
     expect(wrapper.find('[data-testid="event-group-withdraw"]').exists()).toBe(false)
+  })
+
+  /** A partner that handed this station the choosing gets its waiting sign-ups confirmed from here. */
+  describe('on a partner\'s event group', () => {
+    function partnerPort(): EventGroupSignUpPort & {confirm: ReturnType<typeof vi.fn>} {
+      return {signsHere: false, signUp: vi.fn(), changeParts: vi.fn(), withdraw: vi.fn(), confirm: vi.fn(async () => ({}))}
+    }
+
+    function waiting(port: EventGroupSignUpPort, weDecide: boolean, onChanged = vi.fn()) {
+      return mount(EventGroupHouseholdPanel, {
+        props: {
+          detail: detail([entry(12, 'Mara', {status: 'PENDING', parts: [11]}), entry(13, 'Lea', {status: 'ACCEPTED', parts: [11]})]),
+          port, onChanged, ourPlaces: {summary: '3 Plätze', weDecide},
+        },
+        global: {stubs: {MemberName: true}},
+      })
+    }
+
+    it('states the places given and confirms only the waiting sign-up', async () => {
+      const port = partnerPort()
+      const onChanged = vi.fn()
+      wrapper = waiting(port, true, onChanged)
+
+      expect(wrapper.get('[data-testid="event-group-our-places"]').text()).toBe('3 Plätze')
+      const buttons = wrapper.findAll('[data-testid="event-group-confirm-own"]')
+      expect(buttons).toHaveLength(1)
+      await buttons[0]!.trigger('click')
+      await flushPromises()
+
+      expect(port.confirm).toHaveBeenCalledWith(12)
+      expect(onChanged).toHaveBeenCalled()
+    })
+
+    it('offers no confirming to a reader who may not decide', () => {
+      wrapper = waiting(partnerPort(), false)
+
+      expect(wrapper.find('[data-testid="event-group-confirm-own"]').exists()).toBe(false)
+    })
+
+    it('offers no confirming on a port that cannot confirm', () => {
+      const {confirm: _confirm, ...ownPort} = partnerPort()
+      wrapper = waiting(ownPort, true)
+
+      expect(wrapper.find('[data-testid="event-group-confirm-own"]').exists()).toBe(false)
+    })
   })
 })

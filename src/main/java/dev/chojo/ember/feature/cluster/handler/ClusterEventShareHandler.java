@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.cluster.handler;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
-import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventShareService;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
@@ -32,13 +32,12 @@ import java.util.List;
 @Singleton
 public class ClusterEventShareHandler implements DomainEventHandler<EventCreated> {
     private final ClusterAutoShareService autoShareService;
-    private final Provider<EventFederationService> federationService;
+    private final Provider<EventShareService> shares;
 
     @Inject
-    public ClusterEventShareHandler(
-            ClusterAutoShareService autoShareService, Provider<EventFederationService> federationService) {
+    public ClusterEventShareHandler(ClusterAutoShareService autoShareService, Provider<EventShareService> shares) {
         this.autoShareService = autoShareService;
-        this.federationService = federationService;
+        this.shares = shares;
     }
 
     @Override
@@ -49,6 +48,6 @@ public class ClusterEventShareHandler implements DomainEventHandler<EventCreated
     @Override
     public void handle(EventCreated event) {
         if (autoShareService.owningCluster(event.stationId()).isEmpty()) return;
-        federationService.get().setShare(event.event().id(), ShareScope.ALL_PARTNERS, List.of());
+        shares.get().setShare(event.event().id(), ShareScope.ALL_PARTNERS, List.of());
     }
 }

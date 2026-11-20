@@ -20218,6 +20218,110 @@
         } ]
       }
     },
+    "/api/v1/events/groups/{eventGroupId}/partner-places" : {
+      "get" : {
+        "summary" : "List what each partner station may do with an event group",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PartnerPlacesView"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/partner-places/{partnerId}" : {
+      "put" : {
+        "summary" : "Hand a partner station places at an event group, or take them back",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "partnerId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetPartnerPlacesRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/groups/{eventGroupId}/partner-sign-ups" : {
       "get" : {
         "summary" : "The sign-ups partner stations' members sent for an event group",
@@ -27032,6 +27136,69 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/confirm" : {
+      "post" : {
+        "summary" : "Confirm one of this station's members for a partner station's event group",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventGroupSignUp"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationuid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupConfirmRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/sign-up" : {
@@ -64955,6 +65122,15 @@
           }
         }
       },
+      "EventGroupConfirmRequest" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
       "EventGroupCreateRequest" : {
         "type" : "object",
         "properties" : {
@@ -65051,9 +65227,16 @@
             "items" : {
               "$ref" : "#/components/schemas/EventGroupSignUp"
             }
+          },
+          "places" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RemotePlaces"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "eventGroup", "sets", "parts", "registration", "view", "questions", "fields", "household" ]
+        "required" : [ "eventGroup", "sets", "parts", "registration", "view", "questions", "fields", "household", "places" ]
       },
       "EventGroupDetails" : {
         "type" : "object",
@@ -65332,6 +65515,13 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerDecides" : {
+            "type" : "boolean"
+          },
           "member" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/MemberIdentity"
@@ -65371,7 +65561,7 @@
             "format" : "int32"
           }
         },
-        "required" : [ "id", "member", "status", "registeredAt", "parts", "sets", "queuePosition" ]
+        "required" : [ "id", "partnerId", "partnerDecides", "member", "status", "registeredAt", "parts", "sets", "queuePosition" ]
       },
       "EventGroupQueuePositionRequest" : {
         "type" : "object",

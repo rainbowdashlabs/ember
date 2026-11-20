@@ -29,7 +29,6 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepositor
 import dev.chojo.ember.feature.events.repository.PartnerAnswerRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupPartDates;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
@@ -91,6 +90,7 @@ import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.Sha256;
+import dev.chojo.ember.util.TestEventFederation;
 import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
@@ -178,7 +178,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     private static FederationPartner homeSide;
     private static FederationEndpoints endpoints;
     private static ExecutorService executor;
-    private static EventFederationService events;
+    private static TestEventFederation events;
     private static EventRequirementService requirements;
     private static PartnerAgreements agreements;
     private static PartnerDeliveries deliveries;
@@ -249,7 +249,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
 
         EventCrudService crud = newEventServices(new DomainEventBus(Set.of())).crud();
         var media = mock(MediaLibraryService.class);
-        events = new EventFederationService(
+        events = TestEventFederation.of(new TestEventFederation.Parts(
                 shareRepo,
                 TestFederationServices.of(federationRepo, stationRepo),
                 transport.transport(),
@@ -276,7 +276,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 new EventGroupRepository(),
                 newEventServices(mock(DomainEventBus.class)).registration(),
                 new PartnerQuestionService(
-                        new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility));
+                        new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility),
+                mock(EventRequirementService.class)));
 
         var guardianPolicy = new GuardianPolicy(stationMemberRepo);
         var requirementRepo = new EventRequirementRepository();
@@ -309,9 +310,10 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo);
         agreements = new PartnerAgreements(
                 crud,
-                events,
+                events.host(),
+                events.shares(),
                 new FederatedRegistrantService(
-                        federationRepo, stationRepo, stationMemberRepo, memberIdentityFactory, events),
+                        federationRepo, stationRepo, stationMemberRepo, memberIdentityFactory, events.shares()),
                 occurrenceCalendar,
                 appointments,
                 neutral,
@@ -390,14 +392,15 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         requirementNotices = new PartnerRequirementNotices(
                 changeRepo,
                 agreementRepo,
-                events,
+                events.host(),
+                events.shares(),
                 federationRepo,
                 stationRepo,
                 transport.transport(),
                 Runnable::run,
                 organiser.clock());
 
-        endpoints = transport.serve(events, authorities, agreements, signatures);
+        endpoints = transport.serve(events.host(), events.comments(), authorities, agreements, signatures);
         routeOverHttp(httpClient);
     }
 
@@ -509,7 +512,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         var member = homeMember("Emil", "Eck");
         var asked = register(member).getFirst();
 
-        events.withdrawFederatedRegistration(home.id(), organiser.station().uid(), camp.id(), member.uid(), DAY);
+        events.client()
+                .withdrawFederatedRegistration(home.id(), organiser.station().uid(), camp.id(), member.uid(), DAY);
         signatures.withdrawn(at(member), organiser.station().uid(), camp.id(), DAY, member.uid());
 
         var request = requestRepo.findByUid(asked.signature().requestUid()).orElseThrow();
@@ -526,7 +530,9 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     @Test
     void aPartnerThatCannotSignLeavesTheSignatureMissingUntilAPaperCopyIsConfirmed() {
         var member = homeMember("Finn", "Fuchs");
-        events.registerForFederatedEvent(home.id(), organiser.station().uid(), camp.id(), member.uid(), DAY, List.of());
+        events.client()
+                .registerForFederatedEvent(
+                        home.id(), organiser.station().uid(), camp.id(), member.uid(), DAY, List.of());
 
         var missing = documentOf(member);
         assertEquals(PartnerAgreementState.MISSING, missing.state());
@@ -620,7 +626,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
 
         var early = new PartnerAgreements(
                 newEventServices(new DomainEventBus(Set.of())).crud(),
-                events,
+                events.host(),
+                events.shares(),
                 mock(FederatedRegistrantService.class),
                 occurrenceCalendar,
                 mock(AppointmentDocumentService.class),
@@ -697,7 +704,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 .pdf();
         assertEquals(withdrawal.sealedSha256(), Sha256.hex(kept));
         assertNotEquals(Sha256.hex(signedCopy), Sha256.hex(kept));
-        assertNotNull(events.findRegistration(camp.id(), organiserSide.id(), member.uid(), DAY)
+        assertNotNull(events.host()
+                .findRegistration(camp.id(), organiserSide.id(), member.uid(), DAY)
                 .orElseThrow()
                 .agreementWithdrawnAt());
         assertTrue(notificationsOf(manager).contains("PARTNER_SIGNATURE_WITHDRAWN"));
@@ -731,7 +739,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         var gone = homeMember("Udo", "Ufer");
         var given = requestOf(register(gone).getFirst());
         sign(given, gone);
-        assertTrue(events.withdrawRegistration(camp.id(), organiserSide.id(), gone.uid(), DAY));
+        assertTrue(events.host().withdrawRegistration(camp.id(), organiserSide.id(), gone.uid(), DAY));
 
         withdrawals.requireOwnedThenWithdraw(at(gone), given.uid(), null, new SigningCircumstances(null, null));
 
@@ -768,7 +776,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                         notice(AgreementNoticeKind.WITHDRAWN, member.uid(), handedOut.sha256(), forged)));
 
         assertEquals(PartnerAgreementState.SIGNED, documentOf(member).state());
-        assertNull(events.findRegistration(camp.id(), organiserSide.id(), member.uid(), DAY)
+        assertNull(events.host()
+                .findRegistration(camp.id(), organiserSide.id(), member.uid(), DAY)
                 .orElseThrow()
                 .agreementWithdrawnAt());
     }
@@ -866,7 +875,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         var stranger = homeMember("Rita", "Rand");
         var leaver = homeMember("Sven", "Sand");
         requestOf(register(leaver).getFirst());
-        events.withdrawFederatedRegistration(home.id(), organiser.station().uid(), camp.id(), leaver.uid(), DAY);
+        events.client()
+                .withdrawFederatedRegistration(home.id(), organiser.station().uid(), camp.id(), leaver.uid(), DAY);
         signatures.withdrawn(at(leaver), organiser.station().uid(), camp.id(), DAY, leaver.uid());
         int rules = neutralTemplate("Badeordnung");
         requirements.setForEvent(organiser.owner(), camp.id(), List.of(consent, rules));
@@ -958,7 +968,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         requirementNotices.changed(organiser.station().id(), camp.id(), List.of(), List.of(consent));
         assertEquals(1, changeRepo.forEvent(camp.id()).size());
         HOME_DOWN.set(false);
-        events.removeShare(camp.id());
+        events.shares().removeShare(camp.id());
 
         assertFalse(requirementNotices.deliver(changeRepo.forEvent(camp.id()).getFirst()));
 
@@ -976,7 +986,9 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     }
 
     private List<PartnerDocumentToSign> register(StationMember member) {
-        events.registerForFederatedEvent(home.id(), organiser.station().uid(), camp.id(), member.uid(), DAY, List.of());
+        events.client()
+                .registerForFederatedEvent(
+                        home.id(), organiser.station().uid(), camp.id(), member.uid(), DAY, List.of());
         return signatures.registered(at(member), organiser.station().uid(), camp.id(), DAY, member.uid());
     }
 
@@ -1014,7 +1026,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     }
 
     private int onlyRegistrationOf(StationMember member) {
-        return events.findRegistration(camp.id(), organiserSide.id(), member.uid(), DAY)
+        return events.host()
+                .findRegistration(camp.id(), organiserSide.id(), member.uid(), DAY)
                 .orElseThrow()
                 .id();
     }

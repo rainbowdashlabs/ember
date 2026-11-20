@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:f98d74f46fca672d2da7392bf239fb7473a96b268b0b56b53168c5e723fcb827",
-  "generatedAt": "2026-11-19T23:17:03Z",
+  "schemaHash": "sha256:d2a38aa949de359e912fa5804939428a2aa4c26d932cc1245b784b597d965573",
+  "generatedAt": "2026-11-20T13:33:11Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -11826,6 +11826,66 @@
         ]
       },
       "description": "How one appointment of an event group differs from a member field of the group: a member entered for this appointment only, or a member entered for the whole group who skips this appointment."
+    },
+    "event_group_partner_places": {
+      "tableHash": "sha256:1cbc77f979180b0c3b5368d83b8ed240c1d1ba0f9be3e80d172327c993a65e56",
+      "columns": [
+        {
+          "name": "event_group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The shared event group."
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The host station's own record of the partner station."
+        },
+        {
+          "name": "slot_budget",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many of this partner's sign-ups may hold a place in the event group, counted per sign-up, not per part. NULL means no cap; a number means the partner decides."
+        },
+        {
+          "name": "partner_confirms",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this partner decides its own members' sign-ups rather than the host. True for every row, since only such an arrangement is kept."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "What a partner was given to fill and to decide at a shared event group, beside the share it belongs to. Without it a transferred station keeps sharing the event group while forgetting how many places it promised and who was choosing."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "An arrangement between two stations, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "An arrangement between two stations, not per-member"
+      },
+      "description": "What a partner station may do with a shared event group: how many of its members may hold a place, and whether it decides its own sign-ups. Only arrangements somebody made have a row; none means the host decides with no cap. Dropped for a partner the share no longer covers."
     },
     "event_group_partner_registration": {
       "feature": "events",
@@ -25231,7 +25291,7 @@
     "partner_event_group_signup": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:e5f21a31817c27f52183a505abbf9b9a658c1af70772d810bb595d97f0fc2927",
+      "tableHash": "sha256:9868aa6862f8454cf30cb2c8263ebe55c65c6cb4be21347fc09cafc9f4f50c50",
       "columns": [
         {
           "name": "member_id",
@@ -25260,6 +25320,20 @@
           "nullable": false,
           "verified": true,
           "description": "When this station signed the member up."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The status the partner station last gave this event group sign-up, as it answered the sign-up, showed it or told a later decision; WITHDRAWN once the member withdrew here. NULL where it is not known."
+        },
+        {
+          "name": "status_changed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the partner station says that status was given, on its own clock. NULL until it told a decision; a notice not after this is ignored."
         }
       ],
       "foreignKeys": [
@@ -25285,9 +25359,9 @@
       },
       "gdprDeletion": {
         "status": "IGNORED",
-        "reason": "Goes with the member, who is deleted with it, and with a withdrawal of the sign-up."
+        "reason": "Goes with the member, who is deleted with it."
       },
-      "description": "Members this station signed up for an event group a partner station holds, so news from that partner about the event group is believed for them only."
+      "description": "Members this station signed up for an event group a partner station holds, so news from that partner about the event group is believed for them only. A withdrawal keeps the row with status WITHDRAWN, so the partner's last instant still holds for a sign-up given again."
     },
     "partner_requirement_change": {
       "feature": "signing",
@@ -25526,7 +25600,7 @@
     "partner_signup": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:093444782c2053582a18a4c5dca4a4872e4fe4cf98727637ca6944edebf5c67f",
+      "tableHash": "sha256:950d62f675535c9005c1065b5498fc6f530f8d158d386a46b8702891fc8b4f49",
       "columns": [
         {
           "name": "station_id",
@@ -25569,6 +25643,20 @@
           "nullable": false,
           "verified": true,
           "description": "When the sign-up was given, the latest time where it was given again."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The status the partner station last gave this sign-up, as it answered the sign-up or told a later decision; WITHDRAWN once the member withdrew here. NULL where it is not known."
+        },
+        {
+          "name": "status_changed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the partner station says that status was given, on its own clock. NULL until it told a decision; a notice not after this is ignored."
         }
       ],
       "foreignKeys": [
@@ -25600,9 +25688,9 @@
       },
       "gdprDeletion": {
         "status": "IGNORED",
-        "reason": "Goes with the member, who is deleted with it, and with a withdrawal of the sign-up."
+        "reason": "Goes with the member, who is deleted with it."
       },
-      "description": "A member of this station signed up here for one date of a partner station's appointment. The partner holds the registration itself; this is this station's own word that it was given, so that a partner telling it which of its members are registered is believed only for members it signed up. Removed when the member withdraws."
+      "description": "A member of this station signed up here for one date of a partner station's appointment. The partner holds the registration itself; this is this station's own word that it was given, so that a partner telling it which of its members are registered is believed only for members it signed up. A withdrawal keeps the row with status WITHDRAWN, so the partner's last instant still holds for a sign-up given again."
     },
     "problem_log": {
       "feature": "system",

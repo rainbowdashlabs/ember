@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventGroupPartnerSignUpStatusChanged;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
@@ -20,6 +22,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.handler.EventGroupPartnerSignUpStatusHandler;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
@@ -28,7 +31,10 @@ import dev.chojo.ember.feature.events.repository.EventGroupSettingsRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.PartnerEventGroupSignupRepository;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
+import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
+import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupSignUpStatus;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -49,23 +55,32 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatcher;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static dev.chojo.ember.repository.EventGroupFixtures.part;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -91,6 +106,8 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
     private EventGroupPartnerService partners;
     private PartnerEventGroupService partnerSide;
     private Notifier notifier;
+    private DomainEventBus decisions;
+    private FederationTestTransport transport;
     private EventGroup eventGroup;
     private int sat1;
     private int sun1;
@@ -146,7 +163,9 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 new RegistrationQueueRepository());
         var httpClient = mock(FederationHttpClient.class);
         when(httpClient.canSign(anyInt())).thenReturn(true);
-        var transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
+        transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
+        decisions = spy(new DomainEventBus(Set.of(new EventGroupPartnerSignUpStatusHandler(
+                partnerRepo, eventGroupRepo, federationRepo, transport::transport))));
         partners = new EventGroupPartnerService(
                 eventGroups,
                 newEventGroupSignUpRules(),
@@ -157,14 +176,17 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 federationRepo,
                 transport.transport(),
                 newEventGroupQueue(
-                        newEventServices(new DomainEventBus(Set.of())).registration(), new DomainEventBus(Set.of())));
+                        newEventServices(new DomainEventBus(Set.of())).registration(), decisions),
+                newPartnerPlacesService(),
+                decisions);
         notifier = mock(Notifier.class);
         partnerSide = new PartnerEventGroupService(
                 transport.transport(),
                 new FederationEntityResolver(federationRepo),
                 signedUp,
                 stationMemberRepo,
-                notifier);
+                notifier,
+                new PartnerStatusNotices(notifier, memberNameResolver));
         transport.serve(new EventGroupPartnerServer(partners, eventGroups, signUps), partnerSide);
         eventGroup = jugendflamme(null);
     }
@@ -653,5 +675,395 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
 
         assertTrue(federationRegistrations.findRegistrations(sat2, null).stream()
                 .allMatch(registration -> registration.status() == RegistrationStatus.WITHDRAWN));
+    }
+
+    /**
+     * A partner handed the decision gets its members' sign-ups waiting for it, and whoever runs the event
+     * group neither accepts, turns down nor queues them; the host page says whose decision they are.
+     */
+    @Test
+    void aPartnerThatDecidesKeepsItsSignUpsToItself() {
+        eventGroup = jugendflamme(5);
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, null, true);
+
+        var standing = partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+
+        assertEquals(
+                RegistrationStatus.PENDING, standing.status(), "the event group confirms nobody, the partner does");
+        assertNull(rankOf(partnerSignUpOf(mara).id()), "and nobody waits on the list for it");
+        int signUpId = partnerSignUpOf(mara).id();
+        assertRefused(
+                EventRefusal.PARTNER_DECIDES_ITS_OWN_FOR_EVENT_GROUP,
+                () -> partners.decide(holder.id(), eventGroup.id(), signUpId, RegistrationStatus.ACCEPTED));
+        assertRefused(
+                EventRefusal.PARTNER_DECIDES_ITS_OWN_FOR_EVENT_GROUP,
+                () -> partners.decide(holder.id(), eventGroup.id(), signUpId, RegistrationStatus.DENIED));
+        assertRefused(
+                EventRefusal.PARTNER_DECIDES_ITS_OWN_FOR_EVENT_GROUP,
+                () -> partners.moveToQueue(holder.id(), eventGroup.id(), List.of(signUpId)));
+        assertEquals(RegistrationStatus.PENDING, partnerSignUpOf(mara).status());
+
+        var listed = partners.signUps(holder.id(), eventGroup.id()).getFirst();
+        assertEquals(partnerOfHolder, listed.partnerId());
+        assertTrue(listed.partnerDecides());
+    }
+
+    /** A partner's member already waiting may still be moved within the list after the partner took the decision. */
+    @Test
+    void aWaitingMemberOfADecidingPartnerIsStillMovedInLine() {
+        eventGroup = jugendflamme(1);
+        signUps.register(holder.id(), eventGroup.id(), lea.id(), Set.of(sat1, sun1, test), Map.of(), null, false);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, null, true);
+        int second = partnerSignUpOf(ben).id();
+
+        partners.moveInQueue(holder.id(), eventGroup.id(), second, 1);
+
+        assertEquals(1, rankOf(second));
+    }
+
+    /**
+     * A partner whose places are all taken is passed over when a place falls free, keeping its place in
+     * line, and the next one waiting moves up instead. Once one of the partner's own places falls free,
+     * its member moves up.
+     */
+    @Test
+    void aPartnerAtItsPlacesIsPassedOverAndTheNextMovesUp() {
+        eventGroup = jugendflamme(2);
+        var account = accountRepo.create("tom-" + UUID.randomUUID() + "@holder-group.test", "Tom", "Holder");
+        accounts.add(account.id());
+        var tom = stationMemberRepo.create(holder.id(), account.id());
+        signUps.register(holder.id(), eventGroup.id(), lea.id(), Set.of(sat1, sun1, test), Map.of(), null, false);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+        signUps.register(holder.id(), eventGroup.id(), tom.id(), Set.of(sat1, sun1, test), Map.of(), null, false);
+        assertEquals(RegistrationStatus.QUEUED, partnerSignUpOf(ben).status());
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, 1, true);
+        assertEquals(
+                1,
+                partners.partnerPlaces(holder.id(), eventGroup.id()).getFirst().taken());
+
+        signUps.withdraw(holder.id(), eventGroup.id(), lea.id());
+
+        assertEquals(RegistrationStatus.QUEUED, partnerSignUpOf(ben).status(), "the partner's one place is taken");
+        assertEquals(1, rankOf(partnerSignUpOf(ben).id()));
+        assertEquals(
+                RegistrationStatus.ACCEPTED,
+                new EventGroupRegistrationRepository()
+                        .find(eventGroup.id(), tom.id())
+                        .orElseThrow()
+                        .status(),
+                "the next one waiting moves up instead");
+
+        partnerSide.withdraw(partner.id(), holder.uid(), eventGroup.id(), mara);
+
+        assertEquals(
+                RegistrationStatus.ACCEPTED,
+                partnerSignUpOf(ben).status(),
+                "once the partner's own place falls free, its member waiting first moves up");
+    }
+
+    /**
+     * Places go only to a partner the event group is shared with, and go with the share: a share naming
+     * others drops them, and so does ending the share. An event group of another station is not there.
+     */
+    @Test
+    void placesAtAnEventGroupGoWithItsShare() {
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, 2, true);
+        assertEquals(
+                2,
+                partners.partnerPlaces(holder.id(), eventGroup.id())
+                        .getFirst()
+                        .arrangement()
+                        .slotBudget());
+
+        partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of());
+        assertTrue(partners.partnerPlaces(holder.id(), eventGroup.id()).isEmpty());
+        assertRefused(
+                EventRefusal.PLACES_PARTNER_NOT_SHARED_WITH,
+                () -> partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, 2, true));
+
+        partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of(partnerOfHolder));
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, 2, true);
+        partners.share(holder.id(), eventGroup.id(), ShareScope.ALL_PARTNERS, List.of());
+        assertEquals(1, partners.partnerPlaces(holder.id(), eventGroup.id()).size());
+
+        partners.unshare(holder.id(), eventGroup.id());
+        assertTrue(partners.partnerPlaces(holder.id(), eventGroup.id()).isEmpty());
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE,
+                () -> partners.arrangePartnerPlaces(partner.id(), eventGroup.id(), partnerOfHolder, 2, true));
+        assertRefused(EventRefusal.EVENT_GROUP_NOT_HERE, () -> partners.partnerPlaces(partner.id(), eventGroup.id()));
+    }
+
+    /**
+     * A partner confirms its own members only where it was handed the decision, and the station holding
+     * the event group tells it so; the event group page there shows what it was given only then.
+     */
+    @Test
+    void aPartnerConfirmsItsOwnOnlyWhereItDecides() {
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        assertNull(partnerSide
+                .eventGroup(partner.id(), holder.uid(), eventGroup.id(), Map.of(mara.uid(), mara.id()))
+                .places());
+
+        assertRefused(
+                EventRefusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN_FOR_EVENT_GROUP,
+                () -> partnerSide.confirm(partner.id(), holder.uid(), eventGroup.id(), mara.uid()));
+
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, 2, true);
+        var places = partnerSide
+                .eventGroup(partner.id(), holder.uid(), eventGroup.id(), Map.of(mara.uid(), mara.id()))
+                .places();
+        assertEquals(2, places.slotBudget());
+        assertTrue(places.decidesItself());
+    }
+
+    /**
+     * A pending sign-up is confirmed with every part; confirming again changes nothing; and a sign-up
+     * beyond the partner's places is refused as an ordinary answer.
+     */
+    @Test
+    void aPartnerConfirmsWithinItsPlaces() {
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, 1, true);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+
+        var confirmed = partnerSide.confirm(partner.id(), holder.uid(), eventGroup.id(), mara.uid());
+
+        assertEquals(RegistrationStatus.ACCEPTED, confirmed.status());
+        assertTrue(partnerRepo.findLinked(partnerSignUpOf(mara).id()).stream()
+                .allMatch(registration -> registration.status() == RegistrationStatus.ACCEPTED));
+        assertEquals(
+                RegistrationStatus.ACCEPTED,
+                partnerSide
+                        .confirm(partner.id(), holder.uid(), eventGroup.id(), mara.uid())
+                        .status(),
+                "confirming again answers as it stands");
+        assertRefused(
+                EventRefusal.NO_PLACES_LEFT_FOR_PARTNER,
+                () -> partnerSide.confirm(partner.id(), holder.uid(), eventGroup.id(), ben.uid()));
+        assertEquals(RegistrationStatus.PENDING, partnerSignUpOf(ben).status());
+    }
+
+    /**
+     * Within its places but on a full event group, a confirmed member waits on the list like everybody
+     * else, and waiting counts against the partner's places; confirming the waiting one again leaves it.
+     */
+    @Test
+    void aConfirmedMemberWaitsWhereTheEventGroupIsFull() {
+        eventGroup = jugendflamme(1);
+        signUps.register(holder.id(), eventGroup.id(), lea.id(), Set.of(sat1, sun1, test), Map.of(), null, false);
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, 1, true);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+
+        var waiting = partnerSide.confirm(partner.id(), holder.uid(), eventGroup.id(), mara.uid());
+
+        assertEquals(RegistrationStatus.QUEUED, waiting.status());
+        assertEquals(1, waiting.queuePosition());
+        assertEquals(
+                RegistrationStatus.QUEUED,
+                partnerSide
+                        .confirm(partner.id(), holder.uid(), eventGroup.id(), mara.uid())
+                        .status());
+        assertRefused(
+                EventRefusal.NO_PLACES_LEFT_FOR_PARTNER,
+                () -> partnerSide.confirm(partner.id(), holder.uid(), eventGroup.id(), ben.uid()));
+
+        signUps.withdraw(holder.id(), eventGroup.id(), lea.id());
+        assertEquals(RegistrationStatus.ACCEPTED, partnerSignUpOf(mara).status());
+    }
+
+    /** A withdrawn or turned-down sign-up is not there to confirm, and a called-off event group confirms nobody. */
+    @Test
+    void onlyAStandingSignUpOfAnEventGroupStillOnIsConfirmed() {
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partners.decide(holder.id(), eventGroup.id(), partnerSignUpOf(mara).id(), RegistrationStatus.DENIED);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+        partnerSide.withdraw(partner.id(), holder.uid(), eventGroup.id(), ben);
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, null, true);
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_SIGNED_UP,
+                () -> partnerSide.confirm(partner.id(), holder.uid(), eventGroup.id(), mara.uid()));
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_SIGNED_UP,
+                () -> partnerSide.confirm(partner.id(), holder.uid(), eventGroup.id(), ben.uid()));
+
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+        eventGroupRepo.cancel(eventGroup.id(), "Unwetter");
+        assertRefused(
+                EventRefusal.EVENT_GROUP_CANCELLED,
+                () -> partnerSide.confirm(partner.id(), holder.uid(), eventGroup.id(), ben.uid()));
+    }
+
+    /**
+     * A partner confirms only at an event group shared with it: one shared with other partners only, or
+     * no longer shared at all, is not there for it.
+     */
+    @Test
+    void aPartnerConfirmsOnlyAtAnEventGroupSharedWithIt() {
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, null, true);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+
+        partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of());
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE,
+                () -> partnerSide.confirm(partner.id(), holder.uid(), eventGroup.id(), mara.uid()));
+
+        partners.unshare(holder.id(), eventGroup.id());
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE,
+                () -> partnerSide.confirm(partner.id(), holder.uid(), eventGroup.id(), mara.uid()));
+        assertEquals(RegistrationStatus.PENDING, partnerSignUpOf(mara).status());
+    }
+
+    private void verifyTold(StationMember member, int times) {
+        verify(notifier, times(times))
+                .notify(
+                        eq(StationAudience.household(List.of(member.id()))),
+                        eq(NotificationType.EVENT_REGISTRATION_STATUS),
+                        any(),
+                        any());
+    }
+
+    private RegistrationStatus known(StationMember member) {
+        return signedUp.knownStatus(member.id(), holder.uid(), eventGroup.id()).orElseThrow();
+    }
+
+    /**
+     * Accepting, turning down and putting a partner's member on the waiting list are told to the partner,
+     * which tells the member's household; reordering the list is not told.
+     */
+    @Test
+    void theHolderTellsThePartnerAboutItsDecisions() {
+        eventGroups.update(
+                holder.id(),
+                eventGroup.id(),
+                new EventGroupDetails(
+                        "Jugendflamme 1",
+                        null,
+                        1,
+                        RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(5))),
+                        true,
+                        null));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+        assertEquals(RegistrationStatus.PENDING, known(mara));
+        int maraSignUp = partnerSignUpOf(mara).id();
+        int benSignUp = partnerSignUpOf(ben).id();
+
+        partners.decide(holder.id(), eventGroup.id(), maraSignUp, RegistrationStatus.ACCEPTED);
+        verifyTold(mara, 1);
+        assertEquals(RegistrationStatus.ACCEPTED, known(mara));
+
+        partners.moveToQueue(holder.id(), eventGroup.id(), List.of(benSignUp));
+        verify(decisions).publish(argThat(statusChanged(holder.id(), benSignUp, RegistrationStatus.QUEUED, 1, false)));
+        verifyTold(ben, 1);
+        clearInvocations(decisions);
+
+        partners.moveInQueue(holder.id(), eventGroup.id(), benSignUp, 1);
+        verify(decisions, never())
+                .publish(argThat(published -> published instanceof EventGroupPartnerSignUpStatusChanged));
+
+        partners.decide(holder.id(), eventGroup.id(), maraSignUp, RegistrationStatus.DENIED);
+        verifyTold(mara, 2);
+        verify(decisions)
+                .publish(argThat(statusChanged(holder.id(), benSignUp, RegistrationStatus.ACCEPTED, null, true)));
+        verifyTold(ben, 2);
+        assertEquals(RegistrationStatus.ACCEPTED, known(ben));
+    }
+
+    /**
+     * A notice older than the one taken in, a repeat, or one about a member this station did not sign up
+     * changes nothing and tells nobody.
+     */
+    @Test
+    void aLateRepeatedOrUnknownGroupNoticeIsIgnored() {
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        clearInvocations(notifier);
+        var hostRow =
+                new FederationRepository().findPartnerById(partnerOfHolder).orElseThrow();
+        var now = Instant.now();
+
+        tell(hostRow, mara.uid(), RegistrationStatus.DENIED, now);
+        tell(hostRow, mara.uid(), RegistrationStatus.DENIED, now);
+        tell(hostRow, mara.uid(), RegistrationStatus.ACCEPTED, now.minusSeconds(60));
+        tell(hostRow, mara.uid(), RegistrationStatus.DENIED, now.plusSeconds(60));
+        tell(hostRow, ben.uid(), RegistrationStatus.DENIED, now);
+        tell(hostRow, UUID.randomUUID(), RegistrationStatus.DENIED, now);
+
+        verifyTold(mara, 1);
+        assertEquals(RegistrationStatus.DENIED, known(mara));
+        verifyTold(ben, 0);
+    }
+
+    /**
+     * A withdrawal keeps what the partner last said, so a notice older than that is still ignored once the
+     * member signs up again.
+     */
+    @Test
+    void aGroupWithdrawalKeepsTheLastInstant() {
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        clearInvocations(notifier);
+        var hostRow =
+                new FederationRepository().findPartnerById(partnerOfHolder).orElseThrow();
+        var now = Instant.now();
+        tell(hostRow, mara.uid(), RegistrationStatus.DENIED, now);
+        verifyTold(mara, 1);
+
+        partnerSide.withdraw(partner.id(), holder.uid(), eventGroup.id(), mara);
+        assertFalse(signedUp.signedUp(mara.id(), holder.uid(), eventGroup.id()));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+
+        tell(hostRow, mara.uid(), RegistrationStatus.DENIED, now.minusSeconds(60));
+        verifyTold(mara, 1);
+        tell(hostRow, mara.uid(), RegistrationStatus.DENIED, now.plusSeconds(60));
+        verifyTold(mara, 2);
+    }
+
+    private void tell(FederationPartner hostRow, UUID member, RegistrationStatus status, Instant at) {
+        transport
+                .transport()
+                .deliver(
+                        hostRow,
+                        RemoteEventGroupRoutes.EVENT_GROUP_SIGN_UP_STATUS_WEBHOOK.at(),
+                        new RemoteEventGroupSignUpStatus(
+                                eventGroup.id(), "Jugendflamme 1", member, status, null, false, at));
+    }
+
+    /** A partner confirming one of its own tells the member's household where they stand now. */
+    @Test
+    void confirmingOnesOwnSignUpIsToldToTheHousehold() {
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, null, true);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        clearInvocations(notifier);
+
+        partnerSide.confirm(partner.id(), holder.uid(), eventGroup.id(), mara.uid());
+
+        verifyTold(mara, 1);
+        assertEquals(RegistrationStatus.ACCEPTED, known(mara));
+    }
+
+    private Integer rankOf(int signUpId) {
+        return partners.signUps(holder.id(), eventGroup.id()).stream()
+                .filter(signUp -> signUp.id() == signUpId)
+                .findFirst()
+                .orElseThrow()
+                .standing()
+                .queuePosition();
+    }
+
+    /** Matches the announcement of a decision, whatever instant it carries. */
+    private static ArgumentMatcher<DomainEvent> statusChanged(
+            int stationId, int id, RegistrationStatus status, Integer queuePosition, boolean movedUp) {
+        return published -> published instanceof EventGroupPartnerSignUpStatusChanged changed
+                && changed.stationId() == stationId
+                && changed.signUpId() == id
+                && changed.status() == status
+                && Objects.equals(changed.queuePosition(), queuePosition)
+                && changed.movedUp() == movedUp;
     }
 }

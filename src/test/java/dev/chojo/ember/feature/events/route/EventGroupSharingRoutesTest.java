@@ -9,6 +9,7 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventGroupShare;
+import dev.chojo.ember.feature.events.entity.PartnerPlaces;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -22,6 +23,7 @@ import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -134,5 +136,58 @@ class EventGroupSharingRoutesTest {
                 harness.call(STATION_ID, "PUT", position, "{\"position\": 2}", StationPermission.EVENT_REGISTRATION)
                         .code());
         verify(partners).moveInQueue(STATION_ID, EVENT_GROUP_ID, 11, 2);
+    }
+
+    /**
+     * Whoever handles registrations reads what each partner was given, with its places taken; only an
+     * event manager hands places out. An event group of another station is not there.
+     */
+    @Test
+    void partnerPlacesAreReadByRegistrarsAndSetByEventManagers() {
+        when(partners.partnerPlaces(STATION_ID, EVENT_GROUP_ID))
+                .thenReturn(List.of(new EventGroupPartnerService.PartnerPlacesTaken(
+                        new PartnerPlaces(EVENT_GROUP_ID, 4, 3, true), 2)));
+        when(partners.partnerPlaces(STATION_ID, 71)).thenThrow(EventRefusal.EVENT_GROUP_NOT_HERE.raise());
+        assertEquals(
+                403,
+                harness.call(STATION_ID, "GET", EVENT_GROUP + "/partner-places", null, StationPermission.USER)
+                        .code());
+        var read = json(harness.call(
+                        STATION_ID, "GET", EVENT_GROUP + "/partner-places", null, StationPermission.EVENT_REGISTRATION))
+                .path(0);
+        assertEquals(4, read.path("partnerId").asInt());
+        assertEquals(3, read.path("slotBudget").asInt());
+        assertEquals(2, read.path("taken").asInt());
+        assertEquals(
+                404,
+                harness.call(
+                                STATION_ID,
+                                "GET",
+                                PREFIX + "/events/groups/71/partner-places",
+                                null,
+                                StationPermission.EVENT_REGISTRATION)
+                        .code());
+
+        String places = "{\"slotBudget\": 3, \"partnerConfirms\": true}";
+        assertEquals(
+                403,
+                harness.call(
+                                STATION_ID,
+                                "PUT",
+                                EVENT_GROUP + "/partner-places/4",
+                                places,
+                                StationPermission.EVENT_REGISTRATION)
+                        .code());
+        verify(partners, never()).arrangePartnerPlaces(anyInt(), anyInt(), anyInt(), any(), anyBoolean());
+        assertEquals(
+                200,
+                harness.call(
+                                STATION_ID,
+                                "PUT",
+                                EVENT_GROUP + "/partner-places/4",
+                                places,
+                                StationPermission.EVENT_MANAGER)
+                        .code());
+        verify(partners).arrangePartnerPlaces(STATION_ID, EVENT_GROUP_ID, 4, 3, true);
     }
 }

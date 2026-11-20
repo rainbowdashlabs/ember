@@ -104,7 +104,7 @@ export function eventGroupQueueOf(signUps: EventGroupSignUp[], partners: EventGr
             position: entry.queuePosition ?? LAST,
             identity: entry.member,
             name: entry.member?.name ?? '',
-            partnerId: null,
+            partnerId: entry.partnerId,
         }))
     return inLine([...members, ...visitors])
 }

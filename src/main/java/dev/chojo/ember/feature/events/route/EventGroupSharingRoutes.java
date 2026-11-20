@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -14,7 +15,9 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupDecisionRequest;
 import dev.chojo.ember.feature.events.route.EventSharingRoutes.FederationShareResponse;
+import dev.chojo.ember.feature.events.route.EventSharingRoutes.PartnerPlacesView;
 import dev.chojo.ember.feature.events.route.EventSharingRoutes.SetFederationShareRequest;
+import dev.chojo.ember.feature.events.route.EventSharingRoutes.SetPartnerPlacesRequest;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService;
 import dev.chojo.ember.feature.events.service.EventGroupRules.SetResult;
 import io.javalin.http.Context;
@@ -68,6 +71,67 @@ public class EventGroupSharingRoutes implements Routes {
                 prefix + EVENT_GROUP + "/partner-sign-ups/{signUpId}/queue-position",
                 this::moveInQueue,
                 StationPermission.EVENT_REGISTRATION);
+        routes.get(
+                prefix + EVENT_GROUP + "/partner-places",
+                this::listPartnerPlaces,
+                StationPermission.EVENT_REGISTRATION);
+        routes.put(
+                prefix + EVENT_GROUP + "/partner-places/{partnerId}",
+                this::setPartnerPlaces,
+                StationPermission.EVENT_MANAGER);
+    }
+
+    /**
+     * What each partner was given for an event group, with the places it has taken, which whoever handles
+     * the sign-ups needs to know whose decision a waiting partner's member is.
+     */
+    @OpenApi(
+            path = "/api/v1/events/groups/{eventGroupId}/partner-places",
+            methods = HttpMethod.GET,
+            summary = "List what each partner station may do with an event group",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "eventGroupId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PartnerPlacesView[].class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void listPartnerPlaces(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        ctx.json(partners.partnerPlaces(session.stationId(), pathInt(ctx, "eventGroupId")).stream()
+                .map(entry -> new PartnerPlacesView(
+                        entry.arrangement().partnerId(),
+                        entry.arrangement().slotBudget(),
+                        entry.arrangement().partnerConfirms(),
+                        entry.taken()))
+                .toList());
+    }
+
+    /** Hands a partner places at an event group, or takes the arrangement back. */
+    @OpenApi(
+            path = "/api/v1/events/groups/{eventGroupId}/partner-places/{partnerId}",
+            methods = HttpMethod.PUT,
+            summary = "Hand a partner station places at an event group, or take them back",
+            tags = {"Events"},
+            pathParams = {
+                @OpenApiParam(name = "eventGroupId", type = Integer.class, required = true),
+                @OpenApiParam(name = "partnerId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetPartnerPlacesRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setPartnerPlaces(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(SetPartnerPlacesRequest.class);
+        partners.arrangePartnerPlaces(
+                session.stationId(),
+                pathInt(ctx, "eventGroupId"),
+                pathInt(ctx, "partnerId"),
+                request.slotBudget(),
+                request.partnerConfirms());
+        ctx.json(new MessageResponse("Places updated"));
     }
 
     @OpenApi(
@@ -210,6 +274,9 @@ public class EventGroupSharingRoutes implements Routes {
      * A partner member's event group sign-up as the event group page lists it.
      *
      * @param id           the sign-up, which decisions name
+     * @param partnerId    this station's record of the partner the member came with
+     * @param partnerDecides whether that partner decides its own sign-ups, so this station neither
+     *                     accepts, turns down nor queues them
      * @param member       the member, or null where the partnership is gone
      * @param status       where the sign-up stands
      * @param registeredAt when they signed up
@@ -219,6 +286,8 @@ public class EventGroupSharingRoutes implements Routes {
      */
     public record EventGroupPartnerSignUp(
             int id,
+            int partnerId,
+            boolean partnerDecides,
             @Nullable MemberIdentity member,
             @Nullable RegistrationStatus status,
             @Nullable Instant registeredAt,
@@ -229,6 +298,8 @@ public class EventGroupSharingRoutes implements Routes {
             var standing = signUp.standing();
             return new EventGroupPartnerSignUp(
                     signUp.id(),
+                    signUp.partnerId(),
+                    signUp.partnerDecides(),
                     signUp.member(),
                     standing.status(),
                     standing.registeredAt(),

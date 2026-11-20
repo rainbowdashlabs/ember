@@ -36,6 +36,7 @@ function detail(): EventGroupDetail {
         questions: [],
         fields: [],
         household: [],
+        places: null,
     }
 }
 
@@ -189,5 +190,23 @@ describe('EventGroupSignUpsPanel', () => {
         expect(wrapper!.find('[data-testid="event-group-queue-all-pending"]').exists()).toBe(false)
         expect(wrapper!.find('[data-testid="event-group-queue-12"]').exists()).toBe(true)
         expect(wrapper!.find('[data-testid="event-group-queue-11"]').exists()).toBe(false)
+    })
+
+    /** A partner that decides its own sign-ups moves its own members up; this station only reorders them. */
+    it('offers no moving up for a deciding partner\'s member and keeps the list sortable', async () => {
+        api.eventGroups.listSignUps.mockResolvedValue([signUp(11, 'Anna', RegistrationStatus.ACCEPTED, 1)])
+        api.eventGroups.listPartnerSignUps.mockResolvedValue([
+            {id: 9, partnerId: 4, partnerDecides: true, member: createIdentity({name: 'Mara'}), status: RegistrationStatus.QUEUED,
+                registeredAt: null, parts: [1], sets: [], queuePosition: 1},
+            {id: 10, partnerId: 5, partnerDecides: false, member: createIdentity({name: 'Jonas'}), status: RegistrationStatus.QUEUED,
+                registeredAt: null, parts: [1], sets: [], queuePosition: 2},
+        ])
+        const limited = detail()
+        limited.eventGroup.details = {...limited.eventGroup.details, registrationLimit: 10}
+        await mountPanel(limited)
+
+        expect(wrapper!.find('[data-testid="queue-move-up-partner-9"]').exists()).toBe(false)
+        expect(wrapper!.find('[data-testid="queue-move-up-partner-10"]').exists()).toBe(true)
+        expect(wrapper!.get('[data-testid="queue-section"]').findAll('[data-testid="drag-controls"]')).toHaveLength(2)
     })
 })

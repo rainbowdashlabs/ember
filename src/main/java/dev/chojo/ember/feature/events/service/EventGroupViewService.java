@@ -180,7 +180,8 @@ public class EventGroupViewService {
                         session,
                         asked,
                         signUps.standings(eventGroup.id(), household),
-                        entry -> eventGroups.canSignUp(eventGroup.id(), entry.memberId(), permissions)));
+                        entry -> eventGroups.canSignUp(eventGroup.id(), entry.memberId(), permissions)),
+                null);
     }
 
     /**

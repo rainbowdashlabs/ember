@@ -9,7 +9,7 @@ import dev.chojo.ember.api.FederationHeaders;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.refusal.FederationRefusal;
-import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventShareService;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
@@ -73,7 +73,7 @@ public class RemoteFederationRoutes implements Routes {
 
     private final FederationService federationService;
     private final FederationEnrollmentService enrollmentService;
-    private final EventFederationService eventFederationService;
+    private final EventShareService shares;
     private final RemoteUrlValidator urlValidator;
     private final StationReadOnlyGuard readOnlyGuard;
 
@@ -81,12 +81,12 @@ public class RemoteFederationRoutes implements Routes {
     public RemoteFederationRoutes(
             FederationService federationService,
             FederationEnrollmentService enrollmentService,
-            EventFederationService eventFederationService,
+            EventShareService shares,
             RemoteUrlValidator urlValidator,
             StationReadOnlyGuard readOnlyGuard) {
         this.federationService = federationService;
         this.enrollmentService = enrollmentService;
-        this.eventFederationService = eventFederationService;
+        this.shares = shares;
         this.urlValidator = urlValidator;
         this.readOnlyGuard = readOnlyGuard;
     }
@@ -200,7 +200,7 @@ public class RemoteFederationRoutes implements Routes {
         var partner = FederationSession.requirePartner(ctx);
         readOnlyGuard.requireWritable(partner.stationId());
         var req = ctx.bodyAsClass(MemberNameChangedWebhook.class);
-        eventFederationService.invalidateName(partner.id(), req.remoteMemberId());
+        shares.invalidateName(partner.id(), req.remoteMemberId());
         ctx.json(new StatusResponse("ok"));
     }
 

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.util;
 
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
 import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
@@ -18,6 +19,8 @@ import dev.chojo.ember.feature.events.service.QueueAdvancer;
 import dev.chojo.ember.feature.events.service.QueuePlacement;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 
+import java.util.Set;
+
 /** The places of appointment dates and their waiting lists, wired to the test database. */
 public final class TestEventPlaces {
     private TestEventPlaces() {}
@@ -29,6 +32,17 @@ public final class TestEventPlaces {
      * @return the places
      */
     public static EventPlaces of(EventRegistrationRepository registrations) {
+        return of(registrations, new DomainEventBus(Set.of()));
+    }
+
+    /**
+     * Places reading and writing the real tables, announcing a partner's member moving up on the given bus.
+     *
+     * @param registrations the registrations the fairness score reads
+     * @param bus           where a partner's member moving up is announced
+     * @return the places
+     */
+    public static EventPlaces of(EventRegistrationRepository registrations, DomainEventBus bus) {
         var queue = new RegistrationQueueRepository();
         var capacity = new EventCapacity(queue);
         var events = new EventRepository();
@@ -42,6 +56,6 @@ public final class TestEventPlaces {
                 capacity,
                 new QueuePlacement(queue, registrations),
                 queue,
-                new QueueAdvancer(events, capacity, queue, registrations, calendar));
+                new QueueAdvancer(events, capacity, queue, registrations, calendar, bus));
     }
 }

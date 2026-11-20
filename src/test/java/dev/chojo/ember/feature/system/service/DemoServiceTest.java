@@ -45,7 +45,6 @@ import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.repository.PartnerAnswerRepository;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
-import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupPartFactory;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
@@ -70,6 +69,7 @@ import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
+import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
@@ -136,6 +136,7 @@ import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestEventFederation;
 import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.BeforeAll;
@@ -326,7 +327,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo,
                 groupService,
                 tagService);
-        var eventFederationService = new EventFederationService(
+        var eventFederationService = TestEventFederation.of(new TestEventFederation.Parts(
                 eventFederationRepo,
                 federationService,
                 federationTransport,
@@ -353,7 +354,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 new EventGroupRepository(),
                 eventServices.registration(),
                 new PartnerQuestionService(
-                        new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility));
+                        new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility),
+                mock(EventRequirementService.class)));
         var newsFederationService = new NewsFederationService(
                 newsFederationRepo,
                 federationService,
@@ -548,7 +550,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 protocolService,
                 eventServices.crud(),
                 eventServices.category(),
-                eventFederationService,
+                eventFederationService.shares(),
+                eventFederationService.comments(),
                 eventFederationRepo,
                 accountRepo,
                 stationMemberRepo,

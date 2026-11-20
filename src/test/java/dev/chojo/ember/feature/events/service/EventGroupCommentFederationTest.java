@@ -137,7 +137,9 @@ class EventGroupCommentFederationTest extends RepositoryTestBase {
                 federationRepo,
                 transport.transport(),
                 newEventGroupQueue(
-                        newEventServices(new DomainEventBus(Set.of())).registration(), new DomainEventBus(Set.of())));
+                        newEventServices(new DomainEventBus(Set.of())).registration(), new DomainEventBus(Set.of())),
+                newPartnerPlacesService(),
+                new DomainEventBus(Set.of()));
         comments = newCommentService(BUS);
         federation = new EventGroupCommentFederation(
                 comments,

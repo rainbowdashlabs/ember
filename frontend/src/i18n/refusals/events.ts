@@ -265,4 +265,7 @@ export default {
     'E-236': 'Für die Plätze fehlt das Datum des Termins',
     'E-237': 'Der Termin verlangt eine Antwort auf eine seiner Fragen, die Anmeldung wurde nicht angenommen',
     'E-238': 'Der Anmeldeschluss braucht einen Zeitpunkt oder eine Zeitspanne vor Beginn, die nicht negativ ist. Eine Vorlage kennt keinen festen Zeitpunkt.',
+    'E-239': 'Plätze können nur einer Partnerwache gegeben werden, mit der geteilt wird',
+    'E-240': 'Diese Partnerwache entscheidet ihre Anmeldungen für diese Terminreihe selbst',
+    'E-241': 'Diese Wache entscheidet die Anmeldungen für diese Terminreihe',
 }

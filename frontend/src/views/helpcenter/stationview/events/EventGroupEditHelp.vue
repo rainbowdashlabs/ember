@@ -22,9 +22,12 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import ColorInput from '@/components/input/ColorInput.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import EventGroupDateSettingsCard from '@/views/stationview/events/eventgroupeditview/EventGroupDateSettingsCard.vue'
 import QueueOrderField from '@/views/stationview/events/eventshared/QueueOrderField.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
+import PartnerPlacesRow from '@/views/stationview/events/eventeditview/federationcard/PartnerPlacesRow.vue'
 import type {AttendanceTemplate, EventCategory} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -132,6 +135,16 @@ const templates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleG
         <PrimaryButton :icon="['fas', 'plus']">{{ t('eventGroups.createPart') }}</PrimaryButton>
       </ButtonRow>
       <p>{{ t('helpCenter.eventGroupEdit.partRulesText') }}</p>
+    </HelpSection>
+    <HelpSection :title="t('helpCenter.eventGroupEdit.sharingTitle')">
+      <p>{{ t('helpCenter.eventGroupEdit.sharingText') }}</p>
+      <p>{{ t('helpCenter.eventGroupEdit.sharingPlacesText') }}</p>
+      <NeutralContainer class="space-y-2">
+        <SubHeader>{{ t('events.partnerPlacesTitle') }}</SubHeader>
+        <MutedText tag="p" size="sm">{{ t('eventGroups.partnerPlacesHint') }}</MutedText>
+        <PartnerPlacesRow :partner-name="t('helpCenter.eventGroupEdit.examplePartner')" :disabled="false" :decides="true" :budget="3"/>
+      </NeutralContainer>
+      <p>{{ t('helpCenter.eventGroupEdit.sharingRemovedText') }}</p>
     </HelpSection>
     <HelpTip>{{ t('helpCenter.eventGroupEdit.tip') }}</HelpTip>
   </HelpArticle>

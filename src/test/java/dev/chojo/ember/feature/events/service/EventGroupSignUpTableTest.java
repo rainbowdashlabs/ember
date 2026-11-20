@@ -205,6 +205,8 @@ class EventGroupSignUpTableTest extends RepositoryTestBase {
         when(partners.signUps(station.id(), eventGroup.id()))
                 .thenReturn(List.of(new PartnerSignUp(
                         4,
+                        7,
+                        false,
                         new MemberIdentity(
                                 UUID.randomUUID(), UUID.randomUUID(), "Mara Seeger", "Wache Nord", null, null),
                         new PartnerStanding(

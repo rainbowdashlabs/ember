@@ -87,6 +87,11 @@ public class FederatedEventGroupRoutes implements Routes {
         routes.post(prefix + EVENT_GROUP + "/sign-up", this::signUp, StationPermission.USER, StationModule.EVENTS);
         routes.put(prefix + EVENT_GROUP + "/sign-up", this::changeParts, StationPermission.USER, StationModule.EVENTS);
         routes.delete(prefix + EVENT_GROUP + "/sign-up", this::withdraw, StationPermission.USER, StationModule.EVENTS);
+        routes.post(
+                prefix + EVENT_GROUP + "/confirm",
+                this::confirm,
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
     }
 
     @OpenApi(
@@ -119,7 +124,8 @@ public class FederatedEventGroupRoutes implements Routes {
                 RestrictionAudience.empty(),
                 List.of(),
                 Objects.requireNonNullElse(remote.fields(), List.of()),
-                standings));
+                standings,
+                remote.places()));
     }
 
     @OpenApi(
@@ -198,6 +204,44 @@ public class FederatedEventGroupRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    /**
+     * Confirms a member of this station for a partner station's event group, where the partner handed
+     * this station the decision about its own sign-ups. The parts the member holds stay the same, so no
+     * document changes hands.
+     */
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/confirm",
+            methods = HttpMethod.POST,
+            summary = "Confirm one of this station's members for a partner station's event group",
+            tags = {"Federation"},
+            pathParams = {
+                @OpenApiParam(name = "stationuid", required = true),
+                @OpenApiParam(name = "eventGroupId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventGroupConfirmRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventGroupSignUp.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void confirm(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var member = ownMember(
+                session, ctx.bodyAsClass(EventGroupConfirmRequest.class).memberId());
+        var standing = partnerEventGroups.confirm(
+                session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "eventGroupId"), member.uid());
+        ctx.json(signUpOf(session, member.id(), standing));
+    }
+
+    /** @param memberId the member of this station to confirm */
+    public record EventGroupConfirmRequest(int memberId) {}
+
+    private StationMember ownMember(StationSession session, int memberId) {
+        return members.findById(memberId)
+                .filter(member -> member.stationId() == session.stationId())
+                .orElseThrow(EventRefusal.EVENT_GROUP_MEMBER_NOT_HERE::raise);
+    }
+
     /** The reader and everybody they look after, by the id partners know them by. */
     private Map<UUID, Integer> household(StationSession session) {
         var household = new LinkedHashMap<UUID, Integer>();
@@ -209,10 +253,7 @@ public class FederatedEventGroupRoutes implements Routes {
     }
 
     private StationMember target(StationSession session, @Nullable Integer requested) {
-        int memberId = signUpGuards.requireTarget(session, requested);
-        return members.findById(memberId)
-                .filter(member -> member.stationId() == session.stationId())
-                .orElseThrow(EventRefusal.EVENT_GROUP_MEMBER_NOT_HERE::raise);
+        return ownMember(session, signUpGuards.requireTarget(session, requested));
     }
 
     private EventGroupSignUp signUpOf(StationSession session, int memberId, PartnerStanding standing) {

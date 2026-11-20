@@ -7,9 +7,14 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventGroupPartnerSignUpStatusChanged;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
+import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupPartnerRegistration;
 import dev.chojo.ember.feature.events.entity.EventGroupShare;
+import dev.chojo.ember.feature.events.entity.PartnerPlaces;
+import dev.chojo.ember.feature.events.entity.PlacesKind;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -51,6 +56,14 @@ import java.util.stream.Collectors;
  * whole, through the same rules, limit, deadline and confirmation as a member of this station, and
  * every part they choose carries a partner registration tied to that sign-up. Partners answer no
  * event group questions, as they answer none for an appointment.
+ *
+ * <p>A partner may be handed the decision about its own members' sign-ups, with or without a number of
+ * places counted per sign-up ({@link PartnerPlacesService}). Its sign-ups then wait for the partner, and
+ * whoever runs the event group neither accepts, turns down nor queues them; moving them within the
+ * waiting list stays the host's. The arrangements go with the share.
+ *
+ * <p>Every write takes the event group's row first, then its share, then the arrangements and the
+ * sign-ups, the order deleting or calling off an event group takes them in.
  */
 @Singleton
 public class EventGroupPartnerService {
@@ -65,6 +78,8 @@ public class EventGroupPartnerService {
     private final FederationRepository federationPartners;
     private final FederationTransport transport;
     private final EventGroupQueue queue;
+    private final PartnerPlacesService places;
+    private final DomainEventBus eventBus;
 
     @Inject
     public EventGroupPartnerService(
@@ -76,8 +91,12 @@ public class EventGroupPartnerService {
             FederatedRegistrantService registrants,
             FederationRepository federationPartners,
             FederationTransport transport,
-            EventGroupQueue queue) {
+            EventGroupQueue queue,
+            PartnerPlacesService places,
+            DomainEventBus eventBus) {
         this.queue = queue;
+        this.places = places;
+        this.eventBus = eventBus;
         this.eventGroups = eventGroups;
         this.rules = rules;
         this.partners = partners;
@@ -127,12 +146,14 @@ public class EventGroupPartnerService {
                 shareAppointment(part.eventId(), scope, targets);
             }
             partners.setShare(eventGroupId, scope, targets);
+            places.retainSharedWith(PlacesKind.EVENT_GROUP, eventGroupId, scope, targets);
         });
         log.info("Event group {} shared with partners ({}, {} named)", eventGroupId, scope, targets.size());
     }
 
     /**
-     * Stops sharing an event group and its parts. Partner sign-ups already made stay.
+     * Stops sharing an event group and its parts. Partner sign-ups already made stay; what each partner
+     * was given goes.
      *
      * @param stationId    the station asking
      * @param eventGroupId the event group
@@ -145,6 +166,7 @@ public class EventGroupPartnerService {
                 federation.removeShare(part.eventId());
             }
             partners.removeShare(eventGroupId);
+            places.retainSharedWith(PlacesKind.EVENT_GROUP, eventGroupId, null, List.of());
         });
         log.info("Event group {} no longer shared with partners", eventGroupId);
     }
@@ -185,7 +207,9 @@ public class EventGroupPartnerService {
     }
 
     /**
-     * Signs a partner's member up for an event group with a choice of its parts.
+     * Signs a partner's member up for an event group with a choice of its parts. Where the partner
+     * decides its own sign-ups, the sign-up waits for the partner, whatever the event group asks of this
+     * station's members.
      *
      * @param stationId      this station
      * @param eventGroupId   the event group
@@ -205,7 +229,10 @@ public class EventGroupPartnerService {
             var standing = rules.standing(stationId, parts);
             EventGroupSignUpRules.requireChoosable(partIds, parts.keySet(), standing, Set.of(), false);
             rules.requireRulesMet(eventGroupId, partIds, standing, false);
-            var status = queue.statusFor(eventGroup, partIds, parts, standing, false, null);
+            var status = places.arrangement(PlacesKind.EVENT_GROUP, eventGroupId, partnerId)
+                            .decidedByHost()
+                    ? queue.statusFor(eventGroup, partIds, parts, standing, false, null)
+                    : RegistrationStatus.PENDING;
             existing.ifPresent(earlier ->
                     partners.findLinked(earlier.id()).forEach(registration -> partners.unlink(registration.id())));
             var stored = partners.signUp(eventGroupId, partnerId, remoteMemberId, status);
@@ -286,6 +313,62 @@ public class EventGroupPartnerService {
     }
 
     /**
+     * A partner confirming one of its own members' sign-ups, where this station handed it that decision.
+     *
+     * <p>Only a sign-up waiting for a decision is confirmed: one already holding a place answers as it
+     * stands, and so does one already waiting on the list. A turned-down or withdrawn sign-up is not
+     * there to confirm. The partner's places are counted per sign-up, those waiting on the list included,
+     * and a confirmation beyond them is refused as an ordinary answer rather than a fault. Within its
+     * places, the sign-up takes a place where its parts and the event group have room, and otherwise
+     * waits on the list like everybody else. No deadline is asked, as for an appointment: the partner
+     * decides about a sign-up that came in on time. A called-off event group confirms nobody.
+     *
+     * @param stationId      this station
+     * @param eventGroupId   the event group
+     * @param partnerId      this station's record of the partner
+     * @param remoteMemberId the partner's member
+     * @return where the member stands now
+     */
+    public PartnerStanding confirmOwn(int stationId, int eventGroupId, int partnerId, UUID remoteMemberId) {
+        Transactions.run(() -> {
+            var eventGroup = rules.lock(stationId, eventGroupId);
+            if (eventGroup.cancelled()) throw EventRefusal.EVENT_GROUP_CANCELLED.raise();
+            var arranged = places.requirePartnerDecides(PlacesKind.EVENT_GROUP, eventGroupId, partnerId);
+            var current = requireActive(eventGroupId, partnerId, remoteMemberId);
+            if (current.status() != RegistrationStatus.PENDING) return;
+            int taken = partners.countForPartner(eventGroupId, partnerId, RegistrationStatus.ACCEPTED);
+            int waiting = partners.countForPartner(eventGroupId, partnerId, RegistrationStatus.QUEUED);
+            if (!arranged.admits(taken, waiting)) throw EventRefusal.NO_PLACES_LEFT_FOR_PARTNER.raise();
+            var parts = rules.lockParts(eventGroupId);
+            var tied = partners.findLinked(current.id());
+            var chosen = tied.stream().map(EventFederationRegistration::eventId).collect(Collectors.toSet());
+            var status = rules.fits(eventGroup, chosen, parts, rules.standing(stationId, parts))
+                    ? RegistrationStatus.ACCEPTED
+                    : RegistrationStatus.QUEUED;
+            partners.updateStatus(current.id(), status);
+            for (var registration : tied) {
+                partners.restate(registration.id(), status);
+            }
+            if (status == RegistrationStatus.QUEUED) {
+                queue.enqueue(eventGroup, QueueOwner.ofPartner(current.id()), null);
+            }
+        });
+        log.info("Partner {} confirmed one of its own for event group {}", partnerId, eventGroupId);
+        return standingOf(eventGroupId, partnerId, remoteMemberId);
+    }
+
+    /**
+     * What a partner was given for an event group, for the event group as the partner is shown it.
+     *
+     * @param eventGroupId the event group
+     * @param partnerId    this station's record of the partner
+     * @return the arrangement, the host deciding without a cap where none was made
+     */
+    public PartnerPlaces arrangementWith(int eventGroupId, int partnerId) {
+        return places.arrangement(PlacesKind.EVENT_GROUP, eventGroupId, partnerId);
+    }
+
+    /**
      * Accepts or turns down a partner member's sign-up, and every part chosen with it, an acceptance going
      * beyond the limit without being asked; routes use the form that takes the choice.
      *
@@ -300,7 +383,8 @@ public class EventGroupPartnerService {
 
     /**
      * Accepts or turns down a partner member's sign-up, and every part chosen with it. Accepting a choice
-     * that does not fit refuses unless whoever decides goes beyond the limit.
+     * that does not fit refuses unless whoever decides goes beyond the limit. Neither is this station's
+     * where the partner decides its own sign-ups.
      *
      * @param stationId    this station
      * @param eventGroupId the event group
@@ -315,6 +399,7 @@ public class EventGroupPartnerService {
                     .filter(found -> found.eventGroupId() == eventGroupId)
                     .filter(found -> found.active() || found.status() == RegistrationStatus.DENIED)
                     .orElseThrow(EventRefusal.EVENT_GROUP_NOT_SIGNED_UP::raise);
+            places.requireHostDecides(PlacesKind.EVENT_GROUP, eventGroupId, current.partnerId());
             var parts = rules.lockParts(eventGroupId);
             var tied = partners.findLinked(current.id());
             if (decision == RegistrationStatus.ACCEPTED && current.status() != RegistrationStatus.ACCEPTED) {
@@ -329,6 +414,7 @@ public class EventGroupPartnerService {
             for (var registration : tied) {
                 partners.restate(registration.id(), decision);
             }
+            if (current.status() != decision) tellPartner(eventGroup, current.id(), decision, null);
             if (current.status() == RegistrationStatus.ACCEPTED && decision != RegistrationStatus.ACCEPTED) {
                 queue.fill(eventGroup, parts, rules.standing(stationId, parts));
             }
@@ -339,7 +425,7 @@ public class EventGroupPartnerService {
     /**
      * Puts partner members' sign-ups waiting for a decision onto the event group's waiting list, in
      * sign-up order, placed by the order the list keeps. Nothing changes unless every one of them waits
-     * for a decision.
+     * for this station's decision.
      *
      * @param stationId    this station
      * @param eventGroupId the event group
@@ -359,13 +445,32 @@ public class EventGroupPartnerService {
                             .thenComparing(EventGroupPartnerRegistration::id))
                     .toList();
             for (var signUp : pending) {
+                places.requireHostDecides(PlacesKind.EVENT_GROUP, eventGroupId, signUp.partnerId());
+            }
+            for (var signUp : pending) {
                 partners.updateStatus(signUp.id(), RegistrationStatus.QUEUED);
                 for (var registration : partners.findLinked(signUp.id())) {
                     partners.restate(registration.id(), RegistrationStatus.QUEUED);
                 }
                 queue.enqueue(eventGroup, QueueOwner.ofPartner(signUp.id()), null);
             }
+            var ranks = queue.ranks(eventGroupId);
+            for (var signUp : pending) {
+                tellPartner(
+                        eventGroup,
+                        signUp.id(),
+                        RegistrationStatus.QUEUED,
+                        ranks.get(QueueOwner.ofPartner(signUp.id())));
+            }
         });
+    }
+
+    /** Announces a decision about a partner's member's sign-up once it is kept, so the partner is told. */
+    private void tellPartner(
+            EventGroup eventGroup, int signUpId, RegistrationStatus status, @Nullable Integer queuePosition) {
+        var changedAt = Instant.now();
+        Transactions.afterCommit(() -> eventBus.publish(new EventGroupPartnerSignUpStatusChanged(
+                eventGroup.stationId(), signUpId, status, queuePosition, false, changedAt)));
     }
 
     /**
@@ -385,6 +490,37 @@ public class EventGroupPartnerService {
                     .orElseThrow(EventRefusal.EVENT_GROUP_NOT_QUEUED::raise);
             queue.moveTo(eventGroup, QueueOwner.ofPartner(signUpId), rank);
         });
+    }
+
+    /**
+     * What each partner was given for an event group, with the places it has taken.
+     *
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @return one entry per partner that was given an arrangement
+     */
+    public List<PartnerPlacesTaken> partnerPlaces(int stationId, int eventGroupId) {
+        eventGroups.requireEventGroup(stationId, eventGroupId);
+        return places.arrangements(PlacesKind.EVENT_GROUP, eventGroupId).stream()
+                .map(arranged -> new PartnerPlacesTaken(
+                        arranged,
+                        partners.countForPartner(eventGroupId, arranged.partnerId(), RegistrationStatus.ACCEPTED)))
+                .toList();
+    }
+
+    /**
+     * Hands a partner places at an event group, or takes the arrangement back.
+     *
+     * @param stationId       the station asking
+     * @param eventGroupId    the event group
+     * @param partnerId       the station's record of the partner
+     * @param slotBudget      how many of its sign-ups may hold a place, or {@code null} for no cap
+     * @param partnerConfirms whether the partner decides its own sign-ups
+     */
+    public void arrangePartnerPlaces(
+            int stationId, int eventGroupId, int partnerId, @Nullable Integer slotBudget, boolean partnerConfirms) {
+        eventGroups.requireEventGroup(stationId, eventGroupId);
+        places.arrange(PlacesKind.EVENT_GROUP, stationId, eventGroupId, partnerId, slotBudget, partnerConfirms);
     }
 
     /**
@@ -462,10 +598,16 @@ public class EventGroupPartnerService {
         var evaluate = rules.evaluator(eventGroupId);
         var linked = partners.findLinkedByEventGroup(eventGroupId);
         var ranks = queue.ranks(eventGroupId);
+        var deciding = places.arrangements(PlacesKind.EVENT_GROUP, eventGroupId).stream()
+                .filter(arranged -> !arranged.decidedByHost())
+                .map(PartnerPlaces::partnerId)
+                .collect(Collectors.toSet());
         return partners.findByEventGroup(eventGroupId).stream()
                 .filter(signUp -> signUp.active() || signUp.status() == RegistrationStatus.DENIED)
                 .map(signUp -> new PartnerSignUp(
                         signUp.id(),
+                        signUp.partnerId(),
+                        deciding.contains(signUp.partnerId()),
                         registrants.identify(signUp.partnerId(), signUp.remoteMemberId()),
                         standing(signUp, linked, evaluate, ranks)))
                 .toList();
@@ -528,9 +670,24 @@ public class EventGroupPartnerService {
     /**
      * A partner member's sign-up as this station's event group page lists it.
      *
-     * @param id       the partner sign-up, which decisions name
-     * @param member   the member, or null where the partnership is gone
-     * @param standing where they stand
+     * @param id             the partner sign-up, which decisions name
+     * @param partnerId      this station's record of the partner the member came with
+     * @param partnerDecides whether that partner decides its own sign-ups, so this station does not
+     * @param member         the member, or null where the partnership is gone
+     * @param standing       where they stand
      */
-    public record PartnerSignUp(int id, @Nullable MemberIdentity member, PartnerStanding standing) {}
+    public record PartnerSignUp(
+            int id,
+            int partnerId,
+            boolean partnerDecides,
+            @Nullable MemberIdentity member,
+            PartnerStanding standing) {}
+
+    /**
+     * What one partner was given for an event group, and how many of its places are taken.
+     *
+     * @param arrangement the arrangement
+     * @param taken       how many of the partner's sign-ups hold a place
+     */
+    public record PartnerPlacesTaken(PartnerPlaces arrangement, int taken) {}
 }

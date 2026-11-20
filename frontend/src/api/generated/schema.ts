@@ -28884,6 +28884,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/groups/{eventGroupId}/partner-places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List what each partner station may do with an event group */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerPlacesView"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/partner-places/{partnerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Hand a partner station places at an event group, or take them back */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    partnerId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetPartnerPlacesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/groups/{eventGroupId}/partner-sign-ups": {
         parameters: {
             query?: never;
@@ -31365,6 +31473,67 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm one of this station's members for a partner station's event group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    stationuid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupConfirmRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -73765,6 +73934,10 @@ export interface components {
         EventGroupCancelRequest: {
             reason?: string | null;
         };
+        EventGroupConfirmRequest: {
+            /** Format: int32 */
+            memberId?: number;
+        };
         EventGroupCreateRequest: {
             /** Format: int32 */
             appointmentId?: number | null;
@@ -73784,6 +73957,7 @@ export interface components {
             fields: components["schemas"]["AppointmentField"][];
             household: components["schemas"]["EventGroupSignUp"][];
             parts: components["schemas"]["EventGroupPartState"][];
+            places: components["schemas"]["RemotePlaces"] | null;
             questions: components["schemas"]["EventRegistrationField"][];
             registration: components["schemas"]["RestrictionAudience"];
             sets: components["schemas"]["EventGroupSet"][];
@@ -73838,6 +74012,9 @@ export interface components {
             /** Format: int32 */
             id: number;
             member: components["schemas"]["MemberIdentity"] | null;
+            partnerDecides: boolean;
+            /** Format: int32 */
+            partnerId: number;
             parts: number[];
             /** Format: int32 */
             queuePosition: number | null;
@@ -84000,6 +84177,7 @@ export type EventGroupAttendance = components['schemas']['EventGroupAttendance']
 export type EventGroupAudiences = components['schemas']['EventGroupAudiences'];
 export type EventGroupAwaiting = components['schemas']['EventGroupAwaiting'];
 export type EventGroupCancelRequest = components['schemas']['EventGroupCancelRequest'];
+export type EventGroupConfirmRequest = components['schemas']['EventGroupConfirmRequest'];
 export type EventGroupCreateRequest = components['schemas']['EventGroupCreateRequest'];
 export type EventGroupDecisionRequest = components['schemas']['EventGroupDecisionRequest'];
 export type EventGroupDetail = components['schemas']['EventGroupDetail'];

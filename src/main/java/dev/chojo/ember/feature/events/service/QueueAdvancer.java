@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.PartnerRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.QueueEntry;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -14,6 +16,7 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository.QueueList;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository.QueueOwner;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -40,7 +43,8 @@ import java.util.Optional;
  *
  * <p>An entry whose sign-up no longer waits leaves the list without taking a place, so a list that
  * drifted from the statuses never stalls. Callers hold the appointment's lock and tell whoever moved
- * up once the change is kept.
+ * up once the change is kept; a partner's member moving up is announced here, for its station to be told
+ * once the change is kept.
  */
 @Singleton
 public class QueueAdvancer {
@@ -51,6 +55,7 @@ public class QueueAdvancer {
     private final RegistrationQueueRepository queue;
     private final EventRegistrationRepository registrations;
     private final OccurrenceCalendar calendar;
+    private final DomainEventBus eventBus;
     private final Clock clock;
 
     /**
@@ -61,6 +66,7 @@ public class QueueAdvancer {
      * @param queue         the waiting lists
      * @param registrations the registrations moved up
      * @param calendar      the station's clock, for when a date starts
+     * @param eventBus      where a partner's member moving up is announced, so the partner is told
      */
     @Inject
     public QueueAdvancer(
@@ -68,8 +74,9 @@ public class QueueAdvancer {
             EventCapacity capacity,
             RegistrationQueueRepository queue,
             EventRegistrationRepository registrations,
-            OccurrenceCalendar calendar) {
-        this(events, capacity, queue, registrations, calendar, Clock.systemUTC());
+            OccurrenceCalendar calendar,
+            DomainEventBus eventBus) {
+        this(events, capacity, queue, registrations, calendar, eventBus, Clock.systemUTC());
     }
 
     /**
@@ -80,6 +87,7 @@ public class QueueAdvancer {
      * @param queue         the waiting lists
      * @param registrations the registrations moved up
      * @param calendar      the station's clock, for when a date starts
+     * @param eventBus      where a partner's member moving up is announced, so the partner is told
      * @param clock         the current time
      */
     public QueueAdvancer(
@@ -88,12 +96,14 @@ public class QueueAdvancer {
             RegistrationQueueRepository queue,
             EventRegistrationRepository registrations,
             OccurrenceCalendar calendar,
+            DomainEventBus eventBus,
             Clock clock) {
         this.events = events;
         this.capacity = capacity;
         this.queue = queue;
         this.registrations = registrations;
         this.calendar = calendar;
+        this.eventBus = eventBus;
         this.clock = clock;
     }
 
@@ -113,7 +123,7 @@ public class QueueAdvancer {
         var moved = new ArrayList<EventRegistration>();
         for (var entry : queue.entries(list)) {
             if (capacity.of(eventId, eventDate).full()) break;
-            moveUp(list, entry).ifPresent(moved::add);
+            moveUp(event.stationId(), list, entry).ifPresent(moved::add);
         }
         if (!moved.isEmpty()) log.info("Moved {} up on event {} ({})", moved.size(), eventId, eventDate);
         return moved;
@@ -125,11 +135,15 @@ public class QueueAdvancer {
      *
      * @return the registration of this station's member who moved up, as stored
      */
-    private Optional<EventRegistration> moveUp(QueueList list, QueueEntry entry) {
+    private Optional<EventRegistration> moveUp(int stationId, QueueList list, QueueEntry entry) {
         Integer local = entry.localId();
         Integer partner = entry.partnerId();
         if (partner != null) {
-            if (!queue.acceptPartner(partner) && !queue.partnerWaits(partner)) {
+            if (queue.acceptPartner(partner)) {
+                var changedAt = clock.instant();
+                Transactions.afterCommit(() -> eventBus.publish(new PartnerRegistrationStatusChanged(
+                        stationId, partner, RegistrationStatus.ACCEPTED, null, true, changedAt)));
+            } else if (!queue.partnerWaits(partner)) {
                 queue.remove(list, QueueOwner.ofPartner(partner));
             }
             return Optional.empty();

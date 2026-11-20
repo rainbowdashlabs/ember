@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -40,6 +41,7 @@ import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestEventFederation;
 import dev.chojo.ember.util.TestFederationServices;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
@@ -72,7 +74,7 @@ import static org.mockito.Mockito.when;
  * functions a partner elsewhere reaches.
  */
 class PartnerQuestionsTest extends RepositoryTestBase {
-    private static EventFederationService service;
+    private static TestEventFederation federation;
     private static FederationService federationService;
     private static FederationRepository federationRepo;
     private static EventRegistrationService registrations;
@@ -93,7 +95,7 @@ class PartnerQuestionsTest extends RepositoryTestBase {
         var transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
         registrations = newEventServices(mock(DomainEventBus.class)).registration();
-        service = new EventFederationService(
+        federation = TestEventFederation.of(new TestEventFederation.Parts(
                 eventFederationRepo,
                 federationService,
                 transport.transport(),
@@ -127,8 +129,9 @@ class PartnerQuestionsTest extends RepositoryTestBase {
                 new EventGroupRepository(),
                 registrations,
                 new PartnerQuestionService(
-                        new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility));
-        transport.serve(service);
+                        new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility),
+                mock(EventRequirementService.class)));
+        transport.serve(federation.servers());
 
         stationA = stationRepo.create("PartnerQuestionsStationA");
         stationB = stationRepo.create("PartnerQuestionsStationB");
@@ -174,7 +177,7 @@ class PartnerQuestionsTest extends RepositoryTestBase {
         questionIds = new EventRegistrationFieldRepository()
                 .findByEvent(event.id()).stream()
                         .collect(Collectors.toMap(EventRegistrationField::name, EventRegistrationField::id));
-        service.setShare(event.id(), ShareScope.ALL_PARTNERS, List.of());
+        federation.shares().setShare(event.id(), ShareScope.ALL_PARTNERS, List.of());
     }
 
     @AfterEach
@@ -209,7 +212,7 @@ class PartnerQuestionsTest extends RepositoryTestBase {
     @Test
     void theSharedAppointmentCarriesItsQuestionsAndPlaces() {
         var detail = FederatedEventRoutes.PartnerEventDetail.of(
-                service.getFederatedEvent(stationB.id(), stationA.uid(), event.id()));
+                federation.client().getFederatedEvent(stationB.id(), stationA.uid(), event.id()));
 
         assertEquals(
                 List.of("Größe", "Essen"),
@@ -228,16 +231,20 @@ class PartnerQuestionsTest extends RepositoryTestBase {
     void answersAreStoredBesideThePartnersRegistration() {
         var member = UUID.randomUUID();
 
-        var status = service.registerForFederatedEvent(
-                stationB.id(),
-                stationA.uid(),
-                event.id(),
-                member,
-                day(),
-                List.of(new EventRegistrationFieldValue(questionIds.get("Größe"), "L")));
+        var status = federation
+                .client()
+                .registerForFederatedEvent(
+                        stationB.id(),
+                        stationA.uid(),
+                        event.id(),
+                        member,
+                        day(),
+                        List.of(new EventRegistrationFieldValue(questionIds.get("Größe"), "L")));
 
         assertEquals(RegistrationStatus.ACCEPTED, status);
-        var registration = service.findRegistration(event.id(), servingPartner().id(), member, day())
+        var registration = federation
+                .host()
+                .findRegistration(event.id(), servingPartner().id(), member, day())
                 .orElseThrow();
         var stored = new PartnerQuestionService(
                         new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility)
@@ -269,12 +276,14 @@ class PartnerQuestionsTest extends RepositoryTestBase {
                 .findByEvent(event.id())
                 .getFirst()
                 .id();
-        var registration = service.registerFederated(
-                event.id(),
-                servingPartner().id(),
-                UUID.randomUUID(),
-                day(),
-                List.of(new EventRegistrationFieldValue(allergy, "Nüsse")));
+        var registration = federation
+                .host()
+                .registerFederated(
+                        event.id(),
+                        servingPartner().id(),
+                        UUID.randomUUID(),
+                        day(),
+                        List.of(new EventRegistrationFieldValue(allergy, "Nüsse")));
         var questions = new PartnerQuestionService(
                 new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility);
 
@@ -287,9 +296,9 @@ class PartnerQuestionsTest extends RepositoryTestBase {
     /** A required question left open, as a partner on an older version leaves it, refuses the sign-up. */
     @Test
     void aRequiredQuestionLeftOpenRefusesTheSignUp() {
-        var refused = assertThrows(
-                RefusalResponse.class,
-                () -> service.registerFederated(event.id(), servingPartner().id(), UUID.randomUUID(), day()));
+        var refused = assertThrows(RefusalResponse.class, () -> federation
+                .host()
+                .registerFederated(event.id(), servingPartner().id(), UUID.randomUUID(), day()));
 
         assertEquals(EventRefusal.PARTNER_REQUIRED_ANSWER_MISSING, refused.refusal());
     }
@@ -301,7 +310,7 @@ class PartnerQuestionsTest extends RepositoryTestBase {
                 .replaceFields(event.id(), List.of(draft("Essen", FieldType.CHOICE, false, null)));
 
         var registration =
-                service.registerFederated(event.id(), servingPartner().id(), UUID.randomUUID(), day());
+                federation.host().registerFederated(event.id(), servingPartner().id(), UUID.randomUUID(), day());
 
         assertEquals(RegistrationStatus.ACCEPTED, registration.status());
     }
@@ -313,9 +322,9 @@ class PartnerQuestionsTest extends RepositoryTestBase {
                 new EventRegistrationFieldValue(questionIds.get("Größe"), "M"),
                 new EventRegistrationFieldValue(questionIds.get("Fahrer"), "1"));
 
-        var refused = assertThrows(
-                RefusalResponse.class,
-                () -> service.registerFederated(event.id(), servingPartner().id(), UUID.randomUUID(), day(), answers));
+        var refused = assertThrows(RefusalResponse.class, () -> federation
+                .host()
+                .registerFederated(event.id(), servingPartner().id(), UUID.randomUUID(), day(), answers));
 
         assertEquals(EventRefusal.REGISTRATION_ANSWER_TO_UNKNOWN_QUESTION, refused.refusal());
     }
@@ -324,19 +333,28 @@ class PartnerQuestionsTest extends RepositoryTestBase {
     @Test
     void aFullDateIsToldAndTheSignUpWaits() {
         var answers = List.of(new EventRegistrationFieldValue(questionIds.get("Größe"), "S"));
-        service.registerForFederatedEvent(stationB.id(), stationA.uid(), event.id(), UUID.randomUUID(), day(), answers);
+        federation
+                .client()
+                .registerForFederatedEvent(
+                        stationB.id(), stationA.uid(), event.id(), UUID.randomUUID(), day(), answers);
 
-        var places = service.getFederatedEvent(stationB.id(), stationA.uid(), event.id())
+        var places = federation
+                .client()
+                .getFederatedEvent(stationB.id(), stationA.uid(), event.id())
                 .datePlaces();
         assertNotNull(places);
         assertEquals(1, places.taken());
         assertEquals(
                 RegistrationStatus.QUEUED,
-                service.registerForFederatedEvent(
-                        stationB.id(), stationA.uid(), event.id(), UUID.randomUUID(), day(), answers));
+                federation
+                        .client()
+                        .registerForFederatedEvent(
+                                stationB.id(), stationA.uid(), event.id(), UUID.randomUUID(), day(), answers));
         assertEquals(
                 1,
-                service.getFederatedEvent(stationB.id(), stationA.uid(), event.id())
+                federation
+                        .client()
+                        .getFederatedEvent(stationB.id(), stationA.uid(), event.id())
                         .datePlaces()
                         .waiting());
     }

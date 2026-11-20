@@ -21,9 +21,10 @@ import dev.chojo.ember.feature.events.entity.PartnerAgreementOffer;
 import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
-import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventCommentFederation;
 import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
+import dev.chojo.ember.feature.events.service.PartnerEventService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -67,7 +68,8 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
 public class FederatedEventRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(FederatedEventRoutes.class);
 
-    private final EventFederationService eventFederationService;
+    private final PartnerEventService partnerEvents;
+    private final EventCommentFederation comments;
     private final FederationService federationService;
     private final StationMemberService stationMemberService;
     private final MemberLookupService memberLookup;
@@ -77,7 +79,8 @@ public class FederatedEventRoutes implements Routes {
 
     @Inject
     public FederatedEventRoutes(
-            EventFederationService eventFederationService,
+            PartnerEventService partnerEvents,
+            EventCommentFederation comments,
             FederationService federationService,
             StationMemberService stationMemberService,
             MemberLookupService memberLookup,
@@ -85,7 +88,8 @@ public class FederatedEventRoutes implements Routes {
             PartnerAppointmentSignatures signatures,
             EventSignUpGuards signUpGuards) {
         this.signUpGuards = signUpGuards;
-        this.eventFederationService = eventFederationService;
+        this.partnerEvents = partnerEvents;
+        this.comments = comments;
         this.federationService = federationService;
         this.stationMemberService = stationMemberService;
         this.memberLookup = memberLookup;
@@ -178,10 +182,10 @@ public class FederatedEventRoutes implements Routes {
             responses =
                     @OpenApiResponse(
                             status = "200",
-                            content = @OpenApiContent(from = EventFederationService.FederatedEventItem[].class)))
+                            content = @OpenApiContent(from = PartnerEventService.FederatedEventItem[].class)))
     private void federatedListEvents(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        ctx.json(eventFederationService.browseFederatedEvents(session.stationId()));
+        ctx.json(partnerEvents.browseFederatedEvents(session.stationId()));
     }
 
     /**
@@ -201,8 +205,7 @@ public class FederatedEventRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int eventId = pathInt(ctx, "id");
-        ctx.json(PartnerEventDetail.of(
-                eventFederationService.getFederatedEvent(session.stationId(), stationUid, eventId)));
+        ctx.json(PartnerEventDetail.of(partnerEvents.getFederatedEvent(session.stationId(), stationUid, eventId)));
     }
 
     /**
@@ -249,7 +252,7 @@ public class FederatedEventRoutes implements Routes {
                             content = @OpenApiContent(from = RemoteEventRoutes.RemoteAttachment[].class)))
     private void federatedListAttachments(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        ctx.json(eventFederationService.listFederatedAttachments(
+        ctx.json(partnerEvents.listFederatedAttachments(
                 session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id")));
     }
 
@@ -267,7 +270,7 @@ public class FederatedEventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void federatedDownloadAttachment(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        var content = eventFederationService.getFederatedAttachment(
+        var content = partnerEvents.getFederatedAttachment(
                 session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id"), pathInt(ctx, "attachmentId"));
         if (content == null || content.base64() == null) throw EventRefusal.FEDERATED_FILE_NOT_HERE.raise();
 
@@ -313,7 +316,7 @@ public class FederatedEventRoutes implements Routes {
     private void federatedRegister(Context ctx) {
         var fed = answeredFor(ctx);
         var answers = ctx.bodyAsClass(FederatedRegBody.class).answers();
-        var status = eventFederationService.registerForFederatedEvent(
+        var status = partnerEvents.registerForFederatedEvent(
                 fed.stationId(),
                 fed.partnerUid(),
                 fed.eventId(),
@@ -334,7 +337,7 @@ public class FederatedEventRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void federatedWithdraw(Context ctx) {
         var fed = answeredFor(ctx);
-        eventFederationService.withdrawFederatedRegistration(
+        partnerEvents.withdrawFederatedRegistration(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
         signatures.withdrawn(
                 StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
@@ -357,7 +360,7 @@ public class FederatedEventRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void federatedUndoWithdrawal(Context ctx) {
         var fed = answeredFor(ctx);
-        eventFederationService.undoFederatedWithdrawal(
+        partnerEvents.undoFederatedWithdrawal(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
         signatures.registered(
                 StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
@@ -382,7 +385,7 @@ public class FederatedEventRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void federatedConfirmOwn(Context ctx) {
         var fed = resolveFederatedRegContext(ctx);
-        eventFederationService.confirmOwnFederatedMember(
+        partnerEvents.confirmOwnFederatedMember(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
         signatures.registered(
                 StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
@@ -439,7 +442,7 @@ public class FederatedEventRoutes implements Routes {
             })
     private void federatedSignAgreement(Context ctx) {
         var fed = resolveFederatedRegContext(ctx);
-        var event = eventFederationService
+        var event = partnerEvents
                 .getFederatedEvent(fed.stationId(), fed.partnerUid(), fed.eventId())
                 .event();
         if (event.requiresRegistration()) throw EventRefusal.AGREEMENT_SIGNED_ON_REGISTERING.raise();
@@ -504,7 +507,7 @@ public class FederatedEventRoutes implements Routes {
         for (var m : managed) {
             if (m.uid() != null) memberUids.add(m.uid());
         }
-        ctx.json(eventFederationService.findMyRegistrations(session.stationId(), memberUids));
+        ctx.json(partnerEvents.findMyRegistrations(session.stationId(), memberUids));
     }
 
     @OpenApi(
@@ -517,7 +520,7 @@ public class FederatedEventRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var partnerUid = pathUuid(ctx, "stationuid");
         int eventId = pathInt(ctx, "eventId");
-        ctx.json(eventFederationService.listFederatedComments(session.stationId(), partnerUid, eventId));
+        ctx.json(comments.listFederatedComments(session.stationId(), partnerUid, eventId));
     }
 
     @OpenApi(
@@ -537,7 +540,7 @@ public class FederatedEventRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw EventRefusal.FEDERATED_COMMENT_NEEDS_TEXT.raise();
         }
-        var created = eventFederationService.createFederatedComment(
+        var created = comments.createFederatedComment(
                 session.stationId(),
                 partnerUid,
                 eventId,
@@ -566,7 +569,7 @@ public class FederatedEventRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw EventRefusal.FEDERATED_COMMENT_CHANGE_NEEDS_TEXT.raise();
         }
-        ctx.json(eventFederationService.updateFederatedComment(
+        ctx.json(comments.updateFederatedComment(
                 session.stationId(), partnerUid, commentId, session.member().uid(), req.content()));
     }
 
@@ -580,7 +583,7 @@ public class FederatedEventRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var partnerUid = pathUuid(ctx, "stationuid");
         int commentId = pathInt(ctx, "commentId");
-        eventFederationService.deleteFederatedComment(
+        comments.deleteFederatedComment(
                 session.stationId(), partnerUid, commentId, session.member().uid());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -594,8 +597,6 @@ public class FederatedEventRoutes implements Routes {
             String eventDate,
             @Nullable UUID memberId,
             @Nullable List<EventRegistrationFieldValue> answers) {}
-
-    public record StatusResponse(String status) {}
 
     /**
      * What the station holding the appointment recorded for a registration sent to it, and the documents its

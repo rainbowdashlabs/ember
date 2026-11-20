@@ -12,15 +12,17 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
+import dev.chojo.ember.feature.events.entity.PlacesKind;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventPartnerRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
+import dev.chojo.ember.feature.events.service.EventShareService;
 import dev.chojo.ember.feature.events.service.EventSharingGuards;
 import dev.chojo.ember.feature.events.service.FederatedRegistrantService;
+import dev.chojo.ember.feature.events.service.PartnerPlacesService;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -48,24 +50,27 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class EventSharingRoutes implements Routes {
     private final EventCrudService crudService;
-    private final EventFederationService eventFederationService;
+    private final EventShareService shares;
+    private final EventPartnerRegistrationService partnerRegistrations;
+    private final PartnerPlacesService places;
     private final FederatedRegistrantService registrants;
-    private final EventRequirementService requirements;
     private final EventRegistrationService registrationService;
     private final EventSharingGuards sharingGuards;
 
     @Inject
     public EventSharingRoutes(
             EventCrudService crudService,
-            EventFederationService eventFederationService,
+            EventShareService shares,
+            EventPartnerRegistrationService partnerRegistrations,
+            PartnerPlacesService places,
             FederatedRegistrantService registrants,
-            EventRequirementService requirements,
             EventRegistrationService registrationService,
             EventSharingGuards sharingGuards) {
         this.crudService = crudService;
-        this.eventFederationService = eventFederationService;
+        this.shares = shares;
+        this.partnerRegistrations = partnerRegistrations;
+        this.places = places;
         this.registrants = registrants;
-        this.requirements = requirements;
         this.registrationService = registrationService;
         this.sharingGuards = sharingGuards;
     }
@@ -110,24 +115,18 @@ public class EventSharingRoutes implements Routes {
     private void getFederationShare(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
-        var share = eventFederationService.findShareByEvent(id);
+        var share = shares.findShareByEvent(id);
         if (share.isEmpty()) {
             ctx.json(new FederationShareResponse(false, null, null));
             return;
         }
-        var targets = eventFederationService.findShareTargets(share.get().id());
+        var targets = shares.findShareTargets(share.get().id());
         ctx.json(new FederationShareResponse(true, share.get().scope(), targets));
     }
 
     /**
-     * Hands one of this station's events to partner stations.
-     *
-     * <p>An event that not every member here may know about is not handed over. The audiences name
-     * groups, tags and members of this station, and none of those mean anything at the partner, so a
-     * shared event would stand open to everybody there: the opposite of what restricting it said.
-     *
-     * <p>Nor is one whose documents to bring partners could not sign alike: such a document names a
-     * person, or reads differently for some members, and the partner's members would each need their own.
+     * Hands one of this station's events to partner stations, where {@link EventShareService#share} lets
+     * it be shared.
      */
     @OpenApi(
             path = "/api/v1/events/{id}/federation",
@@ -140,13 +139,8 @@ public class EventSharingRoutes implements Routes {
     private void setFederationShare(Context ctx) {
         int id = pathInt(ctx, "id");
         var event = requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
-        sharingGuards.requireSharedOnItsOwn(id);
-        if (event.restricted()) {
-            throw EventRefusal.RESTRICTED_EVENT_NOT_SHARED.raise();
-        }
-        requirements.requireShareable(id);
         var req = ctx.bodyAsClass(SetFederationShareRequest.class);
-        eventFederationService.setShare(id, req.scope(), req.partnerIds() != null ? req.partnerIds() : List.of());
+        shares.share(event, req.scope(), req.partnerIds() != null ? req.partnerIds() : List.of());
         ctx.json(new FederationShareResponse(true, req.scope(), null));
     }
 
@@ -160,7 +154,7 @@ public class EventSharingRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
         sharingGuards.requireSharedOnItsOwn(id);
-        eventFederationService.removeShare(id);
+        shares.removeShare(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -178,7 +172,7 @@ public class EventSharingRoutes implements Routes {
         requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
         String dateParam = ctx.queryParam("date");
         LocalDate date = dateParam != null ? LocalDate.parse(dateParam) : null;
-        var registrations = eventFederationService.findRegistrations(id, date);
+        var registrations = partnerRegistrations.findRegistrations(id, date);
         var ranks = registrationService.partnerQueueRanksOf(registrations.stream()
                 .filter(r -> r.status() == RegistrationStatus.QUEUED)
                 .map(EventFederationRegistration::id)
@@ -188,15 +182,7 @@ public class EventSharingRoutes implements Routes {
                 .toList());
     }
 
-    /**
-     * Confirming or turning down a partner's member, which is this station's to do unless it has said
-     * otherwise.
-     *
-     * <p>Where a partner decides its own, this station keeps the list but not the pen: taking the
-     * decision back is a change to the arrangement rather than something done one member at a time
-     * behind the partner's back. Accepting also spends one of that partner's places, so a host
-     * confirming somebody cannot put the partner over the number it was given.
-     */
+    /** Confirming or turning down a partner's member, as {@link EventPartnerRegistrationService#decide} allows. */
     @OpenApi(
             path = "/api/v1/events/federation-registrations/{id}/status",
             methods = HttpMethod.PUT,
@@ -209,27 +195,8 @@ public class EventSharingRoutes implements Routes {
     private void updateFederationRegistrationStatus(Context ctx) {
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(EventRegistrationRoutes.StatusUpdateRequest.class);
-        if (req.status() != RegistrationStatus.ACCEPTED && req.status() != RegistrationStatus.DENIED) {
-            throw EventRefusal.REGISTRATION_DECISION_UNKNOWN.raise();
-        }
-        var reg = eventFederationService
-                .findRegistrationById(id)
-                .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise);
-        requireOwnedOrNotFound(ctx, reg.eventId(), crudService::findById, StationEvent::stationId);
-        registrationService.requireOwnSignUp(reg.eventId());
-
-        var places = eventFederationService.partnerPlaces(reg.eventId(), reg.partnerId());
-        if (places.partnerConfirms()) {
-            throw EventRefusal.PARTNER_DECIDES_ITS_OWN.raise();
-        }
-        if (req.status() == RegistrationStatus.ACCEPTED) {
-            if (!eventFederationService.acceptWithinBudget(
-                    id, reg.eventId(), reg.partnerId(), reg.eventDate(), Boolean.TRUE.equals(req.overLimit()))) {
-                throw EventRefusal.NO_PLACES_LEFT_FOR_THIS_PARTNER.raise();
-            }
-        } else {
-            eventFederationService.updateRegistrationStatus(id, req.status());
-        }
+        requireOwnFederationRegistration(ctx, id);
+        partnerRegistrations.decide(id, req.status(), Boolean.TRUE.equals(req.overLimit()));
         ctx.json(new MessageResponse("Status updated"));
     }
 
@@ -258,7 +225,7 @@ public class EventSharingRoutes implements Routes {
         var req = ctx.bodyAsClass(EventRegistrationRoutes.QueueRequest.class);
         var ids = req.registrationIds() == null ? List.<Integer>of() : req.registrationIds();
         for (int id : ids) requireOwnFederationRegistration(ctx, id);
-        eventFederationService.moveToQueue(ids);
+        partnerRegistrations.moveToQueue(ids);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -283,13 +250,13 @@ public class EventSharingRoutes implements Routes {
                 .position();
         if (position == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
         requireOwnFederationRegistration(ctx, id);
-        eventFederationService.moveInQueue(id, position);
+        partnerRegistrations.moveInQueue(id, position);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     /** Refuses a partner's registration that is gone or belongs to an appointment of another station. */
     private void requireOwnFederationRegistration(Context ctx, int id) {
-        var registration = eventFederationService
+        var registration = partnerRegistrations
                 .findRegistrationById(id)
                 .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise);
         requireOwnedOrNotFound(ctx, registration.eventId(), crudService::findById, StationEvent::stationId);
@@ -307,14 +274,14 @@ public class EventSharingRoutes implements Routes {
         requireOwnedOrNotFound(ctx, eventId, crudService::findById, StationEvent::stationId);
         var date = ctx.queryParam("eventDate");
         var day = date == null ? null : LocalDate.parse(date);
-        ctx.json(eventFederationService.partnerPlaces(eventId).stream()
+        ctx.json(places.arrangements(PlacesKind.APPOINTMENT, eventId).stream()
                 .map(places -> new PartnerPlacesView(
                         places.partnerId(),
                         places.slotBudget(),
                         places.partnerConfirms(),
                         day == null
                                 ? null
-                                : eventFederationService
+                                : partnerRegistrations
                                         .countPartnerPlaces(eventId, places.partnerId(), day)
                                         .taken()))
                 .toList());
@@ -335,10 +302,8 @@ public class EventSharingRoutes implements Routes {
             @Nullable Integer taken) {}
 
     /**
-     * Hands a partner a number of places, or takes the arrangement back.
-     *
-     * <p>A budget means the partner decides who fills it: the two are one choice with an optional
-     * number rather than two switches that can contradict each other.
+     * Hands a partner a number of places, or takes the arrangement back, as
+     * {@link PartnerPlacesService#arrange} allows.
      */
     @OpenApi(
             path = "/api/v1/events/{id}/partner-places/{partnerId}",
@@ -350,15 +315,11 @@ public class EventSharingRoutes implements Routes {
     private void setPartnerPlaces(Context ctx) {
         int eventId = pathInt(ctx, "id");
         int partnerId = pathInt(ctx, "partnerId");
-        requireOwnedOrNotFound(ctx, eventId, crudService::findById, StationEvent::stationId);
+        var event = requireOwnedOrNotFound(ctx, eventId, crudService::findById, StationEvent::stationId);
         sharingGuards.requireSharedOnItsOwn(eventId);
         var req = ctx.bodyAsClass(SetPartnerPlacesRequest.class);
-        Integer slotBudget = req.slotBudget();
-        if (slotBudget != null && slotBudget < 0) {
-            throw EventRefusal.PLACES_CANNOT_BE_NEGATIVE.raise();
-        }
-        boolean decides = req.partnerConfirms() || slotBudget != null;
-        eventFederationService.setPartnerPlaces(eventId, partnerId, decides ? slotBudget : null, decides);
+        places.arrange(
+                PlacesKind.APPOINTMENT, event.stationId(), eventId, partnerId, req.slotBudget(), req.partnerConfirms());
         ctx.json(new MessageResponse("Places updated"));
     }
 

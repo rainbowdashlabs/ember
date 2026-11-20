@@ -12503,6 +12503,8 @@ export default {
         attendanceExport: 'Anwesenheit exportieren',
         partnerPartNotice: 'Die Anmeldung läuft über die Terminreihe der Partnerwache.',
         federationHint: 'Teilt die Terminreihe mit Partnerwachen. Alle Termine gehen mit, auch die, die später dazukommen. Mitglieder der Partner melden sich nach denselben Vorgaben an.',
+        partnerPlacesHint: 'Standardmäßig entscheidet ihr über jede Anmeldung einer Partnerwache. Ihr könnt einer Wache die Entscheidung überlassen und ihr dafür eine feste Zahl an Plätzen geben. Die Plätze gelten für die ganze Terminreihe, nicht je Termin.',
+        placesGiven: 'Eure Wache entscheidet selbst, wer von euch mitkommt: {total} Plätze für die ganze Terminreihe stehen euch zu.',
         questionsHint: 'Diese Fragen beantwortet jede Anmeldung einmal für die ganze Terminreihe. Die Termine stellen keine eigenen Fragen.',
         withdraw: 'Abmelden',
         withdrawTitle: 'Von der Terminreihe abmelden',

@@ -77,6 +77,7 @@ class PartnerEventGroupSignaturesTest {
                                 List.of(101),
                                 List.of(),
                                 null)),
+                        null,
                         null));
 
         var before = service.before(STATION_ID, HOLDER, 70, member);

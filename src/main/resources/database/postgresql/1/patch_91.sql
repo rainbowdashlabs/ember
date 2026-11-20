@@ -748,3 +748,72 @@ WHERE event_group_set_id IS NOT NULL;
 
 COMMENT ON COLUMN ember_schema.event_group.threshold_days
     IS 'How many days before the first part, a called-off one included, the minimum must be reached, counted from midnight on the station''s clock. Set exactly when the minimum is.';
+
+-- Places now go with the share: an arrangement with a partner the appointment's share no longer covers
+-- is dropped when the share changes. The ones left behind by earlier unsharing go once here.
+
+DELETE FROM ember_schema.event_partner_places p
+WHERE NOT EXISTS (SELECT 1
+                  FROM ember_schema.event_federation_share s
+                  WHERE s.event_id = p.event_id
+                    AND (s.scope = 'ALL_PARTNERS'
+                      OR EXISTS (SELECT 1
+                                 FROM ember_schema.event_federation_share_target t
+                                 WHERE t.share_id = s.id
+                                   AND t.partner_id = p.partner_id)));
+
+-- What a partner station may do with a shared event group, the arrangement shared appointments already
+-- have: places counted per event group sign-up, and whether the partner decides its own sign-ups.
+
+CREATE TABLE ember_schema.event_group_partner_places
+(
+    event_group_id   INTEGER NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    partner_id       INTEGER NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
+    slot_budget      INTEGER NULL,
+    partner_confirms BOOLEAN NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (event_group_id, partner_id),
+    CONSTRAINT event_group_partner_places_budget_is_not_negative CHECK (slot_budget IS NULL OR slot_budget >= 0),
+    CONSTRAINT event_group_partner_places_budget_implies_deciding CHECK (slot_budget IS NULL OR partner_confirms)
+);
+
+COMMENT ON TABLE ember_schema.event_group_partner_places IS
+    'What a partner station may do with a shared event group: how many of its members may hold a place, and whether it decides its own sign-ups. Only arrangements somebody made have a row; none means the host decides with no cap. Dropped for a partner the share no longer covers.';
+COMMENT ON COLUMN ember_schema.event_group_partner_places.event_group_id IS
+    'The shared event group.';
+COMMENT ON COLUMN ember_schema.event_group_partner_places.partner_id IS
+    'The host station''s own record of the partner station.';
+COMMENT ON COLUMN ember_schema.event_group_partner_places.slot_budget IS
+    'How many of this partner''s sign-ups may hold a place in the event group, counted per sign-up, not per part. NULL means no cap; a number means the partner decides.';
+COMMENT ON COLUMN ember_schema.event_group_partner_places.partner_confirms IS
+    'Whether this partner decides its own members'' sign-ups rather than the host. True for every row, since only such an arrangement is kept.';
+
+-- The station holding an appointment or an event group tells the partner when it decides about one of
+-- the partner's members. The partner keeps the last status it learnt and the host's instant of it, so a
+-- notice that arrives late or twice changes nothing and tells nobody again.
+
+ALTER TABLE ember_schema.partner_signup
+    ADD COLUMN status            TEXT        NULL
+        CONSTRAINT partner_signup_status_known
+            CHECK (status IS NULL OR status IN ('PENDING', 'ACCEPTED', 'DENIED', 'DECLINED', 'WITHDRAWN', 'QUEUED')),
+    ADD COLUMN status_changed_at TIMESTAMPTZ NULL;
+
+COMMENT ON COLUMN ember_schema.partner_signup.status IS
+    'The status the partner station last gave this sign-up, as it answered the sign-up or told a later decision; WITHDRAWN once the member withdrew here. NULL where it is not known.';
+COMMENT ON COLUMN ember_schema.partner_signup.status_changed_at IS
+    'When the partner station says that status was given, on its own clock. NULL until it told a decision; a notice not after this is ignored.';
+
+ALTER TABLE ember_schema.partner_event_group_signup
+    ADD COLUMN status            TEXT        NULL
+        CONSTRAINT partner_event_group_signup_status_known
+            CHECK (status IS NULL OR status IN ('PENDING', 'ACCEPTED', 'DENIED', 'DECLINED', 'WITHDRAWN', 'QUEUED')),
+    ADD COLUMN status_changed_at TIMESTAMPTZ NULL;
+
+COMMENT ON COLUMN ember_schema.partner_event_group_signup.status IS
+    'The status the partner station last gave this event group sign-up, as it answered the sign-up, showed it or told a later decision; WITHDRAWN once the member withdrew here. NULL where it is not known.';
+COMMENT ON COLUMN ember_schema.partner_event_group_signup.status_changed_at IS
+    'When the partner station says that status was given, on its own clock. NULL until it told a decision; a notice not after this is ignored.';
+
+COMMENT ON TABLE ember_schema.partner_signup IS
+    'A member of this station signed up here for one date of a partner station''s appointment. The partner holds the registration itself; this is this station''s own word that it was given, so that a partner telling it which of its members are registered is believed only for members it signed up. A withdrawal keeps the row with status WITHDRAWN, so the partner''s last instant still holds for a sign-up given again.';
+COMMENT ON TABLE ember_schema.partner_event_group_signup
+    IS 'Members this station signed up for an event group a partner station holds, so news from that partner about the event group is believed for them only. A withdrawal keeps the row with status WITHDRAWN, so the partner''s last instant still holds for a sign-up given again.';

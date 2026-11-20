@@ -40,6 +40,7 @@ import PartnerSigningStep from './eventshared/PartnerSigningStep.vue'
 import RegistrationFieldsModal from './eventshared/RegistrationFieldsModal.vue'
 import {usePartnerSignUp} from './federatedeventdetailview/usePartnerSignUp'
 import {partnerDateState} from './federatedeventdetailview/partnerDatePlaces'
+import {ourPartnerPlaces} from './eventshared/ourPartnerPlaces'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -87,28 +88,9 @@ const publicFields = computed(() => detail.value?.publicFields ?? [])
  */
 const pageTitle = computed(() => eventData.value?.name || t('pages.federated-event-detail.title'))
 
-/**
- * What the station holding this appointment has given us, where it has given anything.
- *
- * <p>Absent is the ordinary arrangement: they decide about each of our members, as they always did.
- * Present means we choose who comes, and where they also named a number, how many.
- */
-const ourPlaces = computed(() => detail.value?.places ?? null)
-
-/**
- * What we were given, in words, without claiming how much of it is left.
- *
- * <p>Only the station holding the appointment can count that: what this one can see is its own
- * members' places and not the rest of the station's, and a number worked out from those alone would
- * read as the whole and be wrong for everybody with colleagues. They answer when the places are
- * full, and that answer is the one that counts.
- */
-const placesSummary = computed(() => {
-  const places = ourPlaces.value
-  if (!places) return ''
-  if (places.slotBudget === null) return t('eventsUpcoming.placesUncapped')
-  return t('eventsUpcoming.placesGiven', {total: places.slotBudget})
-})
+/** What the station holding this appointment has given us, and whether the reader chooses who of us comes. */
+const ourPlaces = computed(() =>
+    ourPartnerPlaces(detail.value?.places, hasPermission(StationPermission.EVENT_REGISTRATION), t))
 
 /**
  * Gives one of our own a place, which only works where the other station handed us the choosing.
@@ -262,8 +244,8 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
             :registrations="myRegistrations"
             :event-id="eventId"
             :registering="registering"
-            :we-decide="(ourPlaces?.decidesItself ?? false) && hasPermission(StationPermission.EVENT_REGISTRATION)"
-            :places-summary="placesSummary"
+            :we-decide="ourPlaces.weDecide"
+            :places-summary="ourPlaces.summary"
             :full="dateState.full"
             :joins-queue="dateState.joinsQueue"
             @register="registerForEvent"

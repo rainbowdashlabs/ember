@@ -13,7 +13,8 @@ import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventPartnerRegistrationService;
+import dev.chojo.ember.feature.events.service.EventShareService;
 import dev.chojo.ember.feature.events.service.FederatedRegistrantService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -100,7 +101,8 @@ public class PartnerAgreements implements FederationServer, TaskSource {
     private static final Logger log = LoggerFactory.getLogger(PartnerAgreements.class);
 
     private final EventCrudService events;
-    private final EventFederationService federation;
+    private final EventPartnerRegistrationService partnerRegistrations;
+    private final EventShareService shares;
     private final FederatedRegistrantService registrants;
     private final OccurrenceCalendar calendar;
     private final AppointmentDocumentService appointments;
@@ -115,7 +117,8 @@ public class PartnerAgreements implements FederationServer, TaskSource {
     @Inject
     public PartnerAgreements(
             EventCrudService events,
-            EventFederationService federation,
+            EventPartnerRegistrationService partnerRegistrations,
+            EventShareService shares,
             FederatedRegistrantService registrants,
             OccurrenceCalendar calendar,
             AppointmentDocumentService appointments,
@@ -127,7 +130,8 @@ public class PartnerAgreements implements FederationServer, TaskSource {
             SignatureNotices notices) {
         this(
                 events,
-                federation,
+                partnerRegistrations,
+                shares,
                 registrants,
                 calendar,
                 appointments,
@@ -143,7 +147,8 @@ public class PartnerAgreements implements FederationServer, TaskSource {
     /** Builds the service with its own clock, so a test moves past a retention. */
     PartnerAgreements(
             EventCrudService events,
-            EventFederationService federation,
+            EventPartnerRegistrationService partnerRegistrations,
+            EventShareService shares,
             FederatedRegistrantService registrants,
             OccurrenceCalendar calendar,
             AppointmentDocumentService appointments,
@@ -155,7 +160,8 @@ public class PartnerAgreements implements FederationServer, TaskSource {
             SignatureNotices notices,
             Clock clock) {
         this.events = events;
-        this.federation = federation;
+        this.partnerRegistrations = partnerRegistrations;
+        this.shares = shares;
         this.registrants = registrants;
         this.calendar = calendar;
         this.appointments = appointments;
@@ -265,7 +271,8 @@ public class PartnerAgreements implements FederationServer, TaskSource {
         if (taken.newlyWithdrawn()) {
             withdrawn(partner.row(), event, notice, template);
         } else if (state == PartnerAgreementState.SIGNED && notice.complete()) {
-            federation.clearAgreementWithdrawn(eventId, partner.partnerId(), notice.memberUid(), notice.eventDate());
+            partnerRegistrations.clearAgreementWithdrawn(
+                    eventId, partner.partnerId(), notice.memberUid(), notice.eventDate());
         }
     }
 
@@ -280,7 +287,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
     /** Flags the member's standing registration for the date and tells whoever runs the appointment. */
     private void withdrawn(
             FederationPartner partner, StationEvent event, RemoteAgreementNotice notice, DocumentTemplate template) {
-        boolean flagged = federation.flagAgreementWithdrawn(
+        boolean flagged = partnerRegistrations.flagAgreementWithdrawn(
                 event.id(), partner.id(), notice.memberUid(), notice.eventDate(), clock.instant());
         notices.partnerWithdrawn(
                 event.stationId(),
@@ -288,7 +295,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
                 template.name(),
                 Objects.requireNonNullElse(
                         partner.partnerStationName(), partner.partnerStationId().toString()),
-                federation.getCachedName(partner.id(), notice.memberUid()).orElse(null));
+                shares.getCachedName(partner.id(), notice.memberUid()).orElse(null));
         log.info(
                 "Partner {} withdrew document {} of appointment {} on {}{}",
                 partner.id(),
@@ -322,7 +329,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
         var asked = signable(event);
         if (asked.isEmpty()) return List.of();
         var recorded = agreements.forDate(event.id(), date);
-        return federation.findRegistrations(event.id(), date).stream()
+        return partnerRegistrations.findRegistrations(event.id(), date).stream()
                 .filter(EventFederationRegistration::isComingOrAsking)
                 .map(registration -> signer(registration, asked, recorded))
                 .toList();
@@ -341,7 +348,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
     public PartnerSignerDocument confirmPaper(
             StationSession session, StationEvent event, int registrationId, int templateId) {
         int eventId = event.id();
-        var registration = federation
+        var registration = partnerRegistrations
                 .findRegistrationById(registrationId)
                 .filter(found -> found.eventId() == eventId && found.isComingOrAsking())
                 .orElseThrow(DocumentRefusal.PARTNER_AGREEMENT_REGISTRATION_NOT_HERE::raise);
@@ -497,7 +504,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
 
     private Optional<EventFederationRegistration> registrationOf(
             FederationPartner partner, StationEvent event, RemoteAgreementNotice notice) {
-        return federation
+        return partnerRegistrations
                 .findRegistration(event.id(), partner.id(), notice.memberUid(), notice.eventDate())
                 .filter(EventFederationRegistration::isComingOrAsking);
     }
@@ -533,8 +540,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
     }
 
     private StationEvent sharedEvent(ServingPartner partner, int eventId, Refusal notShared) {
-        if (!federation
-                .findSharedEventIds(partner.partnerId(), partner.servingStationId())
+        if (!shares.findSharedEventIds(partner.partnerId(), partner.servingStationId())
                 .contains(eventId)) {
             throw notShared.raise();
         }
