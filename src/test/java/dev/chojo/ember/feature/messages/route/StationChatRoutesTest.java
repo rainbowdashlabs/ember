@@ -21,6 +21,7 @@ import io.javalin.testtools.Request;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -63,6 +64,13 @@ class StationChatRoutesTest extends MessageTestBase {
         member = join(station, memberAccount);
     }
 
+    /** What a session holds, its granted permissions with everything they include, as the real session reads it. */
+    private static Set<StationPermission> held(Set<StationPermission> granted) {
+        var held = EnumSet.noneOf(StationPermission.class);
+        held.addAll(granted);
+        return StationPermission.expand(held);
+    }
+
     private Consumer<Request.Builder> as(StationMember who, StationPermission... permissions) {
         var signed = signedIn(who, permissions);
         return harness.as(new UserSession(
@@ -71,7 +79,7 @@ class StationChatRoutesTest extends MessageTestBase {
                 who.stationId(),
                 station.uid(),
                 who,
-                signed.permissions(),
+                held(signed.permissions()),
                 Set.of(),
                 null));
     }
@@ -144,6 +152,33 @@ class StationChatRoutesTest extends MessageTestBase {
     }
 
     @Test
+    void editingTheChatsAndModeratingThemAreGrantedApart() {
+        harness.run((server, client) -> {
+            assertEquals(
+                    403,
+                    client.get(PREFIX + "/messages/reports", as(manager, StationPermission.MESSAGE_CHAT_EDIT))
+                            .code(),
+                    "an editor of the chats does not handle reports");
+            assertEquals(
+                    200,
+                    client.get(PREFIX + "/messages/station-chats", as(manager, StationPermission.MESSAGE_CHAT_EDIT))
+                            .code());
+            assertEquals(
+                    403,
+                    client.post(
+                                    PREFIX + "/messages/station-chats",
+                                    body("{\"name\":\"Alle\"}"),
+                                    as(manager, StationPermission.MESSAGE_CHAT_MODERATE))
+                            .code(),
+                    "a moderator does not open chats");
+            assertEquals(
+                    200,
+                    client.get(PREFIX + "/messages/reports", as(manager, StationPermission.MESSAGE_CHAT_MODERATE))
+                            .code());
+        });
+    }
+
+    @Test
     void aMemberFindsTheChatButCannotLeaveItOrStartOne() {
         harness.run((server, client) -> {
             var opened = json(client.post(
@@ -188,7 +223,7 @@ class StationChatRoutesTest extends MessageTestBase {
                     other.id(),
                     other.uid(),
                     stranger,
-                    signed.permissions(),
+                    held(signed.permissions()),
                     Set.of(),
                     null));
 

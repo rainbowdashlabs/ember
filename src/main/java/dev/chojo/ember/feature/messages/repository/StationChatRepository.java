@@ -409,7 +409,7 @@ public class StationChatRepository {
                 ) AS moderates;""", PermissionHolderSql.HOLDS_PERMISSION)
                 .single(PermissionHolderSql.bind(
                         call().bind("station_id", stationId).bind("account_id", accountId),
-                        Set.of(StationPermission.MESSAGE_CHAT_MANAGE)))
+                        Set.of(StationPermission.MESSAGE_CHAT_MODERATE)))
                 .map(row -> row.getBoolean("moderates"))
                 .first()
                 .orElse(false);

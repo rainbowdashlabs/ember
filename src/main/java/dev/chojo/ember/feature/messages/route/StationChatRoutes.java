@@ -49,11 +49,11 @@ public class StationChatRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         String base = prefix + "/messages/station-chats";
-        routes.get(base, this::list, StationPermission.MESSAGE_CHAT_MANAGE);
-        routes.post(base, this::open, StationPermission.MESSAGE_CHAT_MANAGE);
-        routes.put(base + "/{conversationUid}", this::edit, StationPermission.MESSAGE_CHAT_MANAGE);
-        routes.post(base + "/{conversationUid}/close", this::close, StationPermission.MESSAGE_CHAT_MANAGE);
-        routes.post(base + "/{conversationUid}/reopen", this::reopen, StationPermission.MESSAGE_CHAT_MANAGE);
+        routes.get(base, this::list, StationPermission.MESSAGE_CHAT_EDIT);
+        routes.post(base, this::open, StationPermission.MESSAGE_CHAT_EDIT);
+        routes.put(base + "/{conversationUid}", this::edit, StationPermission.MESSAGE_CHAT_EDIT);
+        routes.post(base + "/{conversationUid}/close", this::close, StationPermission.MESSAGE_CHAT_EDIT);
+        routes.post(base + "/{conversationUid}/reopen", this::reopen, StationPermission.MESSAGE_CHAT_EDIT);
     }
 
     @OpenApi(

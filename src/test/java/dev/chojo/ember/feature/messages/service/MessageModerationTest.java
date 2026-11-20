@@ -39,6 +39,9 @@ class MessageModerationTest extends MessageTestBase {
     private Account moderator;
     private Account anna;
     private Account ben;
+    private Account editor;
+    private Account keeper;
+    private Account manager;
     private Conversation chat;
 
     @BeforeEach
@@ -54,6 +57,9 @@ class MessageModerationTest extends MessageTestBase {
                 StationUserType.MANAGER);
         anna = memberOf(station, "Anna");
         ben = memberOf(station, "Ben");
+        editor = grantedOnly("Emil", StationPermission.MESSAGE_CHAT_EDIT);
+        keeper = grantedOnly("Mara", StationPermission.MESSAGE_CHAT_MODERATE);
+        manager = grantedOnly("Marc", StationPermission.MESSAGE_CHAT_MANAGE);
         chat = services.stationChats().open(station.id(), moderator.id(), "Alle", null, false);
     }
 
@@ -97,6 +103,34 @@ class MessageModerationTest extends MessageTestBase {
                 .id();
         assertRefused(
                 MessageRefusal.DELETE_NOT_YOURS, () -> services.messages().delete(moderator.id(), chat.uid(), line));
+    }
+
+    @Test
+    void editingTheChatsAloneIsNoModeration() {
+        int id = send(anna, "Hallo");
+
+        assertFalse(services.conversations().detail(editor.id(), chat.uid()).moderator());
+        assertRefused(MessageRefusal.DELETE_NOT_YOURS, () -> services.messages().delete(editor.id(), chat.uid(), id));
+    }
+
+    @Test
+    void moderatingAloneRemovesSomebodyElsesMessage() {
+        int id = send(anna, "Unfug");
+
+        assertTrue(services.conversations().detail(keeper.id(), chat.uid()).moderator());
+        services.messages().delete(keeper.id(), chat.uid(), id);
+
+        assertTrue(services.messages().one(ben.id(), chat.uid(), id).message().removedByStation());
+    }
+
+    @Test
+    void managingTheChatsStillModerates() {
+        int id = send(anna, "Unfug");
+
+        assertTrue(services.conversations().detail(manager.id(), chat.uid()).moderator());
+        services.messages().delete(manager.id(), chat.uid(), id);
+
+        assertTrue(services.messages().one(ben.id(), chat.uid(), id).message().removedByStation());
     }
 
     @Test
@@ -297,7 +331,7 @@ class MessageModerationTest extends MessageTestBase {
 
         verify(services.notifier())
                 .notify(
-                        eq(StationAudience.holders(station.id(), StationPermission.MESSAGE_CHAT_MANAGE)
+                        eq(StationAudience.holders(station.id(), StationPermission.MESSAGE_CHAT_MODERATE)
                                 .except(memberOf(moderator).id())),
                         eq(NotificationType.MESSAGE_REPORTED),
                         any(),
@@ -315,5 +349,19 @@ class MessageModerationTest extends MessageTestBase {
                 .send(author.id(), chat.uid(), text, null)
                 .message()
                 .id();
+    }
+
+    /**
+     * A member of the station holding exactly one permission, granted as a row of its own rather than
+     * through a user type, so nothing else comes with it.
+     */
+    private Account grantedOnly(String firstName, StationPermission permission) {
+        Account account = memberOf(station, firstName);
+        var member = stationMemberRepo
+                .findByStationAndAccount(station.id(), account.id())
+                .orElseThrow();
+        var granted = stationMemberRepo.findPermissionByName(permission).orElseThrow();
+        stationMemberRepo.grantPermission(member.id(), granted.id());
+        return account;
     }
 }

@@ -4892,9 +4892,17 @@ export default {
             label: 'Statistiken',
             desc: 'Kann die Stationsstatistiken einsehen.',
         },
+        MESSAGE_CHAT_EDIT: {
+            label: 'Chats bearbeiten',
+            desc: 'Kann Chats für die ganze Wache, eine Gruppe oder einen Tag eröffnen, umbenennen, schließen und wieder öffnen und festlegen, wer sie sieht.',
+        },
+        MESSAGE_CHAT_MODERATE: {
+            label: 'Chats moderieren',
+            desc: 'Kann jede Nachricht in den Wachenchats entfernen und gemeldete Nachrichten bearbeiten.',
+        },
         MESSAGE_CHAT_MANAGE: {
             label: 'Wachenchats verwalten',
-            desc: 'Kann Chats für die ganze Wache, eine Gruppe oder einen Tag eröffnen, umbenennen und schließen, jede Nachricht darin entfernen und gemeldete Nachrichten bearbeiten.',
+            desc: 'Vollzugriff auf die Wachenchats: bearbeiten und moderieren.',
         },
         PAGE_MANAGER: {
             label: 'Seiten verwalten',

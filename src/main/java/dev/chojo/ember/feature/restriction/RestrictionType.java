@@ -138,7 +138,7 @@ public enum RestrictionType {
             "conversation",
             "id",
             "restriction_mode",
-            StationPermission.MESSAGE_CHAT_MANAGE,
+            StationPermission.MESSAGE_CHAT_EDIT,
             false,
             true);
 

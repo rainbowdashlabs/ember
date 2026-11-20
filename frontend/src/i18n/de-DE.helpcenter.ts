@@ -364,7 +364,7 @@ export default {
                 blockText: 'Blockierst du jemanden, kann die Person keine direkte Unterhaltung mit dir mehr starten und dich in keine Gruppe holen. In gemeinsamen Gruppen sind ihre Nachrichten eingeklappt, und ihre Reaktionen siehst du nicht. Die Person erfährt davon nichts.',
                 reportTitle: 'Melden',
                 reportText: 'Direkte Unterhaltungen und Gruppen gehören den Leuten, die darin schreiben, und keiner Wache. Dort kann man nichts melden. Wenn dich jemand bedrängt, blockiere die Person und sprich mit jemandem, dem du vertraust.',
-                reportStationText: 'Wachenchats gehören dagegen der Wache. Dort kannst du eine Nachricht melden. Die Meldung geht an die, die die Chats der Wache betreuen. Sie sehen die Nachricht mit dem, was davor und danach geschrieben wurde, und können sie für die Wache entfernen.',
+                reportStationText: 'Wachenchats gehören dagegen der Wache. Dort kannst du eine Nachricht melden. Die Meldung geht an die, die die Chats moderieren. Sie sehen die Nachricht mit dem, was davor und danach geschrieben wurde, und können sie für die Wache entfernen.',
                 stationTitle: 'Wachenchats',
                 stationText: 'Eine Wache kann Chats für alle eröffnen oder für die, die sie auswählt, etwa eine Gruppe zusammen mit ihrer Leitung. Wer dazugehört, ist automatisch dabei, und wer geht, ist draußen. Verlassen kannst du so einen Chat nicht, aber stummschalten. Kinder sind erst dabei, wenn eine erziehungsberechtigte Person Nachrichten erlaubt hat. Die Wache kann auch die Erziehungsberechtigten dazuholen.',
                 storedTitle: 'Wo liegen meine Nachrichten?',
@@ -1402,7 +1402,7 @@ volumes:
             stationTitle: 'Wachenchats',
             stationText: 'Ein Wachenchat gehört der Wache. Sie eröffnet ihn für alle oder für die, die sie auswählt, und wer dazugehört, ist automatisch dabei. In der Liste erkennst du ihn am Bild der Wache und an „Wachenchat". Über „Wachenchats" über der Liste siehst du nur diese Chats.',
             stationMembersText: 'Die Mitgliederliste eines Wachenchats kannst du nur ansehen. Namen stehen dort und an den Nachrichten in der Farbe ihrer Gruppe und mit ihrem Tag, so wie die Wache sie zeigt. Erziehungsberechtigte sind dort mit dem Namen der Person markiert, für die sie dabei sind. Verlassen kannst du den Chat nicht, aber stummschalten. Ein geschlossener Chat bleibt lesbar, nimmt aber nichts Neues mehr an.',
-            stationReportText: 'An einer fremden Nachricht im Wachenchat findest du „Melden". Die Meldung geht an die, die die Chats der Wache betreuen. Sie können eine Nachricht für die Wache entfernen, dann steht dort für alle „Von der Wache entfernt".',
+            stationReportText: 'An einer fremden Nachricht im Wachenchat findest du „Melden". Die Meldung geht an die, die die Chats moderieren. Sie können eine Nachricht für die Wache entfernen, dann steht dort für alle „Von der Wache entfernt".',
             noEncryptionText: 'Nachrichten sind nicht Ende-zu-Ende-verschlüsselt. Das heißt: Sie liegen lesbar auf dem Server, wie alles andere in Ember auch. Schreib deshalb keine Passwörter oder Geheimnisse in eine Nachricht.',
             tip: 'Hat ein Kind Erziehungsberechtigte, sieht es Nachrichten erst, wenn eine erziehungsberechtigte Person sie bei „Verwaltete Profile" erlaubt.',
             example: {
@@ -1438,8 +1438,8 @@ volumes:
             guardiansText: 'Den Schalter gibt es für jeden Chat, auch für einen für die ganze Wache. Ist er an, sind die Erziehungsberechtigten der Mitglieder ebenfalls im Chat. Sie lesen und schreiben wie alle anderen. Das gilt auch, wenn ihr Kind selbst noch keine Nachrichten hat. In der Mitgliederliste steht bei ihnen, für wen sie dabei sind.',
             closeTitle: 'Schließen und betreuen',
             closeText: 'Schließt du einen Chat, bleibt er für alle lesbar, nimmt aber nichts Neues mehr an. Mit „Wieder öffnen" geht er wieder auf. Wird eine Gruppe oder ein Tag aus seiner Zielgruppe gelöscht, oder ist niemand der einzeln Ausgewählten mehr da, schließt sich der Chat von selbst und sagt das. Gib ihm dann mit „Bearbeiten" eine neue Zielgruppe, danach lässt er sich wieder öffnen. Private Tags stehen nicht zur Auswahl, denn der Chat zeigt, wer dabei ist.',
-            moderateText: 'Bist du in einem Chat, kannst du jede Nachricht darin für die Wache entfernen. Gemeldete Nachrichten findest du unter „Gemeldete Nachrichten".',
-            tip: 'Dafür brauchst du die Berechtigung „Wachenchats verwalten".',
+            moderateText: 'Mit der Berechtigung „Chats moderieren" kannst du in jedem Chat, in dem du bist, jede Nachricht für die Wache entfernen. Gemeldete Nachrichten findest du unter „Gemeldete Nachrichten".',
+            tip: 'Chats anlegen, ändern und schließen erlaubt die Berechtigung „Chats bearbeiten". „Wachenchats verwalten" umfasst sie und „Chats moderieren".',
             example: {
                 youth: 'Jugendgruppe',
                 youthLeaders: 'Jugendleitung',
@@ -1456,10 +1456,10 @@ volumes:
             howTo: 'Eine Meldung ansehen',
             howToText: 'Oben stehen der Chat, wer gemeldet hat und wann, und der Grund, falls einer angegeben wurde. Darunter steht die Nachricht so, wie sie beim Melden lautete. Im Verlauf siehst du, was davor und danach geschrieben wurde. Die gemeldete Nachricht ist dort markiert, auch wenn sie inzwischen geändert wurde.',
             decideTitle: 'Entscheiden',
-            removeText: '„Für die Wache entfernen" fragt noch einmal nach und entfernt die Nachricht dann. Für alle steht dort „Von der Wache entfernt". Wer sie entfernt hat, sehen nur die, die die Chats betreuen.',
+            removeText: '„Für die Wache entfernen" fragt noch einmal nach und entfernt die Nachricht dann. Für alle steht dort „Von der Wache entfernt". Wer sie entfernt hat, sehen nur die, die die Chats moderieren.',
             dismissText: '„Meldung verwerfen" lässt die Nachricht stehen. Beides erledigt alle offenen Meldungen zu dieser Nachricht. Löscht die schreibende Person ihre Nachricht selbst, verschwindet die Meldung auch.',
             emptyTitle: 'Keine Meldungen',
-            tip: 'Dafür brauchst du die Berechtigung „Wachenchats verwalten".',
+            tip: 'Dafür brauchst du die Berechtigung „Chats moderieren". „Wachenchats verwalten" enthält sie.',
             example: {
                 reporterLast: 'Becker',
                 beforeLast: 'Wagner',
@@ -6479,7 +6479,7 @@ volumes:
             whatIsText: 'Hier findest du alle Einstellungen, die deine Wache betreffen - vom Namen und Logo über den E-Mail-Versand bis hin zur Konfiguration von Anwesenheitsvorlagen und Profilfeldern. Nur Verwalter (Manager) haben Zugriff auf diesen Bereich.',
             pagesTitle: 'Was findest du hier?',
             pagesText: 'Die allgemeinen Wach-Einstellungen (Name, Logo, E-Mail, Module), die Konfiguration von Anwesenheitsvorlagen und die Konfiguration der Mitglieder-Profilfelder.',
-            chatsText: 'Unter „Wachenchats“ legst du Chats für die ganze Wache, eine Gruppe oder einen Tag an. Diesen Punkt siehst du, wenn du Wachenchats verwalten darfst, auch ohne andere Rechte in der Verwaltung.',
+            chatsText: 'Unter „Wachenchats“ legst du Chats für die ganze Wache, eine Gruppe oder einen Tag an. Diesen Punkt siehst du, wenn du Chats bearbeiten darfst, auch ohne andere Rechte in der Verwaltung.',
             pdfTitle: 'Adresse der Instanz auf PDFs',
             pdfText: 'In der Fußzeile jedes exportierten PDFs steht die Adresse dieser Instanz. Wenn deine Wache Listen an '
                 + 'Leute weitergibt, die hier kein Konto haben, oder die Instanz von außen gar nicht erreichbar ist, kannst du '
