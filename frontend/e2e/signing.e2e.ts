@@ -69,7 +69,7 @@ async function appointment(manager: Page, withConsent = true): Promise<{eventId:
             startTime: start.toISOString(),
             endTime: new Date(start.getTime() + 3_600_000).toISOString(),
             requiresRegistration: true,
-            registrationDeadline: new Date(Date.now() + 3 * DAY).toISOString(),
+            registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() + 3 * DAY).toISOString(), offsetMinutes: null, anchor: null},
         },
     })
     expect(created.ok(), `the organiser made an appointment (${await created.text()})`).toBeTruthy()

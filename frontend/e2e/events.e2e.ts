@@ -298,7 +298,7 @@ test.describe('Events', () => {
                 startTime: new Date(Date.now() + 25 * 86400000).toISOString(),
                 endTime: new Date(Date.now() + 25 * 86400000 + 3600000).toISOString(),
                 requiresRegistration: true,
-                registrationDeadline: new Date(Date.now() + 20 * 86400000).toISOString(),
+                registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() + 20 * 86400000).toISOString(), offsetMinutes: null, anchor: null},
             },
         })
         expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
@@ -477,7 +477,7 @@ test.describe('Events', () => {
                     startTime: new Date(Date.now() + 20 * 86400000).toISOString(),
                     endTime: new Date(Date.now() + 20 * 86400000 + 3600000).toISOString(),
                     requiresRegistration: true,
-                    registrationDeadline: new Date(Date.now() + 10 * 86400000).toISOString(),
+                    registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() + 10 * 86400000).toISOString(), offsetMinutes: null, anchor: null},
                 },
             })
             expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
@@ -502,7 +502,7 @@ test.describe('Events', () => {
                     startTime: new Date(Date.now() + 20 * 86400000).toISOString(),
                     endTime: new Date(Date.now() + 20 * 86400000 + 3600000).toISOString(),
                     requiresRegistration: true,
-                    registrationDeadline: new Date(Date.now() - 86400000).toISOString(),
+                    registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() - 86400000).toISOString(), offsetMinutes: null, anchor: null},
                 },
             })
             expect(closed.ok(), `the organiser closed registration (${await closed.text()})`).toBeTruthy()
@@ -542,7 +542,7 @@ test.describe('Events', () => {
                     startTime: new Date(Date.now() + 21 * 86400000).toISOString(),
                     endTime: new Date(Date.now() + 21 * 86400000 + 3600000).toISOString(),
                     requiresRegistration: true,
-                    registrationDeadline: new Date(Date.now() + 10 * 86400000).toISOString(),
+                    registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() + 10 * 86400000).toISOString(), offsetMinutes: null, anchor: null},
                 },
             })
             expect(created.ok(), `the organiser made an appointment (${await created.text()})`).toBeTruthy()
@@ -584,7 +584,7 @@ test.describe('Events', () => {
                     startTime: new Date(Date.now() + 21 * 86400000).toISOString(),
                     endTime: new Date(Date.now() + 21 * 86400000 + 3600000).toISOString(),
                     requiresRegistration: true,
-                    registrationDeadline: new Date(Date.now() - 86400000).toISOString(),
+                    registrationDeadline: {kind: 'FIXED', at: new Date(Date.now() - 86400000).toISOString(), offsetMinutes: null, anchor: null},
                 },
             })
             expect(closed.ok(), `registration closed (${await closed.text()})`).toBeTruthy()
