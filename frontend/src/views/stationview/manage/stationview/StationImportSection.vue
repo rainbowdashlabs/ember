@@ -85,6 +85,7 @@ function pollStationImport() {
 
   <ConfirmDeleteModal
       v-model="showImportConfirm"
+      data-confirm-always
       :title="t('stationManage.importConfirmTitle')"
       :message="t('stationManage.importConfirmText')"
       :confirm-label="t('stationManage.importConfirmAction')"

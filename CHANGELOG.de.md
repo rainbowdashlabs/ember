@@ -78,6 +78,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Gelöschte Mitglieder behielten ihre Ausrüstung.** Wurde ein Mitglied oder ein Konto gelöscht, blieb seine Ausrüstung zugewiesen und seine laufenden Vorgänge liefen weiter. Jetzt kommt die Ausrüstung vorher zurück ins Lager, und laufende Vorgänge werden abgebrochen.
 - **Vorgänge wurden gelöscht, obwohl schon Stücke bewegt waren.** Ein Mitglied als ehemalig zu markieren oder einen Tausch auf der Anwesenheitsliste zu entfernen, löschte den Vorgang auch dann, wenn schon Stücke den Besitzer gewechselt hatten. Solche Vorgänge werden jetzt abgeschlossen und bleiben erhalten, und die Liste bietet das Entfernen nur an, solange noch nichts bewegt wurde.
 - **Die Inventarstatistik zählte manche Ausrüstung doppelt.** Das Inventardiagramm zählte ein vermisstes Stück bei einem Mitglied als vermisst und als ausgegeben, und verliehene oder verschickte Ausrüstung als verfügbar. Jetzt zählt jedes Stück einmal, und Ausrüstung, die nicht auf der Wache ist, steht für sich.
+- **Die Umschalttaste übersprang nur manche Rückfragen.** Mit gedrückter Umschalttaste entfiel die Rückfrage nur bei manchen Löschknöpfen, und einige Löschungen entfernten gespeicherte Daten ganz ohne Nachfrage. Jetzt überspringt die Umschalttaste jede einfache Rückfrage, und diese Löschungen fragen vorher nach.
 
 ## v26.25.2
 

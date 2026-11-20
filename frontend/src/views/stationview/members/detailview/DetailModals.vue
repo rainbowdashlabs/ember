@@ -51,7 +51,6 @@ const {show: showFormerModal, request: requestMarkFormer, confirm: confirmMarkFo
   onConfirm: async () => { emit('markFormer') },
 })
 
-const showDeleteModal = ref(false)
 const showDeleteConfirm = ref(false)
 
 const showReassignModal = ref(false)
@@ -75,7 +74,17 @@ function openFormerModal() {
   else showFormerModal.value = true
 }
 
-function openDeleteModal() { showDeleteModal.value = true }
+/**
+ * The first of the two questions before a member is deleted. Shift skips this one; the second is the
+ * safety stop and always asks.
+ */
+const {show: showDeleteModal, request: requestDelete, confirm: confirmFirstStep} = useConfirmAction<true>({
+  onConfirm: async () => {
+    showDeleteConfirm.value = true
+  },
+})
+
+function openDeleteModal() { requestDelete(true) }
 
 function openReassignModal(item: MyInventoryItem) {
   reassignItemRef.value = item
@@ -146,12 +155,12 @@ defineExpose({
       :title="t('memberDetail.deleteTitle')"
       :message="t('memberDetail.deleteText', { name: memberDisplayName })"
       :confirm-label="t('memberDetail.deleteConfirmAction')"
-      @confirm="showDeleteModal = false; showDeleteConfirm = true"
+      @confirm="confirmFirstStep"
   >
     <MutedText tag="p">{{ t('memberDetail.deleteHint') }}</MutedText>
   </ConfirmDeleteModal>
 
-  <Modal v-model="showDeleteConfirm">
+  <Modal v-model="showDeleteConfirm" data-confirm-always>
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.deleteConfirmTitle') }}</SubHeader>
       <p class="text-sm font-semibold text-error">{{ t('memberDetail.deleteConfirmText') }}</p>

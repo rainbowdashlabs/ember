@@ -309,6 +309,11 @@ export default {
             shortcutsSkip: 'Hältst du beim Klick auf Löschen oder eine andere Rückfrage die Umschalttaste, wird die '
                 + 'Frage übersprungen und die Aktion sofort ausgeführt. Praktisch, wenn du mehrere Einträge '
                 + 'nacheinander wegräumst.',
+            shortcutsSkipSafety: 'Ausgenommen sind die Sicherheitsstopps, die immer fragen: dein eigenes Konto löschen, '
+                + 'der letzte Schritt beim Löschen eines Mitglieds, ein Einmalpasswort ersetzen, eine Wache '
+                + 'importieren, Signaturschlüssel wiederherstellen und die Frage beim Verlassen ungespeicherter '
+                + 'Änderungen.',
+            shortcutsSkipInput: 'Ebenso fragen Dialoge immer, in denen du einen Grund, eine Notiz oder eine Auswahl angibst.',
             otherPagesText: 'Neben den Grundlagen gibt es detaillierte Hilfe-Seiten zu jedem Bereich der Anwendung:',
             goToStation: 'Wachen-Hilfe',
             goToAdmin: 'Admin-Hilfe',

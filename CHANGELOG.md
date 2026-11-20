@@ -78,6 +78,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Deleted members kept their gear.** When a member or an account was deleted, their gear stayed assigned and their running movements went on. Their gear now goes back to the store first, and their running movements are called off.
 - **Movements deleted after pieces had moved.** Marking a member as former, or removing a swap on the attendance sheet, deleted the movement even when pieces had already changed hands. Such movements are now closed and kept, and the sheet offers removal only before anything has moved.
 - **Inventory statistics counted some gear twice.** The inventory chart counted a missing piece on a member both as missing and as handed out, and lent or posted gear as available. Each piece is now counted once, with gear away from the station shown on its own.
+- **Shift skipped only some questions.** Holding the Shift key skipped the question on only some delete buttons, and a few removals deleted stored data without asking at all. Shift now skips every plain question, and those removals ask first.
 
 ## v26.25.2
 

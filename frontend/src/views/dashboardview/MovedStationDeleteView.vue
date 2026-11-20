@@ -62,7 +62,7 @@ async function performDelete() {
         </ErrorButton>
       </div>
 
-      <Modal v-model="confirmOpen" size="md">
+      <Modal v-model="confirmOpen" data-confirm-always size="md">
         <SectionHeader>{{ t('pages.station-moved.deleteModalTitle') }}</SectionHeader>
         <p class="mt-4 text-text/80">{{ t('pages.station-moved.deleteModalBody') }}</p>
         <p class="mt-4 text-text/80">
