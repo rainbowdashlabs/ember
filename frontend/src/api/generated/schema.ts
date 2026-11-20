@@ -48709,7 +48709,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["CloseMovementRequest"];
+                    "application/json": components["schemas"]["CancelMovementRequest"];
                 };
             };
             responses: {
@@ -71819,6 +71819,11 @@ export interface components {
             /** Format: int32 */
             eventId: number;
         };
+        CancelMovementRequest: {
+            giveBack?: boolean | null;
+            planWayBack?: boolean | null;
+            reason?: string | null;
+        };
         CancelRequest: {
             reason?: string | null;
         };
@@ -77717,6 +77722,7 @@ export interface components {
         MovementDetail: {
             lossReport: components["schemas"]["LossReport"] | null;
             movement: components["schemas"]["MovementResponse"];
+            oldPiece: components["schemas"]["OldPieceWhereabouts"];
             steps: components["schemas"]["MovementStepResponse"][];
         };
         /** @enum {string} */
@@ -78173,6 +78179,8 @@ export interface components {
         OkResponse: {
             ok: boolean;
         };
+        /** @enum {string} */
+        OldPieceWhereabouts: "NONE" | "WITH_MEMBER" | "AT_STATION" | "AWAY";
         OnboardAgainResponse: {
             mailed: boolean;
         };
@@ -83874,6 +83882,7 @@ export type CalloutVariant = components['schemas']['CalloutVariant'];
 export type CancellationCause = components['schemas']['CancellationCause'];
 export type CancellationNotice = components['schemas']['CancellationNotice'];
 export type CancelledEventDate = components['schemas']['CancelledEventDate'];
+export type CancelMovementRequest = components['schemas']['CancelMovementRequest'];
 export type CancelRequest = components['schemas']['CancelRequest'];
 export type CanEditResponse = components['schemas']['CanEditResponse'];
 export type CapabilityRequest = components['schemas']['CapabilityRequest'];
@@ -84755,6 +84764,7 @@ export type OfferAnswerRequest = components['schemas']['OfferAnswerRequest'];
 export type OfferedDate = components['schemas']['OfferedDate'];
 export type OfferResponse = components['schemas']['OfferResponse'];
 export type OkResponse = components['schemas']['OkResponse'];
+export type OldPieceWhereabouts = components['schemas']['OldPieceWhereabouts'];
 export type OnboardAgainResponse = components['schemas']['OnboardAgainResponse'];
 export type OnboardingLevel = components['schemas']['OnboardingLevel'];
 export type OnboardingStatus = components['schemas']['OnboardingStatus'];
@@ -86447,6 +86457,13 @@ export const NotificationType = {
 export const OfferAnswer = {
     DECLINED: "DECLINED",
     LATER: "LATER",
+} as const;
+
+export const OldPieceWhereabouts = {
+    AT_STATION: "AT_STATION",
+    AWAY: "AWAY",
+    NONE: "NONE",
+    WITH_MEMBER: "WITH_MEMBER",
 } as const;
 
 export const OnboardingLevel = {

@@ -54,6 +54,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -131,6 +132,14 @@ class MovementRoutesTest {
                 harness.as(TestSessions.member(STATION, StationPermission.INVENTORY_MANAGER)));
     }
 
+    /** Calls off movement 9 as a member of the station, which is who may call one off. */
+    private Response callOff(HttpClient client, String json) {
+        return client.post(
+                PREFIX + "/movements/9/cancel",
+                body(json),
+                harness.as(TestSessions.member(STATION, StationPermission.USER)));
+    }
+
     /** With movements switched off, or the whole inventory, the movement routes answer as absent. */
     @Test
     void switchedOffMovementsAnswerAsAbsent() {
@@ -173,6 +182,48 @@ class MovementRoutesTest {
                     json(get(client, "/movements?open=true")).path(0).path("id").asInt());
             verify(movementService).findOpenByStation(STATION);
             verify(guards).visibleAmong(any(), eq(List.of(MOVEMENT)));
+        });
+    }
+
+    /**
+     * Calling off says what becomes of the piece that set out: given back unless kept, and a way back
+     * planned only where asked for.
+     */
+    @Test
+    void callingOffCarriesWhatBecomesOfThePiece() {
+        when(guards.requireVisible(any(), eq(9))).thenReturn(MOVEMENT);
+        when(movementService.cancel(eq(9), any(), any(), any(), any())).thenReturn(MOVEMENT);
+
+        harness.run((server, client) -> {
+            assertEquals(
+                    200,
+                    callOff(client, "{\"reason\":\"Doch nicht\",\"giveBack\":false}")
+                            .code());
+            verify(movementService)
+                    .cancel(eq(9), any(), eq("Doch nicht"), eq(new ItemMovementService.CallOff(false, false)), any());
+
+            callOff(client, "{\"reason\":\"Weg\",\"planWayBack\":true}");
+            verify(movementService)
+                    .cancel(eq(9), any(), eq("Weg"), eq(new ItemMovementService.CallOff(true, true)), any());
+        });
+    }
+
+    /**
+     * Planning the way back starts a hand-out for the member, so it asks what starting one asks: a
+     * caller who may not start a movement for that member is refused before anything is called off.
+     */
+    @Test
+    void aWayBackIsPlannedOnlyBySomebodyWhoMayStartOneForTheMember() {
+        when(guards.requireVisible(any(), eq(9))).thenReturn(MOVEMENT);
+        doThrow(InventoryRefusal.MEMBER_NOT_YOURS_TO_ACT_FOR.raise())
+                .when(guards)
+                .requireMayStartFor(any(), eq(MEMBER_ID));
+
+        harness.run((server, client) -> {
+            assertEquals(
+                    InventoryRefusal.MEMBER_NOT_YOURS_TO_ACT_FOR,
+                    refusalOf(callOff(client, "{\"reason\":\"Weg\",\"planWayBack\":true}")));
+            verify(movementService, never()).cancel(anyInt(), any(), any(), any(), any());
         });
     }
 

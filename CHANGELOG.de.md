@@ -35,6 +35,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Offene Antworten auch bei wiederkehrenden Terminen.** Die Übersicht listet nicht nur einmalige Termine, sondern auch jedes Datum eines wiederkehrenden Termins, das noch auf eine Antwort wartet, und führt zu diesem Datum.
 - **Plätze für Partnerwachen bei Terminreihen.** Eine geteilte Terminreihe kann eine Partnerwache selbst über ihre Anmeldungen entscheiden lassen, auf Wunsch mit einer festen Zahl an Plätzen für die ganze Terminreihe. Das ging bisher nur bei geteilten Terminen.
 - **Partnerwachen erfahren von Entscheidungen.** Mitglieder einer Partnerwache bekommen eine Nachricht, wenn die ausrichtende Wache ihre Anmeldung bestätigt, ablehnt, auf die Nachrückliste setzt oder nachrücken lässt. Dieselbe Nachricht kommt, wenn die eigene Wache sie bestätigt.
+- **Rückweg für ein schon verschicktes Teil.** Wird ein Tausch abgebrochen, dessen altes Teil schon unterwegs oder wieder beim Träger ist, lässt sich der Rückweg planen. Eine neue Ausgabe bringt dann genau dieses Teil zurück zum Mitglied.
 
 ### Änderungen
 
@@ -69,6 +70,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Geplante Ausgabe fragte erneut nach dem Teil.** Wurde eine Ausgabe mit einem schon ausgesuchten Teil geplant, verlangte der Schritt der Übergabe trotzdem ein Teil und konnte das ausgesuchte nicht anbieten. Der Schritt beginnt jetzt mit dem geplanten Teil, das bestätigt oder gegen ein anderes freies getauscht werden kann.
 - **Geplante Teile fehlten im Inventar eines Mitglieds.** Der Inventar-Tab eines Mitglieds zeigte keine Ausrüstung, die ein laufender Vorgang ihm bald bringt. Wer Vorgänge sehen darf, findet jedes solche Teil jetzt in seinem Inventar anstelle seiner Karte „Fehlt“, mit einem Link zum Vorgang.
 - **Teile in einem Vorgang wirkten im Inventar frei.** In den Listen eines Inventars erschien ein Teil, das ein laufender Vorgang vorgemerkt hatte oder gerade bewegte, wie ein gewöhnliches freies Teil. Jetzt trägt es ein Abzeichen, das zum Vorgang führt, und eine direkte Zuweisung an ein Mitglied wird abgelehnt.
+- **Abgebrochener Tausch ließ das eigene Teil im Lager.** Wurde ein Tausch eigener Ausrüstung abgebrochen, nachdem das alte Teil abgegeben war, blieb es im Lager und das Mitglied hatte nichts. Beim Abbrechen fragt Ember jetzt, ob das alte Teil zurückgehen soll, mit Ja als Vorgabe.
 
 ## v26.25.2
 

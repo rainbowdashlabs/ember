@@ -134,4 +134,40 @@ describe('MovementActionPanel', () => {
             held.inventoryRead = true
         }
     })
+
+    /**
+     * Calling off asks about the piece the member handed in. At the station it goes back unless kept;
+     * once it has left, a way back is offered and not assumed.
+     */
+    describe('calling off', () => {
+        function callingOff(oldPiece: string, forMember = true) {
+            return panel({oldPiece, forMember})
+        }
+
+        it('gives a piece at the station back unless it is kept', async () => {
+            const wrapper = callingOff('AT_STATION')
+
+            expect(wrapper.find('[data-testid="call-off-give-back"]').exists()).toBe(true)
+            await wrapper.get('[data-testid="movement-cancel"]').trigger('click')
+            expect(wrapper.emitted('cancel')?.[0]?.[1]).toEqual({giveBack: true, planWayBack: false})
+
+            await wrapper.get('[data-testid="call-off-give-back"]').trigger('click')
+            await wrapper.get('[data-testid="movement-cancel"]').trigger('click')
+            expect(wrapper.emitted('cancel')?.[1]?.[1]).toEqual({giveBack: false, planWayBack: false})
+        })
+
+        it('offers the way back for a piece that has left', async () => {
+            const wrapper = callingOff('AWAY')
+
+            expect(wrapper.find('[data-testid="call-off-give-back"]').exists()).toBe(false)
+            await wrapper.get('[data-testid="call-off-way-back"]').trigger('click')
+            await wrapper.get('[data-testid="movement-cancel"]').trigger('click')
+            expect(wrapper.emitted('cancel')?.[0]?.[1]).toMatchObject({planWayBack: true})
+        })
+
+        it('asks nothing while the member holds it, or where the movement is for nobody', () => {
+            expect(callingOff('WITH_MEMBER').find('[data-testid="call-off-choice"]').exists()).toBe(false)
+            expect(callingOff('AT_STATION', false).find('[data-testid="call-off-choice"]').exists()).toBe(false)
+        })
+    })
 })

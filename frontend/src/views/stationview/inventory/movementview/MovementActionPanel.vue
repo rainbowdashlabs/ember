@@ -14,8 +14,11 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ItemChipSize from '@/components/inventory/ItemChipSize.vue'
+import CallOffChoice from './CallOffChoice.vue'
+import type {CallOffChoice as CallOffAnswer} from '@/api/movements'
 import {
   ItemOwner,
+  type OldPieceWhereabouts,
   StationPermission,
   type InventorySize,
   type InventoryType,
@@ -72,6 +75,13 @@ const props = defineProps<{
   promisedItemId?: number | null
   /** That piece in words, for the line that says which one is meant. */
   promisedItemName?: string | null
+  /**
+   * Where the piece the member handed in is, which decides what calling off asks: whether to give it
+   * back, or whether to plan its way back. Only asked where the movement is for a member.
+   */
+  oldPiece?: OldPieceWhereabouts | null
+  /** Whether the movement is for a member, who is whom a piece would go back to. */
+  forMember?: boolean
   busy: boolean
 }>()
 
@@ -79,7 +89,7 @@ const emit = defineEmits<{
   acknowledge: [payload: AcknowledgePayload]
   force: [payload: AcknowledgePayload]
   decline: [reason: string]
-  cancel: [reason: string]
+  cancel: [reason: string, choice: CallOffAnswer]
 }>()
 
 /** What the step is answered with: a piece already known, or one written down on the spot. */
@@ -90,6 +100,15 @@ export interface AcknowledgePayload {
 }
 
 const note = ref('')
+const giveBack = ref(true)
+const planWayBack = ref(false)
+
+/** What calling off asks about the handed-in piece, or nothing where it is not the station's to say. */
+const callOffAsks = computed(() => props.step.actionable && props.forMember ? props.oldPiece ?? null : null)
+
+function callOff() {
+  emit('cancel', note.value, {giveBack: giveBack.value, planWayBack: planWayBack.value})
+}
 const searched = ref<number | null>(props.promisedItemId ?? null)
 const recording = ref(false)
 const newName = ref('')
@@ -221,6 +240,13 @@ function payload(): AcknowledgePayload {
       <TextInput v-model="note" :placeholder="t('movements.notePlaceholder')"/>
     </div>
 
+    <CallOffChoice
+        v-if="callOffAsks"
+        v-model:give-back="giveBack"
+        v-model:plan-way-back="planWayBack"
+        :old-piece="callOffAsks"
+    />
+
     <ButtonRow>
       <PrimaryButton
           v-if="props.step.actionable"
@@ -240,7 +266,7 @@ function payload(): AcknowledgePayload {
       <SecondaryButton :disabled="props.busy" @click="emit('decline', note)">
         {{ t('movements.decline') }}
       </SecondaryButton>
-      <SecondaryButton v-if="props.step.actionable" :disabled="props.busy" @click="emit('cancel', note)">
+      <SecondaryButton v-if="props.step.actionable" :disabled="props.busy" data-testid="movement-cancel" @click="callOff">
         {{ t('movements.cancel') }}
       </SecondaryButton>
     </ButtonRow>

@@ -113,6 +113,8 @@ function force(payload: AcknowledgePayload) {
             :may-record="mayRecord"
             :owner-cluster-id="detail.movement.ownerClusterId"
             :owner-kind="detail.movement.ownerKind"
+            :old-piece="detail.oldPiece"
+            :for-member="detail.movement.memberId != null"
             :promised-item-id="detail.movement.incomingItemId"
             :promised-item-name="detail.movement.incomingItemName"
             :sizes="sizes"
@@ -122,7 +124,7 @@ function force(payload: AcknowledgePayload) {
             @acknowledge="acknowledge"
             @force="force"
             @decline="reason => run(() => movements.declineMovement(props.movementId, reason))"
-            @cancel="reason => run(() => movements.cancelMovement(props.movementId, reason))"
+            @cancel="(reason, choice) => run(() => movements.cancelMovement(props.movementId, reason, choice))"
         />
       </template>
     </div>

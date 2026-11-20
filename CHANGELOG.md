@@ -35,6 +35,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Open answers for every date of a series.** The dashboard lists each date of a repeating appointment that still waits for an answer, not only one-time appointments, and leads to that date.
 - **Places per partner station for event groups.** A shared event group can let a partner station decide its own sign-ups, optionally with a number of places for the whole event group. Until now only shared appointments could do this.
 - **Partner members told about decisions.** Members of a partner station are told when the station holding it accepts or turns down their sign-up, puts it on the waiting list or moves it up. The same notice arrives when their own station confirms them.
+- **A way back for a piece already sent.** Calling off an exchange whose old piece is already in the post or back with the association offers to plan its way back. A new hand-out then brings exactly that piece back to the member.
 
 ### Changes
 
@@ -69,6 +70,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **A planned hand-out asked for its piece again.** When a hand-out was planned with a piece already chosen, the step that hands it over still asked for a piece and could not offer the chosen one. The step now starts with the planned piece, which can be confirmed or swapped for another free one.
 - **Planned pieces missing from a member's gear.** A member's inventory tab did not show gear a running movement was about to bring them. For readers who may see movements, each such piece now stands in its inventory with a link to the movement, in place of its "missing" card.
 - **Pieces on a movement looked free in the inventory.** In an inventory's item lists, a piece that a running movement had set aside or was moving showed as an ordinary free piece. It now carries a badge leading to the movement, and assigning it directly to a member is refused.
+- **Called-off exchanges left the station's own piece on the shelf.** When an exchange of the station's own gear was called off after the old piece had been handed in, the piece stayed on the shelf and the member held nothing. Calling off now asks whether to give the old piece back, with yes chosen.
 
 ## v26.25.2
 

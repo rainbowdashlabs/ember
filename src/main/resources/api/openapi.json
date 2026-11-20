@@ -39479,7 +39479,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/CloseMovementRequest"
+                "$ref" : "#/components/schemas/CancelMovementRequest"
               }
             }
           }
@@ -58831,6 +58831,20 @@
         },
         "required" : [ "canEdit" ]
       },
+      "CancelMovementRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "giveBack" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "planWayBack" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
+      },
       "CancelRequest" : {
         "type" : "object",
         "properties" : {
@@ -76075,9 +76089,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "oldPiece" : {
+            "$ref" : "#/components/schemas/OldPieceWhereabouts"
           }
         },
-        "required" : [ "movement", "steps", "lossReport" ]
+        "required" : [ "movement", "steps", "lossReport", "oldPiece" ]
       },
       "MovementParty" : {
         "type" : "string",
@@ -77387,6 +77404,10 @@
           }
         },
         "required" : [ "ok" ]
+      },
+      "OldPieceWhereabouts" : {
+        "type" : "string",
+        "enum" : [ "NONE", "WITH_MEMBER", "AT_STATION", "AWAY" ]
       },
       "OnboardAgainResponse" : {
         "type" : "object",
