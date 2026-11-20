@@ -32,6 +32,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Questions without switching sign-up on first.** The questions of an appointment or template are always on the form. Adding one switches sign-up on, and sign-up stays on while there are questions.
 - **Files on new appointments and event groups.** Files can be added while an appointment or event group is still being created, and they are attached in order as soon as it is saved.
 - **Sign-up deadlines before the start.** Appointments and event groups close sign-up at a fixed time or at a span before the start, to the minute or at midnight. Templates hand on the span, and repeating appointments close and warn for each date on its own.
+- **Open answers for every date of a series.** The dashboard lists each date of a repeating appointment that still waits for an answer, not only one-time appointments, and leads to that date.
 
 ### Changes
 
@@ -44,6 +45,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Sharing appointments needs this version on both sides.** Sharing appointments with a partner station on another server pauses until both run this version.
 - **Station statistics moved to Monitoring.** The statistics page of a station is found under Monitoring at `/station/monitoring/statistics`, so the dashboard is a single page again.
 - **Waiting sign-ups kept at the deadline.** Sign-ups still waiting for confirmation are no longer declined when the deadline passes. Whoever runs the appointment is told once per date and decides them as before.
+- **Minimum checked from midnight.** The minimum of an event group is checked from midnight the set number of days before its first appointment, a called-off first appointment included, as it already was for appointments.
 
 ### Fixes
 
@@ -58,6 +60,9 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Questions could be lost when editing.** In some cases, when the questions, reminders or partner sharing of an appointment could not be loaded, the editor showed them as empty and saving removed them. The editor now shows the error and no form.
 - **Places ignored when creating several appointments.** Places and the minimum typed while creating several appointments at once were not saved. They are now saved with each appointment.
 - **Failed loads looked like empty lists.** In some cases partner sign-ups and the choice of event groups in the appointment editor showed as empty when they could not be loaded. The page now says that loading failed.
+- **Called-off dates looked open on the dashboard.** In some cases the dashboard showed a called-off date of a repeating appointment as an ordinary date. It is now marked as called off and no longer offers to decline.
+- **Minimum date one day late in announcements.** The announcement sentence about a minimum named the day the check runs as the last day to sign up. It now names the day before.
+- **A moved deadline was not warned about again.** In some cases a deadline that was moved after its warning or its notice had gone out was not warned or told about a second time. Both now follow the deadline as it stands.
 
 ## v26.25.2
 
