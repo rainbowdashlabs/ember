@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.PartnerRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventField;
@@ -19,7 +21,6 @@ import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
-import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.federation.transport.FederationServer;
@@ -68,6 +69,7 @@ public class EventPartnerRegistrationService implements FederationServer {
     private final EventGroupRepository eventGroupRepository;
     private final EventRegistrationService registrationService;
     private final PartnerQuestionService partnerQuestions;
+    private final DomainEventBus eventBus;
 
     @Inject
     public EventPartnerRegistrationService(
@@ -82,7 +84,8 @@ public class EventPartnerRegistrationService implements FederationServer {
             Api apiConfig,
             EventGroupRepository eventGroupRepository,
             EventRegistrationService registrationService,
-            PartnerQuestionService partnerQuestions) {
+            PartnerQuestionService partnerQuestions,
+            DomainEventBus eventBus) {
         this.federationRepository = federationRepository;
         this.shares = shares;
         this.places = places;
@@ -95,6 +98,7 @@ public class EventPartnerRegistrationService implements FederationServer {
         this.eventGroupRepository = eventGroupRepository;
         this.registrationService = registrationService;
         this.partnerQuestions = partnerQuestions;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -126,10 +130,11 @@ public class EventPartnerRegistrationService implements FederationServer {
                     serveUndoWithdrawal(partner, params.integer("id"), body);
                     return null;
                 });
-        endpoints.<RemoteEventRoutes.RemoteRegistrationRequest, Void>serve(
+        endpoints.<RemoteEventRoutes.RemoteRegistrationRequest, RemoteEventRoutes.RemoteConfirmedOwn>serve(
                 RemoteEventRoutes.CONFIRM_OWN, (partner, params, body) -> {
-                    serveConfirmOwn(partner, params.integer("id"), body);
-                    return null;
+                    int eventId = params.integer("id");
+                    serveConfirmOwn(partner, eventId, body);
+                    return confirmedOwn(partner, eventId, body);
                 });
         endpoints.serve(
                 RemoteEventRoutes.LIST_REGISTRATIONS,
@@ -137,9 +142,6 @@ public class EventPartnerRegistrationService implements FederationServer {
         endpoints.serve(
                 RemoteEventRoutes.LIST_MEMBER_REGISTRATIONS,
                 (partner, params, body) -> serveMemberRegistrations(partner, params.uuid("memberUid")));
-        endpoints.serve(
-                RemoteEventRoutes.REGISTRATION_STATUS_WEBHOOK,
-                (partner, params, body) -> new FederatedEventRoutes.StatusResponse("ok"));
     }
 
     /**
@@ -319,13 +321,25 @@ public class EventPartnerRegistrationService implements FederationServer {
         registrationService.requireOwnSignUp(registration.eventId());
         places.requireHostDecides(PlacesKind.APPOINTMENT, registration.eventId(), registration.partnerId());
         if (status == RegistrationStatus.DENIED) {
-            updateRegistrationStatus(id, status);
+            if (updateRegistrationStatus(id, status)) tellPartner(registration.eventId(), id, status, null);
             return;
         }
         if (!acceptWithinBudget(
                 id, registration.eventId(), registration.partnerId(), registration.eventDate(), overLimit)) {
             throw EventRefusal.NO_PLACES_LEFT_FOR_THIS_PARTNER.raise();
         }
+        tellPartner(registration.eventId(), id, status, null);
+    }
+
+    /** Announces a decision about a partner's member once it is kept, so the partner is told. */
+    private void tellPartner(
+            int eventId, int registrationId, RegistrationStatus status, @Nullable Integer queuePosition) {
+        var changedAt = Instant.now();
+        crudService
+                .findById(eventId)
+                .ifPresent(
+                        event -> Transactions.afterCommit(() -> eventBus.publish(new PartnerRegistrationStatusChanged(
+                                event.stationId(), registrationId, status, queuePosition, false, changedAt))));
     }
 
     /**
@@ -367,6 +381,15 @@ public class EventPartnerRegistrationService implements FederationServer {
                 federationRepository.updateRegistrationStatus(registration.id(), RegistrationStatus.QUEUED);
                 var event = crudService.findById(registration.eventId()).orElseThrow();
                 registrationService.enqueueVisitor(event, registration.eventDate(), registration.id(), false);
+            }
+            var ranks = registrationService.partnerQueueRanksOf(
+                    current.stream().map(EventFederationRegistration::id).toList());
+            for (var registration : current) {
+                tellPartner(
+                        registration.eventId(),
+                        registration.id(),
+                        RegistrationStatus.QUEUED,
+                        ranks.get(registration.id()));
             }
         });
     }
@@ -770,6 +793,16 @@ public class EventPartnerRegistrationService implements FederationServer {
         if (!acceptWithinBudget(registration.id(), eventId, partner.partnerId(), request.eventDate())) {
             throw EventRefusal.NO_PLACES_LEFT_FOR_PARTNER.raise();
         }
+    }
+
+    /** Where a partner's member stands after their confirmation, with the appointment's name. */
+    private RemoteEventRoutes.RemoteConfirmedOwn confirmedOwn(
+            ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
+        var status = findRegistration(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate())
+                .map(EventFederationRegistration::status)
+                .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE::raise);
+        var event = crudService.findById(eventId).orElseThrow(EventRefusal.SHARED_EVENT_NOT_HERE::raise);
+        return new RemoteEventRoutes.RemoteConfirmedOwn(status, event.name());
     }
 
     /**

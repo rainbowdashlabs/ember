@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.events.entity.PlacesKind;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.handler.PartnerRegistrationStatusHandler;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -37,6 +38,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -88,6 +90,8 @@ abstract class EventFederationTestBase extends RepositoryTestBase {
     protected static EventCrudService crudService;
     protected static EventAttachmentService attachmentService;
     protected static MediaLibraryService media;
+    protected static DomainEventBus decisions;
+    protected static Notifier notifier;
 
     private static Account testAccount;
 
@@ -106,42 +110,50 @@ abstract class EventFederationTestBase extends RepositoryTestBase {
         commentService = newCommentService(COMMENT_BUS);
         when(httpClient.canSign(anyInt())).thenReturn(true);
         transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
-        var federation = TestEventFederation.of(new TestEventFederation.Parts(
-                eventFederationRepo,
-                federationService,
-                transport.transport(),
-                federationRepo,
-                stationRepo,
-                crudService,
-                commentService,
-                new MemberNameResolver(
-                        memberSvc,
-                        accountRepo,
+        notifier = mock(Notifier.class);
+        decisions = spy(new DomainEventBus(Set.of(new PartnerRegistrationStatusHandler(
+                eventFederationRepo, eventRepo, federationRepo, transport::transport))));
+        var federation = TestEventFederation.of(
+                new TestEventFederation.Parts(
                         eventFederationRepo,
+                        federationService,
+                        transport.transport(),
                         federationRepo,
                         stationRepo,
-                        mock(MemberGroupService.class),
-                        mock(UserTagService.class)),
-                new FederationFanout(new TaskScheduler()),
-                new FederationEntityResolver(federationRepo),
-                attachmentService,
-                new EventFieldService(
-                        eventFieldRepo,
-                        stationMemberRepo,
-                        memberEligibility,
-                        eventRepo,
-                        attendanceRepo,
-                        eventFieldRegistrationService,
+                        crudService,
+                        commentService,
+                        new MemberNameResolver(
+                                memberSvc,
+                                accountRepo,
+                                eventFederationRepo,
+                                federationRepo,
+                                stationRepo,
+                                mock(MemberGroupService.class),
+                                mock(UserTagService.class)),
+                        new FederationFanout(new TaskScheduler()),
+                        new FederationEntityResolver(federationRepo),
+                        attachmentService,
+                        new EventFieldService(
+                                eventFieldRepo,
+                                stationMemberRepo,
+                                memberEligibility,
+                                eventRepo,
+                                attendanceRepo,
+                                eventFieldRegistrationService,
+                                new EventGroupRepository(),
+                                occurrenceCalendar),
+                        occurrenceCalendar,
+                        media,
+                        new Api(),
                         new EventGroupRepository(),
-                        occurrenceCalendar),
-                occurrenceCalendar,
-                media,
-                new Api(),
-                new EventGroupRepository(),
-                newEventServices(mock(DomainEventBus.class)).registration(),
-                new PartnerQuestionService(
-                        new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility),
-                requirements));
+                        newEventServices(decisions).registration(),
+                        new PartnerQuestionService(
+                                new EventRegistrationFieldRepository(),
+                                new PartnerAnswerRepository(),
+                                memberEligibility),
+                        requirements),
+                decisions,
+                notifier);
         shareService = federation.shares();
         hostService = federation.host();
         clientService = federation.client();

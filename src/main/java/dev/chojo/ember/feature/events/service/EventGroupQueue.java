@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventGroupPartnerSignUpStatusChanged;
 import dev.chojo.ember.event.events.EventGroupRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventGroup;
@@ -361,6 +362,9 @@ public class EventGroupQueue {
                 partners.restate(registration.id(), RegistrationStatus.ACCEPTED);
             }
         }
+        var changedAt = clock.instant();
+        Transactions.afterCommit(() -> eventBus.publish(new EventGroupPartnerSignUpStatusChanged(
+                eventGroup.stationId(), signUpId, RegistrationStatus.ACCEPTED, null, true, changedAt)));
     }
 
     /** Whether a partner still has a place of the ones it was given, counted per sign-up. */

@@ -7,7 +7,10 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventGroupPartnerSignUpStatusChanged;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
+import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupPartnerRegistration;
 import dev.chojo.ember.feature.events.entity.EventGroupShare;
 import dev.chojo.ember.feature.events.entity.PartnerPlaces;
@@ -76,6 +79,7 @@ public class EventGroupPartnerService {
     private final FederationTransport transport;
     private final EventGroupQueue queue;
     private final PartnerPlacesService places;
+    private final DomainEventBus eventBus;
 
     @Inject
     public EventGroupPartnerService(
@@ -88,9 +92,11 @@ public class EventGroupPartnerService {
             FederationRepository federationPartners,
             FederationTransport transport,
             EventGroupQueue queue,
-            PartnerPlacesService places) {
+            PartnerPlacesService places,
+            DomainEventBus eventBus) {
         this.queue = queue;
         this.places = places;
+        this.eventBus = eventBus;
         this.eventGroups = eventGroups;
         this.rules = rules;
         this.partners = partners;
@@ -408,6 +414,7 @@ public class EventGroupPartnerService {
             for (var registration : tied) {
                 partners.restate(registration.id(), decision);
             }
+            if (current.status() != decision) tellPartner(eventGroup, current.id(), decision, null);
             if (current.status() == RegistrationStatus.ACCEPTED && decision != RegistrationStatus.ACCEPTED) {
                 queue.fill(eventGroup, parts, rules.standing(stationId, parts));
             }
@@ -447,7 +454,23 @@ public class EventGroupPartnerService {
                 }
                 queue.enqueue(eventGroup, QueueOwner.ofPartner(signUp.id()), null);
             }
+            var ranks = queue.ranks(eventGroupId);
+            for (var signUp : pending) {
+                tellPartner(
+                        eventGroup,
+                        signUp.id(),
+                        RegistrationStatus.QUEUED,
+                        ranks.get(QueueOwner.ofPartner(signUp.id())));
+            }
         });
+    }
+
+    /** Announces a decision about a partner's member's sign-up once it is kept, so the partner is told. */
+    private void tellPartner(
+            EventGroup eventGroup, int signUpId, RegistrationStatus status, @Nullable Integer queuePosition) {
+        var changedAt = Instant.now();
+        Transactions.afterCommit(() -> eventBus.publish(new EventGroupPartnerSignUpStatusChanged(
+                eventGroup.stationId(), signUpId, status, queuePosition, false, changedAt)));
     }
 
     /**

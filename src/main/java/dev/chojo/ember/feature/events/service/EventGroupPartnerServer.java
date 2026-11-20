@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventGroupSummary;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
+import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupConfirmed;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupDetail;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupMember;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupQuery;
@@ -72,11 +73,14 @@ public class EventGroupPartnerServer implements FederationServer {
                             body.memberUid(),
                             partsOf(body));
                 });
-        endpoints.<RemoteEventGroupMember, PartnerStanding>serve(
+        endpoints.<RemoteEventGroupMember, RemoteEventGroupConfirmed>serve(
                 RemoteEventGroupRoutes.CONFIRM_OWN, (partner, params, body) -> {
                     int eventGroupId = partners.requireSharedWith(partner, params.integer("id"));
-                    return partners.confirmOwn(
+                    var standing = partners.confirmOwn(
                             partner.servingStationId(), eventGroupId, partner.partnerId(), body.memberUid());
+                    var eventGroup = eventGroups.requireEventGroup(partner.servingStationId(), eventGroupId);
+                    return new RemoteEventGroupConfirmed(
+                            standing, eventGroup.details().name());
                 });
         endpoints.<RemoteEventGroupMember, Void>serve(RemoteEventGroupRoutes.WITHDRAW, (partner, params, body) -> {
             int eventGroupId = params.integer("id");

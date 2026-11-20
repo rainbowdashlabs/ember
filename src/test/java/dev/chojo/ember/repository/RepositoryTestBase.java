@@ -1306,7 +1306,7 @@ public abstract class RepositoryTestBase {
                         eventRepo,
                         eventBus,
                         memberNameResolver,
-                        TestEventPlaces.of(eventRegistrationRepo)),
+                        TestEventPlaces.of(eventRegistrationRepo, eventBus)),
                 new EventReminderService(eventReminderRepo),
                 new EquipmentNeedService(
                         equipmentNeedRepo,

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteRegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -20,8 +21,14 @@ import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
+import dev.chojo.ember.feature.federation.transport.FederationServer;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.federation.transport.PartnerCalls;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
+import dev.chojo.ember.feature.signing.repository.PartnerSigningRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -39,9 +46,15 @@ import java.util.UUID;
  * <p>Every answer here is the partner's: this station asks the station holding the appointment through
  * the federation transport, whether that station sits on this instance or another one, and passes on
  * what it said.
+ *
+ * <p>The station holding the appointment tells this station when it decides about one of its members, or
+ * when the member moves up from its waiting list. That is believed only for a member this station
+ * signed up, taken in only where it is newer than what this station knows, and told to the member's
+ * household only where the status changed. Confirming one of its own members tells the household the same
+ * way.
  */
 @Singleton
-public class PartnerEventService {
+public class PartnerEventService implements FederationServer {
     private static final Logger log = LoggerFactory.getLogger(PartnerEventService.class);
 
     private final FederationService federationService;
@@ -50,6 +63,9 @@ public class PartnerEventService {
     private final StationRepository stationRepository;
     private final FederationFanout fanout;
     private final FederationEntityResolver entityResolver;
+    private final PartnerSigningRepository signups;
+    private final StationMemberRepository members;
+    private final PartnerStatusNotices notices;
 
     @Inject
     public PartnerEventService(
@@ -58,13 +74,54 @@ public class PartnerEventService {
             FederationRepository partnerRepository,
             StationRepository stationRepository,
             FederationFanout fanout,
-            FederationEntityResolver entityResolver) {
+            FederationEntityResolver entityResolver,
+            PartnerSigningRepository signups,
+            StationMemberRepository members,
+            PartnerStatusNotices notices) {
         this.federationService = federationService;
         this.transport = transport;
         this.partnerRepository = partnerRepository;
         this.stationRepository = stationRepository;
         this.fanout = fanout;
         this.entityResolver = entityResolver;
+        this.signups = signups;
+        this.members = members;
+        this.notices = notices;
+    }
+
+    @Override
+    public void serveOn(FederationEndpoints endpoints) {
+        endpoints.<RemoteRegistrationStatus, Void>serve(
+                RemoteEventRoutes.REGISTRATION_STATUS_WEBHOOK, (partner, params, body) -> {
+                    statusChanged(partner, body);
+                    return null;
+                });
+    }
+
+    /**
+     * Takes in a decision a partner told about one of this station's members and tells their household
+     * where the status changed.
+     */
+    private void statusChanged(ServingPartner partner, RemoteRegistrationStatus told) {
+        var holder = partner.askingStationUid();
+        var member = members.findByUid(partner.row().stationId(), told.memberUid())
+                .filter(found -> signups.signedUp(found.id(), holder, told.eventId(), told.eventDate()))
+                .orElse(null);
+        if (member == null) return;
+        var before = signups.knownStatus(member.id(), holder, told.eventId(), told.eventDate());
+        if (!signups.learnStatus(
+                member.id(), holder, told.eventId(), told.eventDate(), told.status(), told.changedAt())) {
+            return;
+        }
+        if (before.filter(told.status()::equals).isPresent()) return;
+        notices.tell(
+                member.id(),
+                told.eventName(),
+                told.status(),
+                told.queuePosition(),
+                told.movedUp(),
+                NotificationLinks.federatedEvent(holder, told.eventId()));
+        log.info("Partner {} decided about member {} on event {}", holder, member.id(), told.eventId());
     }
 
     /**
@@ -176,6 +233,9 @@ public class PartnerEventService {
                 eventId,
                 partner.id(),
                 registered.status());
+        members.findByUid(stationId, remoteMemberId)
+                .ifPresent(member -> signups.recordStatus(
+                        stationId, member.id(), partnerStationUid, eventId, eventDate, registered.status()));
         return registered.status();
     }
 
@@ -208,13 +268,37 @@ public class PartnerEventService {
     public void confirmOwnFederatedMember(
             int stationId, UUID partnerStationUid, int eventId, UUID remoteMemberId, LocalDate eventDate) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        PartnerCalls.deliveredOr(
-                () -> transport.deliver(
+        var confirmed = PartnerCalls.answeredOr(
+                () -> transport.send(
                         partner,
                         RemoteEventRoutes.CONFIRM_OWN.at(eventId),
-                        new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate)),
+                        new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate),
+                        RemoteEventRoutes.RemoteConfirmedOwn.class),
                 EventRefusal.NO_PLACES_LEFT_AT_HOLDER);
         log.info("Station {} confirmed one of its own for event {} at partner {}", stationId, eventId, partner.id());
+        tellConfirmed(stationId, partnerStationUid, eventId, remoteMemberId, eventDate, confirmed);
+    }
+
+    /** Records where a member this station confirmed stands now, and tells their household where it changed. */
+    private void tellConfirmed(
+            int stationId,
+            UUID partnerStationUid,
+            int eventId,
+            UUID memberUid,
+            LocalDate eventDate,
+            RemoteEventRoutes.RemoteConfirmedOwn confirmed) {
+        var member = members.findByUid(stationId, memberUid).orElse(null);
+        if (member == null) return;
+        var before = signups.knownStatus(member.id(), partnerStationUid, eventId, eventDate);
+        signups.recordStatus(stationId, member.id(), partnerStationUid, eventId, eventDate, confirmed.status());
+        if (before.filter(confirmed.status()::equals).isPresent()) return;
+        notices.tell(
+                member.id(),
+                confirmed.eventName(),
+                confirmed.status(),
+                null,
+                false,
+                NotificationLinks.federatedEvent(partnerStationUid, eventId));
     }
 
     /**

@@ -6,6 +6,7 @@
 package dev.chojo.ember.util;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
@@ -23,6 +24,7 @@ import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.PartnerEventService;
 import dev.chojo.ember.feature.events.service.PartnerPlacesService;
 import dev.chojo.ember.feature.events.service.PartnerQuestionService;
+import dev.chojo.ember.feature.events.service.PartnerStatusNotices;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
@@ -31,8 +33,15 @@ import dev.chojo.ember.feature.federation.transport.FederationServer;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.signing.repository.PartnerSigningRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+
+import java.util.Set;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * The four services that share this station's appointments with partners and reach the appointments
@@ -102,6 +111,19 @@ public record TestEventFederation(
      * @return the services
      */
     public static TestEventFederation of(Parts parts) {
+        return of(parts, new DomainEventBus(Set.of()), mock(Notifier.class));
+    }
+
+    /**
+     * Builds the services over the given collaborators, announcing decisions about partners' members on the
+     * given bus and telling members through the given notifier.
+     *
+     * @param parts    the collaborators
+     * @param eventBus where the host announces its decisions about partners' members
+     * @param notifier how the partner side tells its members
+     * @return the services
+     */
+    public static TestEventFederation of(Parts parts, DomainEventBus eventBus, Notifier notifier) {
         var places = new PartnerPlacesService(
                 new PartnerPlacesRepository(),
                 parts.federationRepository(),
@@ -124,14 +146,18 @@ public record TestEventFederation(
                 parts.apiConfig(),
                 parts.eventGroupRepository(),
                 parts.registrationService(),
-                parts.partnerQuestions());
+                parts.partnerQuestions(),
+                eventBus);
         var client = new PartnerEventService(
                 parts.federationService(),
                 parts.transport(),
                 parts.partnerRepository(),
                 parts.stationRepository(),
                 parts.fanout(),
-                parts.entityResolver());
+                parts.entityResolver(),
+                new PartnerSigningRepository(),
+                new StationMemberRepository(),
+                new PartnerStatusNotices(notifier, parts.memberNameResolver()));
         var comments = new EventCommentFederation(
                 parts.commentService(), shares, parts.memberNameResolver(), parts.transport(), parts.entityResolver());
         return new TestEventFederation(shares, host, client, comments, places);
@@ -140,9 +166,9 @@ public record TestEventFederation(
     /**
      * The services that answer partners, for a test transport to serve.
      *
-     * @return the host side and the comments
+     * @return the host side, the comments and the client side, which takes the host's notices in
      */
     public FederationServer[] servers() {
-        return new FederationServer[] {host, comments};
+        return new FederationServer[] {host, comments, client};
     }
 }

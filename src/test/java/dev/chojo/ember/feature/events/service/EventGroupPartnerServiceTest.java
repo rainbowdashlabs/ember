@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventGroupPartnerSignUpStatusChanged;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
@@ -20,6 +22,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.handler.EventGroupPartnerSignUpStatusHandler;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
@@ -28,7 +31,10 @@ import dev.chojo.ember.feature.events.repository.EventGroupSettingsRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.PartnerEventGroupSignupRepository;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
+import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
+import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupSignUpStatus;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -49,12 +55,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatcher;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -66,8 +74,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -93,6 +106,8 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
     private EventGroupPartnerService partners;
     private PartnerEventGroupService partnerSide;
     private Notifier notifier;
+    private DomainEventBus decisions;
+    private FederationTestTransport transport;
     private EventGroup eventGroup;
     private int sat1;
     private int sun1;
@@ -148,7 +163,9 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 new RegistrationQueueRepository());
         var httpClient = mock(FederationHttpClient.class);
         when(httpClient.canSign(anyInt())).thenReturn(true);
-        var transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
+        transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
+        decisions = spy(new DomainEventBus(Set.of(new EventGroupPartnerSignUpStatusHandler(
+                partnerRepo, eventGroupRepo, federationRepo, transport::transport))));
         partners = new EventGroupPartnerService(
                 eventGroups,
                 newEventGroupSignUpRules(),
@@ -159,15 +176,17 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 federationRepo,
                 transport.transport(),
                 newEventGroupQueue(
-                        newEventServices(new DomainEventBus(Set.of())).registration(), new DomainEventBus(Set.of())),
-                newPartnerPlacesService());
+                        newEventServices(new DomainEventBus(Set.of())).registration(), decisions),
+                newPartnerPlacesService(),
+                decisions);
         notifier = mock(Notifier.class);
         partnerSide = new PartnerEventGroupService(
                 transport.transport(),
                 new FederationEntityResolver(federationRepo),
                 signedUp,
                 stationMemberRepo,
-                notifier);
+                notifier,
+                new PartnerStatusNotices(notifier, memberNameResolver));
         transport.serve(new EventGroupPartnerServer(partners, eventGroups, signUps), partnerSide);
         eventGroup = jugendflamme(null);
     }
@@ -901,6 +920,133 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         assertEquals(RegistrationStatus.PENDING, partnerSignUpOf(mara).status());
     }
 
+    private void verifyTold(StationMember member, int times) {
+        verify(notifier, times(times))
+                .notify(
+                        eq(StationAudience.household(List.of(member.id()))),
+                        eq(NotificationType.EVENT_REGISTRATION_STATUS),
+                        any(),
+                        any());
+    }
+
+    private RegistrationStatus known(StationMember member) {
+        return signedUp.knownStatus(member.id(), holder.uid(), eventGroup.id()).orElseThrow();
+    }
+
+    /**
+     * Accepting, turning down and putting a partner's member on the waiting list are told to the partner,
+     * which tells the member's household; reordering the list is not told.
+     */
+    @Test
+    void theHolderTellsThePartnerAboutItsDecisions() {
+        eventGroups.update(
+                holder.id(),
+                eventGroup.id(),
+                new EventGroupDetails(
+                        "Jugendflamme 1",
+                        null,
+                        1,
+                        RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(5))),
+                        true,
+                        null));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+        assertEquals(RegistrationStatus.PENDING, known(mara));
+        int maraSignUp = partnerSignUpOf(mara).id();
+        int benSignUp = partnerSignUpOf(ben).id();
+
+        partners.decide(holder.id(), eventGroup.id(), maraSignUp, RegistrationStatus.ACCEPTED);
+        verifyTold(mara, 1);
+        assertEquals(RegistrationStatus.ACCEPTED, known(mara));
+
+        partners.moveToQueue(holder.id(), eventGroup.id(), List.of(benSignUp));
+        verify(decisions).publish(argThat(statusChanged(holder.id(), benSignUp, RegistrationStatus.QUEUED, 1, false)));
+        verifyTold(ben, 1);
+        clearInvocations(decisions);
+
+        partners.moveInQueue(holder.id(), eventGroup.id(), benSignUp, 1);
+        verify(decisions, never())
+                .publish(argThat(published -> published instanceof EventGroupPartnerSignUpStatusChanged));
+
+        partners.decide(holder.id(), eventGroup.id(), maraSignUp, RegistrationStatus.DENIED);
+        verifyTold(mara, 2);
+        verify(decisions)
+                .publish(argThat(statusChanged(holder.id(), benSignUp, RegistrationStatus.ACCEPTED, null, true)));
+        verifyTold(ben, 2);
+        assertEquals(RegistrationStatus.ACCEPTED, known(ben));
+    }
+
+    /**
+     * A notice older than the one taken in, a repeat, or one about a member this station did not sign up
+     * changes nothing and tells nobody.
+     */
+    @Test
+    void aLateRepeatedOrUnknownGroupNoticeIsIgnored() {
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        clearInvocations(notifier);
+        var hostRow =
+                new FederationRepository().findPartnerById(partnerOfHolder).orElseThrow();
+        var now = Instant.now();
+
+        tell(hostRow, mara.uid(), RegistrationStatus.DENIED, now);
+        tell(hostRow, mara.uid(), RegistrationStatus.DENIED, now);
+        tell(hostRow, mara.uid(), RegistrationStatus.ACCEPTED, now.minusSeconds(60));
+        tell(hostRow, mara.uid(), RegistrationStatus.DENIED, now.plusSeconds(60));
+        tell(hostRow, ben.uid(), RegistrationStatus.DENIED, now);
+        tell(hostRow, UUID.randomUUID(), RegistrationStatus.DENIED, now);
+
+        verifyTold(mara, 1);
+        assertEquals(RegistrationStatus.DENIED, known(mara));
+        verifyTold(ben, 0);
+    }
+
+    /**
+     * A withdrawal keeps what the partner last said, so a notice older than that is still ignored once the
+     * member signs up again.
+     */
+    @Test
+    void aGroupWithdrawalKeepsTheLastInstant() {
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        clearInvocations(notifier);
+        var hostRow =
+                new FederationRepository().findPartnerById(partnerOfHolder).orElseThrow();
+        var now = Instant.now();
+        tell(hostRow, mara.uid(), RegistrationStatus.DENIED, now);
+        verifyTold(mara, 1);
+
+        partnerSide.withdraw(partner.id(), holder.uid(), eventGroup.id(), mara);
+        assertFalse(signedUp.signedUp(mara.id(), holder.uid(), eventGroup.id()));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+
+        tell(hostRow, mara.uid(), RegistrationStatus.DENIED, now.minusSeconds(60));
+        verifyTold(mara, 1);
+        tell(hostRow, mara.uid(), RegistrationStatus.DENIED, now.plusSeconds(60));
+        verifyTold(mara, 2);
+    }
+
+    private void tell(FederationPartner hostRow, UUID member, RegistrationStatus status, Instant at) {
+        transport
+                .transport()
+                .deliver(
+                        hostRow,
+                        RemoteEventGroupRoutes.EVENT_GROUP_SIGN_UP_STATUS_WEBHOOK.at(),
+                        new RemoteEventGroupSignUpStatus(
+                                eventGroup.id(), "Jugendflamme 1", member, status, null, false, at));
+    }
+
+    /** A partner confirming one of its own tells the member's household where they stand now. */
+    @Test
+    void confirmingOnesOwnSignUpIsToldToTheHousehold() {
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, null, true);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        clearInvocations(notifier);
+
+        partnerSide.confirm(partner.id(), holder.uid(), eventGroup.id(), mara.uid());
+
+        verifyTold(mara, 1);
+        assertEquals(RegistrationStatus.ACCEPTED, known(mara));
+    }
+
     private Integer rankOf(int signUpId) {
         return partners.signUps(holder.id(), eventGroup.id()).stream()
                 .filter(signUp -> signUp.id() == signUpId)
@@ -908,5 +1054,16 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 .orElseThrow()
                 .standing()
                 .queuePosition();
+    }
+
+    /** Matches the announcement of a decision, whatever instant it carries. */
+    private static ArgumentMatcher<DomainEvent> statusChanged(
+            int stationId, int id, RegistrationStatus status, Integer queuePosition, boolean movedUp) {
+        return published -> published instanceof EventGroupPartnerSignUpStatusChanged changed
+                && changed.stationId() == stationId
+                && changed.signUpId() == id
+                && changed.status() == status
+                && Objects.equals(changed.queuePosition(), queuePosition)
+                && changed.movedUp() == movedUp;
     }
 }

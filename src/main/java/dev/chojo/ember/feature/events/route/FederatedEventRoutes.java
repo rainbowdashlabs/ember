@@ -598,8 +598,6 @@ public class FederatedEventRoutes implements Routes {
             @Nullable UUID memberId,
             @Nullable List<EventRegistrationFieldValue> answers) {}
 
-    public record StatusResponse(String status) {}
-
     /**
      * What the station holding the appointment recorded for a registration sent to it, and the documents its
      * appointment asks the member to sign, filed and signed here.

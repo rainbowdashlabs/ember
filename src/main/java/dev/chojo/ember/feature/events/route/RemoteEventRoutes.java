@@ -25,6 +25,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -72,18 +73,23 @@ public class RemoteEventRoutes implements Routes {
             FederationSurface.EVENT_SHARE,
             "/remote/events/{id}/register/confirm",
             RemoteRegistrationRequest.class,
-            Void.class);
+            RemoteConfirmedOwn.class);
 
     public static final FederationEndpoint LIST_REGISTRATIONS = FederationEndpoint.getList(
             FederationSurface.EVENT_SHARE, "/remote/events/{id}/registrations", EventFederationRegistration.class);
     public static final FederationEndpoint LIST_MEMBER_REGISTRATIONS = FederationEndpoint.getList(
             FederationSurface.EVENT_SHARE, "/remote/registrations/{memberUid}", RemoteMemberRegistration.class);
+    /**
+     * The station holding an appointment telling a partner that it decided about one of the partner's
+     * members, or that the member moved up from the waiting list.
+     */
     public static final FederationEndpoint REGISTRATION_STATUS_WEBHOOK = FederationEndpoint.post(
                     FederationSurface.EVENT_SHARE,
                     "/remote/webhook/event-registration-status",
-                    Void.class,
-                    FederatedEventRoutes.StatusResponse.class)
+                    RemoteRegistrationStatus.class,
+                    Void.class)
             .keepingInStep();
+
     public static final FederationEndpoint EVENT_CHANGED_WEBHOOK = FederationEndpoint.post(
                     FederationSurface.EVENT_SHARE, "/remote/webhook/event-changed", RemoteEventChange.class, Void.class)
             .keepingInStep();
@@ -327,6 +333,38 @@ public class RemoteEventRoutes implements Routes {
             this(remoteMemberId, eventDate, null);
         }
     }
+
+    /**
+     * Where a partner's member stands after the partner confirmed them, as the station holding the
+     * appointment answers.
+     *
+     * @param status    the status the registration holds now: accepted, or waiting on the waiting list
+     * @param eventName the appointment's name, for the notice the member gets
+     */
+    public record RemoteConfirmedOwn(RegistrationStatus status, String eventName) {}
+
+    /**
+     * A decision about a partner's member on one date of a shared appointment, as the station holding it
+     * tells the partner.
+     *
+     * @param eventId       the appointment at the station holding it
+     * @param eventName     its name, for the notice the partner's member gets
+     * @param memberUid     the partner's member
+     * @param eventDate     the date
+     * @param status        the status the registration holds now
+     * @param queuePosition the place in line where it now waits on the waiting list, or null
+     * @param movedUp       whether it moved up from the waiting list into a place that fell free
+     * @param changedAt     when the station holding the appointment decided, on its own clock
+     */
+    public record RemoteRegistrationStatus(
+            int eventId,
+            String eventName,
+            UUID memberUid,
+            LocalDate eventDate,
+            RegistrationStatus status,
+            @Nullable Integer queuePosition,
+            boolean movedUp,
+            Instant changedAt) {}
 
     /**
      * A shared appointment changed, told to the partner station whose members hold a place on it, so

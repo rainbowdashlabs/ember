@@ -14,7 +14,6 @@ import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import org.junit.jupiter.api.MethodOrderer;
@@ -510,15 +509,5 @@ class EventCommentFederationTest extends EventFederationTestBase {
                 EventRefusal.PARTNER_COMMENT_CHANGE_NEEDS_TEXT,
                 () -> commentFederation.updateFederatedComment(
                         stationB.id(), stationA.uid(), comment.id(), member, " "));
-        assertEquals(
-                "ok",
-                transport
-                        .transport()
-                        .send(
-                                asking,
-                                RemoteEventRoutes.REGISTRATION_STATUS_WEBHOOK.at(),
-                                null,
-                                FederatedEventRoutes.StatusResponse.class)
-                        .status());
     }
 }

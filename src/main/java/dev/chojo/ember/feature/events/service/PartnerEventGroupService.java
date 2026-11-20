@@ -9,10 +9,12 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.repository.PartnerEventGroupSignupRepository;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupCancelled;
+import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupConfirmed;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupDetail;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupMember;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupQuery;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupSignUpRequest;
+import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupSignUpStatus;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
@@ -57,6 +59,7 @@ public class PartnerEventGroupService implements FederationServer {
     private final PartnerEventGroupSignupRepository signedUp;
     private final StationMemberRepository members;
     private final Notifier notifier;
+    private final PartnerStatusNotices notices;
 
     @Inject
     public PartnerEventGroupService(
@@ -64,12 +67,14 @@ public class PartnerEventGroupService implements FederationServer {
             FederationEntityResolver entityResolver,
             PartnerEventGroupSignupRepository signedUp,
             StationMemberRepository members,
-            Notifier notifier) {
+            Notifier notifier,
+            PartnerStatusNotices notices) {
         this.transport = transport;
         this.entityResolver = entityResolver;
         this.signedUp = signedUp;
         this.members = members;
         this.notifier = notifier;
+        this.notices = notices;
     }
 
     @Override
@@ -79,6 +84,35 @@ public class PartnerEventGroupService implements FederationServer {
                     cancelled(partner, body);
                     return null;
                 });
+        endpoints.<RemoteEventGroupSignUpStatus, Void>serve(
+                RemoteEventGroupRoutes.EVENT_GROUP_SIGN_UP_STATUS_WEBHOOK, (partner, params, body) -> {
+                    statusChanged(partner, body);
+                    return null;
+                });
+    }
+
+    /**
+     * Takes in a decision a partner told about one of this station's members' event group sign-ups and
+     * tells their household where the status changed. Believed only for a member this station signed up,
+     * and only where it is newer than what this station knows.
+     */
+    private void statusChanged(ServingPartner partner, RemoteEventGroupSignUpStatus told) {
+        var holder = partner.askingStationUid();
+        var member = members.findByUid(partner.row().stationId(), told.memberUid())
+                .filter(found -> signedUp.signedUp(found.id(), holder, told.eventGroupId()))
+                .orElse(null);
+        if (member == null) return;
+        var before = signedUp.knownStatus(member.id(), holder, told.eventGroupId());
+        if (!signedUp.learnStatus(member.id(), holder, told.eventGroupId(), told.status(), told.changedAt())) return;
+        if (before.filter(told.status()::equals).isPresent()) return;
+        notices.tell(
+                member.id(),
+                told.eventGroupName(),
+                told.status(),
+                told.queuePosition(),
+                told.movedUp(),
+                NotificationLinks.federatedEventGroup(holder, told.eventGroupId()));
+        log.info("Partner {} decided about member {} on event group {}", holder, member.id(), told.eventGroupId());
     }
 
     /**
@@ -132,15 +166,12 @@ public class PartnerEventGroupService implements FederationServer {
                 EventRefusal.EVENT_GROUP_NOT_HERE);
         for (var standing : detail.standings()) {
             var memberId = household.get(standing.memberUid());
-            if (memberId != null && holds(standing)) signedUp.record(memberId, partnerStationUid, eventGroupId);
+            var status = standing.status();
+            if (memberId != null && status != null && status.standing()) {
+                signedUp.recordStatus(memberId, partnerStationUid, eventGroupId, status);
+            }
         }
         return detail;
-    }
-
-    /** Whether a member's sign-up still stands at the partner, waiting on its waiting list included. */
-    private static boolean holds(PartnerStanding standing) {
-        var status = standing.status();
-        return status != null && status.standing();
     }
 
     /**
@@ -163,7 +194,12 @@ public class PartnerEventGroupService implements FederationServer {
                         new RemoteEventGroupSignUpRequest(member.uid(), List.copyOf(parts)),
                         PartnerStanding.class),
                 EventRefusal.FEDERATED_REGISTRATION_NOT_TAKEN);
-        signedUp.record(member.id(), partnerStationUid, eventGroupId);
+        var status = standing.status();
+        if (status != null) {
+            signedUp.recordStatus(member.id(), partnerStationUid, eventGroupId, status);
+        } else {
+            signedUp.record(member.id(), partnerStationUid, eventGroupId);
+        }
         log.info(
                 "Station {} signed a member up for event group {} at partner {}",
                 stationId,
@@ -210,19 +246,39 @@ public class PartnerEventGroupService implements FederationServer {
      */
     public PartnerStanding confirm(int stationId, UUID partnerStationUid, int eventGroupId, UUID memberUid) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        var standing = PartnerCalls.answeredOr(
+        var confirmed = PartnerCalls.answeredOr(
                 () -> transport.send(
                         partner,
                         RemoteEventGroupRoutes.CONFIRM_OWN.at(eventGroupId),
                         new RemoteEventGroupMember(memberUid),
-                        PartnerStanding.class),
+                        RemoteEventGroupConfirmed.class),
                 EventRefusal.NO_PLACES_LEFT_AT_HOLDER);
         log.info(
                 "Station {} confirmed one of its own for event group {} at partner {}",
                 stationId,
                 eventGroupId,
                 partner.id());
-        return standing;
+        tellConfirmed(stationId, partnerStationUid, eventGroupId, confirmed);
+        return confirmed.standing();
+    }
+
+    /** Records where a member this station confirmed stands now, and tells their household where it changed. */
+    private void tellConfirmed(
+            int stationId, UUID partnerStationUid, int eventGroupId, RemoteEventGroupConfirmed confirmed) {
+        var standing = confirmed.standing();
+        var status = standing.status();
+        var member = members.findByUid(stationId, standing.memberUid()).orElse(null);
+        if (member == null || status == null) return;
+        var before = signedUp.knownStatus(member.id(), partnerStationUid, eventGroupId);
+        signedUp.recordStatus(member.id(), partnerStationUid, eventGroupId, status);
+        if (before.filter(status::equals).isPresent()) return;
+        notices.tell(
+                member.id(),
+                confirmed.eventGroupName(),
+                status,
+                standing.queuePosition(),
+                false,
+                NotificationLinks.federatedEventGroup(partnerStationUid, eventGroupId));
     }
 
     /**

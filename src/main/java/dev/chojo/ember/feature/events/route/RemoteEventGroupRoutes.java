@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupPartState;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSummary;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentDeleteRequest;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentUpdateRequest;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemotePlaces;
@@ -26,6 +27,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -76,7 +78,7 @@ public class RemoteEventGroupRoutes implements Routes {
             FederationSurface.EVENT_SHARE,
             "/remote/events/groups/{id}/sign-up/confirm",
             RemoteEventGroupMember.class,
-            PartnerStanding.class);
+            RemoteEventGroupConfirmed.class);
 
     /**
      * The station holding an event group telling a partner that the event group was called off, naming the
@@ -86,6 +88,17 @@ public class RemoteEventGroupRoutes implements Routes {
                     FederationSurface.EVENT_SHARE,
                     "/remote/webhook/event-group-cancelled",
                     RemoteEventGroupCancelled.class,
+                    Void.class)
+            .keepingInStep();
+
+    /**
+     * The station holding an event group telling a partner that it decided about one of the partner's
+     * members' sign-ups, or that the sign-up moved up from the waiting list.
+     */
+    public static final FederationEndpoint EVENT_GROUP_SIGN_UP_STATUS_WEBHOOK = FederationEndpoint.post(
+                    FederationSurface.EVENT_SHARE,
+                    "/remote/webhook/event-group-sign-up-status",
+                    RemoteEventGroupSignUpStatus.class,
                     Void.class)
             .keepingInStep();
 
@@ -121,6 +134,7 @@ public class RemoteEventGroupRoutes implements Routes {
             WITHDRAW,
             CONFIRM_OWN,
             EVENT_GROUP_CANCELLED_WEBHOOK,
+            EVENT_GROUP_SIGN_UP_STATUS_WEBHOOK,
             LIST_COMMENTS,
             CREATE_COMMENT,
             UPDATE_COMMENT,
@@ -141,6 +155,7 @@ public class RemoteEventGroupRoutes implements Routes {
                 .serve(WITHDRAW)
                 .serve(CONFIRM_OWN)
                 .serve(EVENT_GROUP_CANCELLED_WEBHOOK)
+                .serve(EVENT_GROUP_SIGN_UP_STATUS_WEBHOOK)
                 .serve(LIST_COMMENTS)
                 .serveCreated(CREATE_COMMENT)
                 .serve(UPDATE_COMMENT)
@@ -238,6 +253,35 @@ public class RemoteEventGroupRoutes implements Routes {
 
     /** @param memberUid the member, by the id their own station gave them */
     public record RemoteEventGroupMember(UUID memberUid) {}
+
+    /**
+     * Where a partner's member stands after the partner confirmed their event group sign-up.
+     *
+     * @param standing       where the member stands now
+     * @param eventGroupName the event group's name, for the notice the member gets
+     */
+    public record RemoteEventGroupConfirmed(PartnerStanding standing, String eventGroupName) {}
+
+    /**
+     * A decision about a partner's member's event group sign-up, as the station holding the event group
+     * tells the partner.
+     *
+     * @param eventGroupId   the event group at the station holding it
+     * @param eventGroupName its name, for the notice the partner's member gets
+     * @param memberUid      the partner's member
+     * @param status         the status the sign-up holds now
+     * @param queuePosition  the place in line where it now waits on the waiting list, or null
+     * @param movedUp        whether it moved up from the waiting list into a place that fell free
+     * @param changedAt      when the station holding the event group decided, on its own clock
+     */
+    public record RemoteEventGroupSignUpStatus(
+            int eventGroupId,
+            String eventGroupName,
+            UUID memberUid,
+            RegistrationStatus status,
+            @Nullable Integer queuePosition,
+            boolean movedUp,
+            Instant changedAt) {}
 
     /**
      * A shared event group that was called off.

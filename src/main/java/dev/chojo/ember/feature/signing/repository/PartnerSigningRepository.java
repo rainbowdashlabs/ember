@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.signing.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.signing.entity.PartnerSigning;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -150,13 +151,111 @@ public class PartnerSigningRepository {
                         INSERT INTO partner_signup (station_id, member_id, partner_station_uid, remote_event_id, event_date)
                         VALUES (:station_id, :member_id, :partner_uid::UUID, :event_id, :event_date)
                         ON CONFLICT (member_id, partner_station_uid, remote_event_id, event_date)
-                            DO UPDATE SET signed_up_at = now();""")
+                            DO UPDATE SET signed_up_at = now(),
+                                          status = CASE WHEN partner_signup.status = 'WITHDRAWN' THEN NULL
+                                                        ELSE partner_signup.status END;""")
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("partner_uid", partnerStationUid, UUID_STRING)
                         .bind("event_id", remoteEventId)
                         .bind("event_date", eventDate))
                 .insert();
+    }
+
+    /**
+     * Notes a sign-up of a member for a date of a partner's appointment with the status the partner gave
+     * it, or the status it holds now where the sign-up was noted already. The partner's instant is left
+     * as it was, since this station's clock does not say when the partner decided.
+     *
+     * @param stationId         the station of the member
+     * @param memberId          the member
+     * @param partnerStationUid the station holding the appointment
+     * @param remoteEventId     the appointment there
+     * @param eventDate         the date
+     * @param status            the status the partner gave
+     */
+    public void recordStatus(
+            int stationId,
+            int memberId,
+            UUID partnerStationUid,
+            int remoteEventId,
+            LocalDate eventDate,
+            RegistrationStatus status) {
+        query("""
+                        INSERT INTO partner_signup (station_id, member_id, partner_station_uid, remote_event_id, event_date, status)
+                        VALUES (:station_id, :member_id, :partner_uid::UUID, :event_id, :event_date, :status)
+                        ON CONFLICT (member_id, partner_station_uid, remote_event_id, event_date)
+                            DO UPDATE SET status = EXCLUDED.status;""")
+                .single(call().bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("partner_uid", partnerStationUid, UUID_STRING)
+                        .bind("event_id", remoteEventId)
+                        .bind("event_date", eventDate)
+                        .bind("status", status))
+                .insert();
+    }
+
+    /**
+     * The status a partner last gave a member's sign-up for a date of its appointment.
+     *
+     * @param memberId          the member
+     * @param partnerStationUid the station holding the appointment
+     * @param remoteEventId     the appointment there
+     * @param eventDate         the date
+     * @return the status, empty where none is known or the member was not signed up from here
+     */
+    public Optional<RegistrationStatus> knownStatus(
+            int memberId, UUID partnerStationUid, int remoteEventId, LocalDate eventDate) {
+        return query("""
+                        SELECT status FROM partner_signup
+                        WHERE member_id = :member_id
+                          AND partner_station_uid = :partner_uid::UUID
+                          AND remote_event_id = :event_id
+                          AND event_date = :event_date
+                          AND status IS NOT NULL;""")
+                .single(call().bind("member_id", memberId)
+                        .bind("partner_uid", partnerStationUid, UUID_STRING)
+                        .bind("event_id", remoteEventId)
+                        .bind("event_date", eventDate))
+                .map(row -> row.getEnum("status", RegistrationStatus.class))
+                .first();
+    }
+
+    /**
+     * Takes in a decision a partner told about a member's sign-up, unless it is not newer than the one
+     * already taken in.
+     *
+     * @param memberId          the member
+     * @param partnerStationUid the station holding the appointment
+     * @param remoteEventId     the appointment there
+     * @param eventDate         the date
+     * @param status            the status the partner gave
+     * @param changedAt         when the partner gave it, on its own clock
+     * @return whether the decision was taken in
+     */
+    public boolean learnStatus(
+            int memberId,
+            UUID partnerStationUid,
+            int remoteEventId,
+            LocalDate eventDate,
+            RegistrationStatus status,
+            Instant changedAt) {
+        return query("""
+                        UPDATE partner_signup
+                        SET status = :status, status_changed_at = :changed_at
+                        WHERE member_id = :member_id
+                          AND partner_station_uid = :partner_uid::UUID
+                          AND remote_event_id = :event_id
+                          AND event_date = :event_date
+                          AND (status_changed_at IS NULL OR status_changed_at < :changed_at);""")
+                .single(call().bind("status", status)
+                        .bind("changed_at", changedAt, INSTANT_TIMESTAMP)
+                        .bind("member_id", memberId)
+                        .bind("partner_uid", partnerStationUid, UUID_STRING)
+                        .bind("event_id", remoteEventId)
+                        .bind("event_date", eventDate))
+                .update()
+                .changed();
     }
 
     /**
@@ -197,7 +296,8 @@ public class PartnerSigningRepository {
     }
 
     /**
-     * Forgets a sign-up the member withdrew.
+     * Notes that the member withdrew a sign-up. The row stays with the partner's last instant, so a notice
+     * the partner sent before the withdrawal cannot apply to a sign-up given again later.
      *
      * @param memberId          the member
      * @param partnerStationUid the station holding the appointment
@@ -206,7 +306,8 @@ public class PartnerSigningRepository {
      */
     public void forgetSignup(int memberId, UUID partnerStationUid, int remoteEventId, LocalDate eventDate) {
         query("""
-                        DELETE FROM partner_signup
+                        UPDATE partner_signup
+                        SET status = 'WITHDRAWN'
                         WHERE member_id = :member_id
                           AND partner_station_uid = :partner_uid::UUID
                           AND remote_event_id = :event_id
@@ -215,7 +316,7 @@ public class PartnerSigningRepository {
                         .bind("partner_uid", partnerStationUid, UUID_STRING)
                         .bind("event_id", remoteEventId)
                         .bind("event_date", eventDate))
-                .delete();
+                .update();
     }
 
     /**
@@ -223,7 +324,7 @@ public class PartnerSigningRepository {
      * @param partnerStationUid the station holding the appointment
      * @param remoteEventId     the appointment there
      * @param eventDate         the date
-     * @return whether this station signed the member up for that date
+     * @return whether this station signed the member up for that date and the member has not withdrawn
      */
     public boolean signedUp(int memberId, UUID partnerStationUid, int remoteEventId, LocalDate eventDate) {
         return query("""
@@ -232,7 +333,8 @@ public class PartnerSigningRepository {
                                        WHERE member_id = :member_id
                                          AND partner_station_uid = :partner_uid::UUID
                                          AND remote_event_id = :event_id
-                                         AND event_date = :event_date) AS signed_up;""")
+                                         AND event_date = :event_date
+                                         AND status IS DISTINCT FROM 'WITHDRAWN') AS signed_up;""")
                 .single(call().bind("member_id", memberId)
                         .bind("partner_uid", partnerStationUid, UUID_STRING)
                         .bind("event_id", remoteEventId)
