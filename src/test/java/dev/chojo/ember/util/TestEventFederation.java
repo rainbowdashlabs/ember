@@ -8,6 +8,7 @@ package dev.chojo.ember.util;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.PartnerPlacesRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
@@ -102,7 +103,10 @@ public record TestEventFederation(
      */
     public static TestEventFederation of(Parts parts) {
         var places = new PartnerPlacesService(
-                new PartnerPlacesRepository(), parts.federationRepository(), parts.partnerRepository());
+                new PartnerPlacesRepository(),
+                parts.federationRepository(),
+                parts.partnerRepository(),
+                new EventGroupPartnerRepository());
         var shares = new EventShareService(
                 parts.federationRepository(),
                 new EventSharingGuards(parts.crudService()),

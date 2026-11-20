@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:f98d74f46fca672d2da7392bf239fb7473a96b268b0b56b53168c5e723fcb827",
-  "generatedAt": "2026-11-19T23:17:03Z",
+  "schemaHash": "sha256:85f2014dd4f7aff8995a4f3626306fde5af8f2ed2adb728c12b8be8b9f8da9a3",
+  "generatedAt": "2026-11-20T11:40:24Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -11826,6 +11826,66 @@
         ]
       },
       "description": "How one appointment of an event group differs from a member field of the group: a member entered for this appointment only, or a member entered for the whole group who skips this appointment."
+    },
+    "event_group_partner_places": {
+      "tableHash": "sha256:1cbc77f979180b0c3b5368d83b8ed240c1d1ba0f9be3e80d172327c993a65e56",
+      "columns": [
+        {
+          "name": "event_group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The shared event group."
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The host station's own record of the partner station."
+        },
+        {
+          "name": "slot_budget",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many of this partner's sign-ups may hold a place in the event group, counted per sign-up, not per part. NULL means no cap; a number means the partner decides."
+        },
+        {
+          "name": "partner_confirms",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this partner decides its own members' sign-ups rather than the host. True for every row, since only such an arrangement is kept."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "What a partner was given to fill and to decide at a shared event group, beside the share it belongs to. Without it a transferred station keeps sharing the event group while forgetting how many places it promised and who was choosing."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "An arrangement between two stations, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "An arrangement between two stations, not per-member"
+      },
+      "description": "What a partner station may do with a shared event group: how many of its members may hold a place, and whether it decides its own sign-ups. Only arrangements somebody made have a row; none means the host decides with no cap. Dropped for a partner the share no longer covers."
     },
     "event_group_partner_registration": {
       "feature": "events",

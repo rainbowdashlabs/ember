@@ -95,6 +95,7 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.repository.PartnerPlacesRepository;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.events.service.AwaitingAnswers;
@@ -119,6 +120,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
+import dev.chojo.ember.feature.events.service.PartnerPlacesService;
 import dev.chojo.ember.feature.events.service.QueuePlacement;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -1099,12 +1101,26 @@ public abstract class RepositoryTestBase {
                 newEventGroupSignUpRules(),
                 new EventGroupRegistrationRepository(),
                 new EventGroupPartnerRepository(),
+                new PartnerPlacesRepository(),
                 eventRegistrationRepo,
                 queue,
                 new QueuePlacement(queue, eventRegistrationRepo),
                 registrations,
                 bus,
                 memberNameResolver);
+    }
+
+    /**
+     * The partner places of appointments and event groups, wired to the test database.
+     *
+     * @return the service
+     */
+    protected static PartnerPlacesService newPartnerPlacesService() {
+        return new PartnerPlacesService(
+                new PartnerPlacesRepository(),
+                new EventFederationRepository(),
+                new FederationRepository(),
+                new EventGroupPartnerRepository());
     }
 
     protected static EventGroupSignUpRules newEventGroupSignUpRules() {

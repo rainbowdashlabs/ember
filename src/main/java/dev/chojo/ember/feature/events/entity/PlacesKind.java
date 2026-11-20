@@ -20,7 +20,15 @@ public enum PlacesKind {
             "event_id",
             "station_event",
             EventRefusal.PARTNER_DECIDES_ITS_OWN,
-            EventRefusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN);
+            EventRefusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN),
+
+    /** A shared event group, whose places count per sign-up for the whole group. */
+    EVENT_GROUP(
+            "event_group_partner_places",
+            "event_group_id",
+            "event_group",
+            EventRefusal.PARTNER_DECIDES_ITS_OWN_FOR_EVENT_GROUP,
+            EventRefusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN_FOR_EVENT_GROUP);
 
     private final String table;
     private final String ownerColumn;

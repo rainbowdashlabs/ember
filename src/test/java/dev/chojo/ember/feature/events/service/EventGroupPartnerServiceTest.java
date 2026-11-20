@@ -56,11 +56,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static dev.chojo.ember.repository.EventGroupFixtures.part;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -157,7 +159,8 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 federationRepo,
                 transport.transport(),
                 newEventGroupQueue(
-                        newEventServices(new DomainEventBus(Set.of())).registration(), new DomainEventBus(Set.of())));
+                        newEventServices(new DomainEventBus(Set.of())).registration(), new DomainEventBus(Set.of())),
+                newPartnerPlacesService());
         notifier = mock(Notifier.class);
         partnerSide = new PartnerEventGroupService(
                 transport.transport(),
@@ -653,5 +656,134 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
 
         assertTrue(federationRegistrations.findRegistrations(sat2, null).stream()
                 .allMatch(registration -> registration.status() == RegistrationStatus.WITHDRAWN));
+    }
+
+    /**
+     * A partner handed the decision gets its members' sign-ups waiting for it, and whoever runs the event
+     * group neither accepts, turns down nor queues them; the host page says whose decision they are.
+     */
+    @Test
+    void aPartnerThatDecidesKeepsItsSignUpsToItself() {
+        eventGroup = jugendflamme(5);
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, null, true);
+
+        var standing = partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+
+        assertEquals(
+                RegistrationStatus.PENDING, standing.status(), "the event group confirms nobody, the partner does");
+        assertNull(rankOf(partnerSignUpOf(mara).id()), "and nobody waits on the list for it");
+        int signUpId = partnerSignUpOf(mara).id();
+        assertRefused(
+                EventRefusal.PARTNER_DECIDES_ITS_OWN_FOR_EVENT_GROUP,
+                () -> partners.decide(holder.id(), eventGroup.id(), signUpId, RegistrationStatus.ACCEPTED));
+        assertRefused(
+                EventRefusal.PARTNER_DECIDES_ITS_OWN_FOR_EVENT_GROUP,
+                () -> partners.decide(holder.id(), eventGroup.id(), signUpId, RegistrationStatus.DENIED));
+        assertRefused(
+                EventRefusal.PARTNER_DECIDES_ITS_OWN_FOR_EVENT_GROUP,
+                () -> partners.moveToQueue(holder.id(), eventGroup.id(), List.of(signUpId)));
+        assertEquals(RegistrationStatus.PENDING, partnerSignUpOf(mara).status());
+
+        var listed = partners.signUps(holder.id(), eventGroup.id()).getFirst();
+        assertEquals(partnerOfHolder, listed.partnerId());
+        assertTrue(listed.partnerDecides());
+    }
+
+    /** A partner's member already waiting may still be moved within the list after the partner took the decision. */
+    @Test
+    void aWaitingMemberOfADecidingPartnerIsStillMovedInLine() {
+        eventGroup = jugendflamme(1);
+        signUps.register(holder.id(), eventGroup.id(), lea.id(), Set.of(sat1, sun1, test), Map.of(), null, false);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, null, true);
+        int second = partnerSignUpOf(ben).id();
+
+        partners.moveInQueue(holder.id(), eventGroup.id(), second, 1);
+
+        assertEquals(1, rankOf(second));
+    }
+
+    /**
+     * A partner whose places are all taken is passed over when a place falls free, keeping its place in
+     * line, and the next one waiting moves up instead. Once one of the partner's own places falls free,
+     * its member moves up.
+     */
+    @Test
+    void aPartnerAtItsPlacesIsPassedOverAndTheNextMovesUp() {
+        eventGroup = jugendflamme(2);
+        var account = accountRepo.create("tom-" + UUID.randomUUID() + "@holder-group.test", "Tom", "Holder");
+        accounts.add(account.id());
+        var tom = stationMemberRepo.create(holder.id(), account.id());
+        signUps.register(holder.id(), eventGroup.id(), lea.id(), Set.of(sat1, sun1, test), Map.of(), null, false);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+        signUps.register(holder.id(), eventGroup.id(), tom.id(), Set.of(sat1, sun1, test), Map.of(), null, false);
+        assertEquals(RegistrationStatus.QUEUED, partnerSignUpOf(ben).status());
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, 1, true);
+        assertEquals(
+                1,
+                partners.partnerPlaces(holder.id(), eventGroup.id()).getFirst().taken());
+
+        signUps.withdraw(holder.id(), eventGroup.id(), lea.id());
+
+        assertEquals(RegistrationStatus.QUEUED, partnerSignUpOf(ben).status(), "the partner's one place is taken");
+        assertEquals(1, rankOf(partnerSignUpOf(ben).id()));
+        assertEquals(
+                RegistrationStatus.ACCEPTED,
+                new EventGroupRegistrationRepository()
+                        .find(eventGroup.id(), tom.id())
+                        .orElseThrow()
+                        .status(),
+                "the next one waiting moves up instead");
+
+        partnerSide.withdraw(partner.id(), holder.uid(), eventGroup.id(), mara);
+
+        assertEquals(
+                RegistrationStatus.ACCEPTED,
+                partnerSignUpOf(ben).status(),
+                "once the partner's own place falls free, its member waiting first moves up");
+    }
+
+    /**
+     * Places go only to a partner the event group is shared with, and go with the share: a share naming
+     * others drops them, and so does ending the share. An event group of another station is not there.
+     */
+    @Test
+    void placesAtAnEventGroupGoWithItsShare() {
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, 2, true);
+        assertEquals(
+                2,
+                partners.partnerPlaces(holder.id(), eventGroup.id())
+                        .getFirst()
+                        .arrangement()
+                        .slotBudget());
+
+        partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of());
+        assertTrue(partners.partnerPlaces(holder.id(), eventGroup.id()).isEmpty());
+        assertRefused(
+                EventRefusal.PLACES_PARTNER_NOT_SHARED_WITH,
+                () -> partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, 2, true));
+
+        partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of(partnerOfHolder));
+        partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, 2, true);
+        partners.share(holder.id(), eventGroup.id(), ShareScope.ALL_PARTNERS, List.of());
+        assertEquals(1, partners.partnerPlaces(holder.id(), eventGroup.id()).size());
+
+        partners.unshare(holder.id(), eventGroup.id());
+        assertTrue(partners.partnerPlaces(holder.id(), eventGroup.id()).isEmpty());
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE,
+                () -> partners.arrangePartnerPlaces(partner.id(), eventGroup.id(), partnerOfHolder, 2, true));
+        assertRefused(EventRefusal.EVENT_GROUP_NOT_HERE, () -> partners.partnerPlaces(partner.id(), eventGroup.id()));
+    }
+
+    private Integer rankOf(int signUpId) {
+        return partners.signUps(holder.id(), eventGroup.id()).stream()
+                .filter(signUp -> signUp.id() == signUpId)
+                .findFirst()
+                .orElseThrow()
+                .standing()
+                .queuePosition();
     }
 }

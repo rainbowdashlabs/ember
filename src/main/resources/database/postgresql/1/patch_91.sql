@@ -761,3 +761,28 @@ WHERE NOT EXISTS (SELECT 1
                                  FROM ember_schema.event_federation_share_target t
                                  WHERE t.share_id = s.id
                                    AND t.partner_id = p.partner_id)));
+
+-- What a partner station may do with a shared event group, the arrangement shared appointments already
+-- have: places counted per event group sign-up, and whether the partner decides its own sign-ups.
+
+CREATE TABLE ember_schema.event_group_partner_places
+(
+    event_group_id   INTEGER NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    partner_id       INTEGER NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
+    slot_budget      INTEGER NULL,
+    partner_confirms BOOLEAN NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (event_group_id, partner_id),
+    CONSTRAINT event_group_partner_places_budget_is_not_negative CHECK (slot_budget IS NULL OR slot_budget >= 0),
+    CONSTRAINT event_group_partner_places_budget_implies_deciding CHECK (slot_budget IS NULL OR partner_confirms)
+);
+
+COMMENT ON TABLE ember_schema.event_group_partner_places IS
+    'What a partner station may do with a shared event group: how many of its members may hold a place, and whether it decides its own sign-ups. Only arrangements somebody made have a row; none means the host decides with no cap. Dropped for a partner the share no longer covers.';
+COMMENT ON COLUMN ember_schema.event_group_partner_places.event_group_id IS
+    'The shared event group.';
+COMMENT ON COLUMN ember_schema.event_group_partner_places.partner_id IS
+    'The host station''s own record of the partner station.';
+COMMENT ON COLUMN ember_schema.event_group_partner_places.slot_budget IS
+    'How many of this partner''s sign-ups may hold a place in the event group, counted per sign-up, not per part. NULL means no cap; a number means the partner decides.';
+COMMENT ON COLUMN ember_schema.event_group_partner_places.partner_confirms IS
+    'Whether this partner decides its own members'' sign-ups rather than the host. True for every row, since only such an arrangement is kept.';

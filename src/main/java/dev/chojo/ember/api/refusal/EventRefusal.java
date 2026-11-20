@@ -918,7 +918,15 @@ public enum EventRefusal implements Refusal {
      * that partner could never fill.
      */
     PLACES_PARTNER_NOT_SHARED_WITH(
-            239, HttpStatus.BAD_REQUEST, "Places can only be given to a partner station this is shared with");
+            239, HttpStatus.BAD_REQUEST, "Places can only be given to a partner station this is shared with"),
+
+    /** Whoever runs an event group deciding about a partner's member, where the partner decides its own. */
+    PARTNER_DECIDES_ITS_OWN_FOR_EVENT_GROUP(
+            240, HttpStatus.FORBIDDEN, "This partner decides its own sign-ups for this event group"),
+
+    /** A partner confirming one of its own members for an event group where the host did not let it. */
+    PARTNER_DOES_NOT_CONFIRM_ITS_OWN_FOR_EVENT_GROUP(
+            241, HttpStatus.FORBIDDEN, "This station decides the sign-ups for this event group");
 
     private final Definition definition;
 

@@ -9,6 +9,7 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.PartnerPlaces;
 import dev.chojo.ember.feature.events.entity.PlacesKind;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.PartnerPlacesRepository;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -38,15 +39,18 @@ public class PartnerPlacesService {
     private final PartnerPlacesRepository places;
     private final EventFederationRepository appointmentShares;
     private final FederationRepository partners;
+    private final EventGroupPartnerRepository eventGroupShares;
 
     @Inject
     public PartnerPlacesService(
             PartnerPlacesRepository places,
             EventFederationRepository appointmentShares,
-            FederationRepository partners) {
+            FederationRepository partners,
+            EventGroupPartnerRepository eventGroupShares) {
         this.places = places;
         this.appointmentShares = appointmentShares;
         this.partners = partners;
+        this.eventGroupShares = eventGroupShares;
     }
 
     /**
@@ -190,6 +194,7 @@ public class PartnerPlacesService {
                         appointmentShares
                                 .findSharedEventIds(partnerId, stationId)
                                 .contains(ownerId);
+                    case EVENT_GROUP -> eventGroupShares.isSharedWith(ownerId, partnerId, stationId);
                 };
     }
 }

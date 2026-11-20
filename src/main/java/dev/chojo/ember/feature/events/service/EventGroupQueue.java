@@ -11,6 +11,7 @@ import dev.chojo.ember.event.events.EventGroupRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.PlacesKind;
 import dev.chojo.ember.feature.events.entity.QueueEntry;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -18,6 +19,7 @@ import dev.chojo.ember.feature.events.entity.WhenFull;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
+import dev.chojo.ember.feature.events.repository.PartnerPlacesRepository;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository.QueueList;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository.QueueOwner;
@@ -54,7 +56,9 @@ import java.util.stream.Collectors;
  * the people limit too. An entry waiting for a part that is still full is passed over, because it
  * cannot move up anyway; nobody who waits for the place that fell free is passed over. An entry whose
  * chosen parts include one already past moves up no more, and a called-off event group moves nobody.
- * Whoever moves up is accepted at once, members of partner stations alike.
+ * Whoever moves up is accepted at once, members of partner stations alike. A partner's member whose
+ * station has filled the places it was given is passed over and keeps its place in line, so it moves up
+ * once one of its station's places falls free.
  *
  * <p>Callers hold the event group's lock and its parts' locks.
  */
@@ -65,6 +69,7 @@ public class EventGroupQueue {
     private final EventGroupSignUpRules rules;
     private final EventGroupRegistrationRepository signUps;
     private final EventGroupPartnerRepository partners;
+    private final PartnerPlacesRepository partnerPlaces;
     private final EventRegistrationRepository registrations;
     private final RegistrationQueueRepository queue;
     private final QueuePlacement placement;
@@ -79,6 +84,7 @@ public class EventGroupQueue {
      * @param rules               the sign-up rules, for room and standing
      * @param signUps             the sign-ups of this station's members
      * @param partners            the sign-ups of partners' members
+     * @param partnerPlaces       the places each partner was given
      * @param registrations       the registrations of the parts
      * @param queue               the waiting lists
      * @param placement           the order of the waiting lists
@@ -91,6 +97,7 @@ public class EventGroupQueue {
             EventGroupSignUpRules rules,
             EventGroupRegistrationRepository signUps,
             EventGroupPartnerRepository partners,
+            PartnerPlacesRepository partnerPlaces,
             EventRegistrationRepository registrations,
             RegistrationQueueRepository queue,
             QueuePlacement placement,
@@ -101,6 +108,7 @@ public class EventGroupQueue {
                 rules,
                 signUps,
                 partners,
+                partnerPlaces,
                 registrations,
                 queue,
                 placement,
@@ -116,6 +124,7 @@ public class EventGroupQueue {
      * @param rules               the sign-up rules, for room and standing
      * @param signUps             the sign-ups of this station's members
      * @param partners            the sign-ups of partners' members
+     * @param partnerPlaces       the places each partner was given
      * @param registrations       the registrations of the parts
      * @param queue               the waiting lists
      * @param placement           the order of the waiting lists
@@ -128,6 +137,7 @@ public class EventGroupQueue {
             EventGroupSignUpRules rules,
             EventGroupRegistrationRepository signUps,
             EventGroupPartnerRepository partners,
+            PartnerPlacesRepository partnerPlaces,
             EventRegistrationRepository registrations,
             RegistrationQueueRepository queue,
             QueuePlacement placement,
@@ -139,6 +149,7 @@ public class EventGroupQueue {
         this.rules = rules;
         this.signUps = signUps;
         this.partners = partners;
+        this.partnerPlaces = partnerPlaces;
         this.registrations = registrations;
         this.queue = queue;
         this.placement = placement;
@@ -342,6 +353,7 @@ public class EventGroupQueue {
         }
         var tied = partners.findLinked(signUpId);
         var chosen = tied.stream().map(EventFederationRegistration::eventId).collect(Collectors.toSet());
+        if (!withinPartnerPlaces(eventGroup, signUp.partnerId())) return;
         if (!movesUp(eventGroup, chosen, parts, standing)) return;
         partners.updateStatus(signUpId, RegistrationStatus.ACCEPTED);
         for (var registration : tied) {
@@ -349,6 +361,13 @@ public class EventGroupQueue {
                 partners.restate(registration.id(), RegistrationStatus.ACCEPTED);
             }
         }
+    }
+
+    /** Whether a partner still has a place of the ones it was given, counted per sign-up. */
+    private boolean withinPartnerPlaces(EventGroup eventGroup, int partnerId) {
+        return partnerPlaces
+                .find(PlacesKind.EVENT_GROUP, eventGroup.id(), partnerId)
+                .admits(partners.countForPartner(eventGroup.id(), partnerId, RegistrationStatus.ACCEPTED), 0);
     }
 
     /** Whether a waiting choice moves up now: it fits, and none of its parts is already past. */

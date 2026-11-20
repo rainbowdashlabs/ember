@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.PartnerPlaces;
 import dev.chojo.ember.feature.events.entity.PlacesKind;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
@@ -139,5 +140,28 @@ class PartnerPlacesRepositoryTest extends RepositoryTestBase {
                 var statement = connection.createStatement()) {
             statement.execute(sql);
         }
+    }
+
+    /** An event group keeps its arrangements in its own table, read and written the same way. */
+    @Test
+    void anEventGroupKeepsItsArrangementsApart() {
+        int group = new EventGroupRepository()
+                .create(station.id(), new EventGroupDetails("Lehrgang", null, null, null, false, null))
+                .id();
+        int appointment = appointment();
+        places.set(PlacesKind.EVENT_GROUP, new PartnerPlaces(group, first, 3, true));
+        places.set(PlacesKind.EVENT_GROUP, new PartnerPlaces(group, second, null, true));
+
+        assertEquals(new PartnerPlaces(group, first, 3, true), places.find(PlacesKind.EVENT_GROUP, group, first));
+        assertTrue(places.list(PlacesKind.APPOINTMENT, appointment).isEmpty());
+        assertDoesNotThrow(() -> Transactions.run(() -> {
+            places.lockOwner(PlacesKind.EVENT_GROUP, group);
+            places.lock(PlacesKind.EVENT_GROUP, group, first);
+        }));
+
+        places.retainOnly(PlacesKind.EVENT_GROUP, group, List.of(second));
+        assertEquals(List.of(new PartnerPlaces(group, second, null, true)), places.list(PlacesKind.EVENT_GROUP, group));
+        places.set(PlacesKind.EVENT_GROUP, PartnerPlaces.hostDecides(group, second));
+        assertTrue(places.list(PlacesKind.EVENT_GROUP, group).isEmpty());
     }
 }
