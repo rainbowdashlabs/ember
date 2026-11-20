@@ -537,28 +537,27 @@ public class ItemMovementService {
     }
 
     /**
-     * Refuses a piece that an open movement other than the given one carries, setting out or promised.
+     * Refuses a piece that an open movement other than the given one carries: promised, setting out, or
+     * among the further pieces of a dispatch.
      *
      * <p>The movement asking is left out, because a piece it already names is spoken for by itself and
      * nobody else.
      *
      * @param itemId        the piece
      * @param ownMovementId the movement asking, or {@code null} when there is none yet
-     * @throws RefusalResponse when another open movement names the piece on either side
+     * @throws RefusalResponse when another open movement carries the piece
      */
     private void requireNoOtherMovementCarries(int itemId, @Nullable Integer ownMovementId) {
-        movementRepository
-                .findOpenByOutgoingItem(itemId)
-                .filter(open -> !Objects.equals(open.id(), ownMovementId))
-                .ifPresent(open -> {
-                    throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT.raise();
-                });
         movementRepository
                 .findOpenByIncomingItem(itemId)
                 .filter(open -> !Objects.equals(open.id(), ownMovementId))
                 .ifPresent(open -> {
                     throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_PROMISED.raise();
                 });
+        if (movementRepository.findOpenCarrying(itemId).stream()
+                .anyMatch(carrying -> !Objects.equals(carrying, ownMovementId))) {
+            throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT.raise();
+        }
     }
 
     /**
@@ -1197,16 +1196,32 @@ public class ItemMovementService {
      *
      * <p>A report that the item is gone has nowhere to put it back: it was missing before the report and it
      * is missing after, whether the owner sent a replacement or refused one. The loss is recorded either way.
-     *
+     * The same holds for a piece reported missing while an ordinary movement was under way: it stays missing
+     * on whoever's record it is, and the movement closes all the same, since only finding it ends a loss.
      */
     private void restoreOutgoingItem(ItemMovement movement) {
         if (movement.outgoingItemId() == null || movement.lostReport()) return;
+        if (isMissing(movement.outgoingItemId())) {
+            log.info(
+                    "Movement {} closes while its item {} is reported missing, so the item stays missing",
+                    movement.id(),
+                    movement.outgoingItemId());
+            return;
+        }
         if (movement.memberId() != null) {
             custodyService.applyStepCustody(
                     movement.outgoingItemId(), ItemCustody.WITH_MEMBER, movement.memberId(), null);
         } else {
             custodyService.takeBack(movement.outgoingItemId());
         }
+    }
+
+    /** Whether a piece is reported missing, which no closing movement may write over. */
+    private boolean isMissing(int itemId) {
+        return inventoryRepository
+                .findItemById(itemId)
+                .filter(item -> item.custody() == ItemCustody.LOST || item.lostAt() != null)
+                .isPresent();
     }
 
     /**

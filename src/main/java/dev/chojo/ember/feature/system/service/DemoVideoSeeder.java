@@ -163,6 +163,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
         var item = inventoryRepository.findItemsByMember(kid.id()).stream()
                 .filter(candidate -> candidate.ownerKind() != ItemOwner.CLUSTER)
                 .filter(candidate -> !moving.containsKey(candidate.id()))
+                .filter(candidate -> candidate.lostAt() == null)
                 .findFirst()
                 .orElse(null);
         if (item == null) {
@@ -243,6 +244,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
             var item = inventoryRepository.findItemsByMember(kid.id()).stream()
                     .filter(candidate -> candidate.ownerKind() != ItemOwner.CLUSTER)
                     .filter(candidate -> !moving.containsKey(candidate.id()))
+                    .filter(candidate -> candidate.lostAt() == null)
                     .findFirst()
                     .orElse(null);
             if (item == null) continue;
@@ -386,6 +388,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
         var moving = inventoryRepository.findMovingItemsOfMember(kid.id());
         var item = inventoryRepository.findItemsByMember(kid.id()).stream()
                 .filter(candidate -> !moving.containsKey(candidate.id()))
+                .filter(candidate -> candidate.lostAt() == null)
                 .findFirst()
                 .orElse(null);
         if (item == null) {

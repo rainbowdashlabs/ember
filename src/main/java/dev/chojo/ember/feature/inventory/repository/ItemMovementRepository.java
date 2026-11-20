@@ -180,10 +180,31 @@ public class ItemMovementRepository {
     }
 
     /**
-     * Whether an open movement names this piece, setting out or promised.
+     * Every open movement carrying this piece: naming it as setting out or as promised, or carrying it
+     * among the further pieces of a dispatch.
      *
      * @param itemId the piece
-     * @return {@code true} when an open movement names it on either side
+     * @return the ids of those movements, oldest first
+     */
+    public List<Integer> findOpenCarrying(int itemId) {
+        return query("""
+                SELECT m.id FROM item_movement m
+                WHERE m.state = :open
+                  AND (:item_id IN (m.outgoing_item_id, m.incoming_item_id)
+                       OR EXISTS (SELECT 1 FROM item_movement_item carried
+                                  WHERE carried.movement_id = m.id AND carried.item_id = :item_id))
+                ORDER BY m.created_at, m.id;""")
+                .single(call().bind("item_id", itemId).bind("open", MovementState.OPEN))
+                .map(row -> row.getInt("id"))
+                .all();
+    }
+
+    /**
+     * Whether an open movement carries this piece, setting out, promised or as one of the further
+     * pieces of a dispatch.
+     *
+     * @param itemId the piece
+     * @return {@code true} when an open movement carries it
      */
     public boolean isOnAMovement(int itemId) {
         return SqlSupport.exists(

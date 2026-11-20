@@ -120,7 +120,8 @@ public final class ItemCustodySql {
     }
 
     /**
-     * A predicate matching the items no open movement names, neither as setting out nor as promised.
+     * A predicate matching the items no open movement carries: neither named as setting out or as
+     * promised, nor among the further pieces of a dispatch that sends many at once.
      *
      * <p>Such a piece is not free to be offered for anything else, however free its custody looks.
      *
@@ -129,8 +130,11 @@ public final class ItemCustodySql {
      */
     public static String notOnAMovement(String itemAlias) {
         return """
-                NOT EXISTS (SELECT 1 FROM item_movement open_movement WHERE open_movement.state = 'OPEN' \
-                AND %1$s.id IN (open_movement.outgoing_item_id, open_movement.incoming_item_id))""".formatted(itemAlias);
+                (NOT EXISTS (SELECT 1 FROM item_movement open_movement WHERE open_movement.state = 'OPEN' \
+                AND %1$s.id IN (open_movement.outgoing_item_id, open_movement.incoming_item_id)) \
+                AND NOT EXISTS (SELECT 1 FROM item_movement_item carried \
+                JOIN item_movement carrying ON carrying.id = carried.movement_id \
+                WHERE carrying.state = 'OPEN' AND carried.item_id = %1$s.id))""".formatted(itemAlias);
     }
 
     /**

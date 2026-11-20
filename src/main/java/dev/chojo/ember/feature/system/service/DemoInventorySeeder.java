@@ -125,7 +125,8 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
 
     /**
      * Creates exchange requests for randomly picked assigned items, walking a portion of them one step
-     * on so the queue shows chains at more than one stage.
+     * on so the queue shows chains at more than one stage. A piece the checks reported missing is passed
+     * over: a missing piece is swapped through a loss report, and its ordinary chain cannot move it.
      */
     private void seedExchanges(
             int stationId,
@@ -138,7 +139,9 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         int exchangeCount = 0;
         for (var kid : allKids) {
             if (rng.nextInt(5) == 0) continue;
-            var memberItems = inventoryRepository.findItemsByMember(kid.id());
+            var memberItems = inventoryRepository.findItemsByMember(kid.id()).stream()
+                    .filter(candidate -> candidate.lostAt() == null)
+                    .toList();
             if (memberItems.isEmpty()) continue;
             var item = memberItems.get(rng.nextInt(memberItems.size()));
             var reason = EXCHANGE_REASONS.get(rng.nextInt(EXCHANGE_REASONS.size()));
