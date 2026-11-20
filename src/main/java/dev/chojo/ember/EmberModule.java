@@ -123,7 +123,6 @@ import dev.chojo.ember.feature.events.handler.EventDateRestoredHandler;
 import dev.chojo.ember.feature.events.handler.EventDeletedHandler;
 import dev.chojo.ember.feature.events.handler.EventGroupCancelledHandler;
 import dev.chojo.ember.feature.events.handler.EventGroupCancelledPartnerHandler;
-import dev.chojo.ember.feature.events.handler.EventGroupDeadlineExpiredHandler;
 import dev.chojo.ember.feature.events.handler.EventGroupRegistrationStatusHandler;
 import dev.chojo.ember.feature.events.handler.EventLimitRaisedHandler;
 import dev.chojo.ember.feature.events.handler.EventRegistrationStatusHandler;
@@ -860,7 +859,6 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(EventGroupRegistrationStatusHandler.class);
         eventBinder.addBinding().to(EventGroupCancelledHandler.class);
         eventBinder.addBinding().to(EventGroupCancelledPartnerHandler.class);
-        eventBinder.addBinding().to(EventGroupDeadlineExpiredHandler.class);
         eventBinder.addBinding().to(NewsCreatedHandler.class);
         eventBinder.addBinding().to(ClusterNewsShareHandler.class);
         eventBinder.addBinding().to(ClusterEventShareHandler.class);

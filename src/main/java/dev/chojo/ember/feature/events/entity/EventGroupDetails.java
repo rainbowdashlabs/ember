@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.events.entity;
 
 import org.jspecify.annotations.Nullable;
 
-import java.time.Instant;
+import java.util.Objects;
 
 /**
  * What a manager sets on an event group besides its sets, parts and audiences.
@@ -15,7 +15,8 @@ import java.time.Instant;
  * @param name                 the event group name
  * @param description          what it is about, as Markdown
  * @param registrationLimit    how many people it takes, or null for no limit
- * @param registrationDeadline when sign-ups close, or null for no deadline
+ * @param registrationDeadline when sign-ups close: fixed, or relative to the start of the first part;
+ *                             null reads as no deadline
  * @param requiresConfirmation whether a manager confirms each sign-up
  * @param color                the colour that marks its parts in lists (#RRGGBB), or null for one
  *                             picked by its id
@@ -31,7 +32,7 @@ public record EventGroupDetails(
         String name,
         @Nullable String description,
         @Nullable Integer registrationLimit,
-        @Nullable Instant registrationDeadline,
+        RegistrationDeadline registrationDeadline,
         boolean requiresConfirmation,
         @Nullable String color,
         @Nullable Integer minRegistrations,
@@ -39,13 +40,19 @@ public record EventGroupDetails(
         @Nullable Integer partRegistrationLimit,
         @Nullable QueueOrder queueOrder) {
 
+    /** Reads a missing deadline as none. */
+    public EventGroupDetails {
+        registrationDeadline = Objects.requireNonNullElse(registrationDeadline, RegistrationDeadline.none());
+    }
+
     /**
      * Details without places per part, kept by time.
      *
      * @param name                 the event group name
      * @param description          what it is about, as Markdown
      * @param registrationLimit    how many people it takes, or null for no limit
-     * @param registrationDeadline when sign-ups close, or null for no deadline
+     * @param registrationDeadline when sign-ups close: fixed, or relative to the start of the first part;
+     *                             null reads as no deadline
      * @param requiresConfirmation whether a manager confirms each sign-up
      * @param color                the colour that marks its parts, or null
      * @param minRegistrations     how many sign-ups must be accepted, or null
@@ -55,7 +62,7 @@ public record EventGroupDetails(
             String name,
             @Nullable String description,
             @Nullable Integer registrationLimit,
-            @Nullable Instant registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             boolean requiresConfirmation,
             @Nullable String color,
             @Nullable Integer minRegistrations,
@@ -88,7 +95,8 @@ public record EventGroupDetails(
      * @param name                 the event group name
      * @param description          what it is about, as Markdown
      * @param registrationLimit    how many people it takes, or null for no limit
-     * @param registrationDeadline when sign-ups close, or null for no deadline
+     * @param registrationDeadline when sign-ups close: fixed, or relative to the start of the first part;
+     *                             null reads as no deadline
      * @param requiresConfirmation whether a manager confirms each sign-up
      * @param color                the colour that marks its parts, or null
      */
@@ -96,7 +104,7 @@ public record EventGroupDetails(
             String name,
             @Nullable String description,
             @Nullable Integer registrationLimit,
-            @Nullable Instant registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             boolean requiresConfirmation,
             @Nullable String color) {
         this(name, description, registrationLimit, registrationDeadline, requiresConfirmation, color, null, null);

@@ -219,7 +219,23 @@ public sealed interface NotificationParams {
 
     record LendingNewMessage(String stationName, String senderName) implements NotificationParams {}
 
-    record RegistrationDeadlineExpired(String eventName, int pendingCount) implements NotificationParams {}
+    /**
+     * The sign-up deadline of an appointment or event group passed with sign-ups still waiting for a
+     * decision.
+     *
+     * @param eventName    the appointment or event group
+     * @param pendingCount how many sign-ups wait
+     * @param eventDate    the date whose deadline passed, for a series that closes each date on its
+     *                     own; null for anything that closes once
+     */
+    record RegistrationDeadlineExpired(
+            String eventName, int pendingCount, @Nullable LocalDate eventDate) implements NotificationParams {
+        /** The sentence naming the date, where there is one. */
+        @Override
+        public @Nullable String variant() {
+            return eventDate != null ? "DATE" : null;
+        }
+    }
 
     /**
      * An appointment somebody holds a place on was called off, one date of it or the whole series.
@@ -275,8 +291,20 @@ public sealed interface NotificationParams {
      *
      * @param memberName whose answer is missing, which is the reader themselves or somebody they look
      *                   after; a guardian needs to know which of their children it is about
+     * @param eventDate  the date whose sign-up closes, for a series that closes each date on its own;
+     *                   null for anything that closes once
      */
-    record RegistrationClosing(String eventName, int daysBefore, String memberName) implements NotificationParams {}
+    record RegistrationClosing(
+            String eventName,
+            int daysBefore,
+            String memberName,
+            @Nullable LocalDate eventDate) implements NotificationParams {
+        /** The sentence naming the date, where there is one. */
+        @Override
+        public @Nullable String variant() {
+            return eventDate != null ? "DATE" : null;
+        }
+    }
 
     /**
      * An appointment gained a question after somebody had already registered, so their registration

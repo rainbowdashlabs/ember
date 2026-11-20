@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.events.entity.EventDetachedDate;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -52,9 +53,8 @@ class EventDetachedDateRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2027-01-06T20:00:00Z"),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

@@ -9,6 +9,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.handler.EventChangedHandler;
@@ -139,9 +140,8 @@ class EventMoveServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -167,8 +167,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
                         current.isPublic(),
                         current.registrationLimit(),
                         current.minRegistrations(),
-                        current.thresholdDays(),
-                        current.registrationCloseDays())
+                        current.thresholdDays())
                 .orElseThrow();
     }
 

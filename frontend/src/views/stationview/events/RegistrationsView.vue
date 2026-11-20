@@ -30,6 +30,7 @@ import {useDatePlaces} from './eventshared/useDatePlaces'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {formatDateTime} from '@/util/format'
+import {hasPassed} from './eventshared/registrationDeadline'
 import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -54,6 +55,8 @@ interface PendingDate {
   date: string
   pending: RegistrationResponse[]
   counts: StatusCounts
+  /** When sign-up for this date closes, null where it does not close before the date. */
+  closesAt: string | null
   deadlineExpired: boolean
 }
 
@@ -94,15 +97,13 @@ const pendingDates = computed((): PendingDate[] => {
     if (!first || !event) continue
     const counts = countsByDate.get(key) ?? emptyCounts()
     if (counts.PENDING < regs.length) counts.PENDING = regs.length
-    const deadlineExpired = event.registrationDeadline
-        ? new Date(event.registrationDeadline) < new Date()
-        : false
-    result.push({key, event, date: first.eventDate, pending: regs, counts, deadlineExpired})
+    const closesAt = first.registrationClosesAt
+    result.push({key, event, date: first.eventDate, pending: regs, counts, closesAt, deadlineExpired: hasPassed(closesAt)})
   }
 
   result.sort((a, b) => {
-    const da = a.event.registrationDeadline ?? '9999'
-    const db = b.event.registrationDeadline ?? '9999'
+    const da = a.closesAt ?? '9999'
+    const db = b.closesAt ?? '9999'
     return da.localeCompare(db) || a.date.localeCompare(b.date)
   })
   return result
@@ -231,6 +232,7 @@ const queueActions = useQueueActions(
               :event="group.event"
               :date="group.date"
               :counts="group.counts"
+              :closes-at="group.closesAt"
               :deadline-expired="group.deadlineExpired"
               :expanded="expandedKey === group.key"
               :expanded-loading="expandedLoading"

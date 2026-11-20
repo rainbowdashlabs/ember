@@ -172,12 +172,9 @@ public class EventGroupService {
     public EventGroup update(int stationId, int eventGroupId, EventGroupDetails details) {
         var checked = checked(details);
         return Transactions.call(() -> {
-            var before = lockEventGroup(stationId, eventGroupId);
+            lockEventGroup(stationId, eventGroupId);
             eventGroups.update(eventGroupId, checked);
-            if (!Objects.equals(before.details().registrationDeadline(), checked.registrationDeadline())) {
-                eventGroups.clearClosingWarnings(eventGroupId);
-            }
-            eventGroups.alignParts(eventGroupId, checked.requiresConfirmation(), checked.registrationDeadline());
+            eventGroups.alignParts(eventGroupId, checked.requiresConfirmation());
             return eventGroups.findById(eventGroupId).orElseThrow();
         });
     }
@@ -323,10 +320,7 @@ public class EventGroupService {
             if (!eventGroups.claimPart(eventId, setId)) throw EventRefusal.EVENT_GROUP_PART_TAKEN.raise();
             questions.dropQuestionsOfPart(eventId);
             eventGroups.clearOwnLimit(eventId);
-            eventGroups.alignParts(
-                    eventGroupId,
-                    eventGroup.details().requiresConfirmation(),
-                    eventGroup.details().registrationDeadline());
+            eventGroups.alignParts(eventGroupId, eventGroup.details().requiresConfirmation());
             handDownAudiences(eventGroupId, List.of(eventId));
             eventGroups.handDownShare(eventGroupId, eventId);
             Transactions.afterCommit(() -> fields.reconcilePart(eventId));
@@ -411,7 +405,8 @@ public class EventGroupService {
 
     /**
      * Makes a part an appointment of its own again. Who was signed up for it stays signed up, and
-     * it keeps the sign-up settings, places, audiences and partner share it had as a part until
+     * it keeps the sign-up settings, the event group's close as its fixed deadline, places, audiences and
+     * partner share it had as a part until
      * somebody changes them, so partners' members signed up for it can still be seen and decided, and
      * a part that took the places per part keeps that many places of its own. A set that
      * asked for every one of its parts asks for all it still holds afterwards.
@@ -427,6 +422,7 @@ public class EventGroupService {
             var leaving = departure.leaving(eventGroupId, eventId);
             int left = eventGroups.findPart(eventId).orElseThrow().setId();
             eventGroups.keepLimit(eventId);
+            eventGroups.keepDeadline(eventId);
             eventGroups.setPartSet(eventId, null);
             eventGroups.untieRegistrations(eventId);
             eventGroups.capMinimum(left);
@@ -767,6 +763,7 @@ public class EventGroupService {
     }
 
     private static EventGroupDetails checked(EventGroupDetails details) {
+        EventCrudService.requireValidDeadline(details.registrationDeadline());
         String name = details.name();
         Integer limit = details.registrationLimit();
         if (name == null || name.isBlank()) throw EventRefusal.EVENT_GROUP_NAME_MISSING.raise();

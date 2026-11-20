@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -118,7 +119,8 @@ class PartnerQuestionsTest extends RepositoryTestBase {
                         eventRepo,
                         attendanceRepo,
                         eventFieldRegistrationService,
-                        new EventGroupRepository()),
+                        new EventGroupRepository(),
+                        occurrenceCalendar),
                 occurrenceCalendar,
                 media,
                 new Api(),
@@ -156,11 +158,10 @@ class PartnerQuestionsTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 1,
-                null,
                 null,
                 null);
         new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility)

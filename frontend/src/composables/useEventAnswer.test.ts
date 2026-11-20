@@ -53,7 +53,7 @@ const appointment: EventSummary = {
     endTime: '2026-09-04T19:00:00Z',
     requiresRegistration: true,
     requiresConfirmation: false,
-    registrationDeadline: null,
+    registrationDeadline: {kind: 'NONE', at: null, offsetMinutes: null, anchor: null},
     categoryId: null,
     templateId: null,
     restricted: false,

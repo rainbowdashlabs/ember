@@ -19,6 +19,8 @@ const props = defineProps<{
   event: EventSummary
   date: string
   counts: Record<RegistrationStatus, number>
+  /** When sign-up for this date closes, null where it does not close before the date. */
+  closesAt: string | null
   deadlineExpired: boolean
   formatDeadline: (iso?: string | null) => string
 }>()
@@ -36,8 +38,8 @@ const places = computed(() => placesFromCounts(
     <div>
       <span class="font-medium text-primary">{{ event.name }}</span>
       <MutedText class="ml-2">{{ formatWeekdayDate(date, 'short') }}</MutedText>
-      <MutedText v-if="event.registrationDeadline" class="ml-2">
-        {{ t('eventsRegistrations.deadline') }}: {{ formatDeadline(event.registrationDeadline) }}
+      <MutedText v-if="closesAt" class="ml-2">
+        {{ t('eventsRegistrations.deadline') }}: {{ formatDeadline(closesAt) }}
       </MutedText>
       <MutedText v-if="places" class="ml-2" data-testid="pending-date-places">
         ({{ placesLabel(places, t) }})

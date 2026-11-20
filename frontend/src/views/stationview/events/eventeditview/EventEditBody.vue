@@ -22,6 +22,7 @@ import type {
     MemberGroup,
     QueueOrder,
     PartnerResponse,
+    RegistrationDeadline,
     RegistrationFieldDefinition,
     UserTag,
 } from '@/api/generated/schema'
@@ -71,6 +72,8 @@ const props = defineProps<{
   fileCount?: number
   /** The folded sections that hold something the reader has to see now, such as after a refused save. */
   attention?: readonly string[]
+  /** The station's time zone, which the deadline of the next date is worked out on. */
+  stationTimezone?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -95,13 +98,11 @@ const requiresRegistration = defineModel<boolean>('requiresRegistration', {requi
 const registrationFields = defineModel<RegistrationFieldDefinition[]>('registrationFields', {required: true})
 const {signUpHeld} = useQuestionsRequireSignUp(() => registrationFields.value.length > 0, requiresRegistration)
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
-const hasDeadline = defineModel<boolean>('hasDeadline', {required: true})
-const registrationDeadline = defineModel<string>('registrationDeadline', {required: true})
+const registrationDeadline = defineModel<RegistrationDeadline>('registrationDeadline', {required: true})
 const registrationLimit = defineModel<number | undefined>('registrationLimit')
 const queueOrder = defineModel<QueueOrder>('queueOrder')
 const minRegistrations = defineModel<number | undefined>('minRegistrations')
 const thresholdDays = defineModel<number | undefined>('thresholdDays')
-const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
 const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
@@ -210,12 +211,10 @@ function override(field: AppointmentField) {
         v-model:repeat-until="repeatUntil" v-model:repeat-count="repeatCount"
         v-model:requires-registration="requiresRegistration"
         v-model:requires-confirmation="requiresConfirmation"
-        v-model:has-deadline="hasDeadline"
         v-model:registration-deadline="registrationDeadline"
         v-model:registration-limit="registrationLimit"
         v-model:queue-order="queueOrder"
         v-model:min-registrations="minRegistrations" v-model:threshold-days="thresholdDays"
-        v-model:registration-close-days="registrationCloseDays"
         v-model:restriction="restriction" v-model:view-restriction="viewRestriction"
         v-model:fields="fields"
         v-model:reminders="reminders"
@@ -230,6 +229,7 @@ function override(field: AppointmentField) {
         :event-group-part="props.eventGroupPart"
         :follows-group="followsGroup"
         :attention="attentionKeys"
+        :time-zone="props.stationTimezone"
     >
       <template #after-fields>
         <InheritedFieldsCard

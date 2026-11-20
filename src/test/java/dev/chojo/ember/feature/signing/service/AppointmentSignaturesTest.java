@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -290,9 +291,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 START.plus(Duration.ofHours(8)),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -864,9 +864,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 START.plus(Duration.ofHours(8)),
                 null,
                 takesRegistrations,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -1037,9 +1036,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 start.plus(Duration.ofHours(8)),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

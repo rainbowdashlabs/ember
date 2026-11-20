@@ -58,7 +58,7 @@ const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const eventRoutes = useEventRoutes()
-const {loaded, hasPermission, sessionInfo} = useSession()
+const {loaded, hasPermission, sessionInfo, stationTimezone} = useSession()
 
 const canFederate = computed(() => hasPermission(StationPermission.EVENTS_FEDERATE))
 /**
@@ -406,6 +406,7 @@ const bodyProps = computed(() => ({
   documentCount: documentRequirements.chosen.value.length,
   fileCount: attachments.attachments.value.length + (isEdit.value ? 0 : templateFiles.value.length),
   attention: saveFailure.value || confirmFailure.value ? ['audience', 'sharing'] : [],
+  stationTimezone: stationTimezone.value,
   ...data.props.value,
   ...fieldDefaults.props.value,
   ...federationShare.props.value,

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.equipment;
 
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 
@@ -46,9 +47,8 @@ public final class EquipmentTestSupport {
                 at(date, 17),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -75,9 +75,8 @@ public final class EquipmentTestSupport {
                 at(first, 21),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

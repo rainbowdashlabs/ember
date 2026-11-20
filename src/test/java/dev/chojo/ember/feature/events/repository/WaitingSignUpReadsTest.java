@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -66,11 +67,10 @@ class WaitingSignUpReadsTest extends RepositoryTestBase {
                 start.plusSeconds(7200),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 null,
                 1,
-                null,
                 null,
                 null);
     }
@@ -153,7 +153,7 @@ class WaitingSignUpReadsTest extends RepositoryTestBase {
                     .gaveUpPlace());
             assertFalse(
                     eventRegistrationRepo
-                            .findUnansweredMemberIds(event.id(), station.id())
+                            .findUnansweredMemberIds(event.id(), station.id(), DATE)
                             .contains(waiter.id()),
                     "whoever left the waiting list is not asked again");
             assertTrue(queuedDates(event.id()).isEmpty(), "leaving the status leaves the list");

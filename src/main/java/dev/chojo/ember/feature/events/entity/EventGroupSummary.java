@@ -22,6 +22,9 @@ import java.time.Instant;
  * @param pending      how many sign-ups wait for a decision; a partner is never told, so it reads 0 there
  * @param firstStart   when its earliest part starts, none without parts or where a partner was not told
  * @param lastEnd      when its latest part ends, none without parts or where a partner was not told
+ * @param closesAt     when sign-ups close as the deadline places it now, from the start of the first
+ *                     part for a relative one; none for no deadline, no part yet, or a relative one a
+ *                     partner was not told the parts of
  */
 public record EventGroupSummary(
         int id,
@@ -33,7 +36,8 @@ public record EventGroupSummary(
         int queued,
         int pending,
         @Nullable Instant firstStart,
-        @Nullable Instant lastEnd) {
+        @Nullable Instant lastEnd,
+        @Nullable Instant closesAt) {
     /**
      * An event group with its counts as lists show it.
      *
@@ -52,6 +56,7 @@ public record EventGroupSummary(
                 tally.queued(),
                 tally.pending(),
                 tally.firstStart(),
-                tally.lastEnd());
+                tally.lastEnd(),
+                eventGroup.closesAt());
     }
 }

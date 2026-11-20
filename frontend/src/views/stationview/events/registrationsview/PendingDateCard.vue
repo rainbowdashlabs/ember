@@ -15,6 +15,8 @@ defineProps<{
   event: EventSummary
   date: string
   counts: Record<RegistrationStatus, number>
+  /** When sign-up for this date closes, null where it does not close before the date. */
+  closesAt: string | null
   deadlineExpired: boolean
   expanded: boolean
   expandedLoading: boolean
@@ -50,6 +52,7 @@ const emit = defineEmits<{
         :event="event"
         :date="date"
         :counts="counts"
+        :closes-at="closesAt"
         :deadline-expired="deadlineExpired"
         :format-deadline="formatDeadline"
     />

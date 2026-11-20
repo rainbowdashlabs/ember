@@ -59,16 +59,9 @@ export function fieldsSummary(sheetName: string, fields: number, t: Translate, f
  *
  * @param minimum the minimum, none for no rule
  * @param days    the days before the start it has to be reached, none for the day itself
- * @param closeDays the days before each date the sign-up of a repeating appointment closes
  */
-export function turnoutSummary(minimum: number | null | undefined, days: number | null | undefined,
-                               closeDays: number | null | undefined, t: Translate): string {
-    const parts: string[] = []
-    if (minimum) parts.push(minimumText(minimum, days, t))
-    if (closeDays != null) {
-        parts.push(closeDays === 1 ? t('formSections.closeDaysSetOne') : t('formSections.closeDaysSet', {days: closeDays}))
-    }
-    return joined(parts, t)
+export function turnoutSummary(minimum: number | null | undefined, days: number | null | undefined, t: Translate): string {
+    return minimum ? minimumText(minimum, days, t) : t('formSections.nothingSet')
 }
 
 /** The minimum and by how many days before the start it has to be reached, a single day named as one. */

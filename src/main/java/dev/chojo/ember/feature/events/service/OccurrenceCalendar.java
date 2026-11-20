@@ -21,6 +21,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.HashMap;
@@ -142,6 +143,48 @@ public class OccurrenceCalendar {
      */
     public Optional<LocalDate> dateInView(StationEvent event) {
         return forStation(event.stationId()).dateInView(event);
+    }
+
+    /**
+     * Whether sign-up for one date of an appointment has closed by its deadline, on the station's
+     * clock. A fixed deadline closes every date at once, a relative one each date on its own. Without
+     * a deadline it answers at once, sparing the read of the station's clock.
+     *
+     * @param event the appointment
+     * @param date  the date asked about
+     * @return true once that date's deadline has been reached
+     */
+    public boolean registrationClosed(StationEvent event, LocalDate date) {
+        if (!event.registrationDeadline().isSet()) return false;
+        return event.registrationClosedOn(date, zoneOf(event.stationId()), Instant.now());
+    }
+
+    /**
+     * Whether sign-up has closed for the date a screen about the appointment is read for, see
+     * {@link #dateInView(StationEvent)}. An appointment without any date never closes.
+     *
+     * @param event the appointment
+     * @return true once that date's deadline has been reached
+     */
+    public boolean registrationClosedInView(StationEvent event) {
+        if (!event.registrationDeadline().isSet()) return false;
+        var calendar = forStation(event.stationId());
+        return calendar.dateInView(event)
+                .map(date -> event.registrationClosedOn(date, calendar.zone(), Instant.now()))
+                .orElse(false);
+    }
+
+    /**
+     * When sign-up closes for the date a screen about the appointment is read for, see
+     * {@link #dateInView(StationEvent)}. Without a deadline it answers at once, sparing the read of
+     * the station's calendar.
+     *
+     * @param event the appointment
+     * @return the instant, empty without a deadline or without any date
+     */
+    public Optional<Instant> closesInView(StationEvent event) {
+        if (!event.registrationDeadline().isSet()) return Optional.empty();
+        return forStation(event.stationId()).closesInView(event);
     }
 
     /** The same for an appointment read by its id, for callers that hold nothing but the id. */

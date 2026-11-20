@@ -292,7 +292,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                 memberId,
                 NotificationType.REGISTRATION_DEADLINE_EXPIRED,
                 NotificationData.of(
-                        new NotificationParams.RegistrationDeadlineExpired("Offenes Training", 4), oneTimeLink));
+                        new NotificationParams.RegistrationDeadlineExpired("Offenes Training", 4, null), oneTimeLink));
     }
 
     private void seedInventoryCategory(int memberId, ShowcaseContext ctx) {

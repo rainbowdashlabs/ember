@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.SelfRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -51,7 +52,8 @@ class EventFieldSelfRegistrationStateTest extends RepositoryTestBase {
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService,
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                occurrenceCalendar);
         stationId = stationRepo.create("SelfReg State Station").id();
         inside = stationMemberRepo
                 .create(
@@ -200,9 +202,8 @@ class EventFieldSelfRegistrationStateTest extends RepositoryTestBase {
                         start.plus(2, ChronoUnit.HOURS),
                         null,
                         deadline != null,
-                        deadline,
+                        RegistrationDeadline.fixed(deadline),
                         false,
-                        null,
                         null,
                         null,
                         null,

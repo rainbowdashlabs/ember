@@ -6,13 +6,14 @@
 package dev.chojo.ember.feature.events.handler;
 
 import dev.chojo.ember.event.events.EventGroupCancelled;
-import dev.chojo.ember.event.events.EventGroupDeadlineExpired;
 import dev.chojo.ember.event.events.EventGroupRegistrationStatusChanged;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
+import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.Notifier;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -86,11 +88,15 @@ class EventGroupNoticeHandlersTest {
 
     @Test
     void aPassedDeadlineIsToldToWhoeverRunsEvents() {
-        new EventGroupDeadlineExpiredHandler(notifier)
-                .handle(new EventGroupDeadlineExpired(3, 70, "Jugendflamme 1", 2));
+        new RegistrationDeadlineExpiredHandler(notifier)
+                .handle(new RegistrationDeadlineExpired(
+                        3, "Jugendflamme 1", 2, null, NotificationLinks.eventGroup(70)));
 
         var data = sent(NotificationType.REGISTRATION_DEADLINE_EXPIRED, 1);
-        assertEquals(2, ((NotificationParams.RegistrationDeadlineExpired) data.params()).pendingCount());
+        var params = (NotificationParams.RegistrationDeadlineExpired) data.params();
+        assertEquals(2, params.pendingCount());
+        assertNull(params.eventDate(), "an event group closes once");
+        assertEquals(NotificationLinks.eventGroup(70), data.link());
     }
 
     @Test

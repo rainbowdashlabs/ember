@@ -310,7 +310,7 @@ public class EventFederationService implements FederationServer {
             throw EventRefusal.EVENT_TAKES_NO_PARTNER_REGISTRATIONS.raise();
         }
         occurrenceCalendar.dateToAnswerFor(event, eventDate);
-        if (event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline())) {
+        if (occurrenceCalendar.registrationClosed(event, eventDate)) {
             throw EventRefusal.REGISTRATION_CLOSED_TO_PARTNER.raise();
         }
     }

@@ -125,10 +125,7 @@ public class EventGroupViewService {
                     .toList();
             if (!owing.isEmpty()) {
                 awaiting.add(new EventGroupAwaiting(
-                        eventGroup.id(),
-                        eventGroup.details().name(),
-                        eventGroup.details().registrationDeadline(),
-                        owing));
+                        eventGroup.id(), eventGroup.details().name(), eventGroup.closesAt(), owing));
             }
         }
         return awaiting;

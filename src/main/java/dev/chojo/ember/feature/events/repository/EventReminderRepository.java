@@ -9,12 +9,14 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
  * Repository for the reminder tables: {@code event_reminder} holds how many days before an
@@ -118,33 +120,59 @@ public class EventReminderRepository {
     }
 
     /**
-     * Reports whether a reminder already went out for an occurrence and lead time.
+     * The closing warnings that went out for upcoming dates of the given appointments.
      *
-     * @param eventId    the event ID
-     * @param eventDate  the occurrence date
-     * @param daysBefore the reminder lead time
+     * @param eventIds the appointments
+     * @return one entry per appointment, date and lead time warned about
      */
-    /** Whether the run-out warning for this lead time has already gone out for an event. */
-    public boolean isDeadlineWarningSent(int eventId, int daysBefore) {
-        return SqlSupport.exists("""
-                SELECT
-                    1
-                FROM
-                    event_deadline_reminder_sent
-                WHERE event_id = :event_id
-                  AND days_before = :days_before;""", call().bind("event_id", eventId).bind("days_before", daysBefore));
+    public List<DeadlineWarning> findDeadlineWarningsSent(Collection<Integer> eventIds) {
+        if (eventIds.isEmpty()) return List.of();
+        return query("""
+                SELECT event_id, occurrence_date, days_before, closes_at
+                FROM event_deadline_reminder_sent
+                WHERE event_id = ANY (:event_ids)
+                  AND occurrence_date >= current_date - 1;""")
+                .single(call().bind("event_ids", List.copyOf(eventIds), PostgreSqlTypes.INTEGER))
+                .map(row -> new DeadlineWarning(
+                        row.getInt("event_id"),
+                        row.getObject("occurrence_date", LocalDate.class),
+                        row.getInt("days_before"),
+                        row.get("closes_at", INSTANT_TIMESTAMP)))
+                .all();
     }
 
-    /** Records that the run-out warning for this lead time has gone out. */
-    public void markDeadlineWarningSent(int eventId, int daysBefore) {
+    /**
+     * A closing warning that went out.
+     *
+     * @param eventId    the appointment
+     * @param date       the date it was about
+     * @param daysBefore the lead time
+     * @param closesAt   the close it warned about; a warning about an earlier close no longer counts
+     */
+    public record DeadlineWarning(int eventId, LocalDate date, int daysBefore, Instant closesAt) {}
+
+    /**
+     * Records that the closing warning for a lead time has gone out for one date of an appointment
+     * closing at an instant, replacing a warning about an earlier close.
+     *
+     * @param eventId    the appointment
+     * @param date       the date whose deadline was warned about
+     * @param daysBefore the lead time
+     * @param closesAt   the close warned about
+     */
+    public void markDeadlineWarningSent(int eventId, LocalDate date, int daysBefore, Instant closesAt) {
         query("""
                 INSERT
                 INTO
-                    event_deadline_reminder_sent(event_id, days_before)
+                    event_deadline_reminder_sent(event_id, occurrence_date, days_before, closes_at)
                 VALUES
-                    (:event_id, :days_before)
-                ON CONFLICT DO NOTHING;""")
-                .single(call().bind("event_id", eventId).bind("days_before", daysBefore))
+                    (:event_id, :date, :days_before, :closes_at)
+                ON CONFLICT (event_id, occurrence_date, days_before)
+                    DO UPDATE SET closes_at = excluded.closes_at, sent_at = now();""")
+                .single(call().bind("event_id", eventId)
+                        .bind("date", date)
+                        .bind("days_before", daysBefore)
+                        .bind("closes_at", closesAt, INSTANT_TIMESTAMP))
                 .insert();
     }
 

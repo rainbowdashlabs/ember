@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.EventGroupDeadlineExpired;
+import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
@@ -82,7 +82,11 @@ public class EventGroupDeadlineChecker implements TaskSource {
             public List<ClosingWarnings.Closing> closingIn(int daysBefore) {
                 return eventGroups.findClosingIn(daysBefore).stream()
                         .map(eventGroup -> new ClosingWarnings.Closing(
-                                eventGroup.eventGroupId(), eventGroup.stationId(), eventGroup.name()))
+                                eventGroup.eventGroupId(),
+                                eventGroup.stationId(),
+                                eventGroup.name(),
+                                null,
+                                eventGroup.closesAt()))
                         .toList();
             }
 
@@ -97,8 +101,8 @@ public class EventGroupDeadlineChecker implements TaskSource {
             }
 
             @Override
-            public void markWarned(int id, int daysBefore) {
-                eventGroups.markClosingWarned(id, daysBefore);
+            public void markWarned(ClosingWarnings.Closing closing, int daysBefore) {
+                eventGroups.markClosingWarned(closing.id(), daysBefore, closing.closesAt());
             }
 
             @Override
@@ -111,9 +115,13 @@ public class EventGroupDeadlineChecker implements TaskSource {
     private void tellAboutExpiredEventGroups() {
         for (var eventGroup : eventGroups.findExpiredDeadlines()) {
             if (!readOnlyGuard.isWritable(eventGroup.stationId())) continue;
-            eventGroups.markDeadlineNotified(eventGroup.eventGroupId());
-            eventBus.publish(new EventGroupDeadlineExpired(
-                    eventGroup.stationId(), eventGroup.eventGroupId(), eventGroup.name(), eventGroup.pendingCount()));
+            eventGroups.markDeadlineNotified(eventGroup.eventGroupId(), eventGroup.closesAt());
+            eventBus.publish(new RegistrationDeadlineExpired(
+                    eventGroup.stationId(),
+                    eventGroup.name(),
+                    eventGroup.pendingCount(),
+                    null,
+                    NotificationLinks.eventGroup(eventGroup.eventGroupId())));
         }
     }
 

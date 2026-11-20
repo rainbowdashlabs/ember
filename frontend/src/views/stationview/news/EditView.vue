@@ -20,6 +20,7 @@ import { ContentMode, NewsVisibilityRole, ShareScope, StationPermission } from '
 import { userTypesOf } from '@/util/stationUserTypes'
 import { news, memberGroups, userTags, federation, events, stationMembers } from '@/api'
 import { buildAnnouncementDraft, type AnnouncementDraft } from './editview/announcementPrefill'
+import { deadlineDay } from './editview/announcementSentences'
 import AnnouncementNotice from './editview/AnnouncementNotice.vue'
 import ContentPanel from './editview/ContentPanel.vue'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
@@ -173,8 +174,11 @@ async function loadAnnouncement(eventId: number) {
     mode: 'AND' as const,
   }
   const names = new Map(members.value.map(m => [m.id, m.name || `#${m.id}`]))
+  const timezone = sessionInfo.value?.stationTimezone
+  const day = deadlineDay(event, announcedDate.value, timezone)
+  const deadlines = day ? await events.getDateDeadlines(eventId, day).catch(() => null) : null
   const draft = buildAnnouncementDraft(
-      {event, eventUid, date: announcedDate.value, fields, timezone: sessionInfo.value?.stationTimezone},
+      {event, eventUid, date: announcedDate.value, deadlines, fields, timezone},
       audience,
       names,
       {

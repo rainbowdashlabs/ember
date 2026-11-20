@@ -11,6 +11,7 @@ import dev.chojo.ember.event.events.EventGroupRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.WhenFull;
@@ -61,7 +62,7 @@ class EventGroupWaitingListTest extends EventGroupRegistrationTestBase {
                 "Jugendflamme 1",
                 null,
                 people,
-                Instant.now().plus(Duration.ofDays(5)),
+                RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(5))),
                 eventGroup.details().requiresConfirmation(),
                 null,
                 null,
@@ -360,9 +361,8 @@ class EventGroupWaitingListTest extends EventGroupRegistrationTestBase {
                 Instant.now().minus(Duration.ofDays(20)).plus(Duration.ofHours(2)),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

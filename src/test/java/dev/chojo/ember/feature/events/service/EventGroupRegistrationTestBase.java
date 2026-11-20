@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -120,7 +121,8 @@ abstract class EventGroupRegistrationTestBase extends RepositoryTestBase {
     protected EventGroup jugendflamme(Integer limit, boolean confirm, Instant deadline) {
         var created = eventGroups.create(
                 station.id(),
-                new EventGroupDetails("Jugendflamme 1", null, limit, deadline, confirm, null),
+                new EventGroupDetails(
+                        "Jugendflamme 1", null, limit, RegistrationDeadline.fixed(deadline), confirm, null),
                 List.of(new EventGroupSetDraft(null, "Übung", 2), new EventGroupSetDraft(null, "Prüfung", 1)),
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),

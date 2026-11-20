@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupPartnerRegistration;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
@@ -172,7 +173,12 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         var created = eventGroups.create(
                 holder.id(),
                 new EventGroupDetails(
-                        "Jugendflamme 1", null, limit, Instant.now().plus(Duration.ofDays(5)), false, null),
+                        "Jugendflamme 1",
+                        null,
+                        limit,
+                        RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(5))),
+                        false,
+                        null),
                 List.of(new EventGroupSetDraft(null, "Übung", 2), new EventGroupSetDraft(null, "Prüfung", 1)),
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),
@@ -336,7 +342,12 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 holder.id(),
                 eventGroup.id(),
                 new EventGroupDetails(
-                        "Jugendflamme 1", null, null, Instant.now().plus(Duration.ofDays(5)), true, null));
+                        "Jugendflamme 1",
+                        null,
+                        null,
+                        RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(5))),
+                        true,
+                        null));
         partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
         var signUp =
                 partnerRepo.find(eventGroup.id(), partnerOfHolder, mara.uid()).orElseThrow();
@@ -530,7 +541,13 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         eventGroups.update(
                 holder.id(),
                 eventGroup.id(),
-                new EventGroupDetails("Jugendflamme 1", null, 1, Instant.now().plus(Duration.ofDays(5)), true, null));
+                new EventGroupDetails(
+                        "Jugendflamme 1",
+                        null,
+                        1,
+                        RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(5))),
+                        true,
+                        null));
         partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
         int signUpId = partnerSignUpOf(mara).id();
 
@@ -549,7 +566,12 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 holder.id(),
                 eventGroup.id(),
                 new EventGroupDetails(
-                        "Jugendflamme 1", null, null, Instant.now().plus(Duration.ofDays(5)), true, null));
+                        "Jugendflamme 1",
+                        null,
+                        null,
+                        RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(5))),
+                        true,
+                        null));
         partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
         int signUpId = partnerSignUpOf(mara).id();
 
@@ -563,7 +585,13 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         eventGroups.update(
                 holder.id(),
                 eventGroup.id(),
-                new EventGroupDetails("Jugendflamme 1", null, 1, Instant.now().plus(Duration.ofDays(5)), true, null));
+                new EventGroupDetails(
+                        "Jugendflamme 1",
+                        null,
+                        1,
+                        RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(5))),
+                        true,
+                        null));
         partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
         partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
         int first = partnerSignUpOf(mara).id();

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
 import dev.chojo.ember.feature.events.entity.QueueOrder;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -93,11 +94,10 @@ class QueueManagerActionsTest extends RepositoryTestBase {
                 start.plusSeconds(7200),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 requiresConfirmation,
                 null,
                 limit,
-                null,
                 null,
                 null);
         events.add(event);
@@ -313,12 +313,11 @@ class QueueManagerActionsTest extends RepositoryTestBase {
                             null,
                             null,
                             null,
-                            null,
+                            RegistrationDeadline.none(),
                             null,
                             null,
                             null,
                             4,
-                            null,
                             null,
                             null,
                             QueueOrder.FAIRNESS));

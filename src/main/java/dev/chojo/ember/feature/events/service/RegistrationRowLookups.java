@@ -44,7 +44,7 @@ public final class RegistrationRowLookups {
     private final MemberIdentityFactory identityFactory;
     private final Map<Integer, StationMember> members;
     private final Map<Integer, MemberDisplay> displays = new HashMap<>();
-    private final Map<Integer, Optional<String>> eventNames = new HashMap<>();
+    private final Map<Integer, Optional<StationEvent>> events = new HashMap<>();
     private final Map<EventDay, List<AppointmentField>> questions = new HashMap<>();
 
     private RegistrationRowLookups(
@@ -92,9 +92,17 @@ public final class RegistrationRowLookups {
      * @return the name, or null where the appointment is gone
      */
     public String eventName(int eventId) {
-        return eventNames
-                .computeIfAbsent(eventId, id -> crudService.findById(id).map(StationEvent::name))
-                .orElse(null);
+        return event(eventId).map(StationEvent::name).orElse(null);
+    }
+
+    /**
+     * The appointment a row is about, read once for the list.
+     *
+     * @param eventId the appointment
+     * @return it, or empty where it is gone
+     */
+    public Optional<StationEvent> event(int eventId) {
+        return events.computeIfAbsent(eventId, crudService::findById);
     }
 
     /**

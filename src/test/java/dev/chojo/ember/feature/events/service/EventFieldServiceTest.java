@@ -10,6 +10,7 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.question.FieldType;
@@ -45,7 +46,8 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService,
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                occurrenceCalendar);
         station = stationRepo.create("EventFieldServiceStation");
 
         Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
@@ -60,9 +62,8 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 end,
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -79,9 +80,8 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 end,
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -161,9 +161,8 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 Instant.now().plus(3, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
                 ours.id(),
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

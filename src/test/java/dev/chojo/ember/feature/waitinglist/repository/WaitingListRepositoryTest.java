@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.waitinglist.repository;
 
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.question.FieldType;
@@ -195,9 +196,8 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2099-05-12T20:00:00Z"),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -242,9 +242,8 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2099-05-12T20:00:00Z"),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -468,9 +467,8 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2026-05-12T20:00:00Z"),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -528,9 +526,8 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2026-05-12T20:00:00Z"),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -800,9 +797,8 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2026-06-02T20:00:00Z"),
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

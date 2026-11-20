@@ -27,6 +27,7 @@ import type {
     EventFieldEntry,
     MemberGroup,
     QueueOrder,
+    RegistrationDeadline,
     RegistrationFieldDefinition,
     UserTag,
 } from '@/api/generated/schema'
@@ -59,10 +60,9 @@ const requiresRegistration = defineModel<boolean>('requiresRegistration', {requi
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
 const registrationLimit = defineModel<number | undefined>('registrationLimit')
 const queueOrder = defineModel<QueueOrder>('queueOrder', {required: true})
-const deadlineOffsetHours = defineModel<number | null>('deadlineOffsetHours', {required: true})
+const registrationDeadline = defineModel<RegistrationDeadline>('registrationDeadline', {required: true})
 const minRegistrations = defineModel<number | undefined>('minRegistrations')
 const thresholdDays = defineModel<number | undefined>('thresholdDays')
-const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
 const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
 const reminderDays = defineModel<number[]>('reminderDays', {required: true})
@@ -94,12 +94,10 @@ const {t} = useI18n()
       v-model:requires-confirmation="requiresConfirmation"
       v-model:registration-limit="registrationLimit"
       v-model:queue-order="queueOrder"
-      v-model:deadline-offset-hours="deadlineOffsetHours"
+      v-model:registration-deadline="registrationDeadline"
       v-model:min-registrations="minRegistrations"
       v-model:threshold-days="thresholdDays"
-      v-model:registration-close-days="registrationCloseDays"
       :sign-up-held="signUpHeld"
-      :event-type="eventType"
   />
 
   <NeutralContainer sheet>

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.statistics.repository;
 
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry.AttendanceStatus;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry.EntrySource;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
@@ -256,9 +257,8 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
                 start.plus(Duration.ofHours(1)),
                 null,
                 requiresRegistration,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

@@ -57,7 +57,8 @@ class EventGroupServiceFieldsTest extends EventGroupServiceTestBase {
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService,
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                occurrenceCalendar);
 
         assertEquals(
                 List.of("Ort", "Mitbringen"),

@@ -21,7 +21,8 @@ const EVENT: StationEvent = {
     recurring: true, startTime: '2026-09-01T19:00:00', endTime: '2026-09-01T21:00:00', dayOfWeek: 2,
     templateId: null, categoryId: null, isPublic: null, restricted: false, restrictionMode: 'AND',
     viewRestrictionMode: 'AND', requiresRegistration: false, requiresConfirmation: false,
-    registrationDeadline: null, registrationLimit: null, queueOrder: null, registrationCloseDays: null, minRegistrations: null,
+    registrationDeadline: {kind: 'NONE', at: null, offsetMinutes: null, anchor: null}, registrationLimit: null, queueOrder: null,
+    minRegistrations: null,
     thresholdDays: null, repeatUntil: null, repeatCount: null, cancelled: false, cancelledAt: null, cancelReason: null,
 }
 
@@ -48,7 +49,7 @@ function audience(over: Partial<RestrictionSelection> = {}): RestrictionSelectio
 }
 
 function announced(over: Partial<AnnouncedEvent> = {}): AnnouncedEvent {
-    return {event: EVENT, eventUid: 'uid-7', date: '2026-09-08', fields: [], ...over}
+    return {event: EVENT, eventUid: 'uid-7', date: '2026-09-08', deadlines: null, fields: [], ...over}
 }
 
 function texts(draft: ReturnType<typeof buildAnnouncementDraft>): string[] {

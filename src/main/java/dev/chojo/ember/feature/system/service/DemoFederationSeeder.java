@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.CommentWriter;
 import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
@@ -439,10 +440,9 @@ public class DemoFederationSeeder implements DemoSeeder {
                 nextSatEnd,
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 true,
                 eventCategory.id(),
-                null,
                 null,
                 null,
                 null);

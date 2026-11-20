@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -43,6 +44,7 @@ import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -151,13 +153,22 @@ class NotificationFeedGoldenTest {
 
         when(stationRepository.findById(1)).thenReturn(Optional.of(berlin()));
         stubEnrichments();
+        var calendar = mock(OccurrenceCalendar.class);
+        when(calendar.dateInView(any()))
+                .thenAnswer(inv -> Optional.of(LocalDate.ofInstant(
+                        inv.<StationEvent>getArgument(0).startTime(), StationFormat.timezoneOf(berlin()))));
+        when(calendar.closesInView(any())).thenAnswer(inv -> {
+            StationEvent event = inv.getArgument(0);
+            var zone = StationFormat.timezoneOf(berlin());
+            return event.registrationClosesOn(LocalDate.ofInstant(event.startTime(), zone), zone);
+        });
         renderer = new NotificationFeedRenderer(
                 notificationService,
                 stationRepository,
                 FeedContributors.all(
                         crudService,
                         eventFieldService,
-                        mock(OccurrenceCalendar.class),
+                        calendar,
                         lostAndFoundService,
                         lendingService,
                         storageQuotaService,
@@ -339,7 +350,7 @@ class NotificationFeedGoldenTest {
         add(
                 list,
                 NotificationType.REGISTRATION_CLOSING,
-                new NotificationParams.RegistrationClosing("Probe", 2, "Tim"),
+                new NotificationParams.RegistrationClosing("Probe", 2, "Tim", null),
                 "event-detail",
                 event42);
         add(
@@ -443,7 +454,7 @@ class NotificationFeedGoldenTest {
         add(
                 list,
                 NotificationType.REGISTRATION_DEADLINE_EXPIRED,
-                new NotificationParams.RegistrationDeadlineExpired("Probe", 4),
+                new NotificationParams.RegistrationDeadlineExpired("Probe", 4, null),
                 "event-detail",
                 event42);
         add(
@@ -706,7 +717,7 @@ class NotificationFeedGoldenTest {
                 end,
                 null,
                 registrationDeadline != null,
-                registrationDeadline,
+                RegistrationDeadline.fixed(registrationDeadline),
                 false,
                 null,
                 RestrictionMode.AND,

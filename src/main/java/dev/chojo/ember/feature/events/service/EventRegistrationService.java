@@ -11,7 +11,6 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventAnswerRecorded;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
-import dev.chojo.ember.feature.events.entity.AwaitingAnswer;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
@@ -526,16 +525,6 @@ public class EventRegistrationService {
      */
     public Places placesOf(int eventId, LocalDate eventDate) {
         return places.placesOf(eventId, eventDate);
-    }
-
-    /**
-     * The events still waiting on an answer from any of the given members.
-     *
-     * @param memberIds the reader and everyone they answer for
-     * @return one entry per event and member still owing an answer
-     */
-    public List<AwaitingAnswer> findAwaitingAnswer(List<Integer> memberIds) {
-        return registrationRepository.findAwaitingAnswer(memberIds);
     }
 
     /**

@@ -79,17 +79,18 @@ public class BatchEventService {
      * announcement covers the whole batch, so members get a single notification.
      *
      * <p>Every appointment carries what the batch sets for all of them, the way a single appointment
-     * made in the editor would: its places, minimum, waiting list order, reminders and a deadline,
-     * either shared or as hours before its own start. A batch made from an appointment template hands
-     * each appointment the template's questions, documents to bring and files, and its field starting
-     * values where the batch keeps the template's attendance sheet. The template is asked for before
+     * made in the editor would: its places, minimum, waiting list order, reminders and its sign-up
+     * deadline, a fixed one shared by all and a relative one counted from each start. A batch made
+     * from an appointment template hands each appointment the template's questions, documents to
+     * bring and files, and its field starting values where the batch keeps the template's attendance
+     * sheet. The template is asked for before
      * the first appointment is written, so another station's template refuses the whole batch.
      *
      * <p>All appointments are written in one transaction: a row refused halfway leaves no appointment
      * behind, and the announcement goes out only once the whole batch is committed.
      *
-     * <p>Single creation applies the deadline offset, the reminders, the waiting list order and the
-     * field starting values in the editor, while a batch has them applied here on the server; the
+     * <p>Single creation applies the reminders, the waiting list order and the field starting values in
+     * the editor, while a batch has them applied here on the server; the
      * questions, documents to bring and files go through {@link EventTemplateService#copyInto} for both.
      *
      * @param stationId the station the events belong to
@@ -137,13 +138,12 @@ public class BatchEventService {
                     endTime,
                     request.templateId(),
                     Boolean.TRUE.equals(request.requiresRegistration()),
-                    request.deadlineFor(startTime),
+                    request.deadline(),
                     Boolean.TRUE.equals(request.requiresConfirmation()),
                     request.categoryId(),
                     request.registrationLimit(),
                     request.minRegistrations(),
-                    request.minRegistrations() == null ? null : request.thresholdDays(),
-                    null);
+                    request.minRegistrations() == null ? null : request.thresholdDays());
 
             if (request.restriction() != null) {
                 restrictionService.setRestrictions(event.id(), request.restriction());

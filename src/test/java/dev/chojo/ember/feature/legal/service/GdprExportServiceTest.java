@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.service.DocumentService;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
@@ -100,9 +101,8 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 Instant.now().plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

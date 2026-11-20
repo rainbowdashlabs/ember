@@ -463,3 +463,288 @@ COMMENT ON COLUMN ember_schema.event_federation_registration_answer.field_id
     IS 'The question answered.';
 COMMENT ON COLUMN ember_schema.event_federation_registration_answer.value
     IS 'The answer, stored as text in the same shape the answers of this station''s own members use.';
+
+-- A sign-up deadline is one rule: none, a fixed instant, or a span before the start of each date,
+-- either to the minute or down to the midnight that begins that day. It replaces the absolute
+-- deadline beside the "closes N days before" count on appointments, and the hours offset beside the
+-- day count on templates. A fixed deadline wins where an appointment carried both.
+
+ALTER TABLE ember_schema.station_event
+    ADD COLUMN registration_deadline_kind           TEXT NOT NULL DEFAULT 'NONE'
+        CHECK (registration_deadline_kind IN ('NONE', 'FIXED', 'RELATIVE')),
+    ADD COLUMN registration_deadline_offset_minutes INT CHECK (registration_deadline_offset_minutes >= 0),
+    ADD COLUMN registration_deadline_anchor         TEXT
+        CHECK (registration_deadline_anchor IN ('EXACT', 'MIDNIGHT'));
+
+UPDATE ember_schema.station_event
+SET registration_deadline_kind = 'FIXED'
+WHERE registration_deadline IS NOT NULL;
+
+UPDATE ember_schema.station_event
+SET registration_deadline_kind           = 'RELATIVE',
+    registration_deadline_offset_minutes = GREATEST(0, LEAST(registration_close_days, 3650)) * 1440,
+    registration_deadline_anchor         = 'MIDNIGHT'
+WHERE registration_deadline IS NULL
+  AND registration_close_days IS NOT NULL;
+
+ALTER TABLE ember_schema.station_event
+    ADD CONSTRAINT station_event_registration_deadline_rule CHECK (
+        (registration_deadline_kind = 'NONE' AND registration_deadline IS NULL
+            AND registration_deadline_offset_minutes IS NULL AND registration_deadline_anchor IS NULL)
+        OR (registration_deadline_kind = 'FIXED' AND registration_deadline IS NOT NULL
+            AND registration_deadline_offset_minutes IS NULL AND registration_deadline_anchor IS NULL)
+        OR (registration_deadline_kind = 'RELATIVE' AND registration_deadline IS NULL
+            AND registration_deadline_offset_minutes IS NOT NULL AND registration_deadline_anchor IS NOT NULL));
+
+COMMENT ON COLUMN ember_schema.station_event.registration_deadline
+    IS 'The instant sign-up closes for a FIXED deadline, on every date of a series at once; NULL for any other kind.';
+COMMENT ON COLUMN ember_schema.station_event.registration_deadline_kind
+    IS 'Which sign-up deadline applies: NONE, FIXED (registration_deadline) or RELATIVE (a span before the start of each date).';
+COMMENT ON COLUMN ember_schema.station_event.registration_deadline_offset_minutes
+    IS 'For a RELATIVE deadline, how many minutes before the start of each date sign-up closes; NULL for any other kind.';
+COMMENT ON COLUMN ember_schema.station_event.registration_deadline_anchor
+    IS 'For a RELATIVE deadline, EXACT closes at start minus the offset, MIDNIGHT at the midnight that begins that day on the station''s clock; NULL for any other kind.';
+
+-- Which dates have had their deadline pass, so the sweep tells the managers about the sign-ups still
+-- waiting once per date. It replaces the single flag on the appointment, which a series could not use.
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_deadline_expired
+(
+    event_id        INT         NOT NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    occurrence_date DATE        NOT NULL,
+    handled_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (event_id, occurrence_date)
+);
+
+COMMENT ON TABLE ember_schema.event_deadline_expired
+    IS 'The dates of an appointment whose sign-up deadline has passed and was handled, so each is handled once.';
+COMMENT ON COLUMN ember_schema.event_deadline_expired.event_id
+    IS 'The appointment; the rows go with it.';
+COMMENT ON COLUMN ember_schema.event_deadline_expired.occurrence_date
+    IS 'The date whose deadline passed, on the station''s clock.';
+COMMENT ON COLUMN ember_schema.event_deadline_expired.handled_at
+    IS 'When the passed deadline was handled.';
+
+INSERT INTO ember_schema.event_deadline_expired(event_id, occurrence_date)
+SELECT e.id, (e.start_time AT TIME ZONE s.timezone)::DATE
+FROM ember_schema.station_event e
+         JOIN ember_schema.station s ON s.id = e.station_id
+WHERE e.deadline_notified
+  AND e.event_type = 'ONE_TIME'
+ON CONFLICT DO NOTHING;
+
+ALTER TABLE ember_schema.station_event
+    DROP COLUMN registration_close_days,
+    DROP COLUMN deadline_notified;
+
+ALTER TABLE ember_schema.event_deadline_reminder_sent
+    ADD COLUMN occurrence_date DATE;
+
+UPDATE ember_schema.event_deadline_reminder_sent r
+SET occurrence_date = (e.start_time AT TIME ZONE s.timezone)::DATE
+FROM ember_schema.station_event e
+         JOIN ember_schema.station s ON s.id = e.station_id
+WHERE e.id = r.event_id;
+
+ALTER TABLE ember_schema.event_deadline_reminder_sent
+    ALTER COLUMN occurrence_date SET NOT NULL,
+    DROP CONSTRAINT event_deadline_reminder_sent_pkey,
+    ADD PRIMARY KEY (event_id, occurrence_date, days_before);
+
+COMMENT ON TABLE ember_schema.event_deadline_reminder_sent
+    IS 'Which closing warnings have gone out for each date of an appointment, so a sweep every few minutes warns once per date.';
+COMMENT ON COLUMN ember_schema.event_deadline_reminder_sent.occurrence_date
+    IS 'The date whose sign-up deadline the warning was about, on the station''s clock.';
+
+ALTER TABLE ember_schema.event_template
+    ADD COLUMN registration_deadline_kind           TEXT NOT NULL DEFAULT 'NONE'
+        CHECK (registration_deadline_kind IN ('NONE', 'RELATIVE')),
+    ADD COLUMN registration_deadline_offset_minutes INT CHECK (registration_deadline_offset_minutes >= 0),
+    ADD COLUMN registration_deadline_anchor         TEXT
+        CHECK (registration_deadline_anchor IN ('EXACT', 'MIDNIGHT'));
+
+UPDATE ember_schema.event_template
+SET registration_deadline_kind           = 'RELATIVE',
+    registration_deadline_offset_minutes = GREATEST(0, LEAST(registration_close_days, 3650)) * 1440,
+    registration_deadline_anchor         = 'MIDNIGHT'
+WHERE registration_close_days IS NOT NULL;
+
+UPDATE ember_schema.event_template
+SET registration_deadline_kind           = 'RELATIVE',
+    registration_deadline_offset_minutes = GREATEST(0, LEAST(EXTRACT(EPOCH FROM registration_deadline_offset) / 60, 3650 * 1440))::INT,
+    registration_deadline_anchor         = 'EXACT'
+WHERE registration_close_days IS NULL
+  AND registration_deadline_offset IS NOT NULL;
+
+ALTER TABLE ember_schema.event_template
+    DROP COLUMN registration_close_days,
+    DROP COLUMN registration_deadline_offset,
+    ADD CONSTRAINT event_template_registration_deadline_rule CHECK (
+        (registration_deadline_kind = 'NONE'
+            AND registration_deadline_offset_minutes IS NULL AND registration_deadline_anchor IS NULL)
+        OR (registration_deadline_kind = 'RELATIVE'
+            AND registration_deadline_offset_minutes IS NOT NULL AND registration_deadline_anchor IS NOT NULL));
+
+COMMENT ON COLUMN ember_schema.event_template.registration_deadline_kind
+    IS 'Which sign-up deadline an appointment made from the template gets: NONE or RELATIVE. A template knows no date, so it holds no fixed deadline.';
+COMMENT ON COLUMN ember_schema.event_template.registration_deadline_offset_minutes
+    IS 'For a RELATIVE deadline, how many minutes before the start of each date sign-up closes; NULL otherwise.';
+COMMENT ON COLUMN ember_schema.event_template.registration_deadline_anchor
+    IS 'For a RELATIVE deadline, EXACT or MIDNIGHT, as on the appointment; NULL otherwise.';
+
+ALTER TABLE ember_schema.event_group
+    ADD COLUMN registration_deadline_kind           TEXT NOT NULL DEFAULT 'NONE'
+        CHECK (registration_deadline_kind IN ('NONE', 'FIXED', 'RELATIVE')),
+    ADD COLUMN registration_deadline_offset_minutes INT CHECK (registration_deadline_offset_minutes >= 0),
+    ADD COLUMN registration_deadline_anchor         TEXT
+        CHECK (registration_deadline_anchor IN ('EXACT', 'MIDNIGHT'));
+
+UPDATE ember_schema.event_group
+SET registration_deadline_kind = 'FIXED'
+WHERE registration_deadline IS NOT NULL;
+
+ALTER TABLE ember_schema.event_group
+    ADD CONSTRAINT event_group_registration_deadline_rule CHECK (
+        (registration_deadline_kind = 'NONE' AND registration_deadline IS NULL
+            AND registration_deadline_offset_minutes IS NULL AND registration_deadline_anchor IS NULL)
+        OR (registration_deadline_kind = 'FIXED' AND registration_deadline IS NOT NULL
+            AND registration_deadline_offset_minutes IS NULL AND registration_deadline_anchor IS NULL)
+        OR (registration_deadline_kind = 'RELATIVE' AND registration_deadline IS NULL
+            AND registration_deadline_offset_minutes IS NOT NULL AND registration_deadline_anchor IS NOT NULL));
+
+COMMENT ON COLUMN ember_schema.event_group.registration_deadline
+    IS 'The instant members can no longer sign up or change their parts for a FIXED deadline; NULL for any other kind. Unlike the appointment deadline it carries its time zone.';
+COMMENT ON COLUMN ember_schema.event_group.registration_deadline_kind
+    IS 'Which sign-up deadline applies: NONE, FIXED (registration_deadline) or RELATIVE (a span before the start of the first part).';
+COMMENT ON COLUMN ember_schema.event_group.registration_deadline_offset_minutes
+    IS 'For a RELATIVE deadline, how many minutes before the start of the first part sign-up closes; NULL for any other kind.';
+COMMENT ON COLUMN ember_schema.event_group.registration_deadline_anchor
+    IS 'For a RELATIVE deadline, EXACT or MIDNIGHT on the station''s clock; NULL for any other kind.';
+
+CREATE OR REPLACE FUNCTION ember_schema.registration_closes_at(kind TEXT, fixed_at TIMESTAMPTZ, offset_minutes INT,
+                                                               anchor TEXT, starts TIMESTAMPTZ, zone TEXT)
+    RETURNS TIMESTAMPTZ
+    LANGUAGE sql
+    STABLE
+AS
+$$
+SELECT CASE kind
+           WHEN 'FIXED' THEN fixed_at
+           WHEN 'RELATIVE' THEN CASE
+                                    WHEN anchor = 'MIDNIGHT' AND offset_minutes % 1440 = 0
+                                        THEN ((starts AT TIME ZONE zone)::DATE - offset_minutes / 1440)::TIMESTAMP AT TIME ZONE zone
+                                    WHEN anchor = 'MIDNIGHT'
+                                        THEN date_trunc('day', (starts - make_interval(mins => offset_minutes)) AT TIME ZONE zone) AT TIME ZONE zone
+                                    ELSE starts - make_interval(mins => offset_minutes)
+               END
+           END;
+$$;
+
+COMMENT ON FUNCTION ember_schema.registration_closes_at(TEXT, TIMESTAMPTZ, INT, TEXT, TIMESTAMPTZ, TEXT)
+    IS 'When sign-up closes for a date starting at starts, under a deadline rule, on the station clock zone; NULL for no deadline. The same computation as the server''s RegistrationDeadline.';
+
+CREATE OR REPLACE FUNCTION ember_schema.event_group_closes_at(group_id INT)
+    RETURNS TIMESTAMPTZ
+    LANGUAGE sql
+    STABLE
+AS
+$$
+SELECT ember_schema.registration_closes_at(g.registration_deadline_kind, g.registration_deadline,
+                                           g.registration_deadline_offset_minutes, g.registration_deadline_anchor,
+                                           (SELECT min(e.start_time)
+                                            FROM ember_schema.station_event e
+                                                     JOIN ember_schema.event_group_set s ON s.id = e.event_group_set_id
+                                            WHERE s.event_group_id = g.id),
+                                           st.timezone)
+FROM ember_schema.event_group g
+         JOIN ember_schema.station st ON st.id = g.station_id
+WHERE g.id = group_id;
+$$;
+
+COMMENT ON FUNCTION ember_schema.event_group_closes_at(INT)
+    IS 'When sign-up for an event group closes: its fixed deadline, or its relative one counted from the start of its first part; NULL for no deadline or, for a relative one, no part yet.';
+
+-- Every record that a deadline notice or warning went out remembers the instant it was about. A record
+-- counts only while that instant is still the close, so a deadline that moves is handled again by
+-- itself. Rows already there take the close as it stands now; a row whose close cannot be placed any
+-- more is about nothing that could still close and goes.
+
+ALTER TABLE ember_schema.event_deadline_expired
+    ADD COLUMN closes_at TIMESTAMPTZ;
+
+UPDATE ember_schema.event_deadline_expired x
+SET closes_at = ember_schema.registration_closes_at(e.registration_deadline_kind, e.registration_deadline,
+                                                    e.registration_deadline_offset_minutes,
+                                                    e.registration_deadline_anchor, e.start_time, s.timezone)
+FROM ember_schema.station_event e
+         JOIN ember_schema.station s ON s.id = e.station_id
+WHERE e.id = x.event_id
+  AND e.event_type = 'ONE_TIME';
+
+DELETE FROM ember_schema.event_deadline_expired WHERE closes_at IS NULL;
+
+ALTER TABLE ember_schema.event_deadline_expired
+    ALTER COLUMN closes_at SET NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_deadline_expired.closes_at
+    IS 'The deadline instant that passed; the record counts only while the date still closes at this instant.';
+
+ALTER TABLE ember_schema.event_deadline_reminder_sent
+    ADD COLUMN closes_at TIMESTAMPTZ;
+
+UPDATE ember_schema.event_deadline_reminder_sent r
+SET closes_at = ember_schema.registration_closes_at(e.registration_deadline_kind, e.registration_deadline,
+                                                    e.registration_deadline_offset_minutes,
+                                                    e.registration_deadline_anchor, e.start_time, s.timezone)
+FROM ember_schema.station_event e
+         JOIN ember_schema.station s ON s.id = e.station_id
+WHERE e.id = r.event_id
+  AND e.event_type = 'ONE_TIME';
+
+DELETE FROM ember_schema.event_deadline_reminder_sent WHERE closes_at IS NULL;
+
+ALTER TABLE ember_schema.event_deadline_reminder_sent
+    ALTER COLUMN closes_at SET NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_deadline_reminder_sent.closes_at
+    IS 'The deadline instant the warning was about; the warning counts only while the date still closes at this instant.';
+
+ALTER TABLE ember_schema.event_group_deadline_reminder_sent
+    ADD COLUMN closes_at TIMESTAMPTZ;
+
+UPDATE ember_schema.event_group_deadline_reminder_sent
+SET closes_at = ember_schema.event_group_closes_at(event_group_id);
+
+DELETE FROM ember_schema.event_group_deadline_reminder_sent WHERE closes_at IS NULL;
+
+ALTER TABLE ember_schema.event_group_deadline_reminder_sent
+    ALTER COLUMN closes_at SET NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_group_deadline_reminder_sent.closes_at
+    IS 'The deadline instant the warning was about; the warning counts only while the event group still closes at this instant.';
+
+ALTER TABLE ember_schema.event_group
+    ADD COLUMN deadline_notified_for TIMESTAMPTZ;
+
+UPDATE ember_schema.event_group
+SET deadline_notified_for = ember_schema.event_group_closes_at(id)
+WHERE deadline_notified;
+
+ALTER TABLE ember_schema.event_group
+    DROP COLUMN deadline_notified;
+
+COMMENT ON COLUMN ember_schema.event_group.deadline_notified_for
+    IS 'The deadline instant whose passing the managers were told about; NULL while not told. The notice counts only while the event group still closes at this instant.';
+
+-- A part of an event group takes the event group's close when it is read and keeps no deadline of its
+-- own; the copies written so far go.
+
+UPDATE ember_schema.station_event
+SET registration_deadline                = NULL,
+    registration_deadline_kind           = 'NONE',
+    registration_deadline_offset_minutes = NULL,
+    registration_deadline_anchor         = NULL
+WHERE event_group_set_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_group.threshold_days
+    IS 'How many days before the first part, a called-off one included, the minimum must be reached, counted from midnight on the station''s clock. Set exactly when the minimum is.';

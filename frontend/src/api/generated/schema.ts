@@ -25292,6 +25292,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/date-deadlines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** When sign-up for a date of an appointment closes and when its minimum is checked */
+        get: {
+            parameters: {
+                query?: {
+                    date?: components["schemas"]["LocalDate"];
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DateDeadlines"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/dates/{date}/cancel": {
         parameters: {
             query?: never;
@@ -30335,7 +30393,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Events still waiting on an answer from the reader or anyone they answer for */
+        /** Dates still waiting on an answer from the reader or anyone they answer for */
         get: {
             parameters: {
                 query?: never;
@@ -30646,6 +30704,7 @@ export interface paths {
                     registrationOpen?: boolean;
                     requiresRegistration?: boolean;
                     search?: string;
+                    seriesTo?: string;
                     to?: string;
                 };
                 header?: never;
@@ -70997,11 +71056,12 @@ export interface components {
         AwaitingAnswer: {
             /** Format: int32 */
             categoryId: number | null;
+            eventDate: components["schemas"]["LocalDate"];
             /** Format: int32 */
             eventId: number;
             members: components["schemas"]["AwaitingMember"][];
             name: string;
-            registrationDeadline: components["schemas"]["Instant"];
+            registrationClosesAt: components["schemas"]["Instant"];
             startTime: components["schemas"]["Instant"];
         };
         AwaitingMember: {
@@ -71047,9 +71107,7 @@ export interface components {
             minRegistrations?: number | null;
             name?: string | null;
             queueOrder?: components["schemas"]["QueueOrder"] | null;
-            registrationDeadline?: components["schemas"]["Instant"] | null;
-            /** Format: int32 */
-            registrationDeadlineOffsetHours?: number | null;
+            registrationDeadline?: components["schemas"]["RegistrationDeadline"] | null;
             /** Format: int32 */
             registrationLimit?: number | null;
             reminderDays?: number[] | null;
@@ -72766,6 +72824,11 @@ export interface components {
              */
             kind: "DATE";
         };
+        DateDeadlines: {
+            date: components["schemas"]["LocalDate"] | null;
+            minimumCheckedAt: components["schemas"]["Instant"] | null;
+            registrationClosesAt: components["schemas"]["Instant"] | null;
+        };
         DatedEvent: {
             cancellation: components["schemas"]["CancellationNotice"] | null;
             event: components["schemas"]["EventSummary"];
@@ -72811,6 +72874,10 @@ export interface components {
             count: number;
             day: string;
         };
+        /** @enum {string} */
+        DeadlineAnchor: "EXACT" | "MIDNIGHT";
+        /** @enum {string} */
+        DeadlineKind: "NONE" | "FIXED" | "RELATIVE";
         DeclineBody: {
             reason?: string | null;
         };
@@ -73693,7 +73760,7 @@ export interface components {
             eventGroupId: number;
             members: components["schemas"]["AwaitingMember"][];
             name: string;
-            registrationDeadline: components["schemas"]["Instant"] | null;
+            registrationClosesAt: components["schemas"]["Instant"] | null;
         };
         EventGroupCancelRequest: {
             reason?: string | null;
@@ -73731,7 +73798,7 @@ export interface components {
             /** Format: int32 */
             partRegistrationLimit: number | null;
             queueOrder: components["schemas"]["QueueOrder"] | null;
-            registrationDeadline: components["schemas"]["Instant"] | null;
+            registrationDeadline: components["schemas"]["RegistrationDeadline"];
             /** Format: int32 */
             registrationLimit: number | null;
             requiresConfirmation: boolean;
@@ -73903,6 +73970,7 @@ export interface components {
         EventGroupSummary: {
             cancelled: boolean;
             cancelReason: string | null;
+            closesAt: components["schemas"]["Instant"] | null;
             details: components["schemas"]["EventGroupDetails"];
             firstStart: components["schemas"]["Instant"] | null;
             /** Format: int32 */
@@ -74027,9 +74095,7 @@ export interface components {
             /** Format: int32 */
             minRegistrations?: number | null;
             name?: string;
-            /** Format: int32 */
-            registrationCloseDays?: number | null;
-            registrationDeadline?: components["schemas"]["Instant"] | null;
+            registrationDeadline?: components["schemas"]["RegistrationDeadline"] | null;
             /** Format: int32 */
             registrationLimit?: number | null;
             /** Format: int32 */
@@ -74062,7 +74128,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
-            registrationDeadline: components["schemas"]["Instant"] | null;
+            registrationDeadline: components["schemas"]["RegistrationDeadline"];
             /** Format: int32 */
             registrationLimit: number | null;
             requiresConfirmation: boolean;
@@ -74088,10 +74154,7 @@ export interface components {
             minRegistrations: number | null;
             name: string;
             queueOrder: components["schemas"]["QueueOrder"] | null;
-            /** Format: int32 */
-            registrationCloseDays: number | null;
-            /** Format: int32 */
-            registrationDeadlineOffsetHours: number | null;
+            registrationDeadline: components["schemas"]["RegistrationDeadline"];
             /** Format: int32 */
             registrationLimit: number | null;
             requiresConfirmation: boolean | null;
@@ -79846,6 +79909,13 @@ export interface components {
             eventId: number;
             status: components["schemas"]["RegistrationStatus"];
         };
+        RegistrationDeadline: {
+            anchor: components["schemas"]["DeadlineAnchor"] | null;
+            at: components["schemas"]["Instant"] | null;
+            kind: components["schemas"]["DeadlineKind"];
+            /** Format: int32 */
+            offsetMinutes: number | null;
+        };
         RegistrationFieldDefinition: {
             config?: components["schemas"]["EventQuestionSettings"] | null;
             fieldType?: components["schemas"]["FieldType"] | null;
@@ -79879,6 +79949,7 @@ export interface components {
             placeGivenUp: boolean;
             /** Format: int32 */
             queuePosition: number | null;
+            registrationClosesAt: components["schemas"]["Instant"] | null;
             status: components["schemas"]["RegistrationStatus"];
             statusChangedAt: components["schemas"]["Instant"];
         };
@@ -81601,9 +81672,7 @@ export interface components {
             name: string;
             queueOrder: components["schemas"]["QueueOrder"] | null;
             recurring: boolean;
-            /** Format: int32 */
-            registrationCloseDays: number | null;
-            registrationDeadline: components["schemas"]["Instant"] | null;
+            registrationDeadline: components["schemas"]["RegistrationDeadline"];
             /** Format: int32 */
             registrationLimit: number | null;
             /** Format: int32 */
@@ -82831,6 +82900,7 @@ export interface components {
             cancellation: components["schemas"]["CancellationNotice"] | null;
             date: components["schemas"]["LocalDate"];
             event: components["schemas"]["EventSummary"];
+            registrationClosesAt: components["schemas"]["Instant"] | null;
         };
         UpcomingEventsConfig: {
             categoryIds?: number[];
@@ -82923,10 +82993,7 @@ export interface components {
             minRegistrations?: number | null;
             name?: string;
             queueOrder?: components["schemas"]["QueueOrder"] | null;
-            /** Format: int32 */
-            registrationCloseDays?: number | null;
-            /** Format: int32 */
-            registrationDeadlineOffsetHours?: number | null;
+            registrationDeadline?: components["schemas"]["RegistrationDeadline"] | null;
             /** Format: int32 */
             registrationLimit?: number | null;
             requiresConfirmation?: boolean | null;
@@ -83797,6 +83864,7 @@ export type DataTracking = components['schemas']['DataTracking'];
 export type Date = components['schemas']['Date'];
 export type DateAnswer = components['schemas']['DateAnswer'];
 export type DateConfig = components['schemas']['DateConfig'];
+export type DateDeadlines = components['schemas']['DateDeadlines'];
 export type DatedEvent = components['schemas']['DatedEvent'];
 export type DateFormatCheck = components['schemas']['DateFormatCheck'];
 export type DateFormatCheckRequest = components['schemas']['DateFormatCheckRequest'];
@@ -83807,6 +83875,8 @@ export type DateTokenOption = components['schemas']['DateTokenOption'];
 export type DateValue = components['schemas']['DateValue'];
 export type DayBound = components['schemas']['DayBound'];
 export type DayCount = components['schemas']['DayCount'];
+export type DeadlineAnchor = components['schemas']['DeadlineAnchor'];
+export type DeadlineKind = components['schemas']['DeadlineKind'];
 export type DeclineBody = components['schemas']['DeclineBody'];
 export type Deleted = components['schemas']['Deleted'];
 export type DeleteImpact = components['schemas']['DeleteImpact'];
@@ -84770,6 +84840,7 @@ export type RegisterRequest = components['schemas']['RegisterRequest'];
 export type RegisterResponse = components['schemas']['RegisterResponse'];
 export type RegistrationCode = components['schemas']['RegistrationCode'];
 export type RegistrationCount = components['schemas']['RegistrationCount'];
+export type RegistrationDeadline = components['schemas']['RegistrationDeadline'];
 export type RegistrationFieldDefinition = components['schemas']['RegistrationFieldDefinition'];
 export type RegistrationFieldDefinitionsRequest = components['schemas']['RegistrationFieldDefinitionsRequest'];
 export type RegistrationFieldsRequest = components['schemas']['RegistrationFieldsRequest'];
@@ -85525,6 +85596,17 @@ export const DateFormatProblem = {
 export const DateKind = {
     DATE: "DATE",
     DATE_TIME: "DATE_TIME",
+} as const;
+
+export const DeadlineAnchor = {
+    EXACT: "EXACT",
+    MIDNIGHT: "MIDNIGHT",
+} as const;
+
+export const DeadlineKind = {
+    FIXED: "FIXED",
+    NONE: "NONE",
+    RELATIVE: "RELATIVE",
 } as const;
 
 export const DeviceRequestPurpose = {

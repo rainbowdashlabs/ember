@@ -9,6 +9,7 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventCopyRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -82,7 +83,6 @@ class EventCopyRouteTest {
                         any(),
                         any(),
                         any(),
-                        any(),
                         any()))
                 .thenReturn(created);
         eventRepository = mock(EventRepository.class);
@@ -144,7 +144,6 @@ class EventCopyRouteTest {
                         any(),
                         any(),
                         any(),
-                        any(),
                         any());
     }
 
@@ -192,6 +191,36 @@ class EventCopyRouteTest {
 
         assertEquals(EventRefusal.EVENT_SERIES_ENDS_BEFORE_IT_STARTS, refusalOf(answer));
         verifyNothingWasMade();
+    }
+
+    /** An appointment sent without a sign-up deadline, as an older screen sends it, is made without one. */
+    @Test
+    void anAppointmentWithoutADeadlineInTheBodyIsMadeWithoutOne() {
+        var answer = harness.request(client -> client.post(
+                PREFIX + "/events",
+                body("""
+                        {"name": "Dienstabend", "eventType": "ONE_TIME", "requiresRegistration": true,
+                         "startTime": "2027-03-01T17:00:00Z", "endTime": "2027-03-01T19:00:00Z"}"""),
+                harness.as(TestSessions.member(STATION_ID, StationPermission.EVENT_EDIT))));
+
+        assertEquals(201, answer.code(), answer.body().string());
+        verify(crudService)
+                .createWithoutEvent(
+                        eq(STATION_ID),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        anyBoolean(),
+                        eq(RegistrationDeadline.none()),
+                        anyBoolean(),
+                        any(),
+                        any(),
+                        any(),
+                        any());
     }
 
     @Test

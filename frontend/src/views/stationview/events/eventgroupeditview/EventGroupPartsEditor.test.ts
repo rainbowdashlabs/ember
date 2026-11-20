@@ -10,6 +10,7 @@ import {computed} from 'vue'
 import EventGroupPartsEditor from './EventGroupPartsEditor.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import type {EventGroupDetail} from '@/api/generated/schema'
+import {noDeadline} from '../eventshared/registrationDeadline'
 
 const createPart = vi.fn(async (..._args: unknown[]) => ({}))
 const setPartRequired = vi.fn(async (..._args: unknown[]) => ({}))
@@ -26,8 +27,8 @@ vi.mock('@/composables/useSession', () => ({useSession: () => ({stationTimezone:
 const detail: EventGroupDetail = {
   eventGroup: {
     id: 70,
-    details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null},
-    cancelled: false, cancelReason: null, partCount: 0, holding: 0, queued: 0, pending: 0, firstStart: null, lastEnd: null,
+    details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: noDeadline(), requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null},
+    cancelled: false, cancelReason: null, partCount: 0, holding: 0, queued: 0, pending: 0, firstStart: null, lastEnd: null, closesAt: null,
   },
   sets: [{id: 1, eventGroupId: 70, name: 'Übung', minimum: 2, maximum: null, position: 0}, {id: 2, eventGroupId: 70, name: 'Prüfung', minimum: 1, maximum: null, position: 1}],
   parts: [],

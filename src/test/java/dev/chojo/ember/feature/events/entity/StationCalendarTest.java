@@ -56,7 +56,6 @@ class StationCalendarTest {
                 null,
                 null,
                 null,
-                null,
                 count);
     }
 

@@ -497,7 +497,7 @@ public class EventFieldRepository {
                 FROM event_group
                 WHERE id = :id
                   AND NOT cancelled
-                  AND (registration_deadline IS NULL OR registration_deadline > now());""", call().bind("id", eventGroupId));
+                  AND (event_group_closes_at(id) IS NULL OR event_group_closes_at(id) > now());""", call().bind("id", eventGroupId));
     }
 
     /**

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.procedure.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
@@ -227,9 +228,8 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
                 Instant.now().plus(7, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

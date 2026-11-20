@@ -50,6 +50,9 @@ const {stationTimezone} = useSession()
 
 const eventGroup = computed(() => props.detail.eventGroup)
 
+/** When sign-ups for the event group close, null where they do not. */
+const closesAt = computed(() => eventGroup.value.closesAt)
+
 /** How the places for people stand, null where the event group limits no people. */
 const peoplePlaces = computed(() => eventGroupPlaces(eventGroup.value))
 
@@ -89,8 +92,8 @@ function whenOf(part: EventGroupPartState): string {
       <ErrorBadge v-if="eventGroup.cancelled">
         {{ eventGroup.cancelReason ? t('eventGroups.cancelledReason', {reason: eventGroup.cancelReason}) : t('eventGroups.cancelled') }}
       </ErrorBadge>
-      <InfoBadge v-if="eventGroup.details.registrationDeadline">
-        {{ t('eventGroups.deadline', {date: formatDateTime(eventGroup.details.registrationDeadline, stationTimezone)}) }}
+      <InfoBadge v-if="closesAt" data-testid="event-group-closes-at">
+        {{ t('eventGroups.deadline', {date: formatDateTime(closesAt, stationTimezone)}) }}
       </InfoBadge>
       <MutedText tag="span" size="sm" data-testid="event-group-places">
         {{ peoplePlaces ? placesLabel(peoplePlaces, t) : t('eventGroups.placesOpen', {holding: eventGroup.holding}) }}

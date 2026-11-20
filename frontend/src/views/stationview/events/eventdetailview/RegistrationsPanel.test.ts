@@ -21,6 +21,7 @@ function signUp(id: number, status: RegistrationStatus, createdAt: string): Regi
     memberName: `Mitglied ${id}`,
     memberIdentity: null,
     eventDate: '2026-12-04',
+    registrationClosesAt: null,
     status,
     createdAt,
     createdByName: null,

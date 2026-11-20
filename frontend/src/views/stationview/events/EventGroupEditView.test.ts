@@ -43,7 +43,7 @@ const api = vi.hoisted(() => ({
 vi.mock('@/api', () => api)
 const permitted = vi.hoisted(() => ({federate: false}))
 vi.mock('@/composables/useSession', () => ({
-  useSession: () => ({loaded: ref(true), hasPermission: () => permitted.federate}),
+  useSession: () => ({loaded: ref(true), stationTimezone: ref('Europe/Berlin'), hasPermission: () => permitted.federate}),
 }))
 const route = vi.hoisted(() => ({params: {} as Record<string, string>, query: {} as Record<string, string>}))
 const replace = vi.hoisted(() => vi.fn())

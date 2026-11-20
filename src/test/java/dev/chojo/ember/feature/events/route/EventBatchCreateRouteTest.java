@@ -10,6 +10,7 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.BodyRefusal;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventChangeNotifier;
 import dev.chojo.ember.feature.events.service.EventChangePreviewService;
@@ -107,7 +108,8 @@ class EventBatchCreateRouteTest {
 
     @Test
     void theBatchTheScreenSendsIsReadWithItsDeadline() {
-        var answer = send("\"2026-12-01T17:00:00.000Z\"");
+        var answer = send("""
+                {"kind": "FIXED", "at": "2026-12-01T17:00:00.000Z", "offsetMinutes": null, "anchor": null}""");
 
         assertEquals(200, answer.code());
         var request = ArgumentCaptor.forClass(BatchRequest.class);
@@ -116,12 +118,15 @@ class EventBatchCreateRouteTest {
         assertEquals(
                 Instant.parse("2026-12-04T15:30:00Z"),
                 request.getValue().rows().get(0).startTime());
-        assertEquals(Instant.parse("2026-12-01T17:00:00Z"), request.getValue().registrationDeadline());
+        assertEquals(
+                RegistrationDeadline.fixed(Instant.parse("2026-12-01T17:00:00Z")),
+                request.getValue().registrationDeadline());
     }
 
     @Test
     void aDeadlineWithoutAZoneIsRefusedAsABodyOfTheWrongShape() {
-        var answer = send("\"2026-12-01T18:00\"");
+        var answer = send("""
+                {"kind": "FIXED", "at": "2026-12-01T18:00", "offsetMinutes": null, "anchor": null}""");
 
         assertEquals(BodyRefusal.BODY_DOES_NOT_MATCH, refusalOf(answer));
         verify(batches, never()).createBatch(anyInt(), any());

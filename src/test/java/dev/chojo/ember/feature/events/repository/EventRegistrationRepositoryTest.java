@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -66,9 +67,8 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
                 start.plusSeconds(7200),
                 null,
                 requiresRegistration,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -90,7 +90,7 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
 
             assertTrue(
                     eventRegistrationRepo
-                            .findUnansweredMemberIds(created.id(), station.id())
+                            .findUnansweredMemberIds(created.id(), station.id(), date)
                             .contains(member.id()),
                     "the refusal is gone and nothing replaced it");
         } finally {
@@ -112,7 +112,7 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
 
             assertTrue(
                     eventRegistrationRepo
-                            .findUnansweredMemberIds(created.id(), station.id())
+                            .findUnansweredMemberIds(created.id(), station.id(), date)
                             .contains(member.id()),
                     "the system took the place, the member said nothing");
         } finally {
@@ -131,22 +131,27 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
         try {
             assertTrue(
                     eventRegistrationRepo
-                            .findUnansweredMemberIds(created.id(), station.id())
+                            .findUnansweredMemberIds(created.id(), station.id(), date)
                             .contains(member.id()),
                     "somebody who has not answered owes one");
 
             var reg = eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.DECLINED, null);
             assertFalse(
                     eventRegistrationRepo
-                            .findUnansweredMemberIds(created.id(), station.id())
+                            .findUnansweredMemberIds(created.id(), station.id(), date)
                             .contains(member.id()),
                     "declining is an answer");
+            assertTrue(
+                    eventRegistrationRepo
+                            .findUnansweredMemberIds(created.id(), station.id(), date.plusWeeks(1))
+                            .contains(member.id()),
+                    "an answer counts for its own date only");
 
             eventRegistrationRepo.recordAnswer(reg.id(), RegistrationStatus.ACCEPTED);
             eventRegistrationRepo.recordAnswer(reg.id(), RegistrationStatus.WITHDRAWN);
             assertFalse(
                     eventRegistrationRepo
-                            .findUnansweredMemberIds(created.id(), station.id())
+                            .findUnansweredMemberIds(created.id(), station.id(), date)
                             .contains(member.id()),
                     "giving up a place is an answer too");
         } finally {
@@ -171,9 +176,8 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
                 Instant.now().plus(java.time.Duration.ofDays(9)).plusSeconds(3600),
                 null,
                 true,
-                Instant.now().plus(java.time.Duration.ofDays(2)),
+                RegistrationDeadline.fixed(Instant.now().plus(java.time.Duration.ofDays(2))),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -188,15 +192,14 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
                 Instant.now().plus(java.time.Duration.ofDays(9)).plusSeconds(3600),
                 null,
                 true,
-                Instant.now().minus(java.time.Duration.ofDays(1)),
+                RegistrationDeadline.fixed(Instant.now().minus(java.time.Duration.ofDays(1))),
                 false,
-                null,
                 null,
                 null,
                 null,
                 null);
         try {
-            var waiting = eventRegistrationRepo.findAwaitingAnswer(List.of(member.id()));
+            var waiting = awaitingAnswers().find(List.of(member.id()));
             assertTrue(waiting.stream().anyMatch(a -> a.eventId() == open.id()), "an open one waits");
             assertTrue(waiting.stream().noneMatch(a -> a.eventId() == closed.id()), "a closed one does not");
 
@@ -207,13 +210,17 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
             assertEquals(member.id(), entry.memberId());
             assertEquals("Offen", entry.name());
 
-            eventRegistrationRepo.create(open.id(), member.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
+            eventRegistrationRepo.create(
+                    open.id(),
+                    member.id(),
+                    LocalDate.ofInstant(open.startTime(), occurrenceCalendar.zoneOf(station.id())),
+                    RegistrationStatus.DECLINED,
+                    null);
             assertTrue(
-                    eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
-                            .noneMatch(a -> a.eventId() == open.id()),
+                    awaitingAnswers().find(List.of(member.id())).stream().noneMatch(a -> a.eventId() == open.id()),
                     "an answer settles it");
 
-            assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of()).isEmpty(), "nobody owes nothing");
+            assertTrue(awaitingAnswers().find(List.of()).isEmpty(), "nobody owes nothing");
         } finally {
             eventRepo.delete(open.id());
             eventRepo.delete(closed.id());
@@ -272,12 +279,6 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
                     eventRegistrationRepo.findByEventAndDate(created.id(), date).size());
             assertFalse(eventRegistrationRepo.findByEvent(created.id()).isEmpty());
             assertFalse(eventRegistrationRepo.findByMember(member.id()).isEmpty());
-            assertFalse(eventRegistrationRepo.findPendingByEvent(created.id()).isEmpty());
-            assertEquals(
-                    1,
-                    eventRegistrationRepo
-                            .findPendingByEventAndDate(created.id(), date)
-                            .size());
 
             assertTrue(eventRegistrationRepo.updateStatus(registration.id(), RegistrationStatus.ACCEPTED));
             assertEquals(
@@ -537,9 +538,8 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
                 Instant.parse("2027-10-10T11:00:00Z"),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -569,7 +569,6 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
         assertTrue(
                 eventRegistrationRepo.findByEventAndDate(99999, LocalDate.now()).isEmpty());
         assertTrue(eventRegistrationRepo.findByEvent(99999).isEmpty());
-        assertTrue(eventRegistrationRepo.findPendingByEvent(99999).isEmpty());
         assertTrue(eventRegistrationRepo.findByMember(99999).isEmpty());
         assertTrue(eventRegistrationRepo
                 .findNotAttendingMemberIds(99999, LocalDate.now())

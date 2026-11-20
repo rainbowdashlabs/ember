@@ -21,6 +21,7 @@ import type {
     ChangePreview,
     CategoryRequest,
     CreateTemplateRequest,
+    DateDeadlines,
     DatedEvent,
     EmbeddedEvent,
     EmbedReference,
@@ -135,6 +136,8 @@ export interface OccurrenceParams {
     search?: string
     from?: string
     to?: string
+    /** Upcoming list only: the last day dates of a series are listed for; one-time appointments are listed at any distance. */
+    seriesTo?: string
     limit?: number
     offset?: number
 }
@@ -262,6 +265,15 @@ export async function previewChange(eventId: number, draft: EventRequest): Promi
  */
 export async function sendChangeNotice(eventId: number, notice: ChangeNotice): Promise<void> {
     await client.post(`/events/${eventId}/change-notice`, notice)
+}
+
+/**
+ * When sign-up for a date of an appointment closes and when its minimum is checked, as the server
+ * works them out. Without a date it answers for the date the appointment's own page would show.
+ */
+export async function getDateDeadlines(eventId: number, date?: string | null): Promise<DateDeadlines> {
+    const res = await client.get<DateDeadlines>(`/events/${eventId}/date-deadlines`, {params: date ? {date} : {}})
+    return res.data
 }
 
 /** The appointments this one took dates from and gave dates to, as far as the reader may see them. */

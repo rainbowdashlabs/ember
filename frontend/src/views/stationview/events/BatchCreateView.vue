@@ -41,13 +41,12 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {describeFailure, saying} from '@/util/failure'
-import {localInputToInstant} from '@/util/format'
 import {asSaved} from './eventshared/eventQuestions'
 
 const {t} = useI18n()
 const router = useRouter()
 const eventRoutes = useEventRoutes()
-const {loaded, hasPermission} = useSession()
+const {loaded, hasPermission, stationTimezone} = useSession()
 const batchTemplate = useBatchTemplate(computed(() => hasPermission(StationPermission.EVENTS_FEDERATE)))
 const templateLeftOut = computed(() => batchTemplate.leftOut(selectedTemplateId.value))
 
@@ -73,8 +72,6 @@ const requiresRegistration = ref(false)
 const {signUpHeld} = useQuestionsRequireSignUp(
     () => (batchTemplate.applied.value?.questions ?? 0) > 0, requiresRegistration)
 const requiresConfirmation = ref(false)
-const hasDeadline = ref(false)
-const registrationDeadline = ref('')
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 
@@ -158,15 +155,6 @@ function onScheduleDone(newRows: BatchRow[]) {
   step.value = 3
 }
 
-/**
- * The registration deadline as the instant the server reads, or nothing where the batch takes no
- * registration or the switch is off. The field holds the local date and time picked, without a zone.
- */
-function deadlineToSend(): string | undefined {
-  if (!requiresRegistration.value || !hasDeadline.value) return undefined
-  return localInputToInstant(registrationDeadline.value) || undefined
-}
-
 const {running: saving, failure: createFailure, run: createBatch} = useAsyncAction(async () => {
   failure.value = null
   const inlineFields: BatchFieldEntryDto[] = fieldDefs.value.map(asSaved).flatMap(f => (f.name?.trim() ? [{
@@ -185,7 +173,6 @@ const {running: saving, failure: createFailure, run: createBatch} = useAsyncActi
     rows: rows.value,
     requiresRegistration: requiresRegistration.value,
     requiresConfirmation: requiresConfirmation.value,
-    registrationDeadline: deadlineToSend(),
     restriction: restriction.value,
     viewRestriction: viewRestriction.value,
     ...batchTemplate.requestPart(requiresRegistration.value),
@@ -249,8 +236,7 @@ function openOverview() {
               v-model:template-id="selectedTemplateId"
               v-model:requires-registration="requiresRegistration"
               v-model:requires-confirmation="requiresConfirmation"
-              v-model:has-deadline="hasDeadline"
-              v-model:registration-deadline="registrationDeadline"
+              v-model:registration-deadline="batchTemplate.settings.registrationDeadline"
               v-model:restriction="restriction"
               v-model:view-restriction="viewRestriction"
               v-model:fields="fieldDefs"
@@ -264,6 +250,7 @@ function openOverview() {
               :groups="groups"
               :tags="tags"
               :sign-up-held="signUpHeld"
+              :time-zone="stationTimezone"
               open-fields
           />
 

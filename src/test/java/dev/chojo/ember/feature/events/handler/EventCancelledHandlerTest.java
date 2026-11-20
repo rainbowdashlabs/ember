@@ -9,6 +9,7 @@ import dev.chojo.ember.event.events.EventCancelled;
 import dev.chojo.ember.event.events.EventDateRestored;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -71,9 +72,8 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
                 Instant.now().plus(1, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,

@@ -25,7 +25,6 @@ import {templateAttachmentPort, templateFederationPort, templateFieldDefaultsPor
 import {emptyRestriction, toRestriction} from '@/components/input/restriction'
 import type {RestrictionSelection} from '@/api/types'
 import {
-    EventType,
     QueueOrder,
     StationPermission,
     type AttendanceTemplate,
@@ -33,6 +32,7 @@ import {
     type EventCategory,
     type EventFieldEntry,
     type MemberGroup,
+    type RegistrationDeadline,
     type RegistrationFieldDefinition,
     type TemplateDetailResponse,
     type UserTag,
@@ -40,6 +40,7 @@ import {
 import {attendance, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
 import {eventTypeNamed} from './eventeditview/eventFormState'
 import {modelBindings} from './eventeditview/modelBindings'
+import {deadlineRuleOf, noDeadline} from './eventshared/registrationDeadline'
 import {asSaved, namedEntries} from './eventshared/eventQuestions'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -99,10 +100,9 @@ const settings = reactive({
   requiresConfirmation: false,
   registrationLimit: undefined as number | undefined,
   queueOrder: QueueOrder.TIME as QueueOrder,
-  deadlineOffsetHours: null as number | null,
+  registrationDeadline: noDeadline() as RegistrationDeadline,
   minRegistrations: undefined as number | undefined,
   thresholdDays: undefined as number | undefined,
-  registrationCloseDays: undefined as number | undefined,
 })
 const settingsModel = modelBindings(settings)
 const attendanceTemplateId = ref('')
@@ -137,10 +137,9 @@ function seedForm(detail: TemplateDetailResponse) {
   settings.requiresConfirmation = tpl.requiresConfirmation ?? false
   settings.registrationLimit = tpl.registrationLimit ?? undefined
   settings.queueOrder = tpl.queueOrder ?? QueueOrder.TIME
-  settings.deadlineOffsetHours = tpl.registrationDeadlineOffsetHours ?? null
+  settings.registrationDeadline = deadlineRuleOf(tpl.registrationDeadline)
   settings.minRegistrations = tpl.minRegistrations ?? undefined
   settings.thresholdDays = tpl.thresholdDays ?? undefined
-  settings.registrationCloseDays = tpl.registrationCloseDays ?? undefined
   attendanceTemplateId.value = tpl.attendanceTemplateId ? String(tpl.attendanceTemplateId) : ''
   reminderDays.value = detail.reminderDays ?? []
   restriction.value = toRestriction(detail.restriction?.register)
@@ -215,10 +214,9 @@ async function save() {
       requiresConfirmation: settings.requiresConfirmation || null,
       registrationLimit: settings.registrationLimit ?? null,
       queueOrder: settings.queueOrder,
-      registrationDeadlineOffsetHours: settings.deadlineOffsetHours,
+      registrationDeadline: settings.registrationDeadline,
       minRegistrations: settings.minRegistrations ?? null,
       thresholdDays: settings.minRegistrations ? settings.thresholdDays ?? null : null,
-      registrationCloseDays: settings.eventType !== EventType.ONE_TIME ? settings.registrationCloseDays ?? null : null,
       attendanceTemplateId: attendanceTemplateId.value ? Number(attendanceTemplateId.value) : null,
     })
     await fieldDefaults.save(templateFieldDefaultsPort(templateId.value), true)

@@ -36,9 +36,10 @@ import type {
 } from '@/api/generated/schema'
 import {attendance, events} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {StationModule, StationPermission} from '@/api/generated/schema'
+import {DeadlineKind, StationModule, StationPermission} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {formatDateTime} from '@/util/format'
+import {hasPassed} from '../eventshared/registrationDeadline'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 import {placesFromResponse, placesLabel, signUpQueues, type Places} from '@/util/eventPlaces'
 import {useSession} from '@/composables/useSession'
@@ -91,7 +92,7 @@ const emit = defineEmits<{
 const currentMemberIds = computed(() => props.allMembers.map(member => member.id))
 
 const {t} = useI18n()
-const {isModuleEnabled} = useSession()
+const {isModuleEnabled, stationTimezone} = useSession()
 const router = useRouter()
 
 /**
@@ -179,24 +180,49 @@ watch(() => [props.eventId, props.effectiveDate, props.event.registrationLimit, 
 const joinsQueue = computed(() => signUpQueues(places.value, !!props.event.requiresConfirmation))
 
 /**
+ * When sign-up for the date on screen closes, as the server works it out, or for the date it would
+ * show while none is chosen yet. Null where sign-up does not close.
+ */
+const closesAt = ref<string | null>(null)
+
+/** Whether the server has answered for the date on screen, before which nothing offers an answer. */
+const closesAtKnown = ref(false)
+
+/**
+ * Asks the server when the date on screen closes; an answer for a date already left is dropped.
+ * Where the server cannot be asked, a fixed deadline still says when, and a relative one counts as open.
+ */
+async function loadClosesAt() {
+  const date = props.effectiveDate
+  closesAtKnown.value = false
+  const deadlines = await events.getDateDeadlines(props.eventId, date).catch(() => null)
+  if (date !== props.effectiveDate) return
+  const rule = props.event.registrationDeadline
+  closesAt.value = deadlines ? deadlines.registrationClosesAt : rule.kind === DeadlineKind.FIXED ? rule.at : null
+  closesAtKnown.value = true
+}
+
+watch(() => [props.eventId, props.effectiveDate, props.event.registrationDeadline] as const,
+    loadClosesAt, {immediate: true})
+
+/**
  * Whether an answer can still be given at all, which is the same rule the buttons follow: an
  * appointment that has to be signed up for stops taking answers at its deadline.
  */
-const stillTakingAnswers = computed(() => {
-  if (!props.event.requiresRegistration) return true
-  if (!props.event.registrationDeadline) return true
-  return new Date(props.event.registrationDeadline).getTime() > Date.now()
-})
+const stillTakingAnswers = computed(() => !props.event.requiresRegistration || !hasPassed(closesAt.value))
 
 /**
  * Whether the block is worth drawing at all.
  *
  * <p>An answer to show, or one that can still be given. Where the appointment is open to nobody in
  * the household it stays, because the block is then the one place saying why: an empty box is what
- * this used to be on a date whose deadline had passed with nobody having answered.
+ * this used to be on a date whose deadline had passed with nobody having answered. Until the server
+ * has said when sign-up closes, an appointment that needs sign-up shows no block at all, so no button
+ * appears open only to vanish a moment later.
  */
 const showAnswerBlock = computed(() => {
   if (props.eventGroupPart) return false
+  if (props.event.requiresRegistration && !closesAtKnown.value) return false
   if (!props.effectiveDate || props.cancellation) return false
   if (answers.value.length > 0) return true
   if (props.registrableMembers.length === 0) return true
@@ -314,7 +340,7 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
     <div v-if="event.requiresRegistration" class="flex flex-wrap gap-3 text-sm">
       <SuccessBadge>{{ t('events.requiresRegistration') }}</SuccessBadge>
       <InfoBadge v-if="event.requiresConfirmation">{{ t('events.requiresConfirmation') }}</InfoBadge>
-      <span v-if="event.registrationDeadline" class="text-(--text-muted)">{{ t('events.registrationDeadline') }}: {{ formatDateTime(event.registrationDeadline) }}</span>
+      <span v-if="closesAt" class="text-(--text-muted)" data-testid="event-closes-at">{{ t('events.registrationDeadline') }}: {{ formatDateTime(closesAt, stationTimezone) }}</span>
       <span v-if="places" class="text-(--text-muted)" data-testid="event-places">{{ placesLabel(places, t) }}</span>
       <span v-if="event.minRegistrations" class="text-(--text-muted)">{{ t('events.minRegistrations') }}: {{ event.minRegistrations }}</span>
       <span v-if="event.minRegistrations && event.thresholdDays != null" class="text-(--text-muted)">{{ t('events.thresholdDays') }}: {{ t('events.thresholdDaysValue', {days: event.thresholdDays}) }}</span>
@@ -326,7 +352,7 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
           :people="registrableMembers"
           :answers="answers"
           :requires-registration="!!event.requiresRegistration"
-          :registration-deadline="event.registrationDeadline"
+          :closes-at="closesAt"
           :has-managed-members="hasManagedMembers"
           :registering="registering"
           :sign-up-queues="joinsQueue"

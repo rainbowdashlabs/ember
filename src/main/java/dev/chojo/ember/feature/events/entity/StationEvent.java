@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
@@ -31,7 +32,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param endTime              the end time of the event
  * @param templateId           an optional attendance template ID linked to this event
  * @param requiresRegistration whether members must register before attending
- * @param registrationDeadline the deadline for registration, or null if no deadline
+ * @param registrationDeadline when sign-up closes; a null argument reads as no deadline
  * @param requiresConfirmation whether registrations must be confirmed by a manager
  * @param categoryId           the optional category this event is assigned to
  * @param cancelled            whether the whole series is cancelled. A single date, and a one-time
@@ -56,7 +57,7 @@ public record StationEvent(
         Instant endTime,
         @Nullable Integer templateId,
         boolean requiresRegistration,
-        @Nullable Instant registrationDeadline,
+        RegistrationDeadline registrationDeadline,
         boolean requiresConfirmation,
         @Nullable Integer categoryId,
         RestrictionMode restrictionMode,
@@ -69,10 +70,16 @@ public record StationEvent(
         @Nullable String cancelReason,
         @Nullable Integer minRegistrations,
         @Nullable Integer thresholdDays,
-        @Nullable Integer registrationCloseDays,
         @Nullable LocalDate repeatUntil,
         @Nullable Integer repeatCount,
         @Nullable QueueOrder queueOrder) {
+
+    /**
+     * Reads a missing deadline as none.
+     */
+    public StationEvent {
+        registrationDeadline = Objects.requireNonNullElse(registrationDeadline, RegistrationDeadline.none());
+    }
 
     /**
      * An appointment whose waiting list keeps the order by time.
@@ -88,7 +95,7 @@ public record StationEvent(
             Instant endTime,
             @Nullable Integer templateId,
             boolean requiresRegistration,
-            @Nullable Instant registrationDeadline,
+            RegistrationDeadline registrationDeadline,
             boolean requiresConfirmation,
             @Nullable Integer categoryId,
             RestrictionMode restrictionMode,
@@ -101,7 +108,6 @@ public record StationEvent(
             @Nullable String cancelReason,
             @Nullable Integer minRegistrations,
             @Nullable Integer thresholdDays,
-            @Nullable Integer registrationCloseDays,
             @Nullable LocalDate repeatUntil,
             @Nullable Integer repeatCount) {
         this(
@@ -128,7 +134,6 @@ public record StationEvent(
                 cancelReason,
                 minRegistrations,
                 thresholdDays,
-                registrationCloseDays,
                 repeatUntil,
                 repeatCount,
                 null);
@@ -149,7 +154,7 @@ public record StationEvent(
                 row.get("end_time", INSTANT_TIMESTAMP),
                 row.getObject("template_id", Integer.class),
                 row.getBoolean("requires_registration"),
-                row.get("registration_deadline", INSTANT_TIMESTAMP),
+                RegistrationDeadline.read(row),
                 row.getBoolean("requires_confirmation"),
                 row.getObject("category_id", Integer.class),
                 row.getEnum("restriction_mode", RestrictionMode.class),
@@ -162,7 +167,6 @@ public record StationEvent(
                 row.getString("cancel_reason"),
                 row.getObject("min_registrations", Integer.class),
                 row.getObject("threshold_days", Integer.class),
-                row.getObject("registration_close_days", Integer.class),
                 row.getObject("repeat_until", LocalDate.class),
                 row.getObject("repeat_count", Integer.class),
                 row.getEnum("queue_order", QueueOrder.class));
@@ -180,19 +184,72 @@ public record StationEvent(
     /**
      * Whether a member can still sign up for this appointment on a date.
      *
-     * <p>Signing up closes at the deadline, where one is set, and a given number of days before each
-     * date, where that is set. An appointment taking no registrations, or called off as a whole, is
-     * never open. Whether the single date was called off is the calendar's answer, not this one.
+     * <p>Signing up closes at the deadline that applies to that date: a fixed deadline closes every
+     * date at once, a relative one each date on its own. An appointment taking no registrations, or
+     * called off as a whole, is never open. Whether the single date was called off is the calendar's
+     * answer, not this one.
      *
-     * @param date  the date someone would sign up for
-     * @param today today on the station's clock
-     * @param now   the current instant
+     * @param date the date someone would sign up for
+     * @param zone the station's clock
+     * @param now  the current instant
      * @return true while a member may still sign up for that date
      */
-    public boolean registrationOpenOn(LocalDate date, LocalDate today, Instant now) {
+    public boolean registrationOpenOn(LocalDate date, ZoneId zone, Instant now) {
         if (!requiresRegistration || cancelled) return false;
-        if (registrationDeadline != null && !now.isBefore(registrationDeadline)) return false;
-        return registrationCloseDays == null || today.isBefore(date.minusDays(registrationCloseDays));
+        return !registrationClosedOn(date, zone, now);
+    }
+
+    /**
+     * Whether the deadline of one date has been reached: sign-up is closed from the instant the
+     * deadline names on. Without a deadline a date never closes.
+     *
+     * @param date the date
+     * @param zone the station's clock
+     * @param now  the instant asked about
+     * @return true from the deadline on
+     */
+    public boolean registrationClosedOn(LocalDate date, ZoneId zone, Instant now) {
+        return registrationClosesOn(date, zone)
+                .map(close -> !now.isBefore(close))
+                .orElse(false);
+    }
+
+    /**
+     * Whether sign-up closes for each date on its own, so a notice about it names the date: a
+     * repeating appointment with a deadline relative to each start. A fixed deadline closes every
+     * date at once.
+     *
+     * @return true for a series with a relative deadline
+     */
+    public boolean closesPerDate() {
+        return isRecurring() && registrationDeadline.kind() == RegistrationDeadline.DeadlineKind.RELATIVE;
+    }
+
+    /**
+     * When the minimum of sign-ups is checked for one date of this appointment: at midnight the set
+     * number of days before it, on the station's clock.
+     *
+     * @param date the date
+     * @param zone the station's clock
+     * @return the instant, empty without a minimum, without days to check it by, or where the
+     *         appointment has no times
+     */
+    public Optional<Instant> thresholdOn(LocalDate date, ZoneId zone) {
+        if (thresholdDays == null || minRegistrations == null) return Optional.empty();
+        var rule = RegistrationDeadline.daysBeforeAtMidnight(thresholdDays);
+        return occurrenceOn(date, zone).flatMap(span -> rule.closesAt(span.start(), zone));
+    }
+
+    /**
+     * When sign-up closes for one date of this appointment.
+     *
+     * @param date the date
+     * @param zone the station's clock
+     * @return the instant, empty where no deadline applies or the appointment has no times
+     */
+    public Optional<Instant> registrationClosesOn(LocalDate date, ZoneId zone) {
+        if (!registrationDeadline.isSet()) return Optional.empty();
+        return occurrenceOn(date, zone).flatMap(span -> registrationDeadline.closesAt(span.start(), zone));
     }
 
     /**

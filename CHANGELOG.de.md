@@ -31,6 +31,8 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Termine einer Terminreihe besser erreichbar.** Im Editor der Terminreihe zeigt jeder Termin Datum mit Beginn und Ende, führt zu seinem eigenen Editor und ist markiert, wenn er abgesagt ist. Eine neue Terminreihe lässt sich gleich beim Anlegen mit Partnerwachen teilen.
 - **Fragen ohne vorher die Anmeldung einzuschalten.** Die Fragen eines Termins oder einer Vorlage stehen immer im Formular. Wer eine hinzufügt, schaltet damit die Anmeldung ein, und sie bleibt an, solange es Fragen gibt.
 - **Dateien schon beim Anlegen.** Dateien lassen sich hinzufügen, während ein Termin oder eine Terminreihe noch angelegt wird, und werden beim Speichern in ihrer Reihenfolge angehängt.
+- **Anmeldeschluss vor Beginn.** Termine und Terminreihen schließen die Anmeldung zu einem festen Zeitpunkt oder eine gewisse Zeit vor Beginn, auf die Minute genau oder um Mitternacht. Vorlagen geben die Zeitspanne weiter, und wiederkehrende Termine schließen und erinnern für jeden Termin einzeln.
+- **Offene Antworten auch bei wiederkehrenden Terminen.** Die Übersicht listet nicht nur einmalige Termine, sondern auch jedes Datum eines wiederkehrenden Termins, das noch auf eine Antwort wartet, und führt zu diesem Datum.
 
 ### Änderungen
 
@@ -42,6 +44,8 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Anmeldungen zu Terminreihen werden bei der Terminreihe entschieden.** Die offenen Anmeldungen führen jede Terminreihe mit wartenden Anmeldungen einmal auf und verweisen auf sie, statt ihre Termine einzeln zu zeigen. Die Zahl in der Seitenleiste zählt jede solche Anmeldung einmal.
 - **Geteilte Termine brauchen diese Version auf beiden Seiten.** Das Teilen von Terminen mit einer Partnerwache auf einem anderen Server ruht, bis beide diese Version haben.
 - **Statistiken der Wache unter Monitoring.** Die Statistikseite einer Wache steht unter Monitoring, unter `/station/monitoring/statistics`, und das Dashboard ist wieder eine einzelne Seite.
+- **Offene Anmeldungen bleiben nach dem Anmeldeschluss bestehen.** Anmeldungen, die noch auf Bestätigung warten, werden beim Anmeldeschluss nicht mehr abgelehnt. Wer den Termin betreut, bekommt je Termin einen Hinweis und entscheidet wie bisher.
+- **Mindestanzahl ab Mitternacht geprüft.** Die Mindestanzahl einer Terminreihe wird ab Mitternacht die eingestellte Zahl an Tagen vor ihrem ersten Termin geprüft, auch wenn dieser abgesagt ist, so wie schon bei einzelnen Terminen.
 
 ### Fehlerbehebungen
 
@@ -56,6 +60,9 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Fragen konnten beim Bearbeiten verloren gehen.** In manchen Fällen zeigte der Editor Fragen, Erinnerungen oder das Teilen eines Termins leer an, wenn sie sich nicht laden ließen, und Speichern entfernte sie. Jetzt zeigt der Editor den Fehler und kein Formular.
 - **Plätze beim Anlegen mehrerer Termine ignoriert.** Plätze und Mindestanzahl, die beim Anlegen mehrerer Termine auf einmal eingetragen wurden, wurden nicht gespeichert. Jetzt bekommt sie jeder Termin.
 - **Fehler beim Laden sahen aus wie leere Listen.** In manchen Fällen erschienen Anmeldungen von Partnerwachen und die Auswahl der Terminreihen im Editor eines Termins leer, wenn sie sich nicht laden ließen. Jetzt sagt die Seite, dass das Laden fehlgeschlagen ist.
+- **Abgesagte Termine wirkten auf der Übersicht offen.** In manchen Fällen zeigte die Übersicht ein abgesagtes Datum eines wiederkehrenden Termins wie ein normales Datum. Es ist jetzt als abgesagt markiert und bietet keine Abmeldung an.
+- **Datum der Mindestanzahl in Ankündigungen einen Tag zu spät.** Der Satz zur Mindestanzahl nannte den Tag der Prüfung als letzten Anmeldetag. Er nennt jetzt den Tag davor.
+- **Verschobener Anmeldeschluss ohne neue Erinnerung.** In manchen Fällen wurde ein Anmeldeschluss, der nach seiner Erinnerung oder seinem Hinweis verschoben wurde, kein zweites Mal angekündigt. Beides richtet sich jetzt nach dem Anmeldeschluss, wie er gerade gilt.
 
 ## v26.25.2
 

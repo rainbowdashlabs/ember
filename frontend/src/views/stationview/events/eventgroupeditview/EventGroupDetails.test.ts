@@ -12,9 +12,10 @@ import EventGroupSignUpFields from './EventGroupSignUpFields.vue'
 import {useEventGroupDetails} from './useEventGroupDetails'
 import {EVENT_GROUP_PALETTE} from '../eventshared/eventGroupColor'
 import type {EventGroupDetails} from '@/api/generated/schema'
+import {noDeadline} from '../eventshared/registrationDeadline'
 
 function detailsOf(color: string, minRegistrations?: number): EventGroupDetails {
-  return {name: 'Grundlehrgang', description: null, registrationLimit: null, registrationDeadline: null,
+  return {name: 'Grundlehrgang', description: null, registrationLimit: null, registrationDeadline: noDeadline(),
     requiresConfirmation: false, color: color || null, minRegistrations: minRegistrations ?? null, thresholdDays: null,
     partRegistrationLimit: null, queueOrder: null}
 }
@@ -26,10 +27,10 @@ function mountForm(color: string, eventGroupId: number | null, minRegistrations?
   })
 }
 
-function mountSignUp(minRegistrations?: number) {
+function mountSignUp(minRegistrations?: number, parts: {places: number | null; startTime?: string}[] = []) {
   return mount(EventGroupSignUpFields, {
-    props: {modelValue: detailsOf('', minRegistrations)},
-    global: {stubs: {'font-awesome-icon': true, DateTimeInput: true}},
+    props: {modelValue: detailsOf('', minRegistrations), parts, timeZone: 'Europe/Berlin'},
+    global: {stubs: {'font-awesome-icon': true}},
   })
 }
 
@@ -79,7 +80,7 @@ describe('EventGroupSignUpFields minimum', () => {
   })
 })
 
-/** The details come and go as one value, each field changing its own part and the deadline kept as an instant. */
+/** The details come and go as one value, each field changing its own part and the deadline kept as a rule. */
 describe('useEventGroupDetails', () => {
   it('changes the name and keeps every other part', () => {
     const details = ref(detailsOf('#123456', 6))
@@ -89,15 +90,27 @@ describe('useEventGroupDetails', () => {
     expect(details.value).toEqual({...detailsOf('#123456', 6), name: 'Aufbaulehrgang'})
   })
 
-  it('hands on the deadline typed in local time as an instant, and none when it is cleared', async () => {
+  it('hands on the deadline as a rule, and none when it is cleared', async () => {
     const form = mountSignUp()
-    const deadline = form.getComponent({name: 'DateTimeInput'})
 
-    deadline.vm.$emit('update:modelValue', '2026-12-01T18:00')
-    expect(lastDetails(form).registrationDeadline).toBe(new Date('2026-12-01T18:00').toISOString())
+    await form.get('[data-testid="registration-deadline-kind"]').setValue('RELATIVE')
+    expect(lastDetails(form).registrationDeadline).toEqual({kind: 'RELATIVE', at: null, offsetMinutes: 1440, anchor: 'MIDNIGHT'})
 
-    deadline.vm.$emit('update:modelValue', '')
-    expect(lastDetails(form).registrationDeadline).toBeNull()
+    await form.get('[data-testid="registration-deadline-kind"]').setValue('NONE')
+    expect(lastDetails(form).registrationDeadline).toEqual(noDeadline())
+  })
+
+  it('previews the deadline counted from the first part', () => {
+    const form = mount(EventGroupSignUpFields, {
+      props: {
+        modelValue: {...detailsOf(''), registrationDeadline: {kind: 'RELATIVE', at: null, offsetMinutes: 10080, anchor: 'MIDNIGHT'}},
+        parts: [{places: null, startTime: '2026-11-28T09:00:00Z'}, {places: null, startTime: '2026-11-21T09:00:00Z'}],
+        timeZone: 'Europe/Berlin',
+      },
+      global: {stubs: {'font-awesome-icon': true}},
+    })
+
+    expect(form.get('[data-testid="registration-deadline-next"]').text()).toContain('14.11.2026, 00:00')
   })
 })
 
@@ -119,7 +132,7 @@ describe('EventGroupSignUpFields places', () => {
   it('offers the order where only a part has places of its own', () => {
     const form = mount(EventGroupSignUpFields, {
       props: {modelValue: detailsOf(''), parts: [{places: null}, {places: 20}]},
-      global: {stubs: {'font-awesome-icon': true, DateTimeInput: true}},
+      global: {stubs: {'font-awesome-icon': true}},
     })
 
     expect(form.find('[data-testid="queue-order"]').exists()).toBe(true)

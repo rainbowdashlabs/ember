@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -207,10 +208,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 monEnd,
                 templateUebung.id(),
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 catUebung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -224,10 +224,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 satEnd,
                 templateGesamt.id(),
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 catUebung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -242,10 +241,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 satEnd,
                 null,
                 true,
-                null,
+                RegistrationDeadline.relative(7 * 1440, RegistrationDeadline.DeadlineAnchor.MIDNIGHT),
                 false,
                 catVeranstaltung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -263,10 +261,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 satEnd,
                 null,
                 false,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 catVeranstaltung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -286,10 +283,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 jhvEnd,
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 catVeranstaltung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -310,10 +306,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 todayEventEnd,
                 templateTheorie.id(),
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 catUebung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -338,10 +333,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 nextMonthEnd,
                 null,
                 true,
-                deadline,
+                RegistrationDeadline.fixed(deadline),
                 true,
                 catVeranstaltung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -361,10 +355,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 oeffentlichkeitEnd,
                 null,
                 true,
-                oeffentlichkeitDeadline,
+                RegistrationDeadline.fixed(oeffentlichkeitDeadline),
                 false,
                 catVeranstaltung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -384,10 +377,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 wettbewerbEnd,
                 null,
                 true,
-                wettbewerbDeadline,
+                RegistrationDeadline.fixed(wettbewerbDeadline),
                 true,
                 catWettbewerb.id(),
-                null,
                 null,
                 null,
                 null);
@@ -404,10 +396,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 days.at(zeltlagerStart.plusDays(6), 16, 0),
                 null,
                 true,
-                days.at(zeltlagerStart.minusWeeks(3), 23, 59),
+                RegistrationDeadline.fixed(days.at(zeltlagerStart.minusWeeks(3), 23, 59)),
                 false,
                 catVeranstaltung.id(),
-                null,
                 null,
                 null,
                 null);
@@ -499,10 +490,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                     oeEnd,
                     null,
                     true,
-                    null,
+                    RegistrationDeadline.none(),
                     true,
                     catOeffentlichkeit.id(),
-                    null,
                     null,
                     null,
                     null);
@@ -550,10 +540,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 openEnd,
                 null,
                 true,
-                openDeadline,
+                RegistrationDeadline.fixed(openDeadline),
                 true,
                 catOeffentlichkeit.id(),
-                null,
                 null,
                 null,
                 null);
@@ -750,7 +739,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                         null,
                         StationEvent.EventType.RECURRING,
                         false,
-                        null,
+                        RegistrationDeadline.none(),
                         false,
                         null,
                         null,
@@ -789,14 +778,13 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                         null,
                         StationEvent.EventType.ONE_TIME,
                         true,
-                        72,
+                        RegistrationDeadline.relative(72 * 60, RegistrationDeadline.DeadlineAnchor.EXACT),
                         true,
                         null,
                         null,
                         null,
                         6,
-                        7,
-                        null));
+                        7));
         eventTemplateService.replaceFields(
                 tplWettbewerb.id(),
                 List.of(
@@ -838,11 +826,10 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 days.at(date, 21, 0),
                 null,
                 true,
-                null,
+                RegistrationDeadline.none(),
                 false,
                 categoryId,
                 FULL_DRILL_PLACES,
-                null,
                 null,
                 null);
         int signUps = Math.min(FULL_DRILL_PLACES + FULL_DRILL_WAITING, members.size());
@@ -880,10 +867,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 end,
                 null,
                 true,
-                deadline,
+                RegistrationDeadline.fixed(deadline),
                 false,
                 categoryId,
-                null,
                 null,
                 null,
                 null);

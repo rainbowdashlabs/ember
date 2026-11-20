@@ -8,7 +8,7 @@ import {describe, expect, it, vi} from 'vitest'
 import {mount} from '@vue/test-utils'
 import {computed} from 'vue'
 import EventGroupOverview from './EventGroupOverview.vue'
-import type {EventGroupDetail, EventGroupPartState} from '@/api/generated/schema'
+import type {EventGroupDetail, EventGroupPartState, RegistrationDeadline} from '@/api/generated/schema'
 
 vi.mock('@/composables/useSession', () => ({useSession: () => ({stationTimezone: computed(() => 'Europe/Berlin')})}))
 
@@ -19,15 +19,20 @@ function part(eventId: number, overrides: Partial<EventGroupPartState> = {}): Ev
   }
 }
 
-function detail(registrationLimit: number | null, holding: number, queued: number, parts: EventGroupPartState[]): EventGroupDetail {
+function detail(
+    registrationLimit: number | null, holding: number, queued: number, parts: EventGroupPartState[],
+    registrationDeadline: RegistrationDeadline = {kind: 'NONE', at: null, offsetMinutes: null, anchor: null},
+    closesAt: string | null = null,
+): EventGroupDetail {
   return {
     eventGroup: {
       id: 70,
       details: {
-        name: 'Jugendflamme 1', description: null, registrationLimit, registrationDeadline: null, requiresConfirmation: false,
+        name: 'Jugendflamme 1', description: null, registrationLimit, registrationDeadline, requiresConfirmation: false,
         color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null,
       },
-      cancelled: false, cancelReason: null, partCount: parts.length, holding, queued, pending: 0, firstStart: null, lastEnd: null,
+      cancelled: false, cancelReason: null, partCount: parts.length, holding, queued, pending: 0,
+      firstStart: parts[0]?.startTime ?? null, lastEnd: null, closesAt,
     },
     sets: [{id: 1, eventGroupId: 70, name: 'Übung', minimum: 1, maximum: null, position: 0}],
     parts,
@@ -72,5 +77,19 @@ describe('EventGroupOverview places', () => {
     expect(shown.get('[data-testid="event-group-part-places-12"]').text()).toBe('Voll')
     expect(shown.find('[data-testid="event-group-part-places-13"]').exists()).toBe(false)
     expect(shown.find('[data-testid="event-group-part-places-14"]').exists()).toBe(false)
+  })
+})
+
+/** The overview names when sign-ups close, as the server worked it out from the rule and the first part. */
+describe('EventGroupOverview deadline', () => {
+  it('names the closing moment the server sends', () => {
+    const weekBefore: RegistrationDeadline = {kind: 'RELATIVE', at: null, offsetMinutes: 7 * 1440, anchor: 'MIDNIGHT'}
+    const shown = overview(detail(null, 0, 0, [part(11)], weekBefore, '2027-02-26T23:00:00Z'))
+
+    expect(shown.get('[data-testid="event-group-closes-at"]').text()).toContain('27.02.2027, 00:00')
+  })
+
+  it('names no deadline where sign-ups do not close', () => {
+    expect(overview(detail(null, 0, 0, [part(11)])).find('[data-testid="event-group-closes-at"]').exists()).toBe(false)
   })
 })

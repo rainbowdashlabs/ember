@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.ChangePreview;
 import dev.chojo.ember.feature.events.entity.EditScope;
 import dev.chojo.ember.feature.events.entity.EditScopeKind;
 import dev.chojo.ember.feature.events.entity.EventDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -111,9 +112,8 @@ class EventChangePreviewServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 registration,
-                null,
+                RegistrationDeadline.none(),
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -147,7 +147,6 @@ class EventChangePreviewServiceTest extends RepositoryTestBase {
                 event.requiresRegistration(),
                 null,
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -202,7 +201,6 @@ class EventChangePreviewServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                null,
                 null);
         var shorter = new EventDraft(
                 draft.name(),
@@ -215,7 +213,6 @@ class EventChangePreviewServiceTest extends RepositoryTestBase {
                 true,
                 null,
                 false,
-                null,
                 null,
                 null,
                 null,

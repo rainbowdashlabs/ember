@@ -19,7 +19,7 @@ describe('sectionSummaries', () => {
         expect(remindersSummary([], t)).toBe('formSections.nothingSet')
         expect(questionsSummary(0, t)).toBe('formSections.nothingSet')
         expect(fieldsSummary('', 0, t)).toBe('formSections.nothingSet')
-        expect(turnoutSummary(null, null, null, t)).toBe('formSections.nothingSet')
+        expect(turnoutSummary(null, null, t)).toBe('formSections.nothingSet')
         expect(documentsSummary(0, 0, t)).toBe('formSections.nothingSet')
     })
 
@@ -35,10 +35,9 @@ describe('sectionSummaries', () => {
         expect(documentsSummary(0, 2, t)).toBe('formSections.filesSet {"count":2}')
     })
 
-    it('names the minimum with the days before, and the closing of a repeating appointment', () => {
-        expect(turnoutSummary(4, 2, null, t)).toBe('formSections.minimumBefore {"minimum":4,"days":2}')
-        expect(turnoutSummary(4, null, 3, t))
-            .toBe('formSections.minimumSet {"minimum":4} · formSections.closeDaysSet {"days":3}')
+    it('names the minimum with the days before', () => {
+        expect(turnoutSummary(4, 2, t)).toBe('formSections.minimumBefore {"minimum":4,"days":2}')
+        expect(turnoutSummary(4, null, t)).toBe('formSections.minimumSet {"minimum":4}')
     })
 
     it('says who may sign up and who may see the appointment', () => {
@@ -54,8 +53,7 @@ describe('sectionSummaries', () => {
 
     it('names a single day as one', () => {
         expect(remindersSummary([1], t)).toBe('formSections.remindersSetOne')
-        expect(turnoutSummary(4, 1, 1, t))
-            .toBe('formSections.minimumBeforeOne {"minimum":4} · formSections.closeDaysSetOne')
+        expect(turnoutSummary(4, 1, t)).toBe('formSections.minimumBeforeOne {"minimum":4}')
     })
 
     it('says a part follows the attendance list of its event group, and a share with nobody is none', () => {

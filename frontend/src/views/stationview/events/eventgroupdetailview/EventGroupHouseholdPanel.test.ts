@@ -10,10 +10,12 @@ import EventGroupHouseholdPanel from './EventGroupHouseholdPanel.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {EventGroupDetail, EventGroupSignUp} from '@/api/generated/schema'
 import {createIdentity} from '@/test/mocks/factories'
+import {computed} from 'vue'
 
 const withdraw = vi.fn(async (..._args: unknown[]) => ({}))
 const changeAnswers = vi.fn(async (..._args: unknown[]) => ({}))
 
+vi.mock('@/composables/useSession', () => ({useSession: () => ({stationTimezone: computed(() => 'Europe/Berlin')})}))
 vi.mock('@/api', () => ({eventGroups: {
   withdraw: (...args: unknown[]) => withdraw(...args),
   changeAnswers: (...args: unknown[]) => changeAnswers(...args),
@@ -23,12 +25,15 @@ function entry(memberId: number, name: string, overrides: Partial<EventGroupSign
   return {memberId, member: createIdentity({name}), status: null, registeredAt: null, parts: [], sets: [], answers: [], answersMissing: false, mayRegister: true, queuePosition: null, ...overrides}
 }
 
-function detail(household: EventGroupSignUp[], deadline: string | null = null): EventGroupDetail {
+function detail(
+    household: EventGroupSignUp[],
+    closesAt: string | null = null,
+): EventGroupDetail {
   return {
     eventGroup: {
       id: 70,
-      details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: deadline, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null},
-      cancelled: false, cancelReason: null, partCount: 1, holding: 0, queued: 0, pending: 0, firstStart: null, lastEnd: null,
+      details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: closesAt ? {kind: 'FIXED', at: closesAt, offsetMinutes: null, anchor: null} : {kind: 'NONE', at: null, offsetMinutes: null, anchor: null}, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null},
+      cancelled: false, cancelReason: null, partCount: 1, holding: 0, queued: 0, pending: 0, firstStart: null, lastEnd: null, closesAt,
     },
     sets: [{id: 1, eventGroupId: 70, name: 'Teile', minimum: 1, maximum: null, position: 0}],
     parts: [{eventId: 11, setId: 1, name: 'Samstag', startTime: '2099-03-06T08:00:00Z', endTime: '2099-03-06T16:00:00Z', calledOff: false, tookPlace: false, required: false, accepted: 0, places: null}],
@@ -59,6 +64,16 @@ describe('EventGroupHouseholdPanel', () => {
 
     expect(wrapper.find('[data-testid="event-group-sign-up"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="event-group-closed"]').exists()).toBe(true)
+  })
+
+  it('keeps sign-up open while the closing moment the server sends lies ahead', () => {
+    const inThreeDays = new Date(Date.now() + 3 * 86_400_000).toISOString()
+    wrapper = mount(EventGroupHouseholdPanel, {
+      props: {detail: detail([entry(11, 'Lea')], inThreeDays)},
+      global: {stubs: {MemberName: true}},
+    })
+
+    expect(wrapper.find('[data-testid="event-group-closed"]').exists()).toBe(false)
   })
 
   it('withdraws the child it was asked for after a neutral question, since leaving deletes nothing', async () => {

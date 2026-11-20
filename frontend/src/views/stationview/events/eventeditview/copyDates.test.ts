@@ -6,7 +6,7 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {EventType} from '@/api/generated/schema'
-import {copyStartDay, deadlineHoursBefore, lengthOf, nextSeriesDay, placedOn} from './copyDates'
+import {copyStartDay, lengthOf, nextSeriesDay, placedOn} from './copyDates'
 
 /** A Wednesday. */
 const TODAY = '2026-11-18'
@@ -54,17 +54,6 @@ describe('placedOn', () => {
     it('keeps the times of day and the days between start and end', () => {
         expect(placedOn('2025-01-03T19:00', '2025-01-05T14:30', '2026-11-20'))
             .toEqual({startTime: '2026-11-20T19:00', endTime: '2026-11-22T14:30'})
-    })
-})
-
-describe('deadlineHoursBefore', () => {
-    it('counts the hours the deadline lay before the start', () => {
-        expect(deadlineHoursBefore('2026-05-12T18:00:00Z', '2026-05-09T12:00:00Z')).toBe(78)
-    })
-
-    it('has nothing without a deadline or with one after the start', () => {
-        expect(deadlineHoursBefore('2026-05-12T18:00:00Z', null)).toBeNull()
-        expect(deadlineHoursBefore('2026-05-12T18:00:00Z', '2026-05-13T18:00:00Z')).toBeNull()
     })
 })
 

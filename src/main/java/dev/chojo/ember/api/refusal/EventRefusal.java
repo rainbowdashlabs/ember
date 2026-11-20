@@ -903,7 +903,15 @@ public enum EventRefusal implements Refusal {
     PARTNER_REQUIRED_ANSWER_MISSING(
             237,
             HttpStatus.BAD_REQUEST,
-            "The appointment requires an answer to one of its questions, so the sign-up was not taken");
+            "The appointment requires an answer to one of its questions, so the sign-up was not taken"),
+    /**
+     * A sign-up deadline that cannot be placed: a fixed one without a time, or a span before the
+     * start that is less than zero.
+     */
+    REGISTRATION_DEADLINE_INVALID(
+            238,
+            HttpStatus.BAD_REQUEST,
+            "The sign-up deadline needs a time, or a span before the start of zero or more");
 
     private final Definition definition;
 

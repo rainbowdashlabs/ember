@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
@@ -298,7 +299,20 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         templates.update(
                 templateId,
                 new EventTemplateSettings(
-                        "Vorlage", null, null, null, null, null, null, null, null, sheet.id(), null, null, null, null));
+                        "Vorlage",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        RegistrationDeadline.none(),
+                        null,
+                        null,
+                        sheet.id(),
+                        null,
+                        null,
+                        null,
+                        null));
         var shares = new EventFederationRepository();
         var share = shares.setShare(AppointmentOwner.TEMPLATE, templateId, ShareScope.SPECIFIC);
         shares.setShareTargets(AppointmentOwner.TEMPLATE, share.id(), List.of(partner.id()));

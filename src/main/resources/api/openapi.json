@@ -21347,7 +21347,7 @@
     },
     "/api/v1/events/registrations/awaiting" : {
       "get" : {
-        "summary" : "Events still waiting on an answer from the reader or anyone they answer for",
+        "summary" : "Dates still waiting on an answer from the reader or anyone they answer for",
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
@@ -21842,6 +21842,12 @@
           }
         }, {
           "name" : "to",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "seriesTo",
           "in" : "query",
           "schema" : {
             "type" : "string"
@@ -23461,6 +23467,59 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/events/{id}/date-deadlines" : {
+      "get" : {
+        "summary" : "When sign-up for a date of an appointment closes and when its minimum is checked",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DateDeadlines"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          }
+        } ]
       }
     },
     "/api/v1/events/{id}/dates/{date}/cancel" : {
@@ -56843,10 +56902,13 @@
           "name" : {
             "type" : "string"
           },
+          "eventDate" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
           "startTime" : {
             "$ref" : "#/components/schemas/Instant"
           },
-          "registrationDeadline" : {
+          "registrationClosesAt" : {
             "$ref" : "#/components/schemas/Instant"
           },
           "categoryId" : {
@@ -56860,7 +56922,7 @@
             }
           }
         },
-        "required" : [ "eventId", "name", "startTime", "registrationDeadline", "categoryId", "members" ]
+        "required" : [ "eventId", "name", "eventDate", "startTime", "registrationClosesAt", "categoryId", "members" ]
       },
       "AwaitingMember" : {
         "type" : "object",
@@ -57048,7 +57110,7 @@
           },
           "registrationDeadline" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
+              "$ref" : "#/components/schemas/RegistrationDeadline"
             }, {
               "type" : "null"
             } ]
@@ -57085,10 +57147,6 @@
             }, {
               "type" : "null"
             } ]
-          },
-          "registrationDeadlineOffsetHours" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
           },
           "reminderDays" : {
             "type" : [ "array", "null" ],
@@ -62084,6 +62142,33 @@
         },
         "required" : [ "kind" ]
       },
+      "DateDeadlines" : {
+        "type" : "object",
+        "properties" : {
+          "date" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "registrationClosesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "minimumCheckedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "date", "registrationClosesAt", "minimumCheckedAt" ]
+      },
       "DateFormatCheck" : {
         "type" : "object",
         "properties" : {
@@ -62229,6 +62314,14 @@
           }
         },
         "required" : [ "day", "count" ]
+      },
+      "DeadlineAnchor" : {
+        "type" : "string",
+        "enum" : [ "EXACT", "MIDNIGHT" ]
+      },
+      "DeadlineKind" : {
+        "type" : "string",
+        "enum" : [ "NONE", "FIXED", "RELATIVE" ]
       },
       "DeclineBody" : {
         "type" : "object",
@@ -64838,7 +64931,7 @@
           "name" : {
             "type" : "string"
           },
-          "registrationDeadline" : {
+          "registrationClosesAt" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/Instant"
             }, {
@@ -64852,7 +64945,7 @@
             }
           }
         },
-        "required" : [ "eventGroupId", "name", "registrationDeadline", "members" ]
+        "required" : [ "eventGroupId", "name", "registrationClosesAt", "members" ]
       },
       "EventGroupCancelRequest" : {
         "type" : "object",
@@ -64976,11 +65069,7 @@
             "format" : "int32"
           },
           "registrationDeadline" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/RegistrationDeadline"
           },
           "requiresConfirmation" : {
             "type" : "boolean"
@@ -65548,9 +65637,16 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "closesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding", "queued", "pending", "firstStart", "lastEnd" ]
+        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding", "queued", "pending", "firstStart", "lastEnd", "closesAt" ]
       },
       "EventItem" : {
         "type" : "object",
@@ -65855,7 +65951,7 @@
           },
           "registrationDeadline" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
+              "$ref" : "#/components/schemas/RegistrationDeadline"
             }, {
               "type" : "null"
             } ]
@@ -65893,10 +65989,6 @@
             "format" : "int32"
           },
           "thresholdDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "registrationCloseDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
@@ -65977,11 +66069,7 @@
             "type" : "boolean"
           },
           "registrationDeadline" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/RegistrationDeadline"
           },
           "requiresConfirmation" : {
             "type" : "boolean"
@@ -66048,9 +66136,8 @@
           "requiresRegistration" : {
             "type" : [ "boolean", "null" ]
           },
-          "registrationDeadlineOffsetHours" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
+          "registrationDeadline" : {
+            "$ref" : "#/components/schemas/RegistrationDeadline"
           },
           "requiresConfirmation" : {
             "type" : [ "boolean", "null" ]
@@ -66081,10 +66168,6 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
-          "registrationCloseDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
           "queueOrder" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/QueueOrder"
@@ -66093,7 +66176,7 @@
             } ]
           }
         },
-        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadlineOffsetHours", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit", "minRegistrations", "thresholdDays", "registrationCloseDays", "queueOrder" ]
+        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit", "minRegistrations", "thresholdDays", "queueOrder" ]
       },
       "EventTemplateFieldData" : {
         "type" : "object",
@@ -82714,6 +82797,33 @@
         },
         "required" : [ "eventId", "eventDate", "status", "count" ]
       },
+      "RegistrationDeadline" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/DeadlineKind"
+          },
+          "at" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "offsetMinutes" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "anchor" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DeadlineAnchor"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "kind", "at", "offsetMinutes", "anchor" ]
+      },
       "RegistrationFieldDefinition" : {
         "type" : "object",
         "properties" : {
@@ -82832,9 +82942,16 @@
           "queuePosition" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "registrationClosesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp", "statusChangedAt", "queuePosition" ]
+        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp", "statusChangedAt", "queuePosition", "registrationClosesAt" ]
       },
       "RegistrationStatsResponse" : {
         "type" : "object",
@@ -88038,11 +88155,7 @@
             "type" : "boolean"
           },
           "registrationDeadline" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/RegistrationDeadline"
           },
           "requiresConfirmation" : {
             "type" : "boolean"
@@ -88088,10 +88201,6 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
-          "registrationCloseDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
           "repeatUntil" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/LocalDate"
@@ -88114,7 +88223,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "registrationCloseDays", "repeatUntil", "repeatCount", "queueOrder", "recurring" ]
+        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "repeatUntil", "repeatCount", "queueOrder", "recurring" ]
       },
       "StationFailedMails" : {
         "type" : "object",
@@ -91401,9 +91510,16 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "registrationClosesAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "event", "date", "cancellation" ]
+        "required" : [ "event", "date", "cancellation", "registrationClosesAt" ]
       },
       "UpcomingEventsConfig" : {
         "type" : "object",
@@ -91667,9 +91783,12 @@
           "requiresRegistration" : {
             "type" : [ "boolean", "null" ]
           },
-          "registrationDeadlineOffsetHours" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
+          "registrationDeadline" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RegistrationDeadline"
+            }, {
+              "type" : "null"
+            } ]
           },
           "requiresConfirmation" : {
             "type" : [ "boolean", "null" ]
@@ -91694,10 +91813,6 @@
             "format" : "int32"
           },
           "thresholdDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "registrationCloseDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
