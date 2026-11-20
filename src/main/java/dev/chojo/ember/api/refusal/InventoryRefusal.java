@@ -1114,7 +1114,11 @@ public enum InventoryRefusal implements Refusal {
 
     /** A piece to be put in a box while it is with a partner station or on its way somewhere. */
     CUSTODY_PIECE_NOT_HERE_TO_PUT_AWAY(
-            286, HttpStatus.BAD_REQUEST, "This piece is not at the station right now, so it cannot be put away");
+            286, HttpStatus.BAD_REQUEST, "This piece is not at the station right now, so it cannot be put away"),
+
+    /** A movement to be deleted while it is open and has already walked past its opening. */
+    MOVEMENT_ALREADY_MOVED_ITS_PIECES(
+            287, HttpStatus.BAD_REQUEST, "This movement has already gone past its first step, so call it off instead");
 
     private final Definition definition;
 

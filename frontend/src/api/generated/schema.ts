@@ -82333,6 +82333,7 @@ export interface components {
             verifiedColumns: number;
         };
         SwapNote: {
+            droppable: boolean;
             handOverNext: boolean;
             inventoryName: string;
             itemName: string;

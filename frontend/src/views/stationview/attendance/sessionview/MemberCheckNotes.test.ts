@@ -57,6 +57,7 @@ describe('MemberCheckNotes', () => {
             inventoryName: 'Einsatzjacke',
             itemName: 'Einsatzjacke 04',
             itemSize: '52',
+            droppable: true,
             ...overrides,
         }
     }
@@ -196,5 +197,15 @@ describe('MemberCheckNotes', () => {
 
         confirm.vm.$emit('confirm')
         expect(wrapper.emitted('dropSwap')).toEqual([[7]])
+    })
+
+    /** Once a piece has changed hands the swap is called off on its own page, so the sheet offers no drop. */
+    it('offers no drop for a swap whose pieces have moved', () => {
+        const wrapper = mount(MemberCheckNotes, {
+            props: {canManageSwap: true, notes: notes({swaps: [handOver({droppable: false})]})},
+            ...i18n,
+        })
+
+        expect(wrapper.find('[data-testid="note-swap-drop"]').exists()).toBe(false)
     })
 })

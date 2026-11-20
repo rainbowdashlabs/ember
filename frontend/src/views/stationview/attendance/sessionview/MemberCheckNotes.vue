@@ -118,7 +118,7 @@ const birthdayText = computed(() => {
         {{ swap.stepLabel }}
       </PrimaryButton>
       <InfoBadge v-else data-testid="note-swap-waiting">{{ swap.stepLabel }}</InfoBadge>
-      <DeleteButton v-if="canManageSwap" data-testid="note-swap-drop" @click="dropping = swap"/>
+      <DeleteButton v-if="canManageSwap && swap.droppable" data-testid="note-swap-drop" @click="dropping = swap"/>
     </ButtonRow>
 
     <div

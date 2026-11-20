@@ -3183,6 +3183,7 @@ volumes:
                 + 'In der Schnellprüfung steht der Geburtstag beim Namen, alles zu Erledigende unter den Knöpfen, damit die Statusknöpfe bei jedem Mitglied an derselben Stelle bleiben.',
             notesActionsText: 'Zwei davon lassen sich direkt erledigen: Bei einem Vorgang trägt der Button den Namen des Schritts, den du gerade erledigst, samt Teil und Größe. '
                 + 'Angezeigt werden nur Schritte, bei denen das Mitglied beteiligt ist; ist das Mitglied selbst am Zug, steht der Schritt da, ohne Button. '
+                + 'Mit dem Papierkorb entfernst du einen Tausch, solange noch nichts den Besitzer gewechselt hat. Ist schon ein Teil bewegt worden, fehlt der Papierkorb, und du brichst den Tausch auf seiner eigenen Seite ab. '
                 + 'Eine Fundsache wird mit "Übergeben" ausgehändigt und verschwindet damit aus der Liste.',
             notesRightsText: 'Angezeigt wird nur, wofür du auch sonst die Rechte hast: Tauschvorgänge brauchen Leserechte auf das Inventar, das Weiterbewegen zusätzlich das Recht für Tauschvorgänge, Fundsachen das Recht zur Verwaltung des Fundbüros. '
                 + 'Der Geburtstag folgt der Sichtbarkeit des Profilfelds. Wer nichts davon hat, sieht die Anwesenheitsliste unverändert.',

@@ -107,7 +107,7 @@ public class FormerMemberService {
      * Mark a member as former. Performs all cleanup:
      * - Remove all roles (especially LOGIN)
      * - Remove manager relations (both directions)
-     * - Delete the movements they were part of
+     * - Close the movements of theirs still open, keeping the record of where their pieces went
      * - Close any self-check they were still holding
      * - Remove from all groups
      * - Remove from all tags
@@ -133,9 +133,7 @@ public class FormerMemberService {
         memberRepository.removeAllManagers(memberId);
         memberRepository.removeAllManaged(memberId);
 
-        for (var movement : movementService.findByMember(memberId)) {
-            movementService.delete(movement.id());
-        }
+        movementService.closeForALeavingMember(memberId, "Mitglied ist ausgeschieden");
 
         selfCheckService.closeAllFor(memberId);
 

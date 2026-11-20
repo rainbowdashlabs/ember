@@ -89682,9 +89682,12 @@
           },
           "itemSize" : {
             "type" : [ "string", "null" ]
+          },
+          "droppable" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "movementId", "purpose", "stepId", "stepLabel", "stepActor", "handOverNext", "replacementItemId", "inventoryName", "itemName", "itemSize" ]
+        "required" : [ "movementId", "purpose", "stepId", "stepLabel", "stepActor", "handOverNext", "replacementItemId", "inventoryName", "itemName", "itemSize", "droppable" ]
       },
       "SwitchBlocker" : {
         "type" : "object",

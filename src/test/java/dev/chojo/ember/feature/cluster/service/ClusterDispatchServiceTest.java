@@ -175,6 +175,30 @@ class ClusterDispatchServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
+    /** A piece an open movement already carries as a further piece is not in the store to send again. */
+    @Test
+    void aPieceAMovementAlreadyCarriesCannotBeSentAgain() {
+        var cluster = freshCluster();
+        var station = stationOf(cluster);
+        issueFlow(cluster);
+        var items = stock(cluster, 2);
+        var first =
+                clusterDispatchService.dispatch(cluster.id(), station.uid(), List.of(items.get(0)), "Erste", owner());
+        itemMovementItemRepo.add(first.id(), StepSubject.INCOMING, List.of(items.get(1)));
+
+        assertTrue(
+                clusterDispatchService.sendable(cluster.id()).stream().noneMatch(item -> item.id() == items.get(1)),
+                "a piece another consignment carries is spoken for");
+        var again = assertThrows(
+                RefusalResponse.class,
+                () -> clusterDispatchService.dispatch(
+                        cluster.id(), station.uid(), List.of(items.get(1)), "Zweite", owner()));
+        assertEquals(ClusterRefusal.CLUSTER_DISPATCH_GEAR_NOT_IN_STORE, again.refusal());
+
+        clusterService.releaseStation(cluster.id(), station.id());
+        stationRepo.delete(station.id());
+    }
+
     @Test
     void anAssociationWithNoChainOfItsOwnIsToldSoRatherThanRefusedAStep() {
         var cluster = freshCluster();

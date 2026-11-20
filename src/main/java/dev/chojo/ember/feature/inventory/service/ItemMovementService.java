@@ -256,7 +256,9 @@ public class ItemMovementService {
      *
      * <p>A piece that is already on a chain of its own is passed over rather than refused. Somebody
      * leaving usually has an exchange or two still running, and the whole request failing because of
-     * one of them would leave the station with nothing asked back at all.
+     * one of them would leave the station with nothing asked back at all. Every chain counts, the
+     * further pieces of a dispatch included, and the movements are started in one transaction, so the
+     * request is made for all of them or for none.
      *
      * @param stationId  the station asking
      * @param memberId   the member holding the gear
@@ -267,10 +269,21 @@ public class ItemMovementService {
     public List<ItemMovement> requestEverythingBack(int stationId, int memberId, String memberName, Actor actor) {
         var held = inventoryRepository.findItemsByMember(memberId).stream()
                 .filter(item -> item.custody() == ItemCustody.WITH_MEMBER)
-                .filter(item ->
-                        movementRepository.findOpenByOutgoingItem(item.id()).isEmpty())
+                .filter(item -> !movementRepository.isOnAMovement(item.id()))
                 .toList();
 
+        var started = Transactions.call(() -> askBack(stationId, memberId, memberName, actor, held));
+        log.info("Station {} asked member {} for {} piece(s) back", stationId, memberId, started.size());
+        return started;
+    }
+
+    /**
+     * Starts one return per piece, which the caller runs in one transaction.
+     *
+     * @return the movements started
+     */
+    private List<ItemMovement> askBack(
+            int stationId, int memberId, String memberName, Actor actor, List<InventoryItem> held) {
         var started = new ArrayList<ItemMovement>();
         for (InventoryItem item : held) {
             started.add(create(
@@ -286,7 +299,6 @@ public class ItemMovementService {
                     actor,
                     null));
         }
-        log.info("Station {} asked member {} for {} piece(s) back", stationId, memberId, started.size());
         return started;
     }
 
@@ -321,6 +333,7 @@ public class ItemMovementService {
             throw InventoryRefusal.CUSTODY_PIECE_LOST.raise();
         }
         requireItIsNotAlreadyOnItsWay(outgoingItemId, pickedItemId);
+        carriedIncoming.forEach(this::requireFree);
         requireSomethingToSwapFor(purpose, inventoryId);
         var target = targeting.resolve(stationId, purpose, memberId, outgoingItemId, pickedItemId, inventoryId);
         ItemOwner ownerKind = target.ownerKind();
@@ -483,11 +496,19 @@ public class ItemMovementService {
         }
     }
 
+    /**
+     * Writes the custody a correction names onto one side of a movement: the piece it names and every
+     * further piece it carries on that side, since a batch is in one place or another as a whole.
+     */
     private void applyCorrectedCustody(ItemMovement movement, StepSubject subject, @Nullable ItemCustody custody) {
         if (custody == null) return;
         Integer itemId = movement.itemFor(subject);
         if (itemId == null) return;
         custodyService.applyStepCustody(itemId, custody, movement.memberId(), movement.id(), movement.stationId());
+        for (int carriedId : carried(movement.id(), subject)) {
+            custodyService.applyStepCustody(
+                    carriedId, custody, movement.memberId(), movement.id(), movement.stationId());
+        }
     }
 
     /**
@@ -1191,9 +1212,71 @@ public class ItemMovementService {
     }
 
     /**
+     * Closes the open movements of a member who is leaving, leaving their pieces where they are.
+     *
+     * <p>Deleting them took the record of where the pieces went with them, and left a piece in the post
+     * pointing at a movement that no longer existed. Closing keeps the record. Nothing is put back on the
+     * member, who holds nothing any more; whatever is in the post settles with its owner, and a promised
+     * piece is free again. Each one is announced as called off, so an association running its side of it
+     * learns that it ended, with the reason and no member of the station named as having done it.
+     *
+     * @param memberId the member leaving
+     * @param reason   what the closed movements record
+     * @return how many were closed
+     */
+    public int closeForALeavingMember(int memberId, String reason) {
+        int closed = 0;
+        for (ItemMovement movement : movementRepository.findByMember(memberId)) {
+            if (movement.state() != MovementState.OPEN) continue;
+            String itemName = itemName(movement.outgoingItemId());
+            boolean away = whereTheOldPieceIs(movement) == OldPieceWhereabouts.AWAY;
+            ItemMovement cancelled = close(movement, MovementState.CANCELLED, reason, false);
+            announce(new MovementCancelled(
+                    cancelled.stationId(),
+                    cancelled.id(),
+                    cancelled.memberId(),
+                    cancelled.inventoryId(),
+                    inventoryName(cancelled.inventoryId()),
+                    itemName,
+                    reason,
+                    away,
+                    0));
+            closed++;
+        }
+        if (closed > 0) log.info("Closed {} open movement(s) of leaving member {}", closed, memberId);
+        return closed;
+    }
+
+    /**
+     * Whether a movement has walked any step past the one that opened it, which is when its pieces may
+     * have changed hands.
+     *
+     * <p>Read off its log: opening a movement writes the one entry, and every step walked after it, a
+     * correction included, writes another.
+     *
+     * @param movementId the movement
+     * @return {@code true} once anything past its opening has happened
+     */
+    public boolean piecesMayHaveMoved(int movementId) {
+        return movementRepository.findLogs(movementId).size() > 1;
+    }
+
+    /**
      * Deletes a movement outright, which is what the old exchange list called cancelling.
+     *
+     * <p>Only while nothing has changed hands: an open movement whose pieces may have moved is called off
+     * instead, since deleting it would leave its pieces where it moved them with no record of how.
+     *
+     * @throws RefusalResponse when the movement is open and has walked past its opening
      */
     public boolean delete(int movementId) {
+        movementRepository
+                .findById(movementId)
+                .filter(movement -> movement.state() == MovementState.OPEN)
+                .filter(movement -> piecesMayHaveMoved(movement.id()))
+                .ifPresent(movement -> {
+                    throw InventoryRefusal.MOVEMENT_ALREADY_MOVED_ITS_PIECES.raise();
+                });
         boolean deleted = movementRepository.delete(movementId);
         if (deleted) log.info("Deleted movement {}", movementId);
         else log.warn("Delete for movement {} affected zero rows", movementId);
@@ -1297,18 +1380,23 @@ public class ItemMovementService {
      * <p>An item pointing at a finished movement while claiming to be between two parties is a state
      * nobody can act on, and it is the state a chain without the owner's steps would otherwise leave
      * behind. It settles with its owner, which is the last thing anybody honestly knows about it: the
-     * station posted it, never got it back, and is not the one holding it.
+     * station posted it, never got it back, and is not the one holding it. Every piece the movement carries
+     * settles, the further pieces of a dispatch with the one it names.
      *
      * @param movement the movement as it stands at the moment it ends
      */
     private void settleInTransit(ItemMovement movement) {
         for (StepSubject subject : StepSubject.values()) {
-            Integer itemId = movement.itemFor(subject);
-            if (itemId == null) continue;
-            inventoryRepository
-                    .findItemById(itemId)
-                    .filter(item -> item.custody() == ItemCustody.IN_TRANSIT)
-                    .ifPresent(item -> custodyService.applyStepCustody(item.id(), ItemCustody.WITH_OWNER, null, null));
+            List<Integer> pieces = new ArrayList<>(carried(movement.id(), subject));
+            Integer named = movement.itemFor(subject);
+            if (named != null) pieces.add(named);
+            for (int itemId : pieces) {
+                inventoryRepository
+                        .findItemById(itemId)
+                        .filter(item -> item.custody() == ItemCustody.IN_TRANSIT)
+                        .ifPresent(
+                                item -> custodyService.applyStepCustody(item.id(), ItemCustody.WITH_OWNER, null, null));
+            }
         }
     }
 
