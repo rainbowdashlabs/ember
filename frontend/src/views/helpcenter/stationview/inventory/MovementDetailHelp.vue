@@ -26,6 +26,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.movementDetail.acksText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.movementDetail.arrival')">
+      <p>{{ t('helpCenter.movementDetail.arrivalText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.movementDetail.endings')">
       <p>{{ t('helpCenter.movementDetail.endingsText') }}</p>
     </HelpSection>

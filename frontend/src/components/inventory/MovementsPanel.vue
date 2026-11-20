@@ -36,6 +36,13 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 const props = defineProps<{
   /** Whose movements to show. Left out for the reader's own, which is the member's own page. */
   memberId?: number | null
+  /** Read the list again whenever this changes, such as the member's gear being read again. */
+  reloadKey?: unknown
+  /**
+   * Hands every open movement the list read to whoever shows more of them, so the same list is not
+   * asked for twice on one screen. A prop rather than an event, since it is called after an await.
+   */
+  onLoaded?: (open: MovementResponse[]) => void
 }>()
 const emit = defineEmits<{
   /** Something closed or moved on, so whatever lists the member's gear beside this should read again. */
@@ -63,14 +70,13 @@ const waitingOnMe = computed(() =>
  * vanished from the screen and looked handed back.
  */
 const {failure: loadFailure, reload: load} = useAsyncLoader(async (isCurrent) => {
-  const all = await movements.listMovements()
+  const all = (await movements.listOpenMovements()).filter(movement => movement.state === MovementState.OPEN)
   if (!isCurrent()) return
-  open.value = all
-      .filter(movement => movement.state === MovementState.OPEN)
-      .filter(movement => !watching.value || movement.memberId === props.memberId)
+  props.onLoaded?.(all)
+  open.value = all.filter(movement => !watching.value || movement.memberId === props.memberId)
 })
 
-watch(() => props.memberId, load)
+watch(() => [props.memberId, props.reloadKey], load)
 
 /**
  * Takes the movement back, which a member may do while the piece is still on them.

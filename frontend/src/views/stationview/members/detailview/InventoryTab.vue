@@ -12,8 +12,9 @@ import ScanHandOutPanel from './inventorytab/ScanHandOutPanel.vue'
 import { useScanHandOut } from './inventorytab/useScanHandOut'
 import MovementsPanel from '@/components/inventory/MovementsPanel.vue'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
-import { StationModule, type MemberRequirements, type MyInventoryItem, type RequiredInventoryItem } from '@/api/generated/schema'
+import { StationModule, type MemberRequirements, type MovementResponse, type MyInventoryItem, type RequiredInventoryItem } from '@/api/generated/schema'
 import { useSession } from '@/composables/useSession'
+import { arrivingForMember } from '@/util/movementPieces'
 
 /**
  * Everything about the member's gear in one place: a scanner to hand pieces over, what they hold and
@@ -50,6 +51,23 @@ const {isModuleEnabled} = useSession()
 /** Movements are a part of the inventory a station can switch off, which takes their controls along. */
 const runsMovements = computed(() => isModuleEnabled(StationModule.INVENTORY_MOVEMENTS))
 
+const openMovements = ref<MovementResponse[]>([])
+
+/** What open movements are still bringing the member, beside what they hold. */
+const incoming = computed(() => arrivingForMember(
+    openMovements.value,
+    props.memberId,
+    new Set(props.memberInventory.map(item => item.id))))
+
+/**
+ * Takes the open movements the movements panel read, which reads them again whenever the member's
+ * gear is read again, since a hand-over changes both. Where they could not be read the pieces on their
+ * way stay unshown and the panel says why.
+ */
+function takeMovements(open: MovementResponse[]) {
+  openMovements.value = open
+}
+
 const scan = useScanHandOut(toRef(props, 'memberId'), toRef(props, 'memberName'), () => emit('changed'))
 const { scanValue, handOutMode, unknownCode } = scan
 
@@ -85,6 +103,7 @@ function openHandOut(requirement: RequiredInventoryItem | null) {
     <InventorySection
         :member-inventory="memberInventory"
         :requirements="memberRequirements.required"
+        :incoming="incoming"
         :can-assign="canAssign"
         :can-manage-inventory="canManageInventory && runsMovements"
         @assign-item="openHandOut(null)"
@@ -94,7 +113,13 @@ function openHandOut(requirement: RequiredInventoryItem | null) {
         @reassign="emit('reassign', $event)"
     />
 
-    <MovementsPanel v-if="runsMovements" :member-id="memberId" @changed="emit('changed')"/>
+    <MovementsPanel
+        v-if="runsMovements"
+        :member-id="memberId"
+        :on-loaded="takeMovements"
+        :reload-key="memberInventory"
+        @changed="emit('changed')"
+    />
 
     <HandOutModal
         v-model="handingOut"

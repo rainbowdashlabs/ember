@@ -195,17 +195,22 @@ public class MovementRoutes implements Routes {
 
     /**
      * The movements the caller may see: all of the station's for somebody who works the queue, and
-     * their own plus their charges' for everybody else.
+     * their own plus their charges' for everybody else. With {@code open=true} only the running ones,
+     * which is what a screen asking which pieces are spoken for needs.
      */
     @OpenApi(
             path = "/api/v1/movements",
             methods = HttpMethod.GET,
             summary = "List movements the caller may see",
             tags = {"Inventory"},
+            queryParams = @OpenApiParam(name = "open", type = Boolean.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MovementResponse[].class)))
     private void list(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        var movements = guards.visibleAmong(session.user(), movementService.findByStation(session.stationId()));
+        boolean openOnly = ctx.queryParamAsClass("open", Boolean.class).getOrDefault(false);
+        var station = session.stationId();
+        var all = openOnly ? movementService.findOpenByStation(station) : movementService.findByStation(station);
+        var movements = guards.visibleAmong(session.user(), all);
         ctx.json(movements.stream()
                 .map(movement -> toResponse(movement, session.user()))
                 .toList());

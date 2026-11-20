@@ -48527,7 +48527,9 @@ export interface paths {
         /** List movements the caller may see */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    open?: boolean;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;

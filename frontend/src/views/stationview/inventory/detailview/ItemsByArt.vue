@@ -34,10 +34,12 @@ const props = withDefaults(
       arts: InventoryArt[]
       memberIdentity: (memberId: number) => PersonIdentity | null | undefined
       lentItemStationMap: Map<number, string>
+      /** The movement carrying each piece an open movement carries. */
+      movementItemMap?: ReadonlyMap<number, number>
       containerPathById: Map<number, string>
       showActions?: boolean
     }>(),
-    {showActions: false},
+    {showActions: false, movementItemMap: () => new Map()},
 )
 
 const emit = defineEmits<InventoryItemActionEmits>()
@@ -78,6 +80,7 @@ const blocks = computed<Block[]>(() => {
           :container-path-by-id="containerPathById"
           :items="items"
           :lent-item-map="lentItemStationMap"
+          :movement-item-map="movementItemMap"
           :member-identity="memberIdentity"
           :show-actions="showActions"
           :subset="block.items"

@@ -66,6 +66,9 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Abgesagte Termine wirkten auf der Übersicht offen.** In manchen Fällen zeigte die Übersicht ein abgesagtes Datum eines wiederkehrenden Termins wie ein normales Datum. Es ist jetzt als abgesagt markiert und bietet keine Abmeldung an.
 - **Datum der Mindestanzahl in Ankündigungen einen Tag zu spät.** Der Satz zur Mindestanzahl nannte den Tag der Prüfung als letzten Anmeldetag. Er nennt jetzt den Tag davor.
 - **Verschobener Anmeldeschluss ohne neue Erinnerung.** In manchen Fällen wurde ein Anmeldeschluss, der nach seiner Erinnerung oder seinem Hinweis verschoben wurde, kein zweites Mal angekündigt. Beides richtet sich jetzt nach dem Anmeldeschluss, wie er gerade gilt.
+- **Geplante Ausgabe fragte erneut nach dem Teil.** Wurde eine Ausgabe mit einem schon ausgesuchten Teil geplant, verlangte der Schritt der Übergabe trotzdem ein Teil und konnte das ausgesuchte nicht anbieten. Der Schritt beginnt jetzt mit dem geplanten Teil, das bestätigt oder gegen ein anderes freies getauscht werden kann.
+- **Geplante Teile fehlten im Inventar eines Mitglieds.** Der Inventar-Tab eines Mitglieds zeigte keine Ausrüstung, die ein laufender Vorgang ihm bald bringt. Wer Vorgänge sehen darf, findet jedes solche Teil jetzt in seinem Inventar anstelle seiner Karte „Fehlt“, mit einem Link zum Vorgang.
+- **Teile in einem Vorgang wirkten im Inventar frei.** In den Listen eines Inventars erschien ein Teil, das ein laufender Vorgang vorgemerkt hatte oder gerade bewegte, wie ein gewöhnliches freies Teil. Jetzt trägt es ein Abzeichen, das zum Vorgang führt, und eine direkte Zuweisung an ein Mitglied wird abgelehnt.
 
 ## v26.25.2
 

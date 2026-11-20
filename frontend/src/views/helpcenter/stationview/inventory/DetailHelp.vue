@@ -46,6 +46,7 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.inventoryDetail.itemsTitle')">
       <p>{{ t('helpCenter.inventoryDetail.itemsText') }}</p>
       <AllItemsTable/>
+      <p>{{ t('helpCenter.inventoryDetail.movementText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryDetail.procurementTitle')">

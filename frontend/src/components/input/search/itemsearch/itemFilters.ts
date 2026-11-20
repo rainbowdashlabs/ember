@@ -15,6 +15,7 @@ export interface ItemFilterCriteria {
     ownerClusterId?: string | null
     inventoryType?: InventoryType | null
     excludeSpokenFor?: boolean
+    keepItemId?: number | null
 }
 
 /** What the filters need to know beyond the piece itself. */
@@ -53,6 +54,14 @@ function onTheSameKindOfShelf(item: InventoryItem, criteria: ItemFilterCriteria,
         || criteria.inventoryType === InventoryType.MIXED
 }
 
+/**
+ * Whether another open movement has promised the piece. The piece the asking movement names itself is
+ * spoken for by that movement alone, so it stays on offer to it.
+ */
+function isSpokenForElsewhere(item: InventoryItem, criteria: ItemFilterCriteria, context: ItemFilterContext): boolean {
+    return item.id !== criteria.keepItemId && context.spokenFor.has(item.id)
+}
+
 /** Whether the picker may offer the piece at all. */
 export function passesItemFilters(item: InventoryItem, criteria: ItemFilterCriteria, context: ItemFilterContext): boolean {
     if (criteria.inventoryId != null && item.inventoryId !== criteria.inventoryId) return false
@@ -60,6 +69,6 @@ export function passesItemFilters(item: InventoryItem, criteria: ItemFilterCrite
     if (criteria.excludeAssigned && item.assignedTo != null) return false
     if (criteria.excludeLost && item.lostAt) return false
     if (criteria.excludeContainerless && item.containerId == null && item.assignedTo == null) return false
-    if (criteria.excludeSpokenFor && context.spokenFor.has(item.id)) return false
+    if (criteria.excludeSpokenFor && isSpokenForElsewhere(item, criteria, context)) return false
     return ownedByTheSameParty(item, criteria)
 }

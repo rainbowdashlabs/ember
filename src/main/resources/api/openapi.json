@@ -39268,7 +39268,14 @@
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "open",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ]
       }
     },
     "/api/v1/movements/at-member" : {

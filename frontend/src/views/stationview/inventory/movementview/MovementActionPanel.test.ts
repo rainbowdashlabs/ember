@@ -96,4 +96,42 @@ describe('MovementActionPanel', () => {
             held.inventoryRead = true
         }
     })
+
+    /**
+     * A planned hand-out names its piece when it is planned. The step that hands it over starts out with
+     * that piece chosen and answers with it, rather than asking for one the picker would not offer.
+     */
+    it('starts with the piece the movement already names, and keeps it on offer', async () => {
+        const wrapper = panel({promisedItemId: 57, promisedItemName: 'Sporttasche'})
+        const picker = wrapper.findComponent({name: 'ItemSearchPicker'})
+
+        expect(picker.props('modelValue'), 'the promised piece is chosen').toBe(57)
+        expect(picker.props('keepItemId'), 'and offered although it is spoken for').toBe(57)
+        expect(wrapper.find('[data-testid="movement-promised-item"]').exists()).toBe(true)
+
+        const button = wrapper.find('[data-testid="movement-acknowledge"]')
+        expect(button.attributes('disabled'), 'nothing is missing').toBeUndefined()
+        await button.trigger('click')
+        expect(wrapper.emitted('acknowledge')?.[0]?.[0]).toMatchObject({pickedItemId: 57})
+    })
+
+    /** Without a piece named, the step still waits for one. */
+    it('waits for a piece where the movement names none', () => {
+        const wrapper = panel()
+
+        expect(wrapper.find('[data-testid="movement-acknowledge"]').attributes('disabled')).toBeDefined()
+        expect(wrapper.find('[data-testid="movement-promised-item"]').exists()).toBe(false)
+    })
+
+    /** Somebody who may not read the shelf may still hand over the piece the movement names. */
+    it('lets somebody who may not pick hand over the promised piece', () => {
+        held.inventoryRead = false
+        try {
+            const wrapper = panel({promisedItemId: 57})
+
+            expect(wrapper.find('[data-testid="movement-acknowledge"]').attributes('disabled')).toBeUndefined()
+        } finally {
+            held.inventoryRead = true
+        }
+    })
 })

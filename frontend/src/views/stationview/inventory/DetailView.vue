@@ -20,9 +20,11 @@ import type {
   InventorySize,
   LentOutItem,
   MemberWithName,
+  MovementResponse,
   ProcurementResponse,
 } from '@/api/generated/schema'
-import { inventory, inventoryArts, inventoryContainers, stationMembers, procurement } from '@/api'
+import { inventory, inventoryArts, inventoryContainers, movements, stationMembers, procurement } from '@/api'
+import { piecesOnOpenMovements } from '@/util/movementPieces'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { getLentOutByInventory } from '@/api/lending'
@@ -53,6 +55,10 @@ const arts = ref<InventoryArt[]>([])
 const memberMap = ref<Map<number, MemberWithName>>(new Map())
 const openProcurement = ref<ProcurementResponse[]>([])
 const lentOutItems = ref<LentOutItem[]>([])
+const openMovements = ref<MovementResponse[]>([])
+
+/** Which movement carries each piece that one carries, setting out or promised. */
+const movementItemMap = computed(() => piecesOnOpenMovements(openMovements.value))
 const containers = ref<InventoryContainer[]>([])
 const modals = ref<InstanceType<typeof DetailViewModals> | null>(null)
 
@@ -234,7 +240,21 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
       lentOutItems.value = await getLentOutByInventory(inventoryId.value)
     } catch { lentOutItems.value = [] }
   }
+  openMovements.value = await loadMovements()
 })
+
+/**
+ * The station's running movements, read for the pieces they carry. A failure leaves the pieces without their
+ * badge rather than the page without its stock, since the movement still refuses a second use of one.
+ */
+async function loadMovements(): Promise<MovementResponse[]> {
+  if (!isModuleEnabled(StationModule.INVENTORY_MOVEMENTS)) return []
+  try {
+    return await movements.listOpenMovements()
+  } catch {
+    return []
+  }
+}
 
 function goBack() { router.push({ name: routes.manage }) }
 
@@ -273,6 +293,7 @@ function goEdit() { router.push({ name: routes.edit, params: { id: inventoryId.v
         :open-procurement="openProcurement"
         :lent-out-items="lentOutItems"
         :lent-item-station-map="lentItemStationMap"
+        :movement-item-map="movementItemMap"
         :container-path-by-id="containerPathById"
         :counts="counts"
         :all-size-stats="allSizeStats"

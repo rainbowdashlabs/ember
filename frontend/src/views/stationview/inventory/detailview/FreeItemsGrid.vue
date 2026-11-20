@@ -9,13 +9,22 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MovementPieceBadge from '@/components/inventory/MovementPieceBadge.vue'
 import type { InventoryItem, InventorySize } from '@/api/generated/schema'
 
-const props = defineProps<{
+/**
+ * The pieces nobody holds, each offered for handing out.
+ *
+ * <p>A piece an open movement carries is free on the shelf and spoken for all the same. It names its
+ * movement instead of offering a hand-out the movement would refuse.
+ */
+const props = withDefaults(defineProps<{
   items: InventoryItem[]
   sizes: InventorySize[] | undefined
   containerPathById: Map<number, string>
-}>()
+  /** The movement carrying each piece an open movement carries. */
+  movementItemMap?: ReadonlyMap<number, number>
+}>(), {movementItemMap: () => new Map()})
 
 defineEmits<{
   assign: [itemId: number]
@@ -50,7 +59,8 @@ function locationLabel(containerId: number | null | undefined): string {
             {{ locationLabel(item.containerId) }}
           </div>
         </div>
-        <PrimaryButton @click="$emit('assign', item.id)">
+        <MovementPieceBadge v-if="movementItemMap.has(item.id)" :movement-id="movementItemMap.get(item.id)"/>
+        <PrimaryButton v-else @click="$emit('assign', item.id)">
           {{ t('inventory.detail.assign') }}
         </PrimaryButton>
       </NeutralContainer>

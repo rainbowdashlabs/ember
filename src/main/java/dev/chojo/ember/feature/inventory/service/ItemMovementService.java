@@ -466,27 +466,6 @@ public class ItemMovementService {
     }
 
     /**
-     * Refuses to send a piece out on a second chain while it is still walking the first.
-     *
-     * <p>A piece can only be in one place, and every chain says where it is by moving it. Two chains on
-     * one piece therefore read each other's work: a step walked on one shifts custody, and the other
-     * reports itself further along without anybody having touched it. Stations really did end up with
-     * two exchanges raised for the same jacket, and both of them then drifted.
-     *
-     * @param outgoingItemId the piece that would be setting out, or {@code null} when nothing does
-     * @throws RefusalResponse when another movement already has it
-     */
-    /**
-     * Refuses a piece that another open movement is already about, on either of its ends.
-     *
-     * <p>Both ends, because a piece can be spoken for in two ways: it is on its way somewhere, or it has
-     * been promised to somebody. Checking only what leaves let two planned hand-outs promise one jacket
-     * to two people.
-     *
-     * @param outgoingItemId the piece leaving, or {@code null}
-     * @param incomingItemId the piece arriving, or {@code null}
-     */
-    /**
      * Refuses a movement about a piece that is not there any more.
      *
      * <p>A screen holds a list of pieces from the moment it was opened, and one of them can be written
@@ -509,6 +488,19 @@ public class ItemMovementService {
         }
     }
 
+    /**
+     * Refuses a piece that another open movement is already about, on either of its ends.
+     *
+     * <p>A piece can only be in one place, and every chain says where it is by moving it. Two chains on
+     * one piece therefore read each other's work: a step walked on one shifts custody, and the other
+     * reports itself further along without anybody having touched it. Both ends are checked, because a
+     * piece can be spoken for in two ways: it is on its way somewhere, or it has been promised to
+     * somebody. Checking only what leaves let two planned hand-outs promise one jacket to two people.
+     *
+     * @param outgoingItemId the piece leaving, or {@code null}
+     * @param incomingItemId the piece arriving, or {@code null}
+     * @throws RefusalResponse when another movement already has one of them
+     */
     private void requireItIsNotAlreadyOnItsWay(@Nullable Integer outgoingItemId, @Nullable Integer incomingItemId) {
         requireFree(outgoingItemId);
         requireFree(incomingItemId);
@@ -527,12 +519,32 @@ public class ItemMovementService {
 
     private void requireFree(@Nullable Integer itemId) {
         if (itemId == null) return;
-        movementRepository.findOpenByOutgoingItem(itemId).ifPresent(open -> {
-            throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT.raise();
-        });
-        movementRepository.findOpenByIncomingItem(itemId).ifPresent(open -> {
-            throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_PROMISED.raise();
-        });
+        requireNoOtherMovementCarries(itemId, null);
+    }
+
+    /**
+     * Refuses a piece that an open movement other than the given one carries, setting out or promised.
+     *
+     * <p>The movement asking is left out, because a piece it already names is spoken for by itself and
+     * nobody else.
+     *
+     * @param itemId        the piece
+     * @param ownMovementId the movement asking, or {@code null} when there is none yet
+     * @throws RefusalResponse when another open movement names the piece on either side
+     */
+    private void requireNoOtherMovementCarries(int itemId, @Nullable Integer ownMovementId) {
+        movementRepository
+                .findOpenByOutgoingItem(itemId)
+                .filter(open -> !Objects.equals(open.id(), ownMovementId))
+                .ifPresent(open -> {
+                    throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT.raise();
+                });
+        movementRepository
+                .findOpenByIncomingItem(itemId)
+                .filter(open -> !Objects.equals(open.id(), ownMovementId))
+                .ifPresent(open -> {
+                    throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_PROMISED.raise();
+                });
     }
 
     /**
@@ -589,6 +601,16 @@ public class ItemMovementService {
 
     public List<ItemMovement> findByStation(int stationId) {
         return movementRepository.findByStation(stationId);
+    }
+
+    /**
+     * The movements of a station that are still running.
+     *
+     * @param stationId the station
+     * @return its open movements, newest first
+     */
+    public List<ItemMovement> findOpenByStation(int stationId) {
+        return movementRepository.findOpenByStation(stationId);
     }
 
     /**
@@ -690,9 +712,9 @@ public class ItemMovementService {
      * Walks the step a movement stands on and moves its pieces.
      *
      * <p>A step reporting a loss leaves the missing piece where it is. The naming step confirms a promised
-     * piece, though another may be named instead; before it, the promised piece stays with whoever holds it.
-     * Everything the movement carries on this leg goes where the named piece goes, since a batch arrives
-     * whole or not at all.
+     * piece, though another may be named instead, as long as no other open movement carries that one; before
+     * it, the promised piece stays with whoever holds it. Everything the movement carries on this leg goes
+     * where the named piece goes, since a batch arrives whole or not at all.
      */
     private ItemMovement applyStep(
             int movementId,
@@ -761,6 +783,7 @@ public class ItemMovementService {
         if (step.picksItem()) {
             Integer named = pickedItemId != null ? pickedItemId : movement.incomingItemId();
             if (named == null) throw InventoryRefusal.MOVEMENT_STEP_NEEDS_THE_ARRIVING_PIECE.raise();
+            if (!named.equals(movement.incomingItemId())) requireNoOtherMovementCarries(named, movementId);
             movementRepository.setIncomingItem(movementId, named);
             subjectItemId = named;
         } else if (step.subject() == StepSubject.INCOMING && promisedButNotYetNamed(movement, step)) {

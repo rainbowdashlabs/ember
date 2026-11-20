@@ -104,6 +104,8 @@ const drawnSteps = computed(() =>
             :may-record="props.mayRecord"
             :owner-cluster-id="movement.ownerClusterId"
             :owner-kind="movement.ownerKind"
+            :promised-item-id="movement.incomingItemId"
+            :promised-item-name="movement.incomingItemName"
             :sizes="props.sizes"
             :step="step"
             :wanted-size-id="movement.newSizeId ?? movement.oldSizeId"

@@ -41,19 +41,24 @@ public class ItemCustodyService {
     }
 
     /**
-     * Refuses a piece another movement has promised to somebody.
+     * Refuses a piece an open movement carries, promised to somebody or setting out.
      *
      * <p>A planned hand-out names its piece up front and leaves it where it is, which is exactly what
-     * makes it available to a second pair of hands. The counter is the one path that writes custody
-     * without walking a chain, so the promise has to be read here or it is no promise at all.
+     * makes it available to a second pair of hands. A piece setting out on an exchange or a return may
+     * still sit with its member, and handing it to somebody else would pull it out from under the chain
+     * walking it. The counter is the one path that writes custody without walking a chain, so both have
+     * to be read here, whatever a screen showed the reader about the movement.
      *
      * @param itemId the piece about to be handed over
-     * @throws RefusalResponse when a movement has promised it
+     * @throws RefusalResponse when an open movement carries it
      */
-    private void requireNobodyIsWaitingForIt(int itemId) {
+    private void requireNoMovementCarriesIt(int itemId) {
         movementRepository.findOpenByIncomingItem(itemId).ifPresent(open -> {
             throw InventoryRefusal.CUSTODY_PIECE_PROMISED.raise();
         });
+        if (movementRepository.isOnAMovement(itemId)) {
+            throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT.raise();
+        }
     }
 
     /**
@@ -75,7 +80,7 @@ public class ItemCustodyService {
         if (!item.custody().assignable()) {
             throw InventoryRefusal.CUSTODY_NOT_HANDED_OUT_FROM_HERE.raise();
         }
-        requireNobodyIsWaitingForIt(itemId);
+        requireNoMovementCarriesIt(itemId);
 
         return writeAssignment(item, memberId, memberName);
     }

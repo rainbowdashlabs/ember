@@ -49,6 +49,24 @@ public class ItemMovementRepository {
     }
 
     /**
+     * The movements of a station that are still running, newest first.
+     *
+     * <p>What a screen asking which pieces are spoken for reads. The closed ones are most of a station's
+     * history and say nothing about that.
+     *
+     * @param stationId the station
+     * @return its open movements
+     */
+    public List<ItemMovement> findOpenByStation(int stationId) {
+        return query("""
+                SELECT %s FROM item_movement WHERE station_id = :station_id AND state = :open \
+                ORDER BY created_at DESC;""", MOVEMENT_COLUMNS)
+                .single(call().bind("station_id", stationId).bind("open", MovementState.OPEN))
+                .map(ItemMovement.map())
+                .all();
+    }
+
+    /**
      * The movements standing on a step the cluster has to answer.
      *
      * <p>Its queue. A cluster does not browse its stations' movements; it wants the ones waiting on it, which

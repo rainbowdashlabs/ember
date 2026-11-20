@@ -113,6 +113,8 @@ function force(payload: AcknowledgePayload) {
             :may-record="mayRecord"
             :owner-cluster-id="detail.movement.ownerClusterId"
             :owner-kind="detail.movement.ownerKind"
+            :promised-item-id="detail.movement.incomingItemId"
+            :promised-item-name="detail.movement.incomingItemName"
             :sizes="sizes"
             :step="currentStep"
             :wanted-size-id="detail.movement.newSizeId ?? detail.movement.oldSizeId"

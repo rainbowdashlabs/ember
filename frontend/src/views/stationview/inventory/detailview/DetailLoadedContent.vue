@@ -67,12 +67,14 @@ const props = withDefaults(defineProps<{
   openProcurement: ProcurementResponse[]
   lentOutItems: LentOutItem[]
   lentItemStationMap: Map<number, string>
+  /** The movement carrying each piece an open movement carries. */
+  movementItemMap?: ReadonlyMap<number, number>
   containerPathById: Map<number, string>
   counts: Counts
   allSizeStats: SizeStat[]
   permissions: Permissions
   itemTable: ItemTableApi
-}>(), {arts: () => []})
+}>(), {arts: () => [], movementItemMap: () => new Map()})
 
 defineEmits<InventoryItemActionEmits & {
   fulfillProcurement: [id: number]
@@ -136,6 +138,7 @@ function memberIdentity(memberId: number) {
       :arts="arts"
       :member-identity="memberIdentity"
       :lent-item-station-map="lentItemStationMap"
+      :movement-item-map="movementItemMap"
       :container-path-by-id="containerPathById"
       :show-actions="permissions.canEdit"
       @assign="$emit('assign', $event)"
@@ -152,6 +155,7 @@ function memberIdentity(memberId: number) {
       :member-identity="memberIdentity"
       :show-actions="permissions.canEdit"
       :lent-item-map="lentItemStationMap"
+      :movement-item-map="movementItemMap"
       :container-path-by-id="containerPathById"
       @assign="$emit('assign', $event)"
       @unassign="$emit('unassign', $event)"
@@ -168,6 +172,7 @@ function memberIdentity(memberId: number) {
     :items="freeItems"
     :sizes="detail.sizes"
     :container-path-by-id="containerPathById"
+    :movement-item-map="movementItemMap"
     @assign="$emit('assignFree', $event)"
   />
 

@@ -5887,6 +5887,7 @@ volumes:
             scanText: 'Scanne den Code eines Gegenstands oder tippe ihn ein, und er wird dem Mitglied zugewiesen. Mit „Ausgabe planen" wird er nur vorgemerkt und erst später übergeben. Ist der Code noch unbekannt, kannst du den Gegenstand gleich anlegen und ausgeben.',
             missingTitle: 'Fehlende Ausstattung',
             missingText: 'Was für das Mitglied vorgesehen, aber noch nicht zugewiesen ist, steht als Karte „Fehlt“ direkt bei den anderen Gegenständen seines Inventars. Neben dem Namen des Inventars steht, wie viele es hat, wie viele es haben soll und wie viele fehlen. Das sind dieselben Vorgaben, mit denen auch die Überprüfung arbeitet: was die Rolle und die Gruppen des Mitglieds verlangen.',
+            incomingText: 'Bringt ein laufender Vorgang dem Mitglied etwas, steht dafür eine Karte „Kommt“ im passenden Inventar. Darauf steht das vorgesehene Teil oder, solange noch keins feststeht, das Inventar und die Größe. Darunter steht, welcher Schritt als Nächstes kommt, und der Link führt zum Vorgang. Die Karte füllt eine Lücke, deshalb zeigt dieses Inventar eine fehlende Karte weniger. Bei einem Tausch gilt das erst, wenn das alte Teil abgegeben ist. Du siehst die Karten, wenn du die Vorgänge sehen darfst.',
             missingHandOutText: '„Zuweisen“ auf einer fehlenden Karte öffnet ein Fenster für genau dieses Inventar. Hat es Größen, wählst du zuerst die Größe, dann stehen die passenden Gegenstände aus dem Lager oben in der Suche. Liegt nichts Passendes im Lager, legst du mit „Neu anlegen und zuweisen“ einen neuen Gegenstand an. Sobald die Vorgabe erfüllt ist, verschwindet die Karte.',
             changesTitle: 'Änderungsverlauf',
             changesText: 'Zeigt alle Profiländerungen dieses Mitglieds. Du kannst Änderungen bestätigen und optional einen Kommentar hinterlassen.',
@@ -6152,13 +6153,18 @@ volumes:
             lostTitle: 'Verlorene Gegenstände',
             lostText: 'Alle als verloren markierten Gegenstände werden hier aufgelistet.',
             freeTitle: 'Verfügbare Gegenstände',
-            freeText: 'Gegenstände, die keinem Mitglied zugewiesen sind. Du kannst sie direkt einem Mitglied zuweisen.',
+            freeText: 'Gegenstände, die keinem Mitglied zugewiesen sind. Du kannst sie direkt einem Mitglied zuweisen. '
+                + 'Ist ein Gegenstand schon für einen laufenden Vorgang vorgesehen, steht statt „Zuweisen“ der Vorgang '
+                + 'an der Karte.',
             procurementTitle: 'Offene Beschaffungen',
             procurementText: 'Beschaffungsanfragen für dieses Inventar. Du kannst hier auch neue Beschaffungen erstellen.',
             dummyCreateProcurement: 'Beschaffung erstellen',
             lentOut: 'Verliehen',
             itemsTitle: 'Alle Gegenstände',
             itemsText: 'Hier siehst du alle Gegenstände in einer Tabelle mit Aktionen zum Bearbeiten, Zuweisen und Löschen.',
+            movementText: 'Gehört ein Gegenstand gerade zu einem laufenden Vorgang, steht neben seinem Namen „Im Vorgang“ '
+                + 'mit der Nummer. Das gilt auch, wenn er nur für eine Ausgabe vorgesehen ist und noch im Lager liegt. '
+                + 'Ein Klick darauf öffnet den Vorgang.',
             tip: 'Klicke auf einen Gegenstand, um seinen Verlauf zu sehen.',
         },
         inventoryEdit: {
@@ -6366,6 +6372,8 @@ volumes:
             stepsText: 'Jeder Schritt sagt, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach ist. Erledigte Schritte tragen den Namen dessen, der sie bestätigt hat, und den Zeitpunkt. Beim aktuellen Schritt steht der Knopf, sofern du an der Reihe bist, sonst der Hinweis, auf wen gewartet wird.',
             acks: 'Bestätigt, vermerkt, erzwungen',
             acksText: 'Bestätigt heißt: die Partei, der der Schritt gehört, hat selbst bestätigt. Von der Wache vermerkt heißt: die Wache hat für einen Träger eingetragen, der Ember nicht nutzt und deshalb nicht antworten kann. Erzwungen heißt: jemand hat einen Schritt über eine Partei hinweg eingetragen, die hätte antworten können. Das steht dauerhaft im Verlauf.',
+            arrival: 'Das ankommende Teil',
+            arrivalText: 'Ein Schritt legt fest, welches Teil ankommt. Steht beim Vorgang schon ein Teil, weil es bei der Planung ausgesucht wurde, ist es dort bereits ausgewählt. Du bestätigst es einfach oder suchst ein anderes aus. Ein Teil, das schon ein anderer Vorgang versprochen hat, kannst du nicht wählen.',
             endings: 'Ablehnen und Abbrechen',
             endingsText: 'Wer an der Reihe ist, kann mit einer Begründung ablehnen. Der Vorgang endet dann, und das abgehende Teil geht dorthin zurück, wo es vorher war. Abbrechen geht, solange der Vorgang noch auf der eigenen Seite steht.',
             rechain: 'Ablauf wechseln',

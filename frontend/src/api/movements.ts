@@ -35,6 +35,12 @@ export async function listMovements(): Promise<MovementResponse[]> {
     return res.data
 }
 
+/** The running movements the caller may see, without the closed history of the station. */
+export async function listOpenMovements(): Promise<MovementResponse[]> {
+    const res = await client.get<MovementResponse[]>('/movements', {params: {open: true}})
+    return res.data
+}
+
 export async function getMovement(id: number): Promise<MovementDetail> {
     const res = await client.get<MovementDetail>(`/movements/${id}`)
     return res.data

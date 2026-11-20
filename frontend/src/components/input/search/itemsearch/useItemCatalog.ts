@@ -43,7 +43,7 @@ function itemState(item: InventoryItem): ItemState {
  */
 async function promisedPieces(): Promise<Set<number>> {
     try {
-        const open = await movements.listMovements()
+        const open = await movements.listOpenMovements()
         return new Set(open
             .filter(movement => movement.state === MovementState.OPEN && movement.incomingItemId != null)
             .map(movement => movement.incomingItemId as number))

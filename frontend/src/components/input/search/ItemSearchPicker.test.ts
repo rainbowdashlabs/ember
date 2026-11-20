@@ -72,7 +72,7 @@ vi.mock('@/api', () => ({
     inventoryContainers: {listContainers: () => Promise.resolve([])},
     stationMembers: {listMembers: () => Promise.resolve([])},
     movements: {
-        listMovements: () => Promise.resolve([
+        listOpenMovements: () => Promise.resolve([
             {id: 1, state: 'OPEN', incomingItemId: PROMISED},
             {id: 2, state: 'DONE', incomingItemId: OURS},
         ]),
@@ -161,5 +161,16 @@ describe('ItemSearchPicker', () => {
         expect(free, 'somebody is holding it').not.toContain(ON_A_MEMBER)
         expect(free, 'nobody knows where it is').not.toContain(LOST)
         expect(free, 'another movement is bringing it to somebody').not.toContain(PROMISED)
+    })
+
+    /**
+     * The movement asking already names a piece, which is therefore promised and spoken for, but by
+     * that very movement. Leaving it out made the step ask for a piece it could never be given.
+     */
+    it('keeps offering the piece the asking movement names itself', async () => {
+        const free = await offered({excludeSpokenFor: true, keepItemId: PROMISED})
+
+        expect(free, 'its own promised piece').toContain(PROMISED)
+        expect(free).toContain(OURS)
     })
 })

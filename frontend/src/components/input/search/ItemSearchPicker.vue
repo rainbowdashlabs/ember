@@ -47,6 +47,11 @@ const props = defineProps<{
   inventoryType?: InventoryType | null
   /** Whether pieces another open movement has already promised somebody are left out. */
   excludeSpokenFor?: boolean
+  /**
+   * The piece the asking movement already names, which stays on offer although it is spoken for: it is
+   * spoken for by that very movement.
+   */
+  keepItemId?: number | null
   /** The size asked for, whose pieces are drawn as a fit and offered first. */
   wantedSizeId?: number | null
   placeholder?: string

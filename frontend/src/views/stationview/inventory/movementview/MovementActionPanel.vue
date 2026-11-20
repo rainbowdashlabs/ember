@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -65,6 +65,13 @@ const props = defineProps<{
   inventoryType?: InventoryType | null
   /** What the inventory is called, which is what a piece written down here is called by default. */
   inventoryName?: string | null
+  /**
+   * The arriving piece the movement already names, chosen when it was planned. The step starts out
+   * with it, so it is confirmed rather than looked for again, and another piece may still be chosen.
+   */
+  promisedItemId?: number | null
+  /** That piece in words, for the line that says which one is meant. */
+  promisedItemName?: string | null
   busy: boolean
 }>()
 
@@ -83,23 +90,35 @@ export interface AcknowledgePayload {
 }
 
 const note = ref('')
-const searched = ref<number | null>(null)
+const searched = ref<number | null>(props.promisedItemId ?? null)
 const recording = ref(false)
 const newName = ref('')
 const newInternalId = ref('')
 const newSizeId = ref(String(props.wantedSizeId ?? ''))
 
-const picked = computed(() => (recording.value ? null : searched.value))
+const picked = computed(() => (recording.value || !props.step.picksItem ? null : searched.value))
+
+/** The promised piece in words, its number where the movement carries no name for it. */
+const promisedLabel = computed(() =>
+    props.promisedItemName || (props.promisedItemId != null ? `#${props.promisedItemId}` : ''))
+
+watch(() => props.promisedItemId, id => {
+  if (!recording.value) searched.value = id ?? null
+})
 
 /**
  * Recording and picking are the two answers to the same step, so choosing one drops the other.
+ * Leaving the form goes back to the piece the movement promised, where it names one.
  *
  * <p>Opening the form fills the size in from what the exchange asked for and leaves it editable: what
  * an association sends is not always what was asked for, and the record has to be able to say so.
  */
 function toggleRecording() {
   recording.value = !recording.value
-  if (!recording.value) return
+  if (!recording.value) {
+    searched.value = props.promisedItemId ?? null
+    return
+  }
   searched.value = null
   newSizeId.value = String(props.wantedSizeId ?? '')
   if (!newName.value.trim()) newName.value = props.inventoryName ?? ''
@@ -147,12 +166,17 @@ function payload(): AcknowledgePayload {
         <ItemChipSize :label="props.wantedSizeName" wanted/>
       </p>
 
+      <p v-if="promisedLabel && !recording" class="text-xs text-(--text-muted)" data-testid="movement-promised-item">
+        {{ t('movements.promisedItem', {name: promisedLabel}) }}
+      </p>
+
       <ItemSearchPicker
           v-if="!recording"
           v-model="searched"
           :disabled="props.busy"
           :inventory-id="props.inventoryId"
           :inventory-type="props.inventoryType"
+          :keep-item-id="props.promisedItemId"
           :owner-cluster-id="props.ownerClusterId"
           :owner-kind="props.ownerKind"
           :placeholder="t('movements.pickItemPlaceholder')"
@@ -170,7 +194,7 @@ function payload(): AcknowledgePayload {
     </div>
 
     <p v-if="props.step.picksItem && !mayPick" class="text-xs text-(--text-muted)">
-      {{ t('movements.pickItemNotAllowed') }}
+      {{ promisedLabel ? t('movements.promisedItemFixed', {name: promisedLabel}) : t('movements.pickItemNotAllowed') }}
     </p>
 
     <div v-if="recording" class="space-y-2 rounded-md border border-(--border) p-2">

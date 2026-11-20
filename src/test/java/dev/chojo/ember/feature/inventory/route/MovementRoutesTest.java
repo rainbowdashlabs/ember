@@ -161,6 +161,21 @@ class MovementRoutesTest {
         });
     }
 
+    /** Asking for the open ones reads only the running movements, still through the guards. */
+    @Test
+    void theOpenOnesAreReadWithoutTheClosedHistory() {
+        when(movementService.findOpenByStation(STATION)).thenReturn(List.of(MOVEMENT));
+        when(guards.visibleAmong(any(), eq(List.of(MOVEMENT)))).thenReturn(List.of(MOVEMENT));
+
+        harness.run((server, client) -> {
+            assertEquals(
+                    9,
+                    json(get(client, "/movements?open=true")).path(0).path("id").asInt());
+            verify(movementService).findOpenByStation(STATION);
+            verify(guards).visibleAmong(any(), eq(List.of(MOVEMENT)));
+        });
+    }
+
     @Test
     void oneMovementIsOpenedThroughTheGuards() {
         when(guards.requireVisible(any(), eq(9))).thenReturn(MOVEMENT);

@@ -66,6 +66,9 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Called-off dates looked open on the dashboard.** In some cases the dashboard showed a called-off date of a repeating appointment as an ordinary date. It is now marked as called off and no longer offers to decline.
 - **Minimum date one day late in announcements.** The announcement sentence about a minimum named the day the check runs as the last day to sign up. It now names the day before.
 - **A moved deadline was not warned about again.** In some cases a deadline that was moved after its warning or its notice had gone out was not warned or told about a second time. Both now follow the deadline as it stands.
+- **A planned hand-out asked for its piece again.** When a hand-out was planned with a piece already chosen, the step that hands it over still asked for a piece and could not offer the chosen one. The step now starts with the planned piece, which can be confirmed or swapped for another free one.
+- **Planned pieces missing from a member's gear.** A member's inventory tab did not show gear a running movement was about to bring them. For readers who may see movements, each such piece now stands in its inventory with a link to the movement, in place of its "missing" card.
+- **Pieces on a movement looked free in the inventory.** In an inventory's item lists, a piece that a running movement had set aside or was moving showed as an ordinary free piece. It now carries a badge leading to the movement, and assigning it directly to a member is refused.
 
 ## v26.25.2
 
