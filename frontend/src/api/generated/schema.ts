@@ -52459,7 +52459,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Mark a procurement request as fulfilled */
+        /** Mark a procurement request as fulfilled, naming the new piece on the swap waiting for it */
         put: {
             parameters: {
                 query?: never;
@@ -52478,8 +52478,26 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };

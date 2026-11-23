@@ -41927,14 +41927,34 @@
     },
     "/api/v1/procurement/{id}/fulfill" : {
       "put" : {
-        "summary" : "Mark a procurement request as fulfilled",
+        "summary" : "Mark a procurement request as fulfilled, naming the new piece on the swap waiting for it",
         "tags" : [ "Procurement" ],
         "responses" : {
           "204" : {
             "description" : "No Content"
           },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
           "404" : {
             "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
             "content" : {
               "application/json" : {
                 "schema" : {
