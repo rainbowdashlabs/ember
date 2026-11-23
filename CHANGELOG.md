@@ -39,6 +39,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **A way back for a piece already sent.** Calling off an exchange whose old piece is already in the post or back with the association offers to plan its way back. A new hand-out then brings exactly that piece back to the member.
 
 ### Changes
+- **Back on a member's page returns to where it was opened.** Opened from an inventory's table or any other page, the back button leads there instead of always to the member list.
 
 - **Photon looks up addresses.** Admin → Settings → Maps offers Photon as the only address search, using the public server unless the address of a self-hosted server is entered, and the privacy notice gains a section on it. Nominatim, LocationIQ and Geoapify are removed, and an instance that had one of them selected has no address search until Photon is chosen.
 - **Mail notifications are on by default.** Members without a mail setting of their own get notifications by mail as soon as the station or the instance can send mail, for every kind of notification. Mail settings members already had stay as they were.

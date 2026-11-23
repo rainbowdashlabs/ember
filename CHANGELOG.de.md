@@ -39,6 +39,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Rückweg für ein schon verschicktes Teil.** Wird ein Tausch abgebrochen, dessen altes Teil schon unterwegs oder wieder beim Träger ist, lässt sich der Rückweg planen. Eine neue Ausgabe bringt dann genau dieses Teil zurück zum Mitglied.
 
 ### Änderungen
+- **Zurück auf der Mitgliedsseite führt zum Ausgangspunkt.** Wurde die Seite aus der Tabelle eines Inventars oder von einer anderen Seite geöffnet, führt der Zurück-Knopf dorthin statt immer zur Mitgliederliste.
 
 - **Photon schlägt Adressen nach.** Unter Verwaltung → Einstellungen → Karten gibt es Photon als einzige Adresssuche, mit dem öffentlichen Server, solange keine eigene Serveradresse eingetragen ist, und die Datenschutzerklärung bekommt einen Abschnitt dazu. Nominatim, LocationIQ und Geoapify entfallen; eine Instanz, die einen davon gewählt hatte, hat keine Adresssuche, bis Photon gewählt wird.
 - **Benachrichtigungen per E-Mail sind von Haus aus eingeschaltet.** Mitglieder ohne eigene E-Mail-Einstellung bekommen Benachrichtigungen per E-Mail, sobald die Wache oder die Instanz E-Mails versenden kann, und zwar für jede Art. Bestehende E-Mail-Einstellungen bleiben, wie sie waren.
