@@ -349,4 +349,9 @@ export default {
     'I-285': 'Dieses Stück ist für eine Ausleihe an eine Partnerwache vorgesehen. Nimm es zuerst aus der Ausleihe',
     'I-286': 'Dieses Stück ist gerade nicht auf der Wache und kann deshalb nicht eingeräumt werden',
     'I-287': 'Dieser Vorgang ist schon über seinen ersten Schritt hinaus. Brich ihn ab, statt ihn zu löschen',
+    'I-288': 'Nur ein Tausch eigener Ausrüstung kann auf eine Beschaffung warten',
+    'I-289': 'Dieser Tausch wartet gerade nicht darauf, dass sein Ersatz ausgesucht wird',
+    'I-290': 'Für diesen Tausch ist schon etwas bestellt',
+    'I-291': 'Ein passendes Stück liegt frei im Lager. Gib dieses aus, statt neu zu bestellen',
+    'I-292': 'Dieser Tausch wartet auf eine Bestellung. Lösche sie zuerst, um selbst ein Stück auszusuchen',
 }

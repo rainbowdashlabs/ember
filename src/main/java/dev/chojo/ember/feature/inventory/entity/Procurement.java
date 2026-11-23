@@ -23,6 +23,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param notes       additional notes for the procurement
  * @param requestedAt when the procurement was requested
  * @param fulfilledAt when the procurement was fulfilled, or {@code null} if still open
+ * @param movementId  the swap waiting for this order to bring its replacement, or {@code null} for an
+ *                    order of its own
  */
 public record Procurement(
         int id,
@@ -32,7 +34,8 @@ public record Procurement(
         Integer sizeId,
         String notes,
         Instant requestedAt,
-        Instant fulfilledAt) {
+        Instant fulfilledAt,
+        Integer movementId) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -45,6 +48,7 @@ public record Procurement(
                 row.getObject("size_id", Integer.class),
                 row.getString("notes"),
                 row.get("requested_at", INSTANT_TIMESTAMP),
-                row.get("fulfilled_at", INSTANT_TIMESTAMP));
+                row.get("fulfilled_at", INSTANT_TIMESTAMP),
+                row.getObject("movement_id", Integer.class));
     }
 }

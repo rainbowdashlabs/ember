@@ -39634,6 +39634,53 @@
         }
       }
     },
+    "/api/v1/movements/{id}/procure" : {
+      "post" : {
+        "summary" : "Order the replacement a swap is waiting for, when nothing fitting is free in storage",
+        "tags" : [ "Procurement" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcurementResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/movements/{id}/rechain" : {
       "post" : {
         "summary" : "Move a movement onto the chain it belongs on",
@@ -76262,9 +76309,13 @@
           },
           "belongsOnAnotherFlow" : {
             "type" : "boolean"
+          },
+          "orderId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "purpose", "state", "memberId", "memberName", "memberIdentity", "inventoryId", "inventoryName", "inventoryType", "currentStepLabel", "reachedStepLabel", "currentStepActor", "reason", "oldSizeId", "newSizeId", "oldSizeName", "newSizeName", "createdAt", "updatedAt", "closedAt", "closeReason", "ownerAnswersHere", "ownerName", "ownerClusterId", "itemName", "itemId", "itemStillWithMember", "party", "ownerKind", "currentStepSubject", "currentStepCustody", "actionable", "incomingItemId", "incomingItemName", "itemInternalId", "itemSizeName", "icon", "color", "belongsOnAnotherFlow" ]
+        "required" : [ "id", "purpose", "state", "memberId", "memberName", "memberIdentity", "inventoryId", "inventoryName", "inventoryType", "currentStepLabel", "reachedStepLabel", "currentStepActor", "reason", "oldSizeId", "newSizeId", "oldSizeName", "newSizeName", "createdAt", "updatedAt", "closedAt", "closeReason", "ownerAnswersHere", "ownerName", "ownerClusterId", "itemName", "itemId", "itemStillWithMember", "party", "ownerKind", "currentStepSubject", "currentStepCustody", "actionable", "incomingItemId", "incomingItemName", "itemInternalId", "itemSizeName", "icon", "color", "belongsOnAnotherFlow", "orderId" ]
       },
       "MovementStanding" : {
         "type" : "object",
@@ -80022,9 +80073,13 @@
             "items" : {
               "$ref" : "#/components/schemas/StockPiece"
             }
+          },
+          "movementId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "inventoryId", "inventoryName", "memberId", "memberName", "memberIdentity", "sizeId", "sizeLabel", "notes", "requestedAt", "fulfilledAt", "stock" ]
+        "required" : [ "id", "inventoryId", "inventoryName", "memberId", "memberName", "memberIdentity", "sizeId", "sizeLabel", "notes", "requestedAt", "fulfilledAt", "stock", "movementId" ]
       },
       "ProfileField" : {
         "type" : "object",

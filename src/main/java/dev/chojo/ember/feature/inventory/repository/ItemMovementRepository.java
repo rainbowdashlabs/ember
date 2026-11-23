@@ -194,6 +194,47 @@ public class ItemMovementRepository {
                 call().bind("item_id", itemId), ItemCustodySql.notOnAMovement("inventory_item"));
     }
 
+    /**
+     * Reads a movement and holds its row until the transaction ends, so nothing closes or walks it while
+     * the caller decides on it.
+     *
+     * @param id the movement
+     * @return the movement, or empty
+     */
+    public Optional<ItemMovement> findByIdForUpdate(int id) {
+        return query("SELECT %s FROM item_movement WHERE id = :id FOR UPDATE;", MOVEMENT_COLUMNS)
+                .single(call().bind("id", id))
+                .map(ItemMovement.map())
+                .first();
+    }
+
+    /**
+     * The order not yet delivered that is to bring this swap its replacement.
+     *
+     * @param movementId the swap
+     * @return the order's id while the swap waits for it, or empty
+     */
+    public Optional<Integer> findOpenOrderId(int movementId) {
+        return query("SELECT id FROM equipment_procurement WHERE movement_id = :movement_id AND fulfilled_at IS NULL;")
+                .single(call().bind("movement_id", movementId))
+                .map(row -> row.getInt("id"))
+                .first();
+    }
+
+    /**
+     * Lets go of the order a swap was waiting for, which then stands as an order of its own.
+     *
+     * <p>Happens when the swap ends before the order arrives: nothing ordered is thrown away with it.
+     *
+     * @param movementId the swap
+     */
+    private void releaseOpenOrder(int movementId) {
+        query(
+                        "UPDATE equipment_procurement SET movement_id = NULL WHERE movement_id = :movement_id AND fulfilled_at IS NULL;")
+                .single(call().bind("movement_id", movementId))
+                .update();
+    }
+
     public int countOpenByStation(int stationId) {
         return SqlSupport.count(
                 "SELECT count(*) FROM item_movement WHERE station_id = :station_id AND state = :open;",
@@ -249,16 +290,19 @@ public class ItemMovementRepository {
     }
 
     /**
-     * Moves a movement onto its next step, or off the end of its flow.
+     * Moves a movement onto its next step, or off the end of its flow. An order it was waiting for on the
+     * step it leaves is let go.
      *
      * @param id     the movement
      * @param stepId the step it now stands on, or {@code null} when it has reached the end
      */
     public boolean moveToStep(int id, Integer stepId) {
-        return query("UPDATE item_movement SET current_step_id = :step_id, updated_at = NOW() WHERE id = :id;")
+        boolean moved = query("UPDATE item_movement SET current_step_id = :step_id, updated_at = NOW() WHERE id = :id;")
                 .single(call().bind("step_id", stepId).bind("id", id))
                 .update()
                 .changed();
+        releaseOpenOrder(id);
+        return moved;
     }
 
     /**
@@ -269,34 +313,49 @@ public class ItemMovementRepository {
      * change, and the step comes with it: a step belongs to one chain, so a movement that keeps the
      * one it stood on would be standing on somebody else's chain.
      *
+     * <p>An order it was waiting for is let go, since the step that order was to answer is behind it.
+     *
      * @param id     the movement
      * @param flowId the chain it walks from now on
      * @param stepId the step of that chain it stands on
      * @return whether it moved
      */
     public boolean moveToFlow(int id, int flowId, Integer stepId) {
-        return query("""
+        boolean moved = query("""
                 UPDATE item_movement
                 SET flow_id = :flow_id, current_step_id = :step_id, updated_at = NOW()
                 WHERE id = :id;""")
                 .single(call().bind("flow_id", flowId).bind("step_id", stepId).bind("id", id))
                 .update()
                 .changed();
+        releaseOpenOrder(id);
+        return moved;
     }
 
+    /**
+     * Names the arriving piece of a movement, or unhooks it. Once a piece is named, an order that was to
+     * bring one is let go.
+     *
+     * @param id     the movement
+     * @param itemId the arriving piece, or {@code null} to unhook it
+     * @return whether the movement was found
+     */
     public boolean setIncomingItem(int id, @Nullable Integer itemId) {
-        return query("UPDATE item_movement SET incoming_item_id = :item_id, updated_at = NOW() WHERE id = :id;")
+        boolean set = query("UPDATE item_movement SET incoming_item_id = :item_id, updated_at = NOW() WHERE id = :id;")
                 .single(call().bind("item_id", itemId).bind("id", id))
                 .update()
                 .changed();
+        if (itemId != null) releaseOpenOrder(id);
+        return set;
     }
 
     /**
      * Closes a movement, whichever way it ended. The step it was standing on is cleared, because a
-     * closed movement stands on nothing.
+     * closed movement stands on nothing, and an order it was waiting for is let go, so it stands as an
+     * order of its own.
      */
     public boolean close(int id, MovementState state, @Nullable String closeReason) {
-        return query("""
+        boolean closed = query("""
                 UPDATE item_movement
                 SET state           = :state,
                     current_step_id = NULL,
@@ -310,6 +369,8 @@ public class ItemMovementRepository {
                         .bind("id", id))
                 .update()
                 .changed();
+        releaseOpenOrder(id);
+        return closed;
     }
 
     /**

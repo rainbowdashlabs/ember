@@ -823,3 +823,16 @@ COMMENT ON TABLE ember_schema.partner_event_group_signup
 INSERT INTO ember_schema.station_permission (name)
 VALUES ('MESSAGE_CHAT_EDIT'), ('MESSAGE_CHAT_MODERATE')
 ON CONFLICT (name) DO NOTHING;
+
+-- An order can stand in for the replacement a swap is waiting for: the swap stays on the step that
+-- names its arriving piece, and delivering the order names it.
+
+ALTER TABLE ember_schema.equipment_procurement
+    ADD COLUMN movement_id INT NULL REFERENCES ember_schema.item_movement (id) ON DELETE SET NULL;
+
+CREATE UNIQUE INDEX equipment_procurement_open_per_movement
+    ON ember_schema.equipment_procurement (movement_id)
+    WHERE movement_id IS NOT NULL AND fulfilled_at IS NULL;
+
+COMMENT ON COLUMN ember_schema.equipment_procurement.movement_id IS
+    'The swap waiting for this order to bring its replacement, while it stands on the step that names it. NULL for an order of its own; cleared when the swap closes, moves to another step or chain, or has its arrival named before the order arrives. At most one open order per swap.';

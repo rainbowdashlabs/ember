@@ -663,7 +663,8 @@ public class MovementRoutes implements Routes {
                         itemSize(subject)),
                 glyph.icon(),
                 glyph.color(),
-                movement.flowId() != null && movement.flowId() != target.flowId());
+                movement.flowId() != null && movement.flowId() != target.flowId(),
+                movementService.openOrderOf(movement.id()).orElse(null));
     }
 
     /** What the piece that set out is called, which is how a list of movements says which jacket this is. */
@@ -960,7 +961,12 @@ public class MovementRoutes implements Routes {
              * Whether the chain it walks is no longer the one its combination is bound to, which is the
              * only case where moving it across to another one is worth offering.
              */
-            boolean belongsOnAnotherFlow) {}
+            boolean belongsOnAnotherFlow,
+            /**
+             * The order that is to bring this swap its replacement, while the swap waits for it. The step
+             * naming the replacement is answered by delivering the order rather than by picking a piece.
+             */
+            @Nullable Integer orderId) {}
 
     public record MovementStepResponse(
             int id,

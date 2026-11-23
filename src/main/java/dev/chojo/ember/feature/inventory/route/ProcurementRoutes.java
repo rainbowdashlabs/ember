@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
+import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.MovementGuards;
@@ -104,6 +105,11 @@ public class ProcurementRoutes implements Routes {
                 this::delete,
                 StationPermission.INVENTORY_PROCUREMENT,
                 StationModule.INVENTORY_PROCUREMENT);
+        routes.post(
+                prefix + "/movements/{id}/procure",
+                this::procureForSwap,
+                StationPermission.INVENTORY_PROCUREMENT,
+                StationModule.INVENTORY_PROCUREMENT);
     }
 
     @OpenApi(
@@ -148,17 +154,20 @@ public class ProcurementRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/procurement/{id}/fulfill",
             methods = HttpMethod.PUT,
-            summary = "Mark a procurement request as fulfilled",
+            summary = "Mark a procurement request as fulfilled, naming the new piece on the swap waiting for it",
             tags = {"Procurement"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = {
                 @OpenApiResponse(status = "204"),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void fulfill(Context ctx) {
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, procurementService::findById, Procurement::stationId);
-        if (procurementService.fulfill(id)) {
+        if (procurementService.fulfill(id, guards.actorOf(session.user(), null))) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw InventoryRefusal.PROCUREMENT_NOT_FULFILLED.raise();
@@ -206,6 +215,23 @@ public class ProcurementRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/movements/{id}/procure",
+            methods = HttpMethod.POST,
+            summary = "Order the replacement a swap is waiting for, when nothing fitting is free in storage",
+            tags = {"Procurement"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = ProcurementResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void procureForSwap(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var order = procurementService.createForSwap(session.stationId(), pathInt(ctx, "id"));
+        ctx.status(HttpStatus.CREATED).json(toResponse(order));
+    }
+
     /** The order as the API shows it. An order a cluster places for its own store names no member. */
     private ProcurementResponse toResponse(Procurement procurement) {
         var member = procurement.memberId() == null
@@ -239,13 +265,19 @@ public class ProcurementRoutes implements Routes {
                 procurement.fulfilledAt(),
                 procurementService.stockFor(procurement).stream()
                         .map(item -> new StockPiece(item.id(), item.name(), item.internalId()))
-                        .toList());
+                        .toList(),
+                procurementService
+                        .waitingSwapOf(procurement)
+                        .map(ItemMovement::id)
+                        .orElse(null));
     }
 
     /**
      * @param memberId who it is for, or {@code null} for an order a cluster places for its own store
-     * @param stock    the pieces lying free in storage that would answer this order, empty once it is
-     *                 settled or when it is for nobody
+     * @param stock      the pieces lying free in storage that would answer this order, empty once it is
+     *                   settled or when it is for nobody
+     * @param movementId the swap waiting for this order to bring its replacement, or {@code null} for an
+     *                   order of its own
      */
     public record ProcurementResponse(
             int id,
@@ -259,7 +291,8 @@ public class ProcurementRoutes implements Routes {
             String notes,
             Instant requestedAt,
             @Nullable Instant fulfilledAt,
-            List<StockPiece> stock) {}
+            List<StockPiece> stock,
+            @Nullable Integer movementId) {}
 
     /** A piece in storage that could be handed out against an order. */
     public record StockPiece(int id, String name, @Nullable String internalId) {}

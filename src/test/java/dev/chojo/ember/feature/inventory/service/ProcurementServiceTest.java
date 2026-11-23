@@ -126,7 +126,7 @@ class ProcurementServiceTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void fulfill() {
-        assertTrue(service.fulfill(procurementId));
+        assertTrue(service.fulfill(procurementId, new ItemMovementService.Actor(0, true)));
         var proc = service.findById(procurementId).orElseThrow();
         assertNotNull(proc.fulfilledAt());
     }
@@ -143,7 +143,7 @@ class ProcurementServiceTest extends RepositoryTestBase {
     void whatArrivesAgainstAnOrderIsOnItsWayToTheMember() {
         var ordered = service.create(station.id(), inventoryId, member.id(), null, "Neue Jacke");
 
-        assertTrue(service.fulfill(ordered.id()));
+        assertTrue(service.fulfill(ordered.id(), new ItemMovementService.Actor(0, true)));
 
         var handOut = itemMovementService.findByMember(member.id()).stream()
                 .filter(movement -> movement.purpose() == MovementPurpose.ISSUE)
@@ -183,7 +183,7 @@ class ProcurementServiceTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void fulfillMissing() {
-        assertFalse(service.fulfill(999999));
+        assertFalse(service.fulfill(999999, new ItemMovementService.Actor(0, true)));
     }
 
     @Test
@@ -263,7 +263,7 @@ class ProcurementServiceTest extends RepositoryTestBase {
         var ordered = service.create(home.id(), pool.id(), null, null, "Nachbestellung");
         assertNull(ordered.memberId(), "an order need not be for anybody");
 
-        assertTrue(service.fulfill(ordered.id()));
+        assertTrue(service.fulfill(ordered.id(), new ItemMovementService.Actor(0, true)));
 
         var arrived = inventoryRepo.findItemsOwnedByCluster(cluster.id());
         assertEquals(1, arrived.size(), "one piece, belonging to the cluster that ordered it");
