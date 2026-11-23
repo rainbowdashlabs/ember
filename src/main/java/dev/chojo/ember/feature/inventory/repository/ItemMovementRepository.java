@@ -144,28 +144,10 @@ public class ItemMovementRepository {
     }
 
     /**
-     * The movement that is already under way with this piece, if there is one.
-     *
-     * <p>A piece can only be in one place, so it can only be on one chain: a second chain reads the
-     * custody the first one is moving and walks itself on the strength of it.
-     *
-     * @param itemId the piece that would be setting out
-     * @return the open movement holding it, or empty when it is free to set out
-     */
-    public Optional<ItemMovement> findOpenByOutgoingItem(int itemId) {
-        return query("""
-                SELECT %s FROM item_movement WHERE outgoing_item_id = :item_id AND state = :open \
-                ORDER BY created_at LIMIT 1;""", MOVEMENT_COLUMNS)
-                .single(call().bind("item_id", itemId).bind("open", MovementState.OPEN))
-                .map(ItemMovement.map())
-                .first();
-    }
-
-    /**
      * The open movement that has promised or received this piece, if one has.
      *
-     * <p>The mirror of {@link #findOpenByOutgoingItem(int)}, and needed for the same reason: a piece
-     * promised to one member must not be promised to another, or handed over the counter to a third.
+     * <p>A piece promised to one member must not be promised to another, or handed over the counter to
+     * a third.
      *
      * @param itemId the piece
      * @return the open movement that names it as arriving, or empty

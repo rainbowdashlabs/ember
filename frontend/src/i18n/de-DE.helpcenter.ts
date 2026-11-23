@@ -2722,6 +2722,7 @@ volumes:
             answersNeverHad: 'Hatte ich nie - für einen Platz, für den du nie etwas bekommen hast.',
             answersHaveOne: 'Ich habe eins - du hast etwas, das niemand notiert hat. Steht eine Nummer darauf, kannst du sie eintippen; du musst aber nicht. Gibt es das Stück in Größen, kannst du die Größe dazusagen. Auch das ist freiwillig: Weißt du sie nicht, kommst du trotzdem durch, und die Wache sieht, dass keine genannt wurde.',
             answersBorrowedText: 'Bei Material einer Partnerwache kannst du nur sagen, ob du es hast. Ein Verlust gehört dort auf die Ausleihe, über die es zu euch gekommen ist.',
+            answersOnMovementText: 'Läuft für ein Stück schon ein Vorgang, etwa ein Tausch, kannst du es hier weder als vermisst melden noch tauschen. Was damit passiert, regelt die Wache in diesem Vorgang.',
             saveTitle: 'Zwischendurch aufhören',
             saveText: 'Mit „Zwischenspeichern" wird festgehalten, was du bisher gesagt hast. Du kannst die Stiefel anziehen gehen und später weitermachen. Erst mit „Abgeben" geht die Aufgabe zur Wache.',
             afterTitle: 'Nach dem Abgeben',

@@ -72,6 +72,9 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
     /**
      * Seeds lending demo data between two federated stations.
      *
+     * <p>The radio shelf holds more pieces than its loans take up, so a partner always finds some of it
+     * on offer: a piece set aside for an approved loan is not offered again.
+     *
      * @param today            the primary station's today, which the lending periods are placed around
      * @param stationId        the primary station ID
      * @param partnerStationId the partner station ID
@@ -154,6 +157,8 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
         var wt2 = inventoryRepository.createItem(walkieTalkies.id(), "FG-002", "Motorola DP1400", null, null);
         inventoryRepository.createItem(walkieTalkies.id(), "FG-003", "Motorola DP1400", null, null);
         inventoryRepository.createItem(walkieTalkies.id(), "FG-004", "Motorola DP1400", null, null);
+        inventoryRepository.createItem(walkieTalkies.id(), "FG-007", "Motorola DP1400", null, null);
+        inventoryRepository.createItem(walkieTalkies.id(), "FG-008", "Motorola DP1400", null, null);
         var goodRadio = inventoryRepository.createItem(walkieTalkies.id(), "FG-005", "Motorola DP3441e", null, null);
         var otherGoodRadio =
                 inventoryRepository.createItem(walkieTalkies.id(), "FG-006", "Motorola DP3441e", null, null);

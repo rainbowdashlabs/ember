@@ -81020,6 +81020,7 @@ export interface components {
         SelfCheckRecordRemoval: "NOTHING" | "BACK_TO_STORE" | "RETURNED_TO_OWNER" | "DELETED";
         SelfCheckResponse: {
             assigned: components["schemas"]["InventoryItem"][];
+            onMovement: number[];
             raised: components["schemas"]["SelfCheckRaised"][];
             required: components["schemas"]["RequiredInventoryItem"][];
             rows: components["schemas"]["SelfCheckRow"][];

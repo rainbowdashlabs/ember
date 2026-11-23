@@ -85853,6 +85853,13 @@
               "$ref" : "#/components/schemas/InventoryItem"
             }
           },
+          "onMovement" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
           "rows" : {
             "type" : "array",
             "items" : {
@@ -85866,7 +85873,7 @@
             }
           }
         },
-        "required" : [ "task", "required", "assigned", "rows", "raised" ]
+        "required" : [ "task", "required", "assigned", "onMovement", "rows", "raised" ]
       },
       "SelfCheckReview" : {
         "type" : "object",

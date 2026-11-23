@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswer;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswerInput;
@@ -361,6 +362,36 @@ class SelfCheckServiceTest extends RepositoryTestBase {
         assertTrue(view.required().stream().anyMatch(r -> r.inventoryId() == inventory.id()));
         assertTrue(view.rows().isEmpty());
         assertTrue(view.raised().isEmpty());
+        assertTrue(view.onMovement().isEmpty());
+        selfCheckService.closeAllFor(member.id());
+    }
+
+    /** A piece on a running swap is named as such, so the member is not offered a loss the server refuses. */
+    @Test
+    void readingATaskNamesThePiecesARunningMovementCarries() {
+        int taskId = handOut();
+        ItemMovement swap = itemMovementService.create(
+                station.id(),
+                MovementPurpose.EXCHANGE,
+                member.id(),
+                "Self Member",
+                owned.id(),
+                inventory.id(),
+                null,
+                null,
+                "Kaputt",
+                new ItemMovementService.Actor(member.id(), true),
+                null);
+
+        assertEquals(
+                List.of(owned.id()),
+                selfCheckService.read(taskId, station.id(), member.id(), false).onMovement());
+
+        itemMovementService.cancel(swap.id(), new ItemMovementService.Actor(member.id(), true), "Doch nicht");
+        assertTrue(selfCheckService
+                .read(taskId, station.id(), member.id(), false)
+                .onMovement()
+                .isEmpty());
         selfCheckService.closeAllFor(member.id());
     }
 

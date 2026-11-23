@@ -884,6 +884,7 @@ public abstract class RepositoryTestBase {
                 selfCheckRepo,
                 inventoryCheckService,
                 inventoryRepo,
+                itemMovementRepo,
                 stationMemberRepo,
                 accountRepo,
                 selfCheckNotifications);

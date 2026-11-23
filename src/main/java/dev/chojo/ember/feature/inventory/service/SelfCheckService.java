@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheckRaisedKind;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRaisedState;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRow;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -64,6 +65,7 @@ public class SelfCheckService {
     private final SelfCheckRepository repository;
     private final InventoryCheckService checkService;
     private final InventoryRepository inventoryRepository;
+    private final ItemMovementRepository movementRepository;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final Notifier notifier;
@@ -73,12 +75,14 @@ public class SelfCheckService {
             SelfCheckRepository repository,
             InventoryCheckService checkService,
             InventoryRepository inventoryRepository,
+            ItemMovementRepository movementRepository,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             Notifier notifier) {
         this.repository = repository;
         this.checkService = checkService;
         this.inventoryRepository = inventoryRepository;
+        this.movementRepository = movementRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.notifier = notifier;
@@ -191,7 +195,8 @@ public class SelfCheckService {
      * @param stationId the caller's station
      * @param memberId  the caller
      * @param guardian  whether the caller holds the guardian permission
-     * @return the task, the member's own gear, the answers so far, and what was already set going
+     * @return the task, the member's own gear and which of it an open movement carries, the answers so
+     *         far, and what was already set going
      */
     public SelfCheckView read(int taskId, int stationId, int memberId, boolean guardian) {
         SelfCheck task = require(taskId, stationId, memberId, guardian);
@@ -201,6 +206,10 @@ public class SelfCheckService {
                 gear.memberName(),
                 gear.required(),
                 gear.assigned(),
+                gear.assigned().stream()
+                        .map(InventoryItem::id)
+                        .filter(movementRepository::isOnAMovement)
+                        .toList(),
                 repository.findRows(taskId),
                 repository.findRaised(taskId));
     }
@@ -558,6 +567,8 @@ public class SelfCheckService {
      * @param memberName whose gear it is about
      * @param required   what that member's role asks of them
      * @param assigned   what they are holding towards it
+     * @param onMovement the pieces of it an open movement carries, which can be neither reported missing
+     *                   nor swapped from here
      * @param rows       what has been said so far
      * @param raised     the losses and exchanges already set going during this task
      */
@@ -566,6 +577,7 @@ public class SelfCheckService {
             String memberName,
             List<RequiredInventoryItem> required,
             List<InventoryItem> assigned,
+            List<Integer> onMovement,
             List<SelfCheckRow> rows,
             List<SelfCheckRaised> raised) {}
 }

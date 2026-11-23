@@ -33,6 +33,7 @@ const {t} = useI18n()
         <li>{{ t('helpCenter.inventorySelfCheck.answersHaveOne') }}</li>
       </ul>
       <p>{{ t('helpCenter.inventorySelfCheck.answersBorrowedText') }}</p>
+      <p>{{ t('helpCenter.inventorySelfCheck.answersOnMovementText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventorySelfCheck.saveTitle')">

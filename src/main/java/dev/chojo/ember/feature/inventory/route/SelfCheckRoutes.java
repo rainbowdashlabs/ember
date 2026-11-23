@@ -132,7 +132,12 @@ public class SelfCheckRoutes implements Routes {
         var view = selfCheckService.read(
                 pathInt(ctx, "id"), session.stationId(), session.member().id(), guardian(session));
         ctx.json(new SelfCheckResponse(
-                toSummary(view.task()), view.required(), view.assigned(), view.rows(), view.raised()));
+                toSummary(view.task()),
+                view.required(),
+                view.assigned(),
+                view.onMovement(),
+                view.rows(),
+                view.raised()));
     }
 
     @OpenApi(
@@ -292,6 +297,7 @@ public class SelfCheckRoutes implements Routes {
             SelfCheckSummary task,
             List<RequiredInventoryItem> required,
             List<InventoryItem> assigned,
+            List<Integer> onMovement,
             List<SelfCheckRow> rows,
             List<SelfCheckRaised> raised) {}
 }

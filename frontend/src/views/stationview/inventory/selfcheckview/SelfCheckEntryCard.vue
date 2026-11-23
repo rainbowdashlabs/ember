@@ -53,6 +53,8 @@ const props = defineProps<{
   raised: RaisedReport[]
   /** Why this answer came back from the reviewer, empty where it did not. */
   refusedReason: string
+  /** Whether an open movement carries the piece, which then is the movement's to move. */
+  onMovement: boolean
   readOnly: boolean
 }>()
 
@@ -74,18 +76,22 @@ const title = computed(() =>
   piece.value ? (piece.value.name ?? props.entry.req.inventoryName) : t('selfCheck.emptyPlace'),
 )
 
-/** A loss is a member's own to state, but never about a piece a partner owns or one already gone. */
+/**
+ * A loss is a member's own to state, but never about a piece a partner owns, one already gone, or one
+ * an open movement carries.
+ */
 const mayReportLost = computed(
-  () => piece.value != null && !borrowed(piece.value) && !recordedLost(piece.value) && !props.readOnly,
+  () => piece.value != null && !borrowed(piece.value) && !recordedLost(piece.value) && !props.onMovement
+      && !props.readOnly,
 )
 
 /**
- * An exchange needs an inventory holding one thing in many copies, a piece the station owns, and the
- * station's movements, since an exchange is one.
+ * An exchange needs an inventory holding one thing in many copies, a piece the station owns that no open
+ * movement carries yet, and the station's movements, since an exchange is one.
  */
 const mayRequestExchange = computed(
-  () => piece.value != null && !borrowed(piece.value) && !recordedLost(piece.value) && props.entry.req.homogeneous && !props.readOnly
-      && isModuleEnabled(StationModule.INVENTORY_MOVEMENTS),
+  () => piece.value != null && !borrowed(piece.value) && !recordedLost(piece.value) && props.entry.req.homogeneous && !props.onMovement
+      && !props.readOnly && isModuleEnabled(StationModule.INVENTORY_MOVEMENTS),
 )
 
 const lossStanding = computed(() => standingOf(props.raised, 'LOSS'))
