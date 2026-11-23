@@ -60,7 +60,7 @@ export default {
     'SY-039': 'Rollen ändern ist in der Demo abgeschaltet, es wurde nichts geändert',
     'SY-040': 'Einen Sicherheitsschlüssel einrichten ist in der Demo abgeschaltet, es wurde nichts gespeichert',
     'SY-041': 'Einladungen annehmen ist in der Demo abgeschaltet, es wurde nichts ausgeführt',
-    'SY-042': 'Die Anmeldung auf einer Bewerberliste ist in der Demo abgeschaltet, es wurde nichts gespeichert',
+    'SY-042': 'Die Anmeldung auf einer Warteliste ist in der Demo abgeschaltet, es wurde nichts gespeichert',
     'SY-043': DEMO_UPLOADS_OFF,
     'SY-044': DEMO_UPLOADS_OFF,
     'SY-045': 'Andere Instanzen erreichen ist in der Demo abgeschaltet, es wurde nichts ausgeführt',

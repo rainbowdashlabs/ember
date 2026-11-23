@@ -68,7 +68,7 @@ describe('DiscoveryTile', () => {
     it('names each offer as a chip and the address the station published', () => {
         const text = visibleText(local)
 
-        for (const label of ['Bewerberliste offen', 'Wiki', 'Kalender', 'Blog', 'Zur Wache', 'Hauptstraße 1, Musterstadt']) {
+        for (const label of ['Warteliste offen', 'Wiki', 'Kalender', 'Blog', 'Zur Wache', 'Hauptstraße 1, Musterstadt']) {
             expect(text).toContain(label)
         }
     })
