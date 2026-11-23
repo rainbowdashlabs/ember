@@ -17,7 +17,7 @@ import {describeFailure, type Failure} from '@/util/failure'
 type HandedPiece = Pick<InventoryItem, 'id' | 'name' | 'inventoryId'>
 
 /**
- * Hands a scanned piece to the member, now or as a planned hand-over.
+ * Hands a scanned piece to the member as a planned hand-over by default, or now.
  *
  * <p>A refusal is kept on the screen rather than flashed past, because somebody at a counter with the
  * piece in their hand takes a message that disappears for one they missed reading. A code nobody knows
@@ -31,7 +31,7 @@ export function useScanHandOut(memberId: Ref<number>, memberName: Ref<string>, h
     const {t} = useI18n()
 
     const scanValue = ref('')
-    const handOutMode = ref<HandOutMode>('NOW')
+    const handOutMode = ref<HandOutMode>('PLANNED')
     const unknownCode = ref<string | null>(null)
     const handoverFailure = ref<Failure | null>(null)
     const {message: success, flash} = useFlashMessage(2500)

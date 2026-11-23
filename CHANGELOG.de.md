@@ -52,6 +52,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Offene Anmeldungen bleiben nach dem Anmeldeschluss bestehen.** Anmeldungen, die noch auf Bestätigung warten, werden beim Anmeldeschluss nicht mehr abgelehnt. Wer den Termin betreut, bekommt je Termin einen Hinweis und entscheidet wie bisher.
 - **Mindestanzahl ab Mitternacht geprüft.** Die Mindestanzahl einer Terminreihe wird ab Mitternacht die eingestellte Zahl an Tagen vor ihrem ersten Termin geprüft, auch wenn dieser abgesagt ist, so wie schon bei einzelnen Terminen.
 - **Plätze gehen mit der Freigabe.** Wird ein Termin oder eine Terminreihe nicht mehr mit einer Partnerwache geteilt, fällt auch die Vereinbarung über ihre Plätze weg. Wird wieder geteilt, entscheidet zunächst wieder die ausrichtende Wache über jede Anmeldung.
+- **Ausgaben auf der Mitgliedsseite starten geplant.** Im Inventar-Tab eines Mitglieds wird ein Teil jetzt standardmäßig für das Mitglied vorgemerkt statt sofort übergeben. Was jede Auswahl bewirkt, steht hinter einem Info-Symbol daneben.
 
 ### Fehlerbehebungen
 

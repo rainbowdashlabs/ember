@@ -52,6 +52,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Waiting sign-ups kept at the deadline.** Sign-ups still waiting for confirmation are no longer declined when the deadline passes. Whoever runs the appointment is told once per date and decides them as before.
 - **Minimum checked from midnight.** The minimum of an event group is checked from midnight the set number of days before its first appointment, a called-off first appointment included, as it already was for appointments.
 - **Places go with the share.** When an appointment or event group is no longer shared with a partner station, the arrangement about that station's places is removed. Sharing it again starts with the station holding the appointment or event group deciding each sign-up.
+- **Hand-outs from a member's page start as planned.** On a member's inventory tab, a piece is planned for the member by default rather than handed over at once. What each choice does is shown behind an info icon beside it.
 
 ### Fixes
 

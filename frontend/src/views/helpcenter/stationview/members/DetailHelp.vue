@@ -28,7 +28,7 @@ const {t} = useI18n()
 
 const activeTab = ref('profile')
 const scanValue = ref('')
-const handOutMode = ref<HandOutMode>('NOW')
+const handOutMode = ref<HandOutMode>('PLANNED')
 const tabs = [
   {key: 'profile', label: t('memberDetail.tabProfile')},
   {key: 'permissions', label: t('memberDetail.tabPermissions')},
