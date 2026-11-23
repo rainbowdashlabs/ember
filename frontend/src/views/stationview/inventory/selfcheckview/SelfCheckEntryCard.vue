@@ -85,21 +85,23 @@ const mayReportLost = computed(
       && !props.readOnly,
 )
 
-/**
- * An exchange needs an inventory holding one thing in many copies, a piece the station owns that no open
- * movement carries yet, and the station's movements, since an exchange is one.
- */
-const mayRequestExchange = computed(
-  () => piece.value != null && !borrowed(piece.value) && !recordedLost(piece.value) && props.entry.req.homogeneous && !props.onMovement
-      && !props.readOnly && isModuleEnabled(StationModule.INVENTORY_MOVEMENTS),
-)
-
 const lossStanding = computed(() => standingOf(props.raised, 'LOSS'))
 const exchangeStanding = computed(() => standingOf(props.raised, 'EXCHANGE'))
 
 /** A report that has gone out or is waiting to is not raised a second time. */
 const lossRaised = computed(() => lossStanding.value === 'RAISED' || lossStanding.value === 'WAITING')
 const exchangeRaised = computed(() => exchangeStanding.value === 'RAISED' || exchangeStanding.value === 'WAITING')
+
+/**
+ * An exchange needs an inventory holding one thing in many copies, a piece the station owns, and the
+ * station's movements, since an exchange is one. A piece another open movement carries is that
+ * movement's to move; the swap the member raised here stays as the disabled button saying so.
+ */
+const mayRequestExchange = computed(
+  () => piece.value != null && !borrowed(piece.value) && !recordedLost(piece.value) && props.entry.req.homogeneous
+      && (!props.onMovement || exchangeRaised.value)
+      && !props.readOnly && isModuleEnabled(StationModule.INVENTORY_MOVEMENTS),
+)
 
 /** Whether what the member says here goes out at once or waits for the record to be put right. */
 const waits = computed(() => waitsForCorrection(props.entry, props.draft))
