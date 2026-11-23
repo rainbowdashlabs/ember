@@ -47,7 +47,7 @@ export const requirements: RequiredInventoryItem[] = [{
 
 /** A planned hand-out of a second helmet, picked off the shelf and waiting for the station to hand it over. */
 export const incoming: MovementResponse[] = [{
-    actionable: true, belongsOnAnotherFlow: false, closedAt: null, closeReason: null, color: null,
+    actionable: true, belongsOnAnotherFlow: false, orderId: null, closedAt: null, closeReason: null, color: null,
     createdAt: '2026-05-02T08:00:00Z', currentStepActor: StepActor.STATION, currentStepCustody: ItemCustody.WITH_MEMBER,
     currentStepLabel: 'Ausgegeben', currentStepSubject: StepSubject.INCOMING, icon: null, id: 12,
     incomingItemId: 4, incomingItemName: 'Helm', inventoryId: 1, inventoryName: 'Helme', inventoryType: InventoryType.INTERNAL,

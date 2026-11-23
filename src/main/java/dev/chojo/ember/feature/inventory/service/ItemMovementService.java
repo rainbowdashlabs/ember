@@ -851,6 +851,9 @@ public class ItemMovementService {
         Integer subjectItemId = movement.itemFor(step.subject());
         if (movement.lostReport() && step.subject() == StepSubject.OUTGOING) subjectItemId = null;
         if (step.picksItem()) {
+            if (movementRepository.findOpenOrderId(movementId).isPresent()) {
+                throw InventoryRefusal.MOVEMENT_WAITS_FOR_AN_ORDER.raise();
+            }
             Integer named = pickedItemId != null ? pickedItemId : movement.incomingItemId();
             if (named == null) throw InventoryRefusal.MOVEMENT_STEP_NEEDS_THE_ARRIVING_PIECE.raise();
             if (!named.equals(movement.incomingItemId())) requireNoOtherMovementCarries(named, movementId);
@@ -1246,6 +1249,30 @@ public class ItemMovementService {
         }
         if (closed > 0) log.info("Closed {} open movement(s) of leaving member {}", closed, memberId);
         return closed;
+    }
+
+    /**
+     * Reads a movement and holds it until the transaction ends, so nothing closes or walks it while the
+     * caller decides on it.
+     *
+     * @param id the movement
+     * @return the movement, or empty
+     */
+    public Optional<ItemMovement> findByIdForUpdate(int id) {
+        return movementRepository.findByIdForUpdate(id);
+    }
+
+    /**
+     * The order a swap waits for to bring its replacement, while it waits for one.
+     *
+     * <p>An order is linked only while the swap stands on the step that names its arriving piece: closing
+     * the swap, or moving it to another step or chain, lets go of the order.
+     *
+     * @param movementId the swap
+     * @return the order's id, or empty
+     */
+    public Optional<Integer> openOrderOf(int movementId) {
+        return movementRepository.findOpenOrderId(movementId);
     }
 
     /**

@@ -27,3 +27,9 @@ export async function issueFromStock(id: number, itemId: number): Promise<IssueF
     const res = await client.post<IssueFromStockResponse>(`/procurement/${id}/issue-from-stock`, {itemId})
     return res.data
 }
+
+/** Orders the replacement a swap is waiting for, when nothing fitting is free in storage. */
+export async function procureForSwap(movementId: number): Promise<ProcurementResponse> {
+    const res = await client.post<ProcurementResponse>(`/movements/${movementId}/procure`)
+    return res.data
+}

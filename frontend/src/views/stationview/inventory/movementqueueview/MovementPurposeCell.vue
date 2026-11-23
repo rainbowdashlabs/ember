@@ -8,12 +8,14 @@ import {toRef} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import {useMovementRowView} from './movementRowView'
 import type {MovementResponse} from '@/api/generated/schema'
 
 /**
  * What kind of movement it is and whose gear it moves. The two together are what a row is: a swap
- * of the station's own gear and a swap of the association's walk different chains.
+ * of the station's own gear and a swap of the association's walk different chains. A swap waiting
+ * for an order is marked as such, since nothing on the shelf will answer it.
  */
 const props = defineProps<{
   movement: MovementResponse
@@ -27,5 +29,6 @@ const {owner} = useMovementRowView(toRef(props, 'movement'))
   <span class="inline-flex flex-wrap items-center gap-1">
     <PrimaryBadge data-testid="movement-purpose">{{ t(`movements.purpose.${props.movement.purpose}`) }}</PrimaryBadge>
     <SecondaryBadge data-testid="movement-owner">{{ owner }}</SecondaryBadge>
+    <InfoBadge v-if="props.movement.orderId != null" data-testid="movement-ordered">{{ t('movements.order.badge') }}</InfoBadge>
   </span>
 </template>

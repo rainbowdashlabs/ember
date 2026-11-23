@@ -1118,7 +1118,28 @@ public enum InventoryRefusal implements Refusal {
 
     /** A movement to be deleted while it is open and has already walked past its opening. */
     MOVEMENT_ALREADY_MOVED_ITS_PIECES(
-            287, HttpStatus.BAD_REQUEST, "This movement has already gone past its first step, so call it off instead");
+            287, HttpStatus.BAD_REQUEST, "This movement has already gone past its first step, so call it off instead"),
+
+    /** An order asked for on a movement that is not a swap of the station's own gear. */
+    MOVEMENT_NOT_A_SWAP_TO_ORDER_FOR(
+            288, HttpStatus.BAD_REQUEST, "Only a swap of the station's own gear can wait for an order"),
+
+    /** An order asked for on a swap that is not on the step naming its replacement, or has one already. */
+    MOVEMENT_NOT_WAITING_FOR_ITS_REPLACEMENT(
+            289, HttpStatus.CONFLICT, "This swap is not waiting for its replacement to be picked"),
+
+    /** A second order asked for on a swap that already waits for one. */
+    MOVEMENT_ALREADY_WAITS_FOR_AN_ORDER(290, HttpStatus.CONFLICT, "Something is already ordered for this swap"),
+
+    /** An order asked for while a fitting piece lies free in storage. */
+    MOVEMENT_REPLACEMENT_IN_STOCK(
+            291, HttpStatus.CONFLICT, "A fitting piece is free in storage, so hand that one out instead of ordering"),
+
+    /** A replacement picked by hand for a swap that waits for an order. */
+    MOVEMENT_WAITS_FOR_AN_ORDER(
+            292,
+            HttpStatus.CONFLICT,
+            "This swap waits for an order, so delete the order before picking a piece by hand");
 
     private final Definition definition;
 

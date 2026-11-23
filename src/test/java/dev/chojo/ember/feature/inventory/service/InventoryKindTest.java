@@ -224,7 +224,7 @@ class InventoryKindTest extends RepositoryTestBase {
         assertTrue(refused.blockers().stream()
                 .anyMatch(blocker -> blocker.kind() == SwitchBlockerKind.PROCUREMENT && blocker.id() == order.id()));
 
-        assertTrue(procurementService.fulfill(order.id()));
+        assertTrue(procurementService.fulfill(order.id(), new ItemMovementService.Actor(0, true)));
         var switched = service.update(id, "Handschuhe", InventoryType.INTERNAL, false, false);
         assertTrue(switched.isPresent());
         assertFalse(switched.get().homogeneous());

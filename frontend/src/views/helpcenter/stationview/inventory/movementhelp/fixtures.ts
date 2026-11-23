@@ -15,7 +15,7 @@ import {
 /** An open movement of a station's own piece, with no turn taken yet beyond what the fields say. */
 function movement(fields: Pick<MovementResponse, 'id' | 'purpose' | 'itemName' | 'inventoryName' | 'memberName'> & Partial<MovementResponse>): MovementResponse {
     return {
-        actionable: false, belongsOnAnotherFlow: false, closedAt: null, closeReason: null, color: null,
+        actionable: false, belongsOnAnotherFlow: false, orderId: null, closedAt: null, closeReason: null, color: null,
         createdAt: '2026-05-01T08:00:00Z', currentStepActor: StepActor.STATION, currentStepCustody: null,
         currentStepLabel: null, currentStepSubject: null, icon: null, incomingItemId: null, incomingItemName: null,
         inventoryId: 1, inventoryType: null, itemId: null, itemInternalId: null, itemSizeName: null,
@@ -28,7 +28,10 @@ function movement(fields: Pick<MovementResponse, 'id' | 'purpose' | 'itemName' |
     }
 }
 
-/** An exchange waiting on the station, a request waiting on the association and an issue on its way. */
+/**
+ * An exchange waiting on the station, a request waiting on the association, an issue on its way and an
+ * exchange waiting for the order that brings its replacement.
+ */
 export const movements: MovementResponse[] = [
     movement({
         id: 1, purpose: MovementPurpose.EXCHANGE, itemName: 'Helm', inventoryName: 'Helme', itemSizeName: 'M',
@@ -47,5 +50,11 @@ export const movements: MovementResponse[] = [
         icon: 'shoe-prints', color: '#ca8a04', memberName: 'Jan Schmidt',
         currentStepActor: StepActor.MEMBER, reachedStepLabel: 'Auf dem Weg zum Mitglied',
         createdAt: '2026-04-01T08:00:00Z', updatedAt: '2026-04-02T08:00:00Z',
+    }),
+    movement({
+        id: 4, purpose: MovementPurpose.EXCHANGE, itemName: 'Einsatzhose', inventoryName: 'Hosen', itemSizeName: 'L',
+        icon: 'shirt', color: '#7c3aed', memberName: 'Lena Fischer', orderId: 7,
+        currentStepActor: StepActor.STATION, currentStepLabel: 'Ersatz bereit', reachedStepLabel: 'Altes Teil zurückgenommen',
+        createdAt: '2026-05-05T08:00:00Z', updatedAt: '2026-05-06T08:00:00Z',
     }),
 ]

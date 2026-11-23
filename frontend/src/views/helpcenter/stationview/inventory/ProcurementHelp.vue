@@ -92,6 +92,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryProcurement.fromStockText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryProcurement.swapTitle')">
+      <p>{{ t('helpCenter.inventoryProcurement.swapText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.inventoryProcurement.tip') }}</HelpTip>
   </HelpArticle>
 </template>

@@ -48910,6 +48910,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/movements/{id}/procure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Order the replacement a swap is waiting for, when nothing fitting is free in storage */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProcurementResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/movements/{id}/rechain": {
         parameters: {
             query?: never;
@@ -52403,7 +52459,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Mark a procurement request as fulfilled */
+        /** Mark a procurement request as fulfilled, naming the new piece on the swap waiting for it */
         put: {
             parameters: {
                 query?: never;
@@ -52422,8 +52478,26 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -77770,6 +77844,8 @@ export interface components {
             /** Format: int32 */
             oldSizeId: number | null;
             oldSizeName: string | null;
+            /** Format: int32 */
+            orderId: number | null;
             ownerAnswersHere: boolean;
             ownerClusterId: string | null;
             ownerKind: components["schemas"]["ItemOwner"];
@@ -79057,6 +79133,8 @@ export interface components {
             memberId: number | null;
             memberIdentity: components["schemas"]["MemberIdentity"] | null;
             memberName: string;
+            /** Format: int32 */
+            movementId: number | null;
             notes: string;
             requestedAt: components["schemas"]["Instant"];
             /** Format: int32 */

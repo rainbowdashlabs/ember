@@ -15,9 +15,12 @@ import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ItemChipSize from '@/components/inventory/ItemChipSize.vue'
 import CallOffChoice from './CallOffChoice.vue'
+import SwapOrder from './SwapOrder.vue'
 import type {CallOffChoice as CallOffAnswer} from '@/api/movements'
 import {
   ItemOwner,
+  MovementPurpose,
+  StepSubject,
   type OldPieceWhereabouts,
   StationPermission,
   type InventorySize,
@@ -82,6 +85,14 @@ const props = defineProps<{
   oldPiece?: OldPieceWhereabouts | null
   /** Whether the movement is for a member, who is whom a piece would go back to. */
   forMember?: boolean
+  /** The movement, which an order for its replacement is placed against. */
+  movementId?: number | null
+  /** What kind of movement it is: only a swap waits for an order. */
+  purpose?: MovementPurpose | null
+  /** The order the swap waits for, or nothing while it waits for none. */
+  orderId?: number | null
+  /** Called once an order was placed or deleted, so whoever shows the movement reads it again. */
+  onOrderChanged?: () => void
   busy: boolean
 }>()
 
@@ -116,6 +127,24 @@ const newInternalId = ref('')
 const newSizeId = ref(String(props.wantedSizeId ?? ''))
 
 const picked = computed(() => (recording.value || !props.step.picksItem ? null : searched.value))
+
+/** Whether the shelf offers nothing in the size asked for, as the picker last counted it. */
+const nothingFits = ref(false)
+
+/**
+ * Whether the replacement may be ordered instead of picked: a swap of the station's own gear, on the
+ * step that names the piece it brings. The association names what it sends, so its swaps never wait
+ * for an order of the station's.
+ */
+const orderable = computed(() =>
+    props.movementId != null
+    && props.purpose === MovementPurpose.EXCHANGE
+    && props.ownerKind === ItemOwner.STATION
+    && props.step.picksItem
+    && props.step.subject === StepSubject.INCOMING)
+
+/** A swap waiting for its order names its piece by the delivery, so nothing is picked here meanwhile. */
+const waitsForOrder = computed(() => orderable.value && props.orderId != null)
 
 /** The promised piece in words, its number where the movement carries no name for it. */
 const promisedLabel = computed(() =>
@@ -190,7 +219,7 @@ function payload(): AcknowledgePayload {
       </p>
 
       <ItemSearchPicker
-          v-if="!recording"
+          v-if="!recording && !waitsForOrder"
           v-model="searched"
           :disabled="props.busy"
           :inventory-id="props.inventoryId"
@@ -203,9 +232,19 @@ function payload(): AcknowledgePayload {
           exclude-assigned
           exclude-lost
           exclude-spoken-for
+          @fits="count => nothingFits = count === 0"
       />
 
-      <div v-if="props.mayRecord" class="flex items-center gap-2">
+      <SwapOrder
+          v-if="orderable && !recording && props.movementId != null"
+          :busy="props.busy"
+          :movement-id="props.movementId"
+          :nothing-fits="nothingFits"
+          :on-changed="props.onOrderChanged"
+          :order-id="props.orderId ?? null"
+      />
+
+      <div v-if="props.mayRecord && !waitsForOrder" class="flex items-center gap-2">
         <SecondaryButton :disabled="props.busy" data-testid="movement-record-arrival" @click="toggleRecording">
           {{ recording ? t('common.cancel') : t('movements.recordArrival') }}
         </SecondaryButton>

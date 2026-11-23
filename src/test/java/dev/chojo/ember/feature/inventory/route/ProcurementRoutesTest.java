@@ -13,6 +13,9 @@ import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemMovement;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
+import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.MovementGuards;
@@ -54,8 +57,8 @@ class ProcurementRoutesTest {
         var members = mock(StationMemberService.class);
         var names = mock(MemberNameResolver.class);
         var inventories = mock(InventoryService.class);
-        var forMara = new Procurement(1, STATION, INVENTORY, MEMBER_ID, 2, "L", Instant.EPOCH, null);
-        var forTheStore = new Procurement(2, STATION, INVENTORY, null, null, "", Instant.EPOCH, null);
+        var forMara = new Procurement(1, STATION, INVENTORY, MEMBER_ID, 2, "L", Instant.EPOCH, null, null);
+        var forTheStore = new Procurement(2, STATION, INVENTORY, null, null, "", Instant.EPOCH, null, null);
         when(procurements.findByStation(STATION)).thenReturn(List.of(forMara, forTheStore));
         when(procurements.create(anyInt(), anyInt(), any(), any(), any())).thenReturn(forMara);
         when(procurements.create(STATION, 99, null, null, null))
@@ -105,6 +108,58 @@ class ProcurementRoutesTest {
                     InventoryRefusal.PROCUREMENT_PIECE_NOT_IN_STOCK,
                     refusalOf(
                             client.post(PREFIX + "/procurement/1/issue-from-stock", body("{\"itemId\": 77}"), buyer)));
+        });
+    }
+
+    @Test
+    void aSwapIsOrderedForOverHttpOnlyByWhoeverMayOrder() {
+        var procurements = mock(ProcurementService.class);
+        var inventories = mock(InventoryService.class);
+        var forTheSwap = new Procurement(4, STATION, INVENTORY, null, null, "Zu klein", Instant.EPOCH, null, 31);
+        when(procurements.createForSwap(STATION, 31)).thenReturn(forTheSwap);
+        when(procurements.createForSwap(STATION, 32)).thenThrow(InventoryRefusal.MOVEMENT_REPLACEMENT_IN_STOCK.raise());
+        when(procurements.waitingSwapOf(forTheSwap))
+                .thenReturn(Optional.of(new ItemMovement(
+                        31,
+                        STATION,
+                        MovementPurpose.EXCHANGE,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        INVENTORY,
+                        null,
+                        null,
+                        MovementState.OPEN,
+                        "Zu klein",
+                        null,
+                        Instant.EPOCH,
+                        Instant.EPOCH,
+                        null,
+                        null,
+                        false)));
+        var harness = RouteHarness.serving(new ProcurementRoutes(
+                procurements,
+                mock(StationMemberService.class),
+                mock(MemberNameResolver.class),
+                inventories,
+                mock(MemberIdentityFactory.class),
+                mock(MovementGuards.class)));
+        var buyer = harness.as(TestSessions.member(STATION, StationPermission.INVENTORY_PROCUREMENT));
+        var reader = harness.as(TestSessions.member(STATION, StationPermission.INVENTORY_READ));
+
+        harness.run((server, client) -> {
+            var ordered = client.post(PREFIX + "/movements/31/procure", body("{}"), buyer);
+            assertEquals(201, ordered.code());
+            assertEquals(31, json(ordered).path("movementId").asInt(), "the order names the swap it waits for");
+            assertEquals(
+                    InventoryRefusal.MOVEMENT_REPLACEMENT_IN_STOCK,
+                    refusalOf(client.post(PREFIX + "/movements/32/procure", body("{}"), buyer)));
+            assertEquals(
+                    403,
+                    client.post(PREFIX + "/movements/31/procure", body("{}"), reader)
+                            .code());
         });
     }
 }

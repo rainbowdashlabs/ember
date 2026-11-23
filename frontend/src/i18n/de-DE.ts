@@ -8558,6 +8558,14 @@ export default {
         recordArrival: 'Neues Teil erfassen',
         recordArrivalHint: 'Der Träger führt sein Lager nicht hier, also hält die Wache fest, was angekommen ist. Eigentümer und Inventar stehen fest.',
         recordOwnHint: 'Das Teil ist neu und steht noch nicht im Lager? Leg es hier an. Eigentümer und Inventar stehen fest.',
+        order: {
+            place: 'Stattdessen beschaffen',
+            nothingFits: 'Im Lager liegt nichts in der gewünschten Größe. Der Ersatz kann bestellt werden, der Tausch wartet dann auf die Beschaffung.',
+            waiting: 'Der Ersatz ist bestellt. Sobald die Beschaffung als erledigt markiert ist, wird das neue Teil hier eingetragen.',
+            open: 'Zur Beschaffung',
+            badge: 'Bestellt',
+            deleteConfirm: 'Bestellung löschen? Danach kann wieder ein Teil aus dem Lager gewählt werden.',
+        },
         arrivalName: 'Bezeichnung',
         arrivalInternalId: 'Kennzeichnung',
         arrivalSize: 'Größe',
@@ -8984,6 +8992,7 @@ export default {
         fromStockSubmit: 'Ausgeben',
         fromStockDone: 'Die Ausgabe wurde als Vorgang gestartet und die Beschaffung ist erledigt.',
         openMovement: 'Vorgang öffnen',
+        forSwap: 'Für einen Tausch bestellt: Vorgang öffnen',
     },
     forms: {
         create: 'Umfrage erstellen',

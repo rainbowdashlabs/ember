@@ -8,18 +8,14 @@ import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import SizeBadge from '@/components/badge/SizeBadge.vue'
-import MemberName from '@/components/avatar/MemberName.vue'
 import type { ProcurementResponse } from '@/api/generated/schema'
-import { formatDate } from '@/util/format'
+import ProcurementEntryDetails from './ProcurementEntryDetails.vue'
 
 const { t } = useI18n()
 
+/** One order on the procurement page: what it is, and what may be done with it. */
 defineProps<{
   entry: ProcurementResponse
   canManageProcurement: boolean
@@ -36,28 +32,7 @@ defineEmits<{
 <template>
   <NeutralContainer data-testid="procurement-entry">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-      <div class="space-y-1">
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="font-medium">{{ entry.inventoryName }}</span>
-          <SizeBadge>{{ entry.sizeLabel || t('common.unisize') }}</SizeBadge>
-          <SuccessBadge v-if="entry.fulfilledAt">{{ t('procurement.fulfilled') }}</SuccessBadge>
-          <ErrorBadge v-else>{{ t('procurement.open') }}</ErrorBadge>
-          <InfoBadge v-if="entry.stock.length > 0" data-testid="procurement-in-stock">
-            {{ t('procurement.inStock', {n: entry.stock.length}) }}
-          </InfoBadge>
-        </div>
-        <div class="text-sm text-(--text-muted) flex items-center gap-1">
-          <template v-if="entry.memberIdentity">
-            <MemberName :identity="entry.memberIdentity"/>
-            <span>,</span>
-          </template>
-          <span>{{ formatDate(entry.requestedAt) }}</span>
-        </div>
-        <div v-if="entry.fulfilledAt" class="text-xs text-(--text-muted)">
-          {{ t('procurement.fulfilledAt') }}: {{ formatDate(entry.fulfilledAt) }}
-        </div>
-        <div v-if="entry.notes" class="text-sm">{{ entry.notes }}</div>
-      </div>
+      <ProcurementEntryDetails :entry="entry"/>
 
       <ButtonRow v-if="canManageProcurement" class="shrink-0">
         <SecondaryButton
