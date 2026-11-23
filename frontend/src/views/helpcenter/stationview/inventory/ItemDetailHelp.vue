@@ -40,6 +40,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.itemDetail.actionsTitle')">
       <p>{{ t('helpCenter.itemDetail.actionsText') }}</p>
+      <p>{{ t('helpCenter.itemDetail.actionsMovementText') }}</p>
 
       <NeutralContainer class="space-y-3">
         <SubHeader>{{ t('itemDetail.actions') }}</SubHeader>

@@ -11,6 +11,7 @@ import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberInventoryLink from '@/components/inventory/MemberInventoryLink.vue'
+import MovementPieceBadge from '@/components/inventory/MovementPieceBadge.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import {ItemOwner, type InventoryItem} from '@/api/generated/schema'
 import type {PersonIdentity} from '@/util/personIdentity'
@@ -23,20 +24,24 @@ import type {ItemTableApi} from './useItemTable'
  * The pieces of one inventory, in the table every screen of the inventory shows them in.
  *
  * <p>The piece's name leads to its own page and the holder's name to what else they hold. A piece
- * that is lost is dimmed and says since when; one lent to another station says to whom.
+ * that is lost is dimmed and says since when; one lent to another station says to whom, and one an
+ * open movement carries says which movement and leads to it.
  */
 const props = withDefaults(defineProps<{
   items: ItemTableApi
   /** The pieces of this part, where the inventory is shown a block per kind. */
   subset?: readonly InventoryItem[]
   showActions?: boolean
-  lentItemMap?: Map<number, string>
+  lentItemMap?: ReadonlyMap<number, string>
+  /** The movement carrying each piece an open movement carries, promised or on its way. */
+  movementItemMap?: ReadonlyMap<number, number>
   containerPathById?: Map<number, string>
   memberIdentity: (memberId: number) => PersonIdentity | null | undefined
 }>(), {
   subset: undefined,
   showActions: false,
   lentItemMap: () => new Map(),
+  movementItemMap: () => new Map(),
   containerPathById: () => new Map(),
 })
 
@@ -55,7 +60,14 @@ function dimmedWhenLost(item: InventoryItem): string {
 </script>
 
 <template>
-  <RecordTable :row-class="dimmedWhenLost" :subset="subset" :table="items.table" plain test-id="items-table">
+  <RecordTable
+      :row-class="dimmedWhenLost"
+      :subset="subset"
+      :table="items.table"
+      menu-actions
+      plain
+      test-id="items-table"
+  >
     <template #cell-name="{row}">
       <router-link :to="{name: routes.item, params: {id: row.id}}" class="font-medium hover:text-primary hover:underline">{{ row.name }}</router-link>
       <span v-if="row.lostAt" class="ml-2 text-xs text-error font-normal">{{ t('inventory.edit.lost') }} ({{ formatDate(row.lostAt) }})</span>
@@ -63,6 +75,7 @@ function dimmedWhenLost(item: InventoryItem): string {
         <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="mr-0.5 h-2.5 w-2.5"/>
         {{ t('inventory.detail.lentTo') }} {{ lentItemMap.get(row.id) }}
       </InfoBadge>
+      <MovementPieceBadge :movement-id="movementItemMap.get(row.id)" class="ml-2"/>
     </template>
     <template #cell-size="{row, text}">
       <SizeBadge v-if="text" :lost="!!row.lostAt">{{ text }}</SizeBadge>
@@ -88,6 +101,7 @@ function dimmedWhenLost(item: InventoryItem): string {
       <ItemActions
           :item="row"
           :lent-out="lentItemMap.has(row.id)"
+          :on-movement="movementItemMap.has(row.id)"
           :show-actions="showActions"
           @assign="emit('assign', $event)"
           @delete="emit('delete', $event)"

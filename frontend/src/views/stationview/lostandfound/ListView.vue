@@ -127,8 +127,28 @@ const {running: claiming, failure: claimFailure, run: confirmClaim} = useAsyncAc
     {formatError: failureText},
 )
 
+/** The pieces a release or a hand-over is on its way for. */
+const inFlight = ref(new Set<number>())
+const confirming = computed(() => inFlight.value.size > 0)
+
+/**
+ * Runs a release or a hand-over of one piece once, holding the dialog's button while it does.
+ * Shift carries either out without the dialog, so the hold lives here rather than on the button. It
+ * is kept per piece: a second press on the same piece while the first is on its way is dropped,
+ * while another piece goes ahead.
+ */
+async function onlyOnce(itemId: number, work: () => Promise<unknown>): Promise<void> {
+  if (inFlight.value.has(itemId)) return
+  inFlight.value.add(itemId)
+  try {
+    await work()
+  } finally {
+    inFlight.value.delete(itemId)
+  }
+}
+
 const release = useConfirmAction<number>({
-  onConfirm: (itemId) => lostAndFound.releaseItem(itemId).then(() => undefined),
+  onConfirm: (itemId) => onlyOnce(itemId, () => lostAndFound.releaseItem(itemId)),
   onSuccess: async () => {
     await reload()
     refreshSidebarCounts()
@@ -136,16 +156,12 @@ const release = useConfirmAction<number>({
 })
 
 const provided = useConfirmAction<number>({
-  onConfirm: (itemId) => lostAndFound.markProvided(itemId),
+  onConfirm: (itemId) => onlyOnce(itemId, () => lostAndFound.markProvided(itemId)),
   onSuccess: async () => {
     await reload()
     refreshSidebarCounts()
   },
 })
-
-const {running: confirming, run: runConfirm} = useAsyncAction(
-    (confirm: () => Promise<void>) => confirm(),
-)
 
 const {failure: deleteFailure, run: handleDelete} = useAsyncAction(
     async (itemId: number) => {
@@ -223,12 +239,12 @@ const createFailure = computed(() => shown(rawCreateFailure.value))
       <LostItemConfirmModal v-model="release.show.value" :title="t('lostAndFound.releaseConfirmTitle')"
                             :message="t('lostAndFound.releaseConfirmMessage')"
                             :confirm-label="t('lostAndFound.release')"
-                            :loading="confirming" @confirm="runConfirm(release.confirm)"/>
+                            :loading="confirming" @confirm="release.confirm"/>
 
       <LostItemConfirmModal v-model="provided.show.value" :title="t('lostAndFound.providedConfirmTitle')"
                             :message="t('lostAndFound.providedConfirmMessage')"
                             :confirm-label="t('lostAndFound.provided')"
-                            :loading="confirming" @confirm="runConfirm(provided.confirm)"/>
+                            :loading="confirming" @confirm="provided.confirm"/>
 
       <LostItemCreateModal v-model="showCreate" :creating="creating" :failure="createFailure"
                            :saved-without-image="pendingItemId !== null"

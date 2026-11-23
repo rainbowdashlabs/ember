@@ -14,6 +14,7 @@ import {useItemTable} from '../itemtable/useItemTable'
 import {InventoryType, type InventoryDetail, type InventoryItem} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {inventory} from '@/api'
+import ItemReturnAndLossModals from './ItemReturnAndLossModals.vue'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -57,27 +58,7 @@ function getSizeLabel(sizeId: number | null | undefined): string {
   return props.detail.sizes.find(s => s.id === sizeId)?.label ?? ''
 }
 
-async function unassignItem(item: InventoryItem) {
-  try {
-    if (props.detail.inventoryType === InventoryType.EXTERNAL) {
-      await inventory.deleteItem(item.id)
-    } else {
-      await inventory.assignItem(item.id, {memberId: null, memberName: ''})
-    }
-    emit('itemsChanged')
-  } catch (e) {
-    emit('error', describeFailure(e, t))
-  }
-}
-
-async function doMarkLost(item: InventoryItem) {
-  try {
-    await inventory.markLost(item.id)
-    emit('itemsChanged')
-  } catch (e) {
-    emit('error', describeFailure(e, t))
-  }
-}
+const returnAndLoss = ref<InstanceType<typeof ItemReturnAndLossModals> | null>(null)
 
 async function doMarkFound(item: InventoryItem) {
   try {
@@ -119,10 +100,17 @@ async function doMarkFound(item: InventoryItem) {
         @edit="modals?.openEdit($event)"
         @history="modals?.openHistory($event)"
         @mark-found="doMarkFound($event)"
-        @mark-lost="doMarkLost($event)"
-        @unassign="unassignItem($event)"
+        @mark-lost="returnAndLoss?.markLost($event)"
+        @unassign="returnAndLoss?.unassign($event)"
     />
   </NeutralContainer>
 
   <ItemModals ref="modals" :detail="detail" :members="members" @items-changed="emit('itemsChanged')" @error="emit('error', $event)"/>
+
+  <ItemReturnAndLossModals
+      ref="returnAndLoss"
+      :external="detail.inventoryType === InventoryType.EXTERNAL"
+      @changed="emit('itemsChanged')"
+      @error="emit('error', $event)"
+  />
 </template>

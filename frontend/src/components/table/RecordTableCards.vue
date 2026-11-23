@@ -20,7 +20,9 @@ import type {DataTableApi} from '@/composables/useDataTable'
  * <p>What can be done with a row stands at the foot of the card, under a rule of its own, rather
  * than beside the heading as it does in a table's own row. A row's buttons are as wide as their
  * words and a phone is not, so next to the heading they took the card's width from it and stacked
- * themselves down its side; the whole width is the one place they all fit.
+ * themselves down its side; the whole width is the one place they all fit. A row whose actions are
+ * one menu button (`menuActions`) keeps it beside the heading instead: a single round button takes
+ * almost no width there, and alone at the foot it cost the card a line and a rule for nothing.
  *
  * <p>The cells stand two to a line with a line's worth of air between them. Packed tighter, a label
  * and the value under it ran into the next label, and a cell whose value is a badge or two read as
@@ -35,6 +37,8 @@ const props = defineProps<{
   /** Whether the sort and filter controls stand above the cards, which only the whole table wants. */
   controls: boolean
   rowClass?: (row: Row) => string
+  /** Whether the actions are one menu button, shown beside the heading rather than at the foot. */
+  menuActions?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -57,11 +61,16 @@ const details = computed(() => props.table.visibleColumns.slice(1))
         class="space-y-3"
         @click="clickable && emit('row-click', row)"
     >
-      <div class="flex items-center gap-2 min-w-0 font-medium">
-        <div v-if="$slots.lead" @click.stop><slot :row="row" name="lead"/></div>
-        <RecordCell v-if="heading" v-slot="{text}" :column="heading" :row="row" :table="table">
-          <slot :name="`cell-${heading.key}`" :row="row" :text="text">{{ text }}</slot>
-        </RecordCell>
+      <div class="flex items-center gap-2">
+        <div class="flex flex-1 items-center gap-2 min-w-0 font-medium">
+          <div v-if="$slots.lead" @click.stop><slot :row="row" name="lead"/></div>
+          <RecordCell v-if="heading" v-slot="{text}" :column="heading" :row="row" :table="table">
+            <slot :name="`cell-${heading.key}`" :row="row" :text="text">{{ text }}</slot>
+          </RecordCell>
+        </div>
+        <div v-if="menuActions && $slots.actions" class="shrink-0 -my-1" @click.stop>
+          <slot :row="row" name="actions"/>
+        </div>
       </div>
       <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
         <RecordCell v-for="column in details" :key="column.key" v-slot="{text}" :column="column" :row="row" :table="table">
@@ -72,7 +81,7 @@ const details = computed(() => props.table.visibleColumns.slice(1))
         </RecordCell>
       </dl>
       <slot :row="row" name="card-extra"/>
-      <div v-if="$slots.actions" class="border-t border-(--border) pt-3" @click.stop>
+      <div v-if="!menuActions && $slots.actions" class="border-t border-(--border) pt-3" @click.stop>
         <slot :row="row" name="actions"/>
       </div>
     </NeutralContainer>

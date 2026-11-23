@@ -3,20 +3,22 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, type VueWrapper} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import DocumentModal from '@/components/documents/DocumentModal.vue'
 import StoreView from './StoreView.vue'
+import {followModifierKeys} from '@/util/modifierKeys'
 
 const listStation = vi.fn()
+const prune = vi.fn()
 
 vi.mock('@/api', () => ({
     documents: {
         listStation: (...args: unknown[]) => listStation(...args),
         listTags: vi.fn(async () => []),
         listIds: vi.fn(async () => []),
-        prune: vi.fn(),
+        prune: (...args: unknown[]) => prune(...args),
         uploadForStation: vi.fn(),
     },
     stationMembers: {listMembers: vi.fn(async () => [])},
@@ -122,5 +124,56 @@ describe('StoreView generating', () => {
         const dialog = view.findComponent(DocumentModal)
         expect(dialog.props('modelValue')).toBe(true)
         expect(dialog.props('document')).toMatchObject({id: 5, title: 'Ausweis'})
+    })
+})
+
+/**
+ * Deleting the chosen documents asks first, and pressing the button with shift held deletes them
+ * without the question.
+ */
+describe('StoreView pruning', () => {
+    beforeAll(() => followModifierKeys())
+    beforeEach(() => {
+        vi.clearAllMocks()
+        permissions.held = true
+        prune.mockResolvedValue(undefined)
+        listStation.mockResolvedValue({documents: [documentTitled(1, 'Anderes'), documentTitled(2, 'Altlast')], total: 2})
+    })
+    let attached: VueWrapper | null = null
+    afterEach(() => {
+        window.dispatchEvent(new KeyboardEvent('keyup', {key: 'Shift'}))
+        attached?.unmount()
+        attached = null
+    })
+
+    async function storeWithOneChosen() {
+        const view = await mountSuspended(StoreView, {attachTo: document.body})
+        attached = view
+        await flushPromises()
+        await boxes(view)[1]!.setValue(true)
+        return view
+    }
+
+    it('asks before deleting the chosen documents', async () => {
+        const view = await storeWithOneChosen()
+
+        await view.find('[data-testid="documents-prune"]').trigger('click')
+
+        expect(view.findComponent({name: 'ConfirmDeleteModal'}).props('modelValue')).toBe(true)
+        expect(prune).not.toHaveBeenCalled()
+
+        view.findComponent({name: 'ConfirmDeleteModal'}).vm.$emit('confirm')
+        await vi.waitFor(() => expect(prune).toHaveBeenCalledWith([2]))
+    })
+
+    it('deletes at once while shift is held', async () => {
+        const view = await storeWithOneChosen()
+
+        await view.find('[data-testid="documents-prune"]').trigger('click', {shiftKey: true})
+
+        await vi.waitFor(() => expect(prune).toHaveBeenCalledWith([2]))
+        await flushPromises()
+        expect(view.findComponent({name: 'ConfirmDeleteModal'}).props('modelValue')).toBe(false)
+        expect(listStation).toHaveBeenCalledTimes(2)
     })
 })

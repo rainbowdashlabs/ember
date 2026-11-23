@@ -50,6 +50,7 @@ const {running, failure, run: confirm} = useAsyncAction(async () => {
     </SecondaryButton>
     <ConfirmDeleteModal
         v-model="confirming"
+        data-confirm-always
         :title="t('oneTimePassword.confirmTitle')"
         :message="t('oneTimePassword.confirmText', {name})"
         :confirm-label="t('oneTimePassword.action')"

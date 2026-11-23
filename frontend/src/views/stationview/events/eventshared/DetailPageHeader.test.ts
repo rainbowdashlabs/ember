@@ -3,10 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {afterEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest'
 import {enableAutoUnmount, flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import {h} from 'vue'
+import {followModifierKeys} from '@/util/modifierKeys'
 import DetailPageHeader from './DetailPageHeader.vue'
 
 enableAutoUnmount(afterEach)
@@ -32,6 +33,11 @@ async function mountHeader(props: Record<string, unknown>, entries = false) {
   return header
 }
 
+/** Presses and releases shift the way a reader holding it down would. */
+function holdShift(held: boolean) {
+  window.dispatchEvent(new KeyboardEvent(held ? 'keydown' : 'keyup', {key: 'Shift'}))
+}
+
 async function openMenu() {
   inPage('page-actions-trigger')!.click()
   await settle()
@@ -39,6 +45,9 @@ async function openMenu() {
 
 /** Both detail pages share one head: Back, the primary Edit and one menu ending in Delete. */
 describe('DetailPageHeader', () => {
+  beforeAll(() => followModifierKeys())
+  afterEach(() => holdShift(false))
+
   it('shows only Back to a reader who may neither edit nor delete', async () => {
     await mountHeader({editTo: null, remove: null})
 
@@ -99,5 +108,18 @@ describe('DetailPageHeader', () => {
 
     expect(document.querySelector('[role="dialog"]')).toBeNull()
     expect(document.querySelector('[role="alert"]')).not.toBeNull()
+  })
+
+  it('deletes at once while shift is held', async () => {
+    const remove = vi.fn(async () => undefined)
+    await mountHeader({editTo: null, remove, deleteTestId: 'page-delete', deleteMessage: 'Wirklich löschen?'})
+
+    await openMenu()
+    holdShift(true)
+    inPage('page-delete')!.dispatchEvent(new MouseEvent('click', {bubbles: true, shiftKey: true}))
+    await settle()
+
+    expect(remove).toHaveBeenCalledOnce()
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
   })
 })

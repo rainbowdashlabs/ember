@@ -7,6 +7,8 @@
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
+import CallOffChoice from '@/views/stationview/inventory/movementview/CallOffChoice.vue'
+import {OldPieceWhereabouts} from '@/api/generated/schema'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 
 const {t} = useI18n()
@@ -26,8 +28,20 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.movementDetail.acksText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.movementDetail.arrival')">
+      <p>{{ t('helpCenter.movementDetail.arrivalText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.movementDetail.endings')">
       <p>{{ t('helpCenter.movementDetail.endingsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.movementDetail.callOff')">
+      <p>{{ t('helpCenter.movementDetail.callOffAtStationText') }}</p>
+      <CallOffChoice :old-piece="OldPieceWhereabouts.AT_STATION" :give-back="true"/>
+      <p>{{ t('helpCenter.movementDetail.callOffAwayText') }}</p>
+      <CallOffChoice :old-piece="OldPieceWhereabouts.AWAY" :plan-way-back="true"/>
+      <p>{{ t('helpCenter.movementDetail.callOffMemberText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.movementDetail.rechain')">

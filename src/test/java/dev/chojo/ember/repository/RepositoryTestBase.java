@@ -164,6 +164,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.InventoryTagService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
+import dev.chojo.ember.feature.inventory.service.LeavingMemberGear;
 import dev.chojo.ember.feature.inventory.service.LineTargetService;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
@@ -589,7 +590,8 @@ public abstract class RepositoryTestBase {
                 newDocumentService(storage),
                 new SignatureImageService(new AccountSignatureRepository(), accountRepo, storage),
                 new AccountReach(accountRepo),
-                new MessageErasure(new ConversationRepository()));
+                new MessageErasure(new ConversationRepository()),
+                new LeavingMemberGear(itemMovementService, itemCustodyService, inventoryRepo));
     }
 
     /**
@@ -882,6 +884,7 @@ public abstract class RepositoryTestBase {
                 selfCheckRepo,
                 inventoryCheckService,
                 inventoryRepo,
+                itemMovementRepo,
                 stationMemberRepo,
                 accountRepo,
                 selfCheckNotifications);

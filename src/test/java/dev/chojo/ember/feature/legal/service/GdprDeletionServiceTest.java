@@ -13,6 +13,13 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.documents.entity.Uploader;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
+import dev.chojo.ember.feature.inventory.entity.MovementState;
+import dev.chojo.ember.feature.inventory.service.ItemMovementService;
+import dev.chojo.ember.feature.inventory.service.LeavingMemberGear;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -65,7 +72,8 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
                 newDocumentService(storage),
                 signatureImages,
                 new AccountReach(accountRepo),
-                new MessageErasure(new ConversationRepository()));
+                new MessageErasure(new ConversationRepository()),
+                new LeavingMemberGear(itemMovementService, itemCustodyService, inventoryRepo));
         station = stationRepo.create("GdprStation");
         Account account = accountRepo.create("gdpr-del@test.com", "Delete", "Me");
         accountRepo.createCredential(account.id(), "hash");
@@ -137,6 +145,105 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         service.anonymizeMember(aloneMember.id());
 
         assertTrue(accountRepo.findById(alone.id()).isEmpty());
+    }
+
+    /**
+     * A deleted member's gear comes off their record before they are erased: their open movement closes,
+     * the station's piece goes back on the shelf, the association's piece back into the station's hold,
+     * and a missing one stays missing on nobody's record.
+     */
+    @Test
+    @Order(23)
+    void deletingAMemberTakesTheirGearBackFirst() {
+        var leaving = accountRepo.create("gdpr-gear@test.com", "Gear", "Holder");
+        var leavingMember = stationMemberRepo.create(station.id(), leaving.id());
+        int inventoryId = inventoryRepo
+                .create(station.id(), "GdprGear " + System.nanoTime(), InventoryType.MIXED, false)
+                .id();
+        int own = held(inventoryId, "GG-1", ItemOwner.STATION, leavingMember.id());
+        int theirs = held(inventoryId, "GG-2", ItemOwner.CLUSTER, leavingMember.id());
+        int missing = held(inventoryId, "GG-3", ItemOwner.STATION, leavingMember.id());
+        itemCustodyService.markLost(missing, null, null);
+        int swapped = held(inventoryId, "GG-4", ItemOwner.STATION, leavingMember.id());
+        var swap = itemMovementService.create(
+                station.id(),
+                MovementPurpose.EXCHANGE,
+                leavingMember.id(),
+                "Gear Holder",
+                swapped,
+                inventoryId,
+                null,
+                null,
+                "Kaputt",
+                new ItemMovementService.Actor(leavingMember.id(), true),
+                null);
+
+        service.anonymizeMember(leavingMember.id());
+
+        assertEquals(
+                ItemCustody.WITH_OWNER,
+                inventoryRepo.findItemById(own).orElseThrow().custody());
+        assertEquals(
+                ItemCustody.AT_STATION,
+                inventoryRepo.findItemById(theirs).orElseThrow().custody());
+        var lost = inventoryRepo.findItemById(missing).orElseThrow();
+        assertEquals(ItemCustody.LOST, lost.custody(), "a missing piece stays missing");
+        assertNull(lost.assignedTo());
+        assertFalse(itemMovementService.isOnAMovement(swapped), "the open swap closed");
+        assertEquals(
+                ItemCustody.WITH_OWNER,
+                inventoryRepo.findItemById(swapped).orElseThrow().custody());
+        assertTrue(itemMovementRepo
+                .findById(swap.id())
+                .map(m -> m.state() != MovementState.OPEN)
+                .orElse(true));
+    }
+
+    /**
+     * Erasing a member never fails over their gear: a piece another member's planned hand-out has
+     * promised still comes off the record, rests on the shelf, and stays promised.
+     */
+    @Test
+    @Order(24)
+    void deletingAMemberSucceedsWhenAnotherMovementNamesTheirPiece() {
+        var leaving = accountRepo.create("gdpr-promised@test.com", "Promised", "Piece");
+        var leavingMember = stationMemberRepo.create(station.id(), leaving.id());
+        var other = accountRepo.create("gdpr-receiver@test.com", "Gets", "It");
+        var otherMember = stationMemberRepo.create(station.id(), other.id());
+        int inventoryId = inventoryRepo
+                .create(station.id(), "GdprPromised " + System.nanoTime(), InventoryType.INTERNAL, false)
+                .id();
+        int piece = held(inventoryId, "GP-1", ItemOwner.STATION, leavingMember.id());
+        var handOut = itemMovementService.create(
+                station.id(),
+                MovementPurpose.ISSUE,
+                otherMember.id(),
+                "Gets It",
+                null,
+                inventoryId,
+                null,
+                null,
+                "Weitergabe",
+                new ItemMovementService.Actor(otherMember.id(), true),
+                piece);
+
+        assertDoesNotThrow(() -> service.anonymizeMember(leavingMember.id()));
+
+        var item = inventoryRepo.findItemById(piece).orElseThrow();
+        assertEquals(ItemCustody.WITH_OWNER, item.custody(), "it rests on the shelf");
+        assertNull(item.assignedTo());
+        assertEquals(
+                handOut.id(),
+                itemMovementRepo.findOpenByIncomingItem(piece).orElseThrow().id(),
+                "and is still promised");
+    }
+
+    private int held(int inventoryId, String code, ItemOwner owner, int memberId) {
+        int id = inventoryRepo
+                .createItem(inventoryId, code, "Jacke", null, null, owner, null)
+                .id();
+        itemCustodyService.assignToMember(id, memberId, "Gear Holder");
+        return id;
     }
 
     /** An association still needs the account of somebody who holds a role in it, so only the member goes. */

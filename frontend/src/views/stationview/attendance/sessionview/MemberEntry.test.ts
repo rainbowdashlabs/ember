@@ -41,6 +41,7 @@ function swap(overrides: Partial<SwapNote> = {}): SwapNote {
         inventoryName: 'Einsatzjacke',
         itemName: 'Einsatzjacke 04',
         itemSize: '52',
+        droppable: true,
         ...overrides,
     }
 }

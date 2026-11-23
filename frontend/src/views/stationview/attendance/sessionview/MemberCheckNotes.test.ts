@@ -5,7 +5,8 @@
  */
 /** @vitest-environment happy-dom */
 import {mount} from '@vue/test-utils'
-import {describe, expect, it} from 'vitest'
+import {afterEach, beforeAll, describe, expect, it} from 'vitest'
+import {followModifierKeys} from '@/util/modifierKeys'
 import MemberCheckNotes from './MemberCheckNotes.vue'
 import type {MemberNotes, SwapNote} from '@/api/generated/schema'
 
@@ -16,7 +17,15 @@ function notes(overrides: Partial<MemberNotes> = {}): MemberNotes {
     return {memberId: 1, swaps: [], foundItems: [], birthdayDaysAgo: null, ...overrides}
 }
 
+/** Presses and releases shift the way a reader holding it down would. */
+function holdShift(held: boolean) {
+    window.dispatchEvent(new KeyboardEvent(held ? 'keydown' : 'keyup', {key: 'Shift'}))
+}
+
 describe('MemberCheckNotes', () => {
+    beforeAll(() => followModifierKeys())
+    afterEach(() => holdShift(false))
+
     it('shows nothing at all for a member with nothing outstanding', () => {
         const wrapper = mount(MemberCheckNotes, {props: {notes: notes()}, ...i18n})
 
@@ -57,6 +66,7 @@ describe('MemberCheckNotes', () => {
             inventoryName: 'Einsatzjacke',
             itemName: 'Einsatzjacke 04',
             itemSize: '52',
+            droppable: true,
             ...overrides,
         }
     }
@@ -196,5 +206,28 @@ describe('MemberCheckNotes', () => {
 
         confirm.vm.$emit('confirm')
         expect(wrapper.emitted('dropSwap')).toEqual([[7]])
+    })
+
+    /** Once a piece has changed hands the swap is called off on its own page, so the sheet offers no drop. */
+    it('offers no drop for a swap whose pieces have moved', () => {
+        const wrapper = mount(MemberCheckNotes, {
+            props: {canManageSwap: true, notes: notes({swaps: [handOver({droppable: false})]})},
+            ...i18n,
+        })
+
+        expect(wrapper.find('[data-testid="note-swap-drop"]').exists()).toBe(false)
+    })
+
+    it('calls a swap off at once while shift is held', async () => {
+        const wrapper = mount(MemberCheckNotes, {
+            props: {canManageSwap: true, notes: notes({swaps: [handOver()]})},
+            ...i18n,
+        })
+
+        holdShift(true)
+        await wrapper.find('[data-testid="note-swap-drop"]').trigger('click', {shiftKey: true})
+
+        expect(wrapper.emitted('dropSwap')).toEqual([[7]])
+        expect(wrapper.findComponent({name: 'ConfirmDeleteModal'}).props('modelValue')).toBe(false)
     })
 })

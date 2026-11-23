@@ -34,6 +34,7 @@ import {
 } from '@/api/mailProviders'
 import {StationPermission} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useSession} from '@/composables/useSession'
 import {describeFailure} from '@/util/failure'
 
@@ -75,7 +76,6 @@ async function saveSigningSecret(secret: string) {
   handleSuccess(t('mailWebhook.signingSecretSaved'))
 }
 
-const showClearModal = ref(false)
 const clearing = ref(false)
 
 /**
@@ -87,7 +87,6 @@ async function clearProviders() {
   try {
     await clearStationProviders()
     providers.value = []
-    showClearModal.value = false
     handleSuccess(t('mailChain.cleared'))
   } catch (e) {
     handleFailure(e)
@@ -95,6 +94,10 @@ async function clearProviders() {
     clearing.value = false
   }
 }
+
+const {show: showClearModal, request: requestClear, confirm: confirmClear} = useConfirmAction<true>({
+  onConfirm: clearProviders,
+})
 
 async function saveProviders() {
   if (!providersLoaded.value) return
@@ -151,7 +154,7 @@ async function test(position: number, recipient: string) {
           :test-results="testResults"
           show-display-fields
           @test="test"
-          @clear="showClearModal = true"
+          @clear="requestClear(true)"
       >
         <template #webhook="{provider, position}">
           <MailWebhookPanel
@@ -171,7 +174,7 @@ async function test(position: number, recipient: string) {
       />
       <NotificationSchedulePanel/>
       <MailProviderFreeTiers/>
-      <ClearProvidersModal v-model="showClearModal" :clearing="clearing" @confirm="clearProviders"/>
+      <ClearProvidersModal v-model="showClearModal" :clearing="clearing" @confirm="confirmClear"/>
     </div>
   </ViewContent>
 </template>

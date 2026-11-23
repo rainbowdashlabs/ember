@@ -57,7 +57,7 @@ class ManagedMemberRoutesTest {
         when(managed.managed(GUARDIAN)).thenReturn(List.of(new ManagedMember(12, 3, 2, "Kind", "k@test.com")));
         when(managed.profile(GUARDIAN, 12)).thenReturn(new MemberProfile(List.of(), List.of()));
         when(managed.inventory(GUARDIAN, 12)).thenReturn(List.of());
-        when(managed.requirements(GUARDIAN, 12)).thenReturn(List.of(new MemberRequirement(9, "Jacken", 2)));
+        when(managed.requirements(GUARDIAN, 12)).thenReturn(List.of(new MemberRequirement(9, "Jacken", 2, 1)));
 
         harness.run((server, client) -> {
             assertEquals(

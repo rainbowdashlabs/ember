@@ -49,6 +49,24 @@ public class ItemMovementRepository {
     }
 
     /**
+     * The movements of a station that are still running, newest first.
+     *
+     * <p>What a screen asking which pieces are spoken for reads. The closed ones are most of a station's
+     * history and say nothing about that.
+     *
+     * @param stationId the station
+     * @return its open movements
+     */
+    public List<ItemMovement> findOpenByStation(int stationId) {
+        return query("""
+                SELECT %s FROM item_movement WHERE station_id = :station_id AND state = :open \
+                ORDER BY created_at DESC;""", MOVEMENT_COLUMNS)
+                .single(call().bind("station_id", stationId).bind("open", MovementState.OPEN))
+                .map(ItemMovement.map())
+                .all();
+    }
+
+    /**
      * The movements standing on a step the cluster has to answer.
      *
      * <p>Its queue. A cluster does not browse its stations' movements; it wants the ones waiting on it, which
@@ -126,28 +144,10 @@ public class ItemMovementRepository {
     }
 
     /**
-     * The movement that is already under way with this piece, if there is one.
-     *
-     * <p>A piece can only be in one place, so it can only be on one chain: a second chain reads the
-     * custody the first one is moving and walks itself on the strength of it.
-     *
-     * @param itemId the piece that would be setting out
-     * @return the open movement holding it, or empty when it is free to set out
-     */
-    public Optional<ItemMovement> findOpenByOutgoingItem(int itemId) {
-        return query("""
-                SELECT %s FROM item_movement WHERE outgoing_item_id = :item_id AND state = :open \
-                ORDER BY created_at LIMIT 1;""", MOVEMENT_COLUMNS)
-                .single(call().bind("item_id", itemId).bind("open", MovementState.OPEN))
-                .map(ItemMovement.map())
-                .first();
-    }
-
-    /**
      * The open movement that has promised or received this piece, if one has.
      *
-     * <p>The mirror of {@link #findOpenByOutgoingItem(int)}, and needed for the same reason: a piece
-     * promised to one member must not be promised to another, or handed over the counter to a third.
+     * <p>A piece promised to one member must not be promised to another, or handed over the counter to
+     * a third.
      *
      * @param itemId the piece
      * @return the open movement that names it as arriving, or empty
@@ -162,10 +162,31 @@ public class ItemMovementRepository {
     }
 
     /**
-     * Whether an open movement names this piece, setting out or promised.
+     * Every open movement carrying this piece: naming it as setting out or as promised, or carrying it
+     * among the further pieces of a dispatch.
      *
      * @param itemId the piece
-     * @return {@code true} when an open movement names it on either side
+     * @return the ids of those movements, oldest first
+     */
+    public List<Integer> findOpenCarrying(int itemId) {
+        return query("""
+                SELECT m.id FROM item_movement m
+                WHERE m.state = :open
+                  AND (:item_id IN (m.outgoing_item_id, m.incoming_item_id)
+                       OR EXISTS (SELECT 1 FROM item_movement_item carried
+                                  WHERE carried.movement_id = m.id AND carried.item_id = :item_id))
+                ORDER BY m.created_at, m.id;""")
+                .single(call().bind("item_id", itemId).bind("open", MovementState.OPEN))
+                .map(row -> row.getInt("id"))
+                .all();
+    }
+
+    /**
+     * Whether an open movement carries this piece, setting out, promised or as one of the further
+     * pieces of a dispatch.
+     *
+     * @param itemId the piece
+     * @return {@code true} when an open movement carries it
      */
     public boolean isOnAMovement(int itemId) {
         return SqlSupport.exists(

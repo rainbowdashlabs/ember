@@ -71,6 +71,7 @@ const emit = defineEmits<{
   'save-folder': []
   'save-tag': []
   'bulk-move': []
+  'request-bulk-delete': []
   'bulk-delete': []
 }>()
 
@@ -115,7 +116,7 @@ const {t} = useI18n()
         @upload="(fs: File[]) => emit('upload', fs)"
         @prune="emit('prune')"
         @bulk-move="emit('open-bulk-move')"
-        @bulk-delete="deleteOpen = true"
+        @bulk-delete="emit('request-bulk-delete')"
         @clear-selection="emit('clear-selection')"
         @preview-file="(f: StationFile) => emit('preview-file', f)"
         @edit-file="(f: StationFile) => emit('edit-file', f)"

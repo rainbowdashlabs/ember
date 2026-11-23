@@ -9,11 +9,8 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
 import ContainerEditPanel from '@/views/stationview/inventory/storageview/ContainerEditPanel.vue'
 import AddExistingContainerModal from '@/views/stationview/inventory/storageview/AddExistingContainerModal.vue'
@@ -22,11 +19,11 @@ import ContainerHeader from '@/views/stationview/inventory/containerdetailview/C
 import ContainerContentsSection from '@/views/stationview/inventory/containerdetailview/ContainerContentsSection.vue'
 import ContainerHistorySection from '@/views/stationview/inventory/containerdetailview/ContainerHistorySection.vue'
 import AddItemsModal from '@/views/stationview/inventory/containerdetailview/AddItemsModal.vue'
-import Modal from '@/components/feedback/Modal.vue'
 import {inventoryContainers} from '@/api'
-import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {describeFailure, type Failure} from '@/util/failure'
+import type {Failure} from '@/util/failure'
 import type {
   ContainerDetail,
   ContainerContents,
@@ -52,7 +49,6 @@ const showNewChildModal = ref(false)
 const showAddExistingModal = ref(false)
 const showAddChoiceModal = ref(false)
 const showAddItemsModal = ref(false)
-const showDeleteConfirm = ref(false)
 
 function onAddChildChoice(target: 'existing' | 'new') {
   if (target === 'existing') showAddExistingModal.value = true
@@ -105,16 +101,12 @@ function onEditError(reported: Failure) {
   failure.value = reported
 }
 
-const {run: confirmDelete} = useAsyncAction(async () => {
-  if (!detail.value) return
-  try {
-    await inventoryContainers.deleteContainer(detail.value.container.id)
-    router.push({name: routes.storage})
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    showDeleteConfirm.value = false
-  }
-})
+const {show: showDeleteConfirm, requestDelete: requestDeleteContainer, confirm: confirmDelete} =
+  useConfirmDelete<number>({
+    onDelete: id => inventoryContainers.deleteContainer(id),
+    onSuccess: () => { void router.push({name: routes.storage}) },
+    failure,
+  })
 
 function navigateToContainer(id: number) {
   router.push({name: routes.container, params: {id: String(id)}})
@@ -150,7 +142,7 @@ watch(containerId, load)
           :kind-by-id="kindById"
           :failure="failure"
           @edit="editing = !editing"
-          @delete="showDeleteConfirm = true"
+          @delete="requestDeleteContainer(detail.container.id)"
       />
 
       <ContainerEditPanel
@@ -180,14 +172,12 @@ watch(containerId, load)
 
       <ContainerHistorySection :history="history" />
 
-      <Modal v-model="showDeleteConfirm" size="sm">
-        <SubHeader class="mb-2">{{ t('inventory.storage.deleteTitle') }}</SubHeader>
-        <p class="mb-4 text-sm">{{ t('inventory.storage.deleteWarning', {name: detail.container.name}) }}</p>
-        <div class="flex justify-end gap-2">
-          <SecondaryButton @click="showDeleteConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
-          <DeleteButton :label="t('common.delete')" @click="confirmDelete" />
-        </div>
-      </Modal>
+      <ConfirmDeleteModal
+          v-model="showDeleteConfirm"
+          :title="t('inventory.storage.deleteTitle')"
+          :message="t('inventory.storage.deleteWarning', {name: detail.container.name})"
+          @confirm="confirmDelete"
+      />
 
       <ContainerNewModal
           v-if="showNewChildModal"

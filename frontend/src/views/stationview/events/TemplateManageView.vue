@@ -23,6 +23,8 @@ import {StationPermission, type EventTemplate} from '@/api/generated/schema'
 import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -134,18 +136,17 @@ async function copyFederationShare(fromId: number, toId: number) {
 }
 
 /**
- * Deleting and reading the list back are answered for separately, so a template that is gone and a
- * list that then failed to refresh does not read as a template that is still there.
+ * Deletes a template, after asking unless shift is held. Deleting and reading the list back are
+ * answered for separately, so a template that is gone and a list that then failed to refresh does not
+ * read as a template that is still there.
  */
-async function deleteTemplate(id: number) {
-  try {
-    await events.deleteTemplate(id)
-  } catch (e) {
-    record(e)
-    return
-  }
-  await reload()
-}
+const {show: confirmingDelete, target: deleting, requestDelete: deleteTemplate, confirm: confirmDelete} = useConfirmDelete<EventTemplate>({
+  onDelete: async tpl => {
+    await events.deleteTemplate(tpl.id)
+  },
+  onSuccess: () => reload(),
+  failure,
+})
 </script>
 
 <template>
@@ -184,7 +185,7 @@ async function deleteTemplate(id: number) {
                   data-testid="duplicate-template"
                   @click="duplicateTemplate(tpl.id)"
               />
-              <DeleteButton @click="deleteTemplate(tpl.id)"/>
+              <DeleteButton @click="deleteTemplate(tpl)"/>
             </div>
           </NeutralContainer>
         </div>
@@ -201,5 +202,11 @@ async function deleteTemplate(id: number) {
         </div>
       </Modal>
     </div>
+
+    <ConfirmDeleteModal
+        v-model="confirmingDelete"
+        :message="t('eventTemplates.deleteConfirm', {name: deleting?.name ?? ''})"
+        @confirm="confirmDelete"
+    />
   </ViewContent>
 </template>

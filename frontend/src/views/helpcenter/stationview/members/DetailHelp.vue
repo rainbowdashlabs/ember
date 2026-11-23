@@ -22,13 +22,13 @@ import ScanHandOutPanel from '@/views/stationview/members/detailview/inventoryta
 import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
 import {LinkStatus} from '@/api/generated/schema'
 import {ref} from 'vue'
-import {items, requirements} from './detailhelp/inventoryFixtures'
+import {incoming, items, requirements} from './detailhelp/inventoryFixtures'
 
 const {t} = useI18n()
 
 const activeTab = ref('profile')
 const scanValue = ref('')
-const handOutMode = ref<HandOutMode>('NOW')
+const handOutMode = ref<HandOutMode>('PLANNED')
 const tabs = [
   {key: 'profile', label: t('memberDetail.tabProfile')},
   {key: 'permissions', label: t('memberDetail.tabPermissions')},
@@ -135,6 +135,7 @@ const tabs = [
     <HelpSection :title="t('helpCenter.membersDetail.missingTitle')">
       <p>{{ t('helpCenter.membersDetail.missingText') }}</p>
       <p>{{ t('helpCenter.membersDetail.missingHandOutText') }}</p>
+      <p>{{ t('helpCenter.membersDetail.incomingText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersDetail.scanTitle')">
@@ -150,7 +151,7 @@ const tabs = [
 
     <HelpSection :title="t('helpCenter.membersDetail.inventoryExampleTitle')">
       <p>{{ t('helpCenter.membersDetail.inventoryExampleText') }}</p>
-      <InventorySection :member-inventory="items" :requirements="requirements" can-assign can-manage-inventory/>
+      <InventorySection :member-inventory="items" :requirements="requirements" :incoming="incoming" can-assign can-manage-inventory/>
       <p>{{ t('helpCenter.membersDetail.returnEverythingText') }}</p>
       <p>{{ t('helpCenter.membersDetail.movementsText') }}</p>
     </HelpSection>

@@ -8,13 +8,12 @@ import {ref, computed, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
@@ -30,6 +29,7 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import {audienceLists, type AudienceLists} from '@/components/documents/generation'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {procedures} from '@/api'
 import {ProcedureStatus, StationPermission, type ProcedureDetail, type ProcedureItem, type StepDocumentState} from '@/api/generated/schema'
 import {formatDate, formatDateTime} from '@/util/format'
@@ -43,8 +43,6 @@ const {hasPermission, loaded} = useSession()
 const canEdit = computed(() => hasPermission(StationPermission.PROCEDURE_EDIT))
 
 const detail = ref<ProcedureDetail | null>(null)
-
-const showResolveModal = ref(false)
 
 const procedureId = computed(() => Number(route.params.id))
 
@@ -262,26 +260,27 @@ async function updateNote(item: ProcedureItem, note: string) {
 }
 
 /**
- * Closes the list, or opens it again, and then reads it back.
+ * Closes the list, or opens it again, and then reads it back. Asks first, unless shift is held.
  *
  * <p>The two are answered for separately. A list the server had already closed, followed by a page
  * that would not refresh, used to say the list would not close, and pressing again reopens it.
  */
-async function handleResolve() {
-  failure.value = null
-  try {
+const resolveLabel = computed(() => detail.value?.procedure.status === ProcedureStatus.OPEN
+    ? t('procedures.resolve')
+    : t('procedures.reopen'))
+
+const {show: showResolveModal, request: requestResolve, confirm: handleResolve} = useConfirmAction<true>({
+  onConfirm: async () => {
+    failure.value = null
     if (detail.value?.procedure.status === ProcedureStatus.OPEN) {
       await procedures.resolveProcedure(procedureId.value)
     } else {
       await procedures.reopenProcedure(procedureId.value)
     }
-    showResolveModal.value = false
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    return
-  }
-  await reload()
-}
+  },
+  onSuccess: () => reload(),
+  failure,
+})
 
 watch(loaded, (v) => {
   if (v) reload()
@@ -333,10 +332,10 @@ watch(loaded, (v) => {
           <SecondaryButton @click="router.push({ name: 'procedure-edit', params: { id: procedureId } })">
             <font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/> {{ t('common.edit') }}
           </SecondaryButton>
-          <SuccessButton v-if="detail.procedure.status === ProcedureStatus.OPEN" @click="showResolveModal = true">
+          <SuccessButton v-if="detail.procedure.status === ProcedureStatus.OPEN" @click="requestResolve(true)">
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/> {{ t('procedures.resolve') }}
           </SuccessButton>
-          <ErrorButton v-else @click="showResolveModal = true">
+          <ErrorButton v-else @click="requestResolve(true)">
             <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1"/> {{ t('procedures.reopen') }}
           </ErrorButton>
         </ButtonRow>
@@ -377,17 +376,13 @@ watch(loaded, (v) => {
       </div>
     </template>
 
-    <Modal v-model="showResolveModal">
-      <SubHeader class="mb-3">
-        {{ detail?.procedure.status === ProcedureStatus.OPEN ? t('procedures.resolve') : t('procedures.reopen') }}
-      </SubHeader>
-      <p class="mb-4">{{ detail?.procedure.name }}</p>
-      <ButtonRow pair align="end">
-        <SecondaryButton @click="showResolveModal = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton @click="handleResolve">
-          {{ detail?.procedure.status === ProcedureStatus.OPEN ? t('procedures.resolve') : t('procedures.reopen') }}
-        </PrimaryButton>
-      </ButtonRow>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="showResolveModal"
+        :title="resolveLabel"
+        :message="detail?.procedure.name ?? ''"
+        :confirm-label="resolveLabel"
+        neutral
+        @confirm="handleResolve"
+    />
   </ViewContent>
 </template>

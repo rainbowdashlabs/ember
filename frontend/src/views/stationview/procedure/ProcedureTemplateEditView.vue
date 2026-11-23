@@ -31,6 +31,8 @@ import { emptyRestriction, sameRestriction, toRestriction } from '@/components/i
 import type { RestrictionSelection } from '@/api/types'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { procedures } from '@/api'
 import { StationPermission, type ProcedureTemplateDetail, type ProcedureTemplateItem } from '@/api/generated/schema'
 
@@ -189,9 +191,11 @@ async function handleSaveItem() {
   })
 }
 
-async function handleDeleteItem(itemId: number) {
-  await writeThenReload(() => procedures.deleteTemplateItem(templateId.value, itemId))
-}
+/** Deletes a step of the template, after asking unless shift is held. */
+const {show: confirmingDeleteItem, target: deletingItemId, requestDelete: handleDeleteItem, confirm: confirmDeleteItem} =
+  useConfirmDelete<number>({
+    onDelete: itemId => writeThenReload(() => procedures.deleteTemplateItem(templateId.value, itemId)),
+  })
 
 /** The dependencies of the template, one entry per step and the step it waits for. */
 const dependencies = computed(() => procedures.dependencyEntries(detail.value?.dependencies ?? []))
@@ -349,5 +353,11 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         <p v-else class="text-sm text-[var(--text-muted)]">{{ t('procedures.empty') }}</p>
       </div>
     </Modal>
+
+    <ConfirmDeleteModal
+      v-model="confirmingDeleteItem"
+      :message="t('procedures.deleteItemConfirm', {title: deletingItemId === null ? '' : getItemById(deletingItemId)?.title ?? ''})"
+      @confirm="confirmDeleteItem"
+    />
   </ViewContent>
 </template>

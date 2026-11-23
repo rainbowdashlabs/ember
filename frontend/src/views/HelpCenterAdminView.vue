@@ -38,10 +38,6 @@ watch(
                      to="/helpcenter/admin/dashboard/overview" @navigate="close">
           {{ t('sidebar.overview') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'chart-line']" name="help-admin-statistics"
-                     to="/helpcenter/admin/dashboard/statistics" @navigate="close">
-          {{ t('sidebar.statistics') }}
-        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'building']" :label="t('sidebar.stations')"
@@ -112,6 +108,10 @@ watch(
                     to="/helpcenter/admin/2fa" name="help-admin-two-factor" @navigate="close"/>
 
       <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/helpcenter/admin/monitoring" group-key="monitoring">
+        <SidebarLink :icon="['fas', 'chart-line']" name="help-admin-statistics"
+                     to="/helpcenter/admin/monitoring/statistics" @navigate="close">
+          {{ t('sidebar.statistics') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'hard-drive']" name="help-admin-storage"
                      to="/helpcenter/admin/monitoring/storage" @navigate="close">
           {{ t('sidebar.storageDashboard') }}

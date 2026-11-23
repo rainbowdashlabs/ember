@@ -20,6 +20,8 @@ defineProps<{
   sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
   raisedFor: Map<number, RaisedReport[]>
   refusedFor: Map<string, string>
+  /** The pieces an open movement carries, which can be neither reported missing nor swapped here. */
+  onMovement: ReadonlySet<number>
   readOnly: boolean
 }>()
 
@@ -55,6 +57,7 @@ const {t} = useI18n()
         :size-label="entry.type === 'piece' ? sizeLabel(req, entry.item.sizeId) : ''"
         :raised="entry.type === 'piece' ? (raisedFor.get(entry.item.id) ?? []) : []"
         :refused-reason="refusedFor.get(entry.key) ?? ''"
+        :on-movement="entry.type === 'piece' && onMovement.has(entry.item.id)"
         :read-only="readOnly"
         @set-answer="(k, a) => emit('setAnswer', k, a)"
         @set-note="(k, n) => emit('setNote', k, n)"

@@ -5,6 +5,7 @@
  */
 import {ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {shiftIsHeld} from '@/util/modifierKeys'
 import {RegistrationStatus, WhenFull} from '@/api/generated/schema'
 import type {EnrichedFederationRegistration, RegistrationResponse} from '@/api/generated/schema'
 import {appointmentQueueRoutes, type QueueRoutes} from './queueRoutes'
@@ -56,8 +57,12 @@ export function useQueueActions(
     const denyQuestion = ref(false)
     let settleDeny: ((denied: boolean) => void) | null = null
 
-    /** Asks whether a sign-up that holds a place is to be denied, and answers with the choice. */
+    /**
+     * Asks whether a sign-up that holds a place is to be denied, and answers with the choice.
+     * Shift answers yes at once, as it does for every plain confirmation.
+     */
     function askDeny(): Promise<boolean> {
+        if (shiftIsHeld()) return Promise.resolve(true)
         settleDeny?.(false)
         denyQuestion.value = true
         return new Promise(resolve => {

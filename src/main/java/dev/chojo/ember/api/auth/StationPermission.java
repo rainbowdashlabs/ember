@@ -515,10 +515,19 @@ public enum StationPermission implements RouteRole {
     KNOWLEDGE_MANAGER(StationModule.KNOWLEDGE_BASE, KNOWLEDGE_EDIT, KNOWLEDGE_FEDERATE),
 
     /**
-     * Allows opening, renaming, closing and reopening the station's chats, removing any message in them and
-     * handling the messages members report there.
+     * Allows opening, renaming, closing and reopening the station's chats and deciding who sees them.
      */
-    MESSAGE_CHAT_MANAGE,
+    MESSAGE_CHAT_EDIT,
+
+    /**
+     * Allows removing any message in the station's chats and handling the messages members report there.
+     */
+    MESSAGE_CHAT_MODERATE,
+
+    /**
+     * Running the station's chats and moderating them, the two together.
+     */
+    MESSAGE_CHAT_MANAGE(MESSAGE_CHAT_EDIT, MESSAGE_CHAT_MODERATE),
 
     /**
      * Allows editing the stations look and feel.

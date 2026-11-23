@@ -29,6 +29,7 @@ import { waitingList, memberGroups } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useFlashMessage } from '@/composables/useFlashMessage'
 import { describeFailure, type Failure } from '@/util/failure'
 import { useListInvites } from './detailview/useListInvites'
@@ -55,8 +56,6 @@ const fields = ref<WaitingListField[]>([])
 const groups = ref<MemberGroup[]>([])
 const { message: success, flash } = useFlashMessage(3000)
 
-const showDeleteModal = ref(false)
-
 const sortedEntries = computed(() =>
   [...entries.value].sort((a, b) => b.score - a.score),
 )
@@ -77,7 +76,7 @@ const visibleFieldIds = computed(() => new Set(list.value?.visibleFields ?? []))
 
 /**
  * The list's own name at the head of the page, because a station keeps several of them and
- * "Bewerberliste" is the same word above each. The word stands there until the list has arrived, and
+ * "Warteliste" is the same word above each. The word stands there until the list has arrived, and
  * where it could not be fetched at all.
  */
 const pageTitle = computed(() => list.value?.name || t('pages.waiting-list-detail.title'))
@@ -176,10 +175,14 @@ function goBack() {
   router.push({ name: 'waiting-lists' })
 }
 
-const { running: deletingList, failure: deleteListFailure, run: confirmDeleteList } = useAsyncAction(async () => {
+const { running: deletingList, failure: deleteListFailure, run: deleteList } = useAsyncAction(async () => {
   failure.value = null
   await waitingList.deleteList(listId.value)
   router.push({ name: 'waiting-lists' })
+})
+
+const { show: showDeleteModal, request: requestDeleteList, confirm: confirmDeleteList } = useConfirmAction<true>({
+  onConfirm: async () => { await deleteList() },
 })
 
 const actionFailure = computed(() =>
@@ -210,7 +213,7 @@ function showFailure(reported: Failure) {
         :can-manage="canManage"
         @back="goBack"
         @manage-fields="navigateToFields"
-        @delete-list="showDeleteModal = true"
+        @delete-list="requestDeleteList(true)"
       />
 
       <Spinner v-if="loading" size="lg" />
@@ -266,6 +269,11 @@ function showFailure(reported: Failure) {
       :running="invitation.running.value"
       @cancel="invitation.cancel"
       @confirm="invitation.confirm"
+    />
+    <ConfirmDeleteModal
+      v-model="invite.confirmingRemove.value"
+      :message="t('waitingList.deleteInviteConfirm')"
+      @confirm="invite.confirmRemove"
     />
     <ConfirmDeleteModal
       v-model="showDeleteEntryModal"

@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -21,6 +21,8 @@ import IconButton from '@/components/button/IconButton.vue'
 import {knowledgeBase} from '@/api'
 import type {TrashEntry} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmAction} from '@/composables/useConfirmAction'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {describeFailure, type Failure} from '@/util/failure'
 import {formatBytes} from '@/util/storage'
 import {formatDateTime} from '@/util/format'
@@ -46,8 +48,6 @@ const {t} = useI18n()
 const entries = ref<TrashEntry[]>([])
 const bytes = ref(0)
 const notice = ref('')
-const purging = ref<TrashEntry | null>(null)
-const showEmpty = ref(false)
 const busy = ref(false)
 
 const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
@@ -95,39 +95,35 @@ async function restore(entry: TrashEntry) {
     busy.value = false
 }
 
-async function purge() {
-    const entry = purging.value
-    if (!entry) return
+/** Runs one change to the bin with its buttons held. */
+async function whileBusy<R>(work: () => Promise<R>): Promise<R> {
     busy.value = true
-    actionFailure.value = null
     try {
-        await knowledgeBase.purgeTrashed(entry)
-        purging.value = null
-        notice.value = t('kb.trashPurged', {name: entry.name})
-    } catch (e) {
-        actionFailure.value = describeFailure(e, t)
+        return await work()
+    } finally {
         busy.value = false
-        return
     }
-    await catchUp()
-    busy.value = false
 }
 
-async function empty() {
-    busy.value = true
-    actionFailure.value = null
-    try {
+const {show: showPurge, target: purging, requestDelete: requestPurge, confirm: purge} = useConfirmDelete<TrashEntry>({
+    onDelete: entry => whileBusy(async () => {
+        actionFailure.value = null
+        await knowledgeBase.purgeTrashed(entry)
+        notice.value = t('kb.trashPurged', {name: entry.name})
+    }),
+    onSuccess: () => whileBusy(catchUp),
+    failure: actionFailure,
+})
+
+const {show: showEmpty, request: requestEmpty, confirm: empty} = useConfirmAction<true>({
+    onConfirm: () => whileBusy(async () => {
+        actionFailure.value = null
         const result = await knowledgeBase.emptyTrash()
-        showEmpty.value = false
         notice.value = t('kb.trashEmptied', {count: result.cleared})
-    } catch (e) {
-        actionFailure.value = describeFailure(e, t)
-        busy.value = false
-        return
-    }
-    await catchUp()
-    busy.value = false
-}
+    }),
+    onSuccess: () => whileBusy(catchUp),
+    failure: actionFailure,
+})
 </script>
 
 <template>
@@ -144,7 +140,7 @@ async function empty() {
             <DeleteButton
                 v-if="entries.length > 0"
                 data-testid="kb-trash-empty"
-                @click="showEmpty = true"
+                @click="requestEmpty(true)"
             >
                 {{ t('kb.trashEmpty') }}
             </DeleteButton>
@@ -194,37 +190,30 @@ async function empty() {
                             :label="t('kb.trashPurge')"
                             class="text-error hover:bg-error/15"
                             data-testid="kb-trash-purge"
-                            @click="purging = entry"
+                            @click="requestPurge(entry)"
                         />
                     </div>
                 </div>
             </NeutralContainer>
         </div>
 
-        <Modal :model-value="purging !== null" @update:model-value="purging = null">
-            <SubHeader class="mb-1">{{ t('kb.trashPurge') }}</SubHeader>
-            <MutedText tag="p" size="sm" class="mb-3">
-                {{ t('kb.trashPurgeConfirm', {name: purging?.name ?? ''}) }}
-            </MutedText>
-            <ButtonRow pair align="end" class="mt-4">
-                <SecondaryButton data-cancel @click="purging = null">{{ t('common.cancel') }}</SecondaryButton>
-                <DeleteButton :disabled="busy" data-testid="kb-trash-purge-confirm" @click="purge">
-                    {{ t('common.delete') }}
-                </DeleteButton>
-            </ButtonRow>
-        </Modal>
+        <ConfirmDeleteModal
+            v-model="showPurge"
+            :title="t('kb.trashPurge')"
+            :message="t('kb.trashPurgeConfirm', {name: purging?.name ?? ''})"
+            :busy="busy"
+            confirm-test-id="kb-trash-purge-confirm"
+            @confirm="purge"
+        />
 
-        <Modal v-model="showEmpty">
-            <SubHeader class="mb-1">{{ t('kb.trashEmpty') }}</SubHeader>
-            <MutedText tag="p" size="sm" class="mb-3">
-                {{ t('kb.trashEmptyConfirm', {size: formatBytes(bytes)}) }}
-            </MutedText>
-            <ButtonRow pair align="end" class="mt-4">
-                <SecondaryButton data-cancel @click="showEmpty = false">{{ t('common.cancel') }}</SecondaryButton>
-                <DeleteButton :disabled="busy" data-testid="kb-trash-empty-confirm" @click="empty">
-                    {{ t('kb.trashEmpty') }}
-                </DeleteButton>
-            </ButtonRow>
-        </Modal>
+        <ConfirmDeleteModal
+            v-model="showEmpty"
+            :title="t('kb.trashEmpty')"
+            :message="t('kb.trashEmptyConfirm', {size: formatBytes(bytes)})"
+            :confirm-label="t('kb.trashEmpty')"
+            :busy="busy"
+            confirm-test-id="kb-trash-empty-confirm"
+            @confirm="empty"
+        />
     </div>
 </template>

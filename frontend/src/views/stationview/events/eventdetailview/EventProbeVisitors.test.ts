@@ -26,7 +26,7 @@ describe('EventProbeVisitors', () => {
         expect(visitors).toHaveBeenCalledWith(3, '2026-06-02')
         expect(wrapper.text()).toContain('Kommen zur Probe')
         expect(wrapper.text()).toContain('Mia Muster')
-        expect(wrapper.text()).toContain('Bewerberliste Jugend')
+        expect(wrapper.text()).toContain('Warteliste Jugend')
     })
 
     it('shows nothing where nobody comes', async () => {

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterItemIssued;
 import dev.chojo.ember.event.events.MovementAdvanced;
@@ -27,11 +28,13 @@ import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.MovementStanding;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
+import dev.chojo.ember.feature.inventory.entity.OldPieceWhereabouts;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementItemRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -85,6 +88,17 @@ public class ItemMovementService {
         this.carriedRepository = carriedRepository;
         this.targeting = targeting;
         this.eventBus = eventBus;
+    }
+
+    /**
+     * Tells the rest of the application about a movement once what it reports has been written. Outside
+     * a transaction that is at once; inside one, after the commit, so a refused call-off that rolls back
+     * never announces a way back that does not exist.
+     *
+     * @param event what happened
+     */
+    private void announce(DomainEvent event) {
+        Transactions.afterCommit(() -> eventBus.publish(event));
     }
 
     /**
@@ -242,7 +256,9 @@ public class ItemMovementService {
      *
      * <p>A piece that is already on a chain of its own is passed over rather than refused. Somebody
      * leaving usually has an exchange or two still running, and the whole request failing because of
-     * one of them would leave the station with nothing asked back at all.
+     * one of them would leave the station with nothing asked back at all. Every chain counts, the
+     * further pieces of a dispatch included, and the movements are started in one transaction, so the
+     * request is made for all of them or for none.
      *
      * @param stationId  the station asking
      * @param memberId   the member holding the gear
@@ -253,10 +269,21 @@ public class ItemMovementService {
     public List<ItemMovement> requestEverythingBack(int stationId, int memberId, String memberName, Actor actor) {
         var held = inventoryRepository.findItemsByMember(memberId).stream()
                 .filter(item -> item.custody() == ItemCustody.WITH_MEMBER)
-                .filter(item ->
-                        movementRepository.findOpenByOutgoingItem(item.id()).isEmpty())
+                .filter(item -> !movementRepository.isOnAMovement(item.id()))
                 .toList();
 
+        var started = Transactions.call(() -> askBack(stationId, memberId, memberName, actor, held));
+        log.info("Station {} asked member {} for {} piece(s) back", stationId, memberId, started.size());
+        return started;
+    }
+
+    /**
+     * Starts one return per piece, which the caller runs in one transaction.
+     *
+     * @return the movements started
+     */
+    private List<ItemMovement> askBack(
+            int stationId, int memberId, String memberName, Actor actor, List<InventoryItem> held) {
         var started = new ArrayList<ItemMovement>();
         for (InventoryItem item : held) {
             started.add(create(
@@ -272,7 +299,6 @@ public class ItemMovementService {
                     actor,
                     null));
         }
-        log.info("Station {} asked member {} for {} piece(s) back", stationId, memberId, started.size());
         return started;
     }
 
@@ -282,7 +308,8 @@ public class ItemMovementService {
      * <p>The rest of the load is recorded before the first step is walked, because that step moves the whole
      * consignment. A piece picked before the step that names it is written on the movement at once as a
      * promise, so nothing else can promise it. An actor speaking for a body above the station is recorded
-     * without a member, since none of the station's people did it.
+     * without a member, since none of the station's people did it. A piece reported missing sets out only
+     * on a loss report: an ordinary chain would have to move a thing nobody can find.
      *
      * @param carriedIncoming the further arriving pieces this movement carries
      * @see #create(int, MovementPurpose, Integer, String, Integer, Integer, Integer, Integer, String, Actor, Integer)
@@ -302,7 +329,11 @@ public class ItemMovementService {
             boolean lostReport,
             List<Integer> carriedIncoming) {
         requireThePiecesExist(outgoingItemId, pickedItemId);
+        if (!lostReport && outgoingItemId != null && isMissing(outgoingItemId)) {
+            throw InventoryRefusal.CUSTODY_PIECE_LOST.raise();
+        }
         requireItIsNotAlreadyOnItsWay(outgoingItemId, pickedItemId);
+        carriedIncoming.forEach(this::requireFree);
         requireSomethingToSwapFor(purpose, inventoryId);
         var target = targeting.resolve(stationId, purpose, memberId, outgoingItemId, pickedItemId, inventoryId);
         ItemOwner ownerKind = target.ownerKind();
@@ -338,7 +369,7 @@ public class ItemMovementService {
                 memberId,
                 outgoingItemId);
         ItemMovement started = acknowledge(movement.id(), first.id(), actor, "", pickedItemId);
-        eventBus.publish(new MovementStarted(
+        announce(new MovementStarted(
                 stationId,
                 started.id(),
                 memberId,
@@ -396,6 +427,7 @@ public class ItemMovementService {
                 .findById(movementId)
                 .orElseThrow(InventoryRefusal.MOVEMENT_NOT_HERE_TO_CORRECT::raise);
         if (movement.flowId() == null) throw InventoryRefusal.MOVEMENT_FLOW_GONE_BEFORE_CORRECTION.raise();
+        requireItsPiecesAreStillItsOwn(movement, correction);
 
         if (correction.detachArrival()) movementRepository.setIncomingItem(movementId, null);
         applyCorrectedCustody(movement, StepSubject.OUTGOING, correction.outgoing());
@@ -433,11 +465,50 @@ public class ItemMovementService {
         return movementRepository.findById(movementId).orElseThrow();
     }
 
+    /**
+     * Refuses a correction that would move or reopen a movement on a piece another open movement has
+     * taken up since.
+     *
+     * <p>A movement that was closed may be put right long after, and its pieces may be walking another
+     * chain by then. Writing their custody, or reopening this one around them, would have two chains
+     * read each other's work again. A correction that only closes the movement and moves nothing is left
+     * alone, since it claims nothing about the pieces.
+     *
+     * @param movement   the movement as it stands
+     * @param correction what is to be made true
+     * @throws RefusalResponse when another open movement carries a piece the correction touches
+     */
+    private void requireItsPiecesAreStillItsOwn(ItemMovement movement, Correction correction) {
+        boolean reopens = correction.closeAs() == null;
+        Integer outgoing = movement.outgoingItemId();
+        if (outgoing != null && (reopens || correction.outgoing() != null)) {
+            requireNoOtherMovementCarries(outgoing, movement.id());
+        }
+        Integer incoming = movement.incomingItemId();
+        if (incoming != null && !correction.detachArrival() && (reopens || correction.incoming() != null)) {
+            requireNoOtherMovementCarries(incoming, movement.id());
+        }
+        if (!reopens) return;
+        for (StepSubject subject : StepSubject.values()) {
+            for (int carried : carried(movement.id(), subject)) {
+                requireNoOtherMovementCarries(carried, movement.id());
+            }
+        }
+    }
+
+    /**
+     * Writes the custody a correction names onto one side of a movement: the piece it names and every
+     * further piece it carries on that side, since a batch is in one place or another as a whole.
+     */
     private void applyCorrectedCustody(ItemMovement movement, StepSubject subject, @Nullable ItemCustody custody) {
         if (custody == null) return;
         Integer itemId = movement.itemFor(subject);
         if (itemId == null) return;
         custodyService.applyStepCustody(itemId, custody, movement.memberId(), movement.id(), movement.stationId());
+        for (int carriedId : carried(movement.id(), subject)) {
+            custodyService.applyStepCustody(
+                    carriedId, custody, movement.memberId(), movement.id(), movement.stationId());
+        }
     }
 
     /**
@@ -466,27 +537,6 @@ public class ItemMovementService {
     }
 
     /**
-     * Refuses to send a piece out on a second chain while it is still walking the first.
-     *
-     * <p>A piece can only be in one place, and every chain says where it is by moving it. Two chains on
-     * one piece therefore read each other's work: a step walked on one shifts custody, and the other
-     * reports itself further along without anybody having touched it. Stations really did end up with
-     * two exchanges raised for the same jacket, and both of them then drifted.
-     *
-     * @param outgoingItemId the piece that would be setting out, or {@code null} when nothing does
-     * @throws RefusalResponse when another movement already has it
-     */
-    /**
-     * Refuses a piece that another open movement is already about, on either of its ends.
-     *
-     * <p>Both ends, because a piece can be spoken for in two ways: it is on its way somewhere, or it has
-     * been promised to somebody. Checking only what leaves let two planned hand-outs promise one jacket
-     * to two people.
-     *
-     * @param outgoingItemId the piece leaving, or {@code null}
-     * @param incomingItemId the piece arriving, or {@code null}
-     */
-    /**
      * Refuses a movement about a piece that is not there any more.
      *
      * <p>A screen holds a list of pieces from the moment it was opened, and one of them can be written
@@ -509,6 +559,19 @@ public class ItemMovementService {
         }
     }
 
+    /**
+     * Refuses a piece that another open movement is already about, on either of its ends.
+     *
+     * <p>A piece can only be in one place, and every chain says where it is by moving it. Two chains on
+     * one piece therefore read each other's work: a step walked on one shifts custody, and the other
+     * reports itself further along without anybody having touched it. Both ends are checked, because a
+     * piece can be spoken for in two ways: it is on its way somewhere, or it has been promised to
+     * somebody. Checking only what leaves let two planned hand-outs promise one jacket to two people.
+     *
+     * @param outgoingItemId the piece leaving, or {@code null}
+     * @param incomingItemId the piece arriving, or {@code null}
+     * @throws RefusalResponse when another movement already has one of them
+     */
     private void requireItIsNotAlreadyOnItsWay(@Nullable Integer outgoingItemId, @Nullable Integer incomingItemId) {
         requireFree(outgoingItemId);
         requireFree(incomingItemId);
@@ -527,12 +590,31 @@ public class ItemMovementService {
 
     private void requireFree(@Nullable Integer itemId) {
         if (itemId == null) return;
-        movementRepository.findOpenByOutgoingItem(itemId).ifPresent(open -> {
+        requireNoOtherMovementCarries(itemId, null);
+    }
+
+    /**
+     * Refuses a piece that an open movement other than the given one carries: promised, setting out, or
+     * among the further pieces of a dispatch.
+     *
+     * <p>The movement asking is left out, because a piece it already names is spoken for by itself and
+     * nobody else.
+     *
+     * @param itemId        the piece
+     * @param ownMovementId the movement asking, or {@code null} when there is none yet
+     * @throws RefusalResponse when another open movement carries the piece
+     */
+    private void requireNoOtherMovementCarries(int itemId, @Nullable Integer ownMovementId) {
+        movementRepository
+                .findOpenByIncomingItem(itemId)
+                .filter(open -> !Objects.equals(open.id(), ownMovementId))
+                .ifPresent(open -> {
+                    throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_PROMISED.raise();
+                });
+        if (movementRepository.findOpenCarrying(itemId).stream()
+                .anyMatch(carrying -> !Objects.equals(carrying, ownMovementId))) {
             throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT.raise();
-        });
-        movementRepository.findOpenByIncomingItem(itemId).ifPresent(open -> {
-            throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_PROMISED.raise();
-        });
+        }
     }
 
     /**
@@ -580,7 +662,7 @@ public class ItemMovementService {
                         .findItemById(movement.outgoingItemId())
                         .map(InventoryItem::name)
                         .orElse("");
-        eventBus.publish(new ClusterItemIssued(stationId, movement.id(), clusterName, itemName));
+        announce(new ClusterItemIssued(stationId, movement.id(), clusterName, itemName));
     }
 
     public Optional<ItemMovement> findById(int id) {
@@ -589,6 +671,16 @@ public class ItemMovementService {
 
     public List<ItemMovement> findByStation(int stationId) {
         return movementRepository.findByStation(stationId);
+    }
+
+    /**
+     * The movements of a station that are still running.
+     *
+     * @param stationId the station
+     * @return its open movements, newest first
+     */
+    public List<ItemMovement> findOpenByStation(int stationId) {
+        return movementRepository.findOpenByStation(stationId);
     }
 
     /**
@@ -690,9 +782,9 @@ public class ItemMovementService {
      * Walks the step a movement stands on and moves its pieces.
      *
      * <p>A step reporting a loss leaves the missing piece where it is. The naming step confirms a promised
-     * piece, though another may be named instead; before it, the promised piece stays with whoever holds it.
-     * Everything the movement carries on this leg goes where the named piece goes, since a batch arrives
-     * whole or not at all.
+     * piece, though another may be named instead, as long as no other open movement carries that one; before
+     * it, the promised piece stays with whoever holds it. Everything the movement carries on this leg goes
+     * where the named piece goes, since a batch arrives whole or not at all.
      */
     private ItemMovement applyStep(
             int movementId,
@@ -724,7 +816,7 @@ public class ItemMovementService {
                 ackKind);
         confirmReceiptsThatDoNotWait(movementId);
         ItemMovement walked = movementRepository.findById(movementId).orElseThrow();
-        eventBus.publish(new MovementAdvanced(
+        announce(new MovementAdvanced(
                 walked.stationId(),
                 walked.id(),
                 walked.memberId(),
@@ -761,6 +853,7 @@ public class ItemMovementService {
         if (step.picksItem()) {
             Integer named = pickedItemId != null ? pickedItemId : movement.incomingItemId();
             if (named == null) throw InventoryRefusal.MOVEMENT_STEP_NEEDS_THE_ARRIVING_PIECE.raise();
+            if (!named.equals(movement.incomingItemId())) requireNoOtherMovementCarries(named, movementId);
             movementRepository.setIncomingItem(movementId, named);
             subjectItemId = named;
         } else if (step.subject() == StepSubject.INCOMING && promisedButNotYetNamed(movement, step)) {
@@ -848,8 +941,8 @@ public class ItemMovementService {
         ItemMovement movement = requireOpen(movementId);
         MovementFlowStep step = currentStep(movement);
         if (step != null) requireTurn(movement, step, actor);
-        ItemMovement declined = close(movement, MovementState.DECLINED, reason);
-        eventBus.publish(new MovementDeclined(
+        ItemMovement declined = close(movement, MovementState.DECLINED, reason, true);
+        announce(new MovementDeclined(
                 declined.stationId(),
                 declined.id(),
                 declined.memberId(),
@@ -861,7 +954,37 @@ public class ItemMovementService {
     }
 
     /**
+     * What calling off a movement does with the piece it sent out, as the caller chose.
+     *
+     * @param giveBack    whether a piece still at the station goes back into the member's hands, which
+     *                    is the default; a broken one stays on the shelf
+     * @param planWayBack whether a piece that has already left is brought back to the member by a
+     *                    hand-out of its own
+     */
+    public record CallOff(boolean giveBack, boolean planWayBack) {
+        /** The answer nobody was asked for: give back what is here, plan nothing for what is away. */
+        public static final CallOff AS_ASKED_BEFORE = new CallOff(true, false);
+    }
+
+    /**
+     * Calls off a movement with the default answer for its piece.
+     *
+     * @see #cancel(int, Actor, String, CallOff, String)
+     */
+    public ItemMovement cancel(int movementId, Actor actor, @Nullable String reason) {
+        return cancel(movementId, actor, reason, CallOff.AS_ASKED_BEFORE, "");
+    }
+
+    /**
      * Calls off a movement that is still on the caller's side of the chain.
+     *
+     * <p>What happens to the piece that set out follows from where it is. A piece the member still
+     * holds stays with them. One at the station goes back to the member unless the caller keeps it,
+     * which is what a broken piece needs. One that has already left stays where it is, and the caller
+     * may plan its way back: a hand-out to the member naming that very piece, on the chain the station
+     * binds for such hand-outs. Closing and starting the way back are one transaction: where the way
+     * back is refused, for want of a chain or for any other reason, the movement stays as it was, and
+     * nobody is told about either until both have been written.
      *
      * <p>Whoever is at the wheel may call it off, and so may a member who is still holding the piece
      * the movement is about. Somebody who asks for a bigger jacket and finds the next morning that it
@@ -872,18 +995,37 @@ public class ItemMovementService {
      * @param movementId the movement
      * @param actor      who is calling it off
      * @param reason     what to record, for whoever reads it later
+     * @param callOff    what to do with the piece that set out
+     * @param memberName the member's name, which a way back is announced with
      * @return the closed movement
+     * @throws RefusalResponse when the caller may not call it off, or a way back is asked for and no
+     *                         chain is bound for it
      */
-    public ItemMovement cancel(int movementId, Actor actor, @Nullable String reason) {
+    public ItemMovement cancel(
+            int movementId, Actor actor, @Nullable String reason, CallOff callOff, String memberName) {
         ItemMovement movement = requireOpen(movementId);
         MovementFlowStep step = currentStep(movement);
         if (step != null && !mayAct(movement, step, actor) && !stillHoldsIt(movement, actor)) {
             throw InventoryRefusal.MOVEMENT_NOT_YOURS_TO_CANCEL.raise();
         }
         String itemName = itemName(movement.outgoingItemId());
-        boolean away = hasLeftTheStation(movement.outgoingItemId());
-        ItemMovement cancelled = close(movement, MovementState.CANCELLED, reason, false);
-        eventBus.publish(new MovementCancelled(
+        OldPieceWhereabouts where = whereTheOldPieceIs(movement);
+        boolean forMember = movement.memberId() != null;
+        boolean wayBack = callOff.planWayBack() && forMember && where == OldPieceWhereabouts.AWAY;
+        if (wayBack) requireAWayBack(movement);
+        boolean restore =
+                switch (where) {
+                    case AT_STATION -> !forMember || callOff.giveBack();
+                    case AWAY -> false;
+                    case NONE, WITH_MEMBER -> true;
+                };
+        ItemMovement cancelled = Transactions.call(() -> {
+            ItemMovement closed = close(movement, MovementState.CANCELLED, reason, restore);
+            if (wayBack) planWayBack(closed, actor, reason, memberName);
+            return closed;
+        });
+        boolean away = where == OldPieceWhereabouts.AWAY;
+        announce(new MovementCancelled(
                 cancelled.stationId(),
                 cancelled.id(),
                 cancelled.memberId(),
@@ -970,13 +1112,83 @@ public class ItemMovementService {
                 .isPresent();
     }
 
-    /** Whether the piece is past the station, which is what decides that calling off cannot fetch it back. */
-    private boolean hasLeftTheStation(Integer itemId) {
-        if (itemId == null) return false;
+    /**
+     * Where the piece a movement sent out is, which is what calling it off has to ask about.
+     *
+     * <p>The store of whoever owns a piece is away only where that owner is not the station. For the
+     * station's own gear it is the shelf, and reading it as away left a piece taken back for an exchange
+     * on the shelf when the exchange was called off, with the member holding nothing.
+     *
+     * @param movement the movement
+     * @return where its outgoing piece is
+     */
+    public OldPieceWhereabouts whereTheOldPieceIs(ItemMovement movement) {
+        Integer itemId = movement.outgoingItemId();
+        if (itemId == null || movement.lostReport()) return OldPieceWhereabouts.NONE;
         return inventoryRepository
                 .findItemById(itemId)
-                .filter(item -> item.custody() == ItemCustody.IN_TRANSIT || item.custody() == ItemCustody.WITH_OWNER)
-                .isPresent();
+                .map(item -> switch (item.custody()) {
+                    case WITH_MEMBER -> OldPieceWhereabouts.WITH_MEMBER;
+                    case AT_STATION -> OldPieceWhereabouts.AT_STATION;
+                    case WITH_OWNER ->
+                        item.ownerKind() == ItemOwner.STATION
+                                ? OldPieceWhereabouts.AT_STATION
+                                : OldPieceWhereabouts.AWAY;
+                    case IN_TRANSIT -> OldPieceWhereabouts.AWAY;
+                    case WITH_PARTNER, LOST -> OldPieceWhereabouts.NONE;
+                })
+                .orElse(OldPieceWhereabouts.NONE);
+    }
+
+    /**
+     * Refuses a way back that has no chain to walk, before anything about the movement is changed.
+     *
+     * @param movement the movement being called off
+     * @throws RefusalResponse when the station binds no chain for handing that piece to a member
+     */
+    private void requireAWayBack(ItemMovement movement) {
+        targeting.resolve(
+                movement.stationId(),
+                MovementPurpose.ISSUE,
+                movement.memberId(),
+                null,
+                movement.outgoingItemId(),
+                movement.inventoryId());
+    }
+
+    /**
+     * Starts the hand-out that brings the piece of a called-off movement back to its member.
+     *
+     * <p>The piece is named as the arriving one, so it is promised to the member from the start and walks
+     * from wherever it is now to the station and on to them. Nothing says the member holds it before
+     * the step that hands it over.
+     *
+     * @param cancelled the movement just called off
+     * @param actor     who called it off, and so starts the way back
+     * @param reason     the reason it was called off, which the way back carries on
+     * @param memberName the member's name, which the new movement is announced with
+     * @return the new movement
+     */
+    private ItemMovement planWayBack(ItemMovement cancelled, Actor actor, @Nullable String reason, String memberName) {
+        Integer memberId = Objects.requireNonNull(cancelled.memberId(), "a way back is planned only for a member");
+        ItemMovement wayBack = create(
+                cancelled.stationId(),
+                MovementPurpose.ISSUE,
+                memberId,
+                memberName,
+                null,
+                cancelled.inventoryId(),
+                null,
+                null,
+                Objects.requireNonNullElse(reason, ""),
+                actor,
+                cancelled.outgoingItemId());
+        log.info(
+                "Movement {} was called off with its piece away; movement {} plans the way back to member {}",
+                cancelled.id(),
+                wayBack.id(),
+                memberId);
+        return wayBack;
     }
 
     private String itemName(Integer itemId) {
@@ -996,35 +1208,97 @@ public class ItemMovementService {
      * @return the closed movement
      */
     public ItemMovement abandon(int movementId, String reason) {
-        return close(requireOpen(movementId), MovementState.CANCELLED, reason);
+        return close(requireOpen(movementId), MovementState.CANCELLED, reason, true);
+    }
+
+    /**
+     * Closes the open movements of a member who is leaving, leaving their pieces where they are.
+     *
+     * <p>Deleting them took the record of where the pieces went with them, and left a piece in the post
+     * pointing at a movement that no longer existed. Closing keeps the record. Nothing is put back on the
+     * member, who holds nothing any more; whatever is in the post settles with its owner, and a promised
+     * piece is free again. Each one is announced as called off, so the station team learns that it ended,
+     * with the reason and nobody named as having done it. The leaving member is not among those told: they
+     * are leaving, or being erased.
+     *
+     * @param memberId the member leaving
+     * @param reason   what the closed movements record
+     * @return how many were closed
+     */
+    public int closeForALeavingMember(int memberId, String reason) {
+        int closed = 0;
+        for (ItemMovement movement : movementRepository.findByMember(memberId)) {
+            if (movement.state() != MovementState.OPEN) continue;
+            String itemName = itemName(movement.outgoingItemId());
+            boolean away = whereTheOldPieceIs(movement) == OldPieceWhereabouts.AWAY;
+            ItemMovement cancelled = close(movement, MovementState.CANCELLED, reason, false);
+            announce(new MovementCancelled(
+                    cancelled.stationId(),
+                    cancelled.id(),
+                    null,
+                    cancelled.inventoryId(),
+                    inventoryName(cancelled.inventoryId()),
+                    itemName,
+                    reason,
+                    away,
+                    0));
+            closed++;
+        }
+        if (closed > 0) log.info("Closed {} open movement(s) of leaving member {}", closed, memberId);
+        return closed;
+    }
+
+    /**
+     * Whether a movement has walked any step past the one that opened it, which is when its pieces may
+     * have changed hands.
+     *
+     * <p>Read off its log: opening a movement writes the one entry, and every step walked after it, a
+     * correction included, writes another.
+     *
+     * @param movementId the movement
+     * @return {@code true} once anything past its opening has happened
+     */
+    public boolean piecesMayHaveMoved(int movementId) {
+        return movementRepository.findLogs(movementId).size() > 1;
     }
 
     /**
      * Deletes a movement outright, which is what the old exchange list called cancelling.
+     *
+     * <p>Only while nothing has changed hands: an open movement whose pieces may have moved is called off
+     * instead, since deleting it would leave its pieces where it moved them with no record of how.
+     *
+     * @throws RefusalResponse when the movement is open and has walked past its opening
      */
     public boolean delete(int movementId) {
+        movementRepository
+                .findById(movementId)
+                .filter(movement -> movement.state() == MovementState.OPEN)
+                .filter(movement -> piecesMayHaveMoved(movement.id()))
+                .ifPresent(movement -> {
+                    throw InventoryRefusal.MOVEMENT_ALREADY_MOVED_ITS_PIECES.raise();
+                });
         boolean deleted = movementRepository.delete(movementId);
         if (deleted) log.info("Deleted movement {}", movementId);
         else log.warn("Delete for movement {} affected zero rows", movementId);
         return deleted;
     }
 
-    private ItemMovement close(ItemMovement movement, MovementState state, @Nullable String reason) {
-        return close(movement, state, reason, true);
-    }
-
     /**
-     * @param fetchBack whether the piece that set out is to be put back with whoever sent it even if it
-     *                  has already left the station. A refusal comes from the far end and settles the
-     *                  whole journey, so it does. Calling off does not: it ends the plan, not the post.
+     * Closes a movement and settles its pieces.
+     *
+     * @param restore whether the piece that set out is put back with whoever sent it. A refusal comes
+     *                from the far end and settles the whole journey, so it does. Calling off decides by
+     *                where the piece is and what the caller chose: it ends the plan, not the post.
      */
-    private ItemMovement close(ItemMovement movement, MovementState state, @Nullable String reason, boolean fetchBack) {
-        if (fetchBack || !hasLeftTheStation(movement.outgoingItemId())) {
+    private ItemMovement close(ItemMovement movement, MovementState state, @Nullable String reason, boolean restore) {
+        if (restore) {
             restoreOutgoingItem(movement);
         } else {
             log.info(
-                    "Movement {} was called off while item {} was already away, so it stays with its owner",
+                    "Movement {} was closed as {} and item {} stays where it is",
                     movement.id(),
+                    state,
                     movement.outgoingItemId());
         }
         settleInTransit(movementRepository.findById(movement.id()).orElseThrow());
@@ -1042,28 +1316,35 @@ public class ItemMovementService {
      *
      * <p>A report that the item is gone has nowhere to put it back: it was missing before the report and it
      * is missing after, whether the owner sent a replacement or refused one. The loss is recorded either way.
-     *
+     * The same holds for a piece reported missing while an ordinary movement was under way: it stays missing
+     * on whoever's record it is, and the movement closes all the same, since only finding it ends a loss.
      */
     private void restoreOutgoingItem(ItemMovement movement) {
         if (movement.outgoingItemId() == null || movement.lostReport()) return;
+        if (isMissing(movement.outgoingItemId())) {
+            log.info(
+                    "Movement {} closes while its item {} is reported missing, so the item stays missing",
+                    movement.id(),
+                    movement.outgoingItemId());
+            return;
+        }
         if (movement.memberId() != null) {
             custodyService.applyStepCustody(
                     movement.outgoingItemId(), ItemCustody.WITH_MEMBER, movement.memberId(), null);
         } else {
-            custodyService.takeBack(movement.outgoingItemId());
+            custodyService.takeBack(
+                    movement.outgoingItemId(), ItemCustodyService.Allowance.walking(movement.id(), false));
         }
     }
 
-    /**
-     * Settles anything still in the post when a movement ends.
-     *
-     * <p>An item pointing at a finished movement while claiming to be between two parties is a state
-     * nobody can act on, and it is the state a chain without the owner's steps would otherwise leave
-     * behind. It settles with its owner, which is the last thing anybody honestly knows about it: the
-     * station posted it, never got it back, and is not the one holding it.
-     *
-     * @param movement the movement as it stands at the moment it ends
-     */
+    /** Whether a piece is reported missing, which no closing movement may write over. */
+    private boolean isMissing(int itemId) {
+        return inventoryRepository
+                .findItemById(itemId)
+                .filter(item -> item.custody() == ItemCustody.LOST || item.lostAt() != null)
+                .isPresent();
+    }
+
     /**
      * Removes the piece that has gone back to a body Ember cannot see.
      *
@@ -1094,14 +1375,29 @@ public class ItemMovementService {
                 });
     }
 
+    /**
+     * Settles anything still in the post when a movement ends.
+     *
+     * <p>An item pointing at a finished movement while claiming to be between two parties is a state
+     * nobody can act on, and it is the state a chain without the owner's steps would otherwise leave
+     * behind. It settles with its owner, which is the last thing anybody honestly knows about it: the
+     * station posted it, never got it back, and is not the one holding it. Every piece the movement carries
+     * settles, the further pieces of a dispatch with the one it names.
+     *
+     * @param movement the movement as it stands at the moment it ends
+     */
     private void settleInTransit(ItemMovement movement) {
         for (StepSubject subject : StepSubject.values()) {
-            Integer itemId = movement.itemFor(subject);
-            if (itemId == null) continue;
-            inventoryRepository
-                    .findItemById(itemId)
-                    .filter(item -> item.custody() == ItemCustody.IN_TRANSIT)
-                    .ifPresent(item -> custodyService.applyStepCustody(item.id(), ItemCustody.WITH_OWNER, null, null));
+            List<Integer> pieces = new ArrayList<>(carried(movement.id(), subject));
+            Integer named = movement.itemFor(subject);
+            if (named != null) pieces.add(named);
+            for (int itemId : pieces) {
+                inventoryRepository
+                        .findItemById(itemId)
+                        .filter(item -> item.custody() == ItemCustody.IN_TRANSIT)
+                        .ifPresent(
+                                item -> custodyService.applyStepCustody(item.id(), ItemCustody.WITH_OWNER, null, null));
+            }
         }
     }
 

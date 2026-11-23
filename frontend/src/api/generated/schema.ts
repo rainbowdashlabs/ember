@@ -48527,7 +48527,9 @@ export interface paths {
         /** List movements the caller may see */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    open?: boolean;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -48707,7 +48709,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["CloseMovementRequest"];
+                    "application/json": components["schemas"]["CancelMovementRequest"];
                 };
             };
             responses: {
@@ -71817,6 +71819,11 @@ export interface components {
             /** Format: int32 */
             eventId: number;
         };
+        CancelMovementRequest: {
+            giveBack?: boolean | null;
+            planWayBack?: boolean | null;
+            reason?: string | null;
+        };
         CancelRequest: {
             reason?: string | null;
         };
@@ -75963,6 +75970,8 @@ export interface components {
             /** Format: int32 */
             assigned: number;
             /** Format: int32 */
+            away: number;
+            /** Format: int32 */
             lost: number;
             name: string;
             /** Format: int32 */
@@ -77431,6 +77440,8 @@ export interface components {
         };
         MemberRequirement: {
             /** Format: int32 */
+            heldQuantity: number;
+            /** Format: int32 */
             inventoryId: number;
             inventoryName: string;
             /** Format: int32 */
@@ -77715,6 +77726,7 @@ export interface components {
         MovementDetail: {
             lossReport: components["schemas"]["LossReport"] | null;
             movement: components["schemas"]["MovementResponse"];
+            oldPiece: components["schemas"]["OldPieceWhereabouts"];
             steps: components["schemas"]["MovementStepResponse"][];
         };
         /** @enum {string} */
@@ -77854,6 +77866,8 @@ export interface components {
         };
         MyQuizAttempt: components["schemas"]["NoQuizAttempt"] | components["schemas"]["QuizAttemptDetail"];
         MyRequirement: {
+            /** Format: int32 */
+            heldQuantity: number;
             /** Format: int32 */
             inventoryId: number;
             inventoryName: string;
@@ -78171,6 +78185,8 @@ export interface components {
         OkResponse: {
             ok: boolean;
         };
+        /** @enum {string} */
+        OldPieceWhereabouts: "NONE" | "WITH_MEMBER" | "AT_STATION" | "AWAY";
         OnboardAgainResponse: {
             mailed: boolean;
         };
@@ -81004,6 +81020,7 @@ export interface components {
         SelfCheckRecordRemoval: "NOTHING" | "BACK_TO_STORE" | "RETURNED_TO_OWNER" | "DELETED";
         SelfCheckResponse: {
             assigned: components["schemas"]["InventoryItem"][];
+            onMovement: number[];
             raised: components["schemas"]["SelfCheckRaised"][];
             required: components["schemas"]["RequiredInventoryItem"][];
             rows: components["schemas"]["SelfCheckRow"][];
@@ -82039,7 +82056,7 @@ export interface components {
             visibility: components["schemas"]["PageVisibility"];
         };
         /** @enum {string} */
-        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_TEMPLATE_EDIT" | "DOCUMENT_SIGN_OTHERS" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_CATALOG_SHARE" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_SHARE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "MESSAGE_CHAT_MANAGE" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
+        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_TEMPLATE_EDIT" | "DOCUMENT_SIGN_OTHERS" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_CATALOG_SHARE" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_SHARE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "MESSAGE_CHAT_EDIT" | "MESSAGE_CHAT_MODERATE" | "MESSAGE_CHAT_MANAGE" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
         StationPermissionsRequest: {
             permissions?: string[];
         };
@@ -82323,6 +82340,7 @@ export interface components {
             verifiedColumns: number;
         };
         SwapNote: {
+            droppable: boolean;
             handOverNext: boolean;
             inventoryName: string;
             itemName: string;
@@ -83872,6 +83890,7 @@ export type CalloutVariant = components['schemas']['CalloutVariant'];
 export type CancellationCause = components['schemas']['CancellationCause'];
 export type CancellationNotice = components['schemas']['CancellationNotice'];
 export type CancelledEventDate = components['schemas']['CancelledEventDate'];
+export type CancelMovementRequest = components['schemas']['CancelMovementRequest'];
 export type CancelRequest = components['schemas']['CancelRequest'];
 export type CanEditResponse = components['schemas']['CanEditResponse'];
 export type CapabilityRequest = components['schemas']['CapabilityRequest'];
@@ -84753,6 +84772,7 @@ export type OfferAnswerRequest = components['schemas']['OfferAnswerRequest'];
 export type OfferedDate = components['schemas']['OfferedDate'];
 export type OfferResponse = components['schemas']['OfferResponse'];
 export type OkResponse = components['schemas']['OkResponse'];
+export type OldPieceWhereabouts = components['schemas']['OldPieceWhereabouts'];
 export type OnboardAgainResponse = components['schemas']['OnboardAgainResponse'];
 export type OnboardingLevel = components['schemas']['OnboardingLevel'];
 export type OnboardingStatus = components['schemas']['OnboardingStatus'];
@@ -86447,6 +86467,13 @@ export const OfferAnswer = {
     LATER: "LATER",
 } as const;
 
+export const OldPieceWhereabouts = {
+    AT_STATION: "AT_STATION",
+    AWAY: "AWAY",
+    NONE: "NONE",
+    WITH_MEMBER: "WITH_MEMBER",
+} as const;
+
 export const OnboardingLevel = {
     INSTANCE: "INSTANCE",
     MEMBER: "MEMBER",
@@ -87042,7 +87069,9 @@ export const StationPermission = {
     MEMBER_NOTES: "MEMBER_NOTES",
     MEMBER_READ: "MEMBER_READ",
     MEMBER_SELF_UPLOAD: "MEMBER_SELF_UPLOAD",
+    MESSAGE_CHAT_EDIT: "MESSAGE_CHAT_EDIT",
     MESSAGE_CHAT_MANAGE: "MESSAGE_CHAT_MANAGE",
+    MESSAGE_CHAT_MODERATE: "MESSAGE_CHAT_MODERATE",
     NEWS_EDIT: "NEWS_EDIT",
     NEWS_FEDERATE: "NEWS_FEDERATE",
     NEWS_MANAGER: "NEWS_MANAGER",

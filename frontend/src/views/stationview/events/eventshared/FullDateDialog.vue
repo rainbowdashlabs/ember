@@ -46,7 +46,7 @@ const placesLine = computed(() => {
 </script>
 
 <template>
-  <Modal v-model="open">
+  <Modal v-model="open" data-confirm-always>
     <div class="space-y-4" data-testid="full-date-dialog">
       <SubHeader>
         {{ question?.kind === 'accept' ? t('registrationQueue.acceptAnywayTitle') : t('registrationQueue.fullTitle') }}

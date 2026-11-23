@@ -472,7 +472,7 @@ test.describe('Admin pages render', () => {
         await expect(page.getByText('Administration auf einen Blick')).toBeVisible()
         await expect(page.getByText(/Alles erledigt|Erfordert Aufmerksamkeit/).first()).toBeVisible()
 
-        await page.goto('/admin/dashboard/statistics')
+        await page.goto('/admin/monitoring/statistics')
         await expect(page.getByText('Systemweite Auswertungen')).toBeVisible()
         await expect(page.getByText('Plattform', {exact: true})).toBeVisible()
         await expect(page.getByText('Mit Zwei-Faktor')).toBeVisible()

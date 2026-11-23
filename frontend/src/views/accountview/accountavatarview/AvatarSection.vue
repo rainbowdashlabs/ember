@@ -4,13 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FileUploadField from '@/components/input/FileUploadField.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {session as sessionApi} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -43,15 +45,15 @@ async function upload(file: File) {
   }
 }
 
-async function remove() {
-  emit('error', null)
-  try {
+/** Deletes the picture, after asking unless shift is held. */
+const {show: confirmingRemove, requestDelete, confirm: remove, failure: removeFailure} = useConfirmDelete<true>({
+  onDelete: async () => {
+    emit('error', null)
     await sessionApi.deleteAvatar()
     avatarKey.value++
-  } catch (e) {
-    emit('error', describeFailure(e, t))
-  }
-}
+  },
+})
+watch(removeFailure, failure => { if (failure) emit('error', failure) })
 </script>
 
 <template>
@@ -74,8 +76,13 @@ async function remove() {
             :label="uploading ? t('common.loading') : t('profile.uploadAvatar')"
             @select="upload"
         />
-        <DeleteButton @click="remove"/>
+        <DeleteButton @click="requestDelete(true)"/>
       </div>
     </div>
+    <ConfirmDeleteModal
+        v-model="confirmingRemove"
+        :message="t('profile.avatarDeleteConfirm')"
+        @confirm="remove"
+    />
   </NeutralContainer>
 </template>

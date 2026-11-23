@@ -16,6 +16,7 @@ import OneTimePasswordAction from '@/components/onetimepassword/OneTimePasswordA
 import {adminAccounts, adminSettings, twoFactorAdmin} from '@/api'
 import type {AccountOverview} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 
 /**
  * What the instance's administration can do to one account: send the mail it waits for while it is
@@ -32,8 +33,6 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
-const confirmingReset = ref(false)
-const confirmingRetire = ref(false)
 const notice = ref('')
 
 function issue() {
@@ -52,11 +51,9 @@ async function perform(action: Action): Promise<string> {
   }
   if (action === 'reset') {
     await twoFactorAdmin.resetAccount2FAByInstanceAdmin(props.account.id)
-    confirmingReset.value = false
     return t('twoFactor.admin.resetSuccess', {name})
   }
   await adminSettings.retirePassword(props.account.id)
-  confirmingRetire.value = false
   return t('adminAccounts.retire.success', {name})
 }
 
@@ -69,6 +66,13 @@ const {failure, run} = useAsyncAction(async (action: Action) => {
   } finally {
     running.value = null
   }
+})
+
+const {show: confirmingReset, request: requestReset, confirm: confirmReset} = useConfirmAction<true>({
+  onConfirm: async () => { await run('reset') },
+})
+const {show: confirmingRetire, request: requestRetire, confirm: confirmRetire} = useConfirmAction<true>({
+  onConfirm: async () => { await run('retire') },
 })
 </script>
 
@@ -96,14 +100,14 @@ const {failure, run} = useAsyncAction(async (action: Action) => {
 
     <div class="space-y-2 border-t border-(--border) pt-4">
       <MutedText tag="p" size="sm">{{ t('twoFactor.admin.resetHint') }}</MutedText>
-      <ErrorButton :icon="['fas', 'rotate-left']" data-testid="account-reset-2fa" @click="confirmingReset = true">
+      <ErrorButton :icon="['fas', 'rotate-left']" data-testid="account-reset-2fa" @click="requestReset(true)">
         {{ t('twoFactor.admin.reset') }}
       </ErrorButton>
     </div>
 
     <div class="space-y-2 border-t border-(--border) pt-4">
       <MutedText tag="p" size="sm">{{ t('adminAccounts.retire.hint') }}</MutedText>
-      <SecondaryButton :icon="['fas', 'ban']" data-testid="account-retire-password" @click="confirmingRetire = true">
+      <SecondaryButton :icon="['fas', 'ban']" data-testid="account-retire-password" @click="requestRetire(true)">
         {{ t('adminAccounts.retire.action') }}
       </SecondaryButton>
     </div>
@@ -114,7 +118,7 @@ const {failure, run} = useAsyncAction(async (action: Action) => {
         :message="t('twoFactor.admin.resetConfirmText', {name: account.name})"
         :confirm-label="t('twoFactor.admin.reset')"
         :busy="running === 'reset'"
-        @confirm="run('reset')"
+        @confirm="confirmReset"
     >
       <Alert variant="error">{{ t('twoFactor.admin.resetWarning') }}</Alert>
     </ConfirmDeleteModal>
@@ -124,7 +128,7 @@ const {failure, run} = useAsyncAction(async (action: Action) => {
         :message="t('adminAccounts.retire.confirmText', {name: account.name})"
         :confirm-label="t('adminAccounts.retire.action')"
         :busy="running === 'retire'"
-        @confirm="run('retire')"
+        @confirm="confirmRetire"
     />
   </div>
 </template>

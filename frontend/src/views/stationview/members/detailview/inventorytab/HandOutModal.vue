@@ -10,7 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+import HintIcon from '@/components/typography/HintIcon.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
@@ -24,6 +24,8 @@ import type {InventoryItem, RequiredInventoryItem} from '@/api/generated/schema'
  * <p>Opened for a gap in the member's equipment it is narrowed to that inventory: the size asked for
  * puts the pieces that fit first, and a new piece can be created in that size when the shelf has none.
  * Opened without one it offers any free piece, since there is no inventory to create a new one in.
+ *
+ * <p>It opens on a planned hand-out, since what is decided here is usually handed over later.
  */
 const open = defineModel<boolean>({required: true})
 
@@ -44,7 +46,7 @@ const {t} = useI18n()
 
 const pickedItemId = ref<number | null>(null)
 const pickedSize = ref('')
-const handOutMode = ref<HandOutMode>('NOW')
+const handOutMode = ref<HandOutMode>('PLANNED')
 const refusal = ref('')
 
 const needsSize = computed(() => !!props.requirement?.hasSizes && props.requirement.sizes.length > 0)
@@ -58,6 +60,7 @@ watch(open, isOpen => {
   pickedItemId.value = null
   pickedSize.value = ''
   refusal.value = ''
+  handOutMode.value = 'PLANNED'
 })
 
 function nameOf(item: InventoryItem): string {
@@ -110,11 +113,11 @@ function createNew() {
           @pick="onPick"
       />
 
-      <div v-if="requirement" class="space-y-2 border-t border-bg-light-accent pt-4 dark:border-bg-dark-accent">
-        <MutedText tag="p" size="sm">{{ t('memberDetail.createInsteadHint') }}</MutedText>
+      <div v-if="requirement" class="flex items-center gap-2 border-t border-bg-light-accent pt-4 dark:border-bg-dark-accent">
         <SecondaryButton :icon="['fas', 'plus']" :disabled="needsSize && !pickedSize" @click="createNew">
           {{ t('memberDetail.createAndHandOut') }}
         </SecondaryButton>
+        <HintIcon :text="t('memberDetail.createInsteadHint')"/>
       </div>
 
       <div class="flex justify-end">

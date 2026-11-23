@@ -37,14 +37,12 @@ describe('useDocumentPruning', () => {
     it('deletes what is chosen and lets go of the choice', async () => {
         const pruning = useDocumentPruning(() => ({}))
         pruning.selected.value = [3, 5]
-        pruning.confirming.value = true
 
         const count = await pruning.prune()
 
         expect(prune).toHaveBeenCalledWith([3, 5])
         expect(count).toBe(2)
         expect(pruning.selected.value).toEqual([])
-        expect(pruning.confirming.value).toBe(false)
     })
 
     it('keeps the choice when deleting was refused', async () => {

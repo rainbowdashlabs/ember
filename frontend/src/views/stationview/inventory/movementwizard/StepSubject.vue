@@ -60,7 +60,7 @@ watch(inventoryId, () => {
 
     <div v-if="props.fromAPiece" class="space-y-1">
       <FieldLabel>{{ t('movements.wizard.subject.item') }}</FieldLabel>
-      <ItemSearchPicker v-model="itemId" data-testid="wizard-item" exclude-lost @pick="tookPiece"/>
+      <ItemSearchPicker v-model="itemId" data-testid="wizard-item" exclude-lost exclude-spoken-for @pick="tookPiece"/>
     </div>
 
     <template v-else>

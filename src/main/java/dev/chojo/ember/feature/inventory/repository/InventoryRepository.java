@@ -953,6 +953,35 @@ public class InventoryRepository {
     }
 
     /**
+     * The pieces of an inventory that may be handed to a member right now, ordered by name: free stock that
+     * no open movement carries and no loan holds.
+     *
+     * <p>What a picker offers has to be what the custody guard allows, or the reader picks a piece and is
+     * refused for it. Free stock alone also offered a piece promised on a planned hand-out or set aside
+     * for a partner.
+     *
+     * @param inventoryId the inventory
+     * @return the pieces free to hand out
+     */
+    public List<InventoryItem> findFreeToHandOut(int inventoryId) {
+        return query(
+                        """
+                SELECT %s FROM inventory_item
+                WHERE inventory_id = :inventory_id
+                  AND %s
+                  AND %s
+                  AND %s
+                ORDER BY name;""",
+                        INVENTORY_ITEM_COLUMNS,
+                        ItemCustodySql.freeStock("inventory_item"),
+                        ItemCustodySql.notOnAMovement("inventory_item"),
+                        ItemCustodySql.notSetAsideForALoan("inventory_item"))
+                .single(call().bind("inventory_id", inventoryId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
+    /**
      * The free stock of one size in an inventory that no open movement names, ordered by name.
      *
      * @param inventoryId the inventory
@@ -1314,8 +1343,9 @@ public class InventoryRepository {
     /**
      * Writes an item's whole custody at once: who has it, the station the custody runs through, the
      * member holding it and the movement carrying it. The four travel together because the database
-     * only accepts them as a consistent set, and the lost timestamp follows from the custody rather
-     * than being passed separately.
+     * only accepts them as a consistent set. Writing {@link ItemCustody#LOST} records a loss; nothing
+     * else touches the lost timestamp, and a row that carries one is left as it is (see
+     * {@link #updateCustodyFoundAgain}).
      *
      * <p>This is the only statement in the codebase that writes any of those columns. Everything
      * that moves an item goes through {@code ItemCustodyService}, which is what keeps the four
@@ -1326,7 +1356,8 @@ public class InventoryRepository {
      * @param custodyStationId  the station the custody runs through, or {@code null}
      * @param assignedTo        the member holding it, or {@code null}
      * @param custodyMovementId the movement carrying it, or {@code null}
-     * @return {@code true} if the item row was updated
+     * @return {@code true} if the item row was updated, {@code false} when it was not found or carries a
+     *         loss this write does not record
      */
     public boolean updateCustody(
             int itemId,
@@ -1355,6 +1386,46 @@ public class InventoryRepository {
             @Nullable Integer assignedTo,
             @Nullable Integer custodyMovementId,
             @Nullable Integer custodyPartnerStationId) {
+        return writeCustody(
+                itemId, custody, custodyStationId, assignedTo, custodyMovementId, custodyPartnerStationId, false);
+    }
+
+    /**
+     * Writes where a missing item is now that it has turned up again, which is the one write that ends a
+     * loss.
+     *
+     * <p>Every other write leaves a missing item alone: {@link #updateCustody} changes nothing on a row
+     * that carries a loss unless it records the loss itself. A loss used to be undone by whatever wrote
+     * the row next, without anybody saying the piece had been found.
+     *
+     * @param itemId           the item ID
+     * @param custody          who has the item now
+     * @param custodyStationId the station the custody runs through, or {@code null}
+     * @param assignedTo       the member holding it, or {@code null}
+     * @return {@code true} if the item row was updated
+     */
+    public boolean updateCustodyFoundAgain(
+            int itemId, ItemCustody custody, @Nullable Integer custodyStationId, @Nullable Integer assignedTo) {
+        return writeCustody(itemId, custody, custodyStationId, assignedTo, null, null, true);
+    }
+
+    /**
+     * The one statement every custody write goes through.
+     *
+     * <p>A row carrying a loss is written only where the write records a loss or ends it; anything else
+     * matches no row and reports that it changed nothing, rather than wiping the loss out.
+     *
+     * @param foundAgain whether this write ends a loss, which is the only write that clears it
+     */
+    private boolean writeCustody(
+            int itemId,
+            ItemCustody custody,
+            @Nullable Integer custodyStationId,
+            @Nullable Integer assignedTo,
+            @Nullable Integer custodyMovementId,
+            @Nullable Integer custodyPartnerStationId,
+            boolean foundAgain) {
+        boolean markLost = custody == ItemCustody.LOST;
         return query("""
                 UPDATE inventory_item
                 SET custody                    = :custody,
@@ -1362,9 +1433,14 @@ public class InventoryRepository {
                     custody_partner_station_id = :custody_partner_station_id,
                     custody_movement_id        = :custody_movement_id,
                     assigned_to                = :assigned_to,
-                    lost_at                    = CASE WHEN :mark_lost THEN coalesce(lost_at, now()) ELSE NULL END,
+                    lost_at                    = CASE
+                                                     WHEN :mark_lost THEN coalesce(lost_at, now())
+                                                     WHEN :found_again THEN NULL
+                                                     ELSE lost_at
+                                                 END,
                     container_id               = CASE WHEN :assigned_to::int IS NOT NULL THEN NULL ELSE container_id END
-                WHERE id = :id;""")
+                WHERE id = :id
+                  AND (lost_at IS NULL OR :mark_lost OR :found_again);""")
                 .single(call().bind("custody", custody)
                         .bind("custody_station_id", custodyStationId)
                         .bind(
@@ -1372,10 +1448,44 @@ public class InventoryRepository {
                                 custody == ItemCustody.WITH_PARTNER ? custodyPartnerStationId : null)
                         .bind("custody_movement_id", custodyMovementId)
                         .bind("assigned_to", assignedTo)
-                        .bind("mark_lost", custody == ItemCustody.LOST)
+                        .bind("mark_lost", markLost)
+                        .bind("found_again", foundAgain && !markLost)
                         .bind("id", itemId))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Whether a piece is set aside for a loan to a partner station that is approved or running and
+     * not over yet.
+     *
+     * <p>An approved loan holds its pieces from the moment it is approved, though they stay on the shelf
+     * until they are handed over: acting on such a piece leaves the partner without what it was promised.
+     *
+     * @param itemId the piece
+     * @return {@code true} when such a loan holds it
+     */
+    public boolean isSetAsideForALoan(int itemId) {
+        return SqlSupport.exists(
+                "SELECT 1 FROM inventory_item WHERE id = :item_id AND NOT %s;",
+                call().bind("item_id", itemId), ItemCustodySql.notSetAsideForALoan("inventory_item"));
+    }
+
+    /**
+     * Whether a loan other than the given one holds a piece, approved or running and not over yet.
+     *
+     * <p>A loan acting on the pieces it holds itself is not held up by them; any other loan is, from its
+     * approval until its end date has passed, whatever dates it was asked for.
+     *
+     * @param itemId    the piece
+     * @param requestId the loan asking
+     * @return {@code true} when another such loan holds it
+     */
+    public boolean isSetAsideForAnotherLoan(int itemId, int requestId) {
+        return SqlSupport.exists(
+                "SELECT 1 FROM inventory_item WHERE id = :item_id AND NOT %s;",
+                call().bind("item_id", itemId).bind("own_loan", requestId),
+                ItemCustodySql.notSetAsideForAnotherLoan("inventory_item"));
     }
 
     /**

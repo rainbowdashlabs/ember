@@ -85,7 +85,7 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
         var list = waitingListRepository.create(
                 stationId,
                 "Jugendfeuerwehr",
-                "Bewerberliste für neue Mitglieder der Jugendfeuerwehr (10–18 Jahre). Melde dich an und wir laden dich zu einer Schnupperübung ein.",
+                "Warteliste für neue Mitglieder der Jugendfeuerwehr (10–18 Jahre). Melde dich an und wir laden dich zu einer Schnupperübung ein.",
                 "age([Geburtsdatum]) * (\"[Erfahrung]\" == \"fortgeschritten\" ? 2 : 1)",
                 180,
                 gaesteGroup.id(),
@@ -110,7 +110,7 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
         var kinderList = waitingListRepository.create(
                 stationId,
                 "Kinderfeuerwehr",
-                "Bewerberliste für die Kinderfeuerwehr (6–10 Jahre). Spielerisch die Feuerwehr kennenlernen!",
+                "Warteliste für die Kinderfeuerwehr (6–10 Jahre). Spielerisch die Feuerwehr kennenlernen!",
                 null,
                 365,
                 null,

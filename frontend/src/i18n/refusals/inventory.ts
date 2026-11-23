@@ -345,4 +345,8 @@ export default {
     'I-281': 'Dieses Stück ist von einer Partnerwache geliehen, sein Eigentümer bleibt',
     'I-282': 'Auf diesem Stück läuft noch ein Vorgang, sein Eigentümer bleibt, wie er ist',
     'I-283': 'Gib an, ob das Stück der Wache oder dem Träger gehört',
+    'I-284': 'Dieses Stück ist als verloren gemeldet. Melde es zuerst als gefunden',
+    'I-285': 'Dieses Stück ist für eine Ausleihe an eine Partnerwache vorgesehen. Nimm es zuerst aus der Ausleihe',
+    'I-286': 'Dieses Stück ist gerade nicht auf der Wache und kann deshalb nicht eingeräumt werden',
+    'I-287': 'Dieser Vorgang ist schon über seinen ersten Schritt hinaus. Brich ihn ab, statt ihn zu löschen',
 }

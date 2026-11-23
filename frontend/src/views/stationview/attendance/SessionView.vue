@@ -22,6 +22,7 @@ import {StationPermission} from '@/api/generated/schema'
 import {attendance, events, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ExportSheetModal from './sessionview/ExportSheetModal.vue'
 import {useSessionMeta} from './sessionview/useSessionMeta'
@@ -63,7 +64,6 @@ const canSignOffFound = computed(() => hasPermission(StationPermission.LOST_AND_
 
 const sessionId = computed(() => Number(route.params.id))
 
-const showDeleteConfirm = ref(false)
 const session = ref<AttendanceSession | null>(null)
 const sessionFields = ref<AttendanceSessionField[]>([])
 const templateFields = ref<AttendanceTemplateField[]>([])
@@ -365,21 +365,19 @@ function goBack() {
 const {openEvent} = useSessionEventLink(session)
 
 /**
- * Throws the whole attendance away, once it has been asked about.
+ * Throws the whole attendance away, once it has been asked about or at once while shift is held.
  *
  * <p>Everything taken on it goes with it, which is why it is asked about: a sheet opened for the
  * wrong appointment is undone here, and one filled in for the right one is not.
  */
-async function removeSession() {
-  failure.value = null
-  try {
+const {show: showDeleteConfirm, request: requestRemoveSession, confirm: removeSession} = useConfirmAction<true>({
+  onConfirm: async () => {
+    failure.value = null
     await attendance.deleteSession(sessionId.value)
-    showDeleteConfirm.value = false
-    router.push({name: 'attendance-past'})
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
-}
+  },
+  onSuccess: () => { void router.push({name: 'attendance-past'}) },
+  failure,
+})
 
 onMounted(() => {
   if (loaded.value) loadData()
@@ -426,7 +424,7 @@ watch(loaded, (isLoaded) => {
         @export="showExportOptions = true"
         @sync="syncFromEvent"
         @start-check-mode="startCheckMode"
-        @remove="showDeleteConfirm = true"
+        @remove="requestRemoveSession(true)"
         @update-title="setSessionTitle"
         @update-start-time="setSessionStartTime"
         @update-end-time="setSessionEndTime"

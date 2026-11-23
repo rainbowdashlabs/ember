@@ -817,3 +817,9 @@ COMMENT ON TABLE ember_schema.partner_signup IS
     'A member of this station signed up here for one date of a partner station''s appointment. The partner holds the registration itself; this is this station''s own word that it was given, so that a partner telling it which of its members are registered is believed only for members it signed up. A withdrawal keeps the row with status WITHDRAWN, so the partner''s last instant still holds for a sign-up given again.';
 COMMENT ON TABLE ember_schema.partner_event_group_signup
     IS 'Members this station signed up for an event group a partner station holds, so news from that partner about the event group is believed for them only. A withdrawal keeps the row with status WITHDRAWN, so the partner''s last instant still holds for a sign-up given again.';
+-- Station chats: running them and moderating them become two permissions of their own, which the
+-- existing chat permission holds both of.
+
+INSERT INTO ember_schema.station_permission (name)
+VALUES ('MESSAGE_CHAT_EDIT'), ('MESSAGE_CHAT_MODERATE')
+ON CONFLICT (name) DO NOTHING;

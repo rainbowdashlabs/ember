@@ -57,9 +57,9 @@ public class MessageReportRoutes implements Routes {
                 this::report,
                 StationPermission.LOGIN);
         String base = prefix + "/messages/reports";
-        routes.get(base, this::open, StationPermission.MESSAGE_CHAT_MANAGE);
-        routes.post(base + "/{reportId}/remove", this::remove, StationPermission.MESSAGE_CHAT_MANAGE);
-        routes.post(base + "/{reportId}/dismiss", this::dismiss, StationPermission.MESSAGE_CHAT_MANAGE);
+        routes.get(base, this::open, StationPermission.MESSAGE_CHAT_MODERATE);
+        routes.post(base + "/{reportId}/remove", this::remove, StationPermission.MESSAGE_CHAT_MODERATE);
+        routes.post(base + "/{reportId}/dismiss", this::dismiss, StationPermission.MESSAGE_CHAT_MODERATE);
     }
 
     @OpenApi(

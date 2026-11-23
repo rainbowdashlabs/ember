@@ -1056,6 +1056,110 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         assertEquals(ItemCustody.WITH_MEMBER, custodyOf(shelf), "and it ended up with the member");
     }
 
+    /**
+     * The naming step may name another piece than the one promised, but not one a second movement has
+     * already promised, while the piece its own movement promised stays free for it.
+     */
+    @Test
+    void theNamingStepRefusesAPiecePromisedToAnotherMovement() {
+        int ours = item(ItemOwner.STATION);
+        int theirs = item(ItemOwner.STATION);
+        ItemMovement planned = planIssue(ours);
+        planIssue(theirs);
+        ItemMovement atNaming = walkToNaming(planned);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> itemMovementService.acknowledge(atNaming.id(), atNaming.currentStepId(), team, "", theirs),
+                "a piece the other movement promised is not this one's to hand out");
+        assertEquals(InventoryRefusal.MOVEMENT_PIECE_ALREADY_PROMISED, refused.refusal());
+
+        ItemMovement named = itemMovementService.acknowledge(atNaming.id(), atNaming.currentStepId(), team, "", ours);
+        assertEquals(ours, named.incomingItemId(), "its own promised piece is named without a refusal");
+    }
+
+    /** The naming step cannot take a piece another open movement is sending out. */
+    @Test
+    void theNamingStepRefusesAPieceAnotherMovementIsSendingOut() {
+        ItemMovement planned = planIssue(item(ItemOwner.STATION));
+        int settingOut = itemWithMember(ItemOwner.STATION);
+        announceExchange(settingOut);
+        ItemMovement atNaming = walkToNaming(planned);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> itemMovementService.acknowledge(atNaming.id(), atNaming.currentStepId(), team, "", settingOut),
+                "a piece on its way back on another chain is not this one's to hand out");
+        assertEquals(InventoryRefusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT, refused.refusal());
+    }
+
+    /** The naming step may swap the promised piece for one no movement carries. */
+    @Test
+    void theNamingStepSwapsThePromisedPieceForAFreeOne() {
+        int promised = item(ItemOwner.STATION);
+        int free = item(ItemOwner.STATION);
+        ItemMovement atNaming = walkToNaming(planIssue(promised));
+
+        ItemMovement named = itemMovementService.acknowledge(atNaming.id(), atNaming.currentStepId(), team, "", free);
+
+        assertEquals(free, named.incomingItemId(), "the free piece is the one handed out");
+        assertFalse(itemMovementService.isOnAMovement(promised), "and the promised one is free again");
+    }
+
+    /**
+     * A piece setting out on an exchange still sits with its member, and the counter cannot hand it to
+     * somebody else from under the chain walking it.
+     */
+    @Test
+    void theCounterRefusesAPieceSettingOutOnAMovement() {
+        int settingOut = itemWithMember(ItemOwner.STATION);
+        announceExchange(settingOut);
+
+        var refused = assertThrows(
+                RefusalResponse.class, () -> itemCustodyService.assignToMember(settingOut, member.id(), "Move Ment"));
+        assertEquals(InventoryRefusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT, refused.refusal());
+    }
+
+    /** The open movements of a station leave out every one that has closed. */
+    @Test
+    void theOpenOnesLeaveTheClosedOnesOut() {
+        ItemMovement running = announceExchange(itemWithMember(ItemOwner.STATION));
+        ItemMovement called = itemMovementService.cancel(
+                announceExchange(itemWithMember(ItemOwner.STATION)).id(), team, "Doch nicht");
+
+        var open = itemMovementService.findOpenByStation(station.id()).stream()
+                .map(ItemMovement::id)
+                .toList();
+        assertTrue(open.contains(running.id()), "the running one is there");
+        assertFalse(open.contains(called.id()), "the called-off one is not");
+    }
+
+    /** A planned hand-out of a piece to the member, picked before the step that names it. */
+    private ItemMovement planIssue(int itemId) {
+        return itemMovementService.create(
+                station.id(),
+                MovementPurpose.ISSUE,
+                member.id(),
+                "Move Ment",
+                null,
+                mixedInventoryId,
+                null,
+                null,
+                "Für den nächsten Dienst",
+                team,
+                itemId);
+    }
+
+    /** Acknowledges the steps before the one that names the arriving piece, and stops on it. */
+    private ItemMovement walkToNaming(ItemMovement movement) {
+        int guard = 10;
+        while (guard-- > 0 && movement.state() == MovementState.OPEN && !namesTheArrival(movement)) {
+            movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        }
+        assertTrue(namesTheArrival(movement), "the chain reaches the step that names the arrival");
+        return movement;
+    }
+
     /** A step that is not on the flow, and a movement that has finished, are both refused. */
     @Test
     void aMoveOntoAFlowThatCannotBeMadeIsRefused() {

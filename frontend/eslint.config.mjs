@@ -262,6 +262,7 @@ export default withNuxt(
         files: ['src/**/*.vue'],
         rules: {
             'ember/button-row': 'error',
+            'ember/confirm-through-composable': 'error',
             'ember/no-dead-button-size': 'error',
             'ember/no-stacked-inline-text': 'error',
             'ember/rows-open-pages-as-links': 'error',

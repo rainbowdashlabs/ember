@@ -36,6 +36,11 @@ const props = withDefaults(defineProps<{
   /** Whether the rows answer a press, which also marks them as pressable. */
   clickable?: boolean
   rowClass?: (row: Row) => string
+  /**
+   * Whether a row's actions are one menu button, which fits beside the heading of a phone card
+   * rather than taking a line of its own at its foot.
+   */
+  menuActions?: boolean
 }>(), {
   subset: undefined,
   testId: 'record-table',
@@ -43,6 +48,7 @@ const props = withDefaults(defineProps<{
   plain: false,
   clickable: false,
   rowClass: undefined,
+  menuActions: false,
 })
 
 const emit = defineEmits<{
@@ -61,6 +67,7 @@ const whole = computed(() => props.subset === undefined)
         v-if="isMobile"
         :clickable="clickable"
         :controls="whole"
+        :menu-actions="menuActions"
         :row-class="rowClass"
         :row-test-id="rowTestId"
         :rows="rows"

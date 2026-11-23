@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -895,6 +896,112 @@ class LendingServiceTest extends RepositoryTestBase {
         assertEquals(own.id(), assignedItemOf(request, line));
     }
 
+    /** A piece reported missing cannot be set aside for a loan by hand. */
+    @Test
+    @Order(307)
+    void assignItemRefusesAMissingPiece() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcMissingInv", InventoryType.INTERNAL, false);
+        var missing = inventoryRepo.createItem(inv.id(), "MI-001", "Verschwundene Leiter", null, null);
+        itemCustodyService.markLost(missing.id(), null, null);
+        var line = lineOn(stationA, inv.id(), null);
+
+        var refused = assertThrows(RefusalResponse.class, () -> service.assignItem(line, missing.id(), stationA.id()));
+        assertEquals(InventoryRefusal.CUSTODY_PIECE_LOST, refused.refusal());
+    }
+
+    /** Filling a loan by itself passes over a piece reported missing, the way it passes over held gear. */
+    @Test
+    @Order(308)
+    void approveLeavesAMissingPieceUnassigned() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcMissingOnlyInv", InventoryType.INTERNAL, false);
+        var missing = inventoryRepo.createItem(inv.id(), "MO-001", "Verschwundene Pumpe", null, null);
+        itemCustodyService.markLost(missing.id(), null, null);
+        var request = requestOn(stationA);
+        var line = lendingRepo
+                .addRequestItem(request, inv.id(), null, null, 1, null)
+                .id();
+
+        assertTrue(service.approveRequest(request, stationA.id()));
+        assertNull(assignedItemOf(request, line));
+    }
+
+    /**
+     * A piece that is no longer on the shelf when the loan is handed over stops the hand-over, and the
+     * loan stays agreed rather than writing the partner as having what somebody else holds.
+     */
+    @Test
+    @Order(309)
+    void markLentRefusesAPieceThatLeftTheShelfSinceApproval() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcLeftShelfInv", InventoryType.INTERNAL, false);
+        var piece = inventoryRepo.createItem(inv.id(), "LS-001", "Wachen-Pumpe", null, null);
+        var request = requestOn(stationA);
+        var line = lendingRepo
+                .addRequestItem(request, inv.id(), null, null, 1, null)
+                .id();
+        assertTrue(service.approveRequest(request, stationA.id()));
+        assertEquals(piece.id(), assignedItemOf(request, line));
+        inventoryRepo.updateCustody(piece.id(), ItemCustody.WITH_MEMBER, stationA.id(), memberA.id(), null);
+
+        var refused = assertThrows(RefusalResponse.class, () -> service.markLent(request, stationA.id()));
+        assertEquals(InventoryRefusal.CUSTODY_NOT_HANDED_OUT_FROM_HERE, refused.refusal());
+        assertEquals(
+                LendingStatus.APPROVED,
+                service.findRequest(request).orElseThrow().status());
+    }
+
+    /** The picker leaves out a piece another loan already holds, as filling a loan by itself does. */
+    @Test
+    @Order(312)
+    void findAssignableItemsLeavesOutAPieceAnotherLoanHolds() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcHeldByLoanInv", InventoryType.INTERNAL, false);
+        var piece = inventoryRepo.createItem(inv.id(), "HL-001", "Wachen-Zelt", null, null);
+        var first = requestOn(stationA);
+        lendingRepo.addRequestItem(first, inv.id(), null, null, 1, null);
+        assertTrue(service.approveRequest(first, stationA.id()));
+
+        assertTrue(service.findAssignableItems(stationA.id(), inv.id()).stream()
+                .noneMatch(item -> item.id() == piece.id()));
+    }
+
+    /**
+     * An approved loan holds its radio until its end date has passed, against every other loan, even one
+     * asked for a later week; the loan that holds it may still act on it.
+     */
+    @Test
+    @Order(313)
+    void aSecondLoanCannotTakeARadioAnEarlierApprovedLoanHolds() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcHeldRadioInv", InventoryType.INTERNAL, false);
+        var radio = inventoryRepo.createItem(inv.id(), "HR-001", "Funkgerät", null, null);
+        var first = requestOn(stationA);
+        var firstLine =
+                lendingRepo.addRequestItem(first, inv.id(), null, null, 1, null).id();
+        assertTrue(service.approveRequest(first, stationA.id()));
+        assertEquals(radio.id(), assignedItemOf(first, firstLine));
+
+        var later = lendingRepo
+                .createRequest(
+                        stationB.uid(),
+                        stationA.uid(),
+                        LocalDate.now().plusDays(10),
+                        LocalDate.now().plusDays(12),
+                        memberB.id(),
+                        null,
+                        null,
+                        "")
+                .id();
+        var laterLine =
+                lendingRepo.addRequestItem(later, inv.id(), null, null, 1, null).id();
+
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.assignItem(laterLine, radio.id(), stationA.id()));
+        assertEquals(InventoryRefusal.CUSTODY_PIECE_SET_ASIDE_FOR_A_LOAN, refused.refusal());
+
+        assertTrue(service.approveRequest(later, stationA.id()));
+        assertNull(assignedItemOf(later, laterLine), "filling it by itself passes the held radio over");
+
+        assertTrue(service.assignItem(firstLine, radio.id(), stationA.id()), "the loan holding it may act on it");
+    }
+
     @Test
     @Order(310)
     void findAvailableInventoryLeavesOutGearTheStationOnlyHolds() {
@@ -1206,6 +1313,31 @@ class LendingServiceTest extends RepositoryTestBase {
         assertTrue(lendingRepo.findAssignedItems(line.id()).isEmpty());
 
         assertTrue(service.closeRequest(request.id(), stationA.id()));
+    }
+
+    /** A partner is not offered a piece another loan holds, since lending it would be refused. */
+    @Test
+    @Order(607)
+    void aPartnerIsNotOfferedAPieceAnotherLoanHolds() {
+        var held = inventoryRepo.create(stationA.id(), "LendSvcOfferHeldInv", InventoryType.INTERNAL, false);
+        inventoryRepo.createItem(held.id(), "OH-001", "Gehaltene Leiter", null, null);
+        var first = requestOn(stationA);
+        lendingRepo.addRequestItem(first, held.id(), null, null, 1, null);
+        assertTrue(service.approveRequest(first, stationA.id()));
+        var free = inventoryRepo.create(stationA.id(), "LendSvcOfferFreeInv", InventoryType.INTERNAL, false);
+        inventoryRepo.createItem(free.id(), "OF-001", "Freie Leiter", null, null);
+        for (int shared : List.of(held.id(), free.id())) {
+            shareService.setInventoryShare(stationA.id(), shared, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+        }
+        UUID elsewhere = UUID.randomUUID();
+        var asking = new ServingPartner(partnerElsewhere(elsewhere), elsewhere);
+
+        var offered = service.serveAvailability(asking, null, null, null);
+
+        assertTrue(offered.entries().stream().anyMatch(entry -> entry.inventoryId() == free.id()), "the free one");
+        assertTrue(
+                offered.entries().stream().noneMatch(entry -> entry.inventoryId() == held.id()),
+                "and not the one a loan holds");
     }
 
     /** A partnership of station A with a station on another instance, with lending switched on. */

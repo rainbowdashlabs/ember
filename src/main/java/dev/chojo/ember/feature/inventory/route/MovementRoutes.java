@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.MovementStanding;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
+import dev.chojo.ember.feature.inventory.entity.OldPieceWhereabouts;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.GlyphResolver;
@@ -195,17 +196,22 @@ public class MovementRoutes implements Routes {
 
     /**
      * The movements the caller may see: all of the station's for somebody who works the queue, and
-     * their own plus their charges' for everybody else.
+     * their own plus their charges' for everybody else. With {@code open=true} only the running ones,
+     * which is what a screen asking which pieces are spoken for needs.
      */
     @OpenApi(
             path = "/api/v1/movements",
             methods = HttpMethod.GET,
             summary = "List movements the caller may see",
             tags = {"Inventory"},
+            queryParams = @OpenApiParam(name = "open", type = Boolean.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MovementResponse[].class)))
     private void list(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        var movements = guards.visibleAmong(session.user(), movementService.findByStation(session.stationId()));
+        boolean openOnly = ctx.queryParamAsClass("open", Boolean.class).getOrDefault(false);
+        var station = session.stationId();
+        var all = openOnly ? movementService.findOpenByStation(station) : movementService.findByStation(station);
+        var movements = guards.visibleAmong(session.user(), all);
         ctx.json(movements.stream()
                 .map(movement -> toResponse(movement, session.user()))
                 .toList());
@@ -554,14 +560,20 @@ public class MovementRoutes implements Routes {
             summary = "Call off a movement that is still on the caller's side",
             tags = {"Inventory"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CloseMovementRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CancelMovementRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MovementDetail.class)))
     private void cancel(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
-        var request = ctx.bodyAsClass(CloseMovementRequest.class);
-        ctx.json(
-                toDetail(movementService.cancel(movement.id(), actorOf(session, movement), request.reason()), session));
+        var request = ctx.bodyAsClass(CancelMovementRequest.class);
+        var callOff = new ItemMovementService.CallOff(
+                !Boolean.FALSE.equals(request.giveBack()), Boolean.TRUE.equals(request.planWayBack()));
+        if (callOff.planWayBack()) guards.requireMayStartFor(session, movement.memberId());
+        String memberName = Objects.requireNonNullElse(memberName(movement.memberId()), "");
+        ctx.json(toDetail(
+                movementService.cancel(
+                        movement.id(), actorOf(session, movement), request.reason(), callOff, memberName),
+                session));
     }
 
     @OpenApi(
@@ -732,7 +744,11 @@ public class MovementRoutes implements Routes {
                             isCurrent && movementService.mayAct(movement, step, actor));
                 })
                 .toList();
-        return new MovementDetail(toResponse(movement, session), steps, lossReportOf(movement));
+        return new MovementDetail(
+                toResponse(movement, session),
+                steps,
+                lossReportOf(movement),
+                movementService.whereTheOldPieceIs(movement));
     }
 
     /**
@@ -823,6 +839,19 @@ public class MovementRoutes implements Routes {
     public record ReturnEverythingRequest(@Nullable Integer memberId) {}
 
     public record CloseMovementRequest(@Nullable String reason) {}
+
+    /**
+     * Calling a movement off, with what is to happen to the piece it sent out.
+     *
+     * @param reason      what to record
+     * @param giveBack    whether a piece still at the station goes back to the member; yes where left out
+     * @param planWayBack whether a piece that has already left is brought back to the member by a
+     *                    hand-out of its own; no where left out
+     */
+    public record CancelMovementRequest(
+            @Nullable String reason,
+            @Nullable Boolean giveBack,
+            @Nullable Boolean planWayBack) {}
 
     /**
      * What a correction is to make true of a movement's pieces.
@@ -949,10 +978,18 @@ public class MovementRoutes implements Routes {
             @Nullable String note,
             boolean actionable) {}
 
+    /**
+     * One movement with its chain.
+     *
+     * @param oldPiece where the piece that set out is, which decides what calling the movement off asks:
+     *                 whether to give it back to the member, or whether to plan its way back. Read for the
+     *                 page about one movement only, where the call-off is offered.
+     */
     public record MovementDetail(
             MovementResponse movement,
             List<MovementStepResponse> steps,
-            @Nullable LossReport lossReport) {}
+            @Nullable LossReport lossReport,
+            OldPieceWhereabouts oldPiece) {}
 
     /**
      * What a report that a piece of gear is gone carries, read at both ends.

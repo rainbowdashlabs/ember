@@ -7,12 +7,13 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import KbFolderPicker from './KbFolderPicker.vue'
 import KbTagsEditor from './KbTagsEditor.vue'
 import {knowledgeBase} from '@/api'
@@ -46,7 +47,6 @@ const {t} = useI18n()
 
 const showMove = ref(false)
 const showTags = ref(false)
-const showDelete = ref(false)
 const impact = ref<DeleteImpact | null>(null)
 const target = ref<number | null>(null)
 const addTags = ref<string[]>([])
@@ -66,9 +66,14 @@ function openTags() {
 
 const selection = () => ({folderIds: props.folderIds, fileIds: props.fileIds})
 
+/**
+ * Asks before the selection goes to the bin, counting what it takes with it while the question is
+ * open. Under shift nothing is asked and nothing is counted.
+ */
 async function openDelete() {
     impact.value = null
-    showDelete.value = true
+    requestDelete(true)
+    if (!showDelete.value) return
     try {
         impact.value = await knowledgeBase.getDeleteImpact(selection())
     } catch {
@@ -105,11 +110,10 @@ async function submitTags() {
     }
 }
 
-async function submitDelete() {
+async function deleteSelection() {
     saving.value = true
     try {
         const outcome = await knowledgeBase.bulkDelete(selection())
-        showDelete.value = false
         emit('done', kbBulkMessage(t, outcome, 'kb.bulkDeleted'))
     } catch (e) {
         emit('error', describeFailure(e, t))
@@ -117,6 +121,10 @@ async function submitDelete() {
         saving.value = false
     }
 }
+
+const {show: showDelete, request: requestDelete, confirm: submitDelete} = useConfirmAction<true>({
+    onConfirm: deleteSelection,
+})
 
 defineExpose({openMove, openTags, openDelete})
 </script>
@@ -151,19 +159,16 @@ defineExpose({openMove, openTags, openDelete})
         </ButtonRow>
     </Modal>
 
-    <Modal v-model="showDelete">
-        <SubHeader class="mb-1">{{ t('kb.bulkDelete') }}</SubHeader>
-        <MutedText tag="p" size="sm" class="mb-3">
-            {{ impact
-                ? t('kb.bulkDeleteHint', {folders: impact.folders, files: impact.files})
-                : t('kb.bulkDeleteCounting') }}
-        </MutedText>
-        <MutedText tag="p" size="sm" class="mb-3">{{ t('kb.bulkDeleteRecoverable') }}</MutedText>
-        <ButtonRow pair align="end" class="mt-4">
-            <SecondaryButton data-cancel @click="showDelete = false">{{ t('common.cancel') }}</SecondaryButton>
-            <DeleteButton :disabled="saving" data-testid="kb-bulk-delete-confirm" @click="submitDelete">
-                {{ t('common.delete') }}
-            </DeleteButton>
-        </ButtonRow>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="showDelete"
+        :title="t('kb.bulkDelete')"
+        :message="impact
+            ? t('kb.bulkDeleteHint', {folders: impact.folders, files: impact.files})
+            : t('kb.bulkDeleteCounting')"
+        :busy="saving"
+        confirm-test-id="kb-bulk-delete-confirm"
+        @confirm="submitDelete"
+    >
+        <MutedText tag="p" size="sm">{{ t('kb.bulkDeleteRecoverable') }}</MutedText>
+    </ConfirmDeleteModal>
 </template>

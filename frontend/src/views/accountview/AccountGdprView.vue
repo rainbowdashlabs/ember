@@ -78,7 +78,7 @@ onMounted(async () => {
         @show-delete-modal="showDeleteAccountModal = true"
       />
 
-      <Modal v-model="showDeleteAccountModal">
+      <Modal v-model="showDeleteAccountModal" data-confirm-always>
         <div class="space-y-4 p-4">
           <SubHeader>{{ t('userSettings.deleteTitle') }}</SubHeader>
           <ErrorContainer>

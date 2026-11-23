@@ -54,7 +54,7 @@ const MODULES: ModuleEntry[] = [
     {key: 'KNOWLEDGE_BASE', name: 'knowledge base', entries: ['Wiki'], at: OVERVIEW},
     {key: 'BOARDS', name: 'boards', entries: ['Boards'], at: OVERVIEW},
     {key: 'PROCEDURES', name: 'procedures', entries: ['Abläufe'], at: OVERVIEW},
-    {key: 'WAITING_LIST', name: 'waiting lists', entries: ['Bewerberlisten'], at: '/station/members/list'},
+    {key: 'WAITING_LIST', name: 'waiting lists', entries: ['Wartelisten'], at: '/station/members/list'},
     {
         key: 'QUIZ',
         name: 'quiz',

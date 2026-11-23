@@ -69,8 +69,16 @@ async function openNotes(page: Page, rows?: Locator) {
  * <p>Built by the story rather than borrowed from the demo, because handing a swap over uses it up.
  * Only pieces with a size qualify, since without one no replacement is set aside and the handover
  * fails for want of a piece; the replacement is named as a free piece of the same inventory.
+ *
+ * <p>With `walk` set to false the swap is left where it was raised, the piece still with the member
+ * and nothing changed hands, which is the only swap the sheet offers to call off.
  */
-async function raiseSwapAwaitingHandover(page: Page, headers: Record<string, string>, onTheSheet: number[]) {
+async function raiseSwapAwaitingHandover(
+    page: Page,
+    headers: Record<string, string>,
+    onTheSheet: number[],
+    walk = true,
+) {
     for (const memberId of onTheSheet) {
         const member = {id: memberId}
         const items = await page.request
@@ -93,6 +101,7 @@ async function raiseSwapAwaitingHandover(page: Page, headers: Record<string, str
             if (!created.ok()) continue
 
             const swap = (await created.json()).movement
+            if (!walk) return {...swap, memberId}
 
             const spare = await page.request
                 .get(`/api/v1/inventories/${item.inventoryId}/items`, {headers})
@@ -426,6 +435,7 @@ test.describe('Attendance', () => {
             page,
             headers,
             (detail.entries ?? []).map((entry: {memberId: number}) => entry.memberId),
+            false,
         )
         await page.reload()
 

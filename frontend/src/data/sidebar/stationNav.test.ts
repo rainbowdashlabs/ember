@@ -158,7 +158,7 @@ describe('STATION_NAV', () => {
     })
 
     describe('station chats', () => {
-        const manager = [StationPermission.MESSAGE_CHAT_MANAGE]
+        const manager = [StationPermission.MESSAGE_CHAT_EDIT, StationPermission.MESSAGE_CHAT_MODERATE]
 
         function managePages(nodes: NavNode[]) {
             const manage = section(nodes, 'manage')
@@ -182,6 +182,20 @@ describe('STATION_NAV', () => {
         it('keep the station figures beside the reports for an administrator', () => {
             expect(monitoringPages(nav([StationPermission.STATION_ADMINISTRATOR, ...manager])))
                 .toEqual(expect.arrayContaining(['/station/monitoring/traffic', '/station/messages/reports']))
+        })
+
+        it('show only the chats to whoever may edit them but not moderate', () => {
+            const editor = nav([StationPermission.MESSAGE_CHAT_EDIT])
+
+            expect(managePages(editor)).toEqual(['/station/manage/chats'])
+            expect(monitoringPages(editor)).toEqual([])
+        })
+
+        it('show only the reported messages to whoever moderates but may not edit the chats', () => {
+            const moderator = nav([StationPermission.MESSAGE_CHAT_MODERATE])
+
+            expect(managePages(moderator)).toEqual([])
+            expect(monitoringPages(moderator)).toEqual(['/station/messages/reports'])
         })
 
         it('are gone once the instance turned messages off', () => {

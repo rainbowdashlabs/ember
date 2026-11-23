@@ -1,7 +1,7 @@
 {% extends '_layout.html' %}
 {% block body %}
       <h2>Hallo {{ name }},</h2>
-      <p>du bist auf der Bewerberliste von <strong>{{ stationName }}</strong> eingetragen. Bitte bestätige, dass du weiterhin Interesse hast.</p>
-      <p class="warning">Wenn du innerhalb von 30 Tagen nicht bestätigst, wirst du automatisch von der Bewerberliste entfernt.</p>
+      <p>du bist auf der Warteliste von <strong>{{ stationName }}</strong> eingetragen. Bitte bestätige, dass du weiterhin Interesse hast.</p>
+      <p class="warning">Wenn du innerhalb von 30 Tagen nicht bestätigst, wirst du automatisch von der Warteliste entfernt.</p>
       <div class="btn-wrap"><a class="btn-green" href="{{ url }}">Interesse bestätigen</a></div>
 {% endblock %}

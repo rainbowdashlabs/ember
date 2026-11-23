@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, type RouteLocationRaw} from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -14,12 +14,13 @@ import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {goBack} from '@/util/goBack'
 
 /**
  * The head of an appointment's page and of an event group's page alike: what it is on the left, and on
  * the right Back, the primary Edit and one actions menu with everything done only now and then. Deleting
- * comes last in the menu, coloured, and asks before it deletes.
+ * comes last in the menu, coloured, and asks before it deletes unless shift is held.
  *
  * <p>Back shows only its arrow on a phone, so the three controls share one line there instead of
  * stacking full width above the tabs.
@@ -45,7 +46,6 @@ const props = defineProps<{
 
 const {t} = useI18n()
 const router = useRouter()
-const confirmOpen = ref(false)
 
 const hasMenu = computed(() => props.hasMenuItems || !!props.remove)
 
@@ -53,11 +53,9 @@ const {running: deleting, failure: deleteFailure, run: runDelete} = useAsyncActi
   await props.remove?.()
 })
 
-/** Deletes after the question was answered; a refused delete closes the question and says why. */
-async function confirmDelete() {
-  await runDelete()
-  if (deleteFailure.value) confirmOpen.value = false
-}
+const {show: confirmOpen, request: requestDelete, confirm: confirmDelete} = useConfirmAction<true>({
+  onConfirm: async () => { await runDelete() },
+})
 </script>
 
 <template>
@@ -77,7 +75,7 @@ async function confirmDelete() {
         <ActionsMenu v-if="hasMenu" :label="t('common.actions')" :test-id="props.menuTestId">
           <slot/>
           <DropdownMenuItem v-if="props.remove" :icon="['fas', 'trash']" destructive :data-testid="props.deleteTestId"
-                            @click="confirmOpen = true">
+                            @click="requestDelete(true)">
             {{ props.deleteLabel ?? t('common.delete') }}
           </DropdownMenuItem>
         </ActionsMenu>

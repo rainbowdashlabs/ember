@@ -17,6 +17,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import MovementWizard from '@/views/stationview/inventory/movementwizard/MovementWizard.vue'
 import type {WizardPrefill} from '@/views/stationview/inventory/movementwizard/useMovementWizard'
 import {
@@ -46,9 +47,10 @@ const emit = defineEmits<{
   exchangeStarted: []
 }>()
 
-const showFormerModal = ref(false)
+const {show: showFormerModal, request: requestMarkFormer, confirm: confirmMarkFormer} = useConfirmAction<true>({
+  onConfirm: async () => { emit('markFormer') },
+})
 
-const showDeleteModal = ref(false)
 const showDeleteConfirm = ref(false)
 
 const showReassignModal = ref(false)
@@ -63,9 +65,26 @@ const reassignTargets = computed(() =>
 
 const reassignUserTypes = computed(() => userTypesOf(reassignTargets.value))
 
-function openFormerModal() { showFormerModal.value = true }
+/**
+ * Asks before marking the member former, which shift skips. A member who cannot be marked yet gets
+ * the dialog either way, since it is what names the reasons.
+ */
+function openFormerModal() {
+  if (props.canMarkFormer) requestMarkFormer(true)
+  else showFormerModal.value = true
+}
 
-function openDeleteModal() { showDeleteModal.value = true }
+/**
+ * The first of the two questions before a member is deleted. Shift skips this one; the second is the
+ * safety stop and always asks.
+ */
+const {show: showDeleteModal, request: requestDelete, confirm: confirmFirstStep} = useConfirmAction<true>({
+  onConfirm: async () => {
+    showDeleteConfirm.value = true
+  },
+})
+
+function openDeleteModal() { requestDelete(true) }
 
 function openReassignModal(item: MyInventoryItem) {
   reassignItemRef.value = item
@@ -114,7 +133,7 @@ defineExpose({
         <p class="text-xs text-(--text-muted)">{{ t('memberDetail.markFormerHint') }}</p>
         <ButtonRow pair align="end">
           <SecondaryButton @click="showFormerModal = false">{{ t('common.cancel') }}</SecondaryButton>
-          <ErrorButton :disabled="markingFormer" @click="emit('markFormer'); showFormerModal = false">
+          <ErrorButton :disabled="markingFormer" @click="confirmMarkFormer">
             {{ markingFormer ? t('common.loading') : t('memberDetail.markFormer') }}
           </ErrorButton>
         </ButtonRow>
@@ -136,12 +155,12 @@ defineExpose({
       :title="t('memberDetail.deleteTitle')"
       :message="t('memberDetail.deleteText', { name: memberDisplayName })"
       :confirm-label="t('memberDetail.deleteConfirmAction')"
-      @confirm="showDeleteModal = false; showDeleteConfirm = true"
+      @confirm="confirmFirstStep"
   >
     <MutedText tag="p">{{ t('memberDetail.deleteHint') }}</MutedText>
   </ConfirmDeleteModal>
 
-  <Modal v-model="showDeleteConfirm">
+  <Modal v-model="showDeleteConfirm" data-confirm-always>
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.deleteConfirmTitle') }}</SubHeader>
       <p class="text-sm font-semibold text-error">{{ t('memberDetail.deleteConfirmText') }}</p>

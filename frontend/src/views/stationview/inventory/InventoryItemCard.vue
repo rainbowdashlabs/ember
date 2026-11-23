@@ -57,7 +57,8 @@ const awayFromMember = computed(() =>
       <div class="flex items-center gap-1">
         <MutedIconButton
             v-if="props.showExchangeButton && props.item.inventoryHomogeneous !== false
-              && !props.item.movement"
+              && !props.item.movement && !props.item.lostAt"
+            data-testid="item-request-exchange"
             :icon="['fas', 'rotate']"
             :label="t('profile.requestExchange')"
             @click="emit('requestExchange', props.item)"

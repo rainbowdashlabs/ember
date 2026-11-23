@@ -158,7 +158,7 @@ function force(payload: AcknowledgePayload) {
           @acknowledge="acknowledge"
           @force="force"
           @decline="reason => run(() => movements.declineMovement(movementId, reason))"
-          @cancel="reason => run(() => movements.cancelMovement(movementId, reason))"
+          @cancel="(reason, choice) => run(() => movements.cancelMovement(movementId, reason, choice))"
           @rechain="stepIndex => run(() => movements.rechain(movementId, stepIndex))"
           @refused="refuse"
       />

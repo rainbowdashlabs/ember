@@ -4,20 +4,28 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {flushPromises, mount} from '@vue/test-utils'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from 'vitest'
 import type {AccountOverview, AccountSetupMail, SetupMailKind} from '@/api/generated/schema'
+import {followModifierKeys} from '@/util/modifierKeys'
 import AccountActions from './AccountActions.vue'
 
 const sendSetupMail = vi.fn()
+const resetSecondFactor = vi.fn()
+const retirePassword = vi.fn()
 
 vi.mock('@/api', () => ({
     adminAccounts: {
         sendSetupMail: (...args: unknown[]) => sendSetupMail(...args),
         issueOneTimePassword: vi.fn(),
     },
-    adminSettings: {},
-    twoFactorAdmin: {},
+    adminSettings: {retirePassword: (...args: unknown[]) => retirePassword(...args)},
+    twoFactorAdmin: {resetAccount2FAByInstanceAdmin: (...args: unknown[]) => resetSecondFactor(...args)},
 }))
+
+/** Presses and releases shift the way a reader holding it down would. */
+function holdShift(held: boolean) {
+    window.dispatchEvent(new KeyboardEvent(held ? 'keydown' : 'keyup', {key: 'Shift'}))
+}
 
 function account(setupMail: SetupMailKind | null): AccountOverview {
     return {
@@ -44,10 +52,14 @@ describe('AccountActions', () => {
         })
     }
 
+    beforeAll(() => followModifierKeys())
     beforeEach(() => {
         sendSetupMail.mockReset()
+        resetSecondFactor.mockReset().mockResolvedValue(undefined)
+        retirePassword.mockReset().mockResolvedValue(undefined)
         onChanged.mockReset()
     })
+    afterEach(() => holdShift(false))
 
     it('offers the setup mail only to an account that waits for one', () => {
         expect(actions(null).find('[data-testid="account-setup-mail"]').exists()).toBe(false)
@@ -94,5 +106,43 @@ describe('AccountActions', () => {
         expect(view.text()).not.toContain('Die Einladung an Lena Weber ist verschickt.')
         expect(view.text()).toContain('Dieses Konto ist bereits eingerichtet')
         expect(onChanged).not.toHaveBeenCalled()
+    })
+
+    it('asks before resetting the second factor and resets once agreed', async () => {
+        const view = actions(null)
+
+        await view.find('[data-testid="account-reset-2fa"]').trigger('click')
+        const question = view.findAllComponents({name: 'ConfirmDeleteModal'})[0]!
+        expect(question.props('modelValue')).toBe(true)
+        expect(resetSecondFactor).not.toHaveBeenCalled()
+
+        question.vm.$emit('confirm')
+        await flushPromises()
+
+        expect(resetSecondFactor).toHaveBeenCalledWith(42)
+        expect(onChanged).toHaveBeenCalled()
+    })
+
+    it('resets the second factor at once while shift is held', async () => {
+        const view = actions(null)
+
+        holdShift(true)
+        await view.find('[data-testid="account-reset-2fa"]').trigger('click', {shiftKey: true})
+        await flushPromises()
+
+        expect(resetSecondFactor).toHaveBeenCalledWith(42)
+        expect(view.findAllComponents({name: 'ConfirmDeleteModal'})[0]!.props('modelValue')).toBe(false)
+        expect(onChanged).toHaveBeenCalled()
+    })
+
+    it('retires the password at once while shift is held', async () => {
+        const view = actions(null)
+
+        holdShift(true)
+        await view.find('[data-testid="account-retire-password"]').trigger('click', {shiftKey: true})
+        await flushPromises()
+
+        expect(retirePassword).toHaveBeenCalledWith(42)
+        expect(view.findAllComponents({name: 'ConfirmDeleteModal'})[1]!.props('modelValue')).toBe(false)
     })
 })

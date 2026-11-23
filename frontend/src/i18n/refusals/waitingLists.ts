@@ -10,26 +10,26 @@ import {
     TOO_MANY_ATTEMPTS,
 } from './shared'
 
-const QUESTION_NOT_ON_LIST = 'Diese Frage steht nicht mehr auf dieser Bewerberliste'
-const NO_LIST_FOR_INVITE = 'Diese Einladung führt zu keiner Bewerberliste'
+const QUESTION_NOT_ON_LIST = 'Diese Frage steht nicht mehr auf dieser Warteliste'
+const NO_LIST_FOR_INVITE = 'Diese Einladung führt zu keiner Warteliste'
 const ENTRY_NOT_HERE = 'Diesen Eintrag gibt es nicht mehr'
-const WAITING_LIST_NOT_HERE = 'Diese Bewerberliste gibt es nicht mehr'
-const WAITING_LIST_HAS_A_BIRTH_DATE = 'Diese Bewerberliste hat schon ein Feld für das Geburtsdatum, es wurde nichts gespeichert'
-const WAITING_LIST_ANSWER_NOT_ACCEPTED = 'Eine Antwort passt nicht zu ihrer Frage auf dieser Bewerberliste, '
+const WAITING_LIST_NOT_HERE = 'Diese Warteliste gibt es nicht mehr'
+const WAITING_LIST_HAS_A_BIRTH_DATE = 'Diese Warteliste hat schon ein Feld für das Geburtsdatum, es wurde nichts gespeichert'
+const WAITING_LIST_ANSWER_NOT_ACCEPTED = 'Eine Antwort passt nicht zu ihrer Frage auf dieser Warteliste, '
     + 'es wurde nichts gespeichert'
 
 /** What the refusals of waiting lists say in German, keyed by their `W-` code. */
 export default {
     'W-022': 'Diese Einladung lässt sich nicht mehr verwenden',
     'W-023': 'Eine Einladung und ein Vorname werden gebraucht, es wurde nichts gespeichert',
-    'W-024': 'Du konntest nicht auf die Bewerberliste gesetzt werden, es wurde nichts gespeichert',
-    'W-025': 'Für diese Bewerberliste ist eine Anmeldung so nicht möglich, es wurde nichts gespeichert',
+    'W-024': 'Du konntest nicht auf die Warteliste gesetzt werden, es wurde nichts gespeichert',
+    'W-025': 'Für diese Warteliste ist eine Anmeldung so nicht möglich, es wurde nichts gespeichert',
     'W-026': 'Sag, wie deine Antwort lautet',
     'W-027': 'Das ist keine Antwort, die diese Einladung annimmt',
     'W-028': ENTRY_NOT_HERE,
     'W-029': 'Dieser Eintrag lässt sich so nicht einladen, es wurde nichts geändert',
     'W-030': ENTRY_NOT_HERE,
-    'W-031': 'Dieser Eintrag lässt sich so nicht zurück auf die Bewerberliste setzen, es wurde nichts geändert',
+    'W-031': 'Dieser Eintrag lässt sich so nicht zurück auf die Warteliste setzen, es wurde nichts geändert',
     'W-032': APPOINTMENT_NOT_HERE,
     'W-033': 'Du kannst diesen Termin nicht sehen, es wurde nichts gespeichert',
     'W-034': 'Eine Einladung braucht das Datum des Termins',
@@ -49,7 +49,7 @@ export default {
     'W-048': 'Die Gruppe für den Beitritt nimmt keine Mitglieder auf, es wurde nichts gespeichert',
     'W-049': GROUP_NOT_HERE_NOTHING_SAVED,
     'W-050': GROUP_NOT_HERE_NOTHING_SAVED,
-    'W-051': 'Bewerberlisten bieten diesen Fragetyp nicht an, es wurde nichts gespeichert',
+    'W-051': 'Wartelisten bieten diesen Fragetyp nicht an, es wurde nichts gespeichert',
 
     'W-001': QUESTION_NOT_ON_LIST,
     'W-002': NO_LIST_FOR_INVITE,
@@ -80,7 +80,7 @@ export default {
     'W-057': WAITING_LIST_ANSWER_NOT_ACCEPTED,
     'W-058': 'Diese Einladung lässt sich nicht mehr beantworten, es wurde nichts gespeichert',
     'W-059': 'Die Einladung hat sich geändert, seit diese Seite geöffnet wurde, es wurde nichts gespeichert',
-    'W-060': 'Diese Bewerberliste nimmt in diesem Alter noch keine Anmeldungen an, es wurde nichts gespeichert',
+    'W-060': 'Diese Warteliste nimmt in diesem Alter noch keine Anmeldungen an, es wurde nichts gespeichert',
     'W-061': 'Eine Einladung braucht einen Termin, es wurde nichts gesendet',
     'W-062': 'Die persönliche Nachricht ist länger als 2000 Zeichen, es wurde nichts gesendet',
     'W-063': 'Diese Probezeit kann nicht von hier beendet werden, es wurde nichts geändert',

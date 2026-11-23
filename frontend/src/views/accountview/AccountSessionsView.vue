@@ -8,27 +8,22 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
-import ErrorContainer from '@/components/container/ErrorContainer.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {session as sessionApi} from '@/api'
 import type {ActiveSession} from '@/api/generated/schema'
 import SessionsSection from '@/views/stationview/profile/settingsview/SessionsSection.vue'
 import {removePushDevice} from '@/api/push'
 import {unsubscribeBrowser} from '@/util/pushSupport'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 
 const {t} = useI18n()
 const router = useRouter()
 
 const sessions = ref<ActiveSession[]>([])
-const showInvalidateAllModal = ref(false)
 
 const {loading, failure} = useAsyncLoader(async () => {
   sessions.value = await sessionApi.getActiveSessions()
@@ -57,16 +52,16 @@ async function removePush(session: ActiveSession) {
   }
 }
 
-async function invalidateAll() {
-  failure.value = null
-  try {
+const {show: showInvalidateAllModal, request: requestInvalidateAll, confirm: invalidateAll} = useConfirmAction<true>({
+  onConfirm: async () => {
+    failure.value = null
     await sessionApi.invalidateAllSessions()
-    showInvalidateAllModal.value = false
-    router.push({name: 'login'})
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
-}
+  },
+  onSuccess: () => {
+    void router.push({name: 'login'})
+  },
+  failure,
+})
 </script>
 
 <template>
@@ -80,22 +75,17 @@ async function invalidateAll() {
           :sessions="sessions"
           @invalidate="invalidateSession"
           @remove-push="removePush"
-          @invalidate-all="showInvalidateAllModal = true"
+          @invalidate-all="requestInvalidateAll(true)"
         />
       </template>
 
-      <Modal v-model="showInvalidateAllModal">
-        <div class="space-y-4 p-4">
-          <SubHeader>{{ t('userSettings.invalidateAllTitle') }}</SubHeader>
-          <ErrorContainer>
-            <p class="text-sm">{{ t('userSettings.invalidateAllWarning') }}</p>
-          </ErrorContainer>
-          <ButtonRow align="end">
-            <SecondaryButton @click="showInvalidateAllModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <ErrorButton @click="invalidateAll">{{ t('userSettings.invalidateAll') }}</ErrorButton>
-          </ButtonRow>
-        </div>
-      </Modal>
+      <ConfirmDeleteModal
+          v-model="showInvalidateAllModal"
+          :title="t('userSettings.invalidateAllTitle')"
+          :message="t('userSettings.invalidateAllWarning')"
+          :confirm-label="t('userSettings.invalidateAll')"
+          @confirm="invalidateAll"
+      />
     </div>
   </ViewContent>
 </template>

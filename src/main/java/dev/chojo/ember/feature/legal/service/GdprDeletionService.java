@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
+import dev.chojo.ember.feature.inventory.service.LeavingMemberGear;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.messages.service.MessageErasure;
@@ -51,6 +52,7 @@ public class GdprDeletionService {
     private final SignatureImageService signatureImages;
     private final AccountReach accountReach;
     private final MessageErasure messageErasure;
+    private final LeavingMemberGear leavingGear;
     private final GenericGdprDeleter engine;
 
     @Inject
@@ -62,7 +64,8 @@ public class GdprDeletionService {
             DocumentService documentService,
             SignatureImageService signatureImages,
             AccountReach accountReach,
-            MessageErasure messageErasure) {
+            MessageErasure messageErasure,
+            LeavingMemberGear leavingGear) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
@@ -71,6 +74,7 @@ public class GdprDeletionService {
         this.signatureImages = signatureImages;
         this.accountReach = accountReach;
         this.messageErasure = messageErasure;
+        this.leavingGear = leavingGear;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -122,6 +126,10 @@ public class GdprDeletionService {
      * Without it every document naming only this member was left naming nobody, which makes it the
      * station's own paperwork. The name outlasts the erasure on purpose, since the record it is kept for
      * has to say whom it is about.
+     *
+     * <p>Their gear is put in order before anything is erased: open movements close and every piece
+     * comes off their record (see {@link LeavingMemberGear}). Refusing, as marking somebody former does,
+     * would hold up an erasure the person is entitled to over gear the station can still sort out.
      */
     public void anonymizeMember(int memberId) {
         var member = stationMemberRepository.findById(memberId).orElse(null);
@@ -130,6 +138,7 @@ public class GdprDeletionService {
             accountReach.require(member.stationId(), accountId, AccountAction.MEMBER_DELETE);
         }
         documentService.memberLeaves(memberId, DocumentService.Leaving.DELETED);
+        if (member != null) leavingGear.release(memberId);
         UUID memberUid = memberLookupService.resolveUid(memberId);
 
         var memberReport = engine.deleteByIdentity(IdentityType.MEMBER_ID, memberId);

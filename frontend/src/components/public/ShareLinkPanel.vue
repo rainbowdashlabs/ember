@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -13,6 +13,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useFlashMessage} from '@/composables/useFlashMessage'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import type {Failure} from '@/util/failure'
 
 /**
@@ -44,18 +45,18 @@ const emit = defineEmits<{
 const {t} = useI18n()
 const {message, flash} = useFlashMessage(2000)
 
-const confirming = ref(false)
+/** Replacing the link asks in place first, unless shift is held. */
+const {show: confirming, request: requestReplace, confirm: replace} = useConfirmAction<true>({
+  onConfirm: async () => {
+    emit('replace')
+  },
+})
 
 const url = computed(() => (typeof window === 'undefined' ? props.path : `${window.location.origin}${props.path}`))
 const copied = computed(() => message.value !== '')
 
 function copy() {
   void navigator.clipboard.writeText(url.value).then(() => flash(url.value))
-}
-
-function replace() {
-  confirming.value = false
-  emit('replace')
 }
 </script>
 
@@ -74,7 +75,7 @@ function replace() {
                 {{ copied ? t('shareLink.copied') : t('shareLink.copy') }}
             </SecondaryButton>
             <template v-if="replaceable">
-                <SecondaryButton v-if="!confirming" :icon="['fas', 'rotate']" @click="confirming = true">
+                <SecondaryButton v-if="!confirming" :icon="['fas', 'rotate']" @click="requestReplace(true)">
                     {{ t('shareLink.replace') }}
                 </SecondaryButton>
                 <template v-else>

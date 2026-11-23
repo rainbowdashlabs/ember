@@ -25,6 +25,7 @@ import {eventGroups, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useEndFollowsStart} from '@/composables/useEndFollowsStart'
 import {partWhen} from '@/util/eventGroupChoice'
 import {formatDateTime, localInputToInstant} from '@/util/format'
@@ -54,8 +55,6 @@ const newStart = ref('')
 const newEnd = ref('')
 useEndFollowsStart(newStart, newEnd)
 const newSet = ref<number>(firstSet.value)
-const removing = ref<number | null>(null)
-const removeOpen = ref(false)
 
 watch(() => props.detail.sets, sets => {
   const ids = sets.map(set => set.id)
@@ -104,15 +103,17 @@ function markRequired(eventId: number, required: boolean) {
   return act(() => eventGroups.setPartRequired(props.detail.eventGroup.id, eventId, required))
 }
 
-function askRemove(eventId: number) {
-  removing.value = eventId
-  removeOpen.value = true
+/** The part asked about, held by its appointment. */
+interface PartToRemove {
+  eventId: number
 }
 
-async function confirmRemove() {
-  const eventId = removing.value
-  removeOpen.value = false
-  if (eventId != null) await act(() => eventGroups.removePart(props.detail.eventGroup.id, eventId))
+const {show: removeOpen, request: requestRemove, confirm: confirmRemove} = useConfirmAction<PartToRemove>({
+  onConfirm: async ({eventId}) => { await act(() => eventGroups.removePart(props.detail.eventGroup.id, eventId)) },
+})
+
+function askRemove(eventId: number) {
+  requestRemove({eventId})
 }
 
 function addExisting() {

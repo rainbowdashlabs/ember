@@ -15,6 +15,7 @@ import ImportDocumentModal from './ImportDocumentModal.vue'
 import {adminSettings} from '@/api'
 import type {LegalFileEntry, TemplateSection} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -35,14 +36,23 @@ const showPreview = ref(false)
 
 const showAddFileModal = ref(false)
 const newFileName = ref('')
-const showDeleteFileModal = ref(false)
 const showLoadTemplateModal = ref(false)
 const showImportModal = ref(false)
-const fileToDeleteIndex = ref(-1)
+/** The file asked about, held by its position, since a position of nought would read as none. */
+interface FilePosition {
+  index: number
+}
+
+const {show: showDeleteFileModal, target: fileToDelete, requestDelete: requestDeleteFile, confirm: deleteFile} =
+  useConfirmDelete<FilePosition>({
+    onDelete: async ({index}) => {
+      files.value = files.value.filter((_, i) => i !== index)
+    },
+  })
 
 const fileToDeleteName = computed(() => {
-  if (fileToDeleteIndex.value < 0) return ''
-  const file = files.value[fileToDeleteIndex.value]
+  if (!fileToDelete.value) return ''
+  const file = files.value[fileToDelete.value.index]
   return file?.displayName || file?.filename || ''
 })
 
@@ -108,15 +118,7 @@ function applyImport(imported: LegalFileEntry[]) {
 }
 
 function confirmDeleteFile(index: number) {
-  fileToDeleteIndex.value = index
-  showDeleteFileModal.value = true
-}
-
-function deleteFile() {
-  if (fileToDeleteIndex.value < 0) return
-  files.value = files.value.filter((_, i) => i !== fileToDeleteIndex.value)
-  showDeleteFileModal.value = false
-  fileToDeleteIndex.value = -1
+  requestDeleteFile({index})
 }
 
 watch(() => [props.type, props.locale], load, {immediate: true})

@@ -9,10 +9,12 @@ import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import type {ColumnResponse as ChecklistColumn} from '@/api/generated/schema'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 
 const props = defineProps<{
   column: ChecklistColumn
@@ -31,7 +33,13 @@ const emit = defineEmits<{
 const {t} = useI18n()
 const menuOpen = ref(false)
 const confirmTick = ref(false)
-const confirmClear = ref(false)
+
+/** Clearing the ticks of every shown row asks first, unless shift is held. */
+const {show: confirmClear, request: requestBulkClear, confirm: applyBulkClear} = useConfirmAction<true>({
+  onConfirm: async () => {
+    emit('bulk-clear')
+  },
+})
 
 function toggleMenu() {
   menuOpen.value = !menuOpen.value
@@ -49,17 +57,12 @@ function askBulkTick() {
 
 function askBulkClear() {
   menuOpen.value = false
-  confirmClear.value = true
+  requestBulkClear(true)
 }
 
 function applyBulkTick() {
   emit('bulk-tick')
   confirmTick.value = false
-}
-
-function applyBulkClear() {
-  emit('bulk-clear')
-  confirmClear.value = false
 }
 
 function onClickOutside(event: MouseEvent) {
@@ -115,15 +118,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       </div>
     </Modal>
 
-    <Modal v-model="confirmClear" size="sm">
-      <div class="space-y-3">
-        <div class="font-semibold">{{ t('checklist.bulkConfirmClearTitle') }}</div>
-        <p>{{ t('checklist.bulkConfirmMessage', {count: visibleCount}) }}</p>
-        <ButtonRow pair align="end">
-          <SecondaryButton @click="confirmClear = false">{{ t('checklist.cancel') }}</SecondaryButton>
-          <PrimaryButton @click="applyBulkClear">{{ t('checklist.bulkClearShown') }}</PrimaryButton>
-        </ButtonRow>
-      </div>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="confirmClear"
+        :title="t('checklist.bulkConfirmClearTitle')"
+        :message="t('checklist.bulkConfirmMessage', {count: visibleCount})"
+        :confirm-label="t('checklist.bulkClearShown')"
+        neutral
+        @confirm="applyBulkClear"
+    />
   </th>
 </template>

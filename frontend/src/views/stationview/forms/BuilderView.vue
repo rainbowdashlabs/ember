@@ -453,7 +453,7 @@ async function save() {
       </template>
     </div>
 
-    <ConfirmDeleteModal v-model="unsaved.askingToLeave.value"
+    <ConfirmDeleteModal v-model="unsaved.askingToLeave.value" data-confirm-always
         :message="t('forms.leaveUnsaved')"
         :confirm-label="t('forms.leaveAnyway')"
         @confirm="leaveUnsaved"/>

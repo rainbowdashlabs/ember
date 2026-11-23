@@ -17,13 +17,7 @@ const beaconActive = ({counts}: AdminNavContext) => counts.beaconActive
 
 /** The instance administration's sidebar, in order. */
 export const ADMIN_NAV: NavEntryDef<AdminNavContext>[] = [
-    {
-        kind: 'group', key: 'dashboard', label: 'sidebar.dashboard', icon: 'gauge',
-        children: [
-            {kind: 'page', key: 'admin-overview', label: 'sidebar.overview', icon: 'house', to: '/admin/dashboard/overview'},
-            {kind: 'page', key: 'admin-statistics', label: 'sidebar.statistics', icon: 'chart-line', to: '/admin/dashboard/statistics'},
-        ],
-    },
+    {kind: 'page', key: 'admin-overview', label: 'sidebar.dashboard', icon: 'gauge', to: '/admin/dashboard/overview'},
     {
         kind: 'group', key: 'stations', label: 'sidebar.stations', icon: 'building',
         children: [
@@ -64,6 +58,7 @@ export const ADMIN_NAV: NavEntryDef<AdminNavContext>[] = [
         kind: 'group', key: 'monitoring', label: 'sidebar.monitoring', icon: 'triangle-exclamation',
         badge: ({counts}) => counts.problemLog + counts.problemReports + counts.failedMails,
         children: [
+            {kind: 'page', key: 'admin-statistics', label: 'sidebar.statistics', icon: 'chart-line', to: '/admin/monitoring/statistics'},
             {kind: 'page', key: 'admin-storage', label: 'sidebar.storageDashboard', icon: 'hard-drive', to: '/admin/monitoring/storage', onboarding: 'nav.admin.storage'},
             {kind: 'page', key: 'admin-storage-backend', label: 'sidebar.storageBackend', icon: 'hard-drive', to: '/admin/monitoring/storage/backend', paletteOnly: true},
             {kind: 'page', key: 'admin-storage-audit', label: 'sidebar.storageAudit', icon: 'list-check', to: '/admin/monitoring/storage/audit', paletteOnly: true},

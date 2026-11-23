@@ -54,7 +54,7 @@ test.describe('Waiting lists', () => {
 
         await page.goto('/public/station/jugendfeuerwehr-musterstadt/waitlist')
 
-        await page.getByText('Bewerberliste auswählen').waitFor()
+        await page.getByText('Warteliste auswählen').waitFor()
         await page.getByText('Schnupperstunde').first().click()
 
         const fields = page.getByRole('textbox')
@@ -373,7 +373,7 @@ test.describe('Waiting lists', () => {
         await page.getByRole('button', {name: 'Erstellen'}).click()
 
         const dialog = page.getByTestId('modal')
-        await dialog.getByPlaceholder('z.B. Bewerberliste 2026').fill(listName)
+        await dialog.getByPlaceholder('z.B. Warteliste 2026').fill(listName)
         await dialog.getByTestId('waitlist-mail-toggle').getByRole('switch').click()
         await dialog.getByRole('button', {name: 'Erstellen'}).click()
 

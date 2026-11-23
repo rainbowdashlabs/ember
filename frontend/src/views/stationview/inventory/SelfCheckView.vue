@@ -60,6 +60,7 @@ const pageTitle = computed(() => (task.value?.task.memberName
     : t('pages.inventory-self-check.title')))
 
 const readOnly = computed(() => task.value?.task.state !== SelfCheckState.OPEN)
+const onMovement = computed<ReadonlySet<number>>(() => new Set(task.value?.onMovement ?? []))
 const outstandingRows = computed(() => (task.value?.rows ?? []).filter(row => row.state === 'OUTSTANDING'))
 
 const saved = ref('')
@@ -289,6 +290,7 @@ const exchangePiece = computed(() =>
             :size-label="sizeLabel"
             :raised-for="check.raisedFor.value"
             :refused-for="check.refusedFor.value"
+            :on-movement="onMovement"
             :read-only="readOnly"
             @set-answer="setAnswer"
             @set-note="setNote"

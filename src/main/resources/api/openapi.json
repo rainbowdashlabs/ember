@@ -39268,7 +39268,14 @@
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "open",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ]
       }
     },
     "/api/v1/movements/at-member" : {
@@ -39472,7 +39479,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/CloseMovementRequest"
+                "$ref" : "#/components/schemas/CancelMovementRequest"
               }
             }
           }
@@ -58824,6 +58831,20 @@
         },
         "required" : [ "canEdit" ]
       },
+      "CancelMovementRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "giveBack" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "planWayBack" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
+      },
       "CancelRequest" : {
         "type" : "object",
         "properties" : {
@@ -71091,9 +71112,13 @@
           "lost" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "away" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "name", "total", "assigned", "lost" ]
+        "required" : [ "name", "total", "assigned", "lost", "away" ]
       },
       "InventorySummary" : {
         "type" : "object",
@@ -75204,9 +75229,13 @@
           "requiredQuantity" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "heldQuantity" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "inventoryId", "inventoryName", "requiredQuantity" ]
+        "required" : [ "inventoryId", "inventoryName", "requiredQuantity", "heldQuantity" ]
       },
       "MemberRequirements" : {
         "type" : "object",
@@ -76068,9 +76097,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "oldPiece" : {
+            "$ref" : "#/components/schemas/OldPieceWhereabouts"
           }
         },
-        "required" : [ "movement", "steps", "lossReport" ]
+        "required" : [ "movement", "steps", "lossReport", "oldPiece" ]
       },
       "MovementParty" : {
         "type" : "string",
@@ -76473,9 +76505,13 @@
           "requiredQuantity" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "heldQuantity" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "inventoryId", "inventoryName", "requiredQuantity" ]
+        "required" : [ "inventoryId", "inventoryName", "requiredQuantity", "heldQuantity" ]
       },
       "NameChangeView" : {
         "type" : "object",
@@ -77380,6 +77416,10 @@
           }
         },
         "required" : [ "ok" ]
+      },
+      "OldPieceWhereabouts" : {
+        "type" : "string",
+        "enum" : [ "NONE", "WITH_MEMBER", "AT_STATION", "AWAY" ]
       },
       "OnboardAgainResponse" : {
         "type" : "object",
@@ -85813,6 +85853,13 @@
               "$ref" : "#/components/schemas/InventoryItem"
             }
           },
+          "onMovement" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
           "rows" : {
             "type" : "array",
             "items" : {
@@ -85826,7 +85873,7 @@
             }
           }
         },
-        "required" : [ "task", "required", "assigned", "rows", "raised" ]
+        "required" : [ "task", "required", "assigned", "onMovement", "rows", "raised" ]
       },
       "SelfCheckReview" : {
         "type" : "object",
@@ -88869,7 +88916,7 @@
       },
       "StationPermission" : {
         "type" : "string",
-        "enum" : [ "USER", "LOGIN", "ATTENDANCE_READ", "ATTENDANCE_EDIT", "ATTENDANCE_CONFIGURE", "ATTENDANCE_EXPORT", "ATTENDANCE_MANAGER", "INVENTORY_CREATE_EXTERNAL", "INVENTORY_CREATE_INTERNAL", "INVENTORY_READ", "INVENTORY_CREATE", "INVENTORY_MOVEMENTS", "INVENTORY_PROCUREMENT", "INVENTORY_CHECK", "INVENTORY_LENDING_REQUEST", "INVENTORY_LENDING_MANAGER", "INVENTORY_EDIT", "INVENTORY_ASSIGN", "INVENTORY_STORAGE", "INVENTORY_MANAGER", "EVENT_MANAGE_TEMPLATE", "EVENT_MANAGE_CATEGORY", "EVENT_INTERNAL", "EVENT_EDIT", "EVENT_REGISTRATION", "EVENTS_FEDERATE", "EVENT_MANAGER", "DOCUMENT_READ", "DOCUMENT_READ_MEMBER", "DOCUMENT_EDIT", "DOCUMENT_EDIT_MEMBER", "DOCUMENT_TEMPLATE_EDIT", "DOCUMENT_SIGN_OTHERS", "DOCUMENT_MANAGER", "MEMBER_READ", "MEMBER_NOTES", "MEMBER_GUARDIAN", "MEMBER_CHANGES", "MEMBER_MANAGE_GROUP", "MEMBER_MANAGE_TAGS", "MEMBER_SELF_UPLOAD", "MEMBER_EDIT", "MEMBER_FIELDS", "MEMBER_EXPORT", "MEMBER_MANAGER", "WAITLIST_READ", "WAITLIST_ADD", "WAITLIST_EDIT", "WAITLIST_MANAGER", "NEWS_EDIT", "NEWS_FEDERATE", "NEWS_MANAGER", "POLL_VIEW_RESULTS", "POLL_CREATE", "POLL_MANAGER", "LOST_AND_FOUND_CREATE", "LOST_AND_FOUND_MANAGE", "LOST_AND_FOUND_MANAGER", "CHECKLIST_READ", "CHECKLIST_MANAGE", "CHECKLIST_MANAGER", "TEST_CATALOG_VIEW", "TEST_CATALOG_EDIT", "TEST_CONFIGURE", "TEST_RESULT_READ", "TEST_REVIEW", "TEST_CATALOG_SHARE", "TEST_MANAGER", "PROTOCOL_TESTER", "PROTOCOL_CREATE", "PROTOCOL_CONFIGURE", "PROTOCOL_SHARE", "PROTOCOL_MANAGER", "BOARD_USE", "BOARD_EDIT", "BOARD_FEDERATE", "BOARD_MANAGER", "PAGE_EDIT", "PAGE_FORMS_VIEW", "PAGE_POLLS_VIEW", "PAGE_MANAGER", "PROCEDURE_READ", "PROCEDURE_EDIT", "PROCEDURE_MANAGER", "KNOWLEDGE_EDIT", "KNOWLEDGE_FEDERATE", "KNOWLEDGE_MANAGER", "MESSAGE_CHAT_MANAGE", "STATION_LOOK_AND_FEEL", "STATION_GENERAL", "STATION_MAIL", "STATION_FEDERATION", "STATION_MODULES", "STATION_IMPORT_EXPORT", "STATION_STATISTICS", "STATION_MANAGER", "STATION_ADMINISTRATOR" ]
+        "enum" : [ "USER", "LOGIN", "ATTENDANCE_READ", "ATTENDANCE_EDIT", "ATTENDANCE_CONFIGURE", "ATTENDANCE_EXPORT", "ATTENDANCE_MANAGER", "INVENTORY_CREATE_EXTERNAL", "INVENTORY_CREATE_INTERNAL", "INVENTORY_READ", "INVENTORY_CREATE", "INVENTORY_MOVEMENTS", "INVENTORY_PROCUREMENT", "INVENTORY_CHECK", "INVENTORY_LENDING_REQUEST", "INVENTORY_LENDING_MANAGER", "INVENTORY_EDIT", "INVENTORY_ASSIGN", "INVENTORY_STORAGE", "INVENTORY_MANAGER", "EVENT_MANAGE_TEMPLATE", "EVENT_MANAGE_CATEGORY", "EVENT_INTERNAL", "EVENT_EDIT", "EVENT_REGISTRATION", "EVENTS_FEDERATE", "EVENT_MANAGER", "DOCUMENT_READ", "DOCUMENT_READ_MEMBER", "DOCUMENT_EDIT", "DOCUMENT_EDIT_MEMBER", "DOCUMENT_TEMPLATE_EDIT", "DOCUMENT_SIGN_OTHERS", "DOCUMENT_MANAGER", "MEMBER_READ", "MEMBER_NOTES", "MEMBER_GUARDIAN", "MEMBER_CHANGES", "MEMBER_MANAGE_GROUP", "MEMBER_MANAGE_TAGS", "MEMBER_SELF_UPLOAD", "MEMBER_EDIT", "MEMBER_FIELDS", "MEMBER_EXPORT", "MEMBER_MANAGER", "WAITLIST_READ", "WAITLIST_ADD", "WAITLIST_EDIT", "WAITLIST_MANAGER", "NEWS_EDIT", "NEWS_FEDERATE", "NEWS_MANAGER", "POLL_VIEW_RESULTS", "POLL_CREATE", "POLL_MANAGER", "LOST_AND_FOUND_CREATE", "LOST_AND_FOUND_MANAGE", "LOST_AND_FOUND_MANAGER", "CHECKLIST_READ", "CHECKLIST_MANAGE", "CHECKLIST_MANAGER", "TEST_CATALOG_VIEW", "TEST_CATALOG_EDIT", "TEST_CONFIGURE", "TEST_RESULT_READ", "TEST_REVIEW", "TEST_CATALOG_SHARE", "TEST_MANAGER", "PROTOCOL_TESTER", "PROTOCOL_CREATE", "PROTOCOL_CONFIGURE", "PROTOCOL_SHARE", "PROTOCOL_MANAGER", "BOARD_USE", "BOARD_EDIT", "BOARD_FEDERATE", "BOARD_MANAGER", "PAGE_EDIT", "PAGE_FORMS_VIEW", "PAGE_POLLS_VIEW", "PAGE_MANAGER", "PROCEDURE_READ", "PROCEDURE_EDIT", "PROCEDURE_MANAGER", "KNOWLEDGE_EDIT", "KNOWLEDGE_FEDERATE", "KNOWLEDGE_MANAGER", "MESSAGE_CHAT_EDIT", "MESSAGE_CHAT_MODERATE", "MESSAGE_CHAT_MANAGE", "STATION_LOOK_AND_FEEL", "STATION_GENERAL", "STATION_MAIL", "STATION_FEDERATION", "STATION_MODULES", "STATION_IMPORT_EXPORT", "STATION_STATISTICS", "STATION_MANAGER", "STATION_ADMINISTRATOR" ]
       },
       "StationPermissionsRequest" : {
         "type" : "object",
@@ -89654,9 +89701,12 @@
           },
           "itemSize" : {
             "type" : [ "string", "null" ]
+          },
+          "droppable" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "movementId", "purpose", "stepId", "stepLabel", "stepActor", "handOverNext", "replacementItemId", "inventoryName", "itemName", "itemSize" ]
+        "required" : [ "movementId", "purpose", "stepId", "stepLabel", "stepActor", "handOverNext", "replacementItemId", "inventoryName", "itemName", "itemSize", "droppable" ]
       },
       "SwitchBlocker" : {
         "type" : "object",

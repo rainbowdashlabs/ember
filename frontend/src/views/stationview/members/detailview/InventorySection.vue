@@ -11,7 +11,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
 import MissingSlotCard from './inventorytab/MissingSlotCard.vue'
-import type { MyInventoryItem, RequiredInventoryItem } from '@/api/generated/schema'
+import IncomingGearCard from './inventorytab/IncomingGearCard.vue'
+import type { MovementResponse, MyInventoryItem, RequiredInventoryItem } from '@/api/generated/schema'
+import { fillsAGap } from '@/util/movementPieces'
 
 const { t } = useI18n()
 
@@ -21,10 +23,16 @@ const { t } = useI18n()
  * <p>A piece that is missing stands in its inventory's block beside the pieces that are there, so
  * the gap is seen where the reader looks for the gear, not in a list of its own above it. Inventories
  * the member holds nothing of yet still get a block when something is required of them.
+ *
+ * <p>A piece an open movement is bringing them stands there too, and fills a gap rather than standing
+ * beside it: a gap that is already being filled offers no second hand-out. An exchange fills one only
+ * once the piece it swaps has left the member, since until then they still hold it.
  */
 const props = defineProps<{
   memberInventory: MyInventoryItem[]
   requirements: RequiredInventoryItem[]
+  /** The open movements still on their way to the member. */
+  incoming?: MovementResponse[]
   canAssign: boolean
   canManageInventory: boolean
 }>()
@@ -41,20 +49,28 @@ interface InventoryGroup {
   inventoryId: number
   inventoryName: string
   items: MyInventoryItem[]
+  incoming: MovementResponse[]
   requirement: RequiredInventoryItem | null
   missing: number
 }
+
+/** The block of movements that name no inventory, which is rare and still worth showing. */
+const NO_INVENTORY = 0
 
 const groups = computed((): InventoryGroup[] => {
   const byInventory = new Map<number, InventoryGroup>()
   const groupOf = (inventoryId: number, inventoryName: string) => {
     const group = byInventory.get(inventoryId)
-        ?? { inventoryId, inventoryName, items: [], requirement: null, missing: 0 }
+        ?? { inventoryId, inventoryName, items: [], incoming: [], requirement: null, missing: 0 }
     byInventory.set(inventoryId, group)
     return group
   }
   for (const item of props.memberInventory) {
     groupOf(item.inventoryId, item.inventoryName ?? '').items.push(item)
+  }
+  for (const movement of props.incoming ?? []) {
+    const inventoryId = movement.inventoryId ?? NO_INVENTORY
+    groupOf(inventoryId, movement.inventoryName ?? t('memberDetail.incomingElsewhere')).incoming.push(movement)
   }
   for (const requirement of props.requirements) {
     const missing = requirement.requiredQuantity - requirement.assignedQuantity
@@ -65,6 +81,14 @@ const groups = computed((): InventoryGroup[] => {
   }
   return [...byInventory.values()]
 })
+
+const heldIds = computed(() => new Set(props.memberInventory.map(item => item.id)))
+
+/** The gaps nothing is on its way to fill yet, which are the ones still offering a hand-out. */
+function openGaps(group: InventoryGroup): number {
+  const filling = group.incoming.filter(movement => fillsAGap(movement, heldIds.value)).length
+  return Math.max(0, group.missing - filling)
+}
 
 function countOf(group: InventoryGroup): string {
   return group.requirement
@@ -105,8 +129,13 @@ function countOf(group: InventoryGroup): string {
               @unassign="emit('unassign', $event)"
               @reassign="emit('reassign', $event)"
           />
+          <IncomingGearCard
+              v-for="movement in group.incoming"
+              :key="`incoming-${movement.id}`"
+              :movement="movement"
+          />
           <MissingSlotCard
-              v-for="slot in group.missing"
+              v-for="slot in openGaps(group)"
               :key="`missing-${slot}`"
               :inventory-name="group.inventoryName"
               :can-hand-out="canAssign"

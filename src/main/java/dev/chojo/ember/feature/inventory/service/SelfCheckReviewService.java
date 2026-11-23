@@ -484,7 +484,7 @@ public class SelfCheckReviewService {
         var gear = checkService.readGear(task.stationId(), task.memberId());
         Map<Integer, List<InventoryItem>> free = new HashMap<>();
         for (RequiredInventoryItem required : gear.required()) {
-            free.put(required.inventoryId(), inventoryRepository.findUnassignedItems(required.inventoryId()));
+            free.put(required.inventoryId(), inventoryRepository.findFreeToHandOut(required.inventoryId()));
         }
         Refusal refusal = approvalRefusal(task, reviewerId);
         return new SelfCheckReview(

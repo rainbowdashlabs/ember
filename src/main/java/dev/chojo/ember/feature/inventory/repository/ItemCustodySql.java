@@ -120,7 +120,8 @@ public final class ItemCustodySql {
     }
 
     /**
-     * A predicate matching the items no open movement names, neither as setting out nor as promised.
+     * A predicate matching the items no open movement carries: neither named as setting out or as
+     * promised, nor among the further pieces of a dispatch that sends many at once.
      *
      * <p>Such a piece is not free to be offered for anything else, however free its custody looks.
      *
@@ -129,8 +130,41 @@ public final class ItemCustodySql {
      */
     public static String notOnAMovement(String itemAlias) {
         return """
-                NOT EXISTS (SELECT 1 FROM item_movement open_movement WHERE open_movement.state = 'OPEN' \
-                AND %1$s.id IN (open_movement.outgoing_item_id, open_movement.incoming_item_id))""".formatted(itemAlias);
+                (NOT EXISTS (SELECT 1 FROM item_movement open_movement WHERE open_movement.state = 'OPEN' \
+                AND %1$s.id IN (open_movement.outgoing_item_id, open_movement.incoming_item_id)) \
+                AND NOT EXISTS (SELECT 1 FROM item_movement_item carried \
+                JOIN item_movement carrying ON carrying.id = carried.movement_id \
+                WHERE carrying.state = 'OPEN' AND carried.item_id = %1$s.id))""".formatted(itemAlias);
+    }
+
+    /**
+     * A predicate matching the items no loan to a partner station holds: none that is approved or running
+     * and not over before today has set them aside.
+     *
+     * @param itemAlias the alias of {@code inventory_item}, or the bare table name
+     * @return the SQL predicate, needing no bind of its own
+     */
+    public static String notSetAsideForALoan(String itemAlias) {
+        return loanHold(itemAlias, "");
+    }
+
+    /**
+     * The same, leaving out one loan, which is the loan asking about its own pieces.
+     *
+     * @param itemAlias the alias of {@code inventory_item}, or the bare table name
+     * @return the SQL predicate, expecting {@code :own_loan} to be bound to the request id
+     */
+    public static String notSetAsideForAnotherLoan(String itemAlias) {
+        return loanHold(itemAlias, " AND loan.id <> :own_loan");
+    }
+
+    private static String loanHold(String itemAlias, String except) {
+        return """
+                NOT EXISTS (SELECT 1 FROM federation_lending_request_item_assignment loan_piece \
+                JOIN federation_lending_request_item loan_line ON loan_line.id = loan_piece.request_item_id \
+                JOIN federation_lending_request loan ON loan.id = loan_line.request_id \
+                WHERE loan_piece.item_id = %1$s.id AND loan.status IN ('APPROVED', 'LENT') \
+                AND (loan.requested_date_to IS NULL OR loan.requested_date_to >= current_date)%2$s)""".formatted(itemAlias, except);
     }
 
     /**

@@ -20,6 +20,7 @@ import {maps} from '@/api'
 import {useMapsConfig} from '@/composables/useMapsConfig'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {describeFailure} from '@/util/failure'
 import {GeocodingProvider} from '@/api/generated/schema'
 import type {
@@ -49,7 +50,6 @@ const geocoding = ref<MapsGeocodingConfig>({
 const tileCacheMaxMb = ref(500)
 const defaultGeocodingServer = ref<string | null>(null)
 const cacheStats = ref<CacheStats | null>(null)
-const showPurgeModal = ref(false)
 
 const {loading, failure} = useAsyncLoader(async () => {
   const [config, stats] = await Promise.all([
@@ -83,17 +83,13 @@ async function save() {
   }
 }
 
-async function purgeCache() {
-  try {
-    const stats = await maps.purgeCache()
-    cacheStats.value = stats
-    showFlash(t('adminMaps.cachePurged'))
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    showPurgeModal.value = false
-  }
-}
+const {show: showPurgeModal, request: requestPurge, confirm: purgeCache} = useConfirmAction<true>({
+  onConfirm: async () => {
+    cacheStats.value = await maps.purgeCache()
+  },
+  onSuccess: () => showFlash(t('adminMaps.cachePurged')),
+  failure,
+})
 </script>
 
 <template>
@@ -114,7 +110,7 @@ async function purgeCache() {
         <CachePanel
             v-model="tileCacheMaxMb"
             :cache-stats="cacheStats"
-            @request-purge="showPurgeModal = true"
+            @request-purge="requestPurge(true)"
         />
 
         <div class="flex justify-end">

@@ -163,6 +163,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
         var item = inventoryRepository.findItemsByMember(kid.id()).stream()
                 .filter(candidate -> candidate.ownerKind() != ItemOwner.CLUSTER)
                 .filter(candidate -> !moving.containsKey(candidate.id()))
+                .filter(candidate -> candidate.lostAt() == null)
                 .findFirst()
                 .orElse(null);
         if (item == null) {
@@ -174,6 +175,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
                 .filter(candidate -> candidate.id() != item.id())
                 .filter(candidate -> candidate.assignedTo() == null)
                 .filter(candidate -> candidate.ownerKind() != ItemOwner.CLUSTER)
+                .filter(candidate -> !movementService.isOnAMovement(candidate.id()))
                 .findFirst()
                 .orElse(null);
         if (spare == null) {
@@ -226,7 +228,8 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
      * themselves side by side. A list where everything says the same thing teaches nothing.
      *
      * <p>Only the station's own gear is used: a step on an association's piece belongs to its owner,
-     * and a Betreuer acknowledging it is refused.
+     * and a Betreuer acknowledging it is refused. A piece without a free replacement beside it is
+     * passed over, since the step naming the replacement refuses one another movement already carries.
      */
     private void seedExchangeStages(DemoStationContext station) {
         var members = station.members();
@@ -241,11 +244,13 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
             var item = inventoryRepository.findItemsByMember(kid.id()).stream()
                     .filter(candidate -> candidate.ownerKind() != ItemOwner.CLUSTER)
                     .filter(candidate -> !moving.containsKey(candidate.id()))
+                    .filter(candidate -> candidate.lostAt() == null)
                     .findFirst()
                     .orElse(null);
             if (item == null) continue;
-            var exchange = swapFor(station.stationId(), kid, item, "Passt nicht mehr");
             var spare = spareBesides(item);
+            if (spare == null) continue;
+            var exchange = swapFor(station.stationId(), kid, item, "Passt nicht mehr");
             walkStages(exchange, made + 1, actor, "Für die Aufnahme gestellt", spare);
             made++;
         }
@@ -383,6 +388,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
         var moving = inventoryRepository.findMovingItemsOfMember(kid.id());
         var item = inventoryRepository.findItemsByMember(kid.id()).stream()
                 .filter(candidate -> !moving.containsKey(candidate.id()))
+                .filter(candidate -> candidate.lostAt() == null)
                 .findFirst()
                 .orElse(null);
         if (item == null) {
@@ -428,12 +434,16 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
         return walking;
     }
 
-    /** Another free piece of the same inventory, which is what a replacement has to be. */
+    /**
+     * Another free piece of the same inventory, which is what a replacement has to be. A piece another
+     * open movement carries is not free, however empty its hands look.
+     */
     private Integer spareBesides(InventoryItem item) {
         return inventoryRepository.findItems(item.inventoryId()).stream()
                 .filter(candidate -> candidate.id() != item.id())
                 .filter(candidate -> candidate.assignedTo() == null)
                 .filter(candidate -> candidate.ownerKind() != ItemOwner.CLUSTER)
+                .filter(candidate -> !movementService.isOnAMovement(candidate.id()))
                 .findFirst()
                 .map(InventoryItem::id)
                 .orElse(null);

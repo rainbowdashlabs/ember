@@ -244,6 +244,19 @@ public class LendingRepository {
     }
 
     /**
+     * The request a line belongs to.
+     *
+     * @param requestItemId the line
+     * @return the request id, or empty when the line is gone
+     */
+    public Optional<Integer> findRequestIdOfLine(int requestItemId) {
+        return query("SELECT request_id FROM federation_lending_request_item WHERE id = :id;")
+                .single(call().bind("id", requestItemId))
+                .map(row -> row.getInt("request_id"))
+                .first();
+    }
+
+    /**
      * Sets one more piece aside for a line.
      *
      * <p>Adding rather than replacing, which is the whole reason the assignment left the request line:

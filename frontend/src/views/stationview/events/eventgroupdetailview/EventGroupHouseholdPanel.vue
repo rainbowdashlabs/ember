@@ -25,6 +25,7 @@ import {RegistrationStatus, type EventGroupDetail, type EventGroupSignUp} from '
 import {eventGroupPlaces, holdsOrWaitsForPlace} from '@/util/eventGroupChoice'
 import {ownEventGroupPort, type EventGroupSignUpPort} from './eventGroupSignUpPort'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {hasPassed} from '../eventshared/registrationDeadline'
 import type {OurPartnerPlaces} from '../eventshared/ourPartnerPlaces'
 
@@ -52,8 +53,6 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const dialogFor = ref<EventGroupSignUp | null>(null)
-const withdrawFor = ref<EventGroupSignUp | null>(null)
-const withdrawOpen = ref(false)
 
 /** Whether sign-ups closed with the deadline. */
 const deadlinePassed = computed(() => hasPassed(props.detail.eventGroup.closesAt))
@@ -84,14 +83,8 @@ function isQueued(entry: EventGroupSignUp): boolean {
   return entry.status === RegistrationStatus.QUEUED
 }
 
-function askWithdraw(entry: EventGroupSignUp) {
-  withdrawFor.value = entry
-  withdrawOpen.value = true
-}
-
 const {running: busy, failure, run: withdraw} = useAsyncAction(async (entry: EventGroupSignUp) => {
   await (props.port ?? ownEventGroupPort(props.detail.eventGroup.id)).withdraw(entry.memberId)
-  withdrawOpen.value = false
   await props.onChanged?.()
 })
 
@@ -106,12 +99,10 @@ const {running: confirming, failure: confirmFailure, run: confirm} = useAsyncAct
 })
 
 /** Withdraws the sign-up asked about and closes the dialog, whether the withdrawal worked or not. */
-async function confirmWithdraw() {
-  const entry = withdrawFor.value
-  if (!entry) return
-  await withdraw(entry)
-  withdrawOpen.value = false
-}
+const {show: withdrawOpen, target: withdrawFor, request: askWithdraw, confirm: confirmWithdraw} =
+  useConfirmAction<EventGroupSignUp>({
+    onConfirm: async entry => { await withdraw(entry) },
+  })
 </script>
 
 <template>

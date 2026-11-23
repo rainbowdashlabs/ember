@@ -56,7 +56,7 @@ const {running: cancelling, failure: cancelFailure, run: cancel} = useAsyncActio
 </script>
 
 <template>
-  <Modal v-model="visible">
+  <Modal v-model="visible" data-confirm-always>
     <template #header>{{ title }}</template>
     <div class="space-y-4">
       <p>{{ question }}</p>

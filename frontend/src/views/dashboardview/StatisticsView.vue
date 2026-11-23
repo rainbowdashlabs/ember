@@ -137,8 +137,15 @@ const inventoryBarOption = computed(() => {
         name: t('statistics.unassigned'),
         type: 'bar',
         stack: 'inv',
-        data: stats.value.inventoryStatus.map(i => i.total - i.assigned - i.lost),
+        data: stats.value.inventoryStatus.map(i => i.total - i.assigned - i.lost - i.away),
         color: '#CFCFCF'
+      },
+      {
+        name: t('statistics.away'),
+        type: 'bar',
+        stack: 'inv',
+        data: stats.value.inventoryStatus.map(i => i.away),
+        color: '#73CEFF'
       },
       {
         name: t('statistics.lost'),

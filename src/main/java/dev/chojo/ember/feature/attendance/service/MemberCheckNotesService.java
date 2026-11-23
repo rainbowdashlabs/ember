@@ -153,7 +153,8 @@ public class MemberCheckNotesService {
                             movement.incomingItemId(),
                             inventory.map(Inventory::name).orElse(""),
                             subject.map(InventoryItem::name).orElse(""),
-                            subject.flatMap(this::sizeOf).orElse(null)));
+                            subject.flatMap(this::sizeOf).orElse(null),
+                            !movementService.piecesMayHaveMoved(movement.id())));
         }
         return byMember;
     }
@@ -284,6 +285,8 @@ public class MemberCheckNotesService {
      * @param itemName      the piece this step is about, which is the one arriving where the step
      *     brings one and the one they are holding otherwise
      * @param itemSize      the size written on that piece, or null where its inventory keeps no sizes
+     * @param droppable     whether it may still be dropped from the sheet, which is while nothing has
+     *     changed hands; once a piece has moved it is called off on the movement's own page instead
      */
     public record SwapNote(
             int movementId,
@@ -295,7 +298,8 @@ public class MemberCheckNotesService {
             @Nullable Integer replacementItemId,
             String inventoryName,
             String itemName,
-            @Nullable String itemSize) {}
+            @Nullable String itemSize,
+            boolean droppable) {}
 
     /**
      * @param itemId      the found item

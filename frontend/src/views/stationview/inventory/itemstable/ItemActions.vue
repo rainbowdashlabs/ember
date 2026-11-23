@@ -4,20 +4,34 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import type { InventoryItem } from '@/api/generated/schema'
 import type { InventoryItemActionEmits } from '../itemEmits'
 
-withDefaults(defineProps<{
+/**
+ * The menu of one piece in an inventory's list.
+ *
+ * <p>What the station would be refused for is not offered: a piece lent out or missing is not handed
+ * out, and a piece an open movement carries is the movement's to move, so it is neither handed out,
+ * taken back, reported missing nor deleted from here.
+ */
+const props = withDefaults(defineProps<{
   item: InventoryItem
   showActions?: boolean
   lentOut?: boolean
+  /** Whether an open movement carries the piece, setting out or promised. */
+  onMovement?: boolean
 }>(), {
   showActions: false,
   lentOut: false,
+  onMovement: false,
 })
+
+/** Whether the piece is free for the station to act on at all: not lent out and not on a movement. */
+const free = computed(() => !props.lentOut && !props.onMovement)
 
 const emit = defineEmits<InventoryItemActionEmits>()
 
@@ -27,15 +41,15 @@ const { t } = useI18n()
 <template>
   <ActionsMenu :label="t('common.actions')">
     <template v-if="showActions">
-      <DropdownMenuItem v-if="!item.lostAt && !lentOut" :icon="['fas', 'user']"
+      <DropdownMenuItem v-if="!item.lostAt && free" :icon="['fas', 'user']"
                         @click="emit('assign', item)">
         {{ item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign') }}
       </DropdownMenuItem>
-      <DropdownMenuItem v-if="item.assignedTo && !item.lostAt && !lentOut" :icon="['fas', 'right-from-bracket']"
+      <DropdownMenuItem v-if="item.assignedTo && !item.lostAt && free" :icon="['fas', 'right-from-bracket']"
                         icon-class="text-(--text-muted)" @click="emit('unassign', item)">
         {{ t('inventory.edit.unassign') }}
       </DropdownMenuItem>
-      <DropdownMenuItem v-if="!item.lostAt && !lentOut" :icon="['fas', 'triangle-exclamation']"
+      <DropdownMenuItem v-if="!item.lostAt && free" :icon="['fas', 'triangle-exclamation']"
                         icon-class="text-error" class="text-error" @click="emit('markLost', item)">
         {{ t('inventory.edit.markLost') }}
       </DropdownMenuItem>
@@ -52,7 +66,7 @@ const { t } = useI18n()
       <DropdownMenuItem :icon="['fas', 'pen']" @click="emit('edit', item)">
         {{ t('common.edit') }}
       </DropdownMenuItem>
-      <DropdownMenuItem v-if="!lentOut" :icon="['fas', 'trash']" destructive
+      <DropdownMenuItem v-if="free" :icon="['fas', 'trash']" destructive
                         @click="emit('delete', item)">
         {{ t('common.delete') }}
       </DropdownMenuItem>

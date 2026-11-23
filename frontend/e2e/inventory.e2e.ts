@@ -280,7 +280,8 @@ test.describe('Inventory', () => {
      *
      * <p>The address names the inventory tab, so the page opens there rather than on the profile, and
      * the scanner on that tab hands the piece over without a modal in between: typed and confirmed
-     * with Enter, the way a hand scanner sends it.
+     * with Enter, the way a hand scanner sends it. The tab plans a hand-out by default, so the story
+     * chooses handing it over now.
      */
     test('a member page opened at its inventory hands out a scanned piece', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -290,6 +291,7 @@ test.describe('Inventory', () => {
         await page.goto(`/station/members/detail/${memberId}#Inventory`)
 
         await expect(page.getByRole('tab', {name: 'Inventar'})).toHaveAttribute('aria-selected', 'true')
+        await page.getByTestId('hand-out-now').check()
         const scanner = page.getByPlaceholder('Code eingeben oder scannen…')
         await scanner.fill(code)
         await scanner.press('Enter')
