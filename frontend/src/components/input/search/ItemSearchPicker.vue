@@ -67,6 +67,11 @@ const props = defineProps<{
 const emit = defineEmits<{
   pick: [item: InventoryItem]
   scanNotFound: [code: string]
+  /**
+   * How many pieces it offers in the size asked for, or in all where no size is asked for, once the
+   * shelf has been read. Nothing at all is what lets a screen offer to order one instead.
+   */
+  fits: [count: number]
 }>()
 
 const {t} = useI18n()
@@ -84,6 +89,11 @@ function passesFilters(item: InventoryItem): boolean {
 }
 
 const filtered = computed(() => items.value.filter(passesFilters))
+
+watch([ready, filtered], ([isReady, offered]) => {
+  if (!isReady) return
+  emit('fits', props.wantedSizeId == null ? offered.length : offered.filter(catalog.hasWantedSize).length)
+}, {immediate: true})
 
 /** Pieces of the size asked for come before the rest, which is the piece a reader is looking for. */
 function byWantedSize(a: InventoryItem, b: InventoryItem): number {

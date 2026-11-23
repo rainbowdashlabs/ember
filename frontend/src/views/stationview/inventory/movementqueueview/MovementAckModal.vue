@@ -77,6 +77,12 @@ async function run(action: () => Promise<MovementDetail>) {
   }
 }
 
+/** An order placed or deleted changes what the swap waits for, so the dialog hands back to the queue to read it again. */
+function orderChanged() {
+  model.value = false
+  emit('done')
+}
+
 function acknowledge(payload: AcknowledgePayload) {
   const stepId = currentStep.value?.id
   if (!stepId) return
@@ -121,6 +127,10 @@ function force(payload: AcknowledgePayload) {
             :step="currentStep"
             :wanted-size-id="detail.movement.newSizeId ?? detail.movement.oldSizeId"
             :wanted-size-name="detail.movement.newSizeName ?? detail.movement.oldSizeName"
+            :movement-id="detail.movement.id"
+            :purpose="detail.movement.purpose"
+            :order-id="detail.movement.orderId ?? null"
+            :on-order-changed="orderChanged"
             @acknowledge="acknowledge"
             @force="force"
             @decline="reason => run(() => movements.declineMovement(props.movementId, reason))"

@@ -2786,6 +2786,7 @@ volumes:
             purposeIssue: 'Ausgabe - ein Teil geht an ein Mitglied oder ins Lager.',
             purposeReturn: 'Rückgabe - ein Teil kommt zurück an die Wache oder an den Verband.',
             purposeExchange: 'Tausch - ein Teil geht zurück und ein Ersatz kommt dafür.',
+            purposeOrdered: 'Ein Tausch mit „Bestellt“ wartet auf eine Beschaffung, weil im Lager kein passender Ersatz lag.',
             purposeRequest: 'Anfrage - die Wache bittet den Verband um ein Teil, das sie nicht hat.',
             noStatusTitle: 'Kein Status, sondern Schritte',
             noStatusText: 'Ein Vorgang hat keinen Status, den jemand setzt. Er hat einen Ablauf aus Schritten, und '
@@ -2975,6 +2976,10 @@ volumes:
                 + 'zeigt die Beschaffung an, wie viele es sind. Mit „Aus dem Lager ausgeben" wählst du eines davon aus: '
                 + 'Ember startet die Ausgabe an das Mitglied als Vorgang und markiert die Beschaffung als erledigt, '
                 + 'ohne ein neues Teil zu erfassen.',
+            swapTitle: 'Bestellungen für einen Tausch',
+            swapText: 'Eine Beschaffung kann aus einem Tausch entstehen, wenn im Lager kein passender Ersatz liegt. Sie führt dann zu diesem Tausch. '
+                + 'Markierst du sie als erledigt oder gibst ein Stück aus dem Lager aus, wird das Teil zum Ersatz dieses Tauschs, '
+                + 'statt eine eigene Ausgabe zu starten. Brichst du den Tausch ab, bleibt die Bestellung als eigene Beschaffung.',
             tip: 'Beschaffungen können auch direkt aus Tausch-Anfragen oder der Inventarprüfung erstellt werden.',
         },
         inventoryLending: {
@@ -6382,6 +6387,8 @@ volumes:
             acksText: 'Bestätigt heißt: die Partei, der der Schritt gehört, hat selbst bestätigt. Von der Wache vermerkt heißt: die Wache hat für einen Träger eingetragen, der Ember nicht nutzt und deshalb nicht antworten kann. Erzwungen heißt: jemand hat einen Schritt über eine Partei hinweg eingetragen, die hätte antworten können. Das steht dauerhaft im Verlauf.',
             arrival: 'Das ankommende Teil',
             arrivalText: 'Ein Schritt legt fest, welches Teil ankommt. Steht beim Vorgang schon ein Teil, weil es bei der Planung ausgesucht wurde, ist es dort bereits ausgewählt. Du bestätigst es einfach oder suchst ein anderes aus. Ein Teil, das schon ein anderer Vorgang versprochen hat, kannst du nicht wählen.',
+            order: 'Ersatz bestellen',
+            orderText: 'Liegt nichts Passendes im Lager, klickst du auf „Stattdessen beschaffen“. Der Tausch wartet dann auf die Bestellung und ist in der Liste als „Bestellt“ markiert. Ist die Bestellung da, trägt Ember das neue Teil als Ersatz ein. Willst du doch selbst ein Teil wählen, löschst du die Bestellung.',
             endings: 'Ablehnen und Abbrechen',
             endingsText: 'Wer an der Reihe ist, kann mit einer Begründung ablehnen. Der Vorgang endet dann, und das abgehende Teil geht dorthin zurück, wo es vorher war. Abbrechen geht, solange der Vorgang noch auf der eigenen Seite steht.',
             callOff: 'Einen Tausch abbrechen',

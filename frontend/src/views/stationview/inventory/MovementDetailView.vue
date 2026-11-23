@@ -155,6 +155,7 @@ function force(payload: AcknowledgePayload) {
           :may-record="mayRecord"
           :open="open"
           :sizes="sizes"
+          :on-order-changed="reload"
           @acknowledge="acknowledge"
           @force="force"
           @decline="reason => run(() => movements.declineMovement(movementId, reason))"

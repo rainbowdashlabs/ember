@@ -28,6 +28,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Offene Antworten auch bei wiederkehrenden Terminen.** Die Übersicht listet nicht nur einmalige Termine, sondern auch jedes Datum eines wiederkehrenden Termins, das noch auf eine Antwort wartet, und führt zu diesem Datum.
 - **Plätze für Partnerwachen bei Terminreihen.** Eine geteilte Terminreihe kann eine Partnerwache selbst über ihre Anmeldungen entscheiden lassen, auf Wunsch mit einer festen Zahl an Plätzen für die ganze Terminreihe. Das ging bisher nur bei geteilten Terminen.
 - **Rückweg für ein schon verschicktes Teil.** Wird ein Tausch abgebrochen, dessen altes Teil schon unterwegs oder wieder beim Träger ist, lässt sich der Rückweg planen. Eine neue Ausgabe bringt dann genau dieses Teil zurück zum Mitglied.
+- **Ersatz für einen Tausch bestellen.** Liegt nichts in der gewünschten Größe im Lager, kann ein Tausch stattdessen auf eine Bestellung warten und ist in der Liste als bestellt markiert. Das gelieferte Teil wird zum Ersatz, und wird der Tausch abgebrochen, bleibt die Bestellung als eigene Beschaffung bestehen.
 
 ### Änderungen
 

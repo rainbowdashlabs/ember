@@ -35,6 +35,8 @@ const props = defineProps<{
   /** Whether the arriving piece may be written down here rather than picked. */
   mayRecord: boolean
   failure: Failure | null
+  /** Called once an order for the swap's replacement was placed or deleted. */
+  onOrderChanged?: () => void
 }>()
 
 const emit = defineEmits<{
@@ -113,6 +115,10 @@ const drawnSteps = computed(() =>
             :step="step"
             :wanted-size-id="movement.newSizeId ?? movement.oldSizeId"
             :wanted-size-name="movement.newSizeName ?? movement.oldSizeName"
+            :movement-id="movement.id"
+            :purpose="movement.purpose"
+            :order-id="movement.orderId ?? null"
+            :on-order-changed="props.onOrderChanged"
             @acknowledge="payload => emit('acknowledge', payload)"
             @force="payload => emit('force', payload)"
             @decline="reason => emit('decline', reason)"

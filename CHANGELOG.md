@@ -28,6 +28,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Open answers for every date of a series.** The dashboard lists each date of a repeating appointment that still waits for an answer, not only one-time appointments, and leads to that date.
 - **Places per partner station for event groups.** A shared event group can let a partner station decide its own sign-ups, optionally with a number of places for the whole event group. Until now only shared appointments could do this.
 - **A way back for a piece already sent.** Calling off an exchange whose old piece is already in the post or back with the association offers to plan its way back. A new hand-out then brings exactly that piece back to the member.
+- **Ordering the replacement of a swap.** When nothing in the wanted size is in storage, a swap can wait for an order instead and is marked as ordered in the queue. The delivered piece becomes the swap's replacement, and calling the swap off keeps the order on its own.
 
 ### Changes
 

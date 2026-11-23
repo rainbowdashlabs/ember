@@ -48,6 +48,7 @@ const table = useDataTable<MovementResponse>({
       <p>{{ t('helpCenter.inventoryMovements.purposeIssue') }}</p>
       <p>{{ t('helpCenter.inventoryMovements.purposeReturn') }}</p>
       <p>{{ t('helpCenter.inventoryMovements.purposeExchange') }}</p>
+      <p>{{ t('helpCenter.inventoryMovements.purposeOrdered') }}</p>
       <p>{{ t('helpCenter.inventoryMovements.purposeRequest') }}</p>
     </HelpSection>
 

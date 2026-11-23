@@ -5,15 +5,16 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it, vi} from 'vitest'
-import {mount} from '@vue/test-utils'
+import {mount, flushPromises} from '@vue/test-utils'
 import {createI18n} from 'vue-i18n'
 import MovementActionPanel from './MovementActionPanel.vue'
+import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import type {MovementStepResponse} from '@/api/generated/schema'
 
 const held = {inventoryRead: true}
 
 vi.mock('@/composables/useSession', () => ({
-    useSession: () => ({hasPermission: () => held.inventoryRead}),
+    useSession: () => ({hasPermission: () => held.inventoryRead, isModuleEnabled: () => true}),
 }))
 
 /**
@@ -168,6 +169,39 @@ describe('MovementActionPanel', () => {
         it('asks nothing while the member holds it, or where the movement is for nobody', () => {
             expect(callingOff('WITH_MEMBER').find('[data-testid="call-off-choice"]').exists()).toBe(false)
             expect(callingOff('AT_STATION', false).find('[data-testid="call-off-choice"]').exists()).toBe(false)
+        })
+    })
+
+    describe('ordering the replacement of a swap', () => {
+        const swap = {movementId: 5, purpose: 'EXCHANGE', ownerKind: 'STATION'}
+
+        async function counted(wrapper: ReturnType<typeof panel>, fits: number) {
+            wrapper.findComponent(ItemSearchPicker).vm.$emit('fits', fits)
+            await flushPromises()
+        }
+
+        it('offers an order when the shelf has nothing in the size asked for', async () => {
+            const wrapper = panel(swap)
+            await counted(wrapper, 0)
+            expect(wrapper.find('[data-testid="swap-order-place"]').exists()).toBe(true)
+        })
+
+        it('offers none while a fitting piece is on the shelf, or for the association\'s gear', async () => {
+            const stocked = panel(swap)
+            await counted(stocked, 2)
+            expect(stocked.find('[data-testid="swap-order-place"]').exists()).toBe(false)
+
+            const theirs = panel({...swap, ownerKind: 'CLUSTER'})
+            await counted(theirs, 0)
+            expect(theirs.find('[data-testid="swap-order"]').exists()).toBe(false)
+        })
+
+        it('waits for the order instead of picking a piece', () => {
+            const wrapper = panel({...swap, orderId: 9, mayRecord: true})
+            expect(wrapper.find('[data-testid="swap-order-waiting"]').exists()).toBe(true)
+            expect(wrapper.findComponent(ItemSearchPicker).exists()).toBe(false)
+            expect(wrapper.find('[data-testid="movement-record-arrival"]').exists()).toBe(false)
+            expect(wrapper.get('[data-testid="movement-acknowledge"]').attributes('disabled')).toBeDefined()
         })
     })
 })
