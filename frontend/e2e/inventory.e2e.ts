@@ -548,6 +548,85 @@ test.describe('Inventory', () => {
     })
 
     /**
+     * A swap whose replacement is not on the shelf waits for an order. The station orders it from the
+     * step that would otherwise pick a piece, the swap then waits and offers no piece to pick, and once
+     * the order is marked delivered the new piece is the swap's replacement and the swap walks on.
+     *
+     * <p>The swap runs on an inventory of the story's own whose one piece is the member's, so nothing
+     * on the shelf fits and the step offers the order.
+     */
+    test('a swap with nothing fitting on the shelf waits for an order and walks on once it arrives',
+        async ({managerPage: page}) => {
+            const headers = await apiHeaders(page)
+            const piece = await pieceOfItsOwn(page, headers)
+            const {memberId} = await ownMember(page, 'Bestellung')
+            const handed = await page.request.put(`/api/v1/inventory-items/${piece.id}/assign`, {
+                headers,
+                data: {memberId, memberName: ''},
+            })
+            expect(handed.ok(), `the piece is the member's (${await handed.text()})`).toBeTruthy()
+
+            const raised = await page.request.post('/api/v1/movements', {
+                headers,
+                data: {
+                    purpose: 'EXCHANGE',
+                    memberId,
+                    outgoingItemId: piece.id,
+                    inventoryId: piece.inventoryId,
+                    reason: 'Zu klein',
+                },
+            })
+            expect(raised.ok(), `the swap is raised (${await raised.text()})`).toBeTruthy()
+            const swapId: number = (await raised.json()).movement.id
+
+            const standing = async () => {
+                const detail = await page.request.get(`/api/v1/movements/${swapId}`, {headers}).then(r => r.json())
+                return {
+                    movement: detail.movement as {incomingItemId: number | null, orderId: number | null, state: string},
+                    step: detail.steps.find((step: {current: boolean}) => step.current) as
+                        {id: number, picksItem: boolean, subject: string} | undefined,
+                }
+            }
+            for (let walked = 0; walked < 6; walked++) {
+                const {step} = await standing()
+                if (!step || (step.picksItem && step.subject === 'INCOMING')) break
+                const answered = await page.request.post(`/api/v1/movements/${swapId}/acknowledge`, {
+                    headers,
+                    data: {stepId: step.id, note: '', pickedItemId: null},
+                })
+                expect(answered.ok(), `the swap walks to its replacement (${await answered.text()})`).toBeTruthy()
+            }
+            const reached = (await standing()).step
+            expect(reached?.picksItem && reached.subject === 'INCOMING',
+                'the swap stands on the step that names its replacement').toBeTruthy()
+
+            await page.goto(`/station/inventory/movement/${swapId}`)
+            await expect(page.getByTestId('app-shell')).toBeVisible()
+            await page.getByTestId('swap-order-place').click()
+
+            await expect(page.getByTestId('swap-order-waiting'), 'the swap waits for its order').toBeVisible()
+            await expect(page.getByPlaceholder('Teil auswählen'), 'and offers no piece to pick meanwhile').toHaveCount(0)
+            const orderId = must((await standing()).movement.orderId, 'the order the swap waits for')
+
+            await page.goto('/station/inventory/procurement')
+            const entry = page.getByTestId('procurement-entry').filter({has: page.getByTestId('procurement-for-swap')})
+                .filter({hasText: `Zuweisung ${piece.code}`})
+            await expect(entry, 'the order leads to the swap').toBeVisible()
+            await entry.getByTestId('procurement-fulfill').click()
+
+            await expect.poll(async () => (await standing()).movement.incomingItemId, {timeout: 15000})
+                .not.toBeNull()
+            const after = await standing()
+            expect(after.movement.orderId, `order ${orderId} no longer holds the swap`).toBeNull()
+            expect(after.movement.incomingItemId, 'the replacement is the delivered piece').not.toBe(piece.id)
+            expect(after.movement.state, 'the swap goes on').toBe('OPEN')
+            expect(after.step?.picksItem && after.step.subject === 'INCOMING', 'the swap walked on').toBeFalsy()
+            const orders = await page.request.get('/api/v1/procurement', {headers}).then(r => r.json())
+            expect(orders.find((entry: {id: number}) => entry.id === orderId)?.fulfilledAt, 'the order is delivered')
+                .toBeTruthy()
+        })
+
+    /**
      * Procurement is the list of what the station is short of. It is read rather than filled in:
      * what stands in it follows from the requirements and the stock.
      */
