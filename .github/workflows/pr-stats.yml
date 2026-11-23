@@ -28,7 +28,7 @@ jobs:
           sparse-checkout: .github/scripts
           persist-credentials: false
       - name: Post or update the stats comment
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const run = require('./.github/scripts/pr-stats.cjs')
