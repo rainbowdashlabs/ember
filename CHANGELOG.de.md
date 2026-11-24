@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.26.1
+
+Markdown-Dateien lassen sich per Hochladen und per Import ins Wiki übernehmen.
+
+### Fehlerbehebungen
+
+- **Markdown-Dateien kamen nicht ins Wiki.** Der Import einer Markdown-Datei wurde abgelehnt, und eine hochgeladene wurde kein Artikel. Beide Wege machen daraus jetzt denselben Artikel, der sich gleich bearbeiten lässt.
+
 ## v26.26.0
 
 Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy und auf den Computer, auch wenn Ember geschlossen ist. Gruppen und Tags füllen sich auf Wunsch selbst nach Regeln über Profilantworten, Alter und Mitgliedschaft, etwa mit allen, deren JuLeiCa in den nächsten zehn Monaten abläuft. Volle Termine und Terminreihen setzen weitere Anmeldungen auf eine Nachrückliste, und wer vorne steht, rückt nach, sobald ein Platz frei wird.

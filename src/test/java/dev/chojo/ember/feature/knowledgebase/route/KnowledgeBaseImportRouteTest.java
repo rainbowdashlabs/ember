@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -44,12 +45,14 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * Reading a document into the wiki goes by what the file is: a Word document is read whatever it is
- * called, and an old binary Word file is refused as a kind the wiki cannot read.
+ * called, an old binary Word file is refused as a kind the wiki cannot read, and a markdown file
+ * becomes the same article whether it is uploaded or imported.
  */
 class KnowledgeBaseImportRouteTest {
 
@@ -60,6 +63,55 @@ class KnowledgeBaseImportRouteTest {
             word = Objects.requireNonNull(in, "the fixture").readAllBytes();
         }
         byte[] oldWord = {(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0, 0, 0, 0, 0};
+        var service = articleCreatingService();
+        var harness = harnessFor(service);
+        var editor = harness.as(TestSessions.member(3, StationPermission.KNOWLEDGE_EDIT));
+
+        harness.run((server, client) -> {
+            var read = client.request(
+                    PREFIX + "/kb/files/import-document", editor.andThen(TestUploads.multipart("notiz.odt", word)));
+            assertEquals(200, read.code(), () -> read.body().string());
+            assertEquals(
+                    KnowledgeBaseRefusal.KB_IMPORT_KIND_UNKNOWN,
+                    refusalOf(client.request(
+                            PREFIX + "/kb/files/import-document",
+                            editor.andThen(TestUploads.multipart("alt.doc", oldWord)))));
+        });
+
+        verify(service)
+                .createMarkdownFile(
+                        eq(3),
+                        any(),
+                        eq("notiz"),
+                        eq(""),
+                        argThat(markdown -> markdown.contains("Bescheinigung")),
+                        anyInt());
+        verify(service, never()).createMarkdownFile(anyInt(), any(), eq("alt"), any(), any(), anyInt());
+    }
+
+    @Test
+    void aMarkdownFileBecomesTheSameArticleWhetherUploadedOrImported() {
+        var service = articleCreatingService();
+        var harness = harnessFor(service);
+        var editor = harness.as(TestSessions.member(3, StationPermission.KNOWLEDGE_EDIT));
+        byte[] markdown = "\uFEFF# Einsatz\n\nAblauf".getBytes(StandardCharsets.UTF_8);
+
+        harness.run((server, client) -> {
+            var uploaded = client.request(
+                    PREFIX + "/kb/files/upload", editor.andThen(TestUploads.multipart("einsatz.md", markdown)));
+            assertEquals(200, uploaded.code(), () -> uploaded.body().string());
+            var imported = client.request(
+                    PREFIX + "/kb/files/import-document",
+                    editor.andThen(TestUploads.multipart("einsatz.md", markdown)));
+            assertEquals(200, imported.code(), () -> imported.body().string());
+        });
+
+        verify(service, times(2))
+                .createMarkdownFile(eq(3), any(), eq("einsatz"), eq(""), eq("# Einsatz\n\nAblauf"), anyInt());
+        verify(service, never()).createUploadedFile(anyInt(), any(), any(), any(), any(), any(), anyInt());
+    }
+
+    private static KnowledgeBaseService articleCreatingService() {
         var service = mock(KnowledgeBaseService.class);
         when(service.createMarkdownFile(anyInt(), any(), any(), any(), any(), anyInt()))
                 .thenReturn(new KbFile(
@@ -85,7 +137,11 @@ class KnowledgeBaseImportRouteTest {
                         null,
                         ContentMode.SIMPLE,
                         null));
-        var harness = RouteHarness.serving(new KnowledgeBaseRoutes(
+        return service;
+    }
+
+    private static RouteHarness harnessFor(KnowledgeBaseService service) {
+        return RouteHarness.serving(new KnowledgeBaseRoutes(
                 service,
                 mock(KbContentService.class),
                 mock(KbSearchService.class),
@@ -101,27 +157,5 @@ class KnowledgeBaseImportRouteTest {
                 mock(KbBulkService.class),
                 mock(KbTrashService.class),
                 mock(KbBrowseService.class)));
-        var editor = harness.as(TestSessions.member(3, StationPermission.KNOWLEDGE_EDIT));
-
-        harness.run((server, client) -> {
-            var read = client.request(
-                    PREFIX + "/kb/files/import-document", editor.andThen(TestUploads.multipart("notiz.odt", word)));
-            assertEquals(200, read.code(), () -> read.body().string());
-            assertEquals(
-                    KnowledgeBaseRefusal.KB_IMPORT_KIND_UNKNOWN,
-                    refusalOf(client.request(
-                            PREFIX + "/kb/files/import-document",
-                            editor.andThen(TestUploads.multipart("alt.doc", oldWord)))));
-        });
-
-        verify(service)
-                .createMarkdownFile(
-                        eq(3),
-                        any(),
-                        eq("notiz"),
-                        eq(""),
-                        argThat(markdown -> markdown.contains("Bescheinigung")),
-                        anyInt());
-        verify(service, never()).createMarkdownFile(anyInt(), any(), eq("alt"), any(), any(), anyInt());
     }
 }

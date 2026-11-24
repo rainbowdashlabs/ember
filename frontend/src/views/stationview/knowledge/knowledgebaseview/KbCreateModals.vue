@@ -257,7 +257,7 @@ defineExpose({
         <SubHeader class="mb-3">{{ t('kb.importDocument') }}</SubHeader>
         <p class="text-sm text-[var(--text-muted)] mb-3">{{ t('kb.importDocumentHint') }}</p>
         <form class="flex flex-col gap-3" @submit.prevent="handleImportDocument">
-            <FileInput accept=".docx,.odt,.rtf,.html,.htm,.epub,.tex" @select="onImportFileSelect"/>
+            <FileInput accept=".docx,.odt,.rtf,.html,.htm,.epub,.tex,.md,.markdown" @select="onImportFileSelect"/>
             <TextInput v-model="importFileName" :placeholder="t('kb.fileName')" />
             <TextAreaInput v-model="importFileDescription" :placeholder="t('kb.description')" />
             <ButtonRow pair align="end">

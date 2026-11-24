@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbBulkService;
 import dev.chojo.ember.feature.knowledgebase.service.KbBulkService.BulkOutcome;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFilePictureService;
+import dev.chojo.ember.feature.knowledgebase.service.KbFileTypeDetector;
 import dev.chojo.ember.feature.knowledgebase.service.KbGuards;
 import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
@@ -64,9 +65,11 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
@@ -84,6 +87,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class KnowledgeBaseRoutes implements Routes {
     private static final Logger log = getLogger(KnowledgeBaseRoutes.class);
     private static final long MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
+    private static final String BYTE_ORDER_MARK = "\uFEFF";
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
 
     private final KnowledgeBaseService service;
@@ -916,12 +920,16 @@ public class KnowledgeBaseRoutes implements Routes {
         String folderIdStr = ctx.formParam("folderId");
         if (folderIdStr != null && !folderIdStr.isBlank()) folderId = Integer.parseInt(folderIdStr);
         requireWriteInFolder(ctx, folderId);
-        byte[] data;
-        try (var content = file.content()) {
-            data = content.readAllBytes();
-        } catch (Exception e) {
-            log.warn("Failed to read uploaded file for KB", e);
-            throw KnowledgeBaseRefusal.KB_UPLOAD_NOT_READ.raise();
+        byte[] data = uploadedBytes(file);
+        if (isMarkdown(file, data)) {
+            ctx.json(service.createMarkdownFile(
+                    session.stationId(),
+                    folderId,
+                    withoutMarkdownExtension(name.trim()),
+                    description != null ? description : "",
+                    markdownText(data),
+                    session.member().id()));
+            return;
         }
         var created = service.createUploadedFile(
                 session.stationId(),
@@ -966,17 +974,14 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     /**
-     * An uploaded document as markdown. What kind of document it is, is read from the file through the
-     * detection every import shares, so a renamed file is still read for what it is and an old binary
-     * Word file is refused as a kind the wiki cannot read rather than failing halfway.
+     * An uploaded document as markdown. A markdown file is taken as it is. Any other kind is read from
+     * the file through the detection every import shares, so a renamed file is still read for what it
+     * is and an old binary Word file is refused as a kind the wiki cannot read rather than failing
+     * halfway.
      */
     private static String importedMarkdown(UploadedFile file) {
-        byte[] data;
-        try (var content = file.content()) {
-            data = content.readAllBytes();
-        } catch (IOException e) {
-            throw KnowledgeBaseRefusal.KB_UPLOAD_NOT_READ.raise();
-        }
+        byte[] data = uploadedBytes(file);
+        if (isMarkdown(file, data)) return markdownText(data);
         String format = PandocConverter.formatOf(data, file.filename(), file.contentType())
                 .orElseThrow(KnowledgeBaseRefusal.KB_IMPORT_KIND_UNKNOWN::raise);
         try {
@@ -985,6 +990,38 @@ public class KnowledgeBaseRoutes implements Routes {
             log.warn("Document conversion failed for KB import", e);
             throw KnowledgeBaseRefusal.KB_IMPORT_FAILED.raise();
         }
+    }
+
+    private static byte[] uploadedBytes(UploadedFile file) {
+        try (var content = file.content()) {
+            return content.readAllBytes();
+        } catch (IOException e) {
+            log.warn("Failed to read uploaded file for KB", e);
+            throw KnowledgeBaseRefusal.KB_UPLOAD_NOT_READ.raise();
+        }
+    }
+
+    /**
+     * Whether an upload is a markdown file, judged by its own file name and reported type. Both the
+     * upload and the import turn such a file into an editable article, so the two end up the same.
+     */
+    private static boolean isMarkdown(UploadedFile file, byte[] data) {
+        return !PandocConverter.isContainer(data)
+                && KbFileTypeDetector.detect(file.contentType(), file.filename()) == KbFileType.MARKDOWN;
+    }
+
+    private static String markdownText(byte[] data) {
+        String text = new String(data, StandardCharsets.UTF_8);
+        return text.startsWith(BYTE_ORDER_MARK) ? text.substring(BYTE_ORDER_MARK.length()) : text;
+    }
+
+    private static String withoutMarkdownExtension(String name) {
+        String lower = name.toLowerCase(Locale.ROOT);
+        for (String extension : List.of(".markdown", ".md")) {
+            if (lower.endsWith(extension) && name.length() > extension.length())
+                return name.substring(0, name.length() - extension.length());
+        }
+        return name;
     }
 
     @OpenApi(

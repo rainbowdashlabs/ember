@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.26.1
+
+Markdown files can be added to the wiki by upload and by import.
+
+### Fixes
+
+- **Markdown files could not be added to the wiki.** Importing a Markdown file was refused, and an uploaded one did not become an article. Both ways now turn it into the same article, ready to edit.
+
 ## v26.26.0
 
 Notifications and messages can arrive as push notifications on phones and computers, even with Ember closed. Groups and tags can fill themselves from rules over profile answers, age and membership, such as everybody whose JuLeiCa runs out within ten months. Full appointments and event groups put further sign-ups on a waiting list, and the first in line moves up when a place frees.
