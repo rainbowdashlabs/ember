@@ -2,11 +2,12 @@
 
 ## v26.26.1
 
-Markdown files can be added to the wiki by upload and by import.
+Markdown files can be added to the wiki by upload and by import. A trial on the waiting list can be started again.
 
 ### Fixes
 
 - **Markdown files could not be added to the wiki.** Importing a Markdown file was refused, and an uploaded one did not become an article. Both ways now turn it into the same article, ready to edit.
+- **The trial on the waiting list could not be started.** The confirmation kept loading the addresses the mail goes to, and its button stayed disabled. The same happened when withdrawing an entry. The addresses now appear and the step can be confirmed.
 
 ## v26.26.0
 

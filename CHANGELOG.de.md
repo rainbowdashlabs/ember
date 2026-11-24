@@ -2,11 +2,12 @@
 
 ## v26.26.1
 
-Markdown-Dateien lassen sich per Hochladen und per Import ins Wiki übernehmen.
+Markdown-Dateien lassen sich per Hochladen und per Import ins Wiki übernehmen. Die Probezeit auf der Warteliste lässt sich wieder starten.
 
 ### Fehlerbehebungen
 
 - **Markdown-Dateien kamen nicht ins Wiki.** Der Import einer Markdown-Datei wurde abgelehnt, und eine hochgeladene wurde kein Artikel. Beide Wege machen daraus jetzt denselben Artikel, der sich gleich bearbeiten lässt.
+- **Die Probezeit auf der Warteliste ließ sich nicht starten.** Die Rückfrage lud die Adressen für die E-Mail ohne Ende, und ihr Knopf blieb gesperrt. Beim Ausscheiden eines Eintrags passierte dasselbe. Die Adressen erscheinen jetzt, und der Schritt lässt sich bestätigen.
 
 ## v26.26.0
 

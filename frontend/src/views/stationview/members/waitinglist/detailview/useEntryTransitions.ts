@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { computed, ref, type Ref } from 'vue'
+import { computed, ref, shallowRef, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { waitingList } from '@/api'
@@ -38,7 +38,7 @@ export function useEntryTransitions(
   const { hasPermission } = useSession()
   const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
-  const pending = ref<PendingTransition | null>(null)
+  const pending = shallowRef<PendingTransition | null>(null)
   const message = ref('')
   const recipients = ref<InvitationRecipients | null>(null)
 
@@ -48,7 +48,8 @@ export function useEntryTransitions(
    *
    * <p>The addresses are kept only while the dialog they were read for is still the one open. A
    * dialog closed and another opened before the first read returns would otherwise show the other
-   * family's addresses.
+   * family's addresses. The open dialog is held as the very object made here rather than a reactive
+   * copy of it, or the check would never recognise it and the addresses would never arrive.
    */
   async function request(entryId: number, kind: TransitionKind) {
     const entry = entries.value.find(e => e.entry.id === entryId)
