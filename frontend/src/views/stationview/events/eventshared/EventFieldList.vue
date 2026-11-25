@@ -51,6 +51,7 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const existingNames = computed(() => new Set(fields.value.map(f => (f.name ?? '').toLowerCase())))
+const sheetNames = computed(() => new Set((props.attendanceFields ?? []).map(f => f.name.trim().toLowerCase())))
 
 function addQuickField(qf: QuickField) {
   fields.value = [...fields.value, {
@@ -164,7 +165,7 @@ function resizeField(shown: PreviewField, width: FieldWidthName) {
   <div v-if="!hideHeading || !compact" class="flex items-center justify-between">
     <SubHeader v-if="!hideHeading">{{ t('events.eventFields') }}</SubHeader>
     <ButtonRow v-if="!compact" align="end">
-      <EventFieldAddButtons :existing-names="existingNames" @add="addField" @add-quick="addQuickField"/>
+      <EventFieldAddButtons :existing-names="existingNames" :sheet-names="sheetNames" @add="addField" @add-quick="addQuickField"/>
     </ButtonRow>
   </div>
   <AttendanceFieldPicker
@@ -222,7 +223,7 @@ function resizeField(shown: PreviewField, width: FieldWidthName) {
   <FieldLayoutPreview :fields="previewFields" :hint="t('events.fieldsPreviewHint')" @reorder="moveField" @resize="resizeField"/>
 
   <div v-if="compact" class="flex flex-wrap items-center gap-2" data-testid="event-field-add-line">
-    <EventFieldAddButtons :existing-names="existingNames" @add="addField" @add-quick="addQuickField"/>
+    <EventFieldAddButtons :existing-names="existingNames" :sheet-names="sheetNames" @add="addField" @add-quick="addQuickField"/>
     <AttendanceFieldPicker
         v-if="attendanceFields && attendanceFields.length > 0"
         :fields="attendanceFields"
