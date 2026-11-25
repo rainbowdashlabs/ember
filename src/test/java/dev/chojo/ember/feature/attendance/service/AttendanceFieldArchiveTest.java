@@ -17,11 +17,13 @@ import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
@@ -172,8 +174,8 @@ class AttendanceFieldArchiveTest extends RepositoryTestBase {
     }
 
     /**
-     * An appointment's starting value for the field goes, and appointment and appointment template
-     * questions tied to it are untied, as they were when a field was really deleted.
+     * An appointment's starting value for the field goes, and appointment, appointment template and
+     * event group fields tied to it are untied, as they were when a field was really deleted.
      */
     @Test
     void whatPointedAtTheFieldForNewWorkLetsGo() {
@@ -216,11 +218,22 @@ class AttendanceFieldArchiveTest extends RepositoryTestBase {
                         leaderId,
                         null)));
 
+        int eventGroup = new EventGroupRepository()
+                .create(
+                        station.id(),
+                        new EventGroupDetails("Lehrgang", null, null, RegistrationDeadline.none(), false, null))
+                .id();
+        eventFieldRepo.replaceEventGroupFields(
+                eventGroup,
+                List.of(new EventFieldDraft(
+                        "Leitung", FieldType.TEXT, EventQuestionSettings.parse("{}"), "", false, leaderId, false)));
+
         service.archiveTemplateField(templateId, leaderId);
 
         assertTrue(fieldDefaults.find(AppointmentOwner.EVENT, eventId).isEmpty());
         assertNull(eventFieldRepo.findByEvent(eventId).getFirst().attendanceFieldId());
         assertNull(eventTemplateRepo.findFields(eventTemplate).getFirst().attendanceFieldId());
+        assertNull(eventFieldRepo.findByEventGroup(eventGroup).getFirst().attendanceFieldId());
     }
 
     @Test
