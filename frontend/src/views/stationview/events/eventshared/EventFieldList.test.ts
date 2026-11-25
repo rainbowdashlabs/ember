@@ -7,7 +7,7 @@ import {describe, expect, it} from 'vitest'
 import {defineComponent, h, reactive} from 'vue'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import EventFieldList from './EventFieldList.vue'
-import type {EventFieldEntry} from '@/api/generated/schema'
+import type {AttendanceTemplateField, EventFieldEntry} from '@/api/generated/schema'
 import {emptySettings} from './eventQuestions'
 
 /**
@@ -114,5 +114,17 @@ describe('EventFieldList', () => {
             ['Treffpunkt', 'LOCATION'],
             ['Thema', 'TEXT'],
         ])
+    })
+
+    it('offers a quick field the attendance sheet also has only once, as the sheet\'s', async () => {
+        const sheet: AttendanceTemplateField[] = [{id: 9, templateId: 2, name: 'Thema', fieldType: 'TEXT', position: 0,
+            config: {autoAttend: false, defaultValue: null, groupId: null, options: null, required: false, width: null}}]
+        const list = await mountSuspended(EventFieldList, {
+            props: {fields: [], compact: true, attendanceFields: sheet},
+        })
+
+        const thema = list.findAll('button').filter(button => button.text().trim() === '+ Thema')
+        expect(thema).toHaveLength(1)
+        expect(thema[0]!.attributes('data-testid')).toBe('take-attendance-field-9')
     })
 })

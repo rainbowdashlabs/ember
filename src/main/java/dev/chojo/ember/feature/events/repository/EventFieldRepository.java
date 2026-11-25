@@ -298,7 +298,7 @@ public class EventFieldRepository {
     }
 
     private static final String GROUP_FIELD_COLUMNS =
-            "f.name, f.field_type, f.config, f.value, f.position, f.overview, NULL::INT AS attendance_field_id, f.\"public\"";
+            "f.name, f.field_type, f.config, f.value, f.position, f.overview, f.attendance_field_id, f.\"public\"";
 
     /**
      * What an appointment shows on one of its dates: the fields its event group hands down, then its
@@ -545,16 +545,37 @@ public class EventFieldRepository {
                     && query("""
                                     UPDATE event_group_field
                                     SET name = :name, field_type = :field_type, config = :config::JSONB, value = :value,
-                                        position = :position, overview = :overview, "public" = :public
+                                        position = :position, overview = :overview,
+                                        attendance_field_id = :attendance_field_id, "public" = :public
                                     WHERE id = :id AND event_group_id = :event_group_id;""")
                             .single(groupFieldCall(eventGroupId, field, i).bind("id", id))
                             .update()
                             .changed();
             if (updated) continue;
             query("""
-                    INSERT INTO event_group_field(event_group_id, name, field_type, config, value, position, overview, "public")
-                    VALUES (:event_group_id, :name, :field_type, :config::JSONB, :value, :position, :overview, :public);""").single(groupFieldCall(eventGroupId, field, i)).insert();
+                    INSERT INTO event_group_field(event_group_id, name, field_type, config, value, position, overview,
+                                                  attendance_field_id, "public")
+                    VALUES (:event_group_id, :name, :field_type, :config::JSONB, :value, :position, :overview,
+                            :attendance_field_id, :public);""").single(groupFieldCall(eventGroupId, field, i)).insert();
         }
+    }
+
+    /**
+     * Unties every field of an event group from sheet fields that are not on the given sheet, all of
+     * them where the event group takes no sheet.
+     *
+     * @param eventGroupId the event group
+     * @param templateId   the attendance template its appointments' sheets are taken from, or null
+     */
+    public void untieEventGroupFieldsOutside(int eventGroupId, @Nullable Integer templateId) {
+        query("""
+                UPDATE event_group_field
+                SET attendance_field_id = NULL
+                WHERE event_group_id = :event_group_id
+                  AND attendance_field_id IS NOT NULL
+                  AND attendance_field_id NOT IN (SELECT id FROM attendance_template_field WHERE template_id = :template_id);""")
+                .single(call().bind("event_group_id", eventGroupId).bind("template_id", templateId))
+                .update();
     }
 
     /**
@@ -583,6 +604,7 @@ public class EventFieldRepository {
                 .bind("value", field.value())
                 .bind("position", position)
                 .bind("overview", field.overview())
+                .bind("attendance_field_id", field.attendanceFieldId())
                 .bind("public", field.isPublic());
     }
 

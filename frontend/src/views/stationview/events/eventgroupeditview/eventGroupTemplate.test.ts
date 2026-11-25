@@ -31,11 +31,19 @@ describe('groupFieldsOf', () => {
       field('Betreuer', {fieldType: 'MEMBER_LIST'}),
       field('Fahrer', {fieldType: 'MEMBER', config: {perDate: true, required: false, managersOnly: false, selfRegistration: false}}),
       field('Thema', {attendanceFieldId: 3}),
-    ])
+    ], false)
 
     expect(taken.kept.map(entry => entry.name)).toEqual(['Ort', 'Betreuer'])
     expect(taken.kept[0]).toMatchObject({value: 'x', attendanceFieldId: null})
     expect(taken.leftOut).toEqual(['Fahrer', 'Thema'])
+  })
+
+  it('keeps a field tied to the sheet with its tie where the event group takes the sheet along', () => {
+    const taken = groupFieldsOf([field('Thema', {attendanceFieldId: 3})], true)
+
+    expect(taken.kept).toHaveLength(1)
+    expect(taken.kept[0]).toMatchObject({name: 'Thema', attendanceFieldId: 3})
+    expect(taken.leftOut).toEqual([])
   })
 })
 
