@@ -3,21 +3,37 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {ref} from 'vue'
-import {eventGroups} from '@/api'
-import type {EventGroupSettings, EventGroupSettingsRequest, TemplateDetailResponse} from '@/api/generated/schema'
+import {ref, watch} from 'vue'
+import {attendance, eventGroups} from '@/api'
+import type {
+  AttendanceTemplateField,
+  EventGroupSettings,
+  EventGroupSettingsRequest,
+  TemplateDetailResponse,
+} from '@/api/generated/schema'
 import {useEventFieldDefaults} from '../eventeditview/useEventFieldDefaults'
 
 /**
  * The date settings the event group editor holds: the attendance template with its field pre-fills,
  * the category and the reminders every part without its own follows. They are saved in a request of
  * their own once the event group itself is saved, since a new event group has no id before that.
+ *
+ * <p>It also holds the fields of the chosen template, which both the pre-fills and the event group's
+ * own fields are tied to, and drops the pre-fills of fields the chosen template does not have.
  */
 export function useEventGroupSettings() {
   const templateId = ref('')
   const categoryId = ref('')
   const reminders = ref<number[]>([])
   const fieldDefaults = useEventFieldDefaults()
+  const templateFields = ref<AttendanceTemplateField[]>([])
+
+  watch(templateId, async id => {
+    const fields = id ? await attendance.listTemplateFields(Number(id)).catch(() => []) : []
+    if (id !== templateId.value) return
+    templateFields.value = fields
+    fieldDefaults.keepOnly(templateFields.value.map(field => field.id))
+  }, {immediate: true})
 
   function fill(settings: EventGroupSettings) {
     templateId.value = settings.templateId == null ? '' : String(settings.templateId)
@@ -66,5 +82,8 @@ export function useEventGroupSettings() {
     reminders.value = days
   }
 
-  return {templateId, categoryId, reminders, fieldDefaults, takeFrom, setTemplate, setCategory, setReminders, request, load, save}
+  return {
+    templateId, categoryId, reminders, fieldDefaults, templateFields,
+    takeFrom, setTemplate, setCategory, setReminders, request, load, save,
+  }
 }

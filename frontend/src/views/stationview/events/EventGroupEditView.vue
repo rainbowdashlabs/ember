@@ -97,7 +97,7 @@ async function applyTemplate(templateId: number) {
   if (template.template.description) details.value = {...details.value, description: template.template.description}
   dateSettings.takeFrom(template)
   await dateSettings.fieldDefaults.takeFrom(templateFieldDefaultsPort(templateId))
-  const taken = groupFieldsOf(template.fields)
+  const taken = groupFieldsOf(template.fields, template.template.attendanceTemplateId != null)
   const newFields = newByName(fields.value, taken.kept)
   const newQuestions = newByName(questions.value, groupQuestionsOf(template))
   fields.value = [...fields.value, ...newFields.added]

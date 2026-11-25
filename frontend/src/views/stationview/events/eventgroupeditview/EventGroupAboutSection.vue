@@ -58,6 +58,7 @@ const {t} = useI18n()
         <FormSection :title="t('formSections.fieldsOnly')" :summary="fieldsSummary('', fields.length, t)" data-testid="form-section-fields">
           <EventGroupFieldsCard
               v-model="fields"
+              :attendance-fields="settings.templateFields.value"
               :all-members="members"
               :groups="groups"
               :group-members="groupMembers"

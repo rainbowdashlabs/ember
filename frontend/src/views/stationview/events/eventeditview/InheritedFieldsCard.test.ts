@@ -33,4 +33,15 @@ describe('InheritedFieldsCard', () => {
 
     expect(wrapper.emitted('override')?.[0]?.[0]).toMatchObject({name: 'Mitbringen', value: 'Schlafsack'})
   })
+
+  it('points out that tied group fields fill in nothing on an appointment with its own sheet', () => {
+    const tied = {...field(-1, 'Ausbilder', ''), attendanceFieldId: 9}
+    const own = mount(InheritedFieldsCard, {props: {inherited: [tied], own: [], ownSheet: true}})
+    const follows = mount(InheritedFieldsCard, {props: {inherited: [tied], own: [], ownSheet: false}})
+    const untied = mount(InheritedFieldsCard, {props: {inherited: [field(-2, 'Ort', 'Halle')], own: [], ownSheet: true}})
+
+    expect(own.find('[data-testid="inherited-fields-own-sheet"]').exists()).toBe(true)
+    expect(follows.find('[data-testid="inherited-fields-own-sheet"]').exists()).toBe(false)
+    expect(untied.find('[data-testid="inherited-fields-own-sheet"]').exists()).toBe(false)
+  })
 })

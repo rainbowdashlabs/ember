@@ -24,17 +24,20 @@ export interface GroupFields {
 
 /**
  * The fields of an appointment template an event group can hand to its parts. A field answered per
- * date or tied to a field of the attendance sheet belongs to one date, and a kind the event group does
- * not offer cannot be stored on it, so those are named instead of taken.
+ * date belongs to one date, and a kind the event group does not offer cannot be stored on it, so those
+ * are named instead of taken. A field tied to the attendance sheet keeps its tie where the event group
+ * takes the template's sheet along, and is named otherwise, since it would fill in nothing.
  *
- * @param fields the template's fields
+ * @param fields          the template's fields
+ * @param takesTheSheet   whether the event group takes the template's attendance sheet
  */
-export function groupFieldsOf(fields: readonly AppointmentTemplateField[]): GroupFields {
+export function groupFieldsOf(fields: readonly AppointmentTemplateField[], takesTheSheet: boolean): GroupFields {
     const offered = new Set<string>(OfferedFieldTypes.EVENT_GROUP)
     const kept: EventFieldEntry[] = []
     const leftOut: string[] = []
     for (const field of fields) {
-        if (field.attendanceFieldId != null || field.config.perDate || !offered.has(field.fieldType)) {
+        const tiedElsewhere = field.attendanceFieldId != null && !takesTheSheet
+        if (tiedElsewhere || field.config.perDate || !offered.has(field.fieldType)) {
             leftOut.push(field.name)
             continue
         }
@@ -44,7 +47,7 @@ export function groupFieldsOf(fields: readonly AppointmentTemplateField[]): Grou
             config: field.config,
             value: field.defaultValue ?? '',
             overview: field.overview,
-            attendanceFieldId: null,
+            attendanceFieldId: field.attendanceFieldId ?? null,
             isPublic: field.isPublic,
         })
     }
