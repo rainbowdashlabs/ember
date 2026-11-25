@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.27.0
+
+Fields of an event group can fill in the attendance sheet of every appointment of the group.
+
+### Improvements
+
+- **Event group fields fill in the attendance sheet.** The event group editor offers the fields of the group's attendance template to take over, as appointments already do. Each appointment of the group then fills them in on its own sheet, with the people entered for that appointment in fields such as the instructors.
+
 ## v26.26.0
 
 Notifications and messages can arrive as push notifications on phones and computers, even with Ember closed. Groups and tags can fill themselves from rules over profile answers, age and membership, such as everybody whose JuLeiCa runs out within ten months. Full appointments and event groups put further sign-ups on a waiting list, and the first in line moves up when a place frees.

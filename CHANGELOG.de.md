@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.27.0
+
+Felder einer Terminreihe können die Anwesenheitsliste jedes Termins der Reihe ausfüllen.
+
+### Verbesserungen
+
+- **Felder der Terminreihe füllen die Anwesenheitsliste aus.** Im Editor der Terminreihe lassen sich die Felder ihrer Anwesenheitsvorlage übernehmen, wie schon bei Terminen. Jeder Termin trägt sie dann in seine eigene Liste ein, Felder wie die Ausbilder mit den Personen dieses Termins.
+
 ## v26.26.0
 
 Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy und auf den Computer, auch wenn Ember geschlossen ist. Gruppen und Tags füllen sich auf Wunsch selbst nach Regeln über Profilantworten, Alter und Mitgliedschaft, etwa mit allen, deren JuLeiCa in den nächsten zehn Monaten abläuft. Volle Termine und Terminreihen setzen weitere Anmeldungen auf eine Nachrückliste, und wer vorne steht, rückt nach, sobald ein Platz frei wird.
