@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSettings;
 import dev.chojo.ember.feature.events.entity.EventGroupSettings;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
+import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupSettingsRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
@@ -48,6 +49,7 @@ public class EventGroupSettingsService {
     private final AttendanceRepository attendance;
     private final AttendanceTemplateGuards templateGuards;
     private final EventCategoryRepository categories;
+    private final EventFieldRepository fields;
 
     @Inject
     public EventGroupSettingsService(
@@ -58,7 +60,8 @@ public class EventGroupSettingsService {
             EventFieldDefaultService fieldDefaults,
             AttendanceRepository attendance,
             AttendanceTemplateGuards templateGuards,
-            EventCategoryRepository categories) {
+            EventCategoryRepository categories,
+            EventFieldRepository fields) {
         this.eventGroups = eventGroups;
         this.eventGroupRepository = eventGroupRepository;
         this.settings = settings;
@@ -67,6 +70,7 @@ public class EventGroupSettingsService {
         this.attendance = attendance;
         this.templateGuards = templateGuards;
         this.categories = categories;
+        this.fields = fields;
     }
 
     /**
@@ -86,7 +90,9 @@ public class EventGroupSettingsService {
      *
      * <p>The template and the category have to be the station's, and a template deleted since cannot be
      * chosen. Reminders are kept once each and only where they lie at least a day ahead. Pre-fills are
-     * kept only for fields the template uses, and none without a template.
+     * kept only for fields the template uses, and none without a template. The event group's fields
+     * keep a tie to the attendance sheet only where it points at a field of the template, so a tie to
+     * the sheet the group used before, or to any sheet where it now uses none, is let go.
      *
      * @param stationId    the station asking
      * @param eventGroupId the event group
@@ -113,6 +119,7 @@ public class EventGroupSettingsService {
         return Transactions.call(() -> {
             eventGroups.lockEventGroup(stationId, eventGroupId);
             settings.setOfEventGroup(eventGroupId, templateId, categoryId);
+            fields.untieEventGroupFieldsOutside(eventGroupId, templateId);
             reminders.replaceEventGroupDays(eventGroupId, days);
             fieldDefaults.replaceOfEventGroup(eventGroupId, defaults);
             return read(eventGroupId);

@@ -12,10 +12,13 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupContent;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventGroupSettings;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -80,7 +83,8 @@ class EventGroupSettingsServiceTest extends RepositoryTestBase {
                         eventFieldDefaultRepo, eventRepo, new EventTemplateRepository(), attendanceRepo, guards),
                 attendanceRepo,
                 guards,
-                eventCategoryRepo);
+                eventCategoryRepo,
+                eventFieldRepo);
     }
 
     private EventGroup group() {
@@ -189,6 +193,90 @@ class EventGroupSettingsServiceTest extends RepositoryTestBase {
                 () -> service.save(station.id(), group.id(), settings(templateId, null, List.of(), List.of())));
 
         assertEquals(AttendanceRefusal.ATTENDANCE_TEMPLATE_ARCHIVED, refused.refusal());
+    }
+
+    @Test
+    void theGroupsFieldsKeepOnlyTiesToItsSheet() {
+        int first = templateWithField(station, "Erster Bogen");
+        int second = templateWithField(station, "Zweiter Bogen");
+        var group = groups.create(
+                station.id(),
+                new EventGroupDetails("Lehrgang", null, null, null, false, null),
+                List.of(new EventGroupSetDraft(null, "Übung", 0)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty(),
+                new EventGroupContent(
+                        null,
+                        List.of(new EventFieldDraft(
+                                "Ausbilder",
+                                FieldType.TEXT,
+                                EventQuestionSettings.empty(),
+                                "",
+                                false,
+                                fieldOf(first),
+                                false))));
+
+        service.save(station.id(), group.id(), settings(first, null, List.of(), List.of()));
+        assertEquals(fieldOf(first), tieOf(group));
+
+        service.save(station.id(), group.id(), settings(second, null, List.of(), List.of()));
+        assertNull(tieOf(group));
+    }
+
+    @Test
+    void aGroupWithoutSheetKeepsNoTie() {
+        int sheet = templateWithField(station, "Bogen ohne Wahl");
+        var group = groups.create(
+                station.id(),
+                new EventGroupDetails("Ausflug", null, null, null, false, null),
+                List.of(new EventGroupSetDraft(null, "Tag", 0)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty(),
+                new EventGroupContent(
+                        null,
+                        List.of(new EventFieldDraft(
+                                "Ausbilder",
+                                FieldType.TEXT,
+                                EventQuestionSettings.empty(),
+                                "",
+                                false,
+                                fieldOf(sheet),
+                                false))));
+
+        service.save(station.id(), group.id(), settings(null, null, List.of(), List.of()));
+
+        assertNull(tieOf(group));
+    }
+
+    @Test
+    void deletingTheGroupsSheetLetsGoOfItsTies() {
+        int sheet = templateWithField(station, "Bald gelöschter Bogen");
+        var group = groups.create(
+                station.id(),
+                new EventGroupDetails("Wanderung", null, null, null, false, null),
+                List.of(new EventGroupSetDraft(null, "Tag", 0)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty(),
+                new EventGroupContent(
+                        null,
+                        List.of(new EventFieldDraft(
+                                "Ausbilder",
+                                FieldType.TEXT,
+                                EventQuestionSettings.empty(),
+                                "",
+                                false,
+                                fieldOf(sheet),
+                                false))));
+        service.save(station.id(), group.id(), settings(sheet, null, List.of(), List.of()));
+
+        attendanceRepo.archiveTemplate(sheet);
+
+        assertNull(service.find(station.id(), group.id()).templateId());
+        assertNull(tieOf(group));
+    }
+
+    private Integer tieOf(EventGroup group) {
+        return groups.findFields(group.id()).getFirst().attendanceFieldId();
     }
 
     @Test

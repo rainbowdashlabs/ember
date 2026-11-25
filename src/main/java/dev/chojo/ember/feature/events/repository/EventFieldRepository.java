@@ -561,6 +561,24 @@ public class EventFieldRepository {
     }
 
     /**
+     * Unties every field of an event group from sheet fields that are not on the given sheet, all of
+     * them where the event group takes no sheet.
+     *
+     * @param eventGroupId the event group
+     * @param templateId   the attendance template its appointments' sheets are taken from, or null
+     */
+    public void untieEventGroupFieldsOutside(int eventGroupId, @Nullable Integer templateId) {
+        query("""
+                UPDATE event_group_field
+                SET attendance_field_id = NULL
+                WHERE event_group_id = :event_group_id
+                  AND attendance_field_id IS NOT NULL
+                  AND attendance_field_id NOT IN (SELECT id FROM attendance_template_field WHERE template_id = :template_id);""")
+                .single(call().bind("event_group_id", eventGroupId).bind("template_id", templateId))
+                .update();
+    }
+
+    /**
      * Takes away the entries of a group field whose kind changes, since they speak about members of a
      * field that may no longer name any, or names one where it named many.
      */
