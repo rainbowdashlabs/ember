@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -570,7 +571,10 @@ public class AttendanceService {
     }
 
     /**
-     * Writes what the appointment answered into the sheet fields its questions are tied to.
+     * Writes what the appointment answered into the sheet fields its questions are tied to, the fields
+     * its event group hands down included. A member field of the group gives the members it names on
+     * this appointment, and an own field replacing a tied group field fills in the group field's sheet
+     * field.
      *
      * <p>Taken again whenever the sheet is filled in from its appointment, because the answer is
      * often given after the sheet was opened: whoever runs the appointment enters it there, and
@@ -594,7 +598,10 @@ public class AttendanceService {
                 .findSessionById(sessionId)
                 .map(session -> fieldsById(session.templateId()))
                 .orElse(Map.of());
-        for (var field : eventFieldRepository.findByEventOn(eventId, date)) {
+        var filling = AppointmentField.fillingTheSheet(
+                eventFieldRepository.findByEventOn(eventId, date),
+                eventFieldRepository.findInherited(List.of(eventId), false));
+        for (var field : filling) {
             Integer attendanceFieldId = field.attendanceFieldId();
             if (attendanceFieldId == null) continue;
             if (QuestionValues.read(field.value()).isEmpty()) continue;

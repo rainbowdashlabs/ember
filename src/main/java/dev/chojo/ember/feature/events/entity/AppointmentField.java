@@ -12,8 +12,10 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -202,6 +204,28 @@ public record AppointmentField(
     }
 
     /**
+     * The same question tied to another field of the attendance sheet.
+     *
+     * @param sheetFieldId the sheet field it fills in
+     * @return the question with that tie
+     */
+    public AppointmentField withAttendanceField(int sheetFieldId) {
+        return new AppointmentField(
+                id,
+                eventId,
+                name,
+                fieldType,
+                config,
+                value,
+                position,
+                overview,
+                sheetFieldId,
+                isPublic,
+                selfRegistrationState,
+                readerInWholeGroup);
+    }
+
+    /**
      * The key two field names are matched by when an appointment field replaces a field of its event
      * group: the name without surrounding space, in lower case.
      *
@@ -232,6 +256,36 @@ public record AppointmentField(
                 .forEach(shown::add);
         shown.addAll(own);
         return shown;
+    }
+
+    /**
+     * The fields that fill in an appointment's attendance sheet: what it shows, with every own field
+     * that replaces a tied field of its event group, is of the same kind and carries no tie of its own
+     * taking over that tie. A field of another kind would write a value of the wrong shape.
+     * An appointment that needs another value than its group puts an own field of the same name in its
+     * place, and that value belongs on the sheet just as the group's would have been.
+     *
+     * @param own       the appointment's own fields
+     * @param inherited the fields its event group hands down, as the appointment shows them
+     * @return the fields the appointment shows, each with the sheet field it fills in, if any
+     */
+    public static List<AppointmentField> fillingTheSheet(List<AppointmentField> own, List<AppointmentField> inherited) {
+        var tiedGroupFields = new HashMap<String, AppointmentField>();
+        inherited.stream()
+                .filter(field -> field.attendanceFieldId() != null)
+                .forEach(field -> tiedGroupFields.putIfAbsent(nameKey(field.name()), field));
+        var carried = own.stream()
+                .map(field -> {
+                    var replaced = tiedGroupFields.get(nameKey(field.name()));
+                    return field.attendanceFieldId() == null
+                                    && replaced != null
+                                    && replaced.fieldType() == field.fieldType()
+                            ? field.withAttendanceField(Objects.requireNonNull(replaced.attendanceFieldId()))
+                            : field;
+                })
+                .toList();
+        return shown(
+                carried, inherited, own.stream().map(AppointmentField::name).toList());
     }
 
     /** The question this field asks, as the one check measures an answer against it. */
