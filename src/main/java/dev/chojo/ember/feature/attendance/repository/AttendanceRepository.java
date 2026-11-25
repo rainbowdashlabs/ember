@@ -162,9 +162,10 @@ public class AttendanceRepository {
      *
      * <p>Nothing is removed: the template keeps its fields, groups and user types, and every sheet
      * made from it keeps reading them, so its sheets show and count exactly as before. It only leaves
-     * every list a template is chosen from, and the appointments and appointment templates that
-     * pointed at it let go of it, as they did when a template was really deleted. An appointment
-     * template also drops the starting values it held for the fields of that sheet.
+     * every list a template is chosen from, and the appointments, appointment templates and event
+     * groups that pointed at it let go of it, as they did when a template was really deleted. An
+     * appointment template and an event group also drop the starting values they held for the fields
+     * of that sheet, and the fields of an event group their ties to it.
      *
      * @param id the template ID
      * @return {@code true} if a template in use was archived
@@ -183,6 +184,10 @@ public class AttendanceRepository {
             query("UPDATE event_group SET template_id = NULL WHERE template_id = :id;")
                     .single(call().bind("id", id))
                     .update();
+            query("""
+                    UPDATE event_group_field
+                    SET attendance_field_id = NULL
+                    WHERE attendance_field_id IN (SELECT id FROM attendance_template_field WHERE template_id = :id);""").single(call().bind("id", id)).update();
             query("""
                     DELETE FROM event_group_field_default d
                     USING attendance_template_field f

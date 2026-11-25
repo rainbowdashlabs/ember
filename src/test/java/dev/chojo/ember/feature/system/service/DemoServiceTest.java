@@ -478,7 +478,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         eventServices.fieldDefault(),
                         attendanceRepo,
                         new AttendanceTemplateGuards(attendanceRepo),
-                        eventCategoryRepo),
+                        eventCategoryRepo,
+                        eventFieldRepo),
                 new EventFieldService(
                         eventFieldRepo,
                         stationMemberRepo,
