@@ -18,11 +18,16 @@ import type {AppointmentField, EventFieldEntry} from '@/api/generated/schema'
  * The fields an appointment takes over from its event group, read-only here. "Override" copies one
  * into the appointment's own fields, which then replaces it for this appointment; removing the own
  * field again brings the event group's value back.
+ *
+ * <p>Fields the event group ties to its attendance sheet fill in nothing on an appointment that takes
+ * a sheet of its own, which a hint points out.
  */
 const props = defineProps<{
   inherited: AppointmentField[]
   /** The appointment's own fields as the editor holds them, which decide what is replaced. */
   own: EventFieldEntry[]
+  /** Whether the appointment takes another attendance sheet than its event group. */
+  ownSheet?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -33,6 +38,9 @@ const {t} = useI18n()
 
 const ownNames = computed(() => new Set(props.own.map(field => (field.name ?? '').trim().toLowerCase())))
 
+const tiesFillNothing = computed(() =>
+    props.ownSheet === true && props.inherited.some(field => field.attendanceFieldId != null))
+
 function replaced(field: AppointmentField): boolean {
   return ownNames.value.has(field.name.trim().toLowerCase())
 }
@@ -42,6 +50,9 @@ function replaced(field: AppointmentField): boolean {
   <NeutralContainer v-if="inherited.length > 0" class="space-y-3" data-testid="inherited-fields">
     <SectionHeader>{{ t('eventGroups.inheritedFields') }}</SectionHeader>
     <MutedText tag="p" size="sm">{{ t('eventGroups.inheritedFieldsHint') }}</MutedText>
+    <MutedText v-if="tiesFillNothing" tag="p" size="sm" data-testid="inherited-fields-own-sheet">
+      {{ t('eventGroups.inheritedFieldsOwnSheet') }}
+    </MutedText>
     <div v-for="field in inherited" :key="field.id" class="flex flex-wrap items-center justify-between gap-2"
          data-testid="inherited-field">
       <div class="min-w-0">

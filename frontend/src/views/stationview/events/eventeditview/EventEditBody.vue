@@ -186,6 +186,10 @@ function overrideSetting(setting: InheritedSetting) {
   }
 }
 
+/** Whether the appointment takes another attendance sheet than its event group hands down. */
+const takesOwnSheet = computed(() =>
+    templateId.value !== '' && Number(templateId.value) !== (props.inheritedSettings?.templateId ?? null))
+
 /** Copies a field of the event group into the appointment's own fields, which then replaces it here. */
 function override(field: AppointmentField) {
   fields.value = [...fields.value, entryOf(field)]
@@ -236,6 +240,7 @@ function override(field: AppointmentField) {
             v-if="props.eventGroupPart"
             :inherited="props.inheritedFields ?? []"
             :own="fields"
+            :own-sheet="takesOwnSheet"
             @override="override"
         />
         <FieldDefaultsCard

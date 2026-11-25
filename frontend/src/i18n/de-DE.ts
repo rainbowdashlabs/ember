@@ -12524,6 +12524,7 @@ export default {
         fieldsHint: 'Felder wie Ort, Treffpunkt oder Betreuer zeigt jeder Termin der Terminreihe. In ein Mitgliederfeld mit Selbsteintragung tragen sich Mitglieder für die ganze Terminreihe oder für einzelne Termine ein. Ein Termin kann ein Feld mit eigenem Wert überschreiben.',
         inheritedFields: 'Felder der Terminreihe',
         inheritedFieldsHint: 'Diese Felder kommen von der Terminreihe. Weicht dieser Termin ab, das Feld überschreiben. Es wird dann als eigenes Feld dieses Termins gespeichert.',
+        inheritedFieldsOwnSheet: 'Gebundene Felder der Terminreihe füllen hier nichts aus, weil dieser Termin eine eigene Anwesenheitsvorlage hat.',
         override: 'Überschreiben',
         overridden: 'Hier überschrieben',
         fromEventGroup: 'Terminreihe',
