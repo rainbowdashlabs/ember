@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupContent;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
@@ -15,6 +17,8 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.station.entity.Station;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.time.ZoneOffset;
@@ -24,6 +28,7 @@ import java.util.stream.Collectors;
 
 import static dev.chojo.ember.repository.EventGroupFixtures.part;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -83,23 +88,78 @@ class EventGroupServiceFieldsTest extends EventGroupServiceTestBase {
     }
 
     @Test
-    void anEventGroupTakesNoFieldTiedToAnAttendanceSheet() {
-        var member = new EventFieldDraft(
-                null, "Leitung", FieldType.MEMBER, EventQuestionSettings.empty(), "", false, 4, false);
+    void aFieldKeepsItsTieToASheetOfTheStationAndDropsOneToAnotherStationsSheet() {
+        int own = sheetField(station, "Gruppenübung", "Leitung");
+        int foreign = sheetField(otherStation, "Fremde Übung", "Leitung");
 
-        assertRefused(
-                EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED,
-                () -> service.create(
-                        station.id(),
-                        details("Wettbewerb", false),
-                        List.of(new EventGroupSetDraft(null, "Tage", 1)),
-                        RestrictionAudience.empty(),
-                        RestrictionAudience.empty(),
-                        new EventGroupContent(null, List.of(member))));
-        assertTrue(
-                eventGroupRepo.findByStation(station.id()).stream()
-                        .noneMatch(eventGroup -> eventGroup.details().name().equals("Wettbewerb")),
-                "nothing of the refused event group is kept");
+        var group = service.create(
+                station.id(),
+                details("Wettbewerb", false),
+                List.of(new EventGroupSetDraft(null, "Tage", 1)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty(),
+                new EventGroupContent(null, List.of(tiedField("Leitung", own), tiedField("Helfer", foreign))));
+
+        var stored = service.findFields(group.id());
+        assertEquals(own, stored.get(0).attendanceFieldId());
+        assertNull(stored.get(1).attendanceFieldId());
+    }
+
+    @Test
+    void savingAgainKeepsChangesOrClearsTheTie() {
+        int first = sheetField(station, "Ausbildung", "Ausbilder");
+        int second = sheetField(station, "Ausbildung 2", "Ausbilder");
+        var group = service.create(
+                station.id(),
+                details("Lehrgang", false),
+                List.of(new EventGroupSetDraft(null, "Tage", 1)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty(),
+                new EventGroupContent(null, List.of(tiedField("Ausbilder", first))));
+        int fieldId = service.findFields(group.id()).getFirst().id();
+
+        saveField(group, fieldId, first);
+        assertEquals(first, service.findFields(group.id()).getFirst().attendanceFieldId());
+
+        saveField(group, fieldId, second);
+        assertEquals(second, service.findFields(group.id()).getFirst().attendanceFieldId());
+
+        saveField(group, fieldId, null);
+        assertNull(service.findFields(group.id()).getFirst().attendanceFieldId());
+        assertEquals(fieldId, service.findFields(group.id()).getFirst().id());
+    }
+
+    private void saveField(EventGroup group, int fieldId, @Nullable Integer attendanceFieldId) {
+        service.save(
+                station.id(),
+                group.id(),
+                group.details(),
+                null,
+                null,
+                null,
+                new EventGroupContent(
+                        null,
+                        List.of(new EventFieldDraft(
+                                fieldId,
+                                "Ausbilder",
+                                FieldType.MEMBER,
+                                EventQuestionSettings.empty(),
+                                "",
+                                false,
+                                attendanceFieldId,
+                                false))));
+    }
+
+    private static int sheetField(Station at, String sheet, String field) {
+        var template = attendanceRepo.createTemplate(at.id(), sheet);
+        attendanceRepo.createTemplateField(
+                template.id(), field, FieldType.MEMBER, AttendanceFieldConfig.parse("{}"), 0);
+        return attendanceRepo.findTemplateFields(template.id()).getFirst().id();
+    }
+
+    private static EventFieldDraft tiedField(String name, int attendanceFieldId) {
+        return new EventFieldDraft(
+                null, name, FieldType.MEMBER, EventQuestionSettings.empty(), "", false, attendanceFieldId, false);
     }
 
     @Test
@@ -178,10 +238,8 @@ class EventGroupServiceFieldsTest extends EventGroupServiceTestBase {
                 false,
                 null,
                 false);
-        var tied = new EventFieldDraft(null, "Ort", FieldType.TEXT, EventQuestionSettings.empty(), "", false, 4, false);
 
         assertRefused(EventRefusal.APPOINTMENT_FIELD_VALUE_NOT_ACCEPTED, () -> groupWith("Wahl", choice));
-        assertRefused(EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED, () -> groupWith("Bindung", tied));
         var perDate = new EventFieldDraft(
                 null,
                 "Thema",

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:804e1480520c71719c3ced47d66efd659c870fc49b62ad5035eb7e36274373ee",
-  "generatedAt": "2026-11-23T12:30:25Z",
+  "schemaHash": "sha256:6a842cf88d37c773e11644619d734841754b44bda6772fe650b540a4cc5932dc",
+  "generatedAt": "2026-11-25T00:07:29Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -11614,7 +11614,7 @@
     "event_group_field": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:778e2de140f10784886a370f360508b2e51c0a231958195765a1dcecd949b0db",
+      "tableHash": "sha256:aca593d56f369b48f204042ce2ba5345c6142dcf1e1293cfb9678ab314dced2c",
       "columns": [
         {
           "name": "id",
@@ -11642,7 +11642,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "The kind of value, one an appointment field takes; member kinds included, but never answered per date or tied to an attendance sheet."
+          "description": "The kind of value, one an appointment field takes; member kinds included, but never answered per date."
         },
         {
           "name": "config",
@@ -11678,9 +11678,22 @@
           "nullable": false,
           "verified": true,
           "description": "Whether readers outside the station, such as partner stations and the public calendar, see it."
+        },
+        {
+          "name": "attendance_field_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The field of the event group's attendance sheet this field fills in on the sheet of every appointment of the group. Cleared when that field is deleted, which archives it, and when the event group takes another sheet."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "attendance_field_id",
+          "refTable": "attendance_template_field",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "event_group_id",
           "refTable": "event_group",

@@ -117,8 +117,13 @@ public class EventFieldService {
      * Checks the fields an event group hands down to its appointments and stores them in their order,
      * each shaped like an appointment's: a choice holds one of its options, a date reads as a date and a
      * member field names only members it is narrowed to. A field the event group cannot hand down is
-     * refused: a kind outside the event group's kinds, a field tied to an attendance sheet, or one
-     * answered per date, because every appointment of the group is one date already.
+     * refused: a kind outside the event group's kinds, or one answered per date, because every
+     * appointment of the group is one date already.
+     *
+     * <p>A field may be tied to a field of one of the station's attendance sheets, so every
+     * appointment of the group fills it in on its own sheet. The group's sheet is saved after its
+     * fields, and a new group has none yet, so which sheet the tie belongs to is settled when the sheet
+     * is saved. A tie to a field of no sheet of this station is dropped rather than stored.
      *
      * @param eventGroupId the event group
      * @param drafts       the fields as submitted, in their new order
@@ -128,14 +133,21 @@ public class EventFieldService {
     public void replaceEventGroupFields(int eventGroupId, List<EventFieldDraft> drafts) {
         for (var field : drafts) {
             if (!FieldTypes.EVENT_GROUP.contains(field.fieldType())
-                    || field.attendanceFieldId() != null
                     || field.config().perDate()) {
                 throw EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED.raise();
             }
         }
+        var stationSheetFieldIds = eventGroups
+                .findById(eventGroupId)
+                .map(eventGroup -> attendanceRepository.findFieldIdsOfStation(eventGroup.stationId()))
+                .orElse(Set.of());
         repository.replaceEventGroupFields(
                 eventGroupId,
-                drafts.stream().map(field -> answered(field, eligibility)).toList());
+                drafts.stream()
+                        .map(field -> answered(field, eligibility))
+                        .map(field -> tiedWithin(
+                                field, stationSheetFieldIds, "a sheet of the station of event group " + eventGroupId))
+                        .toList());
     }
 
     /**
@@ -257,9 +269,7 @@ public class EventFieldService {
         var sheetFieldIds = sheetFieldIds(eventId);
         var kept = fields.stream()
                 .map(field -> answered(field, keeping))
-                .map(field -> field.attendanceFieldId() == null || sheetFieldIds.contains(field.attendanceFieldId())
-                        ? field
-                        : dropTie(eventId, field))
+                .map(field -> tiedWithin(field, sheetFieldIds, "the sheet event " + eventId + " uses"))
                 .toList();
         repository.replaceFields(eventId, kept);
         fieldRegistrationService.reconcile(eventId);
@@ -328,12 +338,17 @@ public class EventFieldService {
                 .orElse(Set.of());
     }
 
-    private static EventFieldDraft dropTie(int eventId, EventFieldDraft field) {
+    /**
+     * The field as it is where its tie points at one of the allowed sheet fields or at none, otherwise
+     * without the tie, logged with where the tie had to point.
+     */
+    private static EventFieldDraft tiedWithin(EventFieldDraft field, Set<Integer> allowed, String where) {
+        if (field.attendanceFieldId() == null || allowed.contains(field.attendanceFieldId())) return field;
         log.info(
-                "Dropped the tie of question \"{}\" to attendance field {}: it is not on the sheet event {} uses",
+                "Dropped the tie of field \"{}\" to attendance field {}: it is not on {}",
                 field.name(),
                 field.attendanceFieldId(),
-                eventId);
+                where);
         return field.untied();
     }
 

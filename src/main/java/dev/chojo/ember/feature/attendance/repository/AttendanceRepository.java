@@ -28,6 +28,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -219,6 +220,25 @@ public class AttendanceRepository {
     }
 
     /**
+     * The ids of every field in use on a sheet of the station that is in use.
+     *
+     * @param stationId the station
+     * @return the field ids
+     */
+    public Set<Integer> findFieldIdsOfStation(int stationId) {
+        return new HashSet<>(query("""
+                SELECT f.id
+                FROM attendance_template_field f
+                    JOIN attendance_template t ON t.id = f.template_id
+                WHERE t.station_id = :station_id
+                  AND t.archived_at IS NULL
+                  AND f.archived_at IS NULL;""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.getInt("id"))
+                .all());
+    }
+
+    /**
      * Finds the fields a sheet shows: the fields of its template in use, and the deleted ones the
      * sheet answered before they went, so an answer stays readable under its field's name and type.
      *
@@ -350,6 +370,9 @@ public class AttendanceRepository {
                     .single(call().bind("id", id))
                     .update();
             query("UPDATE event_template_field SET attendance_field_id = NULL WHERE attendance_field_id = :id;")
+                    .single(call().bind("id", id))
+                    .update();
+            query("UPDATE event_group_field SET attendance_field_id = NULL WHERE attendance_field_id = :id;")
                     .single(call().bind("id", id))
                     .update();
             return true;

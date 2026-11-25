@@ -298,7 +298,7 @@ public class EventFieldRepository {
     }
 
     private static final String GROUP_FIELD_COLUMNS =
-            "f.name, f.field_type, f.config, f.value, f.position, f.overview, NULL::INT AS attendance_field_id, f.\"public\"";
+            "f.name, f.field_type, f.config, f.value, f.position, f.overview, f.attendance_field_id, f.\"public\"";
 
     /**
      * What an appointment shows on one of its dates: the fields its event group hands down, then its
@@ -545,15 +545,18 @@ public class EventFieldRepository {
                     && query("""
                                     UPDATE event_group_field
                                     SET name = :name, field_type = :field_type, config = :config::JSONB, value = :value,
-                                        position = :position, overview = :overview, "public" = :public
+                                        position = :position, overview = :overview,
+                                        attendance_field_id = :attendance_field_id, "public" = :public
                                     WHERE id = :id AND event_group_id = :event_group_id;""")
                             .single(groupFieldCall(eventGroupId, field, i).bind("id", id))
                             .update()
                             .changed();
             if (updated) continue;
             query("""
-                    INSERT INTO event_group_field(event_group_id, name, field_type, config, value, position, overview, "public")
-                    VALUES (:event_group_id, :name, :field_type, :config::JSONB, :value, :position, :overview, :public);""").single(groupFieldCall(eventGroupId, field, i)).insert();
+                    INSERT INTO event_group_field(event_group_id, name, field_type, config, value, position, overview,
+                                                  attendance_field_id, "public")
+                    VALUES (:event_group_id, :name, :field_type, :config::JSONB, :value, :position, :overview,
+                            :attendance_field_id, :public);""").single(groupFieldCall(eventGroupId, field, i)).insert();
         }
     }
 
@@ -583,6 +586,7 @@ public class EventFieldRepository {
                 .bind("value", field.value())
                 .bind("position", position)
                 .bind("overview", field.overview())
+                .bind("attendance_field_id", field.attendanceFieldId())
                 .bind("public", field.isPublic());
     }
 
