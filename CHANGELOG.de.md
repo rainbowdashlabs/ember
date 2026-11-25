@@ -2,12 +2,13 @@
 
 ## v26.26.1
 
-Markdown-Dateien lassen sich per Hochladen und per Import ins Wiki übernehmen. Die Probezeit auf der Warteliste lässt sich wieder starten.
+Markdown-Dateien lassen sich per Hochladen und per Import ins Wiki übernehmen. Die Probezeit auf der Warteliste lässt sich wieder starten. Felder einer Terminreihe füllen die Anwesenheitsliste jedes ihrer Termine aus.
 
 ### Fehlerbehebungen
 
 - **Markdown-Dateien kamen nicht ins Wiki.** Der Import einer Markdown-Datei wurde abgelehnt, und eine hochgeladene wurde kein Artikel. Beide Wege machen daraus jetzt denselben Artikel, der sich gleich bearbeiten lässt.
 - **Die Probezeit auf der Warteliste ließ sich nicht starten.** Die Rückfrage lud die Adressen für die E-Mail ohne Ende, und ihr Knopf blieb gesperrt. Beim Ausscheiden eines Eintrags passierte dasselbe. Die Adressen erscheinen jetzt, und der Schritt lässt sich bestätigen.
+- **Felder der Terminreihe kamen nicht auf die Anwesenheitsliste.** Der Editor der Terminreihe bot nur die üblichen Felder an und keines der Anwesenheitsvorlage, sodass sich kein Feld an die Liste binden ließ. Die Felder der Vorlage lassen sich jetzt übernehmen, und jeder Termin trägt sie mit seinen eigenen Werten in seine Liste ein.
 
 ## v26.26.0
 

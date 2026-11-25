@@ -71,6 +71,7 @@ const templates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleG
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.fieldsTitle')">
       <p>{{ t('helpCenter.eventGroupEdit.fieldsText') }}</p>
+      <p>{{ t('helpCenter.eventGroupEdit.fieldsSheetText') }}</p>
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.minimumTitle')">
       <p>{{ t('helpCenter.eventGroupEdit.minimumText') }}</p>

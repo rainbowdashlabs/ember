@@ -2,12 +2,13 @@
 
 ## v26.26.1
 
-Markdown files can be added to the wiki by upload and by import. A trial on the waiting list can be started again.
+Markdown files can be added to the wiki by upload and by import. A trial on the waiting list can be started again. Fields of an event group can fill in the attendance sheet of every appointment of the group.
 
 ### Fixes
 
 - **Markdown files could not be added to the wiki.** Importing a Markdown file was refused, and an uploaded one did not become an article. Both ways now turn it into the same article, ready to edit.
 - **The trial on the waiting list could not be started.** The confirmation kept loading the addresses the mail goes to, and its button stayed disabled. The same happened when withdrawing an entry. The addresses now appear and the step can be confirmed.
+- **Event group fields could not reach the attendance sheet.** The event group editor offered only the usual fields and none of the attendance template's, so no field could be tied to the sheet. The template's fields can now be taken over, and each appointment fills them in on its own sheet with its own values.
 
 ## v26.26.0
 
