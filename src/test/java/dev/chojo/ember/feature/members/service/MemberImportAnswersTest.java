@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.SetupMail;
+import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -52,6 +53,7 @@ class MemberImportAnswersTest extends RepositoryTestBase {
                 profileFieldRepo,
                 TestAccountLinks.inviteService(
                         accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), mock(AuthService.class)),
+                new AccountLinkRepository(),
                 new DomainEventBus(Set.of()));
         station = stationRepo.create("ImportAnswersStation");
     }

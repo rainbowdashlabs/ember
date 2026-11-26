@@ -1,5 +1,15 @@
 # Changelog
 
+## v26.26.4
+
+People who already belong to another station of the same instance can be taken in through the member import.
+
+### Fixes
+
+- **The member import passed over people from other stations.** A row whose address belonged to somebody at another station of the same instance was skipped, so that person could not be imported with their details. The row is now taken in with all its details, and the owner of the address is asked to link their account.
+- **Saving a member's groups could be refused.** In some cases a member's groups could not be saved because a group filled by a rule had taken the member in after their page was opened. Groups filled by a rule are now left to their rule when the page saves.
+- **Opening an appointment showed error G-026.** At stations with attendance switched off, event managers saw error G-026 alongside the appointment when opening it. The appointment itself was shown, and the error no longer appears.
+
 ## v26.26.3
 
 Imported dates are read whatever separates day, month and year.
