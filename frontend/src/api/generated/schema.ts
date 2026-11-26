@@ -62104,6 +62104,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/session/preferences/findable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the own account may be found by its name from every station of this instance */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Findable"];
+                    };
+                };
+            };
+        };
+        /** Choose whether the own account may be found by its name from every station of this instance */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FindablePreference"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/session/preferences/sidebar": {
         parameters: {
             query?: never;
@@ -74923,6 +74981,12 @@ export interface components {
         };
         /** @enum {string} */
         FilterTableType: "MEMBERS" | "EVENTS" | "INVENTORY" | "ATTENDANCE" | "NEWS" | "FORMS" | "QUIZ";
+        Findable: {
+            findable: boolean;
+        };
+        FindablePreference: {
+            findable?: boolean | null;
+        };
         FirstStationRequest: {
             name?: string;
         };
@@ -84391,6 +84455,8 @@ export type FillInResponse = components['schemas']['FillInResponse'];
 export type FillInTheBlank = components['schemas']['FillInTheBlank'];
 export type FillInTheBlankView = components['schemas']['FillInTheBlankView'];
 export type FilterTableType = components['schemas']['FilterTableType'];
+export type Findable = components['schemas']['Findable'];
+export type FindablePreference = components['schemas']['FindablePreference'];
 export type FirstStationRequest = components['schemas']['FirstStationRequest'];
 export type FirstStationStatus = components['schemas']['FirstStationStatus'];
 export type FlowPreview = components['schemas']['FlowPreview'];

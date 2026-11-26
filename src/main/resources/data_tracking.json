@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:6a842cf88d37c773e11644619d734841754b44bda6772fe650b540a4cc5932dc",
-  "generatedAt": "2026-11-25T00:07:29Z",
+  "schemaHash": "sha256:35e89b79765a5d4e1c611f72059ae2c6c921e86318b06b4dde72010050f5c462",
+  "generatedAt": "2026-11-26T21:59:03Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -1142,7 +1142,7 @@
     "account_preference": {
       "feature": "account",
       "scope": "USER",
-      "tableHash": "sha256:ee9b99a7a4ea99acd8f760db24b41f5c626b80a7118ba79e993bc8805f14423e",
+      "tableHash": "sha256:d43978f9b69e06c0e3ad3b9277ef386118efc11795d343e250c5169d93d8b9ab",
       "columns": [
         {
           "name": "account_id",
@@ -1157,6 +1157,13 @@
           "nullable": false,
           "verified": true,
           "description": "How the sidebar lists its sections: SECTIONS shows one section at a time, TREE shows every section at once and opens them in place."
+        },
+        {
+          "name": "findable_by_name",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether member managers of any station of this instance may find the account by its name to invite it. Without it, only managers who share a station or an association with the account find it."
         }
       ],
       "foreignKeys": [
@@ -1190,7 +1197,7 @@
           }
         ]
       },
-      "description": "How an account likes the app laid out, on every device it signs in on. A row exists once the account changed something; an account without one sees the defaults."
+      "description": "An account's own choices that follow it to every device: how the app is laid out and whether it can be found by name. A row exists once the account changed something; an account without one has the defaults."
     },
     "account_session": {
       "feature": "account",

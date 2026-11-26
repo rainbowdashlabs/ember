@@ -48422,6 +48422,42 @@
         }
       }
     },
+    "/api/v1/session/preferences/findable" : {
+      "get" : {
+        "summary" : "Whether the own account may be found by its name from every station of this instance",
+        "tags" : [ "Session" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Findable"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Choose whether the own account may be found by its name from every station of this instance",
+        "tags" : [ "Session" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FindablePreference"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/session/preferences/sidebar" : {
       "put" : {
         "summary" : "Choose how the sidebar of the own account lists its sections",
@@ -67924,6 +67960,23 @@
       "FilterTableType" : {
         "type" : "string",
         "enum" : [ "MEMBERS", "EVENTS", "INVENTORY", "ATTENDANCE", "NEWS", "FORMS", "QUIZ" ]
+      },
+      "Findable" : {
+        "type" : "object",
+        "properties" : {
+          "findable" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "findable" ]
+      },
+      "FindablePreference" : {
+        "type" : "object",
+        "properties" : {
+          "findable" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
       },
       "FirstStationRequest" : {
         "type" : "object",

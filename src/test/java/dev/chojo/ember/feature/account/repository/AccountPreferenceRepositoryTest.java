@@ -10,10 +10,12 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * How an account likes its sidebar: one section at a time until it chooses otherwise, its own choice for
- * each account, and gone with the account.
+ * An account's own choices: one section at a time and not findable by name until it chooses otherwise,
+ * its own choice for each account, and gone with the account.
  */
 class AccountPreferenceRepositoryTest extends RepositoryTestBase {
     private final AccountPreferenceRepository preferences = new AccountPreferenceRepository();
@@ -50,5 +52,21 @@ class AccountPreferenceRepositoryTest extends RepositoryTestBase {
         accountRepo.delete(gone);
 
         assertEquals(SidebarMode.SECTIONS, preferences.sidebarOf(gone));
+    }
+
+    @Test
+    void nobodyIsFindableByNameUntilTheyChooseIt() {
+        int quiet = account("Still");
+        int open = account("Offen");
+        preferences.setSidebar(quiet, SidebarMode.TREE);
+
+        preferences.setFindableByName(open, true);
+
+        assertFalse(preferences.findableByName(quiet), "a sidebar choice does not make anybody findable");
+        assertTrue(preferences.findableByName(open));
+        assertEquals(SidebarMode.SECTIONS, preferences.sidebarOf(open), "and choosing it leaves the sidebar alone");
+
+        preferences.setFindableByName(open, false);
+        assertFalse(preferences.findableByName(open));
     }
 }
