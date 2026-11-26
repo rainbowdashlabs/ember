@@ -23,6 +23,7 @@ import {
   type MemberCompletion,
   type RegistrationResponse,
   type StationEvent,
+  StationModule,
 } from '@/api/generated/schema'
 import {attendance, events, managedMembers as managedMembersApi, stationMembers, eventGroups} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -46,6 +47,7 @@ const {
   sessionInfo,
   stationTimezone,
   hasPermission,
+  isModuleEnabled,
 } = useSession()
 
 const eventId = computed(() => Number(route.params.id))
@@ -212,7 +214,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
   allMembers.value = completions
   try { reminders.value = await events.getEventReminders(eventId.value) } catch { reminders.value = [] }
   await reloadMyRegistrations()
-  if (canManageEvents()) {
+  if (canManageEvents() && isModuleEnabled(StationModule.ATTENDANCE)) {
     templates.value = await attendance.listTemplates()
   }
   const [managed, elig] = await Promise.all([

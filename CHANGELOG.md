@@ -2,12 +2,13 @@
 
 ## v26.26.4
 
-People who already belong to another station of the same instance can be taken in through the member import.
+People who already belong to another station of the same instance can be taken in through the member import. Appointments open again at stations without attendance.
 
 ### Fixes
 
 - **The member import passed over people from other stations.** A row whose address belonged to somebody at another station of the same instance was skipped, so that person could not be imported with their details. The row is now taken in with all its details, and the owner of the address is asked to link their account.
 - **Saving a member's groups could be refused.** In some cases a member's groups could not be saved because a group filled by a rule had taken the member in after their page was opened. Groups filled by a rule are now left to their rule when the page saves.
+- **Appointments did not open at stations without attendance.** For event managers at a station with attendance switched off, opening an appointment could fail with error G-026. The page now opens without the attendance templates.
 
 ## v26.26.3
 
