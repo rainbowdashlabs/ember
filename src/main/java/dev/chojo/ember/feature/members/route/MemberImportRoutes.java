@@ -191,10 +191,10 @@ public class MemberImportRoutes implements Routes {
      * @param sendSetupMail whether the setup mails leave with the accounts. Absent means they do,
      *                      which is what an import has always done. Ignored by the two preview
      *                      routes, which write nothing and send nothing.
-     * @param dateFormat    how the days in the file are written: {@code auto}, {@code DD.MM.YYYY},
-     *                      {@code DD-MM-YYYY}, {@code YYYY-MM-DD}, {@code MM/DD/YYYY} or
-     *                      {@code DD/MM/YYYY}. Absent or unknown reads every format but the
-     *                      day-first slashed one.
+     * @param dateFormat    the order the days in the file are written in, whatever their separator:
+     *                      {@code auto}, {@code day-month-year}, {@code month-day-year} or
+     *                      {@code year-month-day}. Absent or unknown is {@code auto}, which works the
+     *                      order out for each date column from all of its values.
      */
     public record ImportRequest(
             String csv,

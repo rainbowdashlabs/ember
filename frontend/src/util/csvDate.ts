@@ -4,17 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /**
- * The ways a day can be written in an imported file. `auto` leaves the format to
- * {@link detectDateFormat} over the whole column; a single value read with it tries the dotted, the
- * dashed, the ISO and the month-first slashed form in turn.
+ * The orders a day can be written in, whatever joins its three numbers: dots, dashes or slashes, as
+ * long as both are the same. `auto` leaves the order to {@link detectDateFormat} over the whole column;
+ * a single value read with it tries day first, month first and year first in turn.
  *
- * <p>The member import reads its files on the server with the same formats and rules, so a file reads
+ * <p>Day and month take one or two digits, the year two or four. A year in front takes two digits only
+ * above 31, since `04.12.26` would otherwise read as a day in 2004 as readily as the 4th of December.
+ * The member import reads its files on the server with the same orders and rules, so a file reads
  * alike wherever it is imported.
  */
-export type CsvDateFormat = 'auto' | 'DD.MM.YYYY' | 'DD-MM-YYYY' | 'YYYY-MM-DD' | 'MM/DD/YYYY' | 'DD/MM/YYYY'
+export type CsvDateFormat = 'auto' | 'day-month-year' | 'month-day-year' | 'year-month-day'
 
-/** Every format a picker offers beside `auto`, in the order a tie in {@link detectDateFormat} is settled by. */
-export const CSV_DATE_FORMATS = ['DD.MM.YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY'] as const
+/** Every order a picker offers beside `auto`, in the order a tie in {@link detectDateFormat} is settled by. */
+export const CSV_DATE_FORMATS = ['day-month-year', 'month-day-year', 'year-month-day'] as const
 
 /**
  * Which century a two-digit year falls in: `century` the current one, for appointments, which mostly
@@ -22,10 +24,15 @@ export const CSV_DATE_FORMATS = ['DD.MM.YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD', 'MM/D
  */
 export type TwoDigitYears = 'century' | 'past'
 
-const DOTTED = /^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/
-const DASHED = /^(\d{1,2})-(\d{1,2})-(\d{2}|\d{4})$/
-const ISO = /^(\d{4})-(\d{1,2})-(\d{1,2})$/
-const SLASHED = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/
+const THREE_PARTS = /^(\d{1,4})([./-])(\d{1,4})\2(\d{1,4})$/
+const LAST_DAY = 31
+
+/** Where day, month and year stand among the three numbers of each order. */
+const PLACES: Readonly<Record<(typeof CSV_DATE_FORMATS)[number], readonly [number, number, number]>> = {
+    'day-month-year': [0, 1, 2],
+    'month-day-year': [1, 0, 2],
+    'year-month-day': [2, 1, 0],
+}
 
 function fullYear(year: string, years: TwoDigitYears, currentYear: number): number {
     const value = Number(year)
@@ -41,11 +48,26 @@ function isoDateOf(year: number, month: number, day: number): string | null {
     return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
+function inOrder(
+    parts: readonly string[],
+    format: (typeof CSV_DATE_FORMATS)[number],
+    years: TwoDigitYears,
+    currentYear: number,
+): string | null {
+    const [dayAt, monthAt, yearAt] = PLACES[format]
+    const day = parts[dayAt]!
+    const month = parts[monthAt]!
+    const year = parts[yearAt]!
+    if (day.length > 2 || month.length > 2 || (year.length !== 2 && year.length !== 4)) return null
+    if (format === 'year-month-day' && year.length === 2 && Number(year) <= LAST_DAY) return null
+    return isoDateOf(fullYear(year, years, currentYear), Number(month), Number(day))
+}
+
 /**
  * A day from a file as `YYYY-MM-DD`, or `null` where it names no day of the calendar.
  *
  * @param raw         the value as it stands in the file
- * @param format      how the day is written
+ * @param format      the order the day is written in
  * @param years       which century a two-digit year falls in
  * @param currentYear the year the centuries are counted from
  */
@@ -55,35 +77,25 @@ export function parseCsvDate(
     years: TwoDigitYears = 'century',
     currentYear: number = new Date().getFullYear(),
 ): string | null {
-    const value = raw.trim()
-    const dayFirst = (pattern: RegExp) => {
-        const match = pattern.exec(value)
-        return match ? isoDateOf(fullYear(match[3]!, years, currentYear), Number(match[2]), Number(match[1])) : null
+    const match = THREE_PARTS.exec(raw.trim())
+    if (!match) return null
+    const parts = [match[1]!, match[3]!, match[4]!]
+    if (format !== 'auto') return inOrder(parts, format, years, currentYear)
+    for (const order of CSV_DATE_FORMATS) {
+        const day = inOrder(parts, order, years, currentYear)
+        if (day) return day
     }
-    const monthFirst = () => {
-        const match = SLASHED.exec(value)
-        return match ? isoDateOf(fullYear(match[3]!, years, currentYear), Number(match[1]), Number(match[2])) : null
-    }
-    const yearFirst = () => {
-        const match = ISO.exec(value)
-        return match ? isoDateOf(Number(match[1]), Number(match[2]), Number(match[3])) : null
-    }
-    if (format === 'DD.MM.YYYY') return dayFirst(DOTTED)
-    if (format === 'DD-MM-YYYY') return dayFirst(DASHED)
-    if (format === 'YYYY-MM-DD') return yearFirst()
-    if (format === 'MM/DD/YYYY') return monthFirst()
-    if (format === 'DD/MM/YYYY') return dayFirst(SLASHED)
-    return dayFirst(DOTTED) ?? dayFirst(DASHED) ?? yearFirst() ?? monthFirst()
+    return null
 }
 
 /**
- * The format a column of days is written in, worked out from all of its values.
+ * The order a column of days is written in, worked out from all of its values.
  *
- * <p>Each format is tried on every value, and the first to read all of them is taken. A day never
- * passes 31 and a month never passes 12, so one value such as `13/01/2024` is enough to tell day-first
- * from month-first slashes. Where several formats read everything, the usual one wins: dots and dashes
- * day first, then ISO, then slashes month first. Where none reads everything, the one reading the most
- * is taken, and `auto` where none reads anything.
+ * <p>Each order is tried on every value, and the first to read all of them is taken. A day never
+ * passes 31 and a month never passes 12, so one value such as `03-16-60` is enough to tell month first
+ * from day first. Where several orders read everything, day first wins, then month first, then year
+ * first. Where none reads everything, the one reading the most is taken, and `auto` where none reads
+ * anything.
  */
 export function detectDateFormat(values: readonly string[]): CsvDateFormat {
     let best: CsvDateFormat = 'auto'
@@ -101,8 +113,8 @@ export function detectDateFormat(values: readonly string[]): CsvDateFormat {
 /**
  * How the days of one column are read, as `YYYY-MM-DD` or `null`.
  *
- * <p>A picked format reads every cell. `auto` reads with the format detected over the column, and a
- * cell that format cannot read is tried in every format on its own, so a column mixing `04.12.26` and
+ * <p>A picked order reads every cell. `auto` reads with the order detected over the column, and a
+ * cell that order cannot read is tried in every order on its own, so a column mixing `04.12.26` and
  * `2026-12-05` still reads both.
  */
 export function columnDateReader(

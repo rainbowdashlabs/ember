@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.26.3
+
+Imported dates are read whatever separates day, month and year.
+
+### Fixes
+
+- **Month-first dates in imports were refused.** A day such as 03-16-60, with the month first and joined by dashes or dots, could not be read in the member import or when creating appointments from a file. The date format is now an order of day, month and year, and dots, dashes and slashes are read alike.
+
 ## v26.26.2
 
 Imported files have their date format recognised from all dates of a column, and the member import offers a choice of date format.

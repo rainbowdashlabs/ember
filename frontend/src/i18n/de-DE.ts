@@ -7251,6 +7251,9 @@ export default {
         fileTooLarge: 'Die Datei ist zu groß. Maximale Größe: {size} MB.',
         dateFormat: 'Datumsformat',
         dateFormatAuto: 'Automatisch erkennen',
+        dateDayMonthYear: 'Tag, Monat, Jahr (05.01.2026)',
+        dateMonthDayYear: 'Monat, Tag, Jahr (01/05/2026)',
+        dateYearMonthDay: 'Jahr, Monat, Tag (2026-01-05)',
     },
     memberImport: {
         title: 'Mitglieder importieren',

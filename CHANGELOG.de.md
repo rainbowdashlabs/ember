@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.26.3
+
+Importierte Daten werden gelesen, egal was Tag, Monat und Jahr trennt.
+
+### Fehlerbehebungen
+
+- **Daten mit dem Monat vorne wurden beim Import abgelehnt.** Ein Tag wie 03-16-60, mit dem Monat vorne und mit Bindestrichen oder Punkten, wurde weder im Mitgliederimport noch beim Anlegen von Terminen aus einer Datei gelesen. Das Datumsformat ist jetzt eine Reihenfolge von Tag, Monat und Jahr, und Punkte, Bindestriche und Schrägstriche werden gleich gelesen.
+
 ## v26.26.2
 
 Beim Import einer Datei wird das Datumsformat an allen Daten einer Spalte erkannt, und der Mitgliederimport bietet eine Auswahl des Datumsformats.

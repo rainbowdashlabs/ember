@@ -22,36 +22,41 @@ describe('parseCsvDate', () => {
         ['1.4.2024', '2024-04-01'],
         ['11.04.24', '2024-04-11'],
         ['11-04-24', '2024-04-11'],
-        ['11-04-2024', '2024-04-11'],
+        ['11/04/2024', '2024-04-11'],
         ['2024-04-11', '2024-04-11'],
         ['2024-4-1', '2024-04-01'],
-        ['04/11/2024', '2024-04-11'],
-        ['4/11/24', '2024-04-11'],
+        ['2024/04/11', '2024-04-11'],
+        ['04/13/2024', '2024-04-13'],
+        ['03-16-60', '2060-03-16'],
         [' 11.04.2024 ', '2024-04-11'],
     ])('automatically reads %s', (written, day) => {
         expect(read(written, 'auto')).toBe(day)
     })
 
     it.each([
-        ['11.04.24', 'DD.MM.YYYY'],
-        ['11-04-24', 'DD-MM-YYYY'],
-        ['2024-04-11', 'YYYY-MM-DD'],
-        ['04/11/24', 'MM/DD/YYYY'],
-        ['11/04/24', 'DD/MM/YYYY'],
+        ['11.04.24', 'day-month-year'],
+        ['11-04-2024', 'day-month-year'],
+        ['11/04/24', 'day-month-year'],
+        ['04.11.24', 'month-day-year'],
+        ['04-11-2024', 'month-day-year'],
+        ['04/11/24', 'month-day-year'],
+        ['2024.04.11', 'year-month-day'],
+        ['2024-04-11', 'year-month-day'],
+        ['2024/4/11', 'year-month-day'],
     ] as const)('reads %s in %s', (written, format) => {
         expect(read(written, format)).toBe('2024-04-11')
     })
 
     it.each([
-        ['11.04.24', 'DD-MM-YYYY'],
-        ['11-04-24', 'DD.MM.YYYY'],
-        ['11/04/24', 'YYYY-MM-DD'],
-        ['13/01/2024', 'MM/DD/YYYY'],
+        ['03-16-60', 'day-month-year'],
+        ['2024-04-11', 'day-month-year'],
+        ['11.04.2024', 'year-month-day'],
+        ['24/04/11', 'year-month-day'],
     ] as const)('does not read %s in %s', (written, format) => {
         expect(read(written, format)).toBeNull()
     })
 
-    it.each(['', ' ', '31.02.2024', '11.04-24', 'morgen', '2024/04/11', '11.04.124', '13/01/2024'])(
+    it.each(['', ' ', '31.02.2024', '11.04-24', 'morgen', '11.04.124', '111.04.2024', '40/40/2024'])(
         'reads no day from "%s"', written => {
             expect(read(written, 'auto')).toBeNull()
         })
@@ -66,18 +71,20 @@ describe('parseCsvDate', () => {
         expect(parseCsvDate('01.01.26', 'auto', 'past', THIS_YEAR)).toBe('2026-01-01')
         expect(parseCsvDate('01.01.27', 'auto', 'past', THIS_YEAR)).toBe('1927-01-01')
         expect(parseCsvDate('01.01.00', 'auto', 'past', THIS_YEAR)).toBe('2000-01-01')
+        expect(parseCsvDate('03-16-60', 'auto', 'past', THIS_YEAR)).toBe('1960-03-16')
     })
 })
 
 describe('detectDateFormat', () => {
     it.each([
-        [['11.04.24', '1.12.2024'], 'DD.MM.YYYY'],
-        [['11-04-24', '01-12-24'], 'DD-MM-YYYY'],
-        [['2024-04-11', '2024-12-01'], 'YYYY-MM-DD'],
-        [['04/11/24', '12/01/24'], 'MM/DD/YYYY'],
-        [['04/11/24', '13/01/24'], 'DD/MM/YYYY'],
-        [['04/11/24', '01/31/24'], 'MM/DD/YYYY'],
-        [['11.04.24', 'morgen', ''], 'DD.MM.YYYY'],
+        [['11.04.24', '1.12.2024'], 'day-month-year'],
+        [['11-04-24', '01/12/24'], 'day-month-year'],
+        [['04/11/24', '12/01/24'], 'day-month-year'],
+        [['05-04-60', '03-16-60'], 'month-day-year'],
+        [['04/11/24', '01/31/24'], 'month-day-year'],
+        [['2024-04-11', '2024-12-01'], 'year-month-day'],
+        [['60-03-16', '71.12.01'], 'year-month-day'],
+        [['11.04.24', 'morgen', ''], 'day-month-year'],
         [['morgen', ''], 'auto'],
     ])('detects %j as %s', (column, format) => {
         expect(detectDateFormat(column)).toBe(format)
@@ -85,18 +92,17 @@ describe('detectDateFormat', () => {
 })
 
 describe('columnDateReader', () => {
-    it('reads a cell the detected format cannot read on its own where the format is automatic', () => {
-        const read = columnDateReader(['04.12.26', '2026-12-05'], 'auto')
-        expect(read('04.12.26')).toBe('2026-12-04')
-        expect(read('2026-12-05')).toBe('2026-12-05')
+    it('reads a cell the detected order cannot read on its own where the order is automatic', () => {
+        const readColumn = columnDateReader(['04.12.26', '2026-12-05'], 'auto')
+        expect(readColumn('04.12.26')).toBe('2026-12-04')
+        expect(readColumn('2026-12-05')).toBe('2026-12-05')
     })
 
-    it('reads only the picked format where one is picked', () => {
-        const read = columnDateReader(['04.12.26', '2026-12-05'], 'DD.MM.YYYY')
-        expect(read('2026-12-05')).toBeNull()
+    it('reads only the picked order where one is picked', () => {
+        expect(columnDateReader(['04.12.26'], 'day-month-year')('2026-12-05')).toBeNull()
     })
 
-    it('reads a column of slashed days day first once one day passes the twelfth', () => {
-        expect(columnDateReader(['01/04/27', '13/04/27'], 'auto')('01/04/27')).toBe('2027-04-01')
+    it('reads a month-first column once one day passes the twelfth', () => {
+        expect(columnDateReader(['05-04-60', '03-16-60'], 'auto', 'past')('05-04-60')).toBe('1960-05-04')
     })
 })
