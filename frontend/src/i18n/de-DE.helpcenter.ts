@@ -5964,8 +5964,8 @@ volumes:
             step2: 'Schritt 2: Spalten zuordnen',
             step2Text: 'Ordne jede CSV-Spalte einem Zielfeld zu (z.B. „Spalte A" → „Vorname"). Nicht benötigte Spalten auf „Überspringen" setzen. '
                 + 'Eine Spalte mit dem Eintrittsdatum ordnest du „Beigetreten am“ zu. Ohne sie gilt der Tag des Imports. '
-                + 'Das Datumsformat erkennt Ember an allen Daten einer Spalte, ob 01.04.2019, 1.4.19, 01-04-19, 2019-04-01 oder 04/01/2019. '
-                + 'Unter „Datumsformat“ legst du es selbst fest, etwa für Tag/Monat/Jahr mit Schrägstrichen. Eine zweistellige Jahreszahl liegt nie in der Zukunft, aus 78 wird 1978.',
+                + 'Ob Tag, Monat oder Jahr vorne steht, erkennt Ember an allen Daten einer Spalte, egal ob mit Punkten, Bindestrichen oder Schrägstrichen: '
+                + '01.04.2019, 1.4.19, 2019-04-01 und 03-16-60 werden alle gelesen. Unter „Datumsformat“ legst du die Reihenfolge selbst fest. Eine zweistellige Jahreszahl liegt nie in der Zukunft, aus 78 wird 1978.',
             mergeTitle: 'Zusammenführen & Aufteilen',
             mergeText: 'Du kannst zwei Spalten zu einem Feld zusammenführen (z.B. Straße + Hausnummer) oder eine Spalte auf mehrere Felder aufteilen (z.B. „Max Mustermann" → Vorname + Nachname).',
             valueMapTitle: 'Werte zuordnen',

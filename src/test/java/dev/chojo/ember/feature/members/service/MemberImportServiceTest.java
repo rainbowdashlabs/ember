@@ -243,17 +243,17 @@ class MemberImportServiceTest extends RepositoryTestBase {
                 stationMemberRepo.findById(onlyMember()).orElseThrow().joinDate());
     }
 
-    /** A day written the British way is read in the format picked for the file. */
+    /** A day is read in the order picked for the file, even where day first would also read it. */
     @Test
     void thePickedDateFormatReadsJoinDateAndDateAnswers() {
         int birthday = field("Geburtstag", FieldType.DATE);
-        String csv = "Vorname;Name;Eintritt;Geburtstag\nMax;Müller;01/04/19;04/03/78\n";
+        String csv = "Vorname;Name;Eintritt;Geburtstag\nMax;Müller;04/01/19;03/04/78\n";
 
         service.importMembers(
                 station.id(),
                 csv,
                 ";",
-                WrittenDay.Format.of("DD/MM/YYYY"),
+                WrittenDay.Format.MONTH_DAY_YEAR,
                 List.of(
                         map("Vorname", "firstName"),
                         map("Name", "lastName"),
@@ -267,6 +267,22 @@ class MemberImportServiceTest extends RepositoryTestBase {
                 LocalDate.of(2019, 4, 1),
                 stationMemberRepo.findById(member).orElseThrow().joinDate());
         assertEquals("\"1978-03-04\"", storedValue(member, birthday));
+    }
+
+    /** A birth date written month first with dashes and a two-digit year reaches the profile. */
+    @Test
+    void aMonthFirstDashedBirthDateIsRead() {
+        int birthday = field("Geburtstag", FieldType.DATE);
+        String csv = "Vorname;Name;Geburtstag\nMax;Müller;03-16-60\n";
+
+        importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Geburtstag", "field:" + birthday)),
+                List.of());
+
+        assertEquals("\"1960-03-16\"", storedValue(onlyMember(), birthday));
     }
 
     /** One day past the twelfth is enough to read a whole column of slashed days day first. */
