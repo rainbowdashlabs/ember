@@ -8,6 +8,8 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import CsvDateFormatSelect from '@/components/csv/CsvDateFormatSelect.vue'
+import type { CsvDateFormat } from '@/util/csvDate'
 import MappingHelp from './mappingstep/MappingHelp.vue'
 import MappingRow from './mappingstep/MappingRow.vue'
 import ValueMapEditorModal from './mappingstep/ValueMapEditorModal.vue'
@@ -17,6 +19,9 @@ import type { TargetValue } from './useMemberCsvImport'
 const { t } = useI18n()
 
 const mappings = defineModel<ColumnMapping[]>('mappings', {required: true})
+
+/** How the days of the file are written, for the join date and every date question. */
+const dateFormat = defineModel<CsvDateFormat>('dateFormat', {required: true})
 
 /** How many of a column's answers the row itself shows, before the reader opens the editor. */
 const PREVIEW_VALUES = 3
@@ -190,6 +195,8 @@ function addValueMapEntry() {
     <p class="text-sm text-(--text-muted)">{{ t('memberImport.mappingHint') }}</p>
 
     <MappingHelp />
+
+    <CsvDateFormatSelect v-model="dateFormat" class="sm:max-w-xs"/>
 
     <div class="space-y-2">
       <MappingRow

@@ -9,9 +9,7 @@ import {localInputToInstant} from '@/util/format'
 import {
     CsvTarget,
     csvToBatchRows,
-    detectedDateFormat,
     guessColumnMapping,
-    parseCsvDate,
     parseCsvTime,
     readCsvTable,
 } from './csvSchedule'
@@ -25,10 +23,9 @@ const ADVENT = '﻿ ImprDatum,Von,Bis,Titel\n'
 function imported(text: string) {
     const table = readCsvTable(text)
     const mapping = guessColumnMapping(table, [])
-    const dateColumn = table.columns.indexOf(Object.entries(mapping).find(([, v]) => v === CsvTarget.DATE)?.[0] ?? '')
     return csvToBatchRows(table, {
         mapping,
-        dateFormat: detectedDateFormat(table.lines[0]?.cells[dateColumn] ?? ''),
+        dateFormat: 'auto',
         fallbackStartTime: '09:00',
         fallbackEndTime: '17:00',
     })
@@ -92,24 +89,6 @@ describe('guessColumnMapping', () => {
     it('maps a column to the field of the same name', () => {
         expect(guessColumnMapping(readCsvTable('datum,Fahrer\n01.01.2026,Anna\n'), ['fahrer']))
             .toEqual({datum: CsvTarget.DATE, Fahrer: 'fahrer'})
-    })
-})
-
-describe('parseCsvDate', () => {
-    it('reads a two-digit year as a year of this century', () => {
-        expect(parseCsvDate('04.12.26', 'DD.MM.YYYY')).toBe('2026-12-04')
-        expect(parseCsvDate('12/04/26', 'MM/DD/YYYY')).toBe('2026-12-04')
-    })
-
-    it('reads days and months without a leading zero', () => {
-        expect(parseCsvDate('4.2.2026', 'auto')).toBe('2026-02-04')
-    })
-
-    it('refuses what names no day of the calendar', () => {
-        expect(parseCsvDate('31.02.2026', 'auto')).toBeNull()
-        expect(parseCsvDate('soon', 'auto')).toBeNull()
-        expect(parseCsvDate('', 'auto')).toBeNull()
-        expect(parseCsvDate('2026-12-04', 'DD.MM.YYYY')).toBeNull()
     })
 })
 
@@ -182,5 +161,16 @@ describe('csvToBatchRows', () => {
 
         expect(result.rows[0]?.startTime).toBe(localInputToInstant('2026-12-04T09:00'))
         expect(result.rows[0]?.endTime).toBe(localInputToInstant('2026-12-04T17:00'))
+    })
+})
+
+describe('csvToBatchRows with an automatic date format', () => {
+    it('reads a column of slashed days day first once one day passes the twelfth', () => {
+        const result = imported('Datum;Von;Bis\n01/04/27;18:00;20:00\n13/04/27;18:00;20:00\n')
+        expect(result.problems).toEqual([])
+        expect(result.rows.map(row => row.startTime)).toEqual([
+            localInputToInstant('2027-04-01T18:00'),
+            localInputToInstant('2027-04-13T18:00'),
+        ])
     })
 })

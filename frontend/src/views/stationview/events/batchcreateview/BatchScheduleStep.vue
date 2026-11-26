@@ -20,14 +20,14 @@ import {events} from '@/api'
 import {readCsvText} from '@/util/csvText'
 import {describeFailure, type Failure} from '@/util/failure'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
+import CsvDateFormatSelect from '@/components/csv/CsvDateFormatSelect.vue'
+import type {CsvDateFormat} from '@/util/csvDate'
 import Alert from '@/components/feedback/Alert.vue'
 import {
   CsvTarget,
   csvToBatchRows,
-  detectedDateFormat,
   guessColumnMapping,
   readCsvTable,
-  type CsvDateFormat,
   type CsvProblem,
   type CsvTable,
 } from './csvSchedule'
@@ -145,9 +145,7 @@ async function handleCsvUpload(file: File) {
   columnMapping.value = mapping
   const mapped = Object.values(mapping)
   csvHasTimeColumns.value = mapped.includes(CsvTarget.START_TIME) || mapped.includes(CsvTarget.END_TIME)
-
-  const dateColumn = table.columns.indexOf(Object.entries(mapping).find(([, v]) => v === CsvTarget.DATE)?.[0] ?? '')
-  if (dateColumn >= 0) csvDateFormat.value = detectedDateFormat(table.lines[0]?.cells[dateColumn] ?? '')
+  csvDateFormat.value = 'auto'
 }
 
 /** One line of the file that cannot become an appointment, with the value that cannot be read. */
@@ -269,15 +267,7 @@ function applyCsvToRows() {
           </div>
         </div>
 
-        <div class="space-y-1">
-          <FieldLabel>{{ t('batchCreate.dateFormat') }}</FieldLabel>
-          <SelectInput v-model="csvDateFormat">
-            <option value="auto">{{ t('batchCreate.dateFormatAuto') }}</option>
-            <option value="DD.MM.YYYY">DD.MM.YYYY (05.01.2026)</option>
-            <option value="YYYY-MM-DD">YYYY-MM-DD (2026-01-05)</option>
-            <option value="MM/DD/YYYY">MM/DD/YYYY (01/05/2026)</option>
-          </SelectInput>
-        </div>
+        <CsvDateFormatSelect v-model="csvDateFormat"/>
 
         <div v-if="!csvHasTimeColumns" class="grid gap-4 sm:grid-cols-2">
           <div class="space-y-1">

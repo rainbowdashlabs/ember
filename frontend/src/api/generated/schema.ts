@@ -75699,6 +75699,7 @@ export interface components {
         };
         ImportRequest: {
             csv?: string;
+            dateFormat?: string | null;
             ignoredRows?: number[];
             mappings?: components["schemas"]["ColumnMapping"][];
             sendSetupMail?: boolean;

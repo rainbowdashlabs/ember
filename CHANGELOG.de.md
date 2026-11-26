@@ -1,5 +1,17 @@
 # Änderungsprotokoll
 
+## v26.26.2
+
+Beim Import einer Datei wird das Datumsformat an allen Daten einer Spalte erkannt, und der Mitgliederimport bietet eine Auswahl des Datumsformats.
+
+### Verbesserungen
+
+- **Datumsformate beim CSV-Import.** Der Mitgliederimport und das Anlegen von Terminen aus einer Datei erkennen das Datumsformat an allen Daten einer Spalte, so wird 13/04/27 als 13. April gelesen. Tage mit Bindestrichen und mit Schrägstrichen in der Reihenfolge Tag, Monat, Jahr lassen sich als Format wählen. Der Mitgliederimport bietet dieselbe Auswahl des Datumsformats wie der Terminimport.
+
+### Fehlerbehebungen
+
+- **Datumsangaben im Mitgliederimport wurden nicht erkannt.** Ein Tag mit Bindestrichen oder zweistelliger Jahreszahl, etwa 11-04-24, wurde weder als Eintrittsdatum noch als Datumsfeld übernommen. Solche Angaben werden jetzt gelesen, und eine zweistellige Jahreszahl eines Mitglieds liegt nie in der Zukunft.
+
 ## v26.26.1
 
 Markdown-Dateien lassen sich per Hochladen und per Import ins Wiki übernehmen. Die Probezeit auf der Warteliste lässt sich wieder starten. Felder einer Terminreihe füllen die Anwesenheitsliste jedes ihrer Termine aus.

@@ -13,6 +13,7 @@ import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.service.MemberImportService;
 import dev.chojo.ember.feature.members.service.MemberImportService.ColumnMapping;
+import dev.chojo.ember.util.WrittenDay;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -23,6 +24,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -94,7 +96,12 @@ public class MemberImportRoutes implements Routes {
         var request = ctx.bodyAsClass(ImportRequest.class);
         validateCsv(request.csv());
         ctx.json(importService.preview(
-                session.stationId(), request.csv(), request.separator(), request.mappings(), request.ignoredRows()));
+                session.stationId(),
+                request.csv(),
+                request.separator(),
+                WrittenDay.Format.of(request.dateFormat()),
+                request.mappings(),
+                request.ignoredRows()));
     }
 
     @OpenApi(
@@ -118,6 +125,7 @@ public class MemberImportRoutes implements Routes {
                         session.stationId(),
                         request.csv(),
                         request.separator(),
+                        WrittenDay.Format.of(request.dateFormat()),
                         request.mappings(),
                         request.ignoredRows(),
                         SetupMail.of(request.sendSetupMail())));
@@ -140,7 +148,12 @@ public class MemberImportRoutes implements Routes {
         var request = ctx.bodyAsClass(ImportRequest.class);
         validateCsv(request.csv());
         ctx.json(importService.preview(
-                session.stationId(), request.csv(), request.separator(), request.mappings(), request.ignoredRows()));
+                session.stationId(),
+                request.csv(),
+                request.separator(),
+                WrittenDay.Format.of(request.dateFormat()),
+                request.mappings(),
+                request.ignoredRows()));
     }
 
     @OpenApi(
@@ -164,6 +177,7 @@ public class MemberImportRoutes implements Routes {
                         session.stationId(),
                         request.csv(),
                         request.separator(),
+                        WrittenDay.Format.of(request.dateFormat()),
                         request.mappings(),
                         request.ignoredRows(),
                         SetupMail.of(request.sendSetupMail())));
@@ -177,11 +191,16 @@ public class MemberImportRoutes implements Routes {
      * @param sendSetupMail whether the setup mails leave with the accounts. Absent means they do,
      *                      which is what an import has always done. Ignored by the two preview
      *                      routes, which write nothing and send nothing.
+     * @param dateFormat    how the days in the file are written: {@code auto}, {@code DD.MM.YYYY},
+     *                      {@code DD-MM-YYYY}, {@code YYYY-MM-DD}, {@code MM/DD/YYYY} or
+     *                      {@code DD/MM/YYYY}. Absent or unknown reads every format but the
+     *                      day-first slashed one.
      */
     public record ImportRequest(
             String csv,
             String separator,
             List<ColumnMapping> mappings,
             List<Integer> ignoredRows,
-            Boolean sendSetupMail) {}
+            Boolean sendSetupMail,
+            @Nullable String dateFormat) {}
 }
