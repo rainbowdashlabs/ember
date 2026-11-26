@@ -2,10 +2,11 @@
 
 ## v26.26.4
 
-Die Gruppen eines Mitglieds lassen sich auch dann speichern, wenn eine Regel das Mitglied gerade in eine Gruppe aufgenommen hat.
+Personen, die schon zu einer anderen Wache derselben Instanz gehören, lassen sich über den Mitgliederimport aufnehmen.
 
 ### Fehlerbehebungen
 
+- **Der Mitgliederimport überging Personen anderer Wachen.** Eine Zeile, deren Adresse zu jemandem an einer anderen Wache derselben Instanz gehörte, wurde übersprungen, und die Person ließ sich nicht mit ihren Angaben importieren. Jetzt wird die Zeile mit allen Angaben übernommen, und die Person mit dieser Adresse wird gebeten, ihr Konto zu verknüpfen.
 - **Das Speichern der Gruppen eines Mitglieds wurde manchmal abgelehnt.** In manchen Fällen ließen sich die Gruppen eines Mitglieds nicht speichern, weil eine von einer Regel gefüllte Gruppe das Mitglied erst nach dem Öffnen der Seite aufgenommen hatte. Gruppen, die eine Regel füllt, bleiben beim Speichern jetzt der Regel überlassen.
 
 ## v26.26.3

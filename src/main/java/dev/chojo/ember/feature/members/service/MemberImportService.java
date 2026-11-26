@@ -12,6 +12,8 @@ import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.SetupMail;
+import dev.chojo.ember.feature.accountlink.entity.AccountLinkRequest;
+import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.ProfileField;
@@ -35,12 +37,14 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Service for importing members from CSV data with configurable column mappings.
@@ -56,6 +60,7 @@ public class MemberImportService {
     private final GroupMembershipService groupMemberships;
     private final ProfileFieldRepository profileFieldRepository;
     private final StationMemberInviteService inviteService;
+    private final AccountLinkRepository linkRepository;
 
     private final DomainEventBus eventBus;
 
@@ -67,6 +72,7 @@ public class MemberImportService {
             GroupMembershipService groupMemberships,
             ProfileFieldRepository profileFieldRepository,
             StationMemberInviteService inviteService,
+            AccountLinkRepository linkRepository,
             DomainEventBus eventBus) {
         this.eventBus = eventBus;
         this.accountRepository = accountRepository;
@@ -75,6 +81,7 @@ public class MemberImportService {
         this.groupMemberships = groupMemberships;
         this.profileFieldRepository = profileFieldRepository;
         this.inviteService = inviteService;
+        this.linkRepository = linkRepository;
     }
 
     /**
@@ -198,6 +205,7 @@ public class MemberImportService {
                 .orElseThrow();
         var warnings = new ArrayList<String>();
         var managerCache = new HashMap<String, StationMember>();
+        var asked = askedAccounts(stationId);
         int membersCreated = 0, managersCreated = 0, managersLinked = 0, groupsAssigned = 0, profileFieldsSet = 0;
 
         for (int i = 0; i < parsed.rows().size(); i++) {
@@ -206,7 +214,7 @@ public class MemberImportService {
             var mapped = applyMappings(row, mappings, profileFields, dayColumns);
             if (mapped.firstName().isEmpty() && mapped.lastName().isEmpty()) continue;
 
-            var already = whoIsAlreadyHere(stationId, mapped);
+            var already = whoIsAlreadyHere(stationId, mapped, asked);
             if (already.isPresent()) {
                 warnings.add("Zeile " + (i + 2) + ": " + already.get() + " ist bereits an der Wache, übersprungen");
                 continue;
@@ -218,6 +226,7 @@ public class MemberImportService {
             try {
                 member = inviteService.newMember(
                         stationId, email, mapped.firstName(), mapped.lastName(), setupMail, null);
+                rememberAsked(member, email, asked);
             } catch (AccountInviteService.EmailInUseException e) {
                 warnings.add("Zeile " + (i + 2) + ": " + email + " gehört bereits jemand anderem, übersprungen");
                 continue;
@@ -343,6 +352,7 @@ public class MemberImportService {
                 .findPermissionByName(StationPermission.LOGIN)
                 .orElseThrow();
         var warnings = new ArrayList<String>();
+        var asked = askedAccounts(stationId);
         int membersCreated = 0, groupsAssigned = 0, profileFieldsSet = 0;
 
         for (int i = 0; i < parsed.rows().size(); i++) {
@@ -351,7 +361,7 @@ public class MemberImportService {
             var mapped = applyMappings(row, mappings, profileFields, dayColumns);
             if (mapped.firstName().isEmpty() && mapped.lastName().isEmpty()) continue;
 
-            var already = whoIsAlreadyHere(stationId, mapped);
+            var already = whoIsAlreadyHere(stationId, mapped, asked);
             if (already.isPresent()) {
                 warnings.add("Zeile " + (i + 2) + ": " + already.get() + " ist bereits an der Wache, übersprungen");
                 continue;
@@ -363,6 +373,7 @@ public class MemberImportService {
             try {
                 member = inviteService.newMember(
                         stationId, email, mapped.firstName(), mapped.lastName(), setupMail, null);
+                rememberAsked(member, email, asked);
             } catch (AccountInviteService.EmailInUseException e) {
                 warnings.add("Zeile " + (i + 2) + ": " + email + " gehört bereits jemand anderem, übersprungen");
                 continue;
@@ -582,7 +593,9 @@ public class MemberImportService {
      * Whether this row is about somebody the station already has, and what to call them if so.
      *
      * <p>The address decides where the row carries one, because that is the one thing about a person
-     * that is theirs alone. Where it carries none, the name decides, and only within this station:
+     * that is theirs alone. An account carrying it counts as here when it is a member of this station or
+     * when a member here has asked to link it; an account known only to other stations is somebody new
+     * to this one, who is taken in and asked to link. Where it carries none, the name decides, and only within this station:
      * two people of that name here cannot be told apart by anything in the row, and the same list
      * imported twice should leave one of each rather than a second copy of everybody.
      *
@@ -594,18 +607,42 @@ public class MemberImportService {
      *
      * @param stationId the station being imported into
      * @param mapped    the row as the mappings read it
+     * @param asked     the accounts members of this station have asked to link
      * @return what to call the person already here, or empty where this row is new
      */
-    private Optional<String> whoIsAlreadyHere(int stationId, MemberPreview mapped) {
+    private Optional<String> whoIsAlreadyHere(int stationId, MemberPreview mapped, Set<Integer> asked) {
         if (!mapped.email().isBlank()) {
             String email = mapped.email().trim();
             var account = accountRepository.findByEmail(email);
-            if (account.isPresent()) return Optional.of(email);
+            if (account.isPresent() && isHere(stationId, account.get().id(), asked)) return Optional.of(email);
         }
         return stationMemberRepository
                 .findByStationAndName(stationId, mapped.firstName(), mapped.lastName())
                 .map(member ->
                         NameParts.of(mapped.firstName(), mapped.lastName()).official());
+    }
+
+    private boolean isHere(int stationId, int accountId, Set<Integer> asked) {
+        return asked.contains(accountId)
+                || stationMemberRepository
+                        .findByStationAndAccount(stationId, accountId)
+                        .isPresent();
+    }
+
+    /** The accounts members of this station have asked to link, whether or not the owner answered yet. */
+    private Set<Integer> askedAccounts(int stationId) {
+        return linkRepository.findLatestByStation(stationId).values().stream()
+                .map(AccountLinkRequest::accountId)
+                .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    /**
+     * Notes the account a member made from a row waits for, so a second row with the same address is
+     * known to be here.
+     */
+    private void rememberAsked(StationMember member, String email, Set<Integer> asked) {
+        if (member.accountId() != null || email.isBlank()) return;
+        accountRepository.findByEmail(email).ifPresent(account -> asked.add(account.id()));
     }
 
     /**

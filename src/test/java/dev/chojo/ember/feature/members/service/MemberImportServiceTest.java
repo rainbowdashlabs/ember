@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.SetupMail;
+import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -76,6 +77,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
                 profileFieldRepo,
                 TestAccountLinks.inviteService(
                         accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), authService),
+                new AccountLinkRepository(),
                 new DomainEventBus(Set.of()));
         station = stationRepo.create("ImportStation");
     }
@@ -86,7 +88,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
         for (var member : stationMemberRepo.findByStation(station.id(), true)) {
             var account = member.accountId();
             stationMemberRepo.delete(member.id());
-            accountRepo.delete(account);
+            if (account != null) accountRepo.delete(account);
         }
     }
 
@@ -454,6 +456,38 @@ class MemberImportServiceTest extends RepositoryTestBase {
         assertEquals(0, again.membersCreated(), "nobody new the second time");
         assertEquals(1, stationMemberRepo.findByStation(station.id()).size());
         assertFalse(again.warnings().isEmpty(), "and it says who was passed over");
+    }
+
+    /**
+     * Somebody with an account at another station of this instance is new to this one: the row is taken
+     * in with everything it carries, and the owner of the account is asked to link it. Reading the list
+     * again recognises the member waiting for that answer.
+     */
+    @Test
+    void somebodyFromAnotherStationIsTakenInAndAskedToLink() {
+        int phone = field("Mobilnummer", FieldType.TEXT);
+        var elsewhere = stationRepo.create("ImportElsewhere");
+        var account = accountRepo.create("anna@example.com", "Anna", "Schmidt");
+        var theirs = stationMemberRepo.create(elsewhere.id(), account.id());
+        String csv = "Vorname;Name;Email;Telefon\nAnna;Schmidt;anna@example.com;01700000000\n";
+        var mappings = List.of(
+                map("Vorname", "firstName"),
+                map("Name", "lastName"),
+                map("Email", "email"),
+                map("Telefon", "field:" + phone));
+        try {
+            var result = importMembers(station.id(), csv, ";", mappings, List.of());
+            var again = importMembers(station.id(), csv, ";", mappings, List.of());
+
+            assertEquals(1, result.membersCreated());
+            var member = stationMemberRepo.findById(onlyMember()).orElseThrow();
+            assertNull(member.accountId(), "the account is not attached before its owner agrees");
+            assertEquals("\"01700000000\"", storedValue(member.id(), phone));
+            assertEquals(0, again.membersCreated(), "the member waiting for the answer is recognised");
+        } finally {
+            stationMemberRepo.delete(theirs.id());
+            accountRepo.delete(account.id());
+        }
     }
 
     /**
