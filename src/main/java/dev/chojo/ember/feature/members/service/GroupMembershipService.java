@@ -94,9 +94,10 @@ public class GroupMembershipService {
      * Replaces the groups one member is in, as their edit page sends it.
      *
      * <p>Leaving one group of a set and joining another in the same request is a move and allowed;
-     * choosing two groups of one set is refused. Joining or leaving a group that takes its members from a
-     * rule is refused; such a group may stay in the list as it is. A group whose rule asks about a group
-     * joined or left is filled anew, so its permissions count as granted by the caller too.
+     * choosing two groups of one set is refused. A group that takes its members from a rule is left to
+     * its rule: whether the list names it or not changes nothing, so a page loaded before the rule took the
+     * member in still saves. A group whose rule asks about a group joined or left is filled anew, so its
+     * permissions count as granted by the caller too.
      *
      * @param member   the member, already checked to belong to the caller's station
      * @param groupIds every group they should be in afterwards
@@ -110,8 +111,8 @@ public class GroupMembershipService {
         if (!stationGroups.keySet().containsAll(wanted)) {
             throw MemberRefusal.GROUP_NOT_HERE_FOR_MEMBER.raise();
         }
-        var change = SetDiff.of(groupIdsOf(member.id()), wanted);
-        requireNoneRuled(pick(stationGroups, change.touched()));
+        Set<Integer> ruled = ruleRepository.ruled(RuleOwner.Kind.GROUP, stationGroups.keySet());
+        var change = SetDiff.of(without(groupIdsOf(member.id()), ruled), without(wanted, ruled));
         List<MemberGroup> added = pick(stationGroups, change.added());
         List<MemberGroup> removed = pick(stationGroups, change.removed());
 
@@ -514,6 +515,10 @@ public class GroupMembershipService {
 
     private static List<MemberGroup> pick(Map<Integer, MemberGroup> groups, Collection<Integer> ids) {
         return ids.stream().map(groups::get).filter(Objects::nonNull).toList();
+    }
+
+    private static Set<Integer> without(Collection<Integer> ids, Set<Integer> left) {
+        return ids.stream().filter(id -> !left.contains(id)).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private static List<Integer> ids(List<MemberGroup> groups) {

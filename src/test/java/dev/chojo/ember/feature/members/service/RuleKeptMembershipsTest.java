@@ -137,19 +137,15 @@ class RuleKeptMembershipsTest extends RepositoryTestBase {
     }
 
     @Test
-    void aMemberCannotJoinOrLeaveARuledGroupFromTheirPage() {
+    void aMemberPageLeavesARuledGroupToItsRule() {
         var ruled = ruledGroup("Jugend");
         var kept = memberGroupRepo.create(station.id(), "Atemschutz");
 
-        assertRefused(
-                MemberRefusal.MEMBERS_KEPT_BY_RULE,
-                () -> memberships.replaceGroupsOfMember(child, List.of(ruled.id()), stationSession(manager)));
-        memberGroupRepo.addMember(ruled.id(), child.id());
-        assertRefused(
-                MemberRefusal.MEMBERS_KEPT_BY_RULE,
-                () -> memberships.replaceGroupsOfMember(child, List.of(), stationSession(manager)));
+        memberships.replaceGroupsOfMember(child, List.of(ruled.id()), stationSession(manager));
+        assertEquals(List.of(), groupIdsOf(child));
 
-        memberships.replaceGroupsOfMember(child, List.of(ruled.id(), kept.id()), stationSession(manager));
+        memberGroupRepo.addMember(ruled.id(), child.id());
+        memberships.replaceGroupsOfMember(child, List.of(kept.id()), stationSession(manager));
 
         assertEquals(List.of(ruled.id(), kept.id()).stream().sorted().toList(), groupIdsOf(child));
     }

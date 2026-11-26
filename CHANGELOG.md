@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.26.4
+
+Saving a member's groups no longer fails when a rule has just taken the member into a group.
+
+### Fixes
+
+- **Saving a member's groups could be refused.** In some cases a member's groups could not be saved because a group filled by a rule had taken the member in after their page was opened. Groups filled by a rule are now left to their rule when the page saves.
+
 ## v26.26.3
 
 Imported dates are read whatever separates day, month and year.

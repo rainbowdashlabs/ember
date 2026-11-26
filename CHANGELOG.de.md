@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.26.4
+
+Die Gruppen eines Mitglieds lassen sich auch dann speichern, wenn eine Regel das Mitglied gerade in eine Gruppe aufgenommen hat.
+
+### Fehlerbehebungen
+
+- **Das Speichern der Gruppen eines Mitglieds wurde manchmal abgelehnt.** In manchen Fällen ließen sich die Gruppen eines Mitglieds nicht speichern, weil eine von einer Regel gefüllte Gruppe das Mitglied erst nach dem Öffnen der Seite aufgenommen hatte. Gruppen, die eine Regel füllt, bleiben beim Speichern jetzt der Regel überlassen.
+
 ## v26.26.3
 
 Importierte Daten werden gelesen, egal was Tag, Monat und Jahr trennt.
