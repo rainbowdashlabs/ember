@@ -1,4 +1,4 @@
-{ pkgs ? import <nixpkgs> {}, ... }:
+{ pkgs ? import <nixpkgs> { config.permittedInsecurePackages = [ "libreoffice-25.8.5.2" "libreoffice-25.8.5.2-wrapped" ]; }, ... }:
 
 let
   playwrightPkgs = import (fetchTarball {
