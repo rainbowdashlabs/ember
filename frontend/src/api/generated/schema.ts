@@ -45953,6 +45953,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/members/invite-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find people of this instance by name to invite into the station */
+        get: {
+            parameters: {
+                query: {
+                    q: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CandidateResponse"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/members/onboard-again": {
         parameters: {
             query?: never;
@@ -71959,6 +72015,16 @@ export interface components {
         CancelRequest: {
             reason?: string | null;
         };
+        CandidateResponse: {
+            /** Format: uuid */
+            accountUid: string;
+            alreadyAsked: boolean;
+            alreadyHere: boolean;
+            because: components["schemas"]["FindableBecause"];
+            firstName: string;
+            lastName: string;
+            through: string | null;
+        };
         CanEditResponse: {
             canEdit: boolean;
         };
@@ -74984,6 +75050,8 @@ export interface components {
         Findable: {
             findable: boolean;
         };
+        /** @enum {string} */
+        FindableBecause: "SHARED_STATION" | "SHARED_ASSOCIATION" | "OPTED_IN";
         FindablePreference: {
             findable?: boolean | null;
         };
@@ -84035,6 +84103,7 @@ export type CancellationNotice = components['schemas']['CancellationNotice'];
 export type CancelledEventDate = components['schemas']['CancelledEventDate'];
 export type CancelMovementRequest = components['schemas']['CancelMovementRequest'];
 export type CancelRequest = components['schemas']['CancelRequest'];
+export type CandidateResponse = components['schemas']['CandidateResponse'];
 export type CanEditResponse = components['schemas']['CanEditResponse'];
 export type CapabilityRequest = components['schemas']['CapabilityRequest'];
 export type CapabilityType = components['schemas']['CapabilityType'];
@@ -84456,6 +84525,7 @@ export type FillInTheBlank = components['schemas']['FillInTheBlank'];
 export type FillInTheBlankView = components['schemas']['FillInTheBlankView'];
 export type FilterTableType = components['schemas']['FilterTableType'];
 export type Findable = components['schemas']['Findable'];
+export type FindableBecause = components['schemas']['FindableBecause'];
 export type FindablePreference = components['schemas']['FindablePreference'];
 export type FirstStationRequest = components['schemas']['FirstStationRequest'];
 export type FirstStationStatus = components['schemas']['FirstStationStatus'];
@@ -86150,6 +86220,12 @@ export const FilterTableType = {
     MEMBERS: "MEMBERS",
     NEWS: "NEWS",
     QUIZ: "QUIZ",
+} as const;
+
+export const FindableBecause = {
+    OPTED_IN: "OPTED_IN",
+    SHARED_ASSOCIATION: "SHARED_ASSOCIATION",
+    SHARED_STATION: "SHARED_STATION",
 } as const;
 
 export const FontOrigin = {

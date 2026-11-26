@@ -301,4 +301,6 @@ export default {
     'M-263': 'Jeder Block einer Regel braucht mindestens eine Bedingung, es wurde nichts gespeichert',
     'M-264': 'Eine Gruppe, die Berechtigungen vergibt, kann ihre Mitglieder nicht aus Antworten nehmen, die die '
         + 'Mitglieder selbst geben. Dafür taugen nur Felder der Wache, die für Mitglieder schreibgeschützt sind',
+    'M-265': 'Für die Suche nach einer Person wird ein Wort ihres Namens mit mindestens drei Buchstaben gebraucht',
+    'M-266': TOO_MANY_ATTEMPTS,
 }

@@ -36855,6 +36855,55 @@
         }
       }
     },
+    "/api/v1/members/invite-candidates" : {
+      "get" : {
+        "summary" : "Find people of this instance by name to invite into the station",
+        "tags" : [ "Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CandidateResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/members/onboard-again" : {
       "post" : {
         "summary" : "Onboard a member again",
@@ -58999,6 +59048,34 @@
         },
         "required" : [ "eventId", "cancellation" ]
       },
+      "CandidateResponse" : {
+        "type" : "object",
+        "properties" : {
+          "accountUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "because" : {
+            "$ref" : "#/components/schemas/FindableBecause"
+          },
+          "through" : {
+            "type" : [ "string", "null" ]
+          },
+          "alreadyHere" : {
+            "type" : "boolean"
+          },
+          "alreadyAsked" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "accountUid", "firstName", "lastName", "because", "through", "alreadyHere", "alreadyAsked" ]
+      },
       "CapabilityRequest" : {
         "type" : "object",
         "properties" : {
@@ -67969,6 +68046,10 @@
           }
         },
         "required" : [ "findable" ]
+      },
+      "FindableBecause" : {
+        "type" : "string",
+        "enum" : [ "SHARED_STATION", "SHARED_ASSOCIATION", "OPTED_IN" ]
       },
       "FindablePreference" : {
         "type" : "object",

@@ -961,7 +961,16 @@ public enum MemberRefusal implements Refusal {
     RULE_PERMISSIONS_FROM_OWN_ANSWER(
             264,
             HttpStatus.CONFLICT,
-            "A group that grants permissions cannot take its members from answers the members give themselves");
+            "A group that grants permissions cannot take its members from answers the members give themselves"),
+
+    /** A search for people to invite by name that is too short to narrow anything down. */
+    INVITE_SEARCH_TOO_SHORT(
+            265,
+            HttpStatus.BAD_REQUEST,
+            "A search for somebody to invite needs a word of at least three letters of their name"),
+
+    /** More searches for people to invite by name than one account may make in a while. */
+    INVITE_SEARCHING_TOO_OFTEN(266, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS);
 
     private final Definition definition;
 
