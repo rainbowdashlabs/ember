@@ -129,14 +129,14 @@ public class MemberImportService {
             List<Integer> ignored) {
         var parsed = parseCsv(csv, separator);
         var profileFields = valueFields(stationId);
-        var dayFormats = dayFormats(parsed, mappings, profileFields, dateFormat);
+        var dayColumns = dayColumns(parsed, mappings, profileFields, dateFormat);
         var struckOut = struckOut(ignored);
         var warnings = new ArrayList<String>();
         var members = new ArrayList<MemberPreview>();
 
         for (int i = 0; i < parsed.rows().size(); i++) {
             var row = mapRow(parsed.headers(), parsed.rows().get(i));
-            var mapped = applyMappings(row, mappings, profileFields, dayFormats);
+            var mapped = applyMappings(row, mappings, profileFields, dayColumns);
             if (mapped.firstName().isEmpty() && mapped.lastName().isEmpty()) {
                 warnings.add("Zeile " + (i + 2) + ": Kein Name, übersprungen");
                 continue;
@@ -185,7 +185,7 @@ public class MemberImportService {
         var parsed = parseCsv(csv, separator);
         var struckOut = struckOut(ignored);
         var profileFields = valueFields(stationId);
-        var dayFormats = dayFormats(parsed, mappings, profileFields, dateFormat);
+        var dayColumns = dayColumns(parsed, mappings, profileFields, dateFormat);
         var groups = new ArrayList<>(memberGroupRepository.findByStation(stationId));
         var loginRole = stationMemberRepository
                 .findPermissionByName(StationPermission.LOGIN)
@@ -203,7 +203,7 @@ public class MemberImportService {
         for (int i = 0; i < parsed.rows().size(); i++) {
             if (struckOut.contains(i)) continue;
             var row = mapRow(parsed.headers(), parsed.rows().get(i));
-            var mapped = applyMappings(row, mappings, profileFields, dayFormats);
+            var mapped = applyMappings(row, mappings, profileFields, dayColumns);
             if (mapped.firstName().isEmpty() && mapped.lastName().isEmpty()) continue;
 
             var already = whoIsAlreadyHere(stationId, mapped);
@@ -336,7 +336,7 @@ public class MemberImportService {
             SetupMail setupMail) {
         var parsed = parseCsv(csv, separator);
         var profileFields = valueFields(stationId);
-        var dayFormats = dayFormats(parsed, mappings, profileFields, dateFormat);
+        var dayColumns = dayColumns(parsed, mappings, profileFields, dateFormat);
         var struckOut = struckOut(ignored);
         var groups = new ArrayList<>(memberGroupRepository.findByStation(stationId));
         var loginRole = stationMemberRepository
@@ -348,7 +348,7 @@ public class MemberImportService {
         for (int i = 0; i < parsed.rows().size(); i++) {
             if (struckOut.contains(i)) continue;
             var row = mapRow(parsed.headers(), parsed.rows().get(i));
-            var mapped = applyMappings(row, mappings, profileFields, dayFormats);
+            var mapped = applyMappings(row, mappings, profileFields, dayColumns);
             if (mapped.firstName().isEmpty() && mapped.lastName().isEmpty()) continue;
 
             var already = whoIsAlreadyHere(stationId, mapped);
@@ -404,23 +404,20 @@ public class MemberImportService {
     }
 
     /**
-     * The format the days of each target holding them are read in: the one picked for the file, or
-     * where that is automatic, the one detected over every row of the target.
+     * How the days of each target holding them are read: in the format picked for the file, or where
+     * that is automatic, in the one detected over every row of the target.
      */
-    private Map<String, WrittenDay.Format> dayFormats(
+    private Map<String, WrittenDay.Column> dayColumns(
             ParseResult parsed, List<ColumnMapping> mappings, List<ProfileField> fields, WrittenDay.Format picked) {
-        var formats = new HashMap<String, WrittenDay.Format>();
+        var columns = new HashMap<String, WrittenDay.Column>();
         for (var entry : byTarget(mappings).entrySet()) {
             if (!holdsDays(entry.getKey(), fields)) continue;
-            formats.put(
-                    entry.getKey(),
-                    picked != WrittenDay.Format.AUTO
-                            ? picked
-                            : WrittenDay.detect(parsed.rows().stream()
-                                    .map(cells -> buildMergedValue(mapRow(parsed.headers(), cells), entry.getValue()))
-                                    .toList()));
+            var values = parsed.rows().stream()
+                    .map(cells -> buildMergedValue(mapRow(parsed.headers(), cells), entry.getValue()))
+                    .toList();
+            columns.put(entry.getKey(), WrittenDay.Column.of(values, picked, WrittenDay.TwoDigitYears.PAST));
         }
-        return formats;
+        return columns;
     }
 
     private static boolean holdsDays(String target, List<ProfileField> fields) {
@@ -438,7 +435,7 @@ public class MemberImportService {
             Map<String, String> row,
             List<ColumnMapping> mappings,
             List<ProfileField> fields,
-            Map<String, WrittenDay.Format> dayFormats) {
+            Map<String, WrittenDay.Column> dayColumns) {
         var byTarget = byTarget(mappings);
 
         String firstName = "", lastName = "", email = "", group = "";
@@ -457,12 +454,12 @@ public class MemberImportService {
                 case "email" -> email = val;
                 case "group" -> group = val;
                 case "joinDate" ->
-                    joinDate = readDay(val, formatOf(dayFormats, target)).orElse(null);
+                    joinDate = columnOf(dayColumns, target).read(val).orElse(null);
                 default -> {
                     if (target.startsWith("field:")) {
                         profileFieldValues.put(
                                 target.substring(6),
-                                holdsDays(target, fields) ? asIsoDate(val, formatOf(dayFormats, target)) : val);
+                                holdsDays(target, fields) ? asIsoDate(val, columnOf(dayColumns, target)) : val);
                     } else if (target.startsWith("manager:")) {
                         var parts = target.split(":", 3);
                         if (parts.length == 3) {
@@ -726,17 +723,14 @@ public class MemberImportService {
         return value;
     }
 
-    private static WrittenDay.Format formatOf(Map<String, WrittenDay.Format> dayFormats, String target) {
-        return dayFormats.getOrDefault(target, WrittenDay.Format.AUTO);
-    }
-
-    private static Optional<LocalDate> readDay(String value, WrittenDay.Format dateFormat) {
-        return WrittenDay.of(value, dateFormat, WrittenDay.TwoDigitYears.PAST);
+    private static WrittenDay.Column columnOf(Map<String, WrittenDay.Column> dayColumns, String target) {
+        return dayColumns.getOrDefault(
+                target, new WrittenDay.Column(WrittenDay.Format.AUTO, true, WrittenDay.TwoDigitYears.PAST));
     }
 
     /** A day as an ISO date, or the cell unchanged where it names none. */
-    private static String asIsoDate(String value, WrittenDay.Format dateFormat) {
-        return readDay(value, dateFormat).map(LocalDate::toString).orElse(value);
+    private static String asIsoDate(String value, WrittenDay.Column column) {
+        return column.read(value).map(LocalDate::toString).orElse(value);
     }
 
     private static boolean asksForDay(List<ProfileField> fields, String fieldId) {

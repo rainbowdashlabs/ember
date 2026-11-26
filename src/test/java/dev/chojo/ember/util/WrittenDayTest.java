@@ -101,6 +101,19 @@ class WrittenDayTest {
     }
 
     @Test
+    void anAutomaticColumnReadsACellItsFormatCannotReadOnItsOwn() {
+        var column = WrittenDay.Column.of(List.of("04.12.26", "2026-12-05"), Format.AUTO, TwoDigitYears.CENTURY);
+        assertEquals(Optional.of(LocalDate.of(2026, 12, 5)), column.read("2026-12-05"));
+        assertEquals(Format.DAY_MONTH_YEAR_DOTTED, column.format());
+    }
+
+    @Test
+    void aPickedColumnReadsOnlyItsFormat() {
+        var column = WrittenDay.Column.of(List.of("04.12.26"), Format.DAY_MONTH_YEAR_DOTTED, TwoDigitYears.CENTURY);
+        assertEquals(Optional.empty(), column.read("2026-12-05"));
+    }
+
+    @Test
     void anUnknownFormatIsReadAutomatically() {
         assertEquals(Format.AUTO, Format.of("YY.DD.MM"));
         assertEquals(Format.AUTO, Format.of(null));

@@ -99,6 +99,38 @@ public final class WrittenDay {
     }
 
     /**
+     * How the days of one column are read.
+     *
+     * <p>A picked format reads every cell. An automatic one reads with the format detected over the
+     * column, and a cell that format cannot read is tried in every format on its own, so a column
+     * mixing {@code 04.12.26} and {@code 2026-12-05} still reads both.
+     *
+     * @param format    the format picked or detected
+     * @param automatic whether a cell the format cannot read is tried in every format
+     * @param years     which century a two-digit year falls in
+     */
+    public record Column(Format format, boolean automatic, TwoDigitYears years) {
+        /**
+         * @param values the values of the column, blank ones included
+         * @param picked the format picked for the file
+         * @param years  which century a two-digit year falls in
+         * @return how the column is read
+         */
+        public static Column of(Collection<String> values, Format picked, TwoDigitYears years) {
+            return picked == Format.AUTO ? new Column(detect(values), true, years) : new Column(picked, false, years);
+        }
+
+        /**
+         * @param written the text, or null
+         * @return the day it names, or empty where it names none
+         */
+        public Optional<LocalDate> read(@Nullable String written) {
+            var day = WrittenDay.of(written, format, years);
+            return automatic && day.isEmpty() ? WrittenDay.of(written, Format.AUTO, years) : day;
+        }
+    }
+
+    /**
      * @param written the text, or null
      * @param format  how the day is written
      * @param years   which century a two-digit year falls in

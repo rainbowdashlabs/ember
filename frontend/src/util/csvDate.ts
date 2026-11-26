@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /**
  * The ways a day can be written in an imported file. `auto` leaves the format to
  * {@link detectDateFormat} over the whole column; a single value read with it tries the dotted, the
@@ -97,4 +96,21 @@ export function detectDateFormat(values: readonly string[]): CsvDateFormat {
         }
     }
     return best
+}
+
+/**
+ * How the days of one column are read, as `YYYY-MM-DD` or `null`.
+ *
+ * <p>A picked format reads every cell. `auto` reads with the format detected over the column, and a
+ * cell that format cannot read is tried in every format on its own, so a column mixing `04.12.26` and
+ * `2026-12-05` still reads both.
+ */
+export function columnDateReader(
+    values: readonly string[],
+    picked: CsvDateFormat,
+    years: TwoDigitYears = 'century',
+): (raw: string) => string | null {
+    if (picked !== 'auto') return raw => parseCsvDate(raw, picked, years)
+    const detected = detectDateFormat(values)
+    return raw => parseCsvDate(raw, detected, years) ?? parseCsvDate(raw, 'auto', years)
 }

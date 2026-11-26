@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {BatchRow} from '@/api/generated/schema'
-import {detectDateFormat, parseCsvDate, type CsvDateFormat} from '@/util/csvDate'
+import {columnDateReader, type CsvDateFormat} from '@/util/csvDate'
 import {draftProblems, draftToBatchRow, type DraftProblemReason, type DraftRow} from './draftRows'
 
 /** The targets a column can be mapped to beside the fields of the appointment. */
@@ -120,14 +120,14 @@ function mapByExactName(column: string, mapping: Record<string, string>, fieldNa
 }
 
 /** Every value of one column, in the order of the lines. */
-export function columnValues(table: CsvTable, index: number): string[] {
+function columnValues(table: CsvTable, index: number): string[] {
     return table.lines.map(line => line.cells[index] ?? '')
 }
 
 function holdsOnlyDates(table: CsvTable, index: number): boolean {
     const cells = columnValues(table, index)
-    const format = detectDateFormat(cells)
-    return cells.length > 0 && format !== 'auto' && cells.every(cell => parseCsvDate(cell, format) !== null)
+    const read = columnDateReader(cells, 'auto')
+    return cells.length > 0 && cells.every(cell => read(cell) !== null)
 }
 
 /**
@@ -197,7 +197,7 @@ function unreadable(draft: DraftRow): CsvProblemReason[] {
  * nobody had asked for. A line that ends at or before its start is refused by the rule every row of
  * a batch is judged by. A time column that is not mapped takes the fallback time instead, and an empty
  * cell of a mapped one the start or the end of the day. An automatic date format is detected over the
- * whole date column.
+ * whole date column, see {@link columnDateReader}.
  */
 export function csvToBatchRows(table: CsvTable, options: CsvScheduleOptions): CsvScheduleResult {
     const {mapping, dateFormat, fallbackStartTime, fallbackEndTime} = options
@@ -205,7 +205,7 @@ export function csvToBatchRows(table: CsvTable, options: CsvScheduleOptions): Cs
     const startIndex = columnOf(mapping, table.columns, CsvTarget.START_TIME)
     const endIndex = columnOf(mapping, table.columns, CsvTarget.END_TIME)
     const nameIndex = columnOf(mapping, table.columns, CsvTarget.NAME)
-    const format = dateFormat === 'auto' && dateIndex >= 0 ? detectDateFormat(columnValues(table, dateIndex)) : dateFormat
+    const readDate = columnDateReader(dateIndex >= 0 ? columnValues(table, dateIndex) : [], dateFormat)
 
     const rows: BatchRow[] = []
     const problems: CsvProblem[] = []
@@ -218,7 +218,7 @@ export function csvToBatchRows(table: CsvTable, options: CsvScheduleOptions): Cs
         }
         raw.order = `${raw.startTime} - ${raw.endTime}`
         const draft: DraftRow = {
-            date: parseCsvDate(raw.date, format) ?? '',
+            date: readDate(raw.date) ?? '',
             startTime: parseCsvTime(raw.startTime) ?? '',
             endTime: parseCsvTime(raw.endTime) ?? '',
             name: nameIndex >= 0 ? cells[nameIndex] ?? '' : '',

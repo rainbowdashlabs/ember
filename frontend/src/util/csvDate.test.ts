@@ -5,7 +5,7 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {detectDateFormat, parseCsvDate, type CsvDateFormat} from './csvDate'
+import {columnDateReader, detectDateFormat, parseCsvDate, type CsvDateFormat} from './csvDate'
 
 /**
  * The cases match those of the server's reader in `WrittenDayTest.java`, so both read a file alike.
@@ -81,5 +81,22 @@ describe('detectDateFormat', () => {
         [['morgen', ''], 'auto'],
     ])('detects %j as %s', (column, format) => {
         expect(detectDateFormat(column)).toBe(format)
+    })
+})
+
+describe('columnDateReader', () => {
+    it('reads a cell the detected format cannot read on its own where the format is automatic', () => {
+        const read = columnDateReader(['04.12.26', '2026-12-05'], 'auto')
+        expect(read('04.12.26')).toBe('2026-12-04')
+        expect(read('2026-12-05')).toBe('2026-12-05')
+    })
+
+    it('reads only the picked format where one is picked', () => {
+        const read = columnDateReader(['04.12.26', '2026-12-05'], 'DD.MM.YYYY')
+        expect(read('2026-12-05')).toBeNull()
+    })
+
+    it('reads a column of slashed days day first once one day passes the twelfth', () => {
+        expect(columnDateReader(['01/04/27', '13/04/27'], 'auto')('01/04/27')).toBe('2027-04-01')
     })
 })
