@@ -2,13 +2,13 @@
 
 ## v26.26.4
 
-Personen, die schon zu einer anderen Wache derselben Instanz gehören, lassen sich über den Mitgliederimport aufnehmen. Termine öffnen sich wieder an Wachen ohne Anwesenheit.
+Personen, die schon zu einer anderen Wache derselben Instanz gehören, lassen sich über den Mitgliederimport aufnehmen.
 
 ### Fehlerbehebungen
 
 - **Der Mitgliederimport überging Personen anderer Wachen.** Eine Zeile, deren Adresse zu jemandem an einer anderen Wache derselben Instanz gehörte, wurde übersprungen, und die Person ließ sich nicht mit ihren Angaben importieren. Jetzt wird die Zeile mit allen Angaben übernommen, und die Person mit dieser Adresse wird gebeten, ihr Konto zu verknüpfen.
 - **Das Speichern der Gruppen eines Mitglieds wurde manchmal abgelehnt.** In manchen Fällen ließen sich die Gruppen eines Mitglieds nicht speichern, weil eine von einer Regel gefüllte Gruppe das Mitglied erst nach dem Öffnen der Seite aufgenommen hatte. Gruppen, die eine Regel füllt, bleiben beim Speichern jetzt der Regel überlassen.
-- **Termine ließen sich an Wachen ohne Anwesenheit nicht öffnen.** Wer Termine verwaltet, bekam an einer Wache mit ausgeschalteter Anwesenheit beim Öffnen eines Termins unter Umständen den Fehler G-026. Die Seite öffnet sich jetzt ohne die Anwesenheitsvorlagen.
+- **Beim Öffnen eines Termins erschien der Fehler G-026.** An Wachen mit ausgeschalteter Anwesenheit erschien beim Öffnen eines Termins für alle, die Termine verwalten, zusätzlich der Fehler G-026. Der Termin selbst wurde angezeigt, der Fehler erscheint jetzt nicht mehr.
 
 ## v26.26.3
 
