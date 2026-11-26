@@ -5,6 +5,7 @@
  */
 import client from './client'
 import type {
+    CandidateResponse,
     InviteRequest,
     IssuedOneTimePassword,
     MemberCard,
@@ -19,6 +20,15 @@ import type {
     ResetPasswordRequest,
     UpdateAccountResponse,
 } from './generated/schema'
+
+/**
+ * The people of this instance the reader may invite by name whose name holds every word of the search:
+ * people sharing a station or an association with them, and people who chose to be findable.
+ */
+export async function searchInviteCandidates(search: string): Promise<CandidateResponse[]> {
+    const res = await client.get<CandidateResponse[]>('/members/invite-candidates', {params: {q: search}})
+    return res.data
+}
 
 export async function invite(data: InviteRequest): Promise<MemberInviteResponse> {
     const res = await client.post<MemberInviteResponse>('/members/invite', data)

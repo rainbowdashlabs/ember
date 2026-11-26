@@ -396,6 +396,8 @@ export default {
                 exampleAssociation: 'Kreisverband Musterland',
                 sharedTitle: 'Konten, die mehreren gehören',
                 sharedText: 'Gehört dein Konto mehreren Wachen oder einem Verband, darf keine Wache deine Adresse oder deine Anmeldung ändern. Das machst nur du selbst. Hat ein Umzug ein Konto für dich angelegt, gilt das auch, bis du es über den Link in deiner Mail eingerichtet hast. Kann dich keine Mail erreichen, weil deine Installation keine Mails versendet oder weder du noch eine erziehungsberechtigte Person eine Adresse hat, reicht es, dich mit dem mitgebrachten Passwort anzumelden und es durch ein neues zu ersetzen.',
+                findableTitle: 'Über den Namen gefunden werden',
+                findableText: 'Wer mit dir eine Wache oder einen Verband teilt, kann dich über deinen Namen finden und fragen. Mit „Für alle Wachen auffindbar“ kann das jede Wache dieser Instanz. Deine Adresse sieht dabei niemand. Aufgenommen wirst du erst, wenn du zustimmst. Nach einer Absage fragt dich die Wache 30 Tage lang nicht erneut.',
                 tip: 'Kennst du die Wache nicht, lehne die Anfrage ab. Niemand bekommt dadurch Zugriff auf dein Konto.',
             },
             seals: {
@@ -1993,6 +1995,13 @@ volumes:
                 + 'Papierflieger, wenn jemand erreichbar ist, und darauf kannst du klicken, um die '
                 + 'Mail erneut zu senden. Eine Sanduhr steht dort, wenn es niemanden gibt, dem die '
                 + 'Mail zugestellt werden könnte, und dann hilft nur eine nachgetragene Adresse.',
+            findTitle: 'Eine Person mit Konto über ihren Namen finden',
+            findText: 'Hat die Person schon ein Konto auf dieser Instanz, suchst du sie oben über ihren Namen. Ihre Adresse brauchst du dafür nicht. Groß- und Kleinschreibung und Akzente spielen keine Rolle. Ein Wort braucht mindestens drei Buchstaben.',
+            findWho: 'Gefunden werden Personen, die mit dir eine Wache oder einen Verband teilen. Alle anderen findest du erst, wenn sie „Für alle Wachen auffindbar“ eingeschaltet haben. Ihre Adresse siehst du nie.',
+            findAsk: 'Die ausgewählte Person wird gefragt, ob sie ihr Konto verknüpfen möchte. Bis sie zustimmt, hat das Mitglied kein Konto. Manche Personen sind ausgegraut: Sie sind schon an der Wache, wurden schon gefragt oder haben vor Kurzem abgelehnt. Dieselbe Person lässt sich höchstens einmal am Tag einladen.',
+            findExampleName: 'Anna Schmidt',
+            findExampleStation: 'Wache Nord',
+            findExampleOther: 'Jonas Becker',
             step2NoLogin: 'Für Mitglieder ohne eigenen Zugang (z.B. kleine Kinder) kannst du „Kann sich anmelden" deaktivieren. Diese Mitglieder werden dann über ihren Erziehungsberechtigter verwaltet.',
             oneTimePasswordTitle: 'Ohne Mailserver: das Einmalpasswort',
             oneTimePasswordText: 'Hat deine Instanz keinen Mailserver, kommt keine Mail mit Link an. Dann zeigt dir der Assistent den Schalter „Einmalpasswort erstellen". Ist er an, zeigt Ember nach dem Anlegen die Zugangsdaten.',

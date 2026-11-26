@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.27.0
+
+People who already have an account on this instance can be invited into a station by their name.
+
+### New Features
+
+- **Invite people of this instance by name.** The member wizard finds people who already have an account on this instance by their name and asks them to link it, without anybody knowing their address. People who share a station or an association with the inviting manager can be found, everybody else only after turning on "Findable from every station" under Account → Links.
+
 ## v26.26.4
 
 People who already belong to another station of the same instance can be taken in through the member import.
