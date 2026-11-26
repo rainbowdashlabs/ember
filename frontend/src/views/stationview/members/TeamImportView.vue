@@ -17,7 +17,7 @@ import type { TeamImportResult } from './teamimportview/DoneStep.vue'
 
 const { t } = useI18n()
 
-const { importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarget, toggleRow, fieldLabel, sendSetupMail } = useMemberCsvImport<TeamImportResult>({
+const { importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarget, toggleRow, fieldLabel, sendSetupMail, dateFormat } = useMemberCsvImport<TeamImportResult>({
   previewPath: '/members/import-team/preview',
   importPath: '/members/import-team',
   defaultScope: 'TEAM',
@@ -39,6 +39,7 @@ const { mapping, headers, rows, preview, result } = importer
         <template #mapping>
           <MappingStep
               v-model:mappings="mapping"
+              v-model:date-format="dateFormat"
               :headers="headers"
               :rows="rows"
               :target-options="targetOptions"

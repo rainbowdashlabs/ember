@@ -14,6 +14,7 @@ import {useSession} from '@/composables/useSession'
 import {useCsvImport, type ParsedCsv} from '@/composables/useCsvImport'
 import {useFieldAudiences} from '@/composables/useFieldAudiences'
 import {fieldTypeLabel, isChoiceType} from '@/api/fieldTypes'
+import type {CsvDateFormat} from '@/util/csvDate'
 import {createColumnMapping, SKIP_TARGET, type ColumnMapping, type PreviewResult} from './memberImport'
 
 /** One answer a target allows: what is stored, and what the reader picks it by. */
@@ -66,6 +67,12 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
      */
     const sendSetupMail = ref(true)
 
+    /**
+     * How the days in the file are written. Left automatic, the server works the format out for each
+     * date column from all of its values.
+     */
+    const dateFormat = ref<CsvDateFormat>('auto')
+
     async function toggleRow(row: number) {
         ignoredRows.value = ignoredRows.value.includes(row)
             ? ignoredRows.value.filter(candidate => candidate !== row)
@@ -86,13 +93,14 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
         createMapping: headers => headers.map((header, index) => createColumnMapping(header, guessTarget(header), index)),
         loadPreview: async ({text, separator, mapping}) => {
             const response = await client.post<PreviewResult>(options.previewPath,
-                {csv: text, separator, mappings: mapping, ignoredRows: ignoredRows.value})
+                {csv: text, separator, dateFormat: dateFormat.value, mappings: mapping, ignoredRows: ignoredRows.value})
             return response.data
         },
         commit: async ({text, separator, mapping}) => {
             const response = await client.post<TResult>(options.importPath, {
                 csv: text,
                 separator,
+                dateFormat: dateFormat.value,
                 mappings: mapping,
                 ignoredRows: ignoredRows.value,
                 sendSetupMail: sendSetupMail.value,
@@ -236,5 +244,6 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
         toggleRow,
         fieldLabel,
         sendSetupMail,
+        dateFormat,
     }
 }

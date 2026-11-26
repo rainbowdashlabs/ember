@@ -70292,6 +70292,9 @@
           },
           "sendSetupMail" : {
             "type" : "boolean"
+          },
+          "dateFormat" : {
+            "type" : [ "string", "null" ]
           }
         }
       },

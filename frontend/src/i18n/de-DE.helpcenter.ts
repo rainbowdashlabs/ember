@@ -3734,7 +3734,7 @@ volumes:
             step2Text: 'Lege fest, wann die Termine stattfinden. Dafür gibt es drei Wege: einen Zeitplan, eine CSV-Datei oder eigene Termine.',
             waysTitle: 'Drei Wege zu den Terminen',
             waysSchedule: 'Zeitplan: Wähle ein Intervall wie wöchentlich, dazu einen Zeitraum und die Uhrzeit. Ember erzeugt dann alle Termine darin.',
-            waysCsv: 'CSV-Import: Eine CSV-Datei ist eine Tabelle, die du mit Excel oder Google Sheets speichern kannst. Klicke auf "CSV-Datei hochladen" und ordne die Spalten zu. Kann Ember eine Zeile nicht lesen, nennt es dir die Zeile.',
+            waysCsv: 'CSV-Import: Eine CSV-Datei ist eine Tabelle, die du mit Excel oder Google Sheets speichern kannst. Klicke auf "CSV-Datei hochladen" und ordne die Spalten zu. Das Datumsformat erkennt Ember an allen Daten der Spalte, etwa 13/04/27 als 13. April. Passt es nicht, wählst du es selbst. Kann Ember eine Zeile nicht lesen, nennt es dir die Zeile.',
             waysManual: 'Eigene Termine: Trage jeden Termin selbst ein, mit Datum, Start- und Endzeit. Mit "Termin hinzufügen" kommt eine neue Zeile dazu, der Mülleimer entfernt eine.',
             manualExampleTitle: 'Beispiel: Eigene Termine',
             manualExampleName: 'Adventszauber Freitag 1',
@@ -5963,7 +5963,9 @@ volumes:
             step1Text: 'Lade eine CSV-Datei hoch (z.B. aus Excel exportiert). Wähle das passende Trennzeichen (Komma, Semikolon oder Tab).',
             step2: 'Schritt 2: Spalten zuordnen',
             step2Text: 'Ordne jede CSV-Spalte einem Zielfeld zu (z.B. „Spalte A" → „Vorname"). Nicht benötigte Spalten auf „Überspringen" setzen. '
-                + 'Eine Spalte mit dem Eintrittsdatum ordnest du „Beigetreten am“ zu, als 01.04.2019 oder 2019-04-01. Ohne sie gilt der Tag des Imports.',
+                + 'Eine Spalte mit dem Eintrittsdatum ordnest du „Beigetreten am“ zu. Ohne sie gilt der Tag des Imports. '
+                + 'Das Datumsformat erkennt Ember an allen Daten einer Spalte, ob 01.04.2019, 1.4.19, 01-04-19, 2019-04-01 oder 04/01/2019. '
+                + 'Unter „Datumsformat“ legst du es selbst fest, etwa für Tag/Monat/Jahr mit Schrägstrichen. Eine zweistellige Jahreszahl liegt nie in der Zukunft, aus 78 wird 1978.',
             mergeTitle: 'Zusammenführen & Aufteilen',
             mergeText: 'Du kannst zwei Spalten zu einem Feld zusammenführen (z.B. Straße + Hausnummer) oder eine Spalte auf mehrere Felder aufteilen (z.B. „Max Mustermann" → Vorname + Nachname).',
             valueMapTitle: 'Werte zuordnen',

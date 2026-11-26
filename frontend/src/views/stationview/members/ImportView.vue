@@ -26,7 +26,7 @@ const route = useRoute()
 
 const managerCount = ref(2)
 
-const { importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarget, toggleRow, fieldLabel, sendSetupMail } = useMemberCsvImport<ImportResult>({
+const { importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarget, toggleRow, fieldLabel, sendSetupMail, dateFormat } = useMemberCsvImport<ImportResult>({
   previewPath: '/members/import/preview',
   importPath: '/members/import',
   defaultScope: 'MEMBER',
@@ -60,6 +60,7 @@ function leaveImport() {
         <template #mapping>
           <MappingStep
               v-model:mappings="mapping"
+              v-model:date-format="dateFormat"
               :headers="headers"
               :rows="rows"
               :target-options="targetOptions"

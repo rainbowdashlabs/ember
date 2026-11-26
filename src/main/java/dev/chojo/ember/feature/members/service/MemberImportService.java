@@ -114,22 +114,29 @@ public class MemberImportService {
      *
      * @param stationId the target station
      * @param csv       the CSV content
-     * @param separator the column separator
-     * @param mappings  the column-to-field mappings
-     * @param ignored   the rows the reader has struck out, by their place in the file
+     * @param separator  the column separator
+     * @param dateFormat how the days in the file are written
+     * @param mappings   the column-to-field mappings
+     * @param ignored    the rows the reader has struck out, by their place in the file
      * @return the preview with member entries and warnings
      */
     public PreviewResult preview(
-            int stationId, String csv, String separator, List<ColumnMapping> mappings, List<Integer> ignored) {
+            int stationId,
+            String csv,
+            String separator,
+            WrittenDay.Format dateFormat,
+            List<ColumnMapping> mappings,
+            List<Integer> ignored) {
         var parsed = parseCsv(csv, separator);
         var profileFields = valueFields(stationId);
+        var dayFormats = dayFormats(parsed, mappings, profileFields, dateFormat);
         var struckOut = struckOut(ignored);
         var warnings = new ArrayList<String>();
         var members = new ArrayList<MemberPreview>();
 
         for (int i = 0; i < parsed.rows().size(); i++) {
             var row = mapRow(parsed.headers(), parsed.rows().get(i));
-            var mapped = applyMappings(row, mappings, profileFields);
+            var mapped = applyMappings(row, mappings, profileFields, dayFormats);
             if (mapped.firstName().isEmpty() && mapped.lastName().isEmpty()) {
                 warnings.add("Zeile " + (i + 2) + ": Kein Name, übersprungen");
                 continue;
@@ -160,22 +167,25 @@ public class MemberImportService {
      *
      * @param stationId the target station
      * @param csv       the CSV content
-     * @param separator the column separator
-     * @param mappings  the column-to-field mappings
-     * @param ignored   the rows the reader struck out in the preview, by their place in the file
-     * @param setupMail whether the setup mails leave with the accounts or wait to be sent by hand
+     * @param separator  the column separator
+     * @param dateFormat how the days in the file are written
+     * @param mappings   the column-to-field mappings
+     * @param ignored    the rows the reader struck out in the preview, by their place in the file
+     * @param setupMail  whether the setup mails leave with the accounts or wait to be sent by hand
      * @return the import result with counts and warnings
      */
     public ImportResult importMembers(
             int stationId,
             String csv,
             String separator,
+            WrittenDay.Format dateFormat,
             List<ColumnMapping> mappings,
             List<Integer> ignored,
             SetupMail setupMail) {
         var parsed = parseCsv(csv, separator);
         var struckOut = struckOut(ignored);
         var profileFields = valueFields(stationId);
+        var dayFormats = dayFormats(parsed, mappings, profileFields, dateFormat);
         var groups = new ArrayList<>(memberGroupRepository.findByStation(stationId));
         var loginRole = stationMemberRepository
                 .findPermissionByName(StationPermission.LOGIN)
@@ -193,7 +203,7 @@ public class MemberImportService {
         for (int i = 0; i < parsed.rows().size(); i++) {
             if (struckOut.contains(i)) continue;
             var row = mapRow(parsed.headers(), parsed.rows().get(i));
-            var mapped = applyMappings(row, mappings, profileFields);
+            var mapped = applyMappings(row, mappings, profileFields, dayFormats);
             if (mapped.firstName().isEmpty() && mapped.lastName().isEmpty()) continue;
 
             var already = whoIsAlreadyHere(stationId, mapped);
@@ -310,20 +320,23 @@ public class MemberImportService {
      *
      * @param stationId the target station
      * @param csv       the CSV content
-     * @param separator the column separator
-     * @param mappings  the column-to-field mappings
-     * @param setupMail whether the setup mails leave with the accounts or wait to be sent by hand
+     * @param separator  the column separator
+     * @param dateFormat how the days in the file are written
+     * @param mappings   the column-to-field mappings
+     * @param setupMail  whether the setup mails leave with the accounts or wait to be sent by hand
      * @return the team import result with counts and warnings
      */
     public TeamImportResult importTeamMembers(
             int stationId,
             String csv,
             String separator,
+            WrittenDay.Format dateFormat,
             List<ColumnMapping> mappings,
             List<Integer> ignored,
             SetupMail setupMail) {
         var parsed = parseCsv(csv, separator);
         var profileFields = valueFields(stationId);
+        var dayFormats = dayFormats(parsed, mappings, profileFields, dateFormat);
         var struckOut = struckOut(ignored);
         var groups = new ArrayList<>(memberGroupRepository.findByStation(stationId));
         var loginRole = stationMemberRepository
@@ -335,7 +348,7 @@ public class MemberImportService {
         for (int i = 0; i < parsed.rows().size(); i++) {
             if (struckOut.contains(i)) continue;
             var row = mapRow(parsed.headers(), parsed.rows().get(i));
-            var mapped = applyMappings(row, mappings, profileFields);
+            var mapped = applyMappings(row, mappings, profileFields, dayFormats);
             if (mapped.firstName().isEmpty() && mapped.lastName().isEmpty()) continue;
 
             var already = whoIsAlreadyHere(stationId, mapped);
@@ -379,14 +392,54 @@ public class MemberImportService {
         return new TeamImportResult(membersCreated, groupsAssigned, profileFieldsSet, warnings);
     }
 
-    private MemberPreview applyMappings(
-            Map<String, String> row, List<ColumnMapping> mappings, List<ProfileField> fields) {
+    /** The mappings by the target they fill, each target's columns in the order they are merged. */
+    private static Map<String, List<ColumnMapping>> byTarget(List<ColumnMapping> mappings) {
         var byTarget = new LinkedHashMap<String, List<ColumnMapping>>();
         for (var m : mappings) {
             if ("skip".equals(m.target())) continue;
             byTarget.computeIfAbsent(m.target(), _ -> new ArrayList<>()).add(m);
         }
         byTarget.values().forEach(list -> list.sort(Comparator.comparingInt(ColumnMapping::mergeOrder)));
+        return byTarget;
+    }
+
+    /**
+     * The format the days of each target holding them are read in: the one picked for the file, or
+     * where that is automatic, the one detected over every row of the target.
+     */
+    private Map<String, WrittenDay.Format> dayFormats(
+            ParseResult parsed, List<ColumnMapping> mappings, List<ProfileField> fields, WrittenDay.Format picked) {
+        var formats = new HashMap<String, WrittenDay.Format>();
+        for (var entry : byTarget(mappings).entrySet()) {
+            if (!holdsDays(entry.getKey(), fields)) continue;
+            formats.put(
+                    entry.getKey(),
+                    picked != WrittenDay.Format.AUTO
+                            ? picked
+                            : WrittenDay.detect(parsed.rows().stream()
+                                    .map(cells -> buildMergedValue(mapRow(parsed.headers(), cells), entry.getValue()))
+                                    .toList()));
+        }
+        return formats;
+    }
+
+    private static boolean holdsDays(String target, List<ProfileField> fields) {
+        return "joinDate".equals(target) || target.startsWith("field:") && asksForDay(fields, target.substring(6));
+    }
+
+    /**
+     * What one row of the file says about one member, read through the reader's mappings.
+     *
+     * <p>A day, whether the join date or the answer to a date question, is read in its target's format
+     * and kept as an ISO date. A cell no day reads stays as written, so the date question refuses it
+     * with a warning naming the cell.
+     */
+    private MemberPreview applyMappings(
+            Map<String, String> row,
+            List<ColumnMapping> mappings,
+            List<ProfileField> fields,
+            Map<String, WrittenDay.Format> dayFormats) {
+        var byTarget = byTarget(mappings);
 
         String firstName = "", lastName = "", email = "", group = "";
         LocalDate joinDate = null;
@@ -403,10 +456,13 @@ public class MemberImportService {
                 case "lastName" -> lastName = val;
                 case "email" -> email = val;
                 case "group" -> group = val;
-                case "joinDate" -> joinDate = WrittenDay.of(val).orElse(null);
+                case "joinDate" ->
+                    joinDate = readDay(val, formatOf(dayFormats, target)).orElse(null);
                 default -> {
                     if (target.startsWith("field:")) {
-                        profileFieldValues.put(target.substring(6), val);
+                        profileFieldValues.put(
+                                target.substring(6),
+                                holdsDays(target, fields) ? asIsoDate(val, formatOf(dayFormats, target)) : val);
                     } else if (target.startsWith("manager:")) {
                         var parts = target.split(":", 3);
                         if (parts.length == 3) {
@@ -656,8 +712,8 @@ public class MemberImportService {
     /**
      * Turns a cell into the answer a question of its kind reads.
      *
-     * <p>A spreadsheet writes a day in its own way and yes and no in words; both are turned into
-     * what the question takes. Everything else already is the answer, and what still does not read
+     * <p>A spreadsheet writes yes and no in words, which are turned into what the question takes. A
+     * day was already read when the row was mapped. Everything else already is the answer, and what still does not read
      * as one is refused by the check rather than guessed at here.
      *
      * @param value     the cell, already trimmed
@@ -666,14 +722,27 @@ public class MemberImportService {
      */
     private static String asAnswer(String value, FieldType fieldType) {
         var kind = fieldType.kind().orElse(null);
-        if (kind == QuestionKind.DATE) return asIsoDate(value);
         if (kind == QuestionKind.BOOLEAN) return asBoolean(value);
         return value;
     }
 
+    private static WrittenDay.Format formatOf(Map<String, WrittenDay.Format> dayFormats, String target) {
+        return dayFormats.getOrDefault(target, WrittenDay.Format.AUTO);
+    }
+
+    private static Optional<LocalDate> readDay(String value, WrittenDay.Format dateFormat) {
+        return WrittenDay.of(value, dateFormat, WrittenDay.TwoDigitYears.PAST);
+    }
+
     /** A day as an ISO date, or the cell unchanged where it names none. */
-    private static String asIsoDate(String value) {
-        return WrittenDay.of(value).map(LocalDate::toString).orElse(value);
+    private static String asIsoDate(String value, WrittenDay.Format dateFormat) {
+        return readDay(value, dateFormat).map(LocalDate::toString).orElse(value);
+    }
+
+    private static boolean asksForDay(List<ProfileField> fields, String fieldId) {
+        return fields.stream()
+                .filter(field -> String.valueOf(field.id()).equals(fieldId))
+                .anyMatch(field -> field.fieldType().kind().orElse(null) == QuestionKind.DATE);
     }
 
     /** The words a spreadsheet says yes and no with, in both languages a station is likely to use. */

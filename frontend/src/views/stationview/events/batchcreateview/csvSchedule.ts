@@ -4,10 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {BatchRow} from '@/api/generated/schema'
+import {detectDateFormat, parseCsvDate, type CsvDateFormat} from '@/util/csvDate'
 import {draftProblems, draftToBatchRow, type DraftProblemReason, type DraftRow} from './draftRows'
-
-/** The date formats a file can be read in; `auto` tries each of them on every row. */
-export type CsvDateFormat = 'auto' | 'DD.MM.YYYY' | 'YYYY-MM-DD' | 'MM/DD/YYYY'
 
 /** The targets a column can be mapped to beside the fields of the appointment. */
 export const CsvTarget = {
@@ -74,9 +72,6 @@ const START_NAMES = ['startzeit', 'start_time', 'starttime', 'von', 'beginn', 's
 const END_NAMES = ['endzeit', 'end_time', 'endtime', 'bis', 'ende', 'end']
 const NAME_NAMES = ['name', 'terminname', 'event_name', 'titel', 'title', 'bezeichnung']
 
-const DOTTED = /^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/
-const ISO = /^(\d{4})-(\d{1,2})-(\d{1,2})$/
-const SLASHED = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/
 const TIME = /^(\d{1,2})[:.](\d{2})(?::\d{2})?$/
 
 function unquoted(cell: string): string {
@@ -124,8 +119,15 @@ function mapByExactName(column: string, mapping: Record<string, string>, fieldNa
     return fieldNames.find(name => name.toLowerCase() === column.toLowerCase())
 }
 
+/** Every value of one column, in the order of the lines. */
+export function columnValues(table: CsvTable, index: number): string[] {
+    return table.lines.map(line => line.cells[index] ?? '')
+}
+
 function holdsOnlyDates(table: CsvTable, index: number): boolean {
-    return table.lines.length > 0 && table.lines.every(line => parseCsvDate(line.cells[index] ?? '', 'auto') !== null)
+    const cells = columnValues(table, index)
+    const format = detectDateFormat(cells)
+    return cells.length > 0 && format !== 'auto' && cells.every(cell => parseCsvDate(cell, format) !== null)
 }
 
 /**
@@ -149,53 +151,6 @@ export function guessColumnMapping(table: CsvTable, fieldNames: string[]): Recor
         if (dateColumn) mapping[dateColumn] = CsvTarget.DATE
     }
     return mapping
-}
-
-/** The date format a sample from the date column is written in, or `auto` where none fits. */
-export function detectedDateFormat(sample: string): CsvDateFormat {
-    const value = sample.trim()
-    if (DOTTED.test(value)) return 'DD.MM.YYYY'
-    if (ISO.test(value)) return 'YYYY-MM-DD'
-    if (SLASHED.test(value)) return 'MM/DD/YYYY'
-    return 'auto'
-}
-
-function fullYear(year: string): number {
-    return year.length === 2 ? 2000 + Number(year) : Number(year)
-}
-
-function isoDateOf(year: number, month: number, day: number): string | null {
-    const date = new Date(Date.UTC(year, month - 1, day))
-    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null
-    return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-function readDotted(value: string): string | null {
-    const match = DOTTED.exec(value)
-    return match ? isoDateOf(fullYear(match[3]!), Number(match[2]), Number(match[1])) : null
-}
-
-function readIso(value: string): string | null {
-    const match = ISO.exec(value)
-    return match ? isoDateOf(Number(match[1]), Number(match[2]), Number(match[3])) : null
-}
-
-function readSlashed(value: string): string | null {
-    const match = SLASHED.exec(value)
-    return match ? isoDateOf(fullYear(match[3]!), Number(match[1]), Number(match[2])) : null
-}
-
-/**
- * A day from the file as `YYYY-MM-DD`, or `null` where it names no day of the calendar.
- *
- * <p>A two-digit year is read as a year of this century, as spreadsheet software writes it.
- */
-export function parseCsvDate(raw: string, format: CsvDateFormat): string | null {
-    const value = raw.trim()
-    if (format === 'DD.MM.YYYY') return readDotted(value)
-    if (format === 'YYYY-MM-DD') return readIso(value)
-    if (format === 'MM/DD/YYYY') return readSlashed(value)
-    return readDotted(value) ?? readIso(value) ?? readSlashed(value)
 }
 
 /** A time of day from the file as `HH:mm`, or `null` where no clock can show it. */
@@ -241,7 +196,8 @@ function unreadable(draft: DraftRow): CsvProblemReason[] {
  * line used to be placed at the moment of the import, and the batch then created appointments
  * nobody had asked for. A line that ends at or before its start is refused by the rule every row of
  * a batch is judged by. A time column that is not mapped takes the fallback time instead, and an empty
- * cell of a mapped one the start or the end of the day.
+ * cell of a mapped one the start or the end of the day. An automatic date format is detected over the
+ * whole date column.
  */
 export function csvToBatchRows(table: CsvTable, options: CsvScheduleOptions): CsvScheduleResult {
     const {mapping, dateFormat, fallbackStartTime, fallbackEndTime} = options
@@ -249,6 +205,7 @@ export function csvToBatchRows(table: CsvTable, options: CsvScheduleOptions): Cs
     const startIndex = columnOf(mapping, table.columns, CsvTarget.START_TIME)
     const endIndex = columnOf(mapping, table.columns, CsvTarget.END_TIME)
     const nameIndex = columnOf(mapping, table.columns, CsvTarget.NAME)
+    const format = dateFormat === 'auto' && dateIndex >= 0 ? detectDateFormat(columnValues(table, dateIndex)) : dateFormat
 
     const rows: BatchRow[] = []
     const problems: CsvProblem[] = []
@@ -261,7 +218,7 @@ export function csvToBatchRows(table: CsvTable, options: CsvScheduleOptions): Cs
         }
         raw.order = `${raw.startTime} - ${raw.endTime}`
         const draft: DraftRow = {
-            date: parseCsvDate(raw.date, dateFormat) ?? '',
+            date: parseCsvDate(raw.date, format) ?? '',
             startTime: parseCsvTime(raw.startTime) ?? '',
             endTime: parseCsvTime(raw.endTime) ?? '',
             name: nameIndex >= 0 ? cells[nameIndex] ?? '' : '',

@@ -2,11 +2,15 @@
 
 ## v26.26.2
 
-The member import reads dates such as 11-04-24 and two-digit years.
+Imported files have their date format recognised from all dates of a column, and the member import offers a choice of date format.
+
+### Improvements
+
+- **Date formats in CSV imports.** The member import and creating appointments from a file recognise the date format from all dates of a column, so 13/04/27 reads as 13 April. Days with dashes and day-first slashes can be chosen as a format. The member import offers the same date format choice as the appointment import.
 
 ### Fixes
 
-- **Dates in the member import were not read.** A day written with dashes or a two-digit year, such as 11-04-24, was not taken as join date or as date field. The import now reads the same date formats as creating appointments from a file, and a two-digit year never lies in the future.
+- **Dates in the member import were not read.** A day written with dashes or a two-digit year, such as 11-04-24, was taken neither as join date nor as date field. Such dates are now read, and a two-digit year of a member never lies in the future.
 
 ## v26.26.1
 

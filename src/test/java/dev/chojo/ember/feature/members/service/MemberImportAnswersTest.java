@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.members.service.MemberImportService.ColumnMapping
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.WrittenDay;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -98,8 +99,9 @@ class MemberImportAnswersTest extends RepositoryTestBase {
         String csv = "Vorname;Name;Wert\nMax;Muster;" + cell + "\n";
         var mappings =
                 List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Wert", "field:" + field.id()));
-        var preview = service.preview(station.id(), csv, ";", mappings, List.of());
-        var result = service.importMembers(station.id(), csv, ";", mappings, List.of(), SetupMail.SEND_NOW);
+        var preview = service.preview(station.id(), csv, ";", WrittenDay.Format.AUTO, mappings, List.of());
+        var result = service.importMembers(
+                station.id(), csv, ";", WrittenDay.Format.AUTO, mappings, List.of(), SetupMail.SEND_NOW);
         int member = stationMemberRepo.findByStation(station.id()).getFirst().id();
         var stored = profileFieldRepo.findValues(member).stream()
                 .filter(value -> value.fieldId() == field.id())

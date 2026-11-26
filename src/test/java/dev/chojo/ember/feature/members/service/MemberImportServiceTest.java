@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.WrittenDay;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -59,7 +61,8 @@ class MemberImportServiceTest extends RepositoryTestBase {
 
     private static MemberImportService.ImportResult importMembers(
             int stationId, String csv, String separator, List<ColumnMapping> mappings, List<Integer> ignored) {
-        return service.importMembers(stationId, csv, separator, mappings, ignored, SetupMail.SEND_NOW);
+        return service.importMembers(
+                stationId, csv, separator, WrittenDay.Format.AUTO, mappings, ignored, SetupMail.SEND_NOW);
     }
 
     @BeforeAll
@@ -177,6 +180,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
                 station.id(),
                 csv,
                 ";",
+                WrittenDay.Format.AUTO,
                 List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Mail", "email")),
                 List.of(),
                 SetupMail.LATER);
@@ -197,6 +201,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
                 station.id(),
                 csv,
                 ";",
+                WrittenDay.Format.AUTO,
                 List.of(
                         map("Vorname", "firstName"),
                         map("Name", "lastName"),
@@ -236,6 +241,50 @@ class MemberImportServiceTest extends RepositoryTestBase {
         assertEquals(
                 LocalDate.of(2019, 4, 1),
                 stationMemberRepo.findById(onlyMember()).orElseThrow().joinDate());
+    }
+
+    /** A day written the British way is read in the format picked for the file. */
+    @Test
+    void thePickedDateFormatReadsJoinDateAndDateAnswers() {
+        int birthday = field("Geburtstag", FieldType.DATE);
+        String csv = "Vorname;Name;Eintritt;Geburtstag\nMax;Müller;01/04/19;04/03/78\n";
+
+        service.importMembers(
+                station.id(),
+                csv,
+                ";",
+                WrittenDay.Format.of("DD/MM/YYYY"),
+                List.of(
+                        map("Vorname", "firstName"),
+                        map("Name", "lastName"),
+                        map("Eintritt", "joinDate"),
+                        map("Geburtstag", "field:" + birthday)),
+                List.of(),
+                SetupMail.SEND_NOW);
+
+        int member = onlyMember();
+        assertEquals(
+                LocalDate.of(2019, 4, 1),
+                stationMemberRepo.findById(member).orElseThrow().joinDate());
+        assertEquals("\"1978-03-04\"", storedValue(member, birthday));
+    }
+
+    /** One day past the twelfth is enough to read a whole column of slashed days day first. */
+    @Test
+    void anAutomaticFormatIsDetectedOverTheWholeColumn() {
+        String csv = "Vorname;Name;Eintritt\nMax;Müller;01/04/19\nLena;Meier;13/05/20\n";
+
+        importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Eintritt", "joinDate")),
+                List.of());
+
+        var joined = stationMemberRepo.findByStation(station.id()).stream()
+                .map(member -> member.joinDate())
+                .collect(Collectors.toSet());
+        assertEquals(Set.of(LocalDate.of(2019, 4, 1), LocalDate.of(2020, 5, 13)), joined);
     }
 
     /** A cell no date reads leaves the member joining on the day of the import, as without the column. */
@@ -551,7 +600,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
         String csv = "Vorname;Name\nMax;Müller\nLena;Fischer\n";
         var mappings = List.of(map("Vorname", "firstName"), map("Name", "lastName"));
 
-        var preview = service.preview(station.id(), csv, ";", mappings, List.of(1));
+        var preview = service.preview(station.id(), csv, ";", WrittenDay.Format.AUTO, mappings, List.of(1));
 
         assertEquals(2, preview.members().size(), "both are shown, one of them struck out");
         assertEquals(0, preview.members().getFirst().row());

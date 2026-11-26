@@ -7249,6 +7249,8 @@ export default {
         import: 'Importieren',
         startOver: 'Weiteren Import starten',
         fileTooLarge: 'Die Datei ist zu groß. Maximale Größe: {size} MB.',
+        dateFormat: 'Datumsformat',
+        dateFormatAuto: 'Automatisch erkennen',
     },
     memberImport: {
         title: 'Mitglieder importieren',
@@ -12760,8 +12762,6 @@ export default {
         generateDates: 'Termine generieren',
         uploadCsv: 'CSV-Datei hochladen',
         mapColumns: 'Spalten zuordnen',
-        dateFormat: 'Datumsformat',
-        dateFormatAuto: 'Automatisch erkennen',
         unreadableLines: 'Diese Zeilen der Datei ergeben keinen Termin. Korrigiere die Datei, die Zuordnung der Spalten oder das Datumsformat:',
         unreadableDate: 'Zeile {line}: Das Datum "{value}" ist nicht lesbar.',
         unreadableStartTime: 'Zeile {line}: Die Startzeit "{value}" ist nicht lesbar.',
