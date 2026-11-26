@@ -256,7 +256,7 @@ class InviteCandidateRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    void anAnsweredOrExpiredRequestIsNoLongerWaitedFor() {
+    void anAnsweredOrExpiredRequestIsNoLongerWaitedForAndADeclineIsMarked() {
         var declined = person("Abgelehnt");
         var expired = person("Abgelaufen");
         stationMemberRepo.create(home.id(), declined.id());
@@ -281,7 +281,18 @@ class InviteCandidateRepositoryTest extends RepositoryTestBase {
                 null,
                 Instant.now().minus(1, ChronoUnit.DAYS));
 
-        assertTrue(search(surname).stream().noneMatch(InviteCandidate::alreadyAsked));
+        var found = search(surname);
+        assertTrue(found.stream().noneMatch(InviteCandidate::alreadyAsked));
+        assertTrue(found.stream()
+                .filter(c -> c.firstName().equals("Abgelehnt"))
+                .findFirst()
+                .orElseThrow()
+                .declinedLately());
+        assertFalse(found.stream()
+                .filter(c -> c.firstName().equals("Abgelaufen"))
+                .findFirst()
+                .orElseThrow()
+                .declinedLately());
     }
 
     @Test

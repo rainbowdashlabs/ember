@@ -23,6 +23,7 @@ import java.util.UUID;
  * @param through      the shared station or association by name, or null for an account that opted in
  * @param alreadyHere  whether it is a member of the inviting station already
  * @param alreadyAsked whether the inviting station waits for it to answer a link request
+ * @param declinedLately whether it declined a link request of the inviting station in the last 30 days
  */
 public record InviteCandidate(
         int accountId,
@@ -32,7 +33,8 @@ public record InviteCandidate(
         FindableBecause because,
         @Nullable String through,
         boolean alreadyHere,
-        boolean alreadyAsked) {
+        boolean alreadyAsked,
+        boolean declinedLately) {
 
     /** Reads a row of the candidate query. */
     public static RowMapping<InviteCandidate> map() {
@@ -44,6 +46,7 @@ public record InviteCandidate(
                 row.getEnum("because", FindableBecause.class),
                 row.getString("through"),
                 row.getBoolean("already_here"),
-                row.getBoolean("already_asked"));
+                row.getBoolean("already_asked"),
+                row.getBoolean("declined_lately"));
     }
 }

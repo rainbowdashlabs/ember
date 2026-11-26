@@ -94,7 +94,13 @@ public class InviteCandidateRepository {
                            WHERE asked.station_id = :station
                              AND asked.account_id = a.id
                              AND asked.answered_at IS NULL
-                             AND asked.expires_at > now())                          AS already_asked
+                             AND asked.expires_at > now())                          AS already_asked,
+                   EXISTS (SELECT 1
+                           FROM account_link_request declined
+                           WHERE declined.station_id = :station
+                             AND declined.account_id = a.id
+                             AND declined.answer = 'DECLINED'
+                             AND declined.answered_at > now() - INTERVAL '30 days') AS declined_lately
             FROM closest c
                      JOIN account a ON a.id = c.account_id
             ORDER BY lower(a.last_name), lower(a.first_name), a.id

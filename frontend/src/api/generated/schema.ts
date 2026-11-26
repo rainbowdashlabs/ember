@@ -45936,6 +45936,15 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
                 /** @description Conflict */
                 409: {
                     headers: {
@@ -72021,6 +72030,7 @@ export interface components {
             alreadyAsked: boolean;
             alreadyHere: boolean;
             because: components["schemas"]["FindableBecause"];
+            declinedLately: boolean;
             firstName: string;
             lastName: string;
             through: string | null;
@@ -76243,6 +76253,8 @@ export interface components {
             userType?: string;
         };
         InviteRequest: {
+            /** Format: uuid */
+            accountUid?: string | null;
             email?: string;
             firstName?: string;
             lastName?: string;
@@ -76804,7 +76816,7 @@ export interface components {
             name?: string;
         };
         /** @enum {string} */
-        LinkOrigin: "IMPORT" | "INVITE" | "ASSOCIATION_INVITE";
+        LinkOrigin: "IMPORT" | "INVITE" | "NAME_INVITE" | "ASSOCIATION_INVITE";
         LinkPrompt: {
             associationName: string | null;
             createdAt: components["schemas"]["Instant"];
@@ -86433,6 +86445,7 @@ export const LinkOrigin = {
     ASSOCIATION_INVITE: "ASSOCIATION_INVITE",
     IMPORT: "IMPORT",
     INVITE: "INVITE",
+    NAME_INVITE: "NAME_INVITE",
 } as const;
 
 export const LinkStatus = {

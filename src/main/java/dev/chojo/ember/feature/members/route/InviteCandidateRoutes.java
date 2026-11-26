@@ -74,6 +74,7 @@ public class InviteCandidateRoutes implements Routes {
      * @param through      the shared station or association, or null for somebody who chose to be findable
      * @param alreadyHere  whether they are a member of this station already
      * @param alreadyAsked whether this station waits for them to answer a link request
+     * @param declinedLately whether they declined a link request of this station in the last 30 days
      */
     public record CandidateResponse(
             UUID accountUid,
@@ -82,7 +83,8 @@ public class InviteCandidateRoutes implements Routes {
             FindableBecause because,
             @Nullable String through,
             boolean alreadyHere,
-            boolean alreadyAsked) {
+            boolean alreadyAsked,
+            boolean declinedLately) {
 
         static CandidateResponse of(InviteCandidate candidate) {
             return new CandidateResponse(
@@ -92,7 +94,8 @@ public class InviteCandidateRoutes implements Routes {
                     candidate.because(),
                     candidate.through(),
                     candidate.alreadyHere(),
-                    candidate.alreadyAsked());
+                    candidate.alreadyAsked(),
+                    candidate.declinedLately());
         }
     }
 }

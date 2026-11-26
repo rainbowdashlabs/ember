@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:35e89b79765a5d4e1c611f72059ae2c6c921e86318b06b4dde72010050f5c462",
-  "generatedAt": "2026-11-26T21:59:03Z",
+  "generatedAt": "2026-11-26T22:17:31Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -991,7 +991,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "How the request came about: IMPORT when a station import found the account by its address, INVITE when a member manager of a station invited that address, ASSOCIATION_INVITE when an association administrator added that address to the association."
+          "description": "How the request came about: IMPORT when a station import found the account by its address, INVITE when a member manager of a station invited that address, NAME_INVITE when a member manager of a station found the account by its name, ASSOCIATION_INVITE when an association administrator added that address to the association."
         },
         {
           "name": "created_at",

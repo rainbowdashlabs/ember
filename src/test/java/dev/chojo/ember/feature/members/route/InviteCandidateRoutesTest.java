@@ -65,6 +65,7 @@ class InviteCandidateRoutesTest {
                 FindableBecause.SHARED_STATION,
                 "Wache Nord",
                 false,
+                false,
                 false);
     }
 

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.accountlink.entity.LinkOrigin;
 import dev.chojo.ember.feature.accountlink.service.AccountLinkService;
+import dev.chojo.ember.feature.members.entity.InviteCandidate;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
@@ -179,7 +180,8 @@ public class StationMemberInviteService {
             StationUserType userType,
             @Nullable Integer groupId,
             @Nullable Integer invitedBy) {
-        var member = waitingMember(stationId, existing, firstName, lastName, invitedBy, SetupMail.SEND_NOW);
+        var member = waitingMember(
+                stationId, existing.id(), firstName, lastName, LinkOrigin.INVITE, invitedBy, SetupMail.SEND_NOW);
         stationMemberRepository.setUserType(member.id(), userType);
         if (groupId != null) {
             groupMemberships.joinAutomatically(groupId, member.id());
@@ -190,20 +192,49 @@ public class StationMemberInviteService {
 
     private StationMember waitingMember(
             int stationId,
-            Account existing,
+            int accountId,
             String firstName,
             String lastName,
+            LinkOrigin origin,
             @Nullable Integer invitedBy,
             SetupMail mail) {
         String name = (firstName.trim() + " " + lastName.trim()).trim();
         var member = stationMemberRepository.createWithoutAccount(stationId, name);
-        linkService.ask(stationId, member.id(), existing.id(), LinkOrigin.INVITE, invitedBy, mail);
-        log.info(
-                "Member {} at station {} waits for account {} to accept the link",
-                member.id(),
-                stationId,
-                existing.id());
+        linkService.ask(stationId, member.id(), accountId, origin, invitedBy, mail);
+        log.info("Member {} at station {} waits for account {} to accept the link", member.id(), stationId, accountId);
         return member;
+    }
+
+    /**
+     * A new member for somebody the inviting manager found by name, waiting for them to link their account.
+     * The member carries the account's own name, since the manager never typed one. Whether the manager
+     * may find the account, and whether it is here or asked already, the caller has checked.
+     *
+     * @param stationId the station
+     * @param candidate the account as the manager found it
+     * @param invitedBy the member who invites
+     * @return the member, waiting for the link
+     */
+    public ProvisionedMember inviteFound(int stationId, InviteCandidate candidate, int invitedBy) {
+        var member = waitingMember(
+                stationId,
+                candidate.accountId(),
+                candidate.firstName(),
+                candidate.lastName(),
+                LinkOrigin.NAME_INVITE,
+                invitedBy,
+                SetupMail.SEND_NOW);
+        stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
+        return new ProvisionedMember(
+                member.id(),
+                null,
+                null,
+                candidate.firstName(),
+                candidate.lastName(),
+                StationUserType.MEMBER,
+                false,
+                true,
+                true);
     }
 
     /**
@@ -241,7 +272,8 @@ public class StationMemberInviteService {
                 && stationMemberRepository
                         .findByStationAndAccount(stationId, existing.id())
                         .isEmpty()) {
-            return waitingMember(stationId, existing, firstName, lastName, invitedBy, setupMail);
+            return waitingMember(
+                    stationId, existing.id(), firstName, lastName, LinkOrigin.INVITE, invitedBy, setupMail);
         }
         var invited = accountInviteService.resolveOrCreate(stationId, email, firstName, lastName, setupMail);
         var member = stationMemberRepository.create(stationId, invited.account().id());

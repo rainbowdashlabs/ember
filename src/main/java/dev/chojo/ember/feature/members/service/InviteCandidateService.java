@@ -15,7 +15,6 @@ import jakarta.inject.Singleton;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -64,13 +63,24 @@ public class InviteCandidateService {
     }
 
     /**
-     * The account behind this uid, when the manager may find it.
+     * The account behind this uid, checked to be one the manager may invite by name now: one they can
+     * find, not at the station already, not waited on, not having declined the station lately, and not
+     * invited by name from this station within the last day.
      *
      * @param by         the manager, at the station they invite into
-     * @param accountUid the account
-     * @return the account as a candidate, or empty where the manager may not find it
+     * @param accountUid the account, which the request could name freely
+     * @return the account as a candidate
      */
-    public Optional<InviteCandidate> reachable(StationSession by, UUID accountUid) {
-        return candidates.findReachable(by.accountId(), by.stationId(), accountUid);
+    public InviteCandidate invitable(StationSession by, UUID accountUid) {
+        var candidate = candidates
+                .findReachable(by.accountId(), by.stationId(), accountUid)
+                .orElseThrow(MemberRefusal.INVITE_ACCOUNT_NOT_FINDABLE::raise);
+        if (candidate.alreadyHere()) throw MemberRefusal.INVITE_ACCOUNT_ALREADY_HERE.raise();
+        if (candidate.alreadyAsked()) throw MemberRefusal.INVITE_ACCOUNT_ALREADY_ASKED.raise();
+        if (candidate.declinedLately()) throw MemberRefusal.INVITE_ACCOUNT_DECLINED_LATELY.raise();
+        RateLimits.enforce(
+                MemberRefusal.INVITE_ACCOUNT_INVITED_LATELY,
+                rateLimiter.tryInvite(by.stationId(), candidate.accountId()));
+        return candidate;
     }
 }

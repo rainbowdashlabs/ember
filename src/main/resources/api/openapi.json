@@ -36833,6 +36833,16 @@
               }
             }
           },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
           "409" : {
             "description" : "Conflict",
             "content" : {
@@ -59072,9 +59082,12 @@
           },
           "alreadyAsked" : {
             "type" : "boolean"
+          },
+          "declinedLately" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "accountUid", "firstName", "lastName", "because", "through", "alreadyHere", "alreadyAsked" ]
+        "required" : [ "accountUid", "firstName", "lastName", "because", "through", "alreadyHere", "alreadyAsked", "declinedLately" ]
       },
       "CapabilityRequest" : {
         "type" : "object",
@@ -71490,6 +71503,10 @@
           },
           "sendSetupMail" : {
             "type" : "boolean"
+          },
+          "accountUid" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
           }
         }
       },
@@ -72982,7 +72999,7 @@
       },
       "LinkOrigin" : {
         "type" : "string",
-        "enum" : [ "IMPORT", "INVITE", "ASSOCIATION_INVITE" ]
+        "enum" : [ "IMPORT", "INVITE", "NAME_INVITE", "ASSOCIATION_INVITE" ]
       },
       "LinkPrompt" : {
         "type" : "object",
