@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionKind;
 import dev.chojo.ember.feature.question.QuestionValues;
+import dev.chojo.ember.util.WrittenDay;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -31,8 +32,6 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -50,7 +49,6 @@ import java.util.regex.Pattern;
 @Singleton
 public class MemberImportService {
     private static final Logger log = LoggerFactory.getLogger(MemberImportService.class);
-    private static final DateTimeFormatter DE_DATE = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
@@ -405,7 +403,7 @@ public class MemberImportService {
                 case "lastName" -> lastName = val;
                 case "email" -> email = val;
                 case "group" -> group = val;
-                case "joinDate" -> joinDate = asDate(val);
+                case "joinDate" -> joinDate = WrittenDay.of(val).orElse(null);
                 default -> {
                     if (target.startsWith("field:")) {
                         profileFieldValues.put(target.substring(6), val);
@@ -658,7 +656,7 @@ public class MemberImportService {
     /**
      * Turns a cell into the answer a question of its kind reads.
      *
-     * <p>A spreadsheet writes a day the German way and yes and no in words; both are turned into
+     * <p>A spreadsheet writes a day in its own way and yes and no in words; both are turned into
      * what the question takes. Everything else already is the answer, and what still does not read
      * as one is refused by the check rather than guessed at here.
      *
@@ -673,22 +671,9 @@ public class MemberImportService {
         return value;
     }
 
-    /** A date written the German way or as ISO, or nothing where the cell is neither. */
-    private static @Nullable LocalDate asDate(String value) {
-        try {
-            return LocalDate.parse(asIsoDate(value.trim()));
-        } catch (DateTimeParseException notADate) {
-            return null;
-        }
-    }
-
-    /** A German date as an ISO one, or the cell unchanged where it is not one. */
+    /** A day as an ISO date, or the cell unchanged where it names none. */
     private static String asIsoDate(String value) {
-        try {
-            return LocalDate.parse(value, DE_DATE).toString();
-        } catch (DateTimeParseException notGerman) {
-            return value;
-        }
+        return WrittenDay.of(value).map(LocalDate::toString).orElse(value);
     }
 
     /** The words a spreadsheet says yes and no with, in both languages a station is likely to use. */

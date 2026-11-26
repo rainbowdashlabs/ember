@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.26.2
+
+The member import reads dates such as 11-04-24 and two-digit years.
+
+### Fixes
+
+- **Dates in the member import were not read.** A day written with dashes or a two-digit year, such as 11-04-24, was not taken as join date or as date field. The import now reads the same date formats as creating appointments from a file, and a two-digit year never lies in the future.
+
 ## v26.26.1
 
 Markdown files can be added to the wiki by upload and by import. A trial on the waiting list can be started again. Fields of an event group can fill in the attendance sheet of every appointment of the group.

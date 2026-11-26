@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.26.2
+
+Der Mitgliederimport erkennt Datumsangaben wie 11-04-24 und zweistellige Jahreszahlen.
+
+### Fehlerbehebungen
+
+- **Datumsangaben im Mitgliederimport wurden nicht erkannt.** Ein Tag mit Bindestrichen oder zweistelliger Jahreszahl, etwa 11-04-24, wurde weder als Eintrittsdatum noch als Datumsfeld übernommen. Der Import liest jetzt dieselben Datumsformate wie das Anlegen von Terminen aus einer Datei, und eine zweistellige Jahreszahl liegt nie in der Zukunft.
+
 ## v26.26.1
 
 Markdown-Dateien lassen sich per Hochladen und per Import ins Wiki übernehmen. Die Probezeit auf der Warteliste lässt sich wieder starten. Felder einer Terminreihe füllen die Anwesenheitsliste jedes ihrer Termine aus.

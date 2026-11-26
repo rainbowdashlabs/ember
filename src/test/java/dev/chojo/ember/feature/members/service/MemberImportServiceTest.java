@@ -220,9 +220,9 @@ class MemberImportServiceTest extends RepositoryTestBase {
         verify(authService, never()).sendPasswordSetup(anyInt());
     }
 
-    /** The day a member joined, written the German way or as ISO, is taken from the file. */
+    /** The day a member joined is taken from the file, however a spreadsheet wrote it. */
     @ParameterizedTest
-    @ValueSource(strings = {"01.04.2019", "2019-04-01"})
+    @ValueSource(strings = {"01.04.2019", "1.4.19", "01-04-19", "2019-04-01"})
     void theJoinDateIsTakenFromTheFile(String written) {
         String csv = "Vorname;Name;Eintritt\nMax;Müller;" + written + "\n";
 
