@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -25,6 +26,8 @@ import LendingSharePanel from '@/components/lending/LendingSharePanel.vue'
 import ProcurementTable from './ProcurementTable.vue'
 import LostItemsTable from './LostItemsTable.vue'
 import FreeItemsGrid from './FreeItemsGrid.vue'
+import BatchActionBar from './BatchActionBar.vue'
+import type { ItemSelection } from '../itemtable/useItemSelection'
 import {isLendableInventory} from '@/api/inventory'
 import type { MemberLike } from '@/components/input/select/memberOption'
 import type { InventoryItemActionEmits } from '../itemEmits'
@@ -74,6 +77,8 @@ const props = withDefaults(defineProps<{
   allSizeStats: SizeStat[]
   permissions: Permissions
   itemTable: ItemTableApi
+  /** The pieces ticked for a change to all of them at once. */
+  selection: ItemSelection
 }>(), {arts: () => [], movementItemMap: () => new Map()})
 
 defineEmits<InventoryItemActionEmits & {
@@ -83,9 +88,18 @@ defineEmits<InventoryItemActionEmits & {
   openAdd: []
   openIntake: []
   assignFree: [itemId: number]
+  batchChanged: []
 }>()
 
 const { t } = useI18n()
+
+const shownItemIds = computed(() => props.itemTable.table.rows.map(row => row.id))
+
+/** Ticked pieces the search or a filter hides, which a change reaches all the same. */
+const hiddenSelectedCount = computed(() => {
+  const shown = new Set(shownItemIds.value)
+  return props.selection.selectedIds.value.filter(id => !shown.has(id)).length
+})
 
 function memberIdentity(memberId: number) {
   return props.memberMap.get(memberId)?.identity
@@ -128,6 +142,10 @@ function memberIdentity(memberId: number) {
       :show-intake="permissions.canCreateItem && permissions.canTakeStock"
       :show-add="permissions.canCreateItem && permissions.canAddInternal"
       :show-search="items.length > 0"
+      :show-select="permissions.canEdit && items.length > 0"
+      :selecting="selection.active.value"
+      @toggle-select="selection.setActive(!selection.active.value)"
+      @select-all-shown="selection.selectAll(shownItemIds)"
       @intake="$emit('openIntake')"
       @quick-assign="$emit('openQuickAssign')"
       @add="$emit('openAdd')"
@@ -141,6 +159,7 @@ function memberIdentity(memberId: number) {
       :movement-item-map="movementItemMap"
       :container-path-by-id="containerPathById"
       :show-actions="permissions.canEdit"
+      :selection="selection"
       @assign="$emit('assign', $event)"
       @unassign="$emit('unassign', $event)"
       @edit="$emit('edit', $event)"
@@ -154,6 +173,7 @@ function memberIdentity(memberId: number) {
       :items="itemTable"
       :member-identity="memberIdentity"
       :show-actions="permissions.canEdit"
+      :selection="selection"
       :lent-item-map="lentItemStationMap"
       :movement-item-map="movementItemMap"
       :container-path-by-id="containerPathById"
@@ -164,6 +184,16 @@ function memberIdentity(memberId: number) {
       @mark-found="$emit('markFound', $event)"
       @history="$emit('history', $event)"
       @delete="$emit('delete', $event)"
+    />
+    <BatchActionBar
+      v-if="selection.active.value"
+      :inventory-id="detail.id"
+      :item-ids="selection.selectedIds.value"
+      :arts="arts"
+      :offers-art="detail.homogeneous === false"
+      :hidden-count="hiddenSelectedCount"
+      @changed="$emit('batchChanged')"
+      @clear="selection.clear()"
     />
   </NeutralContainer>
 

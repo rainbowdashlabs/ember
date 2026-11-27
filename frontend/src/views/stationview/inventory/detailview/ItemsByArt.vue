@@ -15,6 +15,7 @@ import type {InventoryArt, InventoryItem} from '@/api/generated/schema'
 import type {PersonIdentity} from '@/util/personIdentity'
 import InventoryItemTable from '../itemtable/InventoryItemTable.vue'
 import type {ItemTableApi} from '../itemtable/useItemTable'
+import type {ItemSelection} from '../itemtable/useItemSelection'
 import type {InventoryItemActionEmits} from '../itemEmits'
 
 /**
@@ -38,8 +39,10 @@ const props = withDefaults(
       movementItemMap?: ReadonlyMap<number, number>
       containerPathById: Map<number, string>
       showActions?: boolean
+      /** The pieces ticked for a change to all of them, shared by every block. */
+      selection?: ItemSelection
     }>(),
-    {showActions: false, movementItemMap: () => new Map()},
+    {showActions: false, movementItemMap: () => new Map(), selection: undefined},
 )
 
 const emit = defineEmits<InventoryItemActionEmits>()
@@ -82,6 +85,7 @@ const blocks = computed<Block[]>(() => {
           :lent-item-map="lentItemStationMap"
           :movement-item-map="movementItemMap"
           :member-identity="memberIdentity"
+          :selection="selection"
           :show-actions="showActions"
           :subset="block.items"
           @assign="emit('assign', $event)"

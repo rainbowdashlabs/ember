@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -36,6 +36,7 @@ import DetailHeader from './detailview/DetailHeader.vue'
 import DetailLoadedContent from './detailview/DetailLoadedContent.vue'
 import DetailViewModals from './detailview/DetailViewModals.vue'
 import { useItemTable } from './itemtable/useItemTable'
+import { useItemSelection } from './itemtable/useItemSelection'
 import { memberDisplayName } from '@/views/stationview/members/listview/useMemberData'
 
 const routes = useInventoryRoutes()
@@ -87,6 +88,10 @@ function itemArtName(item: InventoryItem): string {
   if (!item.artId) return ''
   return arts.value.find(art => art.id === item.artId)?.name ?? ''
 }
+
+/** The pieces ticked for a change to all of them, kept across a reload and pruned to what is left. */
+const selection = useItemSelection()
+watch(items, current => selection.keepOnly(current.map(item => item.id)))
 
 const itemTable = useItemTable({
   inventoryId: () => inventoryId.value,
@@ -298,7 +303,9 @@ function goEdit() { router.push({ name: routes.edit, params: { id: inventoryId.v
         :all-size-stats="allSizeStats"
         :permissions="permissions"
         :item-table="itemTable"
+        :selection="selection"
         v-on="actions"
+        @batch-changed="loadData"
       />
 
       <DetailViewModals
