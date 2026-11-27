@@ -11,6 +11,10 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import BulletList from '@/components/typography/BulletList.vue'
 import LinkRequestCard from '@/components/accountlink/LinkRequestCard.vue'
 import MemberLinkBadge from '@/components/accountlink/MemberLinkBadge.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import {ClusterUserType, LinkOrigin, LinkStatus, type LinkPrompt} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -26,6 +30,8 @@ const EXAMPLE: LinkPrompt = {
   createdAt: '2026-10-08T09:00:00Z',
   expiresAt: '2026-11-07T09:00:00Z',
 }
+
+const NAME_EXAMPLE: LinkPrompt = {...EXAMPLE, uid: '00000000-0000-0000-0000-000000000003', origin: LinkOrigin.NAME_INVITE}
 
 const ASSOCIATION_EXAMPLE: LinkPrompt = {
   uid: '00000000-0000-0000-0000-000000000002',
@@ -75,6 +81,18 @@ const ASSOCIATION_EXAMPLE: LinkPrompt = {
     <HelpSection :title="t('helpCenter.basics.accountLinks.associationTitle')">
       <p>{{ t('helpCenter.basics.accountLinks.associationText') }}</p>
       <LinkRequestCard :prompt="ASSOCIATION_EXAMPLE" :busy="false"/>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.basics.accountLinks.findableTitle')">
+      <p>{{ t('helpCenter.basics.accountLinks.findableText') }}</p>
+      <NeutralContainer class="flex items-center justify-between gap-4">
+        <div>
+          <SubHeader>{{ t('accountLinks.findableTitle') }}</SubHeader>
+          <MutedText tag="p" size="sm">{{ t('accountLinks.findableHint') }}</MutedText>
+        </div>
+        <ToggleInput :model-value="true" :aria-label="t('accountLinks.findableTitle')"/>
+      </NeutralContainer>
+      <LinkRequestCard :prompt="NAME_EXAMPLE" :busy="false"/>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.accountLinks.sharedTitle')">

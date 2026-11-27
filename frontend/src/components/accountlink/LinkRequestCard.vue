@@ -40,6 +40,11 @@ const question = computed(() => isAssociationRequest(props.prompt)
 const how = computed(() => {
   if (isAssociationRequest(props.prompt)) return t('accountLinks.fromAssociation')
   if (props.prompt.origin === LinkOrigin.IMPORT) return t('accountLinks.fromImport')
+  if (props.prompt.origin === LinkOrigin.NAME_INVITE) {
+    return props.prompt.invitedBy
+        ? t('accountLinks.foundByNameBy', {name: props.prompt.invitedBy})
+        : t('accountLinks.foundByName')
+  }
   return props.prompt.invitedBy
       ? t('accountLinks.invitedBy', {name: props.prompt.invitedBy})
       : t('accountLinks.invited')

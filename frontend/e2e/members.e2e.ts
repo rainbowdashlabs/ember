@@ -4,12 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {statSync} from 'node:fs'
-import {test, expect, pageAsThrowaway} from './fixtures/auth'
+import {test, expect, apiHeaders, pageAsThrowaway} from './fixtures/auth'
+import {demoSignIn, sessionHeaders} from './fixtures/session'
 import {unique} from './fixtures/unique'
 import {createMember} from './fixtures/member'
 import {pickMemberByName} from './fixtures/memberMenu'
 import type {Page} from '@playwright/test'
 import {cast} from './fixtures/cast'
+import {must} from './fixtures/must'
 
 /**
  * Puts a question already written down to the station's ordinary members.
@@ -108,6 +110,59 @@ test.describe('Members', () => {
 
         await page.goto('/station/members/former')
         await expect(page.getByText(surname).first()).toBeVisible()
+    })
+
+    /**
+     * Somebody with an account at another station who chose to be findable is found by their name in
+     * the member wizard and asked to link their account, without anybody here knowing their address.
+     */
+    test('somebody of another station who chose to be findable is found by name and asked to link', async ({
+        managerPage: page, partnerManagerPage: elsewhere, browser,
+    }) => {
+        const surname = unique('Gefunden')
+        const email = `${surname.toLowerCase()}@example.test`
+
+        const invited = await elsewhere.request.post('/api/v1/members/invite', {
+            headers: await apiHeaders(elsewhere),
+            data: {email, firstName: 'Testperson', lastName: surname, sendSetupMail: false},
+        })
+        expect(invited.ok(), `the other station takes the person in (${await invited.text()})`).toBeTruthy()
+
+        const own = await browser.newContext()
+        try {
+            const person = await demoSignIn(own.request, email)
+            const headers = sessionHeaders(person)
+            const chosen = await own.request.put('/api/v1/session/preferences/findable', {
+                headers, data: {findable: true},
+            })
+            expect(chosen.ok(), 'the person makes themselves findable').toBeTruthy()
+
+            await page.goto('/station/members/create')
+            await page.getByRole('button', {name: 'Weiter', exact: true}).first().click()
+            await page.getByPlaceholder('Name eingeben').fill(surname)
+            await page.getByTestId('invite-candidate').filter({hasText: surname})
+                .getByRole('button', {name: 'Auswählen'}).click()
+            await expect(page.getByText(`Testperson ${surname} ist ausgewählt.`)).toBeVisible()
+            await expect(page.getByPlaceholder('E-Mail-Adresse')).toHaveCount(0)
+            const done = page.getByTestId('link-pending')
+            const next = page.getByRole('button', {name: /^(Weiter|Konto erstellen)$/}).first()
+            for (let step = 0; step < 5; step += 1) {
+                await expect(next.or(done)).toBeVisible()
+                if (await done.isVisible()) break
+                await next.click()
+            }
+            await expect(done).toBeVisible()
+
+            const waiting = await own.request.get('/api/v1/account/link-requests', {headers})
+            const prompts = await waiting.json() as {uid: string; origin: string; memberName: string | null}[]
+            const prompt = must(prompts.find(candidate =>
+                candidate.origin === 'NAME_INVITE' && candidate.memberName?.includes(surname)),
+            'the request of somebody found by name')
+            const accepted = await own.request.post(`/api/v1/account/link-requests/${prompt.uid}/accept`, {headers})
+            expect(accepted.ok(), `the person accepts (${await accepted.text()})`).toBeTruthy()
+        } finally {
+            await own.close()
+        }
     })
 
     test('the member list shows the station and filters by name', async ({managerPage: page}) => {

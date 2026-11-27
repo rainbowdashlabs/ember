@@ -2,7 +2,11 @@
 
 ## v26.27.0
 
-Calendar subscriptions show single appointments in the station's timezone.
+People who already have an account on this instance can be invited into a station by their name. Calendar subscriptions show single appointments in the station's timezone.
+
+### New Features
+
+- **Invite people of this instance by name.** The member wizard finds people who already have an account on this instance by their name and asks them to link it, without anybody knowing their address. People who share a station or an association with the inviting manager can be found, everybody else only after turning on "Findable from every station" under Account → Links.
 
 ### Fixes
 

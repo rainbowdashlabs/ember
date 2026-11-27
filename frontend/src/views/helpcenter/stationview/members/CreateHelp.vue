@@ -15,6 +15,10 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import OneTimePasswordSheet from '@/components/onetimepassword/OneTimePasswordSheet.vue'
 import OneTimePasswordChoice from '@/views/stationview/members/createview/OneTimePasswordChoice.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
 import {StationPermission} from '@/api/generated/schema'
 import {sampleSheet} from '@/views/helpcenter/adminview/accountshelp/sampleAccounts'
 
@@ -57,6 +61,38 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.membersCreate.step2')">
       <p>{{ t('helpCenter.membersCreate.step2Text') }}</p>
       <p>{{ t('helpCenter.membersCreate.step2NoLogin') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersCreate.findTitle')">
+      <p>{{ t('helpCenter.membersCreate.findText') }}</p>
+      <p>{{ t('helpCenter.membersCreate.findWho') }}</p>
+      <p>{{ t('helpCenter.membersCreate.findAsk') }}</p>
+      <NeutralContainer class="space-y-2">
+        <FieldLabel>{{ t('membersCreate.findPerson') }}</FieldLabel>
+        <TextInput :model-value="'Schmidt'" :placeholder="t('membersCreate.findPersonPlaceholder')"/>
+        <ul class="divide-y divide-(--border) rounded-theme border border-(--border)">
+          <li class="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+            <div>
+              <p class="text-sm font-medium">{{ t('helpCenter.membersCreate.findExampleName') }}</p>
+              <MutedText tag="p" size="xs">
+                {{ t('membersCreate.findableStation', {name: t('helpCenter.membersCreate.findExampleStation')}) }}
+              </MutedText>
+            </div>
+            <SecondaryButton>{{ t('membersCreate.findPersonPick') }}</SecondaryButton>
+          </li>
+          <li class="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+            <div>
+              <p class="text-sm font-medium">{{ t('helpCenter.membersCreate.findExampleOther') }}</p>
+              <MutedText tag="p" size="xs">{{ t('membersCreate.candidateAsked') }}</MutedText>
+            </div>
+            <SecondaryButton disabled>{{ t('membersCreate.findPersonPick') }}</SecondaryButton>
+          </li>
+        </ul>
+        <Alert variant="info">
+          {{ t('membersCreate.foundChosen', {name: t('helpCenter.membersCreate.findExampleName')}) }}
+          {{ t('membersCreate.foundChosenHint') }}
+        </Alert>
+      </NeutralContainer>
     </HelpSection>
 
     <HelpPermissionGuard

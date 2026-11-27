@@ -10,12 +10,14 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import LinkRequestList from '@/components/accountlink/LinkRequestList.vue'
+import FindableSwitch from './accountlinksview/FindableSwitch.vue'
 import {useLinkRequests} from '@/composables/useLinkRequests'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
  * The requests stations sent to link the reader's account to one of their members, and the roles
- * associations offered it: the place the prompt after sign-in leads back to once it was put off.
+ * associations offered it: the place the prompt after sign-in leads back to once it was put off. Below
+ * them, whether stations of this instance can find the reader by name to ask at all.
  */
 const {t} = useI18n()
 const links = useLinkRequests()
@@ -30,6 +32,7 @@ const {loading, failure} = useAsyncLoader(() => links.refresh())
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :failure="failure"/>
       <LinkRequestList v-if="!loading && !failure"/>
+      <FindableSwitch/>
     </div>
   </ViewContent>
 </template>

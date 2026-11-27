@@ -2,7 +2,11 @@
 
 ## v26.27.0
 
-Kalenderabos zeigen einzelne Termine in der Zeitzone der Wache.
+Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren Namen in eine Wache einladen. Kalenderabos zeigen einzelne Termine in der Zeitzone der Wache.
+
+### Neue Funktionen
+
+- **Personen der Instanz über ihren Namen einladen.** Beim Anlegen eines Mitglieds lassen sich Personen mit einem Konto auf dieser Instanz über ihren Namen finden und um die Verknüpfung ihres Kontos bitten, ohne dass jemand ihre Adresse kennen muss. Gefunden werden Personen, die eine Wache oder einen Verband teilen, alle anderen erst, wenn sie unter Konto → Verknüpfungen „Für alle Wachen auffindbar“ einschalten.
 
 ### Fehlerbehebungen
 

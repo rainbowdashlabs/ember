@@ -11,6 +11,8 @@ public enum LinkOrigin {
     IMPORT,
     /** A member manager invited the address of an account that already exists. */
     INVITE,
+    /** A member manager found the account by its name and invited it. */
+    NAME_INVITE,
     /** An association administrator added the address of an account that already exists. */
     ASSOCIATION_INVITE
 }
