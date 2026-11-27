@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {below} from './fixtures/address'
 import type {Page} from '@playwright/test'
 import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
@@ -118,7 +119,7 @@ test.describe('Protocols', () => {
     test('the evaluation of a run downloads as a PDF', async ({managerPage: page}) => {
         await createRun(page, await createSheet(page))
 
-        await page.goto(`${page.url()}/evaluation`)
+        await page.goto(below(page.url(), 'evaluation'))
 
         const download = page.waitForEvent('download')
         await page.getByRole('button', {name: 'Tabelle als PDF'}).click()

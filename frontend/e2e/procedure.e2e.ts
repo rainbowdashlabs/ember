@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {below} from './fixtures/address'
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 import {unique} from './fixtures/unique'
@@ -61,7 +62,7 @@ test.describe('Procedures', () => {
 
         await page.getByTestId('procedure-entry').first().click()
         await page.waitForURL(/\/station\/procedures\/\d+/)
-        await page.goto(`${page.url()}/edit`)
+        await page.goto(below(page.url(), 'edit'))
 
         await page.getByRole('textbox').first().fill(renamed)
         await page.getByRole('button', {name: 'Speichern'}).first().click()

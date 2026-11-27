@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {below} from './fixtures/address'
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 import {unique, uniqueKey} from './fixtures/unique'
@@ -274,7 +275,7 @@ test.describe('Boards', () => {
         await board.click()
         await page.waitForURL(/\/station\/boards\/[^/]+(\?[^#]*)?$/)
 
-        await page.goto(`${page.url()}/archived`)
+        await page.goto(below(page.url(), 'archived'))
         await expect(page.getByText(/archiviert/).first()).toBeVisible()
     })
 
