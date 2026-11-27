@@ -5764,7 +5764,9 @@ export default {
             hint: 'Ihr könnt {name} um ein Teil bitten, das ihr nicht habt. Der Träger schickt eines oder '
                 + 'lehnt mit einer Begründung ab; ihr seht beides in den Vorgängen.',
             ask: 'Beim Träger anfragen',
-            ownerFallback: 'den Träger',
+            hintOutside: 'Euer Träger führt sein Material nicht in Ember. Notiert hier, was ihr bei ihm angefragt '
+                + 'habt. Es steht dann in der Beschaffung, und sobald es ankommt, tragt ihr es dort als erledigt ein.',
+            noteDown: 'Anfrage notieren',
         },
         requirements: {
             hint: 'Definiere, welche Inventargegenstände Mitglieder mit einer bestimmten Rolle oder Gruppe besitzen '
@@ -9051,6 +9053,15 @@ export default {
         create: 'Neue Beschaffung',
         createTitle: 'Beschaffung erstellen',
         empty: 'Keine Beschaffungsanfragen vorhanden.',
+        noOpen: 'Keine offenen Beschaffungen.',
+        owner: 'Wem gehört das Stück',
+        chooseOwner: 'Bitte wählen',
+        ownerStation: 'Der Wache',
+        ownerAssociation: 'Dem Träger',
+        ownerSettledStation: 'Das Stück gehört der Wache.',
+        ownerSettledAssociation: 'Das Stück gehört dem Träger.',
+        fromAssociation: 'Beim Träger angefragt',
+        doneSummary: 'Erledigt ({count})',
         deleteConfirm: 'Beschaffungsanfrage wirklich löschen?',
         inventory: 'Ausstattung',
         selectInventory: 'Ausstattung auswählen',
@@ -10421,6 +10432,9 @@ export default {
             skippedHint: 'Verworfene Aufgaben verschwinden dauerhaft und kommen nicht zurück.',
             settledBy: 'von {name}',
             settledElsewhere: 'auf einer anderen Wache',
+            waitingForOther: 'Geht weiter, sobald die Schritte oben erledigt sind.',
+            laterOne: 'Danach wartet noch ein Schritt.',
+            later: 'Danach warten noch {count} Schritte.',
             MEMBER: {
                 title: 'Deine ersten Schritte',
                 hint: 'Ich zeige dir, wo alles liegt. Du klickst selbst, dann kennst du den Weg beim nächsten Mal.',

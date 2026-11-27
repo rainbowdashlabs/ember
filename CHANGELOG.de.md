@@ -2,7 +2,7 @@
 
 ## v26.27.0
 
-Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren Namen in eine Wache einladen. Inventare und ihre Arten können ein Foto haben, das auch Partnerwachen beim Ausleihen sehen. Karten an einem Termin bieten Links für den Weg dorthin. Kalenderabos zeigen den Treffpunkt als Ort eines Termins, in der Zeitzone der Wache.
+Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren Namen in eine Wache einladen. Inventare und ihre Arten können ein Foto haben, das auch Partnerwachen beim Ausleihen sehen. Karten an einem Termin bieten Links für den Weg dorthin. Erste Schritte erscheinen zu dritt und in der Reihenfolge, in der sie aufeinander aufbauen.
 
 ### Neue Funktionen
 
@@ -16,10 +16,13 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Karten zu Terminorten auf Wunsch, mit Navigation.** Ein Ort mit Markierung auf der Seite eines Termins zeigt hinter seiner Adresse einen Kartenknopf, und die Karte öffnet sich erst auf Knopfdruck. Unter der Karte starten Links die Navigation dorthin. Android-Handys bieten dabei ihre eigene Auswahl an Navigations-Apps an. iPhones und Computer bekommen Apple Karten und Google Maps, der Link zu OpenStreetMap bleibt.
 - **Jedes Ortsfeld als Ort im Kalender.** Ein Ortsfeld eines Termins, einer Vorlage oder einer Terminreihe lässt sich als Ort im Kalender markieren. Nur ein Ortsfeld je Formular trägt die Markierung, und die eigene Markierung eines Termins geht der seiner Terminreihe vor.
 - **Treffpunkt in Termindokumenten.** Dokumente für Termine haben einen neuen Platzhalter für den Treffpunkt. Der Platzhalter für den Ort zeigt weiter, wo der Termin stattfindet, so bleiben Fotoerlaubnisse und ähnliche Formulare, wie sie sind.
+- **Erste Schritte kommen zu dritt.** Die Startseite zeigt höchstens drei erste Schritte gleichzeitig, die Einrichtung der Wache vor den eigenen. Ein Schritt, der auf einem anderen aufbaut, erscheint erst, wenn dieser erledigt oder übersprungen ist, etwa das Einladen von Mitgliedern nach dem Mailversand.
+- **Beschaffungen klappen Erledigtes ein und halten den Besitz fest.** Die Beschaffungsseite zeigt zuerst die offenen Beschaffungen. Erledigte stehen darunter in einem eingeklappten Bereich, die neuesten zuerst. In einem gemischten Inventar hält eine Beschaffung fest, ob sie ein Stück der Wache oder des Trägers bringt. Bei internen und externen Inventaren steht das durch ihre Art fest.
 
 ### Änderungen
 
 - **Kalenderabos zeigen den Treffpunkt.** Kalenderabos zeigen den markierten Ort als Ort eines Termins und sonst den ersten ausgefüllten Ort. Bestehende Ortsfelder mit dem Namen Treffpunkt werden beim Update markiert. Der Ort der Veranstaltung bleibt in der Beschreibung des Eintrags. Einladungen von der Nachrückliste zeigen denselben Ort.
+- **Anfragen ohne Ember werden zu Beschaffungen.** Führt der Träger sein Material nicht in Ember, legt „Anfrage notieren“ in der Inventarübersicht die Anfrage als Beschaffung eines Stücks des Trägers an. Sie trägt den Hinweis „Beim Träger angefragt“. Anfragen an den Träger gibt es nur noch, wenn er sein Material in Ember führt. Sonst sind die Ketten für Anfragen auf der Seite der Abläufe ausgeblendet.
 
 ### Fehlerbehebungen
 
@@ -27,6 +30,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Einzelne Termine in Kalenderabos standen in UTC.** Im persönlichen und im öffentlichen Abo standen einmalige Termine in UTC, während Serien schon die Zeitzone der Wache trugen. Einmalige Termine stehen jetzt ebenfalls in der Zeitzone der Wache, mit Sommer- und Winterzeit, wie sie an ihrem Datum gilt.
 - **Stunden auf gedruckten Anwesenheitslisten im falschen Zahlenformat.** In manchen Fällen standen die Stunden auf gedruckten Anwesenheitslisten und Berichten bei einer englischsprachigen Wache mit Dezimalkomma oder bei einer deutschsprachigen mit Dezimalpunkt. Die Stunden folgen jetzt der Sprache der Wache, wie schon im Tabellenexport.
 - **Die Inventarseite sprang nach oben.** Nach jeder Änderung an einem Gegenstand wurde die ganze Liste neu geladen, und die Stelle darin ging verloren. Die Seite bleibt jetzt beim Aktualisieren, wo sie war.
+- **Beschaffungen in externen Inventaren brachten Stücke der Wache.** Wurde eine Beschaffung in einem Inventar, das nur Material des Trägers enthält, als erledigt markiert, entstand ein Stück im Besitz der Wache. Das Stück gehört jetzt dem Träger und bleibt bei der Wache.
 
 ## v26.26.4
 

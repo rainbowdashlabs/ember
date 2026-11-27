@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -22,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Every combination a station starts with can actually be started.
@@ -195,11 +199,64 @@ class MovementReachTest extends RepositoryTestBase {
 
     @Test
     void theStationAsksTheBodyAboveForTheStore() {
-        reaches(MovementPurpose.REQUEST, null, null, theirs, ItemOwner.CLUSTER, MovementParty.STORE);
+        underAnAssociationInEmber(
+                () -> reaches(MovementPurpose.REQUEST, null, null, theirs, ItemOwner.CLUSTER, MovementParty.STORE));
     }
 
     @Test
     void theStationAsksTheBodyAboveForAMember() {
-        reaches(MovementPurpose.REQUEST, member.id(), null, theirs, ItemOwner.CLUSTER, MovementParty.MEMBER);
+        underAnAssociationInEmber(() ->
+                reaches(MovementPurpose.REQUEST, member.id(), null, theirs, ItemOwner.CLUSTER, MovementParty.MEMBER));
+    }
+
+    /** An association outside Ember can neither send nor refuse, so the station notes such a request down as an order. */
+    @Test
+    void nobodyIsAskedWhereTheAssociationIsNotInEmber() {
+        assertEquals(InventoryRefusal.MOVEMENT_REQUEST_WITHOUT_ASSOCIATION, refusalOfARequest());
+    }
+
+    /** An association in Ember that keeps no gear here is as unable to answer as one outside Ember. */
+    @Test
+    void nobodyIsAskedWhereTheAssociationKeepsNoGearInEmber() {
+        underAnAssociation(
+                false, () -> assertEquals(InventoryRefusal.MOVEMENT_REQUEST_WITHOUT_ASSOCIATION, refusalOfARequest()));
+    }
+
+    private Refusal refusalOfARequest() {
+        return assertThrows(
+                        RefusalResponse.class,
+                        () -> itemMovementService.create(
+                                station.id(),
+                                MovementPurpose.REQUEST,
+                                member.id(),
+                                "Rea Ch",
+                                null,
+                                theirs,
+                                null,
+                                null,
+                                "Auf dem Weg",
+                                theStation(),
+                                null))
+                .refusal();
+    }
+
+    /** Runs with the station under an association that keeps its gear in Ember, and takes it out again. */
+    private static void underAnAssociationInEmber(Runnable body) {
+        underAnAssociation(true, body);
+    }
+
+    /** Runs with the station under an association, keeping gear in Ember or not, and takes it out again. */
+    private static void underAnAssociation(boolean usesInventory, Runnable body) {
+        var home = stationRepo.create("ReachHome " + CODES.incrementAndGet());
+        var association = clusterRepo.create("Reach association " + CODES.incrementAndGet(), null, home.id());
+        clusterRepo.setUsesInventory(association.id(), usesInventory);
+        stationRepo.setCluster(station.id(), association.id());
+        try {
+            body.run();
+        } finally {
+            stationRepo.setCluster(station.id(), null);
+            clusterRepo.delete(association.id());
+            stationRepo.delete(home.id());
+        }
     }
 }

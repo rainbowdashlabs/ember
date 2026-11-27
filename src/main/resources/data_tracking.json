@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:bea2ab75a63a1e0ef51baa74afad7862700eb0527da3b34af736ff31e9b854ca",
-  "generatedAt": "2026-11-27T12:38:02Z",
+  "schemaHash": "sha256:6c2e5e4cf7998b9edc70af26e95304d71891ef8597acddfe29601f740a41eccd",
+  "generatedAt": "2026-11-27T16:18:49Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -9790,7 +9790,7 @@
     "equipment_procurement": {
       "feature": "inventory",
       "scope": "STATION",
-      "tableHash": "sha256:b1d2378db18f4b89dbec071d27185cac4a6310dc6d77e6c8f2713b449d8f9f51",
+      "tableHash": "sha256:9ace3155af7eee7ecbb286c320fb98338290a55249f6ae44dd2bdbef49a2b00f",
       "columns": [
         {
           "name": "id",
@@ -9854,6 +9854,13 @@
           "nullable": true,
           "verified": true,
           "description": "The swap waiting for this order to bring its replacement, while it stands on the step that names it. NULL for an order of its own; cleared when the swap closes, moves to another step or chain, or has its arrival named before the order arrives. At most one open order per swap."
+        },
+        {
+          "name": "owner_kind",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Who owns the piece the procurement brings, for a mixed inventory only: STATION for the station, CLUSTER for the association above it. Null for an inventory whose type already settles the owner, and for orders placed before the choice existed."
         }
       ],
       "foreignKeys": [

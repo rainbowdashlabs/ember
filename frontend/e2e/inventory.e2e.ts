@@ -624,6 +624,17 @@ test.describe('Inventory', () => {
             const orders = await page.request.get('/api/v1/procurement', {headers}).then(r => r.json())
             expect(orders.find((entry: {id: number}) => entry.id === orderId)?.fulfilledAt, 'the order is delivered')
                 .toBeTruthy()
+
+            await page.reload()
+            const fulfilled = page.getByTestId('procurement-done').getByTestId('procurement-entry')
+                .filter({hasText: `Zuweisung ${piece.code}`})
+            await expect(page.getByTestId('procurement-done'), 'fulfilled orders start folded')
+                .not.toHaveAttribute('open')
+            await expect(fulfilled, 'the delivered order is among them').toHaveCount(1)
+            await expect(fulfilled, 'and folded away below the open ones').toBeHidden()
+            await page.getByTestId('procurement-done').locator('summary').click()
+            await expect(fulfilled).toBeVisible()
+            await expect(page.getByTestId('procurement-open').getByText(`Zuweisung ${piece.code}`)).toHaveCount(0)
         })
 
     /**
@@ -635,6 +646,37 @@ test.describe('Inventory', () => {
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
         expect(page.url()).toContain('/station/inventory/procurement')
+    })
+
+    /**
+     * A request to an association that does not answer in Ember is noted down as an order of its piece.
+     * Whose piece it is follows the inventory: an external one holds only the association's, so the order
+     * needs no owner and still reads as asked of the association.
+     */
+    test('an order of the association\'s piece reads as asked of the association', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const name = unique('Vom Träger')
+        const created = await page.request.post('/api/v1/inventories', {
+            headers,
+            data: {name, inventoryType: 'EXTERNAL', homogeneous: true, hasSizes: false},
+        })
+        expect(created.ok(), await created.text()).toBeTruthy()
+        const inventoryId = (await created.json()).id as number
+        try {
+            const note = unique('Beim Träger angefragt')
+            const ordered = await page.request.post('/api/v1/procurement', {
+                headers,
+                data: {inventoryId, notes: note},
+            })
+            expect(ordered.ok(), await ordered.text()).toBeTruthy()
+            expect((await ordered.json()).owner, 'an external inventory holds the association\'s piece').toBe('CLUSTER')
+
+            await page.goto('/station/inventory/procurement')
+            const entry = page.getByTestId('procurement-entry').filter({hasText: note})
+            await expect(entry.getByTestId('procurement-from-association')).toBeVisible()
+        } finally {
+            await page.request.delete(`/api/v1/inventories/${inventoryId}`, {headers})
+        }
     })
 
     /**

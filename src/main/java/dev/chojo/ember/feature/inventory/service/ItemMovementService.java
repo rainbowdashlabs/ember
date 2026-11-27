@@ -335,6 +335,7 @@ public class ItemMovementService {
         requireItIsNotAlreadyOnItsWay(outgoingItemId, pickedItemId);
         carriedIncoming.forEach(this::requireFree);
         requireSomethingToSwapFor(purpose, inventoryId);
+        requireSomebodyToAsk(stationId, purpose);
         var target = targeting.resolve(stationId, purpose, memberId, outgoingItemId, pickedItemId, inventoryId);
         ItemOwner ownerKind = target.ownerKind();
         Integer ownerClusterId = target.ownerClusterId();
@@ -633,6 +634,22 @@ public class ItemMovementService {
                 throw InventoryRefusal.MOVEMENT_NOTHING_TO_SWAP_FOR.raise(inventory.name());
             }
         });
+    }
+
+    /**
+     * Refuses a request where the association above does not keep its gear in Ember. It could neither
+     * send a piece nor refuse, so the station notes such a request down as a procurement instead.
+     *
+     * @param stationId the station raising the movement
+     * @param purpose   what the movement is for
+     */
+    private void requireSomebodyToAsk(int stationId, MovementPurpose purpose) {
+        if (purpose != MovementPurpose.REQUEST) return;
+        boolean associationInEmber = clusterRepository
+                .findByStation(stationId)
+                .filter(Cluster::usesInventory)
+                .isPresent();
+        if (!associationInEmber) throw InventoryRefusal.MOVEMENT_REQUEST_WITHOUT_ASSOCIATION.raise();
     }
 
     /**

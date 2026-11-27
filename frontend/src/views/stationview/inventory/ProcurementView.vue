@@ -17,7 +17,7 @@ import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { describeFailure } from '@/util/failure'
-import ProcurementEntryRow from './procurementview/ProcurementEntryRow.vue'
+import ProcurementList from './procurementview/ProcurementList.vue'
 import ProcurementCreateModal from './procurementview/ProcurementCreateModal.vue'
 import ProcurementStockModal from './procurementview/ProcurementStockModal.vue'
 
@@ -130,17 +130,13 @@ function onCreated() {
         :failure="failure"
         :loading="loading"
       >
-        <div class="space-y-3">
-          <ProcurementEntryRow
-            v-for="entry in entries"
-            :key="entry.id"
-            :entry="entry"
-            :can-manage-procurement="canManageProcurement"
-            @fulfill="fulfillEntry"
-            @from-stock="openFromStock"
-            @delete="deleteEntry"
-          />
-        </div>
+        <ProcurementList
+          :entries="entries"
+          :can-manage-procurement="canManageProcurement"
+          @fulfill="fulfillEntry"
+          @from-stock="openFromStock"
+          @delete="deleteEntry"
+        />
       </AsyncSection>
 
       <ProcurementStockModal

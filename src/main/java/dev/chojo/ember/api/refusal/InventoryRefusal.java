@@ -1174,7 +1174,23 @@ public enum InventoryRefusal implements Refusal {
             302, HttpStatus.BAD_REQUEST, "That picture was not one that could be kept, so nothing was saved"),
 
     /** A photo for an inventory or a kind that could not be written to the store. */
-    INVENTORY_PICTURE_NOT_PROCESSED(303, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.UPLOAD_NOT_PROCESSED);
+    INVENTORY_PICTURE_NOT_PROCESSED(303, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.UPLOAD_NOT_PROCESSED),
+
+    /** An order in a mixed inventory given without whose piece it brings. */
+    PROCUREMENT_NEEDS_AN_OWNER(
+            320,
+            HttpStatus.BAD_REQUEST,
+            "This inventory holds the station's gear and the association's, so choose whose piece is ordered"),
+
+    /** An order naming an owner that no order can bring, such as a partner station. */
+    PROCUREMENT_OWNER_NOT_POSSIBLE(
+            321, HttpStatus.BAD_REQUEST, "An order brings the station's piece or the association's, nobody else's"),
+
+    /** A request to the association from a station whose association does not keep its gear in Ember. */
+    MOVEMENT_REQUEST_WITHOUT_ASSOCIATION(
+            322,
+            HttpStatus.CONFLICT,
+            "The association above this station does not use Ember, so note the request down as a procurement");
 
     private final Definition definition;
 

@@ -17,6 +17,46 @@ test.describe('Onboarding on the shared levels', () => {
         await expect(page.getByText('Eure Wache einrichten').first()).toBeVisible()
     })
 
+    /**
+     * Reads the lists rather than changing them, since the station's are shared with every other
+     * story, and works out from them which steps the dashboard has to show.
+     */
+    test('a station manager is walked through the station first, three steps at a time',
+        async ({managerPage: page}) => {
+            const headers = await apiHeaders(page)
+            type Task = {id: string; state: string; ready: boolean}
+            const readyOf = async (level: string) => {
+                const response = await page.request.get(`/api/v1/onboarding/${level}`, {headers})
+                expect(response.ok(), await response.text()).toBeTruthy()
+                const tasks = (await response.json()).tasks as Task[]
+                return {
+                    ready: tasks.filter(task => task.state === 'OPEN' && task.ready).map(task => task.id),
+                    open: tasks.filter(task => task.state === 'OPEN').length,
+                }
+            }
+            await expect(async () => {
+                await page.goto('/station/dashboard/overview')
+                await expect(page.getByText('Eure Wache einrichten').first()).toBeVisible()
+                const station = await readyOf('station')
+                const member = await readyOf('member')
+                const expected = [...station.ready, ...member.ready].slice(0, 3)
+
+                const shown = page.locator('li[data-testid^="onboarding-task-"]')
+                await expect(shown).toHaveCount(expected.length, {timeout: 2_000})
+                const ids = await shown.evaluateAll(items => items.map(item => item.getAttribute('data-testid')))
+                expect(ids, 'the station takes the free places before the reader\'s own steps')
+                    .toEqual(expected.map(id => `onboarding-task-${id}`))
+
+                if (station.ready.length >= 3 && member.open > 0) {
+                    await expect(page.getByTestId('onboarding-waiting')).toBeVisible({timeout: 2_000})
+                }
+                if (station.open + member.open > expected.length) {
+                    await expect(page.getByTestId('onboarding-later')).toBeVisible({timeout: 2_000})
+                }
+            }, 'other stories change the shared station meanwhile, so the page is read again until both agree')
+                .toPass({timeout: 30_000})
+        })
+
     test('what one manager settles is settled for the station', async ({managerPage: page, browser}) => {
         const headers = await apiHeaders(page)
 

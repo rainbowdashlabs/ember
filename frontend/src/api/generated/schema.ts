@@ -73510,6 +73510,7 @@ export interface components {
             /** Format: int32 */
             memberId?: number | null;
             notes?: string | null;
+            owner?: components["schemas"]["ItemOwner"] | null;
             /** Format: int32 */
             sizeId?: number | null;
         };
@@ -78890,6 +78891,7 @@ export interface components {
             elsewhere: boolean;
             id: string;
             key: string;
+            ready: boolean;
             state: components["schemas"]["OnboardingTaskState"];
             subject: string | null;
             /** Format: int32 */
@@ -79742,6 +79744,7 @@ export interface components {
             /** Format: int32 */
             movementId: number | null;
             notes: string;
+            owner: components["schemas"]["ItemOwner"];
             requestedAt: components["schemas"]["Instant"];
             /** Format: int32 */
             sizeId: number | null;
