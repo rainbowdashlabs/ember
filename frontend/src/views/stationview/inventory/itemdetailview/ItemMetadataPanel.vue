@@ -21,6 +21,8 @@ import type {
 } from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
+import AuthImage from '@/components/display/AuthImage.vue'
+import {itemPictureUrl} from '@/api/inventoryPictures'
 import {pieceGlyph} from '@/util/glyph'
 import ItemEditForm from './ItemEditForm.vue'
 import ItemMetadataDisplay from './ItemMetadataDisplay.vue'
@@ -112,6 +114,12 @@ const artName = computed(() => art.value?.name ?? null)
 /** The kind's picture where the kind has one, otherwise the inventory's. */
 const glyph = computed(() => pieceGlyph(art.value, owningInventory.value))
 
+/** The photo the piece is shown with, by the same order: the kind's, otherwise the inventory's. */
+const pictureSrc = computed(() => {
+  const key = art.value?.pictureKey ?? owningInventory.value?.pictureKey
+  return key ? itemPictureUrl(props.item.id, key, 512) : null
+})
+
 function startEdit() {
   editName.value = props.item.name ?? ''
   editInternalId.value = props.item.internalId ?? ''
@@ -172,6 +180,9 @@ const assignedMemberIdentity = computed(() => {
         {{ t('itemDetail.edit') }}
       </SecondaryButton>
     </div>
+
+    <AuthImage v-if="pictureSrc" :src="pictureSrc" alt="" data-testid="item-picture"
+               class="max-h-64 w-full rounded-theme border border-(--border) object-contain sm:w-auto"/>
 
     <ItemEditForm
       v-if="editing"

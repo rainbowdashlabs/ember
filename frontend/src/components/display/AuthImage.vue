@@ -6,6 +6,8 @@
 <script setup lang="ts">
 import {useAuthImage} from '@/composables/useAuthImage'
 
+defineOptions({inheritAttrs: false})
+
 const props = defineProps<{
   src: string
   alt?: string

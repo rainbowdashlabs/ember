@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, useId, watch} from 'vue'
+import {computed, ref, useId, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -15,9 +15,10 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import InventoryKindField from '@/components/inventory/InventoryKindField.vue'
 import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
+import InventoryPictureField from '@/components/inventory/InventoryPictureField.vue'
 import {switchRefusal} from '@/api/inventory'
 import {InventoryType, type InventoryDetail, type SwitchBlocker} from '@/api/generated/schema'
-import {inventory} from '@/api'
+import {inventory, inventoryPictures} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
 import SwitchRefusalAlert from './SwitchRefusalAlert.vue'
 
@@ -39,6 +40,14 @@ const editHomogeneous = ref(props.detail.homogeneous)
 const editHasSizes = ref(props.detail.hasSizes ?? false)
 const editIcon = ref<string | null>(props.detail.icon ?? null)
 const editColor = ref<string | null>(props.detail.color ?? null)
+
+/** The photo as it stands; it is saved on its own the moment it is picked, apart from the form. */
+const pictureKey = ref<string | null>(props.detail.pictureKey ?? null)
+const pictureSrc = computed(() => pictureKey.value
+    ? inventoryPictures.inventoryPictureUrl(props.detail.id, pictureKey.value, 256)
+    : null)
+const uploadPicture = (file: File) => inventoryPictures.uploadInventoryPicture(props.detail.id, file)
+const removePicture = () => inventoryPictures.removeInventoryPicture(props.detail.id)
 
 /** A collection keeps no size list, so the one control follows the other. */
 watch(editHomogeneous, value => {
@@ -102,6 +111,14 @@ async function saveSettings() {
     </div>
 
     <GearIconPicker v-model:icon="editIcon" v-model:color="editColor" allow-no-icon/>
+
+    <InventoryPictureField
+        :hint="t('inventory.picture.inventoryHint')"
+        :remove="removePicture"
+        :src="pictureSrc"
+        :upload="uploadPicture"
+        @changed="pictureKey = $event"
+    />
 
     <InventoryKindField v-model="editHomogeneous"/>
 

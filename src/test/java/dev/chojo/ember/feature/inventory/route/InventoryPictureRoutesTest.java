@@ -40,6 +40,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
@@ -233,6 +234,38 @@ class InventoryPictureRoutesTest extends RepositoryTestBase {
                 refusalOf(put(inventoryPicture(), editor(), "image", "image/png", new byte[LIMIT + 1]))
                         .code());
         assertNull(inventoryRepo.findById(inventoryId).orElseThrow().pictureKey());
+    }
+
+    @Test
+    void aPhotoIsReadByItsKeyOnlyAtItsOwnStation() {
+        String key = json(putPicture(inventoryPicture())).get("pictureKey").asString();
+
+        var own = harness.request(client -> client.get(PREFIX + "/inventory-pictures/" + key + "?size=64", reader()));
+        assertEquals(200, own.code());
+
+        var unknown =
+                harness.request(client -> client.get(PREFIX + "/inventory-pictures/" + UUID.randomUUID(), reader()));
+        assertEquals("I-299", refusalOf(unknown).code());
+
+        var kind = artRepo.create(inventoryId, "Rutsche", "", 0);
+        String kindKey = json(putPicture("/inventories/%d/arts/%d/picture".formatted(inventoryId, kind.id())))
+                .get("pictureKey")
+                .asString();
+        var ownKind = harness.request(client -> client.get(PREFIX + "/inventory-pictures/" + kindKey, reader()));
+        assertEquals(200, ownKind.code());
+
+        var lendingManager = harness.request(client -> client.get(
+                PREFIX + "/inventory-pictures/" + kindKey,
+                harness.as(signedIn(member, StationPermission.INVENTORY_LENDING_MANAGER))));
+        assertEquals(200, lendingManager.code(), "the overview of what is offered shows the photos too");
+
+        var otherMember = stationMemberRepo.create(elsewhere.id(), account.id());
+        for (String foreignKey : new String[] {key, kindKey}) {
+            var foreign = harness.request(client -> client.get(
+                    PREFIX + "/inventory-pictures/" + foreignKey,
+                    harness.as(signedIn(otherMember, StationPermission.INVENTORY_READ))));
+            assertEquals("I-299", refusalOf(foreign).code());
+        }
     }
 
     @Test

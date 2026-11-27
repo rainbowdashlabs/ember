@@ -36,7 +36,10 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 /**
  * The photos of inventories and of their kinds, and the photo a piece is shown with.
  *
- * <p>Anybody who may read the inventory sees its photos; changing them needs the right to edit it.
+ * <p>Anybody who may read the inventory sees its photos; changing them needs the right to edit it. A
+ * photo can also be asked for by its key alone, for lists that carry the key of each row's photo; the
+ * key has to belong to an inventory or a kind of the asking station. That route also lets in whoever
+ * manages lending, since the overview of what the station offers shows the photos too.
  * A photo is sent as the multipart field {@code image}, in PNG, JPEG or WebP, and is weighed against
  * the instance's limit for pictures. It is answered with the key it is now kept under, which the
  * pages put into the address they ask for it with, so a browser never shows a cached older photo.
@@ -48,6 +51,7 @@ public class InventoryPictureRoutes implements Routes {
     private static final String INVENTORY_PICTURE = "/inventories/{inventoryId}/picture";
     private static final String ART_PICTURE = "/inventories/{inventoryId}/arts/{artId}/picture";
     private static final String ITEM_PICTURE = "/inventory-items/{itemId}/picture";
+    private static final String KEYED_PICTURE = "/inventory-pictures/{pictureKey}";
 
     private final InventoryPictureService pictureService;
     private final Api apiConfig;
@@ -67,6 +71,11 @@ public class InventoryPictureRoutes implements Routes {
         routes.put(prefix + ART_PICTURE, this::storeArtPicture, StationPermission.INVENTORY_EDIT);
         routes.delete(prefix + ART_PICTURE, this::removeArtPicture, StationPermission.INVENTORY_EDIT);
         routes.get(prefix + ITEM_PICTURE, this::itemPicture, StationPermission.INVENTORY_READ);
+        routes.get(
+                prefix + KEYED_PICTURE,
+                this::keyedPicture,
+                StationPermission.INVENTORY_READ,
+                StationPermission.INVENTORY_LENDING_MANAGER);
     }
 
     @OpenApi(
@@ -193,6 +202,21 @@ public class InventoryPictureRoutes implements Routes {
             })
     private void itemPicture(Context ctx) {
         send(ctx, pictureService.readForItem(stationId(ctx), pathInt(ctx, "itemId"), size(ctx)));
+    }
+
+    @OpenApi(
+            path = "/api/v1" + KEYED_PICTURE,
+            methods = HttpMethod.GET,
+            summary = "A photo of one of this station's inventories or kinds, by its key",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "pictureKey", type = String.class, required = true),
+            queryParams = @OpenApiParam(name = "size", type = Integer.class, description = "Side in pixels"),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void keyedPicture(Context ctx) {
+        send(ctx, pictureService.readByKey(stationId(ctx), ctx.pathParam("pictureKey"), size(ctx)));
     }
 
     private static int stationId(Context ctx) {

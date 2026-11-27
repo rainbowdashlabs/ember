@@ -91,4 +91,17 @@ describe('ItemMetadataPanel tags', () => {
 
         expect(wrapper.findComponent({name: 'GearGlyph'}).props('glyph')).toEqual({icon: 'ph:park', color: '#15803d'})
     })
+
+    it('shows the photo of the kind before that of the inventory', async () => {
+        calls.listArts.mockResolvedValue([{id: 3, name: 'Bierbank', icon: null, color: null, pictureKey: 'kind-photo'}])
+        calls.getInventory.mockResolvedValue({id: 22, icon: null, color: null, homogeneous: false, pictureKey: 'inventory-photo'})
+        calls.itemTags.mockResolvedValue([])
+        const wrapper = mount(ItemMetadataPanel, {
+            props: {item: {...item, artId: 3}, sizes: [], members: [], location: null, canEditItem: false},
+            global: {stubs: {ItemOwnerField: true, 'router-link': true, AuthImage: {props: ['src'], template: '<img :src="src">'}}},
+        })
+        await flushPromises()
+
+        expect(wrapper.find('img').attributes('src')).toContain('v=kind-photo')
+    })
 })

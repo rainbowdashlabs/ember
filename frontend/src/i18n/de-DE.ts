@@ -5691,6 +5691,14 @@ export default {
                 + 'nicht rückgängig machen. „Nur Art setzen“ lässt die Bezeichnungen unverändert.',
             tidied: '{count} Gegenstände aufgeräumt.',
         },
+        picture: {
+            label: 'Foto',
+            add: 'Foto hinzufügen',
+            replace: 'Foto ersetzen',
+            remove: 'Foto entfernen',
+            inventoryHint: 'Das Foto erscheint auf der Bestandsseite, bei jedem Gegenstand und in der Ausleihe. Eine Art mit eigenem Foto zeigt stattdessen ihres.',
+            artHint: 'Gegenstände dieser Art zeigen dieses Foto statt des Fotos ihres Inventars.',
+        },
         batch: {
             start: 'Auswählen',
             stop: 'Auswahl beenden',

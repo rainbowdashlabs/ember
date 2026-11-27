@@ -40419,6 +40419,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory-pictures/{pictureKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A photo of one of this station's inventories or kinds, by its key */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    pictureKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory-requirements": {
         parameters: {
             query?: never;
@@ -82023,10 +82070,14 @@ export interface components {
         };
         ShareDetail: {
             artName: string | null;
+            color: string | null;
+            homogeneous: boolean;
+            icon: string | null;
             inventoryName: string | null;
             itemInternalId: string | null;
             itemName: string | null;
             partners: components["schemas"]["SharePartner"][];
+            pictureKey: string | null;
             share: components["schemas"]["InventoryShare"];
         };
         SharedEvent: {

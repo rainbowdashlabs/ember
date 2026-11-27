@@ -33583,6 +33583,42 @@
         }
       }
     },
+    "/api/v1/inventory-pictures/{pictureKey}" : {
+      "get" : {
+        "summary" : "A photo of one of this station's inventories or kinds, by its key",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "pictureKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/inventory-requirements" : {
       "post" : {
         "summary" : "Create an inventory requirement",
@@ -87783,6 +87819,18 @@
           "itemInternalId" : {
             "type" : [ "string", "null" ]
           },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          },
+          "homogeneous" : {
+            "type" : "boolean"
+          },
           "partners" : {
             "type" : "array",
             "items" : {
@@ -87790,7 +87838,7 @@
             }
           }
         },
-        "required" : [ "share", "inventoryName", "artName", "itemName", "itemInternalId", "partners" ]
+        "required" : [ "share", "inventoryName", "artName", "itemName", "itemInternalId", "pictureKey", "icon", "color", "homogeneous", "partners" ]
       },
       "ShareGrant" : {
         "type" : "string",

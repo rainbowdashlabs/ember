@@ -23,7 +23,7 @@ import type {
   MovementResponse,
   ProcurementResponse,
 } from '@/api/generated/schema'
-import { inventory, inventoryArts, inventoryContainers, movements, stationMembers, procurement } from '@/api'
+import { inventory, inventoryArts, inventoryContainers, inventoryPictures, movements, stationMembers, procurement } from '@/api'
 import { piecesOnOpenMovements } from '@/util/movementPieces'
 import { piecesHeldByLoans } from '@/util/loanHolds'
 import { todayIsoDate } from '@/util/format'
@@ -111,6 +111,11 @@ const itemTable = useItemTable({
  * where it could not be fetched at all.
  */
 const pageTitle = computed(() => detail.value?.name || t('pages.inventory-detail.title'))
+
+/** The inventory's photo for the head of the page, where it has one. */
+const inventoryPictureSrc = computed(() => detail.value?.pictureKey
+    ? inventoryPictures.inventoryPictureUrl(detail.value.id, detail.value.pictureKey, 256)
+    : null)
 
 const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 const canProcure = computed(() =>
@@ -279,6 +284,7 @@ function goEdit() { router.push({ name: routes.edit, params: { id: inventoryId.v
         :homogeneous="detail?.homogeneous ?? true"
         :art-count="detail?.homogeneous === false ? arts.length : null"
         :can-edit="permissions.canEdit"
+        :picture-src="inventoryPictureSrc"
         @back="goBack"
         @edit="goEdit"
       />

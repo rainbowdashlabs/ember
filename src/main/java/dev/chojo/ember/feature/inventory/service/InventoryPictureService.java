@@ -176,6 +176,21 @@ public class InventoryPictureService {
     }
 
     /**
+     * A photo by its key, for a list that names the key of each row's photo and nothing else.
+     *
+     * @param stationId  the station the photo has to belong to
+     * @param pictureKey the key an inventory or a kind of the station names
+     * @param size       the side wanted, {@code 0} for the kept original
+     * @return the photo
+     */
+    public MediaContent readByKey(int stationId, String pictureKey, int size) {
+        if (!artRepository.isPictureOfStation(stationId, pictureKey)) {
+            throw InventoryRefusal.INVENTORY_PICTURE_NOT_HERE.raise();
+        }
+        return read(stationId, pictureKey, size);
+    }
+
+    /**
      * The key of the photo a piece is shown with, by the same order as {@link #readForItem}.
      *
      * @param stationId the station the piece has to belong to

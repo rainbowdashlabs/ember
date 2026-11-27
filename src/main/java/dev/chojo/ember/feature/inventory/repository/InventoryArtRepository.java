@@ -150,6 +150,27 @@ public class InventoryArtRepository {
     }
 
     /**
+     * Whether a photo key belongs to an inventory of the station or to one of its kinds.
+     *
+     * @param stationId  the station
+     * @param pictureKey the key
+     * @return true when an inventory or a kind of the station names it
+     */
+    public boolean isPictureOfStation(int stationId, String pictureKey) {
+        return query("""
+                SELECT EXISTS(
+                    SELECT 1 FROM inventory WHERE station_id = :station_id AND picture_key = :key
+                    UNION ALL
+                    SELECT 1 FROM inventory_art a JOIN inventory i ON i.id = a.inventory_id
+                    WHERE i.station_id = :station_id AND a.picture_key = :key
+                ) AS held;""")
+                .single(call().bind("station_id", stationId).bind("key", pictureKey))
+                .map(row -> row.getBoolean("held"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
      * Renames a kind or moves it in the list. The merge key follows by itself.
      *
      * @param id       the kind

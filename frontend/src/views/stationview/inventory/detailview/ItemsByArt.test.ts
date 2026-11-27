@@ -61,4 +61,28 @@ describe('ItemsByArt headings', () => {
 
         expect(glyphs.map(glyph => glyph.icon)).toEqual(['ph:park', 'box', 'box'])
     })
+
+    it('shows the photo of a kind that has one in place of its icon', async () => {
+        const arts = [{...ARTS[0], pictureKey: 'bench-photo'}, ARTS[1]] as unknown as InventoryArt[]
+        const wrapper = mount(defineComponent({
+            setup() {
+                const table = useItemTable({
+                    inventoryId: () => 22,
+                    items: () => ITEMS,
+                    sizes: () => [],
+                    hasSizes: () => false,
+                    isMixed: () => false,
+                    sizeLabel: () => '',
+                    assignedName: () => '',
+                })
+                return () => h(ItemsByArt, {items: table, arts, inventoryGlyph: {icon: 'tent', color: null},
+                    memberIdentity: () => null, lentItemStationMap: new Map(), containerPathById: new Map()})
+            },
+        }), {global: {stubs: {InventoryItemTable: true, TableFilterDialog: true, RecordCardControls: true,
+            GearGlyph: true, AuthImage: {props: ['src'], template: '<img :src="src">'}}}})
+        await flushPromises()
+
+        expect(wrapper.find('img').attributes('src')).toContain('v=bench-photo')
+        expect(wrapper.findAllComponents({name: 'GearGlyph'})).toHaveLength(2)
+    })
 })
