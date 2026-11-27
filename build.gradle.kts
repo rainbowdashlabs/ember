@@ -27,7 +27,7 @@ version = "26.27.0"
 
 repositories {
     maven("https://eldonexus.de/repository/maven-proxies/")
-    mavenCentral()
+    maven("https://eldonexus.de/repository/maven-public/")
 }
 
 configurations.configureEach {
