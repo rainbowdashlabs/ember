@@ -438,6 +438,7 @@ public class StorageQuotaService {
                     MAP_TILE_CACHE,
                     DEMO_AVATAR,
                     IMAGE_DISCOVERY_LOGO,
+                    IMAGE_PARTNER_LENDING,
                     INSTANCE_MEDIA_FILES,
                     INSTANCE_FONTS -> Long.MAX_VALUE;
         };

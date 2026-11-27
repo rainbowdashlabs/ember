@@ -154,7 +154,7 @@ public class InventoryArtRepository {
      *
      * @param stationId  the station
      * @param pictureKey the key
-     * @return true when an inventory or a kind of the station names it
+     * @return true when an inventory or a kind of the station holds it
      */
     public boolean isPictureOfStation(int stationId, String pictureKey) {
         return query("""
@@ -168,6 +168,25 @@ public class InventoryArtRepository {
                 .map(row -> row.getBoolean("held"))
                 .first()
                 .orElse(false);
+    }
+
+    /**
+     * The inventory a photo key belongs to, as the inventory's own photo or a kind's of it.
+     *
+     * @param stationId  the station the inventory has to belong to
+     * @param pictureKey the key
+     * @return the inventory, or empty where no inventory or kind of the station holds the key
+     */
+    public Optional<Integer> inventoryOfPicture(int stationId, String pictureKey) {
+        return query("""
+                SELECT id AS inventory_id FROM inventory WHERE station_id = :station_id AND picture_key = :key
+                UNION ALL
+                SELECT a.inventory_id FROM inventory_art a JOIN inventory i ON i.id = a.inventory_id
+                WHERE i.station_id = :station_id AND a.picture_key = :key
+                LIMIT 1;""")
+                .single(call().bind("station_id", stationId).bind("key", pictureKey))
+                .map(row -> row.getInt("inventory_id"))
+                .first();
     }
 
     /**

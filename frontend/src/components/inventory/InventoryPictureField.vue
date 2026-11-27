@@ -18,7 +18,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
  * The photo of an inventory or a kind: shown, replaced by picking another, or taken away.
  *
  * <p>Picking a new photo replaces the old one in one step, there is no need to remove it first. The
- * field sends and removes the photo itself through the two calls it is handed, and tells its owner the
+ * field sends and removes the photo itself through the two calls it is handed, and hands its owner the
  * new key, so the owner can show the photo elsewhere at once.
  */
 const props = defineProps<{
@@ -28,7 +28,7 @@ const props = defineProps<{
   upload: (file: File) => Promise<string>
   /** Takes the photo away. */
   remove: () => Promise<void>
-  /** A line under the field naming what the photo is used for. */
+  /** A line under the field describing what the photo is used for. */
   hint?: string
 }>()
 

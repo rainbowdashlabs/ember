@@ -191,6 +191,7 @@ import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.federation.service.FederationVersionBroadcaster;
 import dev.chojo.ember.feature.federation.service.LendingFeedDetails;
+import dev.chojo.ember.feature.federation.service.LendingPictureService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
 import dev.chojo.ember.feature.federation.transport.FederationServer;
@@ -933,6 +934,7 @@ public class EmberModule extends AbstractModule {
         federationServers.addBinding().to(TestProtocolService.class);
         federationServers.addBinding().to(NewsFederationService.class);
         federationServers.addBinding().to(LendingService.class);
+        federationServers.addBinding().to(LendingPictureService.class);
         federationServers.addBinding().to(EventPartnerRegistrationService.class);
         federationServers.addBinding().to(EventCommentFederation.class);
         federationServers.addBinding().to(PartnerEventService.class);

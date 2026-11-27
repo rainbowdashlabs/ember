@@ -1346,7 +1346,7 @@ public class InventoryRoutes implements Routes {
      *
      * @param id            the inventory
      * @param stationId     the station it belongs to
-     * @param name          what the station calls it
+     * @param name          the inventory's name
      * @param inventoryType whose gear it holds
      * @param hasSizes      whether its pieces come in sizes
      * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things

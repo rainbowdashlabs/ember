@@ -212,14 +212,14 @@ public class InventoryTagService {
      * <p>Every thing is checked before anything is written, so one piece from another inventory
      * leaves all of them as they were, and the writes share one transaction. Words to add that the
      * station does not have yet are written down, words to remove that it does not have are
-     * ignored. A word named in both lists ends up removed, since the removal is applied last.
+     * ignored. A word listed in both ends up removed, since the removal is applied last.
      *
      * @param stationId   the station the inventory has to belong to
      * @param inventoryId the inventory the things are in
      * @param itemIds     the things
      * @param add         the words to put on, blanks ignored
      * @param remove      the words to take off, blanks ignored
-     * @return every thing named, in the order named, to the tags it now wears, empty where it wears none
+     * @return every thing asked for, in the order asked, to the tags it now wears, empty where it wears none
      */
     public Map<Integer, List<InventoryTag>> changeTagsOfItems(
             int stationId,
@@ -312,11 +312,11 @@ public class InventoryTagService {
     }
 
     /**
-     * The things named, each checked to lie in the inventory, which has to be the station's.
+     * The things listed, each checked to lie in the inventory, which has to be the station's.
      *
      * <p>A thing at another station is refused as gone, like everywhere else here, so the answer
-     * does not say that it exists there. Only a thing in another inventory of the same station is
-     * named as such.
+     * does not reveal that it exists there. Only a thing in another inventory of the same station is
+     * refused as such.
      *
      * @param stationId   the station the inventory has to belong to
      * @param inventoryId the inventory

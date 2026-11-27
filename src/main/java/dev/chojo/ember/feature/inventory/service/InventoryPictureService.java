@@ -35,15 +35,15 @@ import java.util.UUID;
  * The photos of inventories and of their kinds.
  *
  * <p>A piece shows its kind's photo where the kind has one, otherwise its inventory's. Every upload is
- * kept under a new key that its row then names, and the photo it replaces is removed afterwards, so a
+ * kept under a new key that its row then holds, and the photo it replaces is removed afterwards, so a
  * cached old photo is never served under the new key and a failed upload leaves the old one in place.
  *
  * <p>Every call takes the station and refuses an inventory, kind or piece of another station as gone,
- * so the answer does not say that it exists there.
+ * so the answer does not reveal that it exists there.
  *
- * <p>The files are written a moment before their row names them. A storage reconciliation that reads
- * the named keys within that moment takes the new files for orphans and removes them; the row then
- * names a photo that is gone and the page shows none until the next upload. That window is a few
+ * <p>The files are written a moment before their row holds their key. A storage reconciliation that reads
+ * the held keys within that moment takes the new files for orphans and removes them; the row then
+ * points at a photo that is gone and the page shows none until the next upload. That window is a few
  * milliseconds against a reconciliation that runs rarely, so it is accepted rather than locked
  * against. Two uploads at once leave the loser's files behind, which the reconciliation removes.
  */
@@ -176,10 +176,10 @@ public class InventoryPictureService {
     }
 
     /**
-     * A photo by its key, for a list that names the key of each row's photo and nothing else.
+     * A photo by its key, for a list that carries the key of each row's photo and nothing else.
      *
      * @param stationId  the station the photo has to belong to
-     * @param pictureKey the key an inventory or a kind of the station names
+     * @param pictureKey the key an inventory or a kind of the station holds
      * @param size       the side wanted, {@code 0} for the kept original
      * @return the photo
      */
@@ -247,7 +247,7 @@ public class InventoryPictureService {
      * Removes the files of photos whose rows are gone, such as an inventory or a kind just deleted.
      *
      * @param stationId   the station the photos are kept for
-     * @param pictureKeys the keys the rows named
+     * @param pictureKeys the keys the rows held
      */
     public void removeFiles(int stationId, Collection<String> pictureKeys) {
         pictureKeys.forEach(key -> removeFiles(stationId, key));

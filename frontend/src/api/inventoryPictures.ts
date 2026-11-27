@@ -61,3 +61,12 @@ export function pictureUrl(pictureKey: string, size?: number): string {
     const base = `${client.defaults.baseURL}/inventory-pictures/${encodeURIComponent(pictureKey)}`
     return size ? `${base}?size=${size}` : base
 }
+
+/**
+ * The photo a partner station shows offered gear with, served from this instance's own copy. The
+ * partner's key is part of the address, so a new photo there is a new address here.
+ */
+export function partnerPictureUrl(stationUid: string, pictureKey: string, size?: number): string {
+    const base = `${client.defaults.baseURL}/federated/lending/pictures/${stationUid}/${encodeURIComponent(pictureKey)}`
+    return size ? `${base}?size=${size}` : base
+}

@@ -33807,6 +33807,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/lending/pictures/{stationUid}/{pictureKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The photo a partner station shows offered gear with */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    pictureKey: string;
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federated/my-registrations": {
         parameters: {
             query?: never;
@@ -71793,10 +71841,14 @@ export interface components {
             artName: string | null;
             /** Format: int32 */
             availableCount: number;
+            color: string | null;
             distanceKm: number | null;
+            homogeneous: boolean;
+            icon: string | null;
             /** Format: int32 */
             inventoryId: number;
             inventoryName: string;
+            pictureKey: string | null;
             /** Format: uuid */
             stationId: string;
             stationName: string;
@@ -82903,7 +82955,7 @@ export interface components {
         /** @enum {string} */
         StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
         /** @enum {string} */
-        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_SIGNATURE" | "IMAGE_LOST_AND_FOUND" | "IMAGE_INVENTORY" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "IMAGE_DOCUMENT_TEMPLATE_PICTURE" | "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
+        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_SIGNATURE" | "IMAGE_LOST_AND_FOUND" | "IMAGE_INVENTORY" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "IMAGE_DOCUMENT_TEMPLATE_PICTURE" | "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO" | "IMAGE_PARTNER_LENDING";
         StorageQuotaPreset: {
             /** Format: int64 */
             board: number;
@@ -87864,6 +87916,7 @@ export const StorageCategory = {
     IMAGE_KB_IMAGE: "IMAGE_KB_IMAGE",
     IMAGE_LOGO_FRAGMENT: "IMAGE_LOGO_FRAGMENT",
     IMAGE_LOST_AND_FOUND: "IMAGE_LOST_AND_FOUND",
+    IMAGE_PARTNER_LENDING: "IMAGE_PARTNER_LENDING",
     IMAGE_QUIZ_QUESTION: "IMAGE_QUIZ_QUESTION",
     IMAGE_SIGNATURE: "IMAGE_SIGNATURE",
     IMAGE_STATION_LOGO: "IMAGE_STATION_LOGO",
