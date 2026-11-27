@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.accountlink.entity.LinkOrigin;
 import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
+import dev.chojo.ember.feature.members.entity.FindableBecause;
+import dev.chojo.ember.feature.members.entity.InviteCandidate;
 import dev.chojo.ember.feature.members.entity.MailReaches;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.GuardianRequest;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.InviteRequest;
@@ -468,5 +470,41 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
                         .accountId());
         assertTrue(stationMemberRepo.findManagers(result.provisioned().get(0).memberId()).stream()
                 .anyMatch(m -> m.id() == parent.memberId()));
+    }
+
+    /**
+     * Somebody a manager found by name becomes a member waiting for them, under the name their account
+     * carries, and is asked with a request that says how they were found.
+     */
+    @Test
+    void somebodyFoundByNameWaitsUnderTheirOwnNameAndIsAskedAsFoundByName() {
+        var existing = accountRepo.create(uniqueEmail("found"), "Anna", "Schmidt");
+        var inviter = stationMemberRepo.create(
+                station.id(), accountRepo.create(uniqueEmail("mgr"), "M", "G").id());
+        var candidate = new InviteCandidate(
+                existing.id(),
+                existing.uid(),
+                existing.firstName(),
+                existing.lastName(),
+                FindableBecause.OPTED_IN,
+                null,
+                false,
+                false,
+                false);
+
+        var result = service.inviteFound(station.id(), candidate, inviter.id());
+
+        assertTrue(result.linkPending());
+        assertNull(result.accountId());
+        assertNull(result.email(), "the manager never learns the address");
+        var member = stationMemberRepo.findById(result.memberId()).orElseThrow();
+        assertNull(member.accountId());
+        assertEquals("Anna Schmidt", member.displayName());
+        assertEquals(StationUserType.MEMBER, member.userType());
+        var request =
+                new AccountLinkRepository().findUnansweredForMember(member.id()).orElseThrow();
+        assertEquals(existing.id(), request.accountId());
+        assertEquals(LinkOrigin.NAME_INVITE, request.origin());
+        assertEquals(inviter.id(), request.createdBy());
     }
 }

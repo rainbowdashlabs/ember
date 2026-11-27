@@ -10,7 +10,7 @@ import {ref} from 'vue'
 import CreateView from './CreateView.vue'
 import StepDispatcher from './createview/StepDispatcher.vue'
 import type {IssuedOneTimePassword, SessionInfo} from '@/api/generated/schema'
-import {StationPermission} from '@/api/generated/schema'
+import {FindableBecause, StationPermission} from '@/api/generated/schema'
 import {createSessionInfo} from '@/test/mocks/factories'
 
 const api = vi.hoisted(() => ({
@@ -124,5 +124,47 @@ describe('CreateView without a mail server', () => {
 
         expect(dispatcher.props('offerOneTimePassword')).toBe(false)
         expect(api.members.invite).toHaveBeenCalledWith(expect.objectContaining({sendSetupMail: true}))
+    })
+})
+
+describe('CreateView with somebody found by name', () => {
+    const FOUND = {
+        accountUid: '00000000-0000-0000-0000-000000000077', firstName: 'Anna', lastName: 'Schmidt',
+        because: FindableBecause.OPTED_IN, through: null, alreadyHere: false, alreadyAsked: false,
+        declinedLately: false,
+    }
+
+    beforeEach(() => {
+        api.members.invite.mockResolvedValue({
+            memberId: 70, id: null, email: null, firstName: 'Anna', lastName: 'Schmidt', linkPending: true,
+        })
+        api.stationMembers.listMembers.mockResolvedValue([{id: 70, accountId: null}])
+    })
+
+    it('invites only the account, issues no password and still sets the member up', async () => {
+        const dispatcher = await wizard()
+        dispatcher.vm.$emit('update:found', FOUND)
+        dispatcher.vm.$emit('update:email', 'typed@example.org')
+        dispatcher.vm.$emit('update:selectedUserType', 'TEAM')
+        dispatcher.vm.$emit('create-account')
+        await flushPromises()
+
+        expect(api.members.invite).toHaveBeenCalledWith({accountUid: FOUND.accountUid})
+        expect(api.members.issueOneTimePassword).not.toHaveBeenCalled()
+        expect(api.stationMembers.setUserType).toHaveBeenCalledWith(70, 'TEAM')
+        expect(dispatcher.props('linkPending')).toBe(true)
+        expect(dispatcher.props('step')).toBe('done')
+    })
+
+    it('forgets the person on starting over', async () => {
+        const dispatcher = await wizard()
+        dispatcher.vm.$emit('update:found', FOUND)
+        await flushPromises()
+        expect(dispatcher.props('found')).toEqual(FOUND)
+
+        dispatcher.vm.$emit('start-over')
+        await flushPromises()
+
+        expect(dispatcher.props('found')).toBeNull()
     })
 })
