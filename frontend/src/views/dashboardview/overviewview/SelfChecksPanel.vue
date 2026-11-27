@@ -18,7 +18,7 @@ import {formatDate} from '@/util/format'
  *
  * <p>It is offered here and counted in the badge, and it never stands in the doorway: a task due in
  * four weeks is a thing to get round to, not a wall to meet at every sign-in. Each row is named for
- * whom it is about, because a guardian holds several and only the names tell them apart.
+ * whom it is about, because a guardian holds several and only the names distinguish them.
  */
 const {t} = useI18n()
 
@@ -30,7 +30,7 @@ function selfCheckPage(task: SelfCheckSummary) {
 }
 
 /**
- * Reads the list, and says nothing where it cannot be read.
+ * Reads the list, and shows nothing where it cannot be read.
  *
  * <p>A tile of the dashboard that fails is one tile missing, not a broken page: the reader came here
  * for the seven other things on it.

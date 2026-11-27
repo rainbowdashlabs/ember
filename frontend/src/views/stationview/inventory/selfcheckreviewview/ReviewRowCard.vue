@@ -12,7 +12,7 @@ import type {SelfCheckReviewRow} from '@/api/generated/schema'
 /**
  * One answer as the reviewer reads it, with what settling it would do beside it.
  *
- * <p>Correcting is the ordinary case rather than the exception. A row saying a piece is gone against
+ * <p>Correcting is the ordinary case rather than the exception. A row reporting a piece as gone against
  * a record the station got wrong is a true statement pointing at the wrong row, and sending it back
  * would ask the member to solve a problem only the station can see.
  */

@@ -9,7 +9,7 @@ import {apiErrorBody, apiErrorCode} from '@/util/apiError'
 
 /** A change to groups refused for the members it would break a rule for, as the screen shows it. */
 export interface GroupConflict {
-    /** The code of the refusal, which says which rule it was. */
+    /** The code of the refusal, which shows which rule it was. */
     code: string
     conflicts: MemberConflict[]
 }

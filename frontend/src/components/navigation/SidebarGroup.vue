@@ -67,7 +67,7 @@ followSidebarMatch(matchLength)
 
 /**
  * Lit only when nothing matches the page better. Without that the group declared `/cluster` would be
- * highlighted on every page of the association, which is the one group that says nothing about where
+ * highlighted on every page of the association, which is the one group that shows nothing about where
  * you are.
  *
  * <p>A best of zero means nobody has reported yet, which on a server render and on the browser's first

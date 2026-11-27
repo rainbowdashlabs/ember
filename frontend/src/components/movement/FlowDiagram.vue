@@ -14,7 +14,7 @@ import {ItemCustody, ItemOwner, StepSubject, type StepActor} from '@/api/generat
  * <p>A chain is a piece moving between places, and an exchange is two pieces moving between them at
  * once in opposite directions. A list renders those as equal lines and leaves the reader to assemble
  * the shape; here the shape is the drawing. A track that stops in the post is visibly stranded, which
- * is the same thing the chain validator says in words.
+ * is the same thing the chain validator shows in words.
  *
  * <p>It is a picture of the step list beside it and never a replacement for it. The list carries the
  * labels, the ordering controls and everything a screen reader is given, so this is marked decorative.
@@ -48,8 +48,8 @@ const props = defineProps<{
      */
     ownerKind?: ItemOwner | null
     /**
-     * What that owner is called, where the caller knows it. An association by name says whose gear
-     * this is; "the owner" says only that somebody owns it.
+     * What that owner is called, where the caller knows it. An association by name shows whose gear
+     * this is; "the owner" shows only that somebody owns it.
      */
     ownerName?: string | null
 }>()
@@ -115,7 +115,7 @@ interface Track {
  * <p>The column is the place the step leaves the piece in, so the arrows between them are the journey
  * itself and their direction falls out of it rather than being imposed. Steps of one track that share
  * a column are stacked instead of overlaid: a step that leaves the piece where it already was is
- * somebody confirming rather than something moving, and stacking is what says so.
+ * somebody confirming rather than something moving, and stacking is what shows that.
  */
 function pathFor(from: Node, to: Node): string {
     if (from.x === to.x) {
@@ -173,10 +173,10 @@ const height = computed(() => {
  *
  * <p>A column heading is read at a glance beside four others, so it names the party rather than
  * describing where the piece is: "Wache", not "Bei der Wache". The owner's column carries the name of
- * whoever that is on this chain, because "the owner" is the one heading that says nothing.
+ * whoever that is on this chain, because "the owner" is the one heading that shows nothing.
  *
  * <p>The station's own gear rests on the station's own shelf, so that column is the store rather than
- * a second column called "Wache": two headings with one name say nothing about which of them a piece
+ * a second column called "Wache": two headings with one name show nothing about which of them a piece
  * is standing in.
  */
 function columnLabel(custody: ItemCustody): string {

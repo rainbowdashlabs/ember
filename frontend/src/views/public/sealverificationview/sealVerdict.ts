@@ -50,12 +50,12 @@ const LONG_TERM: ReadonlySet<PadesLevel> = new Set([PadesLevel.BASELINE_LT, Pade
 /**
  * What a seal amounts to for the reader.
  *
- * <p>A change to the sealed content is said first, whoever sealed it: it is the one answer that holds
+ * <p>A change to the sealed content is shown first, whoever sealed it: it is the one answer that holds
  * whatever else is unclear. A change made to the file after sealing comes next, since the sealed part may
  * still be fine while what the reader sees is not what was sealed. Only a broken content, signature value
  * or file structure reads as altered; a seal that fails for any other reason reads as invalid. A
  * stranger's seal is never called valid here, since the server already refuses to pass one. Only a
- * passed seal of this installation reads as sealed here, and a passed seal of a federation partner says
+ * passed seal of this installation reads as sealed here, and a passed seal of a federation partner shows
  * so in its own words, never as sealed here.
  *
  * @param check the server's answer for one signature
@@ -128,7 +128,7 @@ export function certificateName(certificate: CertificateFacts | null | undefined
 
 /**
  * The earliest timestamp inside a seal that proves the seal existed by then: one that is intact, comes
- * from a timestamp service this installation pins, passed the check and says when. Any other timestamp
+ * from a timestamp service this installation pins, passed the check and shows when. Any other timestamp
  * proves nothing about the time.
  *
  * @param check the server's answer for one signature

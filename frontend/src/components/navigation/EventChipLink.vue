@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import type {RouteLocationRaw} from 'vue-router'
 
 /**
- * One appointment as a month grid draws it, said as the link it is.
+ * One appointment as a month grid draws it, presented as the link it is.
  *
  * <p>Pressing a chip has always opened the appointment, so it is a link and not a button: a reader
  * planning a month opens three of them in tabs, copies the address of one into a message, and reads

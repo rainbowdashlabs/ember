@@ -22,7 +22,7 @@ const {t} = useI18n()
  * under way, anything of theirs that was found, and a birthday just gone.
  *
  * <p>Handing a piece over means naming which piece, and that is not a decision to make from a sheet
- * of names. Where none is set aside yet the note says so rather than offering a button the step
+ * of names. Where none is set aside yet the note shows that rather than offering a button the step
  * would refuse.
  */
 const props = withDefaults(defineProps<{

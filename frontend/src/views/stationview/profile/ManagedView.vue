@@ -35,7 +35,7 @@ const loadingProfile = ref(false)
 /**
  * The answers of the member in the guardian's care. A question the station keeps to its own member
  * management, or one that works itself out from another, is read here and not written: the port
- * says which.
+ * shows which.
  */
 const answers = useProfileAnswers(guardianAnswers)
 const {fields, valueOf, update} = answers

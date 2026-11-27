@@ -94,7 +94,7 @@ const itemTable = useItemTable({
 })
 
 /**
- * The inventory's own name at the head of the page, because "Inventar-Details" says nothing about
+ * The inventory's own name at the head of the page, because "Inventar-Details" shows nothing about
  * which one is open: it is the same word above every stock screen, and it is what the tab, the
  * history and a bookmark all end up carrying. The word stands until the inventory has arrived, and
  * where it could not be fetched at all.

@@ -93,7 +93,7 @@ export async function testStationProvider(position: number, recipient?: string):
 
 /**
  * The same for the instance list. An address is required here: the instance provider is tried by
- * sending through it, which is the only thing that says whether it delivers.
+ * sending through it, which is the only thing that shows whether it delivers.
  */
 export async function testInstanceProvider(position: number, recipient: string): Promise<MailTestResponse> {
     const res = await client.post<MailTestResponse>(

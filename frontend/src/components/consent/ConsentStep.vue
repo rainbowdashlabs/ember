@@ -17,7 +17,7 @@ import type {LoginConsent} from '@/composables/useLoginConsent'
  * so asking only there left them signed in without ever having been asked.
  *
  * <p>The page shows its own form once {@code legal.consent} is accepted; until then this stands in
- * its place. The consent is the page's own state, handed in so the page can tell when it is given.
+ * its place. The consent is the page's own state, handed in so the page can see when it is given.
  *
  * <p>A refusal is remembered in the browser, so it is never final here: next to it sits the way back
  * to the choice. Without it, one press on "Ablehnen" left the page showing nothing but the refusal on

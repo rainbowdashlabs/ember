@@ -21,7 +21,7 @@ import Popover from '@/components/feedback/Popover.vue'
 withDefaults(defineProps<{
   label: string
   icon?: string[]
-  /** Tells two menus on one page apart. The panel carries it, the trigger carries it with `-trigger`. */
+  /** Distinguishes two menus on one page. The panel carries it, the trigger carries it with `-trigger`. */
   testId?: string
 }>(), {
   icon: () => ['fas', 'ellipsis-vertical'],

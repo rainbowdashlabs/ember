@@ -18,7 +18,7 @@ import {formatDateTime} from '@/util/format'
  * The consent to letters being signed with the reader's picture without them signing each one: what it
  * means, since when it was given, and the switch that gives or takes it back.
  *
- * <p>A consent without a saved picture signs nothing, and the section says so rather than letting the
+ * <p>A consent without a saved picture signs nothing, and the section shows that rather than letting the
  * switch suggest otherwise.
  */
 const props = defineProps<{

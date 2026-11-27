@@ -14,7 +14,7 @@ import type {ContentRow, LetterImport} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
- * Fills the body from a Word (.docx) or OpenDocument (.odt) text and says which gaps became
+ * Fills the body from a Word (.docx) or OpenDocument (.odt) text and shows which gaps became
  * placeholders and which stayed text, so the rest can be replaced by hand. The text arrives as one
  * text block, with a picture standing on its own line as a picture block. The header and the footer
  * are not part of the import; they are set up once above and below the body.

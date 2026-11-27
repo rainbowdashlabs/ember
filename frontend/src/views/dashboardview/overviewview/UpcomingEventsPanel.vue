@@ -166,7 +166,7 @@ function answerableFor(item: UpcomingEvent) {
  * What has been answered for this date, one entry per person who answered.
  *
  * <p>An appointment repeats, so an answer belongs to a date rather than to the appointment: last
- * week's refusal says nothing about next week. A place given up is an answer; a refusal taken back is
+ * week's refusal settles nothing about next week. A place given up is an answer; a refusal taken back is
  * none.
  */
 function answersOn(item: UpcomingEvent) {
@@ -223,7 +223,7 @@ function decline(item: UpcomingEvent) {
  *
  * <p>They shared an attempt, so a decline that really was recorded, followed by a list of answers that
  * failed to come back, read as a decline that had not been recorded. Saying no twice is not harmful,
- * but being told nobody was signed off when somebody was is how a reader stops trusting the screen.
+ * but being shown that nobody was signed off when somebody was is how a reader stops trusting the screen.
  */
 async function sendDecline(item: UpcomingEvent, memberIds: number[]) {
   decliningBusy.value = true

@@ -14,7 +14,7 @@ import type {MyInventoryItem} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 /**
- * What one piece of gear says about itself on a member's list: what it is, and where it stands.
+ * What one piece of gear shows about itself on a member's list: what it is, and where it stands.
  *
  * <p>Where it stands is the standing of whatever movement is running on it, which travels with the row
  * and is drawn with the very badges the movement's own row in the queue wears: the last step that has

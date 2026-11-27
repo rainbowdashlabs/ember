@@ -14,7 +14,7 @@ import type {PartyChoices} from '@/components/procedures/partyChoices'
 
 /**
  * Who runs a procedure: groups, member types, tags or members named one by one. They see its public
- * steps, tick the steps marked for them and are told about it. Nobody chosen leaves it to those who edit
+ * steps, tick the steps marked for them and are notified about it. Nobody chosen leaves it to those who edit
  * procedures.
  */
 const party = defineModel<RestrictionSelection>({required: true})

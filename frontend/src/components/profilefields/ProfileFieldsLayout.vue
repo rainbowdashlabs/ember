@@ -107,7 +107,7 @@ function valueOf(field: LaidOutField): string {
  */
 const shown = computed(() => shownFields(props.fields, props.getValue))
 
-/** The sentence the station wrote to say what the question is after, empty when it wrote none. */
+/** The sentence the station wrote to explain what the question is after, empty when it wrote none. */
 function descriptionOf(field: LaidOutField): string {
   return parseFieldConfig(field.config).description ?? ''
 }

@@ -26,7 +26,7 @@ import {useConfirmDelete} from '@/composables/useConfirmDelete'
 /**
  * The "Anmeldung" section: the passkey list, creation with its trial, and the two switches D3
  * names. The existing two-factor section keeps its name and its contents; a passkey is a way
- * in, not a second factor, and the screen says so by giving each its own place.
+ * in, not a second factor, and the screen shows that by giving each its own place.
  */
 const {t} = useI18n()
 
@@ -52,7 +52,7 @@ onMounted(reload)
  * Removing a passkey, after asking unless shift is held.
  *
  * <p>The refusal worth naming is the last passkey on an account with no password: that leaves nobody
- * a way back in, so the server turns it down, and its refusal says in the alert that the reader has to
+ * a way back in, so the server turns it down, and its refusal shows in the alert that the reader has to
  * be onboarded again first.
  */
 const removal = useConfirmDelete<PasskeyEntryResponse>({
@@ -67,7 +67,7 @@ const removal = useConfirmDelete<PasskeyEntryResponse>({
 })
 
 /**
- * Tells the device's own store which credentials still exist, so the removed passkey disappears
+ * Informs the device's own store which credentials still exist, so the removed passkey disappears
  * from its picker instead of haunting it.
  */
 async function forgetOnDevice(before: PasskeysStatusResponse | null, removedId: PasskeyEntryResponse['id']) {

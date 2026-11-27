@@ -15,7 +15,7 @@ import { describeFailure, type Failure } from '@/util/failure'
  * Owns the answers of the running attempt: the payload of every question, the
  * mutators the question inputs call and the debounced write back to the server.
  *
- * <p>A write that does not land is said out loud in {@code saveFailure}. Every one of them used to
+ * <p>A write that does not land is made known in {@code saveFailure}. Every one of them used to
  * be caught and dropped, so somebody could write a whole test, hand it in, and have none of it
  * reach the server without a word anywhere on the screen. Nothing is worse to lose silently than
  * an exam somebody has just sat.
@@ -31,10 +31,10 @@ export function useQuizAnswers(
   const saveFailure = ref<Failure | null>(null)
 
   /**
-   * Says, in the plainest words there are, that the answers are not stored.
+   * Shows, in the plainest words there are, that the answers are not stored.
    *
-   * <p>Both halves are this screen's and neither comes off the failure. The sentence has to say that
-   * nothing is saved rather than that something went wrong, and the guidance has to say not to close
+   * <p>Both halves are this screen's and neither comes off the failure. The sentence has to show that
+   * nothing is saved rather than that something went wrong, and the guidance has to advise not to close
    * the page, because the thing being prevented is somebody walking away from a machine believing
    * they have finished an exam that the server has never heard of.
    */

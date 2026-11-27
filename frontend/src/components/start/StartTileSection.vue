@@ -14,7 +14,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 defineProps<{
   /** What the ways in the grid have in common. */
   title: string
-  /** What to say instead of the grid, given only while it is empty. */
+  /** What to show instead of the grid, given only while it is empty. */
   emptyNote?: string | null
 }>()
 </script>

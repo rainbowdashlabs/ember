@@ -11,13 +11,13 @@ import InvitationAppointment from './InvitationAppointment.vue'
 import type {WaitingListPublicInvitation} from '@/api/generated/schema'
 
 /**
- * The dates somebody was invited to, said exactly as the mail said them.
+ * The dates somebody was invited to, shown exactly as the mail showed them.
  *
  * The page is the invitation rather than a window into the station, and an answer given without
  * knowing the occasion is not an answer worth collecting. "None of these suit" in particular is
  * about dates that have to be on the screen.
  *
- * While the invitation is open, only dates still ahead are listed, and with none left the page says
+ * While the invitation is open, only dates still ahead are listed, and with none left the page shows
  * that the station sends new ones. Once answered, every date is listed again.
  */
 const props = defineProps<{invitation: WaitingListPublicInvitation}>()

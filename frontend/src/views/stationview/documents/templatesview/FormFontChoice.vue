@@ -33,11 +33,11 @@ import OriginalFontFiles from './OriginalFontFiles.vue'
  * line of sample text, or the default font. Nothing is replaced without a choice: a font a built-in one
  * stands in for starts on that one, marked where it sets every letter as wide (Carlito for Calibri) rather
  * than only looking alike (Open Sans for Frutiger); every other font starts on the default font, which is
- * named. A font whose name says light starts on the light cut where the family ships one.
+ * named. A font whose name reads light starts on the light cut where the family ships one.
  *
  * <p>The form is drawn beside itself to compare: in its own fonts, with a file added for each one it does
  * not carry for that drawing only, and with the choices made. A font with neither shows its look-alike in
- * the original, which says so. A replacement whose letters are wider breaks lines elsewhere, which the size
+ * the original, which indicates this. A replacement whose letters are wider breaks lines elsewhere, which the size
  * makes up for.
  */
 const props = defineProps<{
@@ -65,7 +65,7 @@ const guessed = computed(() => props.missing.missing
 
 /**
  * The choice a font starts on: the family offered first, else the default font, light where the name of
- * the font says so and that family ships a light cut.
+ * the font indicates so and that family ships a light cut.
  */
 function firstChoice(family: string): FormFontChoice {
   const replacement = props.missing.suggested[family]?.family ?? ''

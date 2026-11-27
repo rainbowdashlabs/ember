@@ -148,7 +148,7 @@ const pageTitle = computed(() =>
 /**
  * Reads the record of what has been changed about this member.
  *
- * <p>Said out loud when it fails, because an empty history reads as a profile nobody has ever touched,
+ * <p>Reported when it fails, because an empty history reads as a profile nobody has ever touched,
  * which on a page whose whole point is who changed what is the opposite of no answer.
  */
 async function loadChanges() {

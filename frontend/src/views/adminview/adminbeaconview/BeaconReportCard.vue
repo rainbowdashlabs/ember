@@ -33,7 +33,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-/** The address the report was written on, which says which installation it came from. */
+/** The address the report was written on, which shows which installation it came from. */
 function hostOf(page: string | null): string | null {
   if (!page) return null
   try {

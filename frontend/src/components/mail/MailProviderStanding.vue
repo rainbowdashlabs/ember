@@ -16,7 +16,7 @@ import type {ProviderStanding} from '@/api/generated/schema'
 
 /**
  * How one provider stands today: what it has sent against what it may, and how much post is
- * waiting at it. A provider whose allowance is spent says so, because that is the moment the one
+ * waiting at it. A provider whose allowance is spent shows that, because that is the moment the one
  * below it starts carrying the mail.
  *
  * <p>One of the instance's providers at the end of a station's list counts the station's own mail

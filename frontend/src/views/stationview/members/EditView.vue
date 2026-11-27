@@ -120,7 +120,7 @@ async function onUserTypeChanged(userType: string) {
  * Everything the page shows, fetched before any of it is put on screen.
  *
  * <p>The gear the member holds is fetched here with the rest rather than afterwards, and its failure
- * stops the page. It used to be swallowed into an empty list, and an empty list is what says the member
+ * stops the page. It used to be swallowed into an empty list, and an empty list is what shows the member
  * holds nothing: the button for marking them a former member reads that list to decide whether it may
  * be pressed, so a failed fetch quietly offered to retire somebody who still has the station's gear.
  */

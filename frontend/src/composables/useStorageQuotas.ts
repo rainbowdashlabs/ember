@@ -27,7 +27,7 @@ export interface StorageRoomRow {
     presetId: number | null
     presetName: string | null
     usesOwnBackend: boolean
-    /** Whose word the quota is on, where the owner can say. */
+    /** Whose word the quota is on, where the owner is known. */
     origin?: QuotaOrigin | null
     /** An association's own store rather than one of its member stations. */
     ownStore?: boolean
@@ -74,7 +74,7 @@ export interface StorageQuotasPort {
 export interface StorageCapabilities {
     /** Whether a row offers to count its bytes again. */
     canRecalculate: boolean
-    /** Whether a row says whose word its number is on. */
+    /** Whether a row shows whose word its number is on. */
     showsOrigin: boolean
     /**
      * Whether a row an association governs is read-only here. It is for the instance, whose lever on such a

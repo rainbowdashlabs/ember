@@ -34,7 +34,7 @@ const IDLE_LIMIT_MS = 3600000
 const IDLE_EXEMPT: ReadonlySet<string> = new Set(['/station/requirements', '/reconsent'])
 
 /**
- * Signs in as somebody else because a link said so, which only a demo or a development instance
+ * Signs in as somebody else because a link asked for it, which only a demo or a development instance
  * allows.
  *
  * <p>It exists for recordings and walkthroughs, so a link lands on the same screen every time. The

@@ -54,7 +54,7 @@ const detail = ref<PartnerEventDetail | null>(null)
 const myRegistrations = ref<RemoteMemberRegistration[]>([])
 const selectedMemberUid = ref('')
 
-/** What an appointment without registrations offers to sign on its page, where signing says one will come. */
+/** What an appointment without registrations offers to sign on its page, where signing means one will come. */
 const agreementOffers = ref<PartnerAgreementOffer[]>([])
 const offerMemberUid = ref('')
 

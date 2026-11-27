@@ -26,12 +26,12 @@ import {renderMarkdown} from '@/util/markdown'
 
 /**
  * What an event group is: its description, places, deadline and confirmation, and its parts grouped by set
- * with how many of each set a sign-up has to choose. A part links to its appointment and says how its
+ * with how many of each set a sign-up has to choose. A part links to its appointment and shows how its
  * own places stand where it has a limit.
  */
 const props = defineProps<{
   detail: EventGroupDetail
-  /** Where a part leads; to the station's own appointment unless a partner's event group page says otherwise. */
+  /** Where a part leads; to the station's own appointment unless a partner's event group page sets another. */
   partLink?: (eventId: number) => RouteLocationRaw
   /** The reader, where they may put themselves into the event group's member fields. */
   currentMemberId?: number

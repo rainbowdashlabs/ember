@@ -60,8 +60,8 @@ const {containerById, walkOrder, rowsFor, pathFor} = useWalkPlan({
 const hasWalk = computed(() => deep.value && walkOrder.value.length > 1)
 
 /**
- * Which container is being walked, at the head of the page, so two walks open at once are told
- * apart in the tab and in the history. The plain wording stands while it loads and where the
+ * Which container is being walked, at the head of the page, so two walks open at once are distinguished
+ * in the tab and in the history. The plain wording stands while it loads and where the
  * container could not be fetched.
  */
 const pageTitle = computed(() => (detail.value?.container.name

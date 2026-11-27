@@ -26,8 +26,8 @@ const failure = ref<Failure | null>(null)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 /**
- * Which station is coming in, at the head of the page, so two imports watched side by side are told
- * apart in the tab and in the history. The plain wording stands until the first progress report has
+ * Which station is coming in, at the head of the page, so two imports watched side by side are distinguished
+ * in the tab and in the history. The plain wording stands until the first progress report has
  * arrived, and where none can be fetched at all.
  */
 const pageTitle = computed(() => (progress.value?.stationName

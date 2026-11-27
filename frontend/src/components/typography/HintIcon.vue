@@ -9,7 +9,7 @@ import BareButton from '@/components/button/BareButton.vue'
 /**
  * An explanation kept out of the way until it is wanted, behind a small icon beside a label.
  *
- * <p>For the sentence that says how a setting behaves rather than what it is. Written out under the
+ * <p>For the sentence that explains how a setting behaves rather than what it is. Written out under the
  * control, such a sentence takes three lines of a narrow column and pushes whatever stands beside it
  * out of line; behind the icon it costs nothing until somebody reaches for it. It is a button rather
  * than a bare icon so that a keyboard reaches it and a screen reader reads it out.

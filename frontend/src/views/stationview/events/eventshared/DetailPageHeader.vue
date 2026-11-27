@@ -32,7 +32,7 @@ const props = defineProps<{
   editTo?: RouteLocationRaw | null
   editLabel: string
   editTestId?: string
-  /** Tells this page's menu apart; the trigger carries it with `-trigger`. */
+  /** Identifies this page's menu; the trigger carries it with `-trigger`. */
   menuTestId: string
   /** Whether the default slot holds menu entries for this reader. */
   hasMenuItems?: boolean

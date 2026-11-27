@@ -58,7 +58,7 @@ const loading = ref(false)
  * Why the preview is not there.
  *
  * <p>It was a bare flag under one sentence, so a file the reader may not open, a file that is gone and
- * a connection that dropped all read alike, and none of them said which. The kind of failure is what
+ * a connection that dropped all read alike, and none of them showed which. The kind of failure is what
  * decides whether waiting, asking the station or reporting a fault is the thing to do.
  */
 const failure = ref<Failure | null>(null)

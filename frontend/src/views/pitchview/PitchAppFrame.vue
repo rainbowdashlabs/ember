@@ -10,7 +10,7 @@ import {emberLogo} from '@/composables/useEmberLogo'
 /**
  * The frame a preview sits in: the header the application carries above every page, with the
  * station on the left and page title and subtitle beside it. The module navigation is left out -
- * on a slide it costs width without saying anything.
+ * on a slide it costs width without showing anything.
  */
 defineProps<{
   station: string

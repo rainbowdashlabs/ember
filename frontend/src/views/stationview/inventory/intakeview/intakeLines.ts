@@ -24,7 +24,7 @@ export interface IntakeLine {
     fields: Record<string, unknown>
     /**
      * Whether this line was asked for outright. Gear nobody ever wrote a number on, in an inventory
-     * that keeps no sizes and no fields, leaves nothing to fill in, so the line says so itself.
+     * that keeps no sizes and no fields, leaves nothing to fill in, so the line marks that itself.
      */
     askedFor: boolean
 }
@@ -64,7 +64,7 @@ export function namesAPiece(line: IntakeLine): boolean {
  * The lines as the server takes them, with the empty ones left out.
  *
  * <p>They are left out here as well as there: what is sent is then what the reader filled in, and a
- * request full of empty rows says nothing about a table that was mostly left alone.
+ * request full of empty rows shows nothing about a table that was mostly left alone.
  */
 export function rowsOf(
     lines: IntakeLine[],

@@ -24,7 +24,7 @@ export type MailRuleDraft = Required<RuleRequest>
 
 /**
  * The two forms a sender pattern may take, checked here as well as on the server so somebody typing one
- * is told before they save rather than after.
+ * is warned before they save rather than after.
  *
  * <p>There is deliberately no general pattern language: this is the check that decides whether a stranger
  * can put files into the station's document store.

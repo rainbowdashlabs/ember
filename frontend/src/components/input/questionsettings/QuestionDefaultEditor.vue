@@ -22,7 +22,7 @@ import {TODAY} from './questionSettings'
  * rest. The box an answer is written in already knows all of that, so the starting value is written
  * in it too, and a choice offers its own choices rather than a line to type into.
  *
- * <p>Where a feature starts a date from today or not at all, the switch says exactly that.
+ * <p>Where a feature starts a date from today or not at all, the switch shows exactly that.
  */
 const defaultValue = defineModel<string | null>({required: true})
 
@@ -35,7 +35,7 @@ const props = defineProps<{
   min?: number | null
   max?: number | null
   step?: number | null
-  /** A line under the box, where a feature says when the starting value is used. */
+  /** A line under the box, where a feature defines when the starting value is used. */
   hint?: string
 }>()
 

@@ -24,7 +24,7 @@ const TOLERANCE = 0.02
  *
  * <p>A person sharing one tab hands over exactly the page, and every element on it can be found in
  * the picture by a single factor. A person sharing a whole window or a whole screen hands over the
- * browser's own furniture as well, and there is no way from here to tell how much of it: boxes drawn
+ * browser's own furniture as well, and there is no way from here to determine how much of it: boxes drawn
  * by calculation would land beside what they were meant to cover, which is worse than not offering
  * to draw them. So the proportions are compared, and where they disagree nothing is offered.
  */

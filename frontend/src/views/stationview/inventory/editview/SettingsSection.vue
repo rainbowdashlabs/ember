@@ -50,11 +50,11 @@ const blockers = ref<SwitchBlocker[]>([])
 const refusalMessage = ref('')
 
 /**
- * Writes the settings back, and tells the reader apart from the two ways it can fail.
+ * Writes the settings back, and distinguishes the two ways it can fail.
  *
  * <p>A refused change of kind names what is in the way, so it belongs beside the control that was
  * refused rather than as one more line at the top of the page. Everything else goes up as a described
- * failure, so the page can say what the server said and offer a report where it is ours to fix.
+ * failure, so the page can show what the server answered and offer a report where it is ours to fix.
  */
 async function saveSettings() {
   blockers.value = []

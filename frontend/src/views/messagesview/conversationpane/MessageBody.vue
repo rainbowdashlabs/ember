@@ -13,7 +13,7 @@ import {personName} from '@/util/conversationTitle'
 import MessageText from './MessageText.vue'
 
 /**
- * What a message says: its text, marked when it was changed, the words for a deleted message or one
+ * What a message shows: its text, marked when it was changed, the words for a deleted message or one
  * the station removed (naming who did for those who handle its chats), or a folded line for a message
  * of somebody the reader blocked, which opens on request.
  */

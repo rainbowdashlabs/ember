@@ -96,7 +96,7 @@ const commentSource = computed(() => (props.stationUid
     : knowledgeBase.kbCommentSource(props.fileId)))
 
 /**
- * The file's own name at the head of the page, because "Datei" says nothing about which one is
+ * The file's own name at the head of the page, because "Datei" shows nothing about which one is
  * open: it is the same word above every file in the wiki, and it is what the tab, the history and a
  * bookmark all end up carrying. The word is what stands there until the file has arrived, and where
  * a partner's file cannot be fetched at all.
@@ -104,7 +104,7 @@ const commentSource = computed(() => (props.stationUid
 const pageTitle = computed(() => file.value?.name
     || (isFederated.value ? t('pages.federated-kb-file.title') : t('pages.kb-file.title')))
 
-/** Once the name is the title, the line under it is where the file says what kind of thing it is. */
+/** Once the name is the title, the line under it is where the file shows what kind of thing it is. */
 const pageSubtitle = computed(() => isFederated.value
     ? t('pages.federated-kb-file.subtitle')
     : (file.value?.description || t('pages.kb-file.subtitle')))
@@ -134,7 +134,7 @@ const mayEdit = computed(() =>
 
 /**
  * Moving asks for full rights rather than the right to write: the folder an article lands in
- * decides who reads it from then on, which is a different thing from changing what it says.
+ * decides who reads it from then on, which is a different thing from changing what it contains.
  */
 const mayMove = computed(() =>
     canEditKnowledge() && !isFederated.value && levelCovers(accessLevel.value, KbAccessLevel.MANAGE))

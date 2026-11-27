@@ -48,7 +48,7 @@ function record(e: unknown, message?: string) {
 }
 
 /**
- * Fetches the rules, and says so when it cannot.
+ * Fetches the rules, and reports it when it cannot.
  *
  * <p>It used to empty the list on a failure, which reads on screen as a mailbox with no rules at
  * all. A reader then writes the rules again, over the ones that are still there.
@@ -65,7 +65,7 @@ async function reload(staleMessage?: string) {
  * Carries the change out, then refreshes the list.
  *
  * <p>The refresh is answered for separately: a rule that was saved and a list that then failed to
- * come back are not the same news, and saying the first failed invites the reader to save it twice.
+ * come back are not the same news, and reporting the first as failed invites the reader to save it twice.
  */
 async function act(action: Promise<unknown>) {
   try {

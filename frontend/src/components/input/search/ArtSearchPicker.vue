@@ -15,7 +15,7 @@ const model = defineModel<number | null>()
 const props = defineProps<{
   /** Every kind of every mixed inventory, so one picker covers them all. */
   arts: ArtChoice[]
-  /** The inventories, so a kind can say which drawer it belongs to. */
+  /** The inventories, so a kind can show which drawer it belongs to. */
   inventories: InventoryChoice[]
   /** How many pieces of each kind are at hand, which is what turns a name into a choice. */
   stock?: Map<number, number>

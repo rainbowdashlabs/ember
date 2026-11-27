@@ -19,7 +19,7 @@ import {PageVisibility, type StationPage} from '@/api/generated/schema'
 /**
  * Who reaches a page, as three states rather than a switch.
  *
- * <p>Each says what it means in one line, because "unlisted" on its own tells nobody that the page
+ * <p>Each shows what it means in one line, because "unlisted" on its own does not show that the page
  * leaves the station's menu and stops being part of its page tree.
  */
 const props = defineProps<{
@@ -38,7 +38,7 @@ const {t} = useI18n()
 const chosen = ref<PageVisibility>(PageVisibility.DRAFT)
 
 /**
- * The dialog is open exactly while a page is being asked about. Closing it says so upwards, since
+ * The dialog is open exactly while a page is being asked about. Closing it signals so upwards, since
  * the page it is about is what the caller holds.
  */
 const open = computed({

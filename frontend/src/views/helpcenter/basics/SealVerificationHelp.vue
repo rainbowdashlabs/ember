@@ -47,7 +47,7 @@ const TIMESTAMP = {
   intact: true,
 }
 
-/** A seal as the page shows it, with only what tells the two examples apart left to fill in. */
+/** A seal as the page shows it, with only what distinguishes the two examples left to fill in. */
 function exampleSeal(changes: Partial<SealCheck>): SealCheck {
   return {
     signer: {

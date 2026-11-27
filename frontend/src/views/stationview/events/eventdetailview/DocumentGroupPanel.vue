@@ -14,7 +14,7 @@ import type {DocumentEntry, DocumentGroup} from './documentGroups'
 
 /**
  * One group of the people on a manager's view of a document, under a header that names it with how many
- * are in it and folds it. Open, it says what the group means and shows one tile per person, side by side
+ * are in it and folds it. Open, it shows what the group means and shows one tile per person, side by side
  * where the page is wide enough and one under the other on a phone.
  */
 const open = defineModel<boolean>({required: true})

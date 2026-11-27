@@ -34,7 +34,7 @@ import {handedOver, positionOf, WITNESS_STEPS} from './witnessFlow'
  *
  * <p>Opened with `field=…` from a document's tile, that field is the one collected, for the person its
  * document is about. While the person holds the device, nothing of the witness's own is reachable
- * ({@link WitnessHandedOverSteps}). The live region says which step is shown.
+ * ({@link WitnessHandedOverSteps}). The live region indicates which step is shown.
  */
 const {t} = useI18n()
 const route = useRoute()

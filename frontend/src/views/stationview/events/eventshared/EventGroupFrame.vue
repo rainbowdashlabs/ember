@@ -18,7 +18,7 @@ import type {EventGroupMark} from './eventGroupColor'
  */
 defineProps<{
   eventGroup: EventGroupMark | null | undefined
-  /** What the frame says under the bar, such as where the sign-up lives. */
+  /** What the frame shows under the bar, such as where the sign-up lives. */
   message?: string
   /** Where the bar opens the event group; left out on the event group's own page. */
   to?: RouteLocationRaw

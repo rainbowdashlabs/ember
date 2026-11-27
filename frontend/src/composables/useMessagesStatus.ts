@@ -9,7 +9,7 @@ import {getStatus, updateSettings} from '@/api/messages'
 
 /**
  * Whether the reader can use messages and how many wait unread, as the header's messages button
- * shows it. Everybody starts without messages until the server says otherwise, so a member whose
+ * shows it. Everybody starts without messages until the server reports otherwise, so a member whose
  * guardian has not turned them on never sees the button flash up.
  */
 export function useMessagesStatus() {

@@ -40,7 +40,7 @@ export function useChangeAcknowledgement(
   /**
    * Records the acknowledgement, then catches the caller up.
    *
-   * <p>The two are caught apart. Once the acknowledgement is in it is in, and a reader told that it
+   * <p>The two are caught apart. Once the acknowledgement is in it is in, and a reader shown that it
    * failed acknowledges the same change again while the badge that brought them here stays up.
    */
   async function runAcknowledge(work: () => Promise<void>) {

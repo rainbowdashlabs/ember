@@ -9,7 +9,7 @@ import {toRestriction} from '@/components/input/restriction'
 
 /**
  * The saved shape of a block tree turned into the shape the editor works on. Ids of zero mark rows
- * and cells that do not exist yet, which is how the save path tells new from moved. A row's lines
+ * and cells that do not exist yet, which is how the save path distinguishes new from moved. A row's lines
  * between its columns and a block's restriction and guardian condition, which only a letter carries,
  * come along.
  */
@@ -60,7 +60,7 @@ export function toBlockRequests(rows: RowEditData[]): BlockRowRequest[] {
  * holding one markdown block with the text already written.
  *
  * <p>The server does exactly this when it switches something that already exists. A thing that does
- * not exist yet has no address to switch, so the browser does it instead and tells the server once
+ * not exist yet has no address to switch, so the browser does it instead and informs the server once
  * saving gives it an id. Both places have to produce the same shape, which is why the shape is
  * written down once.
  */

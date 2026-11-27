@@ -14,7 +14,7 @@ export const INVENTORY_TYPE_KEY = 'inventoryType'
 const INVENTORY_TYPES: readonly InventoryType[] = [InventoryType.INTERNAL, InventoryType.EXTERNAL, InventoryType.MIXED]
 
 /**
- * The column saying what kind of inventory a row comes out of, which the overview's tables share.
+ * The column showing what kind of inventory a row comes out of, which the overview's tables share.
  *
  * @param t      the translation function of the screen
  * @param typeOf the kind of the row's inventory

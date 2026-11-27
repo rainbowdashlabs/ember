@@ -22,7 +22,7 @@ import {fieldsSummary, remindersSummary} from '../eventshared/sectionSummaries'
  * What an event group is, in the order the appointment form asks it: the name, then category,
  * attendance template and colour in one row, the fields every part shows followed by the template's
  * pre-fills, the description and the reminders. The fields and the reminders are folded sections
- * that say what they hold.
+ * that show what they hold.
  */
 const details = defineModel<EventGroupDetails>('details', {required: true})
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})

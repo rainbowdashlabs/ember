@@ -23,8 +23,8 @@ const props = withDefaults(defineProps<{
    */
   action?: () => Promise<void>
   /**
-   * What to say about the field, which differs by who is reading it: somebody setting their own name
-   * is told what it does for them, and somebody setting another member's is told the same about that
+   * What to show about the field, which differs by who is reading it: somebody setting their own name
+   * sees what it does for them, and somebody setting another member's sees the same about that
    * member.
    */
   hint?: string

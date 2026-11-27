@@ -17,7 +17,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 /**
  * The last question before the signing keys that no longer open are given up.
  *
- * <p>It says what happens and what stays, and the button stays disabled until the administrator ticks
+ * <p>It shows what happens and what stays, and the button stays disabled until the administrator ticks
  * that the old key file cannot be restored, so the step is never one click away. The box is cleared each
  * time the dialog opens.
  */

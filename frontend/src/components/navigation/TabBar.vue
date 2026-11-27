@@ -9,7 +9,7 @@ import BareButton from '@/components/button/BareButton.vue'
 import {useLinkedTab} from './useLinkedTab'
 
 /**
- * One entry of a tab list: the value it selects and what it says.
+ * One entry of a tab list: the value it selects and what it shows.
  *
  * <p>The list is a `tablist` of `tab`s with a roving tabindex, and the arrow keys, Home and End
  * select as they move. The rule under it belongs to the outer element and the scrolling to the

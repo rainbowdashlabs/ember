@@ -15,7 +15,7 @@ import {fieldTypeLabel} from '@/api/fieldTypes'
 /**
  * One question as it stands on the form, and as it is arranged.
  *
- * <p>Two handles, and each says what it does: the grip on the left picks the question up, the bar on
+ * <p>Two handles, and each shows what it does: the grip on the left picks the question up, the bar on
  * the right drags its width. Both are drawn at rest rather than appearing on hover, because a handle
  * nobody can see is a feature nobody finds.
  *

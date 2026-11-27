@@ -58,7 +58,7 @@ export async function regenerateBackupCodes(): Promise<BackupCodesResponse> {
 
 /**
  * Gives the second factor a sign-in is waiting on. The session it earned arrives as a cookie; the
- * answer says how long it lasts.
+ * answer shows how long it lasts.
  *
  * @param trustedDevice the box from the login screen, carried through so somebody who ticked it
  *                      does not end up with the short session after the second factor.

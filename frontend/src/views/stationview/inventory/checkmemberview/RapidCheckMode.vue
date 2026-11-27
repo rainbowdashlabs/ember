@@ -82,7 +82,7 @@ function remember(entry: CheckEntry | null, skipped: boolean) {
 }
 
 /**
- * Puts the walk back on the piece it just left, undoing what was said about it.
+ * Puts the walk back on the piece it just left, undoing what was recorded about it.
  *
  * <p>Only what this walk decided is taken back, one step at a time, so a slip on the piece just
  * handled does not mean starting the whole check again.
@@ -127,7 +127,7 @@ const currentEntry = computed((): CheckEntry | null => {
  * What is already running on the piece in hand.
  *
  * <p>A piece can only be on one movement at a time, so a swap asked for beside a running one is
- * refused. The walk says where that movement stands, in the words of the movement list, instead of
+ * refused. The walk shows where that movement stands, in the words of the movement list, instead of
  * offering a button that the station would only turn down.
  */
 const running = computed(() => {

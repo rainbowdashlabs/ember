@@ -21,7 +21,7 @@ import {showToast} from '@/util/toast'
  *
  * Stepping out is always offered to whoever stands in it, because the server never refuses it.
  * Stepping in follows the state the server worked out for this reader and is offered only where it
- * says open, so a question narrowed to people the reader is not among, or one that reached the screen
+ * reads open, so a question narrowed to people the reader is not among, or one that reached the screen
  * without a state, offers nothing rather than a button that is then refused.
  */
 const props = defineProps<{

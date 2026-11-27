@@ -70,7 +70,7 @@ export function useEntryTransitions(
   /**
    * Carries the move out, then fetches the list again.
    *
-   * <p>The fetch is caught on its own. Joining creates a member, and a reader told that joining failed
+   * <p>The fetch is caught on its own. Joining creates a member, and a reader shown that joining failed
    * when only the list failed to refresh joins the same applicant a second time and gets two of them.
    */
   const { running, failure: transitionFailure, run: confirm } = useAsyncAction(async () => {

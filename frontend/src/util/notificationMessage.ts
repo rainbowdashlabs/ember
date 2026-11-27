@@ -38,7 +38,7 @@ function withReadableDates(params: Record<string, string>): Record<string, strin
 
 /**
  * The status of a registration as a notification words it: whoever moved up from the waiting list is
- * told so, at short notice where the start is less than a day away, and whoever waits is told their
+ * notified of it, at short notice where the start is less than a day away, and whoever waits is shown their
  * place in line.
  */
 function registrationStatusWord(t: Translate, params: Record<string, string>): string {
@@ -87,7 +87,7 @@ function readableParams(t: Translate, type: NotificationType, raw: Record<string
  *
  * <p>Most of it is the message the type carries, with the enums in its parameters routed through
  * their locale namespace so they read in German. A movement called off is the exception with two
- * sentences rather than one: whether the piece came home cannot be said in a word, and it is the
+ * sentences rather than one: whether the piece came home cannot be put in a word, and it is the
  * half the reader cannot guess.
  *
  * @param t            the translation function of the calling component

@@ -33,7 +33,7 @@ export function sidebarEntryVNodes(vnodes: VNode[]): VNode[] {
  * second opinion to disagree with.
  *
  * <p>Both what an entry links to and what a nested subsection declares count, so a section reaches
- * everything its subsections do without being told twice.
+ * everything its subsections do without being listed twice.
  */
 export function collectSidebarPaths(vnodes: VNode[]): string[] {
     const paths: string[] = []

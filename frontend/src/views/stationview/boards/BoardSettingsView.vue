@@ -111,7 +111,7 @@ const saveFailure = ref<Failure | null>(null)
  * Why the board's federation settings are not shown.
  *
  * <p>This was swallowed and the panel fell back to showing no partners at all, which reads as a board
- * that is not shared with anybody. Saying so matters even though nothing is overwritten: somebody who
+ * that is not shared with anybody. Showing that matters even though nothing is overwritten: somebody who
  * believes the board is private may write on it accordingly.
  */
 const federationFailure = ref<Failure | null>(null)

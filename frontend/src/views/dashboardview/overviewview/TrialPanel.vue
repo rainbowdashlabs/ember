@@ -29,7 +29,7 @@ const {t} = useI18n()
 
 const trials = ref<TrialOverview[]>([])
 
-/** Loads the panel, which says nothing when it cannot load rather than breaking the page. */
+/** Loads the panel, which shows nothing when it cannot load rather than breaking the page. */
 async function load() {
   trials.value = await waitingList.listOwnTrials().catch(() => [])
 }

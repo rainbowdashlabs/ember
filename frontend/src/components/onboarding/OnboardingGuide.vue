@@ -65,7 +65,7 @@ const LISTS: Record<string, string> = {
 /**
  * Who the task being walked is about, by name.
  *
- * <p>A guardian walks the same task once per child, and the steps say which one rather than "dein
+ * <p>A guardian walks the same task once per child, and the steps show which one rather than "dein
  * Kind": with two of them that wording asks the reader to guess.
  */
 const subjectName = computed(() => {
@@ -76,7 +76,7 @@ const subjectName = computed(() => {
 })
 
 /**
- * The walk ends where the steps end. Ember says so rather than vanishing mid-page, and the list is
+ * The walk ends where the steps end. Ember signals so rather than vanishing mid-page, and the list is
  * read again, because whether the task counts as done is the server's answer and not the last click's.
  *
  * <p>A task Ember cannot read for itself is settled by the walk, because walking it is the whole of
@@ -144,7 +144,7 @@ const spotlight = computed(() => (ring.value ? {...ring.value, boxShadow: '0 0 0
  *
  * Both states that do this mean the same to a reader: press here and I will carry on. A solid ring
  * has meant "this is it" everywhere else in the walk, so a signpost is drawn dashed instead, and the
- * reader is not told to press what turns out to be a doorway.
+ * reader is not asked to press what turns out to be a doorway.
  */
 const signposting = computed(() => behindMenu.value || revealing.value)
 

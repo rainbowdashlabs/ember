@@ -17,7 +17,7 @@ const route = useRoute()
 
 /**
  * The help page's own title when it has one, otherwise the title of the page it documents with
- * the help-center suffix, so an article always says what it is about.
+ * the help-center suffix, so an article always shows what it is about.
  */
 const pageTitle = computed(() => {
   const name = (route.name as string)?.replace('help-', '') ?? ''

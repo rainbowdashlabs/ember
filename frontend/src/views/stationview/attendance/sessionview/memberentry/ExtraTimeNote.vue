@@ -13,7 +13,7 @@ import {useSheetExtraTime} from '../useSheetExtraTime'
 
 /**
  * The preparation and follow-up a present person is credited with, under their name, with the switch
- * for an evening they did not do it. Says nothing where the sheet's rules do not name them.
+ * for an evening they did not do it. Shows nothing where the sheet's rules do not name them.
  */
 const props = defineProps<{
   entryId: number

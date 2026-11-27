@@ -14,7 +14,7 @@ import PlaceholderTextInput from './placeholderpicker/PlaceholderTextInput.vue'
  * What one form field of the PDF is filled with: a text with placeholders, or for a check box the
  * value whose yes ticks it. Left empty, the field keeps what the PDF shows.
  *
- * <p>A PDF often names its fields {@code Text1} and so on, so the entry also says what the PDF's
+ * <p>A PDF often names its fields {@code Text1} and so on, so the entry also shows what the PDF's
  * author called the field, which page it is on and what it holds as uploaded. Chosen on the page, the
  * entry is marked and scrolled into view; working in it chooses its field on the page.
  */

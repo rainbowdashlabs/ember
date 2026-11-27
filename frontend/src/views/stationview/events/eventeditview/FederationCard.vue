@@ -17,11 +17,11 @@ import {ShareScope, type PartnerResponse} from '@/api/generated/schema'
 const props = defineProps<{
   partners: PartnerResponse[]
   canFederate: boolean
-  /** What sharing does, where the owner is not an event: an event template says so in its own words. */
+  /** What sharing does, where the owner is not an event: an event template supplies its own words. */
   hint?: string
   /** A note on the share as it was taken over from a template, shown above the picker. */
   note?: string
-  /** Without a heading: the switch says what it does, and the explanation sits behind a hint icon. */
+  /** Without a heading: the switch shows what it does, and the explanation sits behind a hint icon. */
   compact?: boolean
   /** What the places of a partner count, where the owner is not an appointment: an event group's count for all of it. */
   placesHint?: string

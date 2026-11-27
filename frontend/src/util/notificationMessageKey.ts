@@ -8,7 +8,7 @@ import {expiryReminderKey} from './expiry'
 /**
  * The message key one notification is worded by.
  *
- * <p>Most types have one sentence and it is the key they arrive with. A few say different things
+ * <p>Most types have one sentence and it is the key they arrive with. A few read differently
  * depending on what they carry: an expiry reminder counts days or members, a date an appointment
  * moved off names the next date only where one is left, a signed document names its member only
  * where somebody else signed it, and a withdrawal at a partner station names the member only where

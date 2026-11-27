@@ -19,15 +19,15 @@ import {ClusterUserType} from '@/api/generated/schema'
 /**
  * Giving somebody a job at the association, which is what makes them a member of it.
  *
- * <p>The address is asked first and the two name fields appear only once the server has said no account
+ * <p>The address is asked first and the two name fields appear only once the server has answered that no account
  * has it, so adding a colleague who is already here is one field and a button as it always was. Asking
- * the server rather than looking the address up first is deliberate: it tells nobody who exists until
+ * the server rather than looking the address up first is deliberate: it shows nobody who exists until
  * they have deliberately tried to take that person on.
  */
 const props = defineProps<{
   modelValue: boolean
   saving: boolean
-  /** Set once the server has said this address has no account behind it. */
+  /** Set once the server has answered that this address has no account behind it. */
   needsName: boolean
 }>()
 

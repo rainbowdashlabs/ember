@@ -19,7 +19,7 @@ import {StationUserType, type MemberGroup} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
- * A member's type, with what changing it does to their groups said before it happens.
+ * A member's type, with what changing it does to their groups shown before it happens.
  *
  * <p>A group bound to member types takes only those, so a member who becomes another type leaves the
  * bound groups that do not take the new one. The groups that would be left are asked for first; where

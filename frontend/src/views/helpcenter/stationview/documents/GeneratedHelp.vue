@@ -24,7 +24,7 @@ import {
 } from '@/api/generated/schema'
 
 /**
- * The list of documents generated from templates: what it says about each document, how to narrow it, how
+ * The list of documents generated from templates: what it shows about each document, how to narrow it, how
  * the signatures asked for on a document stand, and how a manager looks after them.
  */
 const {t} = useI18n()

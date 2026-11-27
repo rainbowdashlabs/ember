@@ -69,7 +69,7 @@ const {t} = useI18n()
 const search = ref('')
 const open = ref(false)
 
-/** A word to make, as the list tells it apart from every label, whose ids are numbers. */
+/** A word to make, as the list distinguishes it from every label, whose ids are numbers. */
 const CREATE = 'create'
 
 const placeholderText = computed(() => props.placeholder || t('labelSelect.placeholder'))

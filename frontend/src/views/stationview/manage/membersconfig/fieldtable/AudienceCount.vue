@@ -11,7 +11,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 /**
  * How many audiences a question is put to.
  *
- * <p>None is worth saying out loud: the question is written down and reaches nobody, which looks
+ * <p>None is worth flagging: the question is written down and reaches nobody, which looks
  * exactly like a question that works until somebody goes looking for it on a profile.
  */
 defineProps<{ count: number }>()

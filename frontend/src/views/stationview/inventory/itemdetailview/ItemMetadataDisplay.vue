@@ -48,8 +48,8 @@ const custodyLabel = computed(() =>
     props.item.custody ? t(`itemDetail.custodyValues.${props.item.custody}`) : '-')
 
 /**
- * Names the owner. A Träger reads the same whether or not it uses Ember, because telling the two apart
- * says nothing the reader can act on.
+ * Names the owner. A Träger reads the same whether or not it uses Ember, because distinguishing the two
+ * shows nothing the reader can act on.
  */
 const ownerLabel = computed(() =>
   props.item.ownerKind === ItemOwner.CLUSTER ? t('itemDetail.ownerCluster') : t('itemDetail.ownerStation'))

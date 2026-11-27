@@ -58,7 +58,7 @@ reset(questions.value)
 
 const walk = useFormWalk(pages, questions, answers)
 
-/** Whether the reader has pressed send, which here only says where the form would end. */
+/** Whether the reader has pressed send, which here only marks where the form would end. */
 const sent = ref(false)
 
 const pathLabel = computed(() => {

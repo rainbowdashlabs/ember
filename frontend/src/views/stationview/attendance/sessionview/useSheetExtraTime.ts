@@ -37,11 +37,11 @@ export interface SheetExtraTime {
 const SHEET_EXTRA_TIME: InjectionKey<SheetExtraTime> = Symbol('sheetExtraTime')
 
 /**
- * Reads what a sheet's rules credit and hands it to every row below, so the rows say it without each
+ * Reads what a sheet's rules credit and hands it to every row below, so the rows show it without each
  * asking on its own and without the sheet threading it through every panel in between.
  *
  * <p>Only the answer to the latest read is shown: a read started before a switch was written must not
- * put back what the switch just changed. A read that fails keeps what was shown and says so, rather
+ * put back what the switch just changed. A read that fails keeps what was shown and reports it, rather
  * than wiping every note off the sheet.
  *
  * @param sessionId the sheet

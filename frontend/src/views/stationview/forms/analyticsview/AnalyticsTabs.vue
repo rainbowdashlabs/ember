@@ -18,7 +18,7 @@ import type {GroupSeries} from './groupedChart'
  * The two ways to read a form's results: charts per question, plain or compared across groups, and
  * the answers one response at a time.
  *
- * `grouped` says the results were split into groups; `names` and `series` are what those groups are
+ * `grouped` marks that the results were split into groups; `names` and `series` are what those groups are
  * called and drawn as. The individual answers come in already narrowed to the current filter.
  */
 defineProps<{

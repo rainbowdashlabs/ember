@@ -24,7 +24,7 @@ import {namesSomebody} from '@/components/input/restriction'
  *
  * <p>Each rule names whom it credits with the same picker every restricted feature uses, and how many
  * minutes before and after the appointment. A rule that lost a group or tag it named comes back naming
- * nobody and says so, because it can only be saved once its people are named again. The list holds
+ * nobody and shows that, because it can only be saved once its people are named again. The list holds
  * no saving of its own: the template and the sheet write it where they keep it.
  */
 const rules = defineModel<TimeRuleDraft[]>({required: true})

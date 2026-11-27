@@ -19,10 +19,10 @@ defineProps<{
 }>()
 
 /**
- * What the two sections have to say, which nothing here used to listen for.
+ * What the two sections have to report, which nothing here used to listen for.
  *
  * <p>Both report everything they do through these two events and draw nothing themselves, so with no
- * listener bound a transfer token that could not be created and an import that failed outright said
+ * listener bound a transfer token that could not be created and an import that failed outright showed
  * absolutely nothing: the reader pressed the button and the page sat there. Nothing warned about it,
  * because an event nobody listens to is perfectly legal.
  */

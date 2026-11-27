@@ -172,7 +172,7 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
      * Whether a column is worth translating value by value.
      *
      * <p>Everything with a fixed set of answers is: a yes-or-no question, an enumeration, and the
-     * group column, where the file says "JF 1" and the station calls it "Jugendfeuerwehr". Without
+     * group column, where the file reads "JF 1" and the station calls it "Jugendfeuerwehr". Without
      * the group in that list, a file whose names differ from the station's silently created a second
      * set of groups beside the ones that were already there.
      */
@@ -185,12 +185,12 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
     }
 
     /**
-     * The answers a target allows, for the editor that says what a value in the file becomes.
+     * The answers a target allows, for the editor that shows what a value in the file becomes.
      *
      * <p>A yes-or-no question allows exactly those two, an enumeration the options it was written
      * with, and a group column the groups the station keeps. Offering them beats typing them: a
      * target spelled even slightly differently matches no answer, and the value then arrives as it
-     * stood in the file with nothing to say why. Everything else allows anything at all.
+     * stood in the file with nothing to show why. Everything else allows anything at all.
      */
     function valuesForTarget(target: string): TargetValue[] {
         if (target === 'group') {

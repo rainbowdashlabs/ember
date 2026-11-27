@@ -12,7 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {formatDateTime} from '@/util/format'
 
 /**
- * Says that there is unsaved writing from last time, and asks what to do with it.
+ * Shows that there is unsaved writing from last time, and asks what to do with it.
  *
  * <p>Asking rather than restoring is the whole point. What the server holds is what everybody else
  * sees, and a draft from last Tuesday quietly replacing a page a colleague has since corrected

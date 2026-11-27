@@ -16,7 +16,7 @@ export function provideFontSamples(address: FontSampleAddress): void {
     provide(FONT_SAMPLES, address)
 }
 
-/** Where the samples are drawn, or null where no screen above says so and the pickers show names only. */
+/** Where the samples are drawn, or null where no screen above provides it and the pickers show names only. */
 export function useFontSamples(): FontSampleAddress | null {
     return inject(FONT_SAMPLES, null)
 }

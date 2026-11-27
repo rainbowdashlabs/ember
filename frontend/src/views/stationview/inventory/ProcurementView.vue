@@ -58,8 +58,8 @@ const {loading, failure} = useAsyncLoader(async () => {
 const orderableInventories = computed(() => inventories.value.filter(i => i.homogeneous))
 
 /**
- * Fetches the orders again after one was settled or struck out, and says a stale screen rather than a
- * failed change: the change is written by then, and a reader told otherwise makes it twice.
+ * Fetches the orders again after one was settled or struck out, and reports a stale screen rather than a
+ * failed change: the change is written by then, and a reader shown otherwise makes it twice.
  */
 async function reloadEntries() {
   try {

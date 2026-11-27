@@ -12,10 +12,10 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import type {Inventory} from '@/api/generated/schema'
 
 /**
- * Where the chosen pieces are going, with the sentence saying what survives the journey.
+ * Where the chosen pieces are going, with the sentence showing what survives the journey.
  *
  * The target is picked before the pieces on purpose: once it is known, every line of the list below
- * can say whether its size comes along.
+ * can show whether its size comes along.
  */
 const targetId = defineModel<string>({required: true})
 

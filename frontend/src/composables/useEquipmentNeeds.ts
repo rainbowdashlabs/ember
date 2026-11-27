@@ -23,7 +23,7 @@ const MINUTES_PER_HOUR = 60
  *
  * <p>Reading and writing keep their failures apart: {@code failure} is what the panel could not
  * read, {@code saveFailure} is what a line could not be written as, which is what the dialog shows
- * while it is open. A read that failed says so rather than showing an empty list, because nothing
+ * while it is open. A read that failed is shown as such rather than as an empty list, because nothing
  * planned and nothing readable are different answers.
  */
 export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>) {

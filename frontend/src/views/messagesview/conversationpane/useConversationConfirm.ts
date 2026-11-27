@@ -21,7 +21,7 @@ export interface Confirmation {
  * The one question a conversation asks before blocking, leaving, deleting or moderating.
  *
  * <p>Shift held as the step is started takes it at once, as it does for every plain confirmation.
- * A refusal is said by a toast, since the pane has no alert of its own.
+ * A refusal is shown by a toast, since the pane has no alert of its own.
  */
 export function useConversationConfirm() {
   const {t} = useI18n()

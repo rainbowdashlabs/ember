@@ -19,7 +19,7 @@ export function templateAudience(template: TemplateDetail): SessionAudience {
 }
 
 /**
- * Whether a sheet told this audience would expect exactly whom the template does. The user types
+ * Whether a sheet given this audience would expect exactly whom the template does. The user types
  * are compared as a set, the groups in order, because the order of the groups is the order the sheet
  * is written in.
  */

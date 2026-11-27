@@ -12,7 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type {TestProtocolSection} from '@/api/generated/schema'
 
 /**
- * The bar standing above the protocol while a section is cut: it names the section, says where it
+ * The bar standing above the protocol while a section is cut: it names the section, shows where it
  * can go, and offers the top level and giving up. Pasting into a section is offered on that section.
  */
 defineProps<{

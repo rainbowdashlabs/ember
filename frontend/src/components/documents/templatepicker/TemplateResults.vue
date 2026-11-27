@@ -21,7 +21,7 @@ const props = defineProps<{
   result: TemplatePage | null
   loading: boolean
   pageCount: number
-  /** What to say where nothing matches. */
+  /** What to show where nothing matches. */
   emptyText: string
 }>()
 

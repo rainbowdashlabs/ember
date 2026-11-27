@@ -149,7 +149,7 @@ function openEditTag(tag: UserTag) {
 /**
  * Writes the word back, then fetches the list again.
  *
- * <p>Caught apart, because the word is saved by the time the list is fetched and a reader told that
+ * <p>Caught apart, because the word is saved by the time the list is fetched and a reader shown that
  * saving failed saves the same word twice. A name already in use is the ordinary refusal here, and the
  * server names it.
  */

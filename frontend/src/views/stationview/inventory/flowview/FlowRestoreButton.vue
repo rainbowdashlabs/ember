@@ -26,7 +26,7 @@ import FlowRestoreMappingList from './FlowRestoreMappingList.vue'
  * worked on for a year looks exactly like one it has not touched.
  *
  * <p>The question is asked with the plan in hand: a movement standing on a step the restore removes
- * has to be moved, and where the answer is not certain the reader decides rather than being told
+ * has to be moved, and where the answer is not certain the reader decides rather than finding out
  * afterwards where their movements went.
  */
 const {t} = useI18n()

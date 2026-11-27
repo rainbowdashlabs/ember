@@ -9,7 +9,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import AppIcon from '@/components/display/AppIcon.vue'
 import type {EventGroupPartSummary} from '@/api/generated/schema'
 
-/** Says which event group an appointment is a part of: "Jugendflamme 1, part 2 of 4". */
+/** Shows which event group an appointment is a part of: "Jugendflamme 1, part 2 of 4". */
 defineProps<{
   eventGroup: EventGroupPartSummary
 }>()

@@ -23,8 +23,8 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 /**
  * Asking the body above the station to replace something that is gone.
  *
- * <p>Marking gear lost is a fact about where it is, and the association is never told. This is the separate
- * act that tells it: a request for a replacement, carrying what the reporting manager writes and, where the
+ * <p>Marking gear lost is a fact about where it is, and the association is never notified. This is the separate
+ * act that notifies it: a request for a replacement, carrying what the reporting manager writes and, where the
  * association asks for one, a document. The member's own note travels with it as a reference and is not
  * repeated here, because it is theirs and not the manager's.
  */

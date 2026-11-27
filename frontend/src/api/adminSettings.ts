@@ -57,7 +57,7 @@ export async function getSettings(): Promise<ApplicationSettings> {
     return res.data
 }
 
-/** The languages the instance holds mail templates for are the server's to say, so they are not sent. */
+/** The languages the instance holds mail templates for are the server's to decide, so they are not sent. */
 export async function updateSettings(
     settings: Omit<ApplicationSettings, 'availableMailLocales'>,
 ): Promise<ApplicationSettings> {

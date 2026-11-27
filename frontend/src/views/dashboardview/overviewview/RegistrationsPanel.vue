@@ -39,7 +39,7 @@ function categoryOf(eventId: number): EventCategory | undefined {
 
 /**
  * The sign-ups that still stand or were decided, which is what the panel lists. A wait on the
- * waiting list is one of them, and says so with its place in line rather than reading as a place.
+ * waiting list is one of them, and shows it with its place in line rather than reading as a place.
  */
 const activeRegistrations = computed(() => registrations.value.filter(r => r.status !== RegistrationStatus.DECLINED))
 

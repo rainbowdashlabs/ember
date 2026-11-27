@@ -14,7 +14,7 @@ import BareButton from './BareButton.vue'
  * into the setup, the developer tools.
  *
  * <p>They stand side by side, so they share one size, one border and one box for what they show: an icon
- * or, given in the slot, a picture of the same size. Only the colour tells them apart, which is what makes
+ * or, given in the slot, a picture of the same size. Only the colour distinguishes them, which is what makes
  * each one recognisable at a glance. With `to` it is a link, as the help center is.
  */
 const props = withDefaults(defineProps<{

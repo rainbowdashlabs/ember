@@ -146,7 +146,7 @@ async function draw() {
 }
 
 /**
- * Draws the table whenever it is shown, and again whenever what it should say changes.
+ * Draws the table whenever it is shown, and again whenever what it should show changes.
  *
  * <p>Fetched on being shown rather than once at the start: somebody confirms a place, switches to
  * the table and must see them on it. The cards behind it are reloaded by the screen for the same

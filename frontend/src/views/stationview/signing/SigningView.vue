@@ -38,7 +38,7 @@ import type {SignatureDraft} from '@/util/signatureDraft'
  *
  * <p>Opened from a field ("please sign" link, an appointment), that field's document comes first; opened
  * with `fields=1,2,3` only those are ticked. Every screen takes the focus on its heading, and the live
- * region says which step the reader is on. Nothing of a later step is shown before it is reached, and
+ * region indicates which step the reader is on. Nothing of a later step is shown before it is reached, and
  * going back keeps everything ticked and typed.
  */
 const {t} = useI18n()

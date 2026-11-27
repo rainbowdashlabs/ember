@@ -22,7 +22,7 @@ import { describeFailure, type Failure } from '@/util/failure'
  * One thing still to be looked at during a check: either an item the member holds, or an empty
  * slot for an item they should hold but do not.
  *
- * <p>`position` and `total` say which of the requirement's pieces this is: the first of two shirts
+ * <p>`position` and `total` show which of the requirement's pieces this is: the first of two shirts
  * reads 1/2. Where a requirement is about a single piece, `total` is one and there is nothing to
  * count off.
  */
@@ -40,7 +40,7 @@ export type CheckEntry =
  *
  * @param memberId the member being checked
  * @param state    the server-side check state, replaced by every assignment operation
- * @param failure  the view's failure channel, described so the walker is told what to do about it
+ * @param failure  the view's failure channel, described so the walker sees what to do about it
  */
 export function useMemberCheck(
   memberId: Ref<number>,
@@ -204,7 +204,7 @@ export function useMemberCheck(
   }
 
   /**
-   * Writes down what the member is really holding, in place of what the record said.
+   * Writes down what the member is really holding, in place of what the record shows.
    *
    * <p>The mark on the piece coming off the record goes with it: it was a mark about something the
    * member never had, and leaving it behind would count a piece nobody is looking at any more.
@@ -268,7 +268,7 @@ export function useMemberCheck(
    * Where the movement already running on a piece stands, and null when nothing runs on it. A piece
    * can only be on one movement at a time, so this is what decides whether a swap is worth offering
    * for it. It is the movement's own standing, the last step that happened and whose turn it is, so
-   * the walk says what the movement list says and never names the step still being waited on.
+   * the walk shows what the movement list shows and never names the step still being waited on.
    */
   function movementOf(itemId: number): MovementStanding | null {
     return state.value?.onTheMove?.[itemId] ?? null

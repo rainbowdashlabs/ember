@@ -85,7 +85,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   const partyChoices = ref<PartyChoices>(noPartyChoices())
   /** The members the procedure can be about, as the member pickers offer them. */
   const aboutChoices = computed(() => partyChoices.value.members.map(fromCompletion))
-  /** The managing party: who sees the public steps, ticks those marked for them and is told. */
+  /** The managing party: who sees the public steps, ticks those marked for them and is notified. */
   const party = ref<RestrictionSelection>(emptyRestriction())
 
   const items = ref<EditableItem[]>([])
@@ -145,7 +145,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   /**
    * Reads the chosen template and fills the form from it.
    *
-   * <p>The sentence names the template rather than repeating what the server said, because a reader
+   * <p>The sentence names the template rather than repeating what the server answered, because a reader
    * who has just picked one from the list needs to know the form in front of them is still empty.
    * What to do about it, and whether it is worth reporting, still come from the failure itself.
    */

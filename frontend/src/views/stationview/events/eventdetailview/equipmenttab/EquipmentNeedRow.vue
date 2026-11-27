@@ -25,7 +25,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 /**
- * Where the pieces come from, said as one sentence.
+ * Where the pieces come from, put as one sentence.
  *
  * The line is the question and the origin is part of the answer: counting only the station's own
  * stock would report a shortfall that was solved a week ago.

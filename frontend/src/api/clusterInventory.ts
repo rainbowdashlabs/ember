@@ -67,7 +67,7 @@ export async function archiveStep(stepId: number): Promise<void> {
 }
 
 /**
- * Says whether the cluster keeps its gear here. With it off, its stations behave as if there were no
+ * Returns whether the cluster keeps its gear here. With it off, its stations behave as if there were no
  * cluster above them where gear is concerned.
  */
 export async function setUsesInventory(usesInventory: boolean): Promise<void> {

@@ -12,7 +12,7 @@ import type {AvailableInventoryEntry} from '@/api/generated/schema'
 
 defineProps<{
   offers: AvailableInventoryEntry[]
-  /** Why an empty answer is empty, which the browse call says and the screen repeats. */
+  /** Why an empty answer is empty, which the browse call reports and the screen repeats. */
   emptyReason: string | null
 }>()
 

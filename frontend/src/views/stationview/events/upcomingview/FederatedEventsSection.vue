@@ -83,8 +83,8 @@ async function register(fed: FederatedEventItem, people: AnswerablePerson<string
 /**
  * Giving up a place at a partner station's appointment, and offering it back.
  *
- * <p>How long the offer stands is the other station's to say, because the registration is theirs.
- * This end simply asks, and is told no once the few minutes have passed.
+ * <p>How long the offer stands is for the other station to decide, because the registration is theirs.
+ * This end simply asks, and gets a refusal once the few minutes have passed.
  */
 async function withdraw(fed: FederatedEventItem, memberUid: string) {
   const key = `${fed.partnerStationUid}-${fed.event.id}`

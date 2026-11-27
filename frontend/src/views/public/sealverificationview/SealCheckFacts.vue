@@ -12,7 +12,7 @@ import {certificateName, provingTimestamp, revokedAfterTimestamp} from './sealVe
 
 /**
  * Who sealed, when, which timestamp backs it and whether the key has since been revoked, in plain
- * words. The revocation is only said for a seal of this installation, whose lists it holds, and for a
+ * words. The revocation is only shown for a seal of this installation, whose lists it holds, and for a
  * seal of a federation partner, whose lists it takes in with the partner's authorities.
  */
 const props = defineProps<{

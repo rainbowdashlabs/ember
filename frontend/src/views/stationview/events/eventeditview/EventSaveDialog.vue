@@ -35,7 +35,7 @@ const props = defineProps<{
   previewFailure?: Failure | null
   /** Whether files were changed, which already reached every date, so only every date can be chosen. */
   filesChanged?: boolean
-  /** Whether there is anything to tell about. */
+  /** Whether there is anything to announce. */
   canTell: boolean
   saving: boolean
 }>()

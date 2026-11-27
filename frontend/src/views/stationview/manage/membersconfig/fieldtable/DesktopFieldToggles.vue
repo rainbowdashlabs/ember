@@ -12,7 +12,7 @@ import {isWrittenType} from '@/util/questions'
 import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFieldsConfig'
 
 /**
- * What the question itself says, which holds for everybody asked it.
+ * What the question itself defines, which holds for everybody asked it.
  *
  * <p>Who may write the answer is one of them. An association has a third party to lock out as well, so
  * where there is one it gets the named choice in place of the switch.

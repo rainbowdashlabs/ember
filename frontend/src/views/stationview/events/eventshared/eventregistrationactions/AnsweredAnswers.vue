@@ -43,7 +43,7 @@ const {t} = useI18n()
  * What taking one answer back is called, which follows the answer rather than the appointment.
  *
  * <p>Undoing is a deletion in both directions, never the opposite answer written down, so the word
- * has to say what disappears. A place given up is being signed off. A refusal taken back leaves no
+ * has to show what disappears. A place given up is being signed off. A refusal taken back leaves no
  * answer at all, and what that means depends on the appointment: where everybody is expected it puts
  * the person back among them, and where a place has to be asked for it simply clears the refusal.
  * Reading this off the appointment alone once put "sign off" behind somebody who had already

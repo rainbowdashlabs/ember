@@ -13,7 +13,7 @@ export const RELAY_PROVIDER_NAMES: Record<string, string> = {
 }
 
 /**
- * What members are told a provider is called: the name its owner gave it, otherwise the relay's own
+ * What members see a provider called: the name its owner gave it, otherwise the relay's own
  * name, otherwise the label for a mail server of somebody's own.
  */
 export function mailProviderLabel(provider: {type: string, name: string}, ownServerLabel: string): string {
@@ -36,7 +36,7 @@ export function needsServerAddress(provider: string | undefined): boolean {
 /**
  * What a provider lets a station send for nothing.
  *
- * Kept in one place because these are somebody else's terms and they change: `checked` says when
+ * Kept in one place because these are somebody else's terms and they change: `checked` records when
  * the figure was last confirmed, and `pricingUrl` is where a reader settles it for themselves. A
  * provider without `perDay` has no free allowance worth naming, and `noteKey` explains why.
  */

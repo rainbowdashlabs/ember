@@ -13,7 +13,7 @@ import type {FontEntry} from './fontOptions'
 
 /**
  * One font of a font list: its name, where it comes from and a line of sample text in it. A family the
- * template names but no longer reaches has no sample; it is marked, and the note says what prints
+ * template names but no longer reaches has no sample; it is marked, and the note shows what prints
  * instead.
  */
 defineProps<{

@@ -13,7 +13,7 @@ import WitnessHandOverStep from '@/views/stationview/signing/witnessview/Witness
 
 /**
  * Signatures collected in person: who may collect them, the four steps, what the person sees while they
- * hold the device, where the document goes and what the evidence says.
+ * hold the device, where the document goes and what the evidence shows.
  */
 const {t} = useI18n()
 </script>

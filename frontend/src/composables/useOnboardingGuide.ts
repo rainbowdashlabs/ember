@@ -53,7 +53,7 @@ function filled(element: HTMLElement): boolean {
 /**
  * Whether the thing being pointed at cannot be used yet, which a step must not demand a click on.
  * The training's start button is the case that matters: it stays disabled until a catalogue is
- * ticked, so a reader told to press it presses nothing.
+ * ticked, so a reader instructed to press it presses nothing.
  */
 function isBlocked(element: HTMLElement): boolean {
     if (element.matches(':disabled') || element.getAttribute('aria-disabled') === 'true') return true
@@ -63,7 +63,7 @@ function isBlocked(element: HTMLElement): boolean {
 /**
  * What to point at when the target itself is not on the page but the thing that holds it is.
  *
- * An entry of a menu that is folded away is nowhere in the page, and saying "this is under
+ * An entry of a menu that is folded away is nowhere in the page, and answering "this is under
  * Notifications, shall I take you there" is a poorer answer than pointing at the menu it hides in.
  * A sidebar group names everything under it ({@code data-onboarding-holds}), and of the groups on the
  * page that hold the mark the innermost is the one to open: a section's subgroup rather than the section.

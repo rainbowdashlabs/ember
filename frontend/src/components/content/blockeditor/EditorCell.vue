@@ -27,7 +27,7 @@ import {useBlockEditorOptions} from '@/composables/useBlockEditorOptions'
 
 /**
  * Data shape passed between the page editor and a single cell. {@code id} is 0 for cells that
- * exist only in the draft and have not yet been persisted. {@code restriction} says who the block is
+ * exist only in the draft and have not yet been persisted. {@code restriction} shows who the block is
  * shown to, and is only ever set where the editor offers a visibility, which a letter does.
  */
 export interface CellEditData {

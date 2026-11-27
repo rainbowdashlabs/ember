@@ -65,7 +65,7 @@ export function isAvailable(custody?: ItemCustody | null): boolean {
  * The two kinds of inventory, named on both sides.
  *
  * <p>The wire carries a single boolean, which reads as one kind and the absence of it. Screens
- * speak in names instead, so the reader can tell which of the two they have in front of them.
+ * use names instead, so the reader can see which of the two they have in front of them.
  */
 export const InventoryKinds = {
     /** One thing in many copies: the shelf full of blousons. */
@@ -86,7 +86,7 @@ export function isStock(kind: InventoryKindName): boolean {
     return kind === InventoryKinds.STOCK
 }
 
-/** The name the backend puts on that refusal, which is how it is told from any other bad request. */
+/** The name the backend puts on that refusal, which is how it is distinguished from any other bad request. */
 export const SWITCH_REFUSED = 'InventorySwitchRefusedException'
 
 /**

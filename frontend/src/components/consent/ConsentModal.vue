@@ -20,7 +20,7 @@ import {auth} from '@/api'
  *
  * <p>Closing it leaves the question open, so it comes back on the next page. Accepting records the
  * terms against the account as signing in would. Declining the terms ends the session, because
- * using the application is what the terms are about; the sign-in form then says why.
+ * using the application is what the terms are about; the sign-in form then shows why.
  */
 const route = useRoute()
 const legal = useLoginConsent()

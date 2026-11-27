@@ -13,7 +13,7 @@ const SEPARATOR = ' · '
 /**
  * The parts of a summary in one line, or "nicht festgelegt" where nothing is set. The summaries are
  * the lines the folded sections of the appointment, event group and template editors show, so a
- * closed section still tells whether it is worth opening.
+ * closed section still shows whether it is worth opening.
  */
 function joined(parts: string[], t: Translate): string {
     return parts.length > 0 ? parts.join(SEPARATOR) : t('formSections.nothingSet')

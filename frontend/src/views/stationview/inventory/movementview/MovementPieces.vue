@@ -14,7 +14,7 @@ import {MovementPurpose, type MovementResponse} from '@/api/generated/schema'
 /**
  * Both ends of a movement: what is going back, what is coming for it, and whose gear that is.
  *
- * <p>A swap that has not chosen a replacement yet still says what was asked for, down to the size,
+ * <p>A swap that has not chosen a replacement yet still shows what was asked for, down to the size,
  * because "which piece am I getting" is the question the member asks and the record half answers it
  * from the moment it is raised.
  */

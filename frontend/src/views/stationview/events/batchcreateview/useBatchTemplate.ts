@@ -85,7 +85,7 @@ export function useBatchTemplate(canFederate: Ref<boolean>) {
         }
     }
 
-    /** What the batch hands to every appointment from the template, as the reader is told it. */
+    /** What the batch hands to every appointment from the template, as the reader is shown it. */
     const carried = computed<string[]>(() => {
         const template = applied.value
         if (!template) return []
@@ -100,7 +100,7 @@ export function useBatchTemplate(canFederate: Ref<boolean>) {
     })
 
     /**
-     * What the template sets that the batch leaves out, as the reader is told it.
+     * What the template sets that the batch leaves out, as the reader is shown it.
      *
      * @param sheetId the attendance sheet the batch is taken on now, empty for none
      */

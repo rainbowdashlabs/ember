@@ -28,7 +28,7 @@ import {formatDateTime} from '@/util/format'
  * <p>Nothing is asked of the browser until the button is pressed: browsers refuse a permission prompt
  * that is not the answer to a click, and a prompt on arrival is the one people learn to dismiss. What
  * this browser can do decides what the card offers: a button, the way to add Ember to an iPhone's
- * home screen first, how to unblock a browser that was told no, or a plain note that it cannot.
+ * home screen first, how to unblock a browser that refuses, or a plain note that it cannot.
  */
 const props = defineProps<{
   /** The installation's key, which this browser subscribes with. */

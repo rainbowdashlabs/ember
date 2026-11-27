@@ -18,7 +18,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 /**
  * The one confirmation before a storage change that moves or drops files, on every storage screen.
  *
- * The body says what is about to happen to whose files; the screen writes it, because only the screen knows.
+ * The body shows what is about to happen to whose files; the screen writes it, because only the screen knows.
  * Bind `keepSource` where the old files may stay behind as well, and the choice is offered here.
  */
 const props = defineProps<{

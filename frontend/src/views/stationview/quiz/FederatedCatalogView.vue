@@ -54,7 +54,7 @@ async function copyToStation() {
 }
 
 /**
- * The partner's catalog by its own name, so a tab opened on one shared catalog is told apart from a
+ * The partner's catalog by its own name, so a tab opened on one shared catalog is distinguished from a
  * tab opened on another. The generic wording stands while it loads and where the partner cannot be
  * reached.
  */

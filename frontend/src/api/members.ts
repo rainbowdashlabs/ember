@@ -28,7 +28,7 @@ export async function invite(data: InviteRequest): Promise<MemberInviteResponse>
 /**
  * Changes an account's address, sign-in name and register name.
  *
- * <p>The answer's `emailChange` says what became of an address given in the same call: null when
+ * <p>The answer's `emailChange` shows what became of an address given in the same call: null when
  * the address was left alone, COMMITTED when it is already the account's, WAITING when a link still
  * has to be clicked.
  */
@@ -62,7 +62,7 @@ export async function resetPassword(data: ResetPasswordRequest): Promise<Message
 
 /**
  * Onboards a member again: every passkey disabled, every session ended, a fresh setup link where
- * mail about the account already goes. The answer says whether a setup mail could go out; when not,
+ * mail about the account already goes. The answer shows whether a setup mail could go out; when not,
  * the QR code in the room is the way.
  */
 export async function onboardAgain(accountId: number): Promise<OnboardAgainResponse> {

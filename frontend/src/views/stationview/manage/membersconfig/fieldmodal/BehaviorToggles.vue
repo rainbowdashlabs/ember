@@ -8,8 +8,8 @@ import {useI18n} from 'vue-i18n'
 import SettingToggle from './SettingToggle.vue'
 
 /**
- * What the question says of itself, which holds for everybody asked it. Who may write the answer is
- * one of them: it is the question's own and not something one audience is told and another is not.
+ * What the question defines about itself, which holds for everybody asked it. Who may write the answer is
+ * one of them: it is the question's own and not something one audience gets and another does not.
  */
 const required = defineModel<boolean>('required', {required: true})
 const readonly = defineModel<boolean>('readonly', {required: true})

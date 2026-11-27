@@ -25,7 +25,7 @@ import {findEmbeddedEvent, publicEventsAddress, type FoundEvent} from '../embedd
  * its own, so moving the event moves the block with it. In a news or wiki article a member of the
  * station sees internal events too, as long as every member may see them; on a public page only
  * public events are shown, whoever reads it. Where the reader cannot see the event, as on a partner
- * station or the public blog for an event the station keeps to itself, the block says so and shows
+ * station or the public blog for an event the station keeps to itself, the block signals so and shows
  * nothing else about it.
  *
  * <p>The description is cut to a few lines unless the block is set to show it whole, so a long event

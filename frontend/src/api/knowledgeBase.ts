@@ -87,7 +87,7 @@ export interface SharedFolderEntry {
 }
 
 /**
- * Tells whether a level is enough for an action, using the same order the server checks.
+ * Returns whether a level is enough for an action, using the same order the server checks.
  */
 export function levelCovers(level: KbAccessLevel | undefined, required: KbAccessLevel): boolean {
     const order = [KbAccessLevel.NONE, KbAccessLevel.READ, KbAccessLevel.WRITE, KbAccessLevel.MANAGE]
@@ -144,7 +144,7 @@ export async function createLinkFile(data: LinkFileRequest): Promise<KbFile> {
     return res.data
 }
 
-/** What is said about a file while it is put into the wiki. */
+/** What is given about a file while it is put into the wiki. */
 export interface KbUpload {
     folderId?: number | null
     name?: string
@@ -451,7 +451,7 @@ export function kbImageUrl(imageId: string, size = 1024): string {
     return `/kb/images/${imageId}?size=${size}`
 }
 
-/** Something that can be marked, named the way the server tells two favourites apart. */
+/** Something that can be marked, named the way the server distinguishes two favourites. */
 export type FavouriteEntry = Pick<KbFavourite, 'target' | 'entryId'> & {
     /** The partner serving the entry, for the partner kinds only. */
     partnerStationUid?: string | null

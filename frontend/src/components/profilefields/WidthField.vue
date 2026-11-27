@@ -33,7 +33,7 @@ const stop = computed({
   },
 })
 
-/** What a stop is called under the track; the last one says so in a word rather than as a fraction. */
+/** What a stop is called under the track; the last one shows that in a word rather than as a fraction. */
 function stopLabel(stopWidth: FieldWidthName): string {
   return stopWidth === FieldWidths.FULL ? t('membersConfig.widthSliderFull') : widthLabel(t, stopWidth)
 }

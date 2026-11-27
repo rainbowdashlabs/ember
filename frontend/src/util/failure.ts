@@ -11,7 +11,7 @@ import {formatBytes} from './storage'
  * What kind of failure something was, which is what decides what the reader should do about it.
  *
  * <p>The distinction that matters most is between a failure that is somebody's to fix and one that is
- * ours. A missing permission is the station's business and telling the reader to file a bug about it
+ * ours. A missing permission is the station's business and advising the reader to file a bug about it
  * wastes everybody's time; a server that fell over is nobody's business but the operator's, and a
  * reader who is not asked to report it usually will not.
  */
@@ -83,7 +83,7 @@ export type Translate = (key: string, named?: Record<string, unknown>) => string
 const KEY = 'failure'
 
 /**
- * Reads a thrown thing and says what it means for the reader.
+ * Reads a thrown thing and shows what it means for the reader.
  *
  * <p>The server's own message is preferred wherever it wrote one, because in this application those are
  * written as prose for exactly this purpose. What is added around it is the part a message cannot carry:
@@ -124,26 +124,26 @@ export function describeFailure(e: unknown, t: Translate): Failure {
  * failure to change its first line loses all of that, which is the mistake this exists to prevent.
  *
  * @param failure what happened
- * @param message what to say about it instead
+ * @param message what to show about it instead
  */
 export function saying(failure: Failure, message: string): Failure {
     return {...failure, message}
 }
 
 /**
- * The refusal said in the reader's own language, where we have written it.
+ * The refusal worded in the reader's own language, where we have written it.
  *
  * <p>The backend writes its sentences in English and this product is read in German, so quoting the
  * server verbatim answers a German reader in a language the rest of the screen does not use. A
- * refusal that arrives with a code can be said properly: the code names the refusal, and
+ * refusal that arrives with a code can be worded properly: the code names the refusal, and
  * `refusal.<CODE>` is where its German lives.
  *
  * <p>A code carries a hyphen, so the key has to be quoted where it is written: `'F-001': '…'`. Only
  * the dot separates the segments a lookup walks, and a hyphen inside one is an ordinary character.
  *
  * <p>Where no translation has been written the server's own sentence still shows, which is what
- * makes this safe to adopt one refusal at a time: an English sentence that says what happened beats
- * a German one that says nothing, and it was what a reader saw anyway.
+ * makes this safe to adopt one refusal at a time: an English sentence that shows what happened beats
+ * a German one that shows nothing, and it was what a reader saw anyway.
  */
 function translatedRefusal(code: string | undefined, t: Translate): string | undefined {
     if (!code) return undefined
@@ -154,7 +154,7 @@ function translatedRefusal(code: string | undefined, t: Translate): string | und
 
 /**
  * A refusal recorded for later, such as the reason a background run could not file a member's
- * document, said in the reader's language with the value it was about.
+ * document, worded in the reader's language with the value it was about.
  *
  * <p>Only the code was kept, not the server's sentence, so a refusal nobody translated yet is named by
  * its code, which still leads to the line that raised it.
@@ -232,7 +232,7 @@ function messageFor(kind: FailureKindName, said: string | undefined, t: Translat
  * Refusals whose kind gives the wrong advice, with the advice that fits them.
  *
  * A refusal answered with 409 reads as somebody else having changed the thing in the meantime, which
- * is what most of them are. Some are a rule instead, and telling the reader to reload sends them
+ * is what most of them are. Some are a rule instead, and advising the reader to reload sends them
  * round in a circle; those name what to do here.
  */
 const GUIDANCE_BY_REFUSAL: Readonly<Record<string, string>> = {
@@ -247,7 +247,7 @@ function refusalGuidance(code: string | undefined, t: Translate): string | undef
 
 /**
  * What to do about it. Every kind has an answer, which is the point: a failure a reader can do nothing
- * about at least tells them whose problem it is.
+ * about at least shows whose problem it is.
  */
 function guidanceFor(kind: FailureKindName, t: Translate): string {
     return t(`${KEY}.${kind}.guidance`)
@@ -270,8 +270,8 @@ function kindOf(e: unknown, status: number | undefined): FailureKindName {
 /**
  * A rejection with no response at all, which is either the network or the request giving up.
  *
- * <p>Axios says which in a code rather than a status, and the browser says it in a message. Both are
- * read, because getting this wrong tells somebody with no signal that Ember is broken.
+ * <p>Axios reports which in a code rather than a status, and the browser reports it in a message. Both are
+ * read, because getting this wrong leads somebody with no signal to believe Ember is broken.
  */
 function withoutAResponse(e: unknown): FailureKindName {
     const shape = (e ?? {}) as {code?: string; message?: string};
@@ -297,7 +297,7 @@ function thrownMessage(e: unknown): string | undefined {
  * cannot write, and it is gathered here so that every report carries it the same way.
  *
  * @param e the thing that was thrown
- * @return one line naming the status and whatever the server said
+ * @return one line naming the status and whatever the server answered
  */
 export function technicalSummary(e: unknown): string {
     const status = apiErrorStatus(e)

@@ -19,7 +19,7 @@ import {answerProblem, dayOf} from './questionLimits'
  * What the template asks the person generating one document, prefilled with what each question
  * suggests for the member: a text, a date, a number, one of a few entries, or a box to tick. A required
  * question is marked; left empty, it is listed among the missing values of the preview. An answer
- * outside the question's limits says what is wrong under its field.
+ * outside the question's limits shows what is wrong under its field.
  *
  * <p>Answers are kept as the server takes them: a text as written, a date as an ISO date, a number with
  * a point or a comma, a choice as its entry, a tick as `true` or `false`.

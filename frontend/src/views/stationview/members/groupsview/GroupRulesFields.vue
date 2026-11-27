@@ -20,7 +20,7 @@ import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 /**
  * The rules of a group in its form: the set it belongs to, and the member types it takes. No type
  * ticked means every type, which is what a group has always been. A group that takes its members from a
- * rule cannot join a set, so its set choice is closed and says why.
+ * rule cannot join a set, so its set choice is closed and shows why.
  */
 withDefaults(defineProps<{
   sets: MemberGroupSet[]

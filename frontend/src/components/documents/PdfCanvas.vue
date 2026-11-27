@@ -60,7 +60,7 @@ let drawTicket = 0
 /**
  * Whether a draw has been overtaken, either by another document or by a later page of this one.
  *
- * <p>The document alone is not enough to tell: turning two pages quickly starts two draws of the
+ * <p>The document alone is not enough to decide: turning two pages quickly starts two draws of the
  * same document, and the page pdf.js already holds in memory answers before the page it has to
  * fetch. Without a ticket of its own the slower draw paints over the newer one and the canvas ends
  * on a page the pager is no longer showing.
@@ -90,7 +90,7 @@ async function settleRender(): Promise<void> {
  * <p>Falls back to the window where the canvas has no laid-out parent to ask, which is what a
  * full-screen viewer amounts to anyway. Whoever placed the canvas is given a tick to lay it out
  * before the first page is measured, since a reader that reveals it on hearing the page count has
- * not been drawn yet at the moment it says so, and a hidden parent measures nothing.
+ * not been drawn yet at the moment it signals so, and a hidden parent measures nothing.
  */
 function available(): {width: number; height: number} {
     const parent = canvas.value?.parentElement

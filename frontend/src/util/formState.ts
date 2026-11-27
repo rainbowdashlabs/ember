@@ -5,7 +5,7 @@
  */
 import {FormStatus, PublicFormState} from '@/api/generated/schema'
 
-/** What a form needs to say whether it is taking answers: the state somebody set, and the dates. */
+/** What a form needs to decide whether it is taking answers: the state somebody set, and the dates. */
 interface Dated {
     status: string
     startAt?: string | null
@@ -16,10 +16,10 @@ interface Dated {
 /**
  * Whether a form is taking answers, in the same four states the form's own page reports.
  *
- * <p>Its status alone does not say: a form stays open long after the end date its author gave it,
+ * <p>Its status alone does not settle it: a form stays open long after the end date its author gave it,
  * and one that opens next week is open already as far as the column is concerned. Reading the
  * status by itself left a poll badged as taking answers on the station's own list while its page
- * told every visitor it was closed.
+ * showed every visitor it was closed.
  */
 export function formStateOf(form: Dated): PublicFormState {
     if (form.status === FormStatus.DRAFT) return PublicFormState.NOT_PUBLISHED

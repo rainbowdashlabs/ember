@@ -81,7 +81,7 @@ export async function setDisabledModules(disabledModules: StationModule[]): Prom
 
 /**
  * Asks for the station to be deleted. An instance with no way of sending has nobody to ask, so the
- * confirmation counts as given and the answer says the station is already gone.
+ * confirmation counts as given and the answer shows the station is already gone.
  */
 export async function requestStationDeletion(): Promise<DeleteRequestResponse> {
     const res = await client.post<DeleteRequestResponse>('/station/manage/request-delete')

@@ -66,7 +66,7 @@ const consent = computed(() => {
 /**
  * Whether the station sends mail at all, through a provider of its own or one the instance shares with
  * it. Without one the mail switch and the mail column are left out, since nothing could be switched
- * there; the notice above says why notifications do not arrive by mail.
+ * there; the notice above shows why notifications do not arrive by mail.
  */
 const sendsMail = computed(() => props.settings.mailConfigured)
 

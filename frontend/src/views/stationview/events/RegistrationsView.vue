@@ -169,7 +169,7 @@ async function toggleExpand(group: PendingDate) {
 
 /**
  * Reads the opened date back after an action, and with it which sign-ups still wait for a decision.
- * A failure is left for the caller, which says it as the list being stale.
+ * A failure is left for the caller, which reports it as the list being stale.
  */
 async function refreshExpanded() {
   const group = expandedGroup.value
@@ -204,7 +204,7 @@ const {loading, failure} = useAsyncLoader(async () => {
  *
  * <p>The two are answered for separately. Reading back is a refresh, and a refusal that was written
  * followed by a refresh that failed used to read as a refusal that was not written: the row was gone
- * from the list and the page said it had not worked.
+ * from the list and the page showed that it had not worked.
  */
 const queueActions = useQueueActions(
     () => expanded.places.value, refreshExpanded, failure, appointmentQueueRoutes,

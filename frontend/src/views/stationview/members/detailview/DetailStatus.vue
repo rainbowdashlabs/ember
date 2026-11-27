@@ -12,7 +12,7 @@ import type { Failure } from '@/util/failure'
 
 /**
  * Where the member page stands before its tabs: still loading, refused, or open to a reader who may
- * see none of its tabs, which is said rather than left as an empty page.
+ * see none of its tabs, which is shown rather than left as an empty page.
  */
 defineProps<{
   nothingVisible: boolean

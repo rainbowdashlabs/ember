@@ -56,8 +56,8 @@ export function getMemberLastName(m: NamedMember): string {
 
 /**
  * One person as the member list reads them: what a station's own roll sends, and what an association's
- * search can say about somebody at one of its stations. Whether a profile is complete is known only
- * on a station's own roll; the search does not say.
+ * search can show about somebody at one of its stations. Whether a profile is complete is known only
+ * on a station's own roll; the search does not show.
  */
 export type RosterMember = Pick<RichMember,
     'id' | 'stationId' | 'accountId' | 'name' | 'firstName' | 'lastName' | 'email' | 'accountSetupPending'
@@ -201,7 +201,7 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
    * Opens a row and fetches who manages that person.
    *
    * <p>A failure here used to be swallowed, and the open row then read as though nobody managed them,
-   * which for a young member is the opposite of the truth. It is said out loud instead.
+   * which for a young member is the opposite of the truth. It is shown instead.
    */
   async function toggleExpand(member: RosterMember) {
     if (expandedId.value === member.id) { expandedId.value = null; return }

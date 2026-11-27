@@ -110,7 +110,7 @@ export async function getSignatureAsk(generationId: number): Promise<SignatureAs
 }
 
 /**
- * Asks for the signatures a generated document's fields call for. Everybody asked is told, in the app
+ * Asks for the signatures a generated document's fields call for. Everybody asked is notified, in the app
  * and by mail.
  *
  * @param generationId the document's entry in the generation log

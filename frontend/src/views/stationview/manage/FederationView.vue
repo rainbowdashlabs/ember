@@ -116,7 +116,7 @@ async function generateInvite() {
  * rather than claiming the code has run out.
  *
  * <p>Nothing comes back where the server named no reason at all, which is a request that never
- * reached the far side rather than one it turned down. The described failure says that better.
+ * reached the far side rather than one it turned down. The described failure shows that better.
  */
 function refusalReason(e: unknown): string | undefined {
   const body = apiErrorBody(e)

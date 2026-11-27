@@ -45,7 +45,7 @@ const dueAt = ref('')
 
 /**
  * A preview of the name the procedure gets: the template's, followed by the person's. The server names
- * it, so this only says ahead what it will write.
+ * it, so this only shows ahead what it will write.
  */
 const name = computed(() => {
   const person = props.members.find(member => member.value === about.value)?.name

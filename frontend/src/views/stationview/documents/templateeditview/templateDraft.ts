@@ -41,7 +41,7 @@ export type TemplateDraft = Omit<DocumentTemplateResponse, SavedOnly | EditorSha
     audience: RestrictionSelection
     /** The language documents are written in, or null for the station's until the template is saved. */
     language: DocumentLanguage | null
-    /** What the issuer does at the station, empty where nothing is said. */
+    /** What the issuer does at the station, empty where nothing is set. */
     issuerFunction: string
     header: RowEditData[]
     footer: RowEditData[]

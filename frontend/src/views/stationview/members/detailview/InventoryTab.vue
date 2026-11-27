@@ -62,7 +62,7 @@ const incoming = computed(() => arrivingForMember(
 /**
  * Takes the open movements the movements panel read, which reads them again whenever the member's
  * gear is read again, since a hand-over changes both. Where they could not be read the pieces on their
- * way stay unshown and the panel says why.
+ * way stay unshown and the panel shows why.
  */
 function takeMovements(open: MovementResponse[]) {
   openMovements.value = open

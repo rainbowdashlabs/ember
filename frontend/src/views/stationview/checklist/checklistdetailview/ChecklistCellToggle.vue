@@ -67,7 +67,7 @@ const {running: saving, failure: cellFailure, run: runWriteCell} = useAsyncActio
  * Why the tick sprang back.
  *
  * <p>A cell that would not save simply reverted, with no word anywhere: the reader saw the box tick
- * and untick itself and had no way to tell a refused write from a mis-click of their own. On a list
+ * and untick itself and had no way to distinguish a refused write from a mis-click of their own. On a list
  * whose whole purpose is recording who has done what, a tick that quietly did not stick is the worst
  * possible silence.
  */

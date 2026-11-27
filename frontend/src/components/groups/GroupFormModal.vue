@@ -21,7 +21,7 @@ const {t} = useI18n()
 defineProps<{
   isEdit: boolean
   saving: boolean
-  /** What the save button says where saving does more than save, such as taking members out. */
+  /** What the save button shows where saving does more than save, such as taking members out. */
   saveLabel?: string
 }>()
 

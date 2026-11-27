@@ -18,7 +18,7 @@ import {QUICK_REACTIONS, othersStanding, type MessageActions} from './messageAct
 
 /**
  * The actions of a message as a menu, for a phone, where resting a finger on the message opens it
- * because there is no hover. It also says who reacted with what.
+ * because there is no hover. It also shows who reacted with what.
  */
 const open = defineModel<boolean>({required: true})
 

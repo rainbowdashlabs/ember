@@ -21,7 +21,7 @@ const NUMBER_COLUMN = 'w-24 shrink-0'
 /** The width of the delete button, kept as an empty column where a lone set cannot be removed, so the header lines up. */
 const ACTION_COLUMN = 'w-8 shrink-0'
 
-/** The width of the info icon that says what the set's numbers mean, kept empty where there is nothing to say. */
+/** The width of the info icon that shows what the set's numbers mean, kept empty where there is nothing to show. */
 const HINT_COLUMN = 'w-5 shrink-0'
 
 /**

@@ -43,7 +43,7 @@ export function pickedDates(drafts: InvitationDateDraft[]): WaitingListInvitatio
 
 /**
  * Whether two rows name the same date of the same appointment, which the backend refuses because the
- * person could not tell the two apart.
+ * person could not distinguish the two.
  */
 export function hasDuplicateDates(drafts: InvitationDateDraft[]): boolean {
   const seen = new Set<string>()

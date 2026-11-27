@@ -43,7 +43,7 @@ const generation = ref(0)
 
 /**
  * Puts a text into the box and the cursor back into it. The mention input leaves a focused editor
- * alone when its value changes, so the box is drawn anew rather than told.
+ * alone when its value changes, so the box is drawn anew rather than updated.
  */
 async function refill(value: string) {
   text.value = value

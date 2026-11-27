@@ -18,7 +18,7 @@ import {usePasskeyCreation} from '@/composables/usePasskeyCreation'
 
 /**
  * Creating a passkey from the security screen: name it, one sentence before the operating
- * system's own dialog, then the test drive. Closing after a creation tells the parent to
+ * system's own dialog, then the test drive. Closing after a creation signals the parent to
  * reload either way; only the trial's outcome differs.
  */
 const {t} = useI18n()

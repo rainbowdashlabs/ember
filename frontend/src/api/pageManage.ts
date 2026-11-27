@@ -38,7 +38,7 @@ export function isLayoutKind(t: string): t is LayoutKindName {
  * The settings of a cell as the record its content type names.
  *
  * <p>The server binds a cell's settings by the content type standing next to them, so every cell it
- * sends pairs the two; the generated union of every settings record cannot say which one a cell
+ * sends pairs the two; the generated union of every settings record cannot show which one a cell
  * holds. This is the one place that reads the pairing, and it answers null for a cell of another
  * kind rather than pretending.
  */
@@ -123,7 +123,7 @@ export async function setVisibility(id: number, visibility: PageVisibility): Pro
 /**
  * The link an unlisted page is reached at, kept off the page itself so it never travels to a reader, and
  * whether it opens anything today: a link opens nothing while the station keeps its public pages
- * switched off, which is where a new station starts, so whoever hands one out is told alongside it.
+ * switched off, which is where a new station starts, so whoever hands one out is warned alongside it.
  */
 export async function getPageShareLink(id: number): Promise<PageShareLinkResponse> {
     const res = await client.get<PageShareLinkResponse>(`/pages/${id}/share-link`)

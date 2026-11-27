@@ -40,7 +40,7 @@ const {data, status} = await useAsyncData(
  * <p>Whoever reads an imprint or a privacy policy is very often not a member of anything here, so the
  * general "that did not work" left them with no idea whether they had the wrong address, whether the
  * document had been withdrawn, or whether something was broken. It is always the last of those, and
- * there is nobody they could usefully tell, so it says so and asks nothing of them.
+ * there is nobody they could usefully tell, so it shows that and asks nothing of them.
  */
 const unavailable = computed<Failure>(() => ({
     kind: FailureKind.SERVER_FAULT,

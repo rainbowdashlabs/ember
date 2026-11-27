@@ -33,7 +33,7 @@ export interface ConfirmActionState<T> {
     error: Ref<string>
     /**
      * The same failure described: what sort it was, what to do about it, and whether it is a fault
-     * worth reporting. It also tells the two apart: the action failing and the screen failing to
+     * worth reporting. It also distinguishes the two: the action failing and the screen failing to
      * catch up afterwards are not the same news.
      */
     failure: Ref<Failure | null>
@@ -79,9 +79,9 @@ export function useConfirmAction<T>(options: UseConfirmActionOptions<T>): Confir
     /**
      * Shift skips the question, everywhere one is asked.
      *
-     * <p>Somebody clearing out twenty rows knows what the dialog is going to say by the third one,
+     * <p>Somebody clearing out twenty rows knows what the dialog is going to show by the third one,
      * and answering it nineteen more times teaches them to answer without reading. Holding shift
-     * says they have read it, and the action happens on the spot.
+     * signals they have read it, and the action happens on the spot.
      */
     function request(item: T) {
         target.value = item
@@ -93,14 +93,14 @@ export function useConfirmAction<T>(options: UseConfirmActionOptions<T>): Confir
     }
 
     /**
-     * Carries the action out, then tells whoever asked to catch up.
+     * Carries the action out, then signals whoever asked to catch up.
      *
-     * <p>The dialog closes either way. A refusal is said by the page's alert, which sits behind the
+     * <p>The dialog closes either way. A refusal is shown by the page's alert, which sits behind the
      * dialog's overlay; a dialog left open over it looked as if nothing had happened.
      *
      * <p>The two are answered for separately, which is not tidiness. They used to share one `try`,
      * and `onSuccess` is the list reloading almost everywhere it is passed, so a deletion that
-     * worked and a list that then failed to refresh said the same sentence. A reader told that
+     * worked and a list that then failed to refresh showed the same sentence. A reader shown that
      * deleting did not work does it again, on a thing that is already gone.
      */
     async function confirm() {

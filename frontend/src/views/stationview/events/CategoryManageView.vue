@@ -111,7 +111,7 @@ async function saveCategory() {
   await reload()
 }
 
-/** A refused reorder used to vanish: the list sprang back to its old order and said nothing. */
+/** A refused reorder used to vanish: the list sprang back to its old order and showed nothing. */
 async function reorder(fromIndex: number, toIndex: number) {
   const ids = moveWithin(categories.value.map(c => c.id), fromIndex, toIndex)
   try {

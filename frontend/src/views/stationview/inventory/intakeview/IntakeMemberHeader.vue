@@ -14,7 +14,7 @@ import BareButton from '@/components/button/BareButton.vue'
  *
  * <p>One column, two orders: a roster is read by first name and a list is checked off by surname,
  * and which of the two somebody wants depends on the paper in their other hand. Two named buttons
- * rather than one arrow, because an arrow on a column headed "Mitglied" cannot say which half of
+ * rather than one arrow, because an arrow on a column headed "Mitglied" cannot show which half of
  * the name it is about.
  */
 defineProps<{

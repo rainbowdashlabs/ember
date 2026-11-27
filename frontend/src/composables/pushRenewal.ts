@@ -7,7 +7,7 @@ import {getPushKey, registerPushDevice} from '@/api/push'
 import {getItem, removeItem, setItem} from '@/api/storage'
 import {currentBrowserSubscription, deviceLabel, pushState, subscribeBrowser} from '@/util/pushSupport'
 
-/** What the service worker tells open pages once the browser handed it a new push address. */
+/** What the service worker sends to open pages once the browser handed it a new push address. */
 export const PUSH_SUBSCRIPTION_CHANGED = 'push-subscription-changed'
 
 const PUSH_ENDPOINT_KEY = 'push_endpoint'
@@ -29,7 +29,7 @@ export function forgetPushEndpoint() {
  * subscription on its own; nobody should have to switch push on again after either. The page sends the address
  * it registered last, and subscribes anew where the browser dropped the subscription. The server takes the
  * renewal only for a browser this account allowed and did not remove since, so a browser somebody else allowed
- * does not start pushing to whoever signs in next. Nothing here is said to the reader: a renewal that fails is
+ * does not start pushing to whoever signs in next. Nothing here is shown to the reader: a renewal that fails is
  * tried again on the next sign-in.
  *
  * @return whether the browser is registered now

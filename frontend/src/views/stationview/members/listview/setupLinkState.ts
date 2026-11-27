@@ -27,7 +27,7 @@ export type SetupLinkState = (typeof SetupLink)[keyof typeof SetupLink]
  * The state of the setup link for one member, read off the row the list already holds.
  *
  * @param member the row
- * @param now    the moment to judge the expiry against, the present unless a test says otherwise
+ * @param now    the moment to judge the expiry against, the present unless a test sets otherwise
  */
 export function setupLinkState(
     member: Pick<RosterMember, 'accountSetupPending' | 'setupMailExpiresAt'>,

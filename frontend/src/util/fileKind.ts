@@ -6,7 +6,7 @@
 /** What a file can be shown as, which decides both its tile and how it opens. */
 export type FileKind = 'image' | 'pdf' | 'video' | 'audio' | 'text' | 'other'
 
-/** What a name's ending says the file is, for the types worth reading on screen. */
+/** What a name's ending shows the file is, for the types worth reading on screen. */
 const BY_EXTENSION: Record<string, FileKind> = {
     pdf: 'pdf',
     png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', webp: 'image', svg: 'image', avif: 'image',
@@ -21,7 +21,7 @@ const BY_EXTENSION: Record<string, FileKind> = {
  * <p>The one place that answers it, so a tile, a preview and the decision whether to ask for a
  * picture at all cannot drift into three different opinions about the same file.
  *
- * <p>The name is asked only where the type says nothing, which is the common case for anything a
+ * <p>The name is asked only where the type shows nothing, which is the common case for anything a
  * member uploaded: a browser that offered no type, or a server falling back to the stream of bytes
  * it could not name, both store {@code application/octet-stream}. Read from the type alone, a
  * perfectly readable report is a thing nobody can draw, and it goes down the saving path on a phone
@@ -72,7 +72,7 @@ export function canHavePicture(mimeType?: string | null): boolean {
 /**
  * The icon standing in for a file that has no picture of its own.
  *
- * <p>A few types are worth telling apart more finely than they are worth drawing differently: a
+ * <p>A few types are worth distinguishing more finely than they are worth drawing differently: a
  * spreadsheet and a log file are both text on screen, and a reader scanning a list of names still
  * wants to see which is which.
  */

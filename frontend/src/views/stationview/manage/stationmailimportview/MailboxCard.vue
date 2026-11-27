@@ -39,7 +39,7 @@ const testResult = ref<TestResult | null>(null)
 const cycleSummary = ref('')
 
 /**
- * Tries the mailbox and keeps whatever the provider said about it.
+ * Tries the mailbox and keeps whatever the provider reported about it.
  *
  * <p>This is the one control on the page that exists to diagnose, so the provider's own refusal,
  * a rejected password, a folder that is not there, a host that will not answer, is the whole

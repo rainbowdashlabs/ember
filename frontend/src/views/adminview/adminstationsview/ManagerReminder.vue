@@ -19,7 +19,7 @@ import {canRemind, HAND_GAP_MS, lastReminderText, remindedByHandJustNow} from '.
 
 /**
  * The reminder to the manager of a station that waits, and when the last one went out. A manager who
- * cannot sign in yet is sent a fresh link, one who can is told the station waits to be set up; the
+ * cannot sign in yet is sent a fresh link, one who can gets a mail that the station waits to be set up; the
  * server decides which. The station as it stands after the reminder is handed to `onReminded`, which
  * is a prop so a list that redraws the row meanwhile still hears it; so is the station read afresh
  * when the server answers that a reminder went out only minutes ago.

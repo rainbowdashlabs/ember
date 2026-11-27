@@ -81,7 +81,7 @@ export async function recommendations(itemId: number): Promise<Recommendation[]>
 }
 
 /**
- * Counts a collected list again against what the partners have free now, and says how many requests
+ * Counts a collected list again against what the partners have free now, and returns how many requests
  * it will turn into.
  */
 export async function checkCollected(from: string, to: string, lines: CollectedLine[]): Promise<RecheckResponse> {

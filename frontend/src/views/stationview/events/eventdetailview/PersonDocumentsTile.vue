@@ -14,7 +14,7 @@ import {formatDateTime} from '@/util/format'
  * One person's tile of documents to bring: their name, for a member of a partner station their station,
  * and below it each of their documents ({@link PersonDocument}, or {@link PartnerDocument} for a partner's
  * member). Members see their own and their children's tiles; a manager of the registrations sees one
- * per participant. Where a registration carries a withdrawn agreement, the tile says when.
+ * per participant. Where a registration carries a withdrawn agreement, the tile shows when.
  */
 defineProps<{
   name: string

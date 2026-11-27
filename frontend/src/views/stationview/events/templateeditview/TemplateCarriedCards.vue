@@ -23,7 +23,7 @@ import type {AttendanceTemplateField} from '@/api/generated/schema'
  * <p>The view holds all three; this only shows them. The share and the starting values are saved
  * with the template, the files are written as they change, as on an appointment. A template
  * arranges no partner places, so the share card is given none and shows none. The share is a folded
- * section saying with whom the appointments are shared, as in the appointment form. The files share a
+ * section showing with whom the appointments are shared, as in the appointment form. The files share a
  * folded section with the documents to bring, which the view places in the slot.
  */
 defineProps<{

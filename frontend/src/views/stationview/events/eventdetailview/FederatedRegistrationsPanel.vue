@@ -27,7 +27,7 @@ const props = defineProps<{
   partnerPlaces: PartnerPlacesView[]
   /** Whether the appointment is a part of an event group, whose partner sign-ups are decided on the event group. */
   eventGroupPart?: boolean
-  /** The waiting list of the date, which says where a partner's member waiting on it stands. */
+  /** The waiting list of the date, which shows where a partner's member waiting on it stands. */
   queue?: QueueEntry[]
   /** Whether the appointment keeps a waiting list, which only one with a participant limit does. */
   queueOpen?: boolean
@@ -42,7 +42,7 @@ const {t} = useI18n()
 /**
  * What partners' members answered, by their registration. Read again whenever the list or the questions
  * change, once the list has partner sign-ups and the appointment asks anything. An answer that arrives
- * after a newer read was started is dropped, and answers that cannot be read are said above the list.
+ * after a newer read was started is dropped, and answers that cannot be read are reported above the list.
  */
 const answersOf = ref(new Map<number, EventRegistrationFieldValue[]>())
 const answersFailure = ref<Failure | null>(null)
@@ -67,7 +67,7 @@ watch(() => [props.registrations, props.fields] as const, async ([registrations,
 /**
  * Whether this station still decides about a given partner's people.
  *
- * <p>Where it has handed the decision over, the buttons go and a line says who is choosing instead.
+ * <p>Where it has handed the decision over, the buttons go and a line shows who is choosing instead.
  * The server refuses either way; a row that simply refused when pressed would leave the reader
  * guessing why.
  */

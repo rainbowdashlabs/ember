@@ -52,7 +52,7 @@ const shares = ref(new Map<number, ShareSetting>())
  * card. Only the rows written on an inventory matter here: a row on a kind or on a piece narrows
  * that decision and is read on the screen that thing lives on.
  *
- * <p>Said out loud when it fails, because the cards then show no offer at all, which reads exactly
+ * <p>Reported on screen when it fails, because the cards then show no offer at all, which reads exactly
  * like an inventory nobody has shared.
  */
 async function loadShares() {

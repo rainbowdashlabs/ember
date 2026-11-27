@@ -11,8 +11,8 @@ import PillBadge from '@/components/badge/PillBadge.vue'
 /**
  * Which station's people are on offer.
  *
- * A row of tabs read as equals and grew with every station the demo gained. This says what each one
- * is and how many people it holds, which is what tells a station the demo builds in full from a
+ * A row of tabs read as equals and grew with every station the demo gained. This shows what each one
+ * is and how many people it holds, which is what distinguishes a station the demo builds in full from a
  * spare standing beside it.
  */
 defineProps<{

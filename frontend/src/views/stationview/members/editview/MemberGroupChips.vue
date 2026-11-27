@@ -26,7 +26,7 @@ import {
  *
  * <p>A group in no set is joined and left on its own. The groups of a set are one choice, with "none"
  * beside them, because a member can be in only one of them and picking another is a move. A group bound
- * to member types the member does not have stays visible but cannot be picked, and says which types it
+ * to member types the member does not have stays visible but cannot be picked, and shows which types it
  * takes, so nobody wonders why it will not light up. A group that takes its members from a rule shows
  * whether the member is in it, carries the rule mark and cannot be toggled, because the rule decides.
  */

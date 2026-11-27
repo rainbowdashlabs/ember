@@ -35,7 +35,7 @@ export type PanelAlignment = 'start' | 'end'
  *
  * @param anchor the element the panel belongs to, whose rectangle it is placed against
  * @param open   whether the panel is showing
- * @param align  which edge of the anchor the panel lines up with, the right one unless told otherwise
+ * @param align  which edge of the anchor the panel lines up with, the right one unless set otherwise
  */
 export function useFloatingPanel(anchor: Ref<HTMLElement | null>, open: Ref<boolean>, align: PanelAlignment = 'end') {
     const panel = ref<HTMLElement | null>(null)

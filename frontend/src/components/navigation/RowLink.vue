@@ -8,7 +8,7 @@ import type {RouteLocationRaw} from 'vue-router'
 import {pressedAControl} from '@/util/rowPress'
 
 /**
- * A row, a card or a name that opens a page, said as the link it is.
+ * A row, a card or a name that opens a page, presented as the link it is.
  *
  * <p>Pressing one of these has always opened a page, but written as a click handler it was not a
  * link: no middle click, no address to copy, nothing in the status bar, nothing in the tab order and

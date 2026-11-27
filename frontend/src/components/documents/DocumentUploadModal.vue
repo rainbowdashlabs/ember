@@ -35,7 +35,7 @@ const props = defineProps<{
    * decision: a member putting a document on themselves, or the association filing one, may not.
    */
   canLabel?: boolean
-  /** The members it can be put on straight away. Absent where the profile already says who. */
+  /** The members it can be put on straight away. Absent where the profile already shows who. */
   members?: MemberLike[]
   /** Every label written so far, offered while typing. */
   allTags?: string[]

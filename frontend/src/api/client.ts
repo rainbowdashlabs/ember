@@ -30,13 +30,13 @@ const UNSAFE_METHODS: ReadonlySet<string> = new Set(['post', 'put', 'patch', 'de
 /**
  * How often one request may be sent back through the step-up prompt. One answered challenge that
  * the server still refuses is worth asking about again, because the reader can plausibly fix it by
- * answering with a different factor. Past that it is the instance saying no, not the answer being
+ * answering with a different factor. Past that it is the instance refusing, not the answer being
  * wrong, and asking a third time would only loop.
  */
 const MAX_STEP_UP_ATTEMPTS = 2
 
 /**
- * The refusals that say the sign-in itself is gone: no session at all, none on the route, or one that
+ * The refusals that show the sign-in itself is gone: no session at all, none on the route, or one that
  * has ended. Any other named 401 is about a single confirmation and leaves the reader where they are.
  */
 const SIGNED_OUT_CODES: ReadonlySet<string> = new Set(['G-017', 'G-019', 'G-020'])
@@ -111,7 +111,7 @@ function recordRequest(config: InternalAxiosRequestConfig, status: number | null
 
 /**
  * How long any request waits before giving up. Without it a server that accepts the connection and
- * then says nothing, as a backend still starting up does, leaves a spinner that never stops. The few
+ * then sends nothing, as a backend still starting up does, leaves a spinner that never stops. The few
  * calls that legitimately take longer set their own deadline.
  */
 const REQUEST_DEADLINE_MS = 60_000
@@ -150,7 +150,7 @@ function applyAuthHeaders(config: InternalAxiosRequestConfig) {
 
 /**
  * Stops a request whose step-up prompt has been answered as often as it may be. Answering again
- * cannot help, so the toast says why the action stopped rather than leave the caller to show a bare
+ * cannot help, so the toast shows why the action stopped rather than leave the caller to show a bare
  * failure with no prompt in sight.
  */
 function rejectExhaustedStepUp(error: AxiosError): Promise<never> {
@@ -159,7 +159,7 @@ function rejectExhaustedStepUp(error: AxiosError): Promise<never> {
 }
 
 /**
- * Tells the reader a request was refused for want of rights. Rights are the station's to give, so the
+ * Lets the reader know a request was refused for want of rights. Rights are the station's to give, so the
  * toast points there rather than at a bug report.
  */
 function toastDenied(said: string | undefined): void {

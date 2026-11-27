@@ -23,7 +23,7 @@ import type {Failure} from '@/util/failure'
  *
  * <p>Pass `failure` rather than `error` wherever the loader has one. The failed branch used to draw
  * a plain alert holding one sentence, which took the guidance and the offer to report it back off
- * again at the last step: every screen that had been told what went wrong showed only that
+ * again at the last step: every screen that had been handed what went wrong showed only that
  * something had. `error` stays for callers holding nothing better than a string.
  */
 withDefaults(defineProps<{

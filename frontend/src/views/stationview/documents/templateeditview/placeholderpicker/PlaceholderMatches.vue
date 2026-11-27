@@ -10,7 +10,7 @@ import PlaceholderRow from './PlaceholderRow.vue'
 
 /**
  * What a search of the picker found, each placeholder with the path it stands under, so two answers of
- * the same name, the member's and a guardian's, are told apart.
+ * the same name, the member's and a guardian's, are distinguished.
  */
 defineProps<{
   matches: Placeholder[]

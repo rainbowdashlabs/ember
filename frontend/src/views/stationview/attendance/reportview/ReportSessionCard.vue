@@ -14,7 +14,7 @@ import {formatDate, formatTime} from '@/util/format'
 /**
  * One sheet in the report, with the times it ran to and, where somebody set one, what it counts as.
  *
- * <p>A sheet over several days names both of its days, and a sheet whose hours were set by hand says
+ * <p>A sheet over several days names both of its days, and a sheet whose hours were set by hand shows
  * so, because the column beside it will not follow the times otherwise.
  */
 const {t} = useI18n()

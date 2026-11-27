@@ -9,8 +9,8 @@ import {MovementState, type MovementStanding} from '@/api/generated/schema'
 import {useMovementParties} from '@/composables/useMovementParties'
 
 /**
- * What a screen needs of a movement to say where it stands. A movement's own row carries these fields
- * and so does a piece of gear something is running on, which is what lets both say it in one set of
+ * What a screen needs of a movement to show where it stands. A movement's own row carries these fields
+ * and so does a piece of gear something is running on, which is what lets both show it in one set of
  * words.
  */
 export type StandingOf = Pick<MovementStanding, 'state' | 'reachedStepLabel' | 'currentStepActor' | 'ownerKind' | 'ownerName'>
@@ -20,8 +20,8 @@ export type StandingOf = Pick<MovementStanding, 'state' | 'reachedStepLabel' | '
  * overview, a member's gear and the gear page of the member themselves.
  *
  * <p>The step named is the last one that has happened, never the one being waited on: a step is named
- * after what it brings about, so wearing the label of the next one says a jacket has been taken back
- * while it is still on the member. Whose turn it is goes beside it, and a movement that is over says
+ * after what it brings about, so wearing the label of the next one suggests a jacket has been taken back
+ * while it is still on the member. Whose turn it is goes beside it, and a movement that is over shows
  * how it ended.
  *
  * @param movement the movement, read fresh on every use

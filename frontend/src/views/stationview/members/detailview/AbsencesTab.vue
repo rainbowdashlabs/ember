@@ -76,8 +76,8 @@ async function create() {
 }
 
 /**
- * Fetches the list again after one was written or removed, and says a stale screen rather than a
- * failed write: the absence is in by then, and a reader told otherwise enters it twice.
+ * Fetches the list again after one was written or removed, and reports a stale screen rather than a
+ * failed write: the absence is in by then, and a reader shown otherwise enters it twice.
  */
 async function reloadAfterWrite() {
   await loadData()

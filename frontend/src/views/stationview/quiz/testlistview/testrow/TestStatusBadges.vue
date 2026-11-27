@@ -13,7 +13,7 @@ import MutedIcon from '@/components/display/MutedIcon.vue'
 import {QuizTestStatus} from '@/api/quiz'
 import type {QuizTest} from '@/api/generated/schema'
 
-/** What a test sheet says about itself beside its name: who may sit it, where it stands, whether it was. */
+/** What a test sheet shows about itself beside its name: who may sit it, where it stands, whether it was. */
 defineProps<{
   test: QuizTest
   submitted: boolean

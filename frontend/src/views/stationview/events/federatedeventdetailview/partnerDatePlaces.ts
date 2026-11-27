@@ -5,7 +5,7 @@
  */
 import type {PartnerEventDetail} from '@/api/generated/schema'
 
-/** How a sign-up for the date of a partner's appointment would land, as far as its places say. */
+/** How a sign-up for the date of a partner's appointment would land, as far as its places show. */
 export interface PartnerDateState {
   /** Every place of the date is taken. */
   full: boolean
@@ -19,7 +19,7 @@ const OPEN: PartnerDateState = {full: false, joinsQueue: false}
  * Reads the places the partner counted for the date a sign-up is filed under.
  *
  * <p>The partner counts the date it has in view; where that is another date than the one signed up
- * for, nothing is said. A sign-up lands on the waiting list where the date is full or others already
+ * for, nothing is shown. A sign-up lands on the waiting list where the date is full or others already
  * wait, unless somebody decides about it first: an appointment that asks for confirmation, or a partner
  * that handed this station the choice, holds it for a decision instead.
  */

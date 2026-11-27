@@ -16,7 +16,7 @@ import type { Failure } from '@/util/failure'
  * edits and the create or update round trip that closes it again.
  *
  * <p>A save the server refused is handed on described rather than as a bare signal that something
- * went wrong, so the section above can say which field it was refused over.
+ * went wrong, so the section above can show which field it was refused over.
  */
 export function useQuestionForm(
     catalogId: Ref<number>,

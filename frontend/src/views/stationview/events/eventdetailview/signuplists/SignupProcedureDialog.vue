@@ -27,7 +27,7 @@ import type {Failure} from '@/util/failure'
  * all run by the one managing party chosen here.
  *
  * <p>Three things can be behind this window, and only one of them is the form. A station that has
- * written no template cannot have a procedure at all and is told so. A date that has already been
+ * written no template cannot have a procedure at all and sees that. A date that has already been
  * prepared for is offered what is there, because a second set of nearly identical procedures for one
  * appointment is a state nobody tidies up.
  */

@@ -73,8 +73,8 @@ const canHoldPasskey = ref(false)
 /**
  * What to put on the screen when something went wrong.
  *
- * <p>Being refused for asking too often is worth saying in those words: the reader can act on it by
- * waiting, where the flow's own sentence tells them to fetch a new code, which spends another
+ * <p>Being refused for asking too often is worth showing in those words: the reader can act on it by
+ * waiting, where the flow's own sentence advises them to fetch a new code, which spends another
  * request from the bucket that just refused. Everything else keeps the sentence it always had.
  */
 function failureText(e: unknown, fallback: string): string {
@@ -108,7 +108,7 @@ async function start(named: string = identifier.value) {
   }
 }
 
-/** One ask, saying whether the wait goes on. What it found decides where the screen goes next. */
+/** One ask, reporting whether the wait goes on. What it found decides where the screen goes next. */
 async function poll(): Promise<PollOutcome> {
   if (!request.value || phase.value !== 'waiting') return 'stop'
   const result = await passkeys.devicePoll(request.value.pollSecret)
@@ -175,8 +175,8 @@ async function signInWithNewPasskey() {
 /**
  * Where a fresh session lands, and whose it turned out to be.
  *
- * <p>The name is read back and said out loud deliberately. Somebody whose open code a stranger
- * guessed and approved would otherwise work inside that stranger's account without ever being told.
+ * <p>The name is read back and announced deliberately. Somebody whose open code a stranger
+ * guessed and approved would otherwise work inside that stranger's account without ever being informed.
  * It goes out as a toast rather than onto this screen, because this screen is gone the moment the
  * navigation lands: the warning has to arrive where the reader actually ends up.
  */

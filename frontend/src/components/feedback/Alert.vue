@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 /**
- * A banner saying how something stands. An error is an `alert`, which a screen reader announces
+ * A banner showing how something stands. An error is an `alert`, which a screen reader announces
  * the moment it appears; anything else is a `status`, announced once the reader is free.
  */
 defineProps<{

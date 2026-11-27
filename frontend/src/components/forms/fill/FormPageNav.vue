@@ -18,7 +18,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 defineProps<{
   canGoBack: boolean
   isLast: boolean
-  /** What the button that sends the form says. */
+  /** What the button that sends the form shows. */
   sendLabel: string
   sending?: boolean
   /** Whether sending is not possible yet, such as while the consent is not ticked. */

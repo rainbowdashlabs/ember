@@ -7,7 +7,7 @@ import {computed} from 'vue'
 import type {PublicConfigResponse} from '@/api/generated/schema'
 
 /**
- * What the instance tells anyone who asks, before they have signed in. Any part may be missing, because
+ * What the instance reports to anyone who asks, before they have signed in. Any part may be missing, because
  * a request that failed is read as the empty configuration.
  */
 export type PublicConfig = Partial<PublicConfigResponse>

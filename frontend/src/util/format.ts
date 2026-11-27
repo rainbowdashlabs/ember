@@ -14,7 +14,7 @@ const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/
 const CLOCK = /^(\d{1,2}):(\d{2})(:\d{2})?(\.\d+)?$/
 
 /**
- * Reads what a value says about a point on the calendar.
+ * Reads what a value holds about a point on the calendar.
  *
  * <p>A moment and a calendar date look alike and are not. `2026-10-12T18:00:00Z` is a moment, and
  * which day it falls on depends on where the reader stands. `2026-10-12` is a day and stands for
@@ -64,7 +64,7 @@ function written(
  *
  * <p>A moment is read in the runtime's own time zone, which is where the reader is: an appointment
  * stored as `17:30Z` is half past seven to somebody in Berlin in summer, and that is what they are
- * told. A plain clock carries no zone and is simply shortened.
+ * shown. A plain clock carries no zone and is simply shortened.
  *
  * @param timezone the clock to read it on instead, for a page written where no reader can be asked
  */
@@ -170,7 +170,7 @@ export function formatDateTime(value?: string | null, timezone?: string | null):
 }
 
 /**
- * Formats a moment as `dd.MM., HH:mm:ss` in the reader's own time zone, for a list that tells
+ * Formats a moment as `dd.MM., HH:mm:ss` in the reader's own time zone, for a list that distinguishes
  * requests a second apart. Returns an empty string when the input is missing.
  */
 export function formatDayClockSeconds(value?: string | null): string {

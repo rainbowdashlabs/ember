@@ -21,7 +21,7 @@ import type {Failure} from '@/util/failure'
  *
  * <p>Shared by a form and a page, which are sent the same way and withdrawn the same way. The
  * address is built from the one the reader is already looking at rather than from configuration:
- * this is a person copying a link out of their own browser, not a crawler being told where to go.
+ * this is a person copying a link out of their own browser, not a crawler being pointed where to go.
  */
 const props = defineProps<{
   /** The path the link opens, without an origin: `/f/…` for a form, `/s/…` for a page. */
@@ -31,10 +31,10 @@ const props = defineProps<{
    * offering to replace one would promise something it does not do.
    */
   replaceable?: boolean
-  /** What to say about who this address reaches, where the general line does not fit. */
+  /** What to show about who this address reaches, where the general line does not fit. */
   hint?: string
   busy?: boolean
-  /** What went wrong with the link, described, so the panel can say what to do about it. */
+  /** What went wrong with the link, described, so the panel can show what to do about it. */
   failure?: Failure | null
 }>()
 
