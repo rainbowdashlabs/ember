@@ -20,6 +20,7 @@ People who already have an account on this instance can be invited into a statio
 - **First steps come three at a time.** The dashboard shows at most three first steps at once, with the station's setup before a person's own. A step that builds on another, such as inviting members after setting up mail, appears once that one is done or skipped.
 - **Procurements fold fulfilled orders and record owners.** The procurement page lists open procurements first. Fulfilled ones sit below in a folded section, most recent first. In a mixed inventory, a procurement records whether it brings the station's piece or the association's. Internal and external inventories settle this by their type.
 - **Personal calendar subscription by category.** The personal calendar subscription can leave out chosen categories under Profile → Settings. Appointments the member or someone in their care is signed up for stay in it.
+- **Permission picker shows what includes what.** An opened area of the permission picker shows its permissions as a tree, each one indented below the permission that includes it. A permission included by several others appears once, with a line naming the others.
 
 ### Changes
 

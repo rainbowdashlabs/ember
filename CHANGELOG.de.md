@@ -20,6 +20,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Erste Schritte kommen zu dritt.** Die Startseite zeigt höchstens drei erste Schritte gleichzeitig, die Einrichtung der Wache vor den eigenen. Ein Schritt, der auf einem anderen aufbaut, erscheint erst, wenn dieser erledigt oder übersprungen ist, etwa das Einladen von Mitgliedern nach dem Mailversand.
 - **Beschaffungen klappen Erledigtes ein und halten den Besitz fest.** Die Beschaffungsseite zeigt zuerst die offenen Beschaffungen. Erledigte stehen darunter in einem eingeklappten Bereich, die neuesten zuerst. In einem gemischten Inventar hält eine Beschaffung fest, ob sie ein Stück der Wache oder des Trägers bringt. Bei internen und externen Inventaren steht das durch ihre Art fest.
 - **Eigenes Kalenderabo nach Kategorien.** Das eigene Kalenderabo kann unter Profil → Einstellungen Kategorien weglassen. Termine, zu denen das Mitglied oder jemand in seiner Obhut angemeldet ist, bleiben darin.
+- **Berechtigungsauswahl zeigt, was worin enthalten ist.** Ein aufgeklappter Bereich der Berechtigungsauswahl zeigt seine Berechtigungen als Baum, jede eingerückt unter der Berechtigung, die sie enthält. Ist eine Berechtigung in mehreren enthalten, erscheint sie einmal, mit einer Zeile zu den anderen.
 
 ### Änderungen
 

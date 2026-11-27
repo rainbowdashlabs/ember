@@ -5969,7 +5969,7 @@ volumes:
             whatShownText: 'Hier bearbeitest du die Daten eines einzelnen Mitglieds. Die Ansicht ist in vier Tabs aufgeteilt.',
             exampleTitle: 'So sieht die Seite aus',
             permissionsTitle: 'Berechtigungen',
-            permissionsText: 'Im Berechtigungen-Tab änderst du den Mitgliedstyp, individuelle Berechtigungen, Gruppen und Tags. Berechtigungen, die schon durch den Mitgliedstyp oder eine Gruppe gewährt sind, erscheinen aktiviert und gesperrt - darunter steht, woher sie kommen. Wer Stationsadministrator ist, hat automatisch alle anderen Berechtigungen.',
+            permissionsText: 'Im Berechtigungen-Tab änderst du den Mitgliedstyp, individuelle Berechtigungen, Gruppen und Tags. Berechtigungen, die schon durch den Mitgliedstyp oder eine Gruppe gewährt sind, erscheinen aktiviert und gesperrt - darunter steht, woher sie kommen. Eine eingerückte Berechtigung ist in der darüber enthalten, und „Auch enthalten in“ zeigt, welche Berechtigungen sie außerdem mitbringen. Wer Stationsadministrator ist, hat automatisch alle anderen Berechtigungen.',
             permissionsExampleTitle: 'So sieht der Berechtigungen-Tab aus',
             groupsTitle: 'Gruppen und Tags',
             groupsText: 'Gruppen und Tags stehen oben im Tab. Ein Klick auf eine Gruppe nimmt das Mitglied auf '
