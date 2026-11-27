@@ -11,8 +11,9 @@
 # it by digest finds it. Such images are saved under a tag made from their digest instead, and `env`
 # names those tags in the variables the compose file and the test containers read their image from.
 #
-#   list            every image of the archive: what the end-to-end stack starts and what the backend
-#                   test containers name, one per line
+#   list            every image of the archive: what the end-to-end stack starts, the base images of
+#                   what it builds from the prebuilt distribution, and what the backend test containers
+#                   name, one per line
 #   key             the cache key: a hash of that list, the archive's layout and the month, so a tag
 #                   that moves upstream is picked up within a month without the list changing
 #   missing         the images of the end-to-end stack this machine does not hold yet
@@ -24,11 +25,31 @@ set -euo pipefail
 
 root="${CI_IMAGES_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 compose_file="$root/docker/compose.dev.yaml"
+prebuilt_file="$root/docker/compose.e2e-prebuilt.yaml"
 layout=2
 
 stack_images() {
     docker compose -f "$compose_file" --profile e2e config --format json \
         | jq -r '.services[] | select(.build == null) | .image' \
+        | sort -u
+}
+
+build_base_images() {
+    local context dockerfile
+    docker compose -f "$compose_file" -f "$prebuilt_file" --profile e2e config --format json \
+        | jq -r '.services[] | select(.build != null) | [.build.context, .build.dockerfile] | @tsv' \
+        | sort -u \
+        | while IFS=$'\t' read -r context dockerfile; do
+            [[ "$dockerfile" == /* ]] || dockerfile="$context/$dockerfile"
+            awk '
+                toupper($1) == "FROM" {
+                    image = ""
+                    for (i = 2; i <= NF; i++) if ($i !~ /^--/) { image = $i; break }
+                    if (toupper($(NF - 1)) == "AS") stages[$NF] = 1
+                    if (image != "" && image != "scratch" && !(image in stages)) print image
+                }
+            ' "$dockerfile"
+        done \
         | sort -u
 }
 
@@ -46,6 +67,7 @@ pinned_default() {
 list() {
     {
         stack_images
+        build_base_images
         test_images
         pinned_default | cut -d' ' -f2
     } | grep -v '^ci-images/' | sort -u
