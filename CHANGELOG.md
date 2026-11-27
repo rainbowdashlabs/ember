@@ -2,16 +2,17 @@
 
 ## v26.27.0
 
-People who already have an account on this instance can be invited into a station by their name. Maps on an appointment offer links to navigate to the place. Calendar subscriptions show the meeting point as an appointment's location. Single appointments in calendar subscriptions follow the station's timezone.
+People who already have an account on this instance can be invited into a station by their name. Inventories and their kinds can carry a photo, which partner stations also see when they borrow. Maps on an appointment offer links to navigate to the place. Calendar subscriptions show the meeting point as an appointment's location, in the station's timezone.
 
 ### New Features
 
 - **Invite people of this instance by name.** The member wizard finds people who already have an account on this instance by their name and asks them to link it, without anybody knowing their address. People who share a station or an association with the inviting manager can be found, everybody else only after turning on "Findable from every station" under Account → Links.
+- **Photos of inventories and kinds.** An inventory can carry a photo, and a kind can carry one of its own that its pieces show instead. The photo appears on the stock page, on a piece's own page and in the overview of what the station lends. Partner stations see the photo, or otherwise the icon, in their lending list. With a partner on another server this works once both run this version, and lending between the two pauses until then.
 
 ### Improvements
 
-- **Kinds and tags on the inventory pages.** The search of an inventory finds pieces by their kind and their tags, also while those columns are hidden. Free pieces offered for handing out show their kind. A piece's own page shows its tags, and editing the piece changes them.
-- **Choosing an inventory's picture.** The picture of an inventory, a kind or a container type is changed by picking another one, without removing the old one first. The list shows every picture instead of only the first ones. New pictures cover furniture, trailers, grills, a bouncy castle and other things for festivals and events.
+- **Kinds and tags on the inventory pages.** On the stock page, several pieces can be selected and given a kind, or have tags added or removed, in one step. The search of an inventory finds pieces by their kind and their tags, also while those columns are hidden. Free pieces offered for handing out show their kind. A piece's own page shows its tags, and editing the piece changes them.
+- **Icons of inventories and kinds.** The icon of an inventory, a kind or a container type is changed by picking another one, without removing the old one first. The list shows every icon instead of only the first ones. New icons cover furniture, trailers, grills, a bouncy castle and other things for festivals and events. Pieces show their kind's icon where the kind has one.
 - **Appointment maps open on request, with navigation.** A pinned place on an appointment's page shows a map button behind its address, and the map opens only when the button is pressed. Below the map, links start navigation there. Android phones offer their own choice of navigation apps. iPhones and computers get Apple Maps and Google Maps, and the OpenStreetMap link stays.
 - **Any place field as the location in the calendar.** A place field of an appointment, a template or an event group can be marked as the location in the calendar. Only one place field per form carries the mark, and an appointment's own mark wins over the one of its event group.
 - **Meeting point in appointment documents.** Documents for appointments have a new placeholder for the meeting point. The location placeholder keeps showing where the appointment takes place, so photo permissions and similar forms stay as they are.
