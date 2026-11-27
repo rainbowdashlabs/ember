@@ -34873,6 +34873,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/feed/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the categories the current user's calendar feed leaves out */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HiddenCategories"];
+                    };
+                };
+            };
+        };
+        /** Set the categories the current user's calendar feed leaves out */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["HiddenCategories"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HiddenCategories"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/feed/token": {
         parameters: {
             query?: never;
@@ -76461,6 +76530,9 @@ export interface components {
             /** Format: int32 */
             timeoutSeconds: number;
         };
+        HiddenCategories: {
+            hiddenCategories: number[] | null;
+        };
         HistoryResponse: {
             corrected: boolean;
             givenOut: components["schemas"]["Instant"];
@@ -85386,6 +85458,7 @@ export type HeldReportRequest = components['schemas']['HeldReportRequest'];
 export type HeroBannerConfig = components['schemas']['HeroBannerConfig'];
 export type HibpConfigRequest = components['schemas']['HibpConfigRequest'];
 export type HibpConfigResponse = components['schemas']['HibpConfigResponse'];
+export type HiddenCategories = components['schemas']['HiddenCategories'];
 export type HistoryResponse = components['schemas']['HistoryResponse'];
 export type HourlyStats = components['schemas']['HourlyStats'];
 export type HourlyTotal = components['schemas']['HourlyTotal'];

@@ -34,6 +34,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The calendar behind a station calendar feed: every appointment of the station up to the feed's
@@ -151,12 +152,18 @@ public class StationFeedCalendar {
         return new Rendered(calendar.toString(), events.size());
     }
 
-    /** The appointments a feed shows: those its level reaches, within the window every calendar feed carries. */
+    /**
+     * The appointments a feed shows: those its level reaches, except those of a category it leaves out,
+     * within the window every calendar feed carries. The filter only removes: it never shows what the
+     * level hides.
+     */
     private List<StationEvent> selected(
             StationCalendarFeed feed, int stationId, Map<Integer, EventCategory> categories) {
         var now = Instant.now();
+        var hidden = Set.copyOf(feed.hiddenCategoryIds());
         return crudService.findByStation(stationId).stream()
                 .filter(event -> reaches(feed, event, categories))
+                .filter(event -> event.categoryId() == null || !hidden.contains(event.categoryId()))
                 .filter(event -> CalendarFeeds.inWindow(event, now))
                 .toList();
     }

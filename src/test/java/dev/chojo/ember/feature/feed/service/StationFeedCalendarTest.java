@@ -136,6 +136,54 @@ class StationFeedCalendarTest {
     }
 
     @Test
+    void aHiddenCategoryLeavesTheFeedButAppointmentsWithoutCategoryStay() {
+        var hiding = new StationCalendarFeed(
+                9,
+                STATION,
+                "Leinwand",
+                "token",
+                StationFeedLevel.ALL,
+                null,
+                Instant.now(),
+                null,
+                List.of(INTERNAL_CATEGORY));
+        calendars.calendar(hiding, true).render().get();
+        ArgumentCaptor<StationEvent> captor = ArgumentCaptor.forClass(StationEvent.class);
+        verify(renderer, atLeastOnce()).render(captor.capture(), any());
+        assertEquals(
+                List.of(1, 2, 4),
+                captor.getAllValues().stream()
+                        .map(StationEvent::id)
+                        .distinct()
+                        .sorted()
+                        .toList());
+    }
+
+    @Test
+    void hidingACategoryNeverShowsWhatTheLevelHides() {
+        var hiding = new StationCalendarFeed(
+                9,
+                STATION,
+                "Leinwand",
+                "token",
+                StationFeedLevel.PUBLIC,
+                null,
+                Instant.now(),
+                null,
+                List.of(PUBLIC_CATEGORY));
+        calendars.calendar(hiding, true).render().get();
+        ArgumentCaptor<StationEvent> captor = ArgumentCaptor.forClass(StationEvent.class);
+        verify(renderer, atLeastOnce()).render(captor.capture(), any());
+        assertEquals(
+                List.of(1),
+                captor.getAllValues().stream()
+                        .map(StationEvent::id)
+                        .distinct()
+                        .sorted()
+                        .toList());
+    }
+
+    @Test
     void entriesAreRenderedForASharedCalendar() {
         calendars.calendar(feed(StationFeedLevel.ALL), true).render().get();
         ArgumentCaptor<IcalEventRenderer.Context> captor = ArgumentCaptor.forClass(IcalEventRenderer.Context.class);

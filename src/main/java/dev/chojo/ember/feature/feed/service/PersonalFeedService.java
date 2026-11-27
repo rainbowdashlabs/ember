@@ -88,6 +88,7 @@ public class PersonalFeedService {
     private final MemberNameResolver memberNameResolver;
     private final OccurrenceCalendar occurrenceCalendar;
     private final ModuleAvailability modules;
+    private final PersonalFeedFilterService filters;
 
     @Inject
     public PersonalFeedService(
@@ -107,8 +108,10 @@ public class PersonalFeedService {
             NotificationFeedRenderer notificationRenderer,
             MemberNameResolver memberNameResolver,
             OccurrenceCalendar occurrenceCalendar,
-            ModuleAvailability modules) {
+            ModuleAvailability modules,
+            PersonalFeedFilterService filters) {
         this.modules = modules;
+        this.filters = filters;
         this.tokenService = tokenService;
         this.crudService = crudService;
         this.categoryService = categoryService;
@@ -164,8 +167,12 @@ public class PersonalFeedService {
         var eventLatest = crudService.findMaxEventUpdatedAt(station.id());
         var registrationLatest = registrationService.findMaxCreatedAt(memberIds);
         var lastModified = eventLatest.isAfter(registrationLatest) ? eventLatest : registrationLatest;
-        var fingerprint = FeedFingerprint.compute(lastModified, "ics", station.id(), locale, verbose);
-        return new Feed(fingerprint, () -> renderCalendar(member, managed, memberIds, station, locale, verbose));
+        var hiddenCategories = filters.hiddenCategories(member.id());
+        var fingerprint = FeedFingerprint.compute(lastModified, "ics", station.id(), locale, verbose, hiddenCategories);
+        return new Feed(
+                fingerprint,
+                () -> renderCalendar(
+                        member, managed, memberIds, station, locale, verbose, Set.copyOf(hiddenCategories)));
     }
 
     private Rendered renderCalendar(
@@ -174,7 +181,8 @@ public class PersonalFeedService {
             List<Integer> memberIds,
             Station station,
             String locale,
-            boolean verbose) {
+            boolean verbose,
+            Set<Integer> hiddenCategories) {
         var categories = new HashMap<Integer, EventCategory>();
         categoryService.findByStation(station.id()).forEach(category -> categories.put(category.id(), category));
         var ownerStatusByEvent = new HashMap<Integer, RegistrationStatus>();
@@ -189,6 +197,7 @@ public class PersonalFeedService {
                 managedByEvent,
                 occurrenceCalendar.forStation(station.id()));
         var events = eventsInWindow(station.id(), memberIds).stream()
+                .filter(event -> keptByFilter(event, hiddenCategories, ownerStatusByEvent, managedByEvent))
                 .filter(event -> icalRenderer.isVisibleForFeed(event, renderContext))
                 .toList();
         var calendar = CalendarFeeds.frame(
@@ -230,6 +239,21 @@ public class PersonalFeedService {
                 .values()
                 .forEach(list -> list.sort(Comparator.comparing(IcalEventRenderer.ManagedRegistration::memberName)));
         return managedByEvent;
+    }
+
+    /**
+     * Whether the member's choice of categories to leave out keeps an appointment. One the member or a
+     * member in their care signed up for stays whatever its category, so a commitment never drops out
+     * of the calendar; whether that sign-up still counts is the renderer's to decide.
+     */
+    private static boolean keptByFilter(
+            StationEvent event,
+            Set<Integer> hiddenCategories,
+            Map<Integer, RegistrationStatus> ownerStatusByEvent,
+            Map<Integer, List<IcalEventRenderer.ManagedRegistration>> managedByEvent) {
+        Integer category = event.categoryId();
+        if (category == null || !hiddenCategories.contains(category)) return true;
+        return ownerStatusByEvent.containsKey(event.id()) || managedByEvent.containsKey(event.id());
     }
 
     /** The household's appointments within the window every calendar feed carries. */

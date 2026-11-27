@@ -28608,6 +28608,59 @@
         } ]
       }
     },
+    "/api/v1/feed/categories" : {
+      "get" : {
+        "summary" : "Get the categories the current user's calendar feed leaves out",
+        "tags" : [ "Feed Tokens" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HiddenCategories"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Set the categories the current user's calendar feed leaves out",
+        "tags" : [ "Feed Tokens" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HiddenCategories"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/HiddenCategories"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/feed/token" : {
       "post" : {
         "summary" : "Create a feed token for the current user",
@@ -70862,6 +70915,19 @@
           }
         },
         "required" : [ "enabled", "endpoint", "staleAfterDays", "timeoutSeconds" ]
+      },
+      "HiddenCategories" : {
+        "type" : "object",
+        "properties" : {
+          "hiddenCategories" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "hiddenCategories" ]
       },
       "HistoryResponse" : {
         "type" : "object",

@@ -63,6 +63,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -81,6 +82,7 @@ class PersonalFeedServiceTest {
     private NotificationPreferences preferences;
     private StationMemberRepository members;
     private final ModuleAvailability modules = mock(ModuleAvailability.class);
+    private final PersonalFeedFilterService filters = mock(PersonalFeedFilterService.class);
     private IcalEventRenderer icalRenderer;
     private LostAndFoundService lostAndFound;
     private LostAndFoundImageService images;
@@ -146,7 +148,8 @@ class PersonalFeedServiceTest {
                 notificationRenderer,
                 names,
                 occurrenceCalendar,
-                modules);
+                modules,
+                filters);
     }
 
     @Test
@@ -189,6 +192,44 @@ class PersonalFeedServiceTest {
         verify(tokens).recordIcalPoll(7);
         verify(names).called(8);
         assertNotEquals(feed.fingerprint(), service.calendar(OWNER, false).fingerprint());
+    }
+
+    /**
+     * A hidden category drops its appointments, except one the household signed up for; appointments
+     * without a category stay, and changing the choice changes the fingerprint.
+     */
+    @Test
+    void hiddenCategoriesLeaveTheFeedButOwnSignUpsStay() {
+        var now = Instant.now();
+        when(members.findManaged(7)).thenReturn(List.of(CHILD));
+        when(events.findMaxEventUpdatedAt(STATION)).thenReturn(now);
+        when(registrations.findMaxCreatedAt(List.of(7, 8))).thenReturn(now);
+        var signUps = List.of(
+                registration(11, 7, RegistrationStatus.ACCEPTED), registration(12, 8, RegistrationStatus.ACCEPTED));
+        when(registrations.findByMembers(List.of(7, 8))).thenReturn(signUps);
+        var hiddenOwn = event(11, false, now.plus(Duration.ofDays(1)));
+        var hiddenChild = event(12, false, now.plus(Duration.ofDays(2)));
+        var hiddenOther = event(13, false, now.plus(Duration.ofDays(3)));
+        var otherCategory = event(14, false, now.plus(Duration.ofDays(4)));
+        var noCategory = event(15, false, now.plus(Duration.ofDays(5)));
+        when(hiddenOwn.categoryId()).thenReturn(1);
+        when(hiddenChild.categoryId()).thenReturn(1);
+        when(hiddenOther.categoryId()).thenReturn(1);
+        when(otherCategory.categoryId()).thenReturn(2);
+        when(events.findFilteredForMembers(STATION, List.of(7, 8), null, null))
+                .thenReturn(List.of(hiddenOwn, hiddenChild, hiddenOther, otherCategory, noCategory));
+        when(icalRenderer.isVisibleForFeed(any(), any())).thenReturn(true);
+        when(icalRenderer.render(any(), any())).thenReturn(List.of());
+        var unfiltered = service.calendar(OWNER, true).fingerprint();
+        when(filters.hiddenCategories(7)).thenReturn(List.of(1));
+
+        var feed = service.calendar(OWNER, true);
+
+        assertEquals(4, feed.render().get().entries());
+        verify(icalRenderer, never()).render(eq(hiddenOther), any());
+        verify(icalRenderer).render(eq(hiddenOwn), any());
+        verify(icalRenderer).render(eq(hiddenChild), any());
+        assertNotEquals(unfiltered, feed.fingerprint());
     }
 
     @Test
