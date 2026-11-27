@@ -44,6 +44,14 @@ COMMENT ON COLUMN ember_schema.inventory.picture_key
 COMMENT ON COLUMN ember_schema.inventory_art.picture_key
     IS 'Storage key of the kind''s picture in the inventory pictures category, or NULL for none. A piece of the kind shows this picture before its inventory''s. Every upload gets a new key.';
 
+-- A procurement in a mixed inventory records whose piece it brings, the station's or the association's.
+
+ALTER TABLE ember_schema.equipment_procurement
+    ADD COLUMN owner_kind TEXT CHECK (owner_kind IN ('STATION', 'CLUSTER'));
+
+COMMENT ON COLUMN ember_schema.equipment_procurement.owner_kind
+    IS 'Who owns the piece the procurement brings, for a mixed inventory only: STATION for the station, CLUSTER for the association above it. Null for an inventory whose type already settles the owner, and for orders placed before the choice existed.';
+
 -- A place question can be the location the calendar shows for its appointment. Where a station kept the
 -- meeting point the templates offer, that place question becomes the calendar's location, unless another
 -- place of the same form already is. Only the first such question of a form is marked.
@@ -83,11 +91,3 @@ WHERE f.id IN (SELECT DISTINCT ON (m.event_group_id) m.id
                   FROM ember_schema.event_group_field o
                   WHERE o.event_group_id = f.event_group_id
                     AND (o.config ->> 'calendarLocation')::BOOLEAN IS TRUE);
-
--- A procurement in a mixed inventory records whose piece it brings, the station's or the association's.
-
-ALTER TABLE ember_schema.equipment_procurement
-    ADD COLUMN owner_kind TEXT CHECK (owner_kind IN ('STATION', 'CLUSTER'));
-
-COMMENT ON COLUMN ember_schema.equipment_procurement.owner_kind
-    IS 'Who owns the piece the procurement brings, for a mixed inventory only: STATION for the station, CLUSTER for the association above it. Null for an inventory whose type already settles the owner, and for orders placed before the choice existed.';
