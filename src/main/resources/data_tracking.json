@@ -30997,6 +30997,155 @@
       },
       "description": "Applications to create a new station (admin approval workflow)."
     },
+    "station_calendar_feed": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:923e4c9321309f07d251952f524410f6cea9320f65bfb5dbe01366edccb082b8",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Identifies the feed."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the station whose appointments the feed shows."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The feed's name, shown in the station's list and as the calendar name."
+        },
+        {
+          "name": "token",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Unique access token in the feed address (32-byte SecureRandom, URL-safe Base64). Renewing it ends the old address."
+        },
+        {
+          "name": "level",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Up to which visibility the feed shows appointments: PUBLIC as the public calendar, MEMBERS every unrestricted appointment, ALL also the restricted ones."
+        },
+        {
+          "name": "created_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "References the member who created the feed, NULL once that member is gone."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the feed was created."
+        },
+        {
+          "name": "polled_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When a calendar last fetched the feed, NULL while nothing has."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "created_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "The address token is a secret of this installation; a transferred feed would clone a working address, so the receiving station creates its own feeds"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "created_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "created_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the feed for the station, who created it unlinked"
+          }
+        ]
+      },
+      "description": "A calendar subscription of the station for a shared calendar, such as a screen in the station or the calendar of the command staff. It belongs to no member, carries no sign-up state and shows every appointment up to its level."
+    },
+    "station_calendar_feed_hidden_category": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:cb3230b9a4207ea1aa86a3e6ccb3642cfc0089f6ab939994444e127d918abec2",
+      "columns": [
+        {
+          "name": "feed_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the station calendar feed."
+        },
+        {
+          "name": "category_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the event category the feed leaves out."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "category_id",
+          "refTable": "event_category",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "feed_id",
+          "refTable": "station_calendar_feed",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Follows the station calendar feed, which is not transferred"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Which categories a station feed leaves out, no personal data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Which categories a station feed leaves out, no personal data"
+      },
+      "description": "The categories a station calendar feed leaves out. Appointments of every other category and those without a category stay in the feed."
+    },
     "station_disabled_module": {
       "feature": "station",
       "scope": "STATION",
@@ -34026,6 +34175,65 @@
         "reason": "Policy table is station/instance-scoped, not personal data"
       },
       "description": "Per-StationUserType 2FA enforcement. Role-based mandate is derived at runtime, not stored here."
+    },
+    "user_feed_hidden_category": {
+      "feature": "members",
+      "scope": "USER",
+      "tableHash": "sha256:9c646483c9d57ccb32fa4279c47d7465234f14d961ee6da022a43bab77791837",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the station member whose personal feed leaves the category out."
+        },
+        {
+          "name": "category_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the event category the feed leaves out."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "category_id",
+          "refTable": "event_category",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Follows the member's personal feed token, which is not transferred"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          }
+        ]
+      },
+      "description": "The categories a member's personal calendar feed leaves out. Keyed by member rather than by token, so renewing the address keeps the choice. Appointments the member or a member in their care signed up for stay in the feed whatever their category."
     },
     "user_feed_token": {
       "feature": "members",

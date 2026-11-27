@@ -4544,6 +4544,10 @@ export default {
             label: 'Kategorien',
             desc: 'Kann Terminkategorien anlegen und bearbeiten.',
         },
+        EVENT_CALENDAR_FEEDS: {
+            label: 'Kalender-Feeds der Wache',
+            desc: 'Kann Kalender-Abos der Wache für gemeinsame Kalender anlegen, ändern und löschen.',
+        },
         EVENTS_FEDERATE: {
             label: 'Termine föderieren',
             desc: 'Kann Termine mit Partnerstationen teilen.',

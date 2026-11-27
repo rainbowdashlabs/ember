@@ -52,6 +52,63 @@ ALTER TABLE ember_schema.equipment_procurement
 COMMENT ON COLUMN ember_schema.equipment_procurement.owner_kind
     IS 'Who owns the piece the procurement brings, for a mixed inventory only: STATION for the station, CLUSTER for the association above it. Null for an inventory whose type already settles the owner, and for orders placed before the choice existed.';
 
+-- A station can hold calendar subscriptions of its own for shared calendars, each showing the
+-- appointments up to a chosen visibility, and any of them, like a member's personal feed, can leave
+-- out chosen categories.
+
+CREATE TABLE ember_schema.station_calendar_feed
+(
+    id         SERIAL PRIMARY KEY,
+    station_id INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    name       TEXT        NOT NULL,
+    token      TEXT        NOT NULL UNIQUE,
+    level      TEXT        NOT NULL CHECK (level IN ('PUBLIC', 'MEMBERS', 'ALL')),
+    created_by INTEGER     REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    polled_at  TIMESTAMPTZ
+);
+
+CREATE INDEX idx_station_calendar_feed_station ON ember_schema.station_calendar_feed (station_id);
+
+COMMENT ON TABLE ember_schema.station_calendar_feed IS
+    'A calendar subscription of the station for a shared calendar, such as a screen in the station or the calendar of the command staff. It belongs to no member, carries no sign-up state and shows every appointment up to its level.';
+COMMENT ON COLUMN ember_schema.station_calendar_feed.id IS 'Identifies the feed.';
+COMMENT ON COLUMN ember_schema.station_calendar_feed.station_id IS 'References the station whose appointments the feed shows.';
+COMMENT ON COLUMN ember_schema.station_calendar_feed.name IS 'The feed''s name, shown in the station''s list and as the calendar name.';
+COMMENT ON COLUMN ember_schema.station_calendar_feed.token IS 'Unique access token in the feed address (32-byte SecureRandom, URL-safe Base64). Renewing it ends the old address.';
+COMMENT ON COLUMN ember_schema.station_calendar_feed.level IS 'Up to which visibility the feed shows appointments: PUBLIC as the public calendar, MEMBERS every unrestricted appointment, ALL also the restricted ones.';
+COMMENT ON COLUMN ember_schema.station_calendar_feed.created_by IS 'References the member who created the feed, NULL once that member is gone.';
+COMMENT ON COLUMN ember_schema.station_calendar_feed.created_at IS 'When the feed was created.';
+COMMENT ON COLUMN ember_schema.station_calendar_feed.polled_at IS 'When a calendar last fetched the feed, NULL while nothing has.';
+
+CREATE TABLE ember_schema.station_calendar_feed_hidden_category
+(
+    feed_id     INTEGER NOT NULL REFERENCES ember_schema.station_calendar_feed (id) ON DELETE CASCADE,
+    category_id INTEGER NOT NULL REFERENCES ember_schema.event_category (id) ON DELETE CASCADE,
+    PRIMARY KEY (feed_id, category_id)
+);
+
+COMMENT ON TABLE ember_schema.station_calendar_feed_hidden_category IS
+    'The categories a station calendar feed leaves out. Appointments of every other category and those without a category stay in the feed.';
+COMMENT ON COLUMN ember_schema.station_calendar_feed_hidden_category.feed_id IS 'References the station calendar feed.';
+COMMENT ON COLUMN ember_schema.station_calendar_feed_hidden_category.category_id IS 'References the event category the feed leaves out.';
+
+CREATE TABLE ember_schema.user_feed_hidden_category
+(
+    member_id   INTEGER NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    category_id INTEGER NOT NULL REFERENCES ember_schema.event_category (id) ON DELETE CASCADE,
+    PRIMARY KEY (member_id, category_id)
+);
+
+COMMENT ON TABLE ember_schema.user_feed_hidden_category IS
+    'The categories a member''s personal calendar feed leaves out. Keyed by member rather than by token, so renewing the address keeps the choice. Appointments the member or a member in their care signed up for stay in the feed whatever their category.';
+COMMENT ON COLUMN ember_schema.user_feed_hidden_category.member_id IS 'References the station member whose personal feed leaves the category out.';
+COMMENT ON COLUMN ember_schema.user_feed_hidden_category.category_id IS 'References the event category the feed leaves out.';
+
+INSERT INTO ember_schema.station_permission (name)
+VALUES ('EVENT_CALENDAR_FEEDS')
+ON CONFLICT (name) DO NOTHING;
+
 -- A place question can be the location the calendar shows for its appointment. Where a station kept the
 -- meeting point the templates offer, that place question becomes the calendar's location, unless another
 -- place of the same form already is. Only the first such question of a form is marked.

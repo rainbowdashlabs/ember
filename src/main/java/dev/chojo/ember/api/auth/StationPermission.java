@@ -182,10 +182,24 @@ public enum StationPermission implements RouteRole {
     EVENTS_FEDERATE(StationModule.EVENTS, EVENT_EDIT),
 
     /**
+     * Allows managing the station's calendar feeds: subscriptions for shared calendars that belong to
+     * no member and show the appointments up to a chosen visibility.
+     *
+     * <p>Granted by {@link #EVENT_MANAGER}, and grantable on its own to somebody who should look after the
+     * feeds without managing appointments.
+     */
+    EVENT_CALENDAR_FEEDS(StationModule.EVENTS),
+
+    /**
      * Allows managing events
      */
     EVENT_MANAGER(
-            StationModule.EVENTS, EVENTS_FEDERATE, EVENT_REGISTRATION, EVENT_MANAGE_TEMPLATE, EVENT_MANAGE_CATEGORY),
+            StationModule.EVENTS,
+            EVENTS_FEDERATE,
+            EVENT_REGISTRATION,
+            EVENT_MANAGE_TEMPLATE,
+            EVENT_MANAGE_CATEGORY,
+            EVENT_CALENDAR_FEEDS),
 
     /**
      * Allows reading the station's document store.
