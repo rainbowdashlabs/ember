@@ -31,7 +31,8 @@ export function matchesWords(text: string, query: string): boolean {
  * A search over a list that is already to hand, in the shape a search picker expects.
  *
  * <p>The list is capped, because a typeahead offering four hundred rows is the dropdown it
- * replaced.
+ * replaced. A short catalogue that is meant to be browsed rather than searched, such as the
+ * pictures of the gear, lifts the cap and shows every row.
  *
  * <p>The search is a new one whenever the list changes. A list is often still loading when somebody
  * starts typing, and a picker that searched the empty list once would go on showing there is nothing
@@ -39,15 +40,17 @@ export function matchesWords(text: string, query: string): boolean {
  *
  * @param entries    the rows to search
  * @param textOf     everything about a row that a word may match, joined
+ * @param limit      how many rows to offer at most
  * @returns a search function for a search picker, renewed with the list
  */
 export function listSearch<T>(
     entries: ComputedRef<T[]> | Ref<T[]>,
     textOf: (entry: T) => string,
+    limit: number = RESULT_LIMIT,
 ): ComputedRef<(query: string) => Promise<T[]>> {
     return computed(() => {
         const rows = entries.value
-        return async (query: string) => rows.filter(entry => matchesWords(textOf(entry), query)).slice(0, RESULT_LIMIT)
+        return async (query: string) => rows.filter(entry => matchesWords(textOf(entry), query)).slice(0, limit)
     })
 }
 
