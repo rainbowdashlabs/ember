@@ -26,6 +26,6 @@ describe('SharedPageView', () => {
         const wrapper = await mountSuspended(SharedPageView, {route: '/s/zurueckgezogen'})
 
         expect(wrapper.text()).toContain('Dieser Link führt nirgendwo mehr hin.')
-        expect(wrapper.text()).not.toContain('Ember kann nicht sagen was')
+        expect(wrapper.text()).not.toContain('der Grund ist nicht bekannt')
     })
 })

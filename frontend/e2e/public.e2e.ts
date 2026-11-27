@@ -208,7 +208,7 @@ test.describe('A page reached by its link', () => {
         await page.goto('/s/es-gibt-keinen-solchen-link')
 
         await expect(page.getByText('Dieser Link führt nirgendwo mehr hin.')).toBeVisible()
-        await expect(page.getByText('Ember kann nicht sagen was')).toHaveCount(0)
+        await expect(page.getByText('der Grund ist nicht bekannt')).toHaveCount(0)
     })
 
     test('a PDF on the page opens for a stranger', async ({managerPage, page}) => {
