@@ -78890,6 +78890,7 @@ export interface components {
             elsewhere: boolean;
             id: string;
             key: string;
+            ready: boolean;
             state: components["schemas"]["OnboardingTaskState"];
             subject: string | null;
             /** Format: int32 */

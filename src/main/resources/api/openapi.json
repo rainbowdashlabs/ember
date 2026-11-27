@@ -78210,9 +78210,12 @@
           },
           "elsewhere" : {
             "type" : "boolean"
+          },
+          "ready" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "key", "subject", "subjectId", "state", "confirmable", "actorName", "changedAt", "elsewhere" ]
+        "required" : [ "id", "key", "subject", "subjectId", "state", "confirmable", "actorName", "changedAt", "elsewhere", "ready" ]
       },
       "OpenSignatureResponse" : {
         "type" : "object",

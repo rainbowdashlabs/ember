@@ -337,7 +337,11 @@ public enum StationRefusal implements Refusal {
     MANAGER_REMINDED_JUST_NOW(
             84,
             HttpStatus.TOO_MANY_REQUESTS,
-            "The manager was reminded only a few minutes ago, so no second mail went out");
+            "The manager was reminded only a few minutes ago, so no second mail went out"),
+
+    /** An onboarding task ticked off or passed over while a step it waits for is still open. */
+    ONBOARDING_TASK_NOT_YET(
+            85, HttpStatus.CONFLICT, "This step still waits for an earlier one, so nothing was changed");
 
     private final Definition definition;
 
