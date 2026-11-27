@@ -5,7 +5,7 @@
  */
 import client from './client'
 import {apiErrorStatus} from '@/util/apiError'
-import type {FeedStatusResponse, FeedTokenResponse, FeedUseResponse} from './generated/schema'
+import type {FeedStatusResponse, FeedTokenResponse, FeedUseResponse, HiddenCategories} from './generated/schema'
 
 export async function getFeedToken(): Promise<FeedTokenResponse | null> {
     try {
@@ -29,6 +29,18 @@ export async function regenerateFeedToken(): Promise<FeedTokenResponse> {
 
 export async function revokeFeedToken(): Promise<void> {
     await client.delete('/feed/token')
+}
+
+/** The categories the member's own calendar feed leaves out. */
+export async function getHiddenCategories(): Promise<number[]> {
+    const res = await client.get<HiddenCategories>('/feed/categories')
+    return res.data.hiddenCategories ?? []
+}
+
+/** Replaces the categories the member's own calendar feed leaves out, answering what is stored now. */
+export async function setHiddenCategories(hiddenCategories: number[]): Promise<number[]> {
+    const res = await client.put<HiddenCategories>('/feed/categories', {hiddenCategories})
+    return res.data.hiddenCategories ?? []
 }
 
 export async function getFeedStatus(): Promise<FeedStatusResponse> {
