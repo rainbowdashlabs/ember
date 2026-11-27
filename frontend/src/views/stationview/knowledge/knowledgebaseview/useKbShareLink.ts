@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, type Ref} from 'vue'
-import {getItem} from '@/api/storage'
+import {tabStationId} from '@/util/tabPlace'
 import type {KbFolder} from '@/api/generated/schema'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 
@@ -18,7 +18,7 @@ export function useKbShareLink(currentFolder: Ref<KbFolder | null>) {
     const shareCopied = computed(() => message.value !== '')
 
     function copyShareLink() {
-        const stationUid = getItem('station_id') ?? ''
+        const stationUid = tabStationId() ?? ''
         const folderId = currentFolder.value?.id
         const url = folderId
             ? `${window.location.origin}/public/kb/${stationUid}?folderId=${folderId}`

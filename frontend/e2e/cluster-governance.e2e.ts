@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders, clustersOf} from './fixtures/auth'
+import {test, expect, apiHeaders, clustersOf, actForCluster} from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
 import {allSections, sidebar, sidebarEntry} from './fixtures/sidebar'
 
@@ -68,7 +68,7 @@ test.describe('Cluster governance', () => {
             expect(filed.ok(), `and put one station in it (${await filed.text()})`).toBeTruthy()
 
             await page.goto('/cluster/modules')
-            await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+            await actForCluster(page, own.uid)
             await page.goto('/cluster/modules')
             await expect(page.getByTestId('cluster-module-switches')).toBeVisible({timeout: 15000})
 
@@ -193,7 +193,7 @@ test.describe('Cluster governance', () => {
         expect(pooled.ok()).toBeTruthy()
 
         await page.goto('/cluster/storage')
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+        await actForCluster(page, own.uid)
         await page.goto('/cluster/storage')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 

@@ -42,7 +42,7 @@ import {
 import {useKbFileMetadata} from '@/views/stationview/knowledge/kbfileview/useKbFileMetadata'
 import {useKbMoveTarget} from '@/views/stationview/knowledge/knowledgebaseview/useKbMoveTarget'
 import {STATION_KB_ROUTES, type KbRoutes} from '@/views/stationview/knowledge/knowledgebaseview/useKbNavigation'
-import {getItem} from '@/api/storage'
+import {tabStationId} from '@/util/tabPlace'
 import {toBlockRequests, toEditRows} from '@/util/blockSwitch'
 import {useKbFileDownloads} from './kbfileview/useKbFileDownloads'
 import {formatDateTime} from '@/util/format'
@@ -303,7 +303,7 @@ const {message: shareCopiedMessage, flash: flashShareCopied} = useFlashMessage(2
 const shareCopied = computed(() => shareCopiedMessage.value !== '')
 function copyShareLink() {
     if (!file.value) return
-    const stationUid = getItem('station_id') ?? ''
+    const stationUid = tabStationId() ?? ''
     const url = `${window.location.origin}/public/station/${stationUid}/knowledge/file/${file.value.id}`
     navigator.clipboard.writeText(url).then(() => flashShareCopied(url))
 }

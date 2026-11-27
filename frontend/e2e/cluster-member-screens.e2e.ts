@@ -3,7 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeededCluster} from './fixtures/auth'
+import {
+    test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeededCluster, actForCluster,
+} from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
 import {must} from './fixtures/must'
 import {demoSignIn, sessionHeaders} from './fixtures/session'
@@ -124,7 +126,7 @@ test.describe('Cluster member screens', () => {
             await acceptLinkRequest(browser, email, `${own.name} Zweite`)
 
             await page.goto('/cluster/members')
-            await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+            await actForCluster(page, own.uid)
             await page.goto('/cluster/members')
             await expect(page.getByTestId('app-shell')).toBeVisible()
 

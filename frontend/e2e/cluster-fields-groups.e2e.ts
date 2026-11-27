@@ -4,7 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Page} from '@playwright/test'
-import {test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeededCluster} from './fixtures/auth'
+import {
+    test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeededCluster, actForCluster,
+} from './fixtures/auth'
 import {ownCluster, type OwnCluster} from './fixtures/cluster'
 
 /**
@@ -199,7 +201,7 @@ test.describe('Cluster fields and groups', () => {
                 .toEqual({name: kept.name, memberIds: [memberId]})
 
             await page.goto('/cluster/team/groups')
-            await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+            await actForCluster(page, own.uid)
             await page.goto('/cluster/team/groups')
             const row = page.getByTestId('group-row').filter({hasText: kept.name})
             await row.getByRole('button', {name: 'Bearbeiten'}).click()

@@ -44,10 +44,11 @@ mockNuxtImport('navigateTo', () => (target: unknown) => {
     return target
 })
 
-vi.mock('~/api/storage', () => ({
-    getItem: (key: string) => state.store.get(key) ?? null,
-    removeItem: (key: string) => {
-        state.store.delete(key)
+vi.mock('~/util/tabPlace', () => ({
+    tabStationId: () => state.store.get('station_id') ?? null,
+    forgetTabPlaces: () => {
+        state.store.delete('station_id')
+        state.store.delete('cluster_id')
     },
 }))
 

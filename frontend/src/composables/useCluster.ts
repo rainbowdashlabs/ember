@@ -6,7 +6,7 @@
 import {computed, readonly} from 'vue'
 import {clusters} from '@/api'
 import type {ClusterResponse} from '@/api/generated/schema'
-import {getItem, removeItem, setItem} from '@/api/storage'
+import {chooseTabCluster, forgetTabCluster, tabClusterId} from '@/util/tabPlace'
 
 /**
  * The clusters the reader may act for and which one they act for now, held per request.
@@ -22,9 +22,9 @@ function clusterState() {
     }
 }
 
-/** Puts the cluster this browser last acted for into the state. Called by the client plugin. */
+/** Puts the cluster this tab acts for into the state. Called by the client plugin. */
 export function restoreActiveCluster() {
-    clusterState().currentClusterId.value = getItem('cluster_id')
+    clusterState().currentClusterId.value = tabClusterId()
 }
 
 /**
@@ -47,7 +47,7 @@ export function useCluster() {
         } catch {
             clusterList.value = []
         }
-        currentClusterId.value = getItem('cluster_id')
+        currentClusterId.value = tabClusterId()
         if (currentClusterId.value && !clusterList.value.some(c => c.uid === currentClusterId.value)) {
             clearActiveCluster()
         }
@@ -61,12 +61,12 @@ export function useCluster() {
     }
 
     function setActiveCluster(clusterId: string) {
-        setItem('cluster_id', clusterId)
+        chooseTabCluster(clusterId)
         currentClusterId.value = clusterId
     }
 
     function clearActiveCluster() {
-        removeItem('cluster_id')
+        forgetTabCluster()
         currentClusterId.value = null
     }
 

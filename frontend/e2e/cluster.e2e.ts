@@ -6,6 +6,7 @@
 import {MADE_BY_A_STORY} from './fixtures/cluster'
 import {
     test, expect, enterCluster, clustersOf, theSeededCluster, apiHeaders, demoAccounts, pageAsThrowaway,
+    actForCluster,
 } from './fixtures/auth'
 import {activeSidebarGroup, allSections, sidebarEntry} from './fixtures/sidebar'
 import {must} from './fixtures/must'
@@ -168,13 +169,13 @@ test.describe('Cluster', () => {
         expect(mine.length).toBeGreaterThan(1)
         expect(mine.map(cluster => cluster.name)).toContain(name)
 
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), second.uid)
+        await actForCluster(page, second.uid)
         await page.goto('/cluster/stations')
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByText('Jugendfeuerwehr Nordstadt')).toHaveCount(0)
 
         const first = await theSeededCluster(page)
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), first.uid)
+        await actForCluster(page, first.uid)
         await page.goto('/cluster/stations')
         await expect(page.getByText('Jugendfeuerwehr Nordstadt')).toBeVisible()
     })

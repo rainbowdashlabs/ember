@@ -6,7 +6,7 @@
 import {computed, readonly} from 'vue'
 import {session} from '@/api'
 import client from '@/api/client'
-import {getItem, removeItem, setItem} from '@/api/storage'
+import {chooseTabStation, forgetTabStation, tabStationId} from '@/util/tabPlace'
 import type {StationMembership} from '@/api/generated/schema'
 
 /**
@@ -26,9 +26,9 @@ function stationsState() {
     }
 }
 
-/** Puts the station this browser last worked at into the state. Called by the client plugin. */
+/** Puts the station this tab works at into the state. Called by the client plugin. */
 export function restoreActiveStation() {
-    stationsState().currentStationId.value = getItem('station_id')
+    stationsState().currentStationId.value = tabStationId()
 }
 
 async function fetchLogo(stationId: string): Promise<string | null> {
@@ -54,7 +54,7 @@ export function useStations() {
         } catch {
             stationList.value = []
         }
-        currentStationId.value = getItem('station_id')
+        currentStationId.value = tabStationId()
         loaded.value = true
         await loadAllLogos()
     }
@@ -72,7 +72,7 @@ export function useStations() {
     }
 
     function setActiveStation(stationId: string) {
-        setItem('station_id', stationId)
+        chooseTabStation(stationId)
         currentStationId.value = stationId
         loadActiveLogo()
     }
@@ -89,7 +89,7 @@ export function useStations() {
     }
 
     function clearActiveStation() {
-        removeItem('station_id')
+        forgetTabStation()
         currentStationId.value = null
         activeLogoUrl.value = null
     }

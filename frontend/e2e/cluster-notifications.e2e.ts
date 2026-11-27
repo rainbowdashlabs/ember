@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Page} from '@playwright/test'
-import {test, expect, apiHeaders} from './fixtures/auth'
+import {test, expect, apiHeaders, actForCluster} from './fixtures/auth'
 import {ownCluster, type OwnCluster} from './fixtures/cluster'
 import {openSection, sidebar} from './fixtures/sidebar'
 
@@ -22,7 +22,7 @@ test.describe('Cluster notifications', () => {
     /** One of the association's screens, entered the way the switcher enters it. */
     async function clusterScreen(page: Page, own: OwnCluster, path: string) {
         await page.goto(path)
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+        await actForCluster(page, own.uid)
         await page.goto(path)
         await expect(page.getByTestId('app-shell')).toBeVisible()
     }

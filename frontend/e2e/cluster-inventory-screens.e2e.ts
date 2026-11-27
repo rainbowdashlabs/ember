@@ -10,6 +10,7 @@ import {
     clusterHeaders,
     clusterPage,
     theSeededCluster,
+    actForCluster,
 } from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
 
@@ -148,7 +149,7 @@ test.describe('Cluster inventory screens', () => {
         const own = await ownCluster(page, browser, request, 'Ablauf')
 
         await page.goto('/cluster/inventory/settings')
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+        await actForCluster(page, own.uid)
         await page.goto('/cluster/inventory/settings')
         await expect(page.getByTestId('inventory-flow-setting')).toBeVisible({timeout: 15000})
 

@@ -10,7 +10,7 @@ import {markOpened} from '~/api/notifications'
 import {FIRST_STATION_PATH} from '~/util/signInLanding'
 import {getDemoStatus} from '~/api/demo'
 import {hasSessionCookie} from '~/api/sessionCookie'
-import {getItem, removeItem} from '~/api/storage'
+import {forgetTabPlaces, tabStationId} from '~/util/tabPlace'
 import {useConsentGuard} from '~/composables/useConsentGuard'
 import {useSession} from '~/composables/useSession'
 import {useCluster} from '~/composables/useCluster'
@@ -46,8 +46,7 @@ const IDLE_EXEMPT: ReadonlySet<string> = new Set(['/station/requirements', '/rec
 async function switchAccount(email: string): Promise<void> {
     const status = await getDemoStatus()
     if (!status.demo && !status.dev) return
-    removeItem('station_id')
-    removeItem('cluster_id')
+    forgetTabPlaces()
     forgetLandingMemory()
     await demoLogin(email)
     useSession().clear()
@@ -143,9 +142,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     if (to.path === '/station' || to.path.startsWith('/station/')) {
         const queryStation = typeof to.query.station === 'string' ? to.query.station : null
-        if (queryStation && queryStation !== getItem('station_id')) {
+        if (queryStation && queryStation !== tabStationId()) {
             useStations().setActiveStation(queryStation)
-        } else if (!queryStation && !getItem('station_id')) {
+        } else if (!queryStation && !tabStationId()) {
             if (await waitsForFirstStation()) return navigateTo(FIRST_STATION_PATH)
             const stations = useStations()
             const sole = await stations.soleStationId()
@@ -160,7 +159,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     rememberVisitedArea(to.path)
 
-    if (!getItem('station_id')) return
+    if (!tabStationId()) return
 
     const lastActivity = localStorage.getItem('ember_last_activity')
     const now = Date.now()

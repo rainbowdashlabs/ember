@@ -7,6 +7,7 @@ import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 import {AxiosError, type AxiosResponse, type InternalAxiosRequestConfig} from 'axios'
 import client from './client'
 import {acceptStorage, getItem, setItem} from './storage'
+import {chooseTabCluster, chooseTabStation} from '@/util/tabPlace'
 
 /** Sets or removes the readable cookie the server puts beside the session. */
 function carrySession(token: string | null) {
@@ -41,6 +42,7 @@ describe('a refused session', () => {
 
     beforeEach(() => {
         localStorage.clear()
+        sessionStorage.clear()
         acceptStorage(undefined, [])
         setItem('station_id', 'stale-station')
         carrySession('stale')
@@ -144,5 +146,49 @@ describe('the request token', () => {
         await client.post('/anything')
 
         expect(sent?.headers['X-CSRF-Token']).toBeUndefined()
+    })
+})
+
+/**
+ * Every request names the station and the cluster of its own tab. Another tab moving to another
+ * station changes where a new tab starts, never what this tab sends.
+ *
+ * @vitest-environment happy-dom
+ */
+describe('the station a request names', () => {
+    const originalAdapter = client.defaults.adapter
+    let sent: InternalAxiosRequestConfig | null = null
+
+    beforeEach(() => {
+        localStorage.clear()
+        sessionStorage.clear()
+        client.defaults.adapter = (config: InternalAxiosRequestConfig) => {
+            sent = config
+            return Promise.resolve({status: 200, statusText: 'OK', data: {}, headers: {}, config} as AxiosResponse)
+        }
+    })
+
+    afterEach(() => {
+        client.defaults.adapter = originalAdapter
+    })
+
+    it('is the one of the tab after another tab moved elsewhere', async () => {
+        chooseTabStation('station-of-this-tab')
+        chooseTabCluster('cluster-of-this-tab')
+        setItem('station_id', 'station-of-another-tab')
+        setItem('cluster_id', 'cluster-of-another-tab')
+
+        await client.post('/anything')
+
+        expect(sent?.headers['X-Station-Id']).toBe('station-of-this-tab')
+        expect(sent?.headers['X-Cluster-Id']).toBe('cluster-of-this-tab')
+    })
+
+    it('is the last chosen one in a tab that has none of its own yet', async () => {
+        setItem('station_id', 'chosen-last')
+
+        await client.get('/anything')
+
+        expect(sent?.headers['X-Station-Id']).toBe('chosen-last')
     })
 })
