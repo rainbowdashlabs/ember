@@ -62,8 +62,7 @@ public enum StationPermission implements RouteRole {
     /**
      * Grants access to all attendance actions.
      */
-    ATTENDANCE_MANAGER(
-            StationModule.ATTENDANCE, ATTENDANCE_EDIT, ATTENDANCE_CONFIGURE, ATTENDANCE_EXPORT, ATTENDANCE_READ),
+    ATTENDANCE_MANAGER(StationModule.ATTENDANCE, ATTENDANCE_EDIT, ATTENDANCE_CONFIGURE, ATTENDANCE_EXPORT),
 
     /**
      * Allows creating new inventory items of type {@link InventoryType#EXTERNAL}
@@ -138,12 +137,10 @@ public enum StationPermission implements RouteRole {
             StationModule.INVENTORY,
             INVENTORY_ASSIGN,
             INVENTORY_CHECK,
-            INVENTORY_CREATE,
             INVENTORY_EDIT,
             INVENTORY_MOVEMENTS,
             INVENTORY_LENDING_MANAGER,
             INVENTORY_PROCUREMENT,
-            INVENTORY_READ,
             INVENTORY_STORAGE),
 
     /**
@@ -526,7 +523,7 @@ public enum StationPermission implements RouteRole {
     /**
      * Knowledgebase management
      */
-    KNOWLEDGE_MANAGER(StationModule.KNOWLEDGE_BASE, KNOWLEDGE_EDIT, KNOWLEDGE_FEDERATE),
+    KNOWLEDGE_MANAGER(StationModule.KNOWLEDGE_BASE, KNOWLEDGE_FEDERATE),
 
     /**
      * Allows opening, renaming, closing and reopening the station's chats and deciding who sees them.
