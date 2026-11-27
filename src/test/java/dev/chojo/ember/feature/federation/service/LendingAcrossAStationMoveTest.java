@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryPictureService;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.ModuleAvailability;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestStationKeys;
@@ -260,7 +261,8 @@ class LendingAcrossAStationMoveTest extends RepositoryTestBase {
                                 mock(InventoryPictureService.class),
                                 mock(FederationService.class),
                                 mock(FederationTransport.class),
-                                mock(ImageVariants.class))),
+                                mock(ImageVariants.class),
+                                mock(StorageService.class))),
                 mock(ModuleAvailability.class))));
         var asMoved = harness.asPartner(new FederationSession(partnershipWithMoved(), moved.uid()))
                 .andThen(request -> request.header(

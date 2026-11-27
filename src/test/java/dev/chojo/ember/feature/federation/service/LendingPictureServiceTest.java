@@ -21,6 +21,8 @@ import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,9 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -64,7 +69,19 @@ class LendingPictureServiceTest {
     private InventoryPictureService pictures;
     private FederationService federation;
     private FederationTransport transport;
+    private StorageService storage;
     private LendingPictureService service;
+
+    private LendingPictureService serviceAt(Instant now) {
+        return new LendingPictureService(
+                lending,
+                pictures,
+                federation,
+                transport,
+                new ImageVariants(storage),
+                storage,
+                Clock.fixed(now, ZoneOffset.UTC));
+    }
 
     @BeforeEach
     void setUp() {
@@ -73,12 +90,8 @@ class LendingPictureServiceTest {
         federation = mock(FederationService.class);
         transport = mock(FederationTransport.class);
         var backend = new LocalStorageBackend(root);
-        service = new LendingPictureService(
-                lending,
-                pictures,
-                federation,
-                transport,
-                new ImageVariants(new StorageService(new StorageBackendResolver(backend), backend)));
+        storage = new StorageService(new StorageBackendResolver(backend), backend);
+        service = serviceAt(Instant.parse("2026-11-27T10:00:00Z"));
     }
 
     private static ServingPartner asking() {
@@ -185,5 +198,28 @@ class LendingPictureServiceTest {
 
         assertEquals(FederationRefusal.LENDING_PICTURE_NOT_OFFERED, refused.refusal());
         verify(transport, times(0)).get(any(), any(FederationRequest.class), any());
+    }
+
+    @Test
+    void aCopyIsKeptForOnePeriodAndThenAskedForAgain() throws IOException {
+        var partner = lendingPartner(FederationPartner.FederationStatus.ACTIVE, true);
+        when(transport.get(eq(partner), any(FederationRequest.class), eq(RemoteLendingPicture.class)))
+                .thenReturn(new RemoteLendingPicture("image/gif", gif()));
+        Instant fetched = Instant.parse("2026-11-27T10:00:00Z");
+        service.federatedPicture(STATION, PARTNER_STATION, PHOTO, 64);
+
+        var nextPeriod = serviceAt(fetched.plus(LendingPictureService.KEEP_FOR));
+        nextPeriod.removeExpiredCopies();
+        nextPeriod.federatedPicture(STATION, PARTNER_STATION, PHOTO, 64);
+        verify(transport, times(1)).get(eq(partner), any(FederationRequest.class), eq(RemoteLendingPicture.class));
+
+        var twoPeriodsLater = serviceAt(fetched.plus(LendingPictureService.KEEP_FOR.multipliedBy(2)));
+        twoPeriodsLater.removeExpiredCopies();
+        assertTrue(
+                storage.listKeys(new StorageScope.Instance(), StorageCategory.IMAGE_PARTNER_LENDING, "")
+                        .isEmpty(),
+                "a copy older than the period before the current one is gone");
+        twoPeriodsLater.federatedPicture(STATION, PARTNER_STATION, PHOTO, 64);
+        verify(transport, times(2)).get(eq(partner), any(FederationRequest.class), eq(RemoteLendingPicture.class));
     }
 }
