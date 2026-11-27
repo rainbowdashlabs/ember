@@ -23,6 +23,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Ein zweiter Ort fehlte in Kalendereinträgen.** Hatte ein Termin einen Ort und einen Treffpunkt, zeigten Kalenderabos nur einen davon, der andere fehlte ganz. Der andere Ort steht jetzt in der Beschreibung des Eintrags, in jeder Einstellung des Abos.
 - **Einzelne Termine in Kalenderabos standen in UTC.** Im persönlichen und im öffentlichen Abo standen einmalige Termine in UTC, während Serien schon die Zeitzone der Wache trugen. Einmalige Termine stehen jetzt ebenfalls in der Zeitzone der Wache, mit Sommer- und Winterzeit, wie sie an ihrem Datum gilt.
 - **Stunden auf gedruckten Anwesenheitslisten im falschen Zahlenformat.** In manchen Fällen standen die Stunden auf gedruckten Anwesenheitslisten und Berichten bei einer englischsprachigen Wache mit Dezimalkomma oder bei einer deutschsprachigen mit Dezimalpunkt. Die Stunden folgen jetzt der Sprache der Wache, wie schon im Tabellenexport.
+- **Ein Mitglied als ehemalig zu markieren blieb manchmal ohne Wirkung.** In manchen Fällen tat die Bestätigung nichts, wenn der Dialog geöffnet wurde, während die Seite des Mitglieds noch lud. Der Dialog markiert das Mitglied jetzt auch dann.
 
 ## v26.26.4
 

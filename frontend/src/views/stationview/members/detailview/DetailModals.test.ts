@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {shallowMount} from '@vue/test-utils'
+import {mount, shallowMount} from '@vue/test-utils'
 import {afterEach, beforeAll, describe, expect, it} from 'vitest'
 import Modal from '@/components/feedback/Modal.vue'
 import {followModifierKeys} from '@/util/modifierKeys'
@@ -62,6 +62,29 @@ describe('DetailModals', () => {
 
         expect(wrapper.emitted('markFormer')).toHaveLength(1)
         expect(formerDialogOpen(wrapper)).toBe(false)
+    })
+
+    it('marks the member former from a dialog opened before the details had loaded', async () => {
+        const wrapper = mount(DetailModals, {
+            props: {
+                memberDisplayName: 'Lena Weber',
+                canMarkFormer: false,
+                formerBlockReasons: [],
+                markingFormer: false,
+                deletingMember: false,
+                allMembers: [],
+                memberId: 4,
+                memberDisplayNameFn: () => '',
+            },
+            global: {stubs: {Modal: {template: '<div><slot/></div>'}, MemberCreationWizard: true}},
+        })
+
+        ;(wrapper.vm as unknown as Opener).openFormerModal()
+        await wrapper.setProps({canMarkFormer: true})
+        const confirm = wrapper.findAll('button').find(button => /markFormer|ehemalig markieren/.test(button.text()))
+        await confirm!.trigger('click')
+
+        expect(wrapper.emitted('markFormer')).toHaveLength(1)
     })
 
     it('still shows why a member cannot be marked former while shift is held', async () => {
