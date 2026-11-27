@@ -968,6 +968,7 @@ public class EmberModule extends AbstractModule {
 
         Multibinder<TaskSource> taskSources = Multibinder.newSetBinder(binder(), TaskSource.class);
         taskSources.addBinding().to(PageHitRecorder.class);
+        taskSources.addBinding().to(LendingPictureService.class);
         taskSources.addBinding().to(OutgoingPairRequestService.class);
         taskSources.addBinding().to(StationTrafficRecorder.class);
         taskSources.addBinding().to(UsageSnapshotTask.class);
