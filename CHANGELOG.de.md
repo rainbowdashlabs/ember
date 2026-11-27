@@ -21,6 +21,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Beschaffungen klappen Erledigtes ein und halten den Besitz fest.** Die Beschaffungsseite zeigt zuerst die offenen Beschaffungen. Erledigte stehen darunter in einem eingeklappten Bereich, die neuesten zuerst. In einem gemischten Inventar hält eine Beschaffung fest, ob sie ein Stück der Wache oder des Trägers bringt. Bei internen und externen Inventaren steht das durch ihre Art fest.
 - **Mitglieder- und Behälterprüfung getrennt schaltbar.** Inventarprüfungen haben auf der Modulseite zwei eigene Teile: die Ausrüstung eines Mitglieds prüfen und einen Behälter prüfen. Eine Wache kann einen behalten und den anderen abschalten. Die Selbstprüfung ist jetzt ein Teil der Mitgliederprüfung, weil eine geprüfte Selbstprüfung als Mitgliederprüfung festgehalten wird. Wer Inventarprüfungen oder die Mitgliederprüfung abschaltet, schaltet damit auch die Selbstprüfung ab.
 - **Eigenes Kalenderabo nach Kategorien.** Das eigene Kalenderabo kann unter Profil → Einstellungen Kategorien weglassen. Termine, zu denen das Mitglied oder jemand in seiner Obhut angemeldet ist, bleiben darin.
+- **Berechtigungsauswahl zeigt, was worin enthalten ist.** Ein aufgeklappter Bereich der Berechtigungsauswahl zeigt seine Berechtigungen als Baum, jede eingerückt unter der Berechtigung, die sie enthält. Ist eine Berechtigung in mehreren enthalten, erscheint sie einmal, mit einer Zeile zu den anderen.
 
 ### Änderungen
 

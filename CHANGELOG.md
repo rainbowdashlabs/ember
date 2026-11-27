@@ -21,6 +21,7 @@ People who already have an account on this instance can be invited into a statio
 - **Procurements fold fulfilled orders and record owners.** The procurement page lists open procurements first. Fulfilled ones sit below in a folded section, most recent first. In a mixed inventory, a procurement records whether it brings the station's piece or the association's. Internal and external inventories settle this by their type.
 - **Member and container checks switch apart.** Inventory checks have two parts of their own on the module page: checking a member's gear and checking a container. A station can keep one and switch the other off. Self-checks are now a part of member checks, since a reviewed self-check is recorded as a member check. Switching off inventory checks or member checks also switches off self-checks.
 - **Personal calendar subscription by category.** The personal calendar subscription can leave out chosen categories under Profile → Settings. Appointments the member or someone in their care is signed up for stay in it.
+- **Permission picker shows what includes what.** An opened area of the permission picker shows its permissions as a tree, each one indented below the permission that includes it. A permission included by several others appears once, with a line naming the others.
 
 ### Changes
 

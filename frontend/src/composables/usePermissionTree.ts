@@ -16,7 +16,67 @@ export interface TreeNode {
 export interface FlatItem {
   name: string
   node: TreeNode
-  chainDepth: number
+  /** How far the item is indented below its group: 0 for a direct child of the group. */
+  depth: number
+  /** The other permissions that include this one besides the one it is listed under. */
+  alsoIncludedIn: string[]
+}
+
+function countMaxDepth(node: TreeNode): number {
+  if (!node.children.length) return 0
+  return 1 + Math.max(...node.children.map(countMaxDepth))
+}
+
+/**
+ * Lists every descendant of a group once, as a tree. A permission with one parent sits under that
+ * parent. One with several sits under the parent nested deepest in the group, and the others are
+ * returned beside it, so the picker can show where else it is included. Siblings that carry the
+ * longest chain with them come first.
+ *
+ * @param group     the group whose descendants are listed
+ * @param parentsOf every permission's direct parents across the whole hierarchy, root excluded
+ */
+export function nestDescendants(group: TreeNode, parentsOf: Map<string, string[]>): FlatItem[] {
+  const nodes = new Map<string, TreeNode>()
+  function collect(node: TreeNode) {
+    for (const child of node.children) {
+      if (nodes.has(child.name)) continue
+      nodes.set(child.name, child)
+      collect(child)
+    }
+  }
+  collect(group)
+
+  const depthMemo = new Map<string, number>([[group.name, 0]])
+  function depthOf(name: string): number {
+    const known = depthMemo.get(name)
+    if (known !== undefined) return known
+    const inGroup = (parentsOf.get(name) ?? []).filter(p => p === group.name || nodes.has(p))
+    const depth = 1 + Math.max(0, ...inGroup.map(depthOf))
+    depthMemo.set(name, depth)
+    return depth
+  }
+
+  const childrenOf = new Map<string, TreeNode[]>()
+  const homeOf = new Map<string, string>()
+  for (const [name, node] of nodes) {
+    const inGroup = (parentsOf.get(name) ?? []).filter(p => p === group.name || nodes.has(p))
+    const home = inGroup.reduce((best, p) => (depthOf(p) > depthOf(best) ? p : best), inGroup[0] ?? group.name)
+    homeOf.set(name, home)
+    childrenOf.set(home, [...(childrenOf.get(home) ?? []), node])
+  }
+
+  const items: FlatItem[] = []
+  function emit(parent: string, depth: number) {
+    const children = [...(childrenOf.get(parent) ?? [])].sort((a, b) => countMaxDepth(b) - countMaxDepth(a))
+    for (const child of children) {
+      const alsoIncludedIn = (parentsOf.get(child.name) ?? []).filter(p => p !== homeOf.get(child.name))
+      items.push({name: child.name, node: child, depth, alsoIncludedIn})
+      emit(child.name, depth + 1)
+    }
+  }
+  emit(group.name, 0)
+  return items
 }
 
 /** Which set of permissions a picker is drawing, and the one that sits above all of them. */
@@ -93,6 +153,15 @@ export function usePermissionTree(
     }
 
     return filterHidden([{name: ROOT, children: []}, ...admin.children.map(buildNode)])
+  })
+
+  const parentsOf = computed(() => {
+    const map = new Map<string, string[]>()
+    for (const node of hierarchy.value) {
+      if (node.name === ROOT) continue
+      for (const child of node.children) map.set(child, [...(map.get(child) ?? []), node.name])
+    }
+    return map
   })
 
   const roleByName = computed(() => {
@@ -228,29 +297,13 @@ export function usePermissionTree(
     return expanded.value.has(name)
   }
 
-  function countMaxDepth(node: TreeNode): number {
-    if (!node.children.length) return 0
-    return 1 + Math.max(...node.children.map(countMaxDepth))
+  /** Every descendant of a group once, nested under the permission that includes it. */
+  function flattenDescendants(node: TreeNode): FlatItem[] {
+    return nestDescendants(node, parentsOf.value)
   }
 
-  /**
-   * Every descendant of a node, deepest chain first, so the picker lists the permissions that
-   * carry the most with them at the top.
-   */
-  function flattenDescendants(node: TreeNode): FlatItem[] {
-    const items: FlatItem[] = []
-    const seen = new Set<string>()
-    function walk(n: TreeNode) {
-      for (const child of n.children) {
-        if (!seen.has(child.name)) {
-          seen.add(child.name)
-          items.push({name: child.name, node: child, chainDepth: countMaxDepth(child)})
-        }
-        walk(child)
-      }
-    }
-    walk(node)
-    return items.sort((a, b) => b.chainDepth - a.chainDepth)
+  function alsoIncludedInLabel(item: FlatItem): string {
+    return item.alsoIncludedIn.map(name => t(`permissions.${name}.label`)).join(', ')
   }
 
   function countEnabledDescendants(node: TreeNode): number {
@@ -276,6 +329,7 @@ export function usePermissionTree(
     toggleExpand,
     isExpanded,
     flattenDescendants,
+    alsoIncludedInLabel,
     countEnabledDescendants,
     countTotalDescendants,
   }
