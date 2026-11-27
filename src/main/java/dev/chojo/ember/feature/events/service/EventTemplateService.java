@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
@@ -167,6 +168,10 @@ public class EventTemplateService {
     public void replaceFields(int templateId, List<AppointmentTemplateFieldDraft> fields) {
         if (fields.stream().anyMatch(field -> !FieldTypes.APPOINTMENT.contains(field.fieldType()))) {
             throw EventRefusal.TEMPLATE_FIELD_TYPE_NOT_OFFERED.raise();
+        }
+        if (EventQuestionSettings.claimMoreThanOneCalendarLocation(
+                fields.stream().map(AppointmentTemplateFieldDraft::config).toList())) {
+            throw EventRefusal.TEMPLATE_TWO_CALENDAR_LOCATIONS.raise();
         }
         var keeping = NamedAlready.in(
                 repository.findFields(templateId).stream()

@@ -241,6 +241,27 @@ class EventTemplateServiceTest extends RepositoryTestBase {
         assertEquals(before, service.findFields(templateId), "nothing was written");
     }
 
+    /** A template with two places that both claim to be the calendar's location is refused. */
+    @Test
+    @Order(12)
+    void twoCalendarLocationsAreRefused() {
+        var before = service.findFields(templateId);
+        var meetingPoint = EventQuestionSettings.parse("{\"calendarLocation\":true}");
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.replaceFields(
+                        templateId,
+                        List.of(
+                                new AppointmentTemplateFieldDraft(
+                                        "Ort", FieldType.LOCATION, meetingPoint, 0, false, false, null, null),
+                                new AppointmentTemplateFieldDraft(
+                                        "Treffpunkt", FieldType.LOCATION, meetingPoint, 1, false, false, null, null))));
+
+        assertEquals(EventRefusal.TEMPLATE_TWO_CALENDAR_LOCATIONS, refused.refusal());
+        assertEquals(before, service.findFields(templateId), "nothing was written");
+    }
+
     /**
      * A question can only be tied to a field of the sheet the template actually names.
      *

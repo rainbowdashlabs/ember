@@ -43,6 +43,9 @@ import java.util.List;
  *                         is still asked, but only they, their household and the organisers read it
  * @param description      a sentence describing what the registrant's question is after, shown under its
  *                         label when answering, never in tables or exports; null for none
+ * @param calendarLocation whether the answer of this place question is the location the calendar
+ *                         shows for the appointment, which is where people meet; only a place
+ *                         question of the organiser carries it
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record EventQuestionSettings(
@@ -58,14 +61,57 @@ public record EventQuestionSettings(
         @Nullable Integer min,
         @Nullable Integer max,
         boolean managersOnly,
-        @Nullable String description) {
+        @Nullable String description,
+        boolean calendarLocation) {
     /** Trims the description and keeps none where nothing but blanks was given. */
     public EventQuestionSettings {
         description = description == null || description.isBlank() ? null : description.strip();
     }
 
+    /** The settings of a question that is not the location the calendar shows. */
+    public EventQuestionSettings(
+            @Nullable List<String> options,
+            @Nullable Integer groupId,
+            @Nullable StationUserType userType,
+            @Nullable Integer tagId,
+            @Nullable String width,
+            boolean selfRegistration,
+            boolean perDate,
+            boolean required,
+            @Nullable String defaultValue,
+            @Nullable Integer min,
+            @Nullable Integer max,
+            boolean managersOnly,
+            @Nullable String description) {
+        this(
+                options,
+                groupId,
+                userType,
+                tagId,
+                width,
+                selfRegistration,
+                perDate,
+                required,
+                defaultValue,
+                min,
+                max,
+                managersOnly,
+                description,
+                false);
+    }
+
     private static final EventQuestionSettings EMPTY =
             new EventQuestionSettings(null, null, null, null, null, false, false, false, null, null, null, false, null);
+
+    /**
+     * Whether more than one of the questions of one form claims to be the calendar's location,
+     * which leaves the calendar no single place to name.
+     *
+     * @param settings the settings of every question of the form
+     */
+    public static boolean claimMoreThanOneCalendarLocation(List<EventQuestionSettings> settings) {
+        return settings.stream().filter(EventQuestionSettings::calendarLocation).count() > 1;
+    }
 
     /** The settings of a question that carries none. */
     public static EventQuestionSettings empty() {
@@ -110,9 +156,12 @@ public record EventQuestionSettings(
 
     /**
      * Only the part the organiser's question owns, which is what such a question stores: whatever
-     * belongs to a registrant's question is dropped rather than kept where nothing reads it.
+     * belongs to a registrant's question is dropped rather than kept where nothing reads it, and so
+     * is being the calendar's location on anything but a place question.
+     *
+     * @param type the kind of answer the question takes
      */
-    public EventQuestionSettings organisers() {
+    public EventQuestionSettings organisers(FieldType type) {
         return new EventQuestionSettings(
                 options,
                 groupId,
@@ -126,7 +175,8 @@ public record EventQuestionSettings(
                 null,
                 null,
                 false,
-                null);
+                null,
+                calendarLocation && type == FieldType.LOCATION);
     }
 
     /**
@@ -165,6 +215,7 @@ public record EventQuestionSettings(
                 min,
                 max,
                 managersOnly,
-                description);
+                description,
+                calendarLocation);
     }
 }

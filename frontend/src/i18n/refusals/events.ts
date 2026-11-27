@@ -268,4 +268,8 @@ export default {
     'E-239': 'Plätze können nur einer Partnerwache gegeben werden, mit der geteilt wird',
     'E-240': 'Diese Partnerwache entscheidet ihre Anmeldungen für diese Terminreihe selbst',
     'E-241': 'Diese Wache entscheidet die Anmeldungen für diese Terminreihe',
+    'E-242': 'Nur ein Ort kann der Ort im Kalender sein, es wurde nichts gespeichert',
+    'E-243': 'Nur ein Ort kann der Ort im Kalender sein, die Vorlage wurde nicht gespeichert',
+    'E-244': 'Nur ein Ort kann der Ort im Kalender sein, die Terminreihe wurde nicht gespeichert',
+    'E-245': 'Nur ein Ort kann der Ort im Kalender sein, es wurde kein Termin angelegt',
 }

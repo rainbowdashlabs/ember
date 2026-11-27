@@ -29,3 +29,43 @@ COMMENT ON COLUMN ember_schema.account_link_request.origin IS
     'How the request came about: IMPORT when a station import found the account by its address, INVITE when a member manager of a station invited that address, NAME_INVITE when a member manager of a station found the account by its name, ASSOCIATION_INVITE when an association administrator added that address to the association.';
 COMMENT ON CONSTRAINT account_link_request_owner ON ember_schema.account_link_request IS
     'A request belongs to exactly one asker: a station member (station and member set, origin IMPORT, INVITE or NAME_INVITE) or an association role (association, role and address set, origin ASSOCIATION_INVITE).';
+
+-- A place question can be the location the calendar shows for its appointment. Where a station kept the
+-- meeting point the templates offer, that place question becomes the calendar's location, unless another
+-- place of the same form already is. Only the first such question of a form is marked.
+
+UPDATE ember_schema.event_field f
+SET config = jsonb_set(COALESCE(f.config, '{}'::JSONB), '{calendarLocation}', 'true'::JSONB)
+WHERE f.id IN (SELECT DISTINCT ON (m.event_id) m.id
+               FROM ember_schema.event_field m
+               WHERE m.field_type = 'LOCATION'
+                 AND lower(trim(m.name)) IN ('treffpunkt', 'meeting point')
+               ORDER BY m.event_id, m.position, m.id)
+  AND NOT EXISTS (SELECT 1
+                  FROM ember_schema.event_field o
+                  WHERE o.event_id = f.event_id
+                    AND (o.config ->> 'calendarLocation')::BOOLEAN IS TRUE);
+
+UPDATE ember_schema.event_template_field f
+SET config = jsonb_set(COALESCE(f.config, '{}'::JSONB), '{calendarLocation}', 'true'::JSONB)
+WHERE f.id IN (SELECT DISTINCT ON (m.template_id) m.id
+               FROM ember_schema.event_template_field m
+               WHERE m.field_type = 'LOCATION'
+                 AND lower(trim(m.name)) IN ('treffpunkt', 'meeting point')
+               ORDER BY m.template_id, m.position, m.id)
+  AND NOT EXISTS (SELECT 1
+                  FROM ember_schema.event_template_field o
+                  WHERE o.template_id = f.template_id
+                    AND (o.config ->> 'calendarLocation')::BOOLEAN IS TRUE);
+
+UPDATE ember_schema.event_group_field f
+SET config = jsonb_set(COALESCE(f.config, '{}'::JSONB), '{calendarLocation}', 'true'::JSONB)
+WHERE f.id IN (SELECT DISTINCT ON (m.event_group_id) m.id
+               FROM ember_schema.event_group_field m
+               WHERE m.field_type = 'LOCATION'
+                 AND lower(trim(m.name)) IN ('treffpunkt', 'meeting point')
+               ORDER BY m.event_group_id, m.position, m.id)
+  AND NOT EXISTS (SELECT 1
+                  FROM ember_schema.event_group_field o
+                  WHERE o.event_group_id = f.event_group_id
+                    AND (o.config ->> 'calendarLocation')::BOOLEAN IS TRUE);

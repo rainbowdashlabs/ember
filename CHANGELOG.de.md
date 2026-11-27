@@ -2,14 +2,25 @@
 
 ## v26.27.0
 
-Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren Namen in eine Wache einladen. Kalenderabos zeigen einzelne Termine in der Zeitzone der Wache.
+Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren Namen in eine Wache einladen. Karten an einem Termin bieten Links für den Weg dorthin. Kalenderabos zeigen den Treffpunkt als Ort eines Termins. Einzelne Termine stehen in Kalenderabos in der Zeitzone der Wache.
 
 ### Neue Funktionen
 
 - **Personen der Instanz über ihren Namen einladen.** Beim Anlegen eines Mitglieds lassen sich Personen mit einem Konto auf dieser Instanz über ihren Namen finden und um die Verknüpfung ihres Kontos bitten, ohne dass jemand ihre Adresse kennen muss. Gefunden werden Personen, die eine Wache oder einen Verband teilen, alle anderen erst, wenn sie unter Konto → Verknüpfungen „Für alle Wachen auffindbar“ einschalten.
 
+### Verbesserungen
+
+- **Karten zu Terminorten auf Wunsch, mit Navigation.** Ein Ort mit Markierung auf der Seite eines Termins zeigt hinter seiner Adresse einen Kartenknopf, und die Karte öffnet sich erst auf Knopfdruck. Unter der Karte starten Links die Navigation dorthin. Android-Handys bieten dabei ihre eigene Auswahl an Navigations-Apps an. iPhones und Computer bekommen Apple Karten und Google Maps, der Link zu OpenStreetMap bleibt.
+- **Jedes Ortsfeld als Ort im Kalender.** Ein Ortsfeld eines Termins, einer Vorlage oder einer Terminreihe lässt sich als Ort im Kalender markieren. Nur ein Ortsfeld je Formular trägt die Markierung, und die eigene Markierung eines Termins geht der seiner Terminreihe vor.
+- **Treffpunkt in Termindokumenten.** Dokumente für Termine haben einen neuen Platzhalter für den Treffpunkt. Der Platzhalter für den Ort zeigt weiter, wo der Termin stattfindet, so bleiben Fotoerlaubnisse und ähnliche Formulare, wie sie sind.
+
+### Änderungen
+
+- **Kalenderabos zeigen den Treffpunkt.** Kalenderabos zeigen den markierten Ort als Ort eines Termins und sonst den ersten ausgefüllten Ort. Bestehende Ortsfelder mit dem Namen Treffpunkt werden beim Update markiert. Der Ort der Veranstaltung bleibt in der Beschreibung des Eintrags. Einladungen von der Nachrückliste zeigen denselben Ort.
+
 ### Fehlerbehebungen
 
+- **Ein zweiter Ort fehlte in Kalendereinträgen.** Hatte ein Termin einen Ort und einen Treffpunkt, zeigten Kalenderabos nur einen davon, der andere fehlte ganz. Der andere Ort steht jetzt in der Beschreibung des Eintrags, in jeder Einstellung des Abos.
 - **Einzelne Termine in Kalenderabos standen in UTC.** Im persönlichen und im öffentlichen Abo standen einmalige Termine in UTC, während Serien schon die Zeitzone der Wache trugen. Einmalige Termine stehen jetzt ebenfalls in der Zeitzone der Wache, mit Sommer- und Winterzeit, wie sie an ihrem Datum gilt.
 - **Stunden auf gedruckten Anwesenheitslisten im falschen Zahlenformat.** In manchen Fällen standen die Stunden auf gedruckten Anwesenheitslisten und Berichten bei einer englischsprachigen Wache mit Dezimalkomma oder bei einer deutschsprachigen mit Dezimalpunkt. Die Stunden folgen jetzt der Sprache der Wache, wie schon im Tabellenexport.
 

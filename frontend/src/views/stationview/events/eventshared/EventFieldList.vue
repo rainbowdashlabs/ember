@@ -17,14 +17,14 @@ import DragList from '@/components/input/DragList.vue'
 import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vue'
 import type {FieldWidthName, PreviewField} from '@/components/profilefields/fieldLayout'
 import {moveWithin} from '@/util/reorder'
+import {FieldType} from '@/api/generated/schema'
 import type {
   AttendanceTemplateField,
-  FieldType,
   EventFieldEntry,
   MemberGroup,
   UserTag,
 } from '@/api/generated/schema'
-import {blankQuestion, emptySettings, type QuickField} from './eventQuestions'
+import {blankQuestion, emptySettings, withOneCalendarLocation, type QuickField} from './eventQuestions'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
@@ -53,13 +53,17 @@ const {t} = useI18n()
 const existingNames = computed(() => new Set(fields.value.map(f => (f.name ?? '').toLowerCase())))
 const sheetNames = computed(() => new Set((props.attendanceFields ?? []).map(f => f.name.trim().toLowerCase())))
 
+/** Adds a quick field; a meeting point only becomes the calendar's location where no other field is. */
 function addQuickField(qf: QuickField) {
+  const calendarLocation = Boolean(qf.calendarLocation)
+      && !fields.value.some(field => field.fieldType === FieldType.LOCATION && field.config?.calendarLocation)
   fields.value = [...fields.value, {
     ...blankQuestion(),
     name: qf.name,
     fieldType: qf.fieldType,
     overview: qf.overview,
     isPublic: qf.isPublic,
+    config: {...emptySettings(), calendarLocation},
   }]
 }
 
@@ -132,7 +136,7 @@ function updateField(index: number, field: EventFieldEntry) {
   if (replaced) keys.set(toRaw(field), keyOf(replaced))
   const updated = [...fields.value]
   updated[index] = field
-  fields.value = updated
+  fields.value = withOneCalendarLocation(updated, index, replaced)
 }
 
 /**

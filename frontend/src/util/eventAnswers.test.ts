@@ -8,7 +8,7 @@ import {describe, expect, it} from 'vitest'
 import {FieldType, RegistrationStatus, type EventRegistrationField, type RegistrationResponse} from '@/api/generated/schema'
 import {answerTotals, holdsOrAwaitsPlace, isStandingSignUp, localAnswers, maySignUp, membersToRegister, rowsOnDate, saysNotComing} from './eventAnswers'
 
-const SETTINGS = {required: false, managersOnly: false, selfRegistration: false, perDate: false}
+const SETTINGS = {required: false, managersOnly: false, selfRegistration: false, perDate: false, calendarLocation: false}
 
 const MEALS: EventRegistrationField = {
   id: 1,

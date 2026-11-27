@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventGroupFieldEntry;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.SelfRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
@@ -137,6 +138,10 @@ public class EventFieldService {
                 throw EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED.raise();
             }
         }
+        if (EventQuestionSettings.claimMoreThanOneCalendarLocation(
+                drafts.stream().map(EventFieldDraft::config).toList())) {
+            throw EventRefusal.EVENT_GROUP_TWO_CALENDAR_LOCATIONS.raise();
+        }
         var stationSheetFieldIds = eventGroups
                 .findById(eventGroupId)
                 .map(eventGroup -> attendanceRepository.findFieldIdsOfStation(eventGroup.stationId()))
@@ -260,6 +265,10 @@ public class EventFieldService {
     public void replaceFields(int eventId, List<EventFieldDraft> fields) {
         if (fields.stream().anyMatch(field -> !FieldTypes.APPOINTMENT.contains(field.fieldType()))) {
             throw EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED.raise();
+        }
+        if (EventQuestionSettings.claimMoreThanOneCalendarLocation(
+                fields.stream().map(EventFieldDraft::config).toList())) {
+            throw EventRefusal.APPOINTMENT_TWO_CALENDAR_LOCATIONS.raise();
         }
         var keeping = NamedAlready.in(
                 repository.findByEvent(eventId).stream()

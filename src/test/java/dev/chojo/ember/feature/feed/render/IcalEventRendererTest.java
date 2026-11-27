@@ -272,6 +272,76 @@ class IcalEventRendererTest {
         assertTrue(description.contains("/station/events/10"));
     }
 
+    /**
+     * With a venue and a meeting point, the calendar shows the meeting point and lists the venue in
+     * the description under its own name, so neither place is lost.
+     */
+    @Test
+    void namesTheMeetingPointAndListsTheVenue() {
+        var event = simpleEvent(11);
+        var venue = new AppointmentField(
+                1, 11, "Ort", FieldType.LOCATION, EventQuestionSettings.empty(), "Gerätehaus", 0, true, null, true);
+        var meeting = new AppointmentField(
+                2,
+                11,
+                "Treffpunkt",
+                FieldType.LOCATION,
+                EventQuestionSettings.parse("{\"calendarLocation\":true}"),
+                "Bahnhof",
+                1,
+                true,
+                null,
+                true);
+        when(eventFieldService.findByEvent(eq(11), any())).thenReturn(List.of(venue, meeting));
+
+        var ve = renderer.render(event, ctx(Map.of(), Map.of())).getFirst();
+
+        assertEquals(
+                "Bahnhof",
+                ve.getProperty("LOCATION")
+                        .map(Location.class::cast)
+                        .orElseThrow()
+                        .getValue());
+        String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
+        assertTrue(description.contains("Ort: Gerätehaus"), "the venue is kept in the description");
+        assertFalse(description.contains("Treffpunkt: Bahnhof"), "the meeting point has the property");
+    }
+
+    /** A compact entry shows the meeting point and keeps the venue in its short description. */
+    @Test
+    void aCompactEntryKeepsTheVenueToo() {
+        var event = simpleEvent(12);
+        var venue = new AppointmentField(
+                1, 12, "Ort", FieldType.LOCATION, EventQuestionSettings.empty(), "Gerätehaus", 0, true, null, true);
+        var meeting = new AppointmentField(
+                2,
+                12,
+                "Treffpunkt",
+                FieldType.LOCATION,
+                EventQuestionSettings.parse("{\"calendarLocation\":true}"),
+                "Bahnhof",
+                1,
+                true,
+                null,
+                true);
+        when(eventFieldService.findByEvent(eq(12), any())).thenReturn(List.of(venue, meeting));
+
+        var ctx = new IcalEventRenderer.Context(
+                station, "en", "https://ember.example.com", false, Map.of(), Map.of(), Map.of(), calendar(List.of()));
+
+        var ve = renderer.render(event, ctx).getFirst();
+
+        assertEquals(
+                "Bahnhof",
+                ve.getProperty("LOCATION")
+                        .map(Location.class::cast)
+                        .orElseThrow()
+                        .getValue());
+        String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
+        assertTrue(description.contains("Ort: Gerätehaus"), "the venue is kept in the description");
+        assertTrue(description.contains("/station/events/12"));
+    }
+
     @Test
     void rendersCancelledEventWithPrefixAndStatus() {
         var event = cancelledEvent(11, "Schlechtes Wetter");

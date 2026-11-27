@@ -9,13 +9,18 @@ import type {Map as LeafletMap, Marker} from 'leaflet'
 import {useI18n} from 'vue-i18n'
 import {useMapsConfig} from '@/composables/useMapsConfig'
 import {addTileLayer, loadLeaflet} from '@/util/leaflet'
+import {navigationLinks, navigationPlatform, type NavigationPlatform} from '@/util/navigationLinks'
 import 'leaflet/dist/leaflet.css'
 
 /**
  * A small map showing where one place lies, to look at only: no dragging the pin, no clicking it
- * somewhere else. A link below opens the same spot on OpenStreetMap for directions; an instance without map tiles
- * shows only the link rather than an empty box. On a touch device
- * the map does not move under one finger, so swiping over it scrolls the page as everywhere else.
+ * somewhere else. Links below start navigation there, in the way the reader's device offers it, and
+ * open the same spot on OpenStreetMap; an instance without map tiles shows only the links rather than an
+ * empty box. On a touch device the map does not move under one finger, so swiping over it scrolls the
+ * page as everywhere else.
+ *
+ * <p>The device is asked once the page runs in the browser, so the server and the first render agree on
+ * the desktop links and a phone switches to its own right after.
  */
 const props = withDefaults(defineProps<{
   latitude: number
@@ -30,6 +35,7 @@ const {load} = useMapsConfig()
 const mapEl = ref<HTMLDivElement | null>(null)
 /** Whether the instance has map tiles; unknown until its map settings are read, when nothing is drawn yet. */
 const hasTiles = ref<boolean | null>(null)
+const platform = ref<NavigationPlatform>('desktop')
 
 const ZOOM = 16
 
@@ -38,6 +44,11 @@ let marker: Marker | null = null
 
 const osmLink = computed(() =>
     `https://www.openstreetmap.org/?mlat=${props.latitude}&mlon=${props.longitude}#map=${ZOOM}/${props.latitude}/${props.longitude}`)
+
+const navigation = computed(() => navigationLinks(
+    {latitude: props.latitude, longitude: props.longitude, label: props.label}, platform.value))
+
+const NAVIGATION_LABEL = {navigate: 'places.navigate', apple: 'places.openInAppleMaps', google: 'places.openInGoogleMaps'} as const
 
 async function init() {
   if (typeof window === 'undefined') return
@@ -63,6 +74,7 @@ watch(() => [props.latitude, props.longitude] as const, ([lat, lng]) => {
 })
 
 onMounted(async () => {
+  platform.value = navigationPlatform()
   await nextTick()
   await init()
 })
@@ -84,6 +96,16 @@ onBeforeUnmount(() => {
         role="region"
         class="w-full rounded-(--radius-theme) overflow-hidden border border-bg-light-accent dark:border-bg-dark-accent z-0"
     />
-    <a :href="osmLink" class="text-xs" rel="noopener noreferrer" target="_blank">{{ t('places.openInOsm') }}</a>
+    <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs" data-testid="place-map-links">
+      <a
+          v-for="link in navigation"
+          :key="link.kind"
+          :href="link.href"
+          :data-testid="`place-map-${link.kind}`"
+          rel="noopener noreferrer"
+          :target="link.kind === 'navigate' ? undefined : '_blank'"
+      >{{ t(NAVIGATION_LABEL[link.kind]) }}</a>
+      <a :href="osmLink" rel="noopener noreferrer" target="_blank">{{ t('places.openInOsm') }}</a>
+    </div>
   </div>
 </template>

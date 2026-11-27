@@ -576,7 +576,12 @@ public class AppointmentDocumentService {
     private GenerationContext.EventFacts facts(StationEvent event, LocalDate date) {
         var span = event.occurrenceOn(date, occurrenceCalendar.zoneOf(event.stationId()))
                 .orElseGet(() -> new StationEvent.Span(event.startTime(), event.endTime()));
-        var location = AppointmentField.firstLocation(fields.findShownOn(event.id(), date));
-        return new GenerationContext.EventFacts(event.name(), span.start(), span.end(), location);
+        var shown = fields.findShownOn(event.id(), date);
+        return new GenerationContext.EventFacts(
+                event.name(),
+                span.start(),
+                span.end(),
+                AppointmentField.venue(shown),
+                AppointmentField.calendarLocation(shown));
     }
 }

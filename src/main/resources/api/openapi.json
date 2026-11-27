@@ -66155,9 +66155,12 @@
           },
           "description" : {
             "type" : "string"
+          },
+          "calendarLocation" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "selfRegistration", "perDate", "required", "managersOnly" ]
+        "required" : [ "selfRegistration", "perDate", "required", "managersOnly", "calendarLocation" ]
       },
       "EventRegisterRequest" : {
         "type" : "object",
