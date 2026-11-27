@@ -18,9 +18,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StationModuleTest {
 
-    /** Five parts sit right under the inventory, and the two kinds of checks under its checks. */
+    /**
+     * Four parts sit right under the inventory, the two kinds of checks under its checks, and
+     * self-checks under member checks.
+     */
     @Test
-    void inventoryHasFiveParts() {
+    void inventoryHasFourParts() {
         Set<StationModule> parts = EnumSet.noneOf(StationModule.class);
         for (StationModule module : StationModule.values()) {
             module.parent().filter(StationModule.INVENTORY::equals).ifPresent(parent -> parts.add(module));
@@ -30,12 +33,12 @@ class StationModuleTest {
                         StationModule.INVENTORY_MOVEMENTS,
                         StationModule.INVENTORY_LENDING,
                         StationModule.INVENTORY_PROCUREMENT,
-                        StationModule.INVENTORY_SELF_CHECKS,
                         StationModule.INVENTORY_CHECKS),
                 parts);
         assertEquals(Optional.empty(), StationModule.INVENTORY.parent());
         assertEquals(Optional.of(StationModule.INVENTORY_CHECKS), StationModule.INVENTORY_MEMBER_CHECKS.parent());
         assertEquals(Optional.of(StationModule.INVENTORY_CHECKS), StationModule.INVENTORY_CONTAINER_CHECKS.parent());
+        assertEquals(Optional.of(StationModule.INVENTORY_MEMBER_CHECKS), StationModule.INVENTORY_SELF_CHECKS.parent());
     }
 
     /** Expanding a set adds the parts of every module in it and leaves a part alone. */
@@ -51,11 +54,15 @@ class StationModuleTest {
                 Set.of(
                         StationModule.INVENTORY_CHECKS,
                         StationModule.INVENTORY_MEMBER_CHECKS,
+                        StationModule.INVENTORY_SELF_CHECKS,
                         StationModule.INVENTORY_CONTAINER_CHECKS),
                 StationModule.withChildren(Set.of(StationModule.INVENTORY_CHECKS)));
         assertEquals(
-                Set.of(StationModule.INVENTORY_MEMBER_CHECKS),
+                Set.of(StationModule.INVENTORY_MEMBER_CHECKS, StationModule.INVENTORY_SELF_CHECKS),
                 StationModule.withChildren(Set.of(StationModule.INVENTORY_MEMBER_CHECKS)));
+        assertEquals(
+                Set.of(StationModule.INVENTORY_CONTAINER_CHECKS),
+                StationModule.withChildren(Set.of(StationModule.INVENTORY_CONTAINER_CHECKS)));
         assertTrue(StationModule.withChildren(List.of()).isEmpty());
     }
 
@@ -80,5 +87,9 @@ class StationModuleTest {
         assertTrue(StationModule.INVENTORY_MEMBER_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_CHECKS)));
         assertFalse(StationModule.INVENTORY_MEMBER_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_CONTAINER_CHECKS)));
         assertFalse(StationModule.INVENTORY_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_MEMBER_CHECKS)));
+        assertTrue(StationModule.INVENTORY_SELF_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_MEMBER_CHECKS)));
+        assertTrue(StationModule.INVENTORY_SELF_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_CHECKS)));
+        assertFalse(StationModule.INVENTORY_SELF_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_CONTAINER_CHECKS)));
+        assertFalse(StationModule.INVENTORY_MEMBER_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_SELF_CHECKS)));
     }
 }

@@ -56,10 +56,6 @@ public enum StationModule implements RouteRole {
      */
     INVENTORY_PROCUREMENT(INVENTORY),
     /**
-     * Members checking the items they hold themselves.
-     */
-    INVENTORY_SELF_CHECKS(INVENTORY),
-    /**
      * Checks the station runs on its items, by member and by container.
      */
     INVENTORY_CHECKS(INVENTORY),
@@ -67,6 +63,11 @@ public enum StationModule implements RouteRole {
      * Checking the items a member holds, done by the station.
      */
     INVENTORY_MEMBER_CHECKS(INVENTORY_CHECKS),
+    /**
+     * Members checking the items they hold themselves. A reviewed self-check is recorded as a member
+     * check, so it is a part of those.
+     */
+    INVENTORY_SELF_CHECKS(INVENTORY_MEMBER_CHECKS),
     /**
      * Checking the items a storage container holds.
      */

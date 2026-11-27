@@ -25,7 +25,7 @@ defineProps<{
 const {t} = useI18n()
 
 /** The indent of a row by how many modules it sits under. Spelled out so the styles are generated. */
-const INDENT = ['', 'ml-8', 'ml-16']
+const INDENT = ['', 'ml-8', 'ml-16', 'ml-24']
 </script>
 
 <template>
