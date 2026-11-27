@@ -11,6 +11,7 @@ import DetailLabel from '@/components/typography/DetailLabel.vue'
 import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import PerDateFieldValue from './PerDateFieldValue.vue'
 import PlaceMap from '@/components/map/PlaceMap.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import {FieldType, type AppointmentField, type StationPlace} from '@/api/generated/schema'
 import SelfRegistrationToggle from '../eventshared/SelfRegistrationToggle.vue'
 import type {MemberLike} from '@/components/input/select/memberOption'
@@ -61,6 +62,16 @@ watch(() => [props.eventId, props.effectiveDate, placeKeys.value] as const, asyn
   if (request === pinRequest) pins.value = loaded
 }, {immediate: true})
 
+/** The place fields whose map the reader has opened; every map starts closed. */
+const openMaps = ref(new Set<number>())
+
+/** Opens or closes the map of one place field, leaving the others as they are. */
+function toggleMap(fieldId: number) {
+  const next = new Set(openMaps.value)
+  if (!next.delete(fieldId)) next.add(fieldId)
+  openMaps.value = next
+}
+
 /** The pin of a place field as a list of at most one, empty where its text has none or it is no place field. */
 function pinsOf(field: AppointmentField): StationPlace[] {
   if (field.fieldType !== FieldType.LOCATION) return []
@@ -77,17 +88,31 @@ function pinsOf(field: AppointmentField): StationPlace[] {
     </div>
     <div v-for="field in fields" :key="field.id" :class="spanForWidth(configOf(field.config).width)">
       <DetailLabel>{{ field.name }}</DetailLabel>
-      <p class="text-sm">
-        <QuestionValueDisplay :field-type="field.fieldType" :member-names="memberNames" :value="field.value"/>
-      </p>
-      <PlaceMap
-          v-for="pin in pinsOf(field)"
-          :key="pin.text"
-          :latitude="pin.latitude"
-          :longitude="pin.longitude"
-          :label="field.value"
-          class="mt-2"
-      />
+      <div class="flex items-start gap-1">
+        <p class="text-sm">
+          <QuestionValueDisplay :field-type="field.fieldType" :member-names="memberNames" :value="field.value"/>
+        </p>
+        <IconButton
+            v-if="pinsOf(field).length > 0"
+            :icon="['fas', 'map-location-dot']"
+            :label="openMaps.has(field.id) ? t('places.hideMap') : t('places.showMap')"
+            :aria-expanded="openMaps.has(field.id)"
+            :aria-controls="`event-meta-place-map-${field.id}`"
+            class="shrink-0 -my-2 text-primary"
+            data-testid="event-meta-place-toggle"
+            @click="toggleMap(field.id)"
+        />
+      </div>
+      <div v-if="openMaps.has(field.id)" :id="`event-meta-place-map-${field.id}`">
+        <PlaceMap
+            v-for="pin in pinsOf(field)"
+            :key="pin.text"
+            :latitude="pin.latitude"
+            :longitude="pin.longitude"
+            :label="field.value"
+            class="mt-2"
+        />
+      </div>
       <SelfRegistrationToggle
           :field="field"
           :current-member-id="currentMemberId"

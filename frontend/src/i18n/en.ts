@@ -423,6 +423,11 @@ export default {
         hint: 'The pin applies to every appointment naming this place. The text in the field stays as it is.',
         mapOf: 'Map: {place}',
         openInOsm: 'Open in OpenStreetMap',
+        navigate: 'Navigate',
+        openInAppleMaps: 'Apple Maps',
+        openInGoogleMaps: 'Google Maps',
+        showMap: 'Show map',
+        hideMap: 'Hide map',
     },
     files: {
         noPreview: 'There is no preview for this kind of file. Download it to look at it.',

@@ -6305,6 +6305,11 @@ export default {
         hint: 'Die Markierung gilt für jeden Termin, der diesen Ort nennt. Der Text im Feld bleibt, wie er ist.',
         mapOf: 'Karte: {place}',
         openInOsm: 'In OpenStreetMap öffnen',
+        navigate: 'Navigation starten',
+        openInAppleMaps: 'Apple Karten',
+        openInGoogleMaps: 'Google Maps',
+        showMap: 'Karte zeigen',
+        hideMap: 'Karte ausblenden',
         remove: 'Markierung entfernen',
     },
     lendingDistance: {
