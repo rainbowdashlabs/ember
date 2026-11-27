@@ -47,8 +47,42 @@ describe('module parts', () => {
         const inventory = order.indexOf(StationModule.INVENTORY)
         expect(order.slice(inventory + 1, inventory + 1 + parts.length)).toEqual(parts)
         for (const option of STATION_MODULE_OPTIONS) {
+            if (checkParts.includes(option.value)) continue
             expect(option.parent).toBe(parts.includes(option.value) ? StationModule.INVENTORY : undefined)
         }
+    })
+
+    const checkParts: StationModule[] = [StationModule.INVENTORY_MEMBER_CHECKS, StationModule.INVENTORY_CONTAINER_CHECKS]
+
+    it('lists the parts of the checks right under them, one level further in', () => {
+        const order = STATION_MODULE_OPTIONS.map(option => option.value)
+        const checks = order.indexOf(StationModule.INVENTORY_CHECKS)
+        expect(order.slice(checks + 1, checks + 1 + checkParts.length)).toEqual(checkParts)
+        for (const option of STATION_MODULE_OPTIONS.filter(each => checkParts.includes(each.value))) {
+            expect(option.parent).toBe(StationModule.INVENTORY_CHECKS)
+            expect(option.depth).toBe(2)
+        }
+        expect(STATION_MODULE_OPTIONS.find(each => each.value === StationModule.INVENTORY_CHECKS)?.depth).toBe(1)
+        expect(STATION_MODULE_OPTIONS.find(each => each.value === StationModule.INVENTORY)?.depth).toBe(0)
+    })
+
+    it('runs a part of a part only while every module above it is on', () => {
+        const off = new Set<StationModule>([StationModule.INVENTORY])
+        const isOn = (module: StationModule) => !off.has(module)
+
+        expect(moduleRuns(StationModule.INVENTORY_MEMBER_CHECKS, isOn)).toBe(false)
+        expect(parentAllows(StationModule.INVENTORY_MEMBER_CHECKS, isOn)).toBe(false)
+
+        off.clear()
+        off.add(StationModule.INVENTORY_CHECKS)
+        expect(moduleRuns(StationModule.INVENTORY_CONTAINER_CHECKS, isOn)).toBe(false)
+        expect(parentAllows(StationModule.INVENTORY_CONTAINER_CHECKS, isOn)).toBe(false)
+
+        off.clear()
+        off.add(StationModule.INVENTORY_MEMBER_CHECKS)
+        expect(moduleRuns(StationModule.INVENTORY_MEMBER_CHECKS, isOn)).toBe(false)
+        expect(moduleRuns(StationModule.INVENTORY_CONTAINER_CHECKS, isOn)).toBe(true)
+        expect(moduleRuns(StationModule.INVENTORY_CHECKS, isOn)).toBe(true)
     })
 
     it('runs a part only while it and its module are on', () => {

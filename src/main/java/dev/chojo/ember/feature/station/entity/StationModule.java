@@ -60,9 +60,17 @@ public enum StationModule implements RouteRole {
      */
     INVENTORY_SELF_CHECKS(INVENTORY),
     /**
+     * Checks the station runs on its items, by member and by container.
+     */
+    INVENTORY_CHECKS(INVENTORY),
+    /**
      * Checking the items a member holds, done by the station.
      */
-    INVENTORY_CHECKS(INVENTORY);
+    INVENTORY_MEMBER_CHECKS(INVENTORY_CHECKS),
+    /**
+     * Checking the items a storage container holds.
+     */
+    INVENTORY_CONTAINER_CHECKS(INVENTORY_CHECKS);
 
     private final @Nullable StationModule parent;
 

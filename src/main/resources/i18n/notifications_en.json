@@ -146,7 +146,9 @@
     "INVENTORY_LENDING": "Lending",
     "INVENTORY_PROCUREMENT": "Procurement",
     "INVENTORY_SELF_CHECKS": "Equipment self-checks",
-    "INVENTORY_CHECKS": "Inventory checks"
+    "INVENTORY_CHECKS": "Inventory checks",
+    "INVENTORY_MEMBER_CHECKS": "Member checks",
+    "INVENTORY_CONTAINER_CHECKS": "Container checks"
   },
   "feedTitle": {
     "NEW_NEWS": "News: {title}",
