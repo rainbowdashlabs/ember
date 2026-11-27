@@ -250,7 +250,7 @@ public enum DocumentRefusal implements Refusal {
     DOCUMENT_TEMPLATE_SIGNATURE_OUTSIDE_BODY(
             70, HttpStatus.BAD_REQUEST, "A signature line can only stand in the text of a letter"),
 
-    /** A signature block that does not say who signs on it. */
+    /** A signature block that does not indicate who signs on it. */
     DOCUMENT_TEMPLATE_SIGNER_MISSING(71, HttpStatus.BAD_REQUEST, "A signature line needs the person who signs on it"),
 
     /** Two signature blocks of a letter that ask the same person to sign in the document of one member. */
@@ -553,7 +553,7 @@ public enum DocumentRefusal implements Refusal {
     DOCUMENT_SCAN_ALREADY_CONFIRMED(
             172, HttpStatus.CONFLICT, "The signed copy of this document was already confirmed, so no scan was taken"),
 
-    /** A scan turned down without saying why. */
+    /** A scan turned down without indicating why. */
     DOCUMENT_SCAN_REASON_MISSING(173, HttpStatus.BAD_REQUEST, "Say briefly why the scan is turned down"),
 
     /** A reason for turning a scan down that is longer than the participant is shown. */
@@ -581,7 +581,7 @@ public enum DocumentRefusal implements Refusal {
     /** A signature picture on which no signature stands out from the background. */
     SIGNATURE_IMAGE_EMPTY(180, HttpStatus.BAD_REQUEST, "No signature can be made out on the picture"),
 
-    /** A signature picture sent without saying how it was made. */
+    /** A signature picture sent without indicating how it was made. */
     SIGNATURE_IMAGE_SOURCE_UNKNOWN(
             181, HttpStatus.BAD_REQUEST, "Say whether the signature was drawn, typed or uploaded"),
 
@@ -795,7 +795,7 @@ public enum DocumentRefusal implements Refusal {
     /** A person picked to sign in front of a witness whom the field does not name. */
     SIGNING_WITNESS_SIGNER_NOT_NAMED(329, HttpStatus.BAD_REQUEST, "This field does not ask this person to sign"),
 
-    /** A document generated for a member the template is not meant for, as its audience says. */
+    /** A document generated for a member the template is not meant for, as its audience defines. */
     DOCUMENT_TEMPLATE_NOT_FOR_MEMBER(330, HttpStatus.FORBIDDEN, "This template is not meant for this member");
 
     private final Definition definition;

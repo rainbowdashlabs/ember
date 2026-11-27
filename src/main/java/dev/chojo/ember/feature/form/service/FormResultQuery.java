@@ -65,7 +65,7 @@ public record FormResultQuery(
         /**
          * Whether a respondent passes every condition of this filter.
          *
-         * <p>A respondent of unknown age passes no age condition, because nothing says they are old
+         * <p>A respondent of unknown age passes no age condition, because nothing shows they are old
          * enough; the same holds for a profile field they have not answered.
          */
         public boolean matches(Respondent respondent) {

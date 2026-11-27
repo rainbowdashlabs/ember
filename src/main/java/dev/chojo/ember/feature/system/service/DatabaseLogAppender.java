@@ -64,7 +64,7 @@ public class DatabaseLogAppender extends AppenderBase<ILoggingEvent> {
     private static final AtomicBoolean DRAINING = new AtomicBoolean();
 
     /**
-     * Says whether something is emptying the queue now.
+     * Returns whether something is emptying the queue now.
      */
     public static void draining(boolean draining) {
         DRAINING.set(draining);

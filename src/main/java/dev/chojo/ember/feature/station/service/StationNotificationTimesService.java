@@ -20,7 +20,7 @@ import java.util.List;
  * When a station's gathered notifications go out.
  *
  * <p>Empty times mean the station has asked for nothing and the operator's own number decides, which
- * is what every station did before it could choose. The floor is sent along so the screen can say
+ * is what every station did before it could choose. The floor is sent along so the screen can show
  * plainly where a station is asking for more often than the installation allows, rather than letting
  * it believe it got what it asked for.
  */

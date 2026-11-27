@@ -44,7 +44,7 @@ final class TimestampTrust {
     private TimestampTrust() {}
 
     /**
-     * Refuses a timestamp that does not chain to the pinned root, and says when it stops proving anything on
+     * Refuses a timestamp that does not chain to the pinned root, and reports when it stops proving anything on
      * its own: the earliest end of validity along the chain it was checked over, from its signing certificate
      * to the pinned root. Certificates the token carries beside that chain do not count. Before then a later
      * timestamp has to cover it.

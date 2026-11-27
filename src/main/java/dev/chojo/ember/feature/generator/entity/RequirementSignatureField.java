@@ -11,7 +11,7 @@ import org.jspecify.annotations.Nullable;
  * One signature field of a participant's copy of a document an appointment asks for.
  *
  * @param id         the field, which the signing screen opens
- * @param name       the name of the field in the document, which says who signs it: participant,
+ * @param name       the name of the field in the document, which shows who signs it: participant,
  *                   guardian1 and further guardians by place, anyGuardian or issuer
  * @param signerName the official name of whoever is asked to sign it, or null where nobody in particular is
  * @param state      where the field stands

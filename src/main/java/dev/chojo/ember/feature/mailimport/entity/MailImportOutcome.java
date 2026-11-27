@@ -9,7 +9,7 @@ package dev.chojo.ember.feature.mailimport.entity;
  * What happened to one attachment.
  *
  * <p>The grain is the attachment and not the message, because a mail carrying three scans can have
- * one imported, the next refused for its type and the third be a duplicate. A log that could say only
+ * one imported, the next refused for its type and the third be a duplicate. A log that could show only
  * one thing per message would be unable to report that, and reporting it is the whole point of keeping
  * a log: a rule that quietly imports nothing is the likeliest complaint there is.
  */
@@ -33,7 +33,7 @@ public enum MailImportOutcome {
     /** The station has no room left, so nothing was written rather than half of it. */
     QUOTA_EXCEEDED,
     /**
-     * The receiving server said the sending domain failed its own published checks. A guard against
+     * The receiving server reported the sending domain failed its own published checks. A guard against
      * carelessness rather than a security boundary, since a server that writes no verdict at all is the
      * ordinary case and cannot be refused for it.
      */

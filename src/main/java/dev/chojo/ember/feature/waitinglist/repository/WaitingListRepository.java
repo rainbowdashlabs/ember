@@ -78,8 +78,8 @@ public class WaitingListRepository {
      * <p>A number kept beside the entry only ever went up, and only when somebody pressed the button
      * on the sheet: a mark taken back left it standing, a sheet thrown away left it standing, and
      * every other way of being written down as present, from an appointment or from a field that
-     * attends by itself, never reached it at all. Reading it off the sheets makes the count say what
-     * the sheets say.
+     * attends by itself, never reached it at all. Reading it off the sheets makes the count match what
+     * the sheets show.
      *
      * <p>The trial period is a stretch of time rather than a status: it begins when the entry moves
      * to testing and ends when whoever it is about joins or withdraws. A date outside that stretch
@@ -549,7 +549,7 @@ public class WaitingListRepository {
      * until the next invitation raises it.
      *
      * <p>A new invitation counts as mailed now, which is where its weekly reminders count from, and
-     * forgets that the station was told its dates had run out. Clearing forgets both.
+     * forgets that the station was notified its dates had run out. Clearing forgets both.
      */
     public void updateInvitation(int entryId, @Nullable WaitingListInvitation invitation) {
         Transactions.run(() -> {
@@ -633,7 +633,7 @@ public class WaitingListRepository {
     }
 
     /**
-     * The open invitations of a list the station has not yet been told about: invited, unanswered, with
+     * The open invitations of a list the station has not yet been notified about: invited, unanswered, with
      * at least one offered date and not marked as run out. Whether every date has begun is the caller's
      * to decide.
      */
@@ -652,7 +652,7 @@ public class WaitingListRepository {
     }
 
     /**
-     * Records that the station was told the invitation has no date left, so it is told once. Written
+     * Records that the station was notified the invitation has no date left, so it is notified once. Written
      * only while the entry still holds the same open invitation and nobody marked it yet.
      *
      * @param round the invitation round whose dates ran out
@@ -675,7 +675,7 @@ public class WaitingListRepository {
     /**
      * Records what came back to the invitation the entry currently holds.
      *
-     * <p>Written together with its moment, because an answer nobody can date says nothing about how
+     * <p>Written together with its moment, because an answer nobody can date shows nothing about how
      * long an invitation has been sitting.
      *
      * <p>Written only while the entry is still invited in the round the answer was given in. A station

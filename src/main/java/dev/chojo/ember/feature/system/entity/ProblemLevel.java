@@ -13,6 +13,6 @@ public enum ProblemLevel {
     WARN,
     /** An error. */
     ERROR,
-    /** A request the application refused, which says more about the interface than about a fault. */
+    /** A request the application refused, which reveals more about the interface than about a fault. */
     REFUSAL
 }

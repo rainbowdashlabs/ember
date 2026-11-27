@@ -77,7 +77,7 @@ public class RemoteLendingRoutes implements Routes {
      * What a station offers the asking partner.
      *
      * @param entries        what is free, counted per inventory and kind of thing
-     * @param offersAnything whether the station offers the partner anything at all, which tells
+     * @param offersAnything whether the station offers the partner anything at all, which distinguishes
      *                       "nothing is shared with you" from "nothing is free just now"
      */
     public record RemoteAvailability(List<RemoteAvailableEntry> entries, boolean offersAnything) {}

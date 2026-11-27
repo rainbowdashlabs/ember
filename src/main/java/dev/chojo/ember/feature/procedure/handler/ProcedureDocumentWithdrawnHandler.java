@@ -20,7 +20,7 @@ import jakarta.inject.Singleton;
 import java.util.Map;
 
 /**
- * Tells whoever resolved a procedure that a signature one of its document steps rested on was withdrawn,
+ * Notifies whoever resolved a procedure that a signature one of its document steps rested on was withdrawn,
  * so the step is open again while the procedure still reads as resolved.
  */
 @Singleton

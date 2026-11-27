@@ -178,7 +178,7 @@ public class SharedStorageFiles {
     }
 
     /**
-     * The place every file of the category is read from: the staged copies, made first when no marker says
+     * The place every file of the category is read from: the staged copies, made first when no marker shows
      * they are complete.
      */
     private static String staged(StorageBackend backend, Run run, StorageCategory category) {

@@ -169,7 +169,7 @@ public class EventRegistrationFieldService {
      * The ids of the questions whose answers are kept for organisers, so they can be stripped from a
      * response.
      *
-     * <p>The setting says who may read the answer, not who gives it: whoever registers is asked the
+     * <p>The setting defines who may read the answer, not who gives it: whoever registers is asked the
      * question like any other, and it is the answer that is kept from everybody but the organisers
      * and the household it belongs to.
      *
@@ -202,7 +202,7 @@ public class EventRegistrationFieldService {
      *
      * <p>A required question always got an answer when it was answered at all, because registering
      * refuses to go through without one. A required question with nothing stored against it can
-     * therefore only be one that came after the registration, which is the whole of what this says.
+     * therefore only be one that came after the registration, which is the whole of what this covers.
      *
      * <p>Only a registration that still stands owes anything, one waiting on the waiting list included,
      * since it may move up. Somebody who declined, withdrew or was turned away holds no place, and a

@@ -148,10 +148,10 @@ public class ProblemLogService implements TaskSource {
      *
      * <p>The occurrence is named by its time, not by its place in the list, because the list moves on
      * while the problem keeps happening. One that is no longer kept falls back to the newest, and the
-     * answer says which it is around.
+     * answer shows which it is around.
      *
      * <p>Only what the stored log kept can be shown, so its own levels and retention decide. Where it
-     * kept nothing, the answer says whether that is because it is not written at all. The line that is
+     * kept nothing, the answer shows whether that is because it is not written at all. The line that is
      * the occurrence itself is marked: the first one at the same moment, on the same thread, from the
      * same logger and at the problem's level.
      *

@@ -18,7 +18,7 @@ import jakarta.inject.Singleton;
  * their registrations sees every event group, and everybody else the event groups meant for them or
  * for somebody they look after.
  *
- * <p>An event group kept from the reader reads as absent, so its id says nothing about whether it
+ * <p>An event group kept from the reader reads as absent, so its id shows nothing about whether it
  * exists.
  */
 @Singleton

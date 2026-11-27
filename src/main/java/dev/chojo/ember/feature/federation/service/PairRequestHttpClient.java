@@ -84,7 +84,7 @@ public class PairRequestHttpClient {
     }
 
     /**
-     * Tells the instance that sent a request what its station answered.
+     * Reports to the instance that sent a request what its station answered.
      *
      * @param baseUrl where that instance is reached
      * @param answer  the signed answer
@@ -136,7 +136,7 @@ public class PairRequestHttpClient {
          *
          * @param status what it answered with
          * @param reason why it refused, where it named a reason
-         * @param body   what it said
+         * @param body   what it returned
          */
         record Answered(int status, @Nullable PairRequestReason reason, String body) implements Delivery {
             public boolean successful() {

@@ -69,7 +69,7 @@ public class SelfDelivery {
         return beacon != null && own != null && beacon.equalsIgnoreCase(own);
     }
 
-    /** Writes a report as though it had arrived, and says whether it did. */
+    /** Writes a report as though it had arrived, and returns whether it did. */
     public boolean takeReport(BeaconPayloads.ReportPayload payload) {
         try {
             intake.storeReport(keys.instanceId(), keys.publicKeyBase64(), payload);
@@ -80,7 +80,7 @@ public class SelfDelivery {
         }
     }
 
-    /** Writes a fault as though it had arrived, and says whether it did. */
+    /** Writes a fault as though it had arrived, and returns whether it did. */
     public boolean takeProblem(BeaconPayloads.ProblemPayload payload) {
         try {
             intake.storeProblem(keys.instanceId(), keys.publicKeyBase64(), payload);
@@ -92,7 +92,7 @@ public class SelfDelivery {
     }
 
     /**
-     * Keeps the picture belonging to a report and says what it was numbered.
+     * Keeps the picture belonging to a report and returns what it was numbered.
      *
      * <p>The bytes are already on this instance, so what the library gives back is the file that is
      * already there: it keeps what it is given under the hash of its content, and the same picture

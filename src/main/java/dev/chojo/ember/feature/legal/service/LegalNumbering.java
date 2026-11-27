@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
  * is enough to renumber the document and every reference in it.
  *
  * <p>An anchor is the slug of the heading, or whatever an explicit {@code {#anchor}} at the end of
- * the heading says. A reference whose target does not exist is never dropped silently: it renders
+ * the heading sets. A reference whose target does not exist is never dropped silently: it renders
  * as a visible marker and is reported through {@link Result#unresolved()}, so the editor can name
  * it before the document is published.
  */

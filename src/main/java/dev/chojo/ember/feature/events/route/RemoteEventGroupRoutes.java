@@ -36,7 +36,7 @@ import java.util.UUID;
  * standing of the partner's members, their sign-ups, and the comments on it.
  *
  * <p>A partner that has never heard of these endpoints never calls them. Its members still see the
- * parts as shared appointments, and are told there that they sign up through the event group.
+ * parts as shared appointments, and see there that they sign up through the event group.
  */
 @Singleton
 public class RemoteEventGroupRoutes implements Routes {
@@ -81,7 +81,7 @@ public class RemoteEventGroupRoutes implements Routes {
             RemoteEventGroupConfirmed.class);
 
     /**
-     * The station holding an event group telling a partner that the event group was called off, naming the
+     * The station holding an event group notifying a partner that the event group was called off, naming the
      * partner's members who held or waited for a place.
      */
     public static final FederationEndpoint EVENT_GROUP_CANCELLED_WEBHOOK = FederationEndpoint.post(
@@ -92,7 +92,7 @@ public class RemoteEventGroupRoutes implements Routes {
             .keepingInStep();
 
     /**
-     * The station holding an event group telling a partner that it decided about one of the partner's
+     * The station holding an event group notifying a partner that it decided about one of the partner's
      * members' sign-ups, or that the sign-up moved up from the waiting list.
      */
     public static final FederationEndpoint EVENT_GROUP_SIGN_UP_STATUS_WEBHOOK = FederationEndpoint.post(
@@ -185,7 +185,7 @@ public class RemoteEventGroupRoutes implements Routes {
             @Nullable RemotePlaces places) {}
 
     /**
-     * A shared event group as its partner is told about it.
+     * A shared event group as its partner receives it.
      *
      * @param id           the event group at the station holding it
      * @param details      what a manager set on it: name, description, the sign-up, its colour and minimum
@@ -204,10 +204,10 @@ public class RemoteEventGroupRoutes implements Routes {
             int holding,
             int queued) {
         /**
-         * The event group as the station holding it tells a partner about it.
+         * The event group as the station holding it sends it to a partner.
          *
          * @param summary the event group as its own lists show it
-         * @return what the partner is told
+         * @return what the partner receives
          */
         public static RemoteEventGroupSummary of(EventGroupSummary summary) {
             return new RemoteEventGroupSummary(
@@ -264,7 +264,7 @@ public class RemoteEventGroupRoutes implements Routes {
 
     /**
      * A decision about a partner's member's event group sign-up, as the station holding the event group
-     * tells the partner.
+     * sends it to the partner.
      *
      * @param eventGroupId   the event group at the station holding it
      * @param eventGroupName its name, for the notice the partner's member gets
@@ -288,7 +288,7 @@ public class RemoteEventGroupRoutes implements Routes {
      *
      * @param eventGroupId   the event group at the station holding it
      * @param eventGroupName its name
-     * @param reason     why, as told to the people signed up, or null
+     * @param reason     why, as shown to the people signed up, or null
      * @param memberUids the partner's members who held or waited for a place
      */
     public record RemoteEventGroupCancelled(

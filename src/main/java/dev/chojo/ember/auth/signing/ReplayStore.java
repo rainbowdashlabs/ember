@@ -11,14 +11,14 @@ import java.time.Instant;
  * Remembers the nonces of signed requests already taken, so a captured request cannot be sent again.
  *
  * <p>A nonce only has to be remembered for as long as its request would still be accepted, which is
- * the timestamp window of its protocol; the caller says how long that is. Two strategies stand
+ * the timestamp window of its protocol; the caller sets how long that is. Two strategies stand
  * behind this: {@link MemoryReplayStore} for traffic that only has to survive while the process
  * runs, and {@link DatabaseReplayStore} for traffic whose nonces should outlive a restart.
  */
 public interface ReplayStore {
 
     /**
-     * Records a nonce and says whether this is the first time it was seen.
+     * Records a nonce and returns whether this is the first time it was seen.
      *
      * <p>Recording is atomic, so two copies of the same request arriving together cannot both pass.
      *

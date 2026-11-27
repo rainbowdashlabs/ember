@@ -224,7 +224,7 @@ public class EquipmentNeedRepository {
     }
 
     /**
-     * Marks a piece as back, which ends its claim whatever its window still says.
+     * Marks a piece as back, which ends its claim whatever its window still shows.
      *
      * <p>The appointment travels into the statement rather than being checked by the caller, so a
      * handover belonging to another appointment cannot be closed however this is called.

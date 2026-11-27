@@ -185,7 +185,7 @@ public class IcalEventRenderer {
         return entries;
     }
 
-    /** The overrides for the dates of a series called off one by one, each saying why. */
+    /** The overrides for the dates of a series called off one by one, each showing why. */
     private List<VEvent> cancelledDates(StationEvent event, Context ctx) {
         String summary = cancelledPrefix(ctx.locale()) + event.name();
         var overrides = new ArrayList<VEvent>();

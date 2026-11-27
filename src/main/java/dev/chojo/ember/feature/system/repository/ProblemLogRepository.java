@@ -50,7 +50,7 @@ public class ProblemLogRepository {
     public record Recorded(
             long id, ProblemState state, @Nullable ProblemState previous) {
 
-        /** Whether the problem is new or came back after it was resolved, which is when it is worth telling. */
+        /** Whether the problem is new or came back after it was resolved, which is when it is worth reporting. */
         public boolean newOrReopened() {
             return previous == null || (previous == ProblemState.RESOLVED && state == ProblemState.OPEN);
         }
@@ -290,7 +290,7 @@ public class ProblemLogRepository {
     }
 
     /**
-     * Whether the database answers at all, which tells a refused problem from an outage.
+     * Whether the database answers at all, which distinguishes a refused problem from an outage.
      *
      * @return whether a trivial query went through
      */

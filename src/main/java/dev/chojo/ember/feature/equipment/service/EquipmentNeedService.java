@@ -37,7 +37,7 @@ import java.util.Optional;
  * What an appointment needs, written once for the series and answered per date.
  *
  * <p>Writing a line takes the same permission as editing the appointment, because a need is part of
- * planning the appointment rather than a second kind of stock: what it says about the gear is a note,
+ * planning the appointment rather than a second kind of stock: what it records about the gear is a note,
  * and nothing here reserves, holds or moves anything.
  */
 @Singleton

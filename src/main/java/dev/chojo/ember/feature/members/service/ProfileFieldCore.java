@@ -64,7 +64,7 @@ import java.util.stream.Collectors;
  * whole save would lose the ones beside it; an unchanged answer is skipped; a changed one is measured,
  * kept, and recorded in the one change history, merged with the same author's change from the last five
  * minutes. The whole save is one transaction, so a refused answer leaves nothing of the save behind, and
- * the owners are told once it has landed.
+ * the owners are notified once it has landed.
  */
 @Singleton
 public class ProfileFieldCore {
@@ -146,7 +146,7 @@ public class ProfileFieldCore {
 
     /**
      * The questions one member's profile asks them: those of their kind of member, then those of their
-     * groups, each once. Whether two are the same question is told by who asked as well as the id, since
+     * groups, each once. Whether two are the same question is decided by who asked as well as the id, since
      * the owners number their questions apart.
      *
      * @param member the member
@@ -289,7 +289,7 @@ public class ProfileFieldCore {
     }
 
     /**
-     * Records one change, unless it says nothing new: a calculated value, or nothing where there was
+     * Records one change, unless it adds nothing new: a calculated value, or nothing where there was
      * nothing. The same author changing the same answer again within the merge window updates their record
      * rather than adding one.
      */
@@ -327,7 +327,7 @@ public class ProfileFieldCore {
     }
 
     /**
-     * Checks a question an owner is about to write down, and says what to file it under.
+     * Checks a question an owner is about to write down, and returns what to file it under.
      *
      * <p>The same checks for every owner, each refusing in its own public codes: a name unless it is a
      * spacer, a type the owner offers, expiry settings that neither count backwards nor repeat without a

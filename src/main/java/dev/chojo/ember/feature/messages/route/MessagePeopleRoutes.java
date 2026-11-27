@@ -46,7 +46,7 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
  *
  * <p>It also holds the instance switch for messages. While an administrator has turned them off,
  * every message route answers {@link MessageRefusal#MESSAGES_OFF} once the caller is signed in,
- * except the status, which says that messages are not available so the client hides them.
+ * except the status, which reports that messages are not available so the client hides them.
  */
 @Singleton
 public class MessagePeopleRoutes implements Routes {

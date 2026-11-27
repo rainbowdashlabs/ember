@@ -55,7 +55,7 @@ public enum FormRefusal implements Refusal {
     /** A form somebody has already answered once, where once is all it takes. */
     FORM_ALREADY_ANSWERED(12, HttpStatus.CONFLICT, "You have already answered this form"),
 
-    /** Answers that were read and then refused for what they said. */
+    /** Answers that were read and then refused for what they contained. */
     FORM_ANSWER_REFUSED(13, HttpStatus.BAD_REQUEST, "The answers could not be saved"),
 
     /** Answers that arrived in a shape nothing could be made of. */
@@ -69,7 +69,7 @@ public enum FormRefusal implements Refusal {
 
     /**
      * A public form that is gone, or belongs to a station other than the one in the address. The
-     * two are one code deliberately: telling them apart would say that the form exists elsewhere.
+     * two are one code deliberately: distinguishing them would reveal that the form exists elsewhere.
      */
     PUBLIC_FORM_NOT_HERE(16, HttpStatus.NOT_FOUND, Sentences.FORM_NOT_HERE),
 
@@ -84,14 +84,14 @@ public enum FormRefusal implements Refusal {
 
     /**
      * An answer that was to be acknowledged and is gone, or belongs to another form. The two are
-     * one code deliberately: telling them apart would say that the answer exists elsewhere.
+     * one code deliberately: distinguishing them would reveal that the answer exists elsewhere.
      */
     FORM_ANSWER_NOT_HERE(20, HttpStatus.NOT_FOUND, "That answer is not here any more"),
 
     /** A kind of form asked for by a name that names none. */
     FORM_KIND_UNKNOWN(21, HttpStatus.BAD_REQUEST, Sentences.FORM_KIND_UNKNOWN),
 
-    /** A search for forms that did not say which kind it wants. */
+    /** A search for forms that did not indicate which kind it wants. */
     FORM_KIND_NOT_NAMED(22, HttpStatus.BAD_REQUEST, "Say which kind of form to look for"),
 
     /** The same kind that names none, at the picker rather than at the list. */
@@ -103,7 +103,7 @@ public enum FormRefusal implements Refusal {
     /** Publishing a form that is past being a draft. */
     FORM_NOT_A_DRAFT(26, HttpStatus.BAD_REQUEST, "Only a form that is still a draft can be published"),
 
-    /** How far a form reaches, left unsaid where it had to be said. */
+    /** How far a form reaches, left out where it had to be given. */
     FORM_REACH_NOT_SAID(27, HttpStatus.BAD_REQUEST, "Say how far the form is to reach"),
 
     /** The link of a form the station's own members answer, which is not sent by one. */
@@ -125,7 +125,7 @@ public enum FormRefusal implements Refusal {
     /** A form the member answering is not among the people it was put to. */
     FORM_NOT_YOURS_TO_ANSWER(34, HttpStatus.FORBIDDEN, Sentences.FORM_NOT_YOURS_TO_ANSWER),
 
-    /** Answers that were read and then refused for what they said. */
+    /** Answers that were read and then refused for what they contained. */
     FORM_ANSWERS_NOT_SAVED(35, HttpStatus.BAD_REQUEST, Sentences.FORM_ANSWERS_NOT_SAVED),
 
     /** A form that takes an answer once and does not take it again. */
@@ -134,7 +134,7 @@ public enum FormRefusal implements Refusal {
     /** The same form put to somebody else, at the moment an answer to it is changed. */
     FORM_NOT_YOURS_TO_CHANGE_ANSWER(38, HttpStatus.FORBIDDEN, Sentences.FORM_NOT_YOURS_TO_ANSWER),
 
-    /** A changed answer that was read and then refused for what it said. */
+    /** A changed answer that was read and then refused for what it contained. */
     FORM_ANSWER_CHANGE_NOT_SAVED(39, HttpStatus.BAD_REQUEST, Sentences.FORM_ANSWERS_NOT_SAVED),
 
     /** A form that takes no answers, at the moment one is given for somebody looked after. */
@@ -146,7 +146,7 @@ public enum FormRefusal implements Refusal {
     /** A form that was not put to the member it is being answered for. */
     FORM_NOT_FOR_THIS_MEMBER(43, HttpStatus.FORBIDDEN, "This form was not put to the member you are answering for"),
 
-    /** Answers given for somebody looked after, read and then refused for what they said. */
+    /** Answers given for somebody looked after, read and then refused for what they contained. */
     FORM_ANSWERS_FOR_MEMBER_NOT_SAVED(44, HttpStatus.BAD_REQUEST, Sentences.FORM_ANSWERS_NOT_SAVED),
 
     /** Answering for a member nobody has put in the caller's care. */
@@ -180,7 +180,7 @@ public enum FormRefusal implements Refusal {
 
     /**
      * Saving a question whose options or statements do not each carry a key of their own. Answers
-     * name an option by its key, so an option without one, or two sharing one, cannot be told apart.
+     * name an option by its key, so an option without one, or two sharing one, cannot be distinguished.
      */
     QUESTION_OPTION_KEYS_NOT_DISTINCT(
             53, HttpStatus.BAD_REQUEST, "Every option of a question needs a key of its own, so nothing was saved"),
@@ -209,7 +209,7 @@ public enum FormRefusal implements Refusal {
 
     /**
      * A question that is to decide where its page leads but is not a single-answer choice, or names
-     * options it does not have. Only one picked option can say which page comes next.
+     * options it does not have. Only one picked option decides which page comes next.
      */
     QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE(
             57,
@@ -278,7 +278,7 @@ public enum FormRefusal implements Refusal {
             HttpStatus.BAD_REQUEST,
             "A form answered from outside the station has nobody to narrow it to, so nothing was saved"),
 
-    /** Results asked to be grouped without saying by what. */
+    /** Results asked to be grouped without indicating by what. */
     FORM_RESULTS_GROUPING_MISSING(74, HttpStatus.BAD_REQUEST, "Say what to group the results by"),
 
     /** Results grouped by a profile question that is not here or cannot be grouped by. */

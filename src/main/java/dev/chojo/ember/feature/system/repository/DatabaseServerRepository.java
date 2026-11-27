@@ -10,7 +10,7 @@ import jakarta.inject.Singleton;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * What the database server itself says about itself, as opposed to anything stored in it.
+ * What the database server itself reports about itself, as opposed to anything stored in it.
  */
 @Singleton
 public class DatabaseServerRepository {

@@ -41,7 +41,7 @@ import java.util.Map;
  *
  * <p>The file takes the same way in as an upload: the station has to keep documents, and the intake
  * decides whether there is room and what the file is. It is filed under the template's title and file
- * name, with its tags, kept past the membership where the template says so, and the person who
+ * name, with its tags, kept past the membership where the template defines it, and the person who
  * generated it is its uploader. A document a member or their guardian generates is never hidden from
  * the member; one a manager generates follows the template.
  *

@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 /**
  * Prints a test protocol run: one sheet per member with every item ticked or not, and one
  * evaluation table across all members. Both are templates in the station's document language,
- * fed with the run as data, so nothing a section, an item or a name says is read as markup.
+ * fed with the run as data, so nothing a section, an item or a name contains is read as markup.
  *
  * <p>A member whose name cannot be resolved goes to the template as {@code null}, and the
  * template prints its own word for "unknown".

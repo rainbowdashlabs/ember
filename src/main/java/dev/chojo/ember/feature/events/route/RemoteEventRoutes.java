@@ -80,7 +80,7 @@ public class RemoteEventRoutes implements Routes {
     public static final FederationEndpoint LIST_MEMBER_REGISTRATIONS = FederationEndpoint.getList(
             FederationSurface.EVENT_SHARE, "/remote/registrations/{memberUid}", RemoteMemberRegistration.class);
     /**
-     * The station holding an appointment telling a partner that it decided about one of the partner's
+     * The station holding an appointment notifying a partner that it decided about one of the partner's
      * members, or that the member moved up from the waiting list.
      */
     public static final FederationEndpoint REGISTRATION_STATUS_WEBHOOK = FederationEndpoint.post(
@@ -210,7 +210,7 @@ public class RemoteEventRoutes implements Routes {
      * @param fieldType    the kind of answer it takes
      * @param options      the values a choice offers, or null
      * @param required     whether the sign-up is refused without an answer
-     * @param defaultValue what an unanswered question is taken to say, or null
+     * @param defaultValue what an unanswered question is taken to mean, or null
      * @param min          the lowest number or shortest text it takes, or null
      * @param max          the highest number or longest text it takes, or null
      * @param description  what it explains below its label, or null
@@ -345,7 +345,7 @@ public class RemoteEventRoutes implements Routes {
 
     /**
      * A decision about a partner's member on one date of a shared appointment, as the station holding it
-     * tells the partner.
+     * sends it to the partner.
      *
      * @param eventId       the appointment at the station holding it
      * @param eventName     its name, for the notice the partner's member gets
@@ -367,8 +367,8 @@ public class RemoteEventRoutes implements Routes {
             Instant changedAt) {}
 
     /**
-     * A shared appointment changed, told to the partner station whose members hold a place on it, so
-     * the partner tells them.
+     * A shared appointment changed, sent to the partner station whose members hold a place on it, so
+     * the partner notifies them.
      *
      * @param eventId      the appointment at the station that runs it
      * @param eventName    its name after the change
@@ -376,7 +376,7 @@ public class RemoteEventRoutes implements Routes {
      * @param note         what the editor wrote to go with it, or null
      * @param startTime    the time of day it now starts at where the start moved, or null
      * @param told         whether the editor chose to tell about the change; otherwise only the moved
-     *                     start is told
+     *                     start is announced
      * @param members      the partner's members holding a place, each with the first date they hold
      */
     public record RemoteEventChange(

@@ -16,7 +16,7 @@ import java.time.Instant;
  *
  * <p>Used for discovery pings and beacon deliveries, which strangers send: anybody may ping or
  * report, and a restart in the middle of a window should not reopen it. One table serves every
- * protocol, told apart by the scope, and {@link #forgetExpired()} sweeps all of them at once.
+ * protocol, distinguished by the scope, and {@link #forgetExpired()} sweeps all of them at once.
  */
 @Singleton
 public class DatabaseReplayStore implements ReplayStore {

@@ -213,8 +213,8 @@ public class InventoryArtRepository {
     /**
      * The distinct names written on the pieces of an inventory, with a count each.
      *
-     * <p>What the tidying screen reads. Eighteen rows say nothing; six names with a six, a five, a
-     * four and three ones say where the typo is.
+     * <p>What the tidying screen reads. Eighteen rows show nothing; six names with a six, a five, a
+     * four and three ones show where the typo is.
      *
      * @param inventoryId the inventory
      * @return one row per distinct name, commonest first
@@ -239,7 +239,7 @@ public class InventoryArtRepository {
      * <p>The rewrite is the part that makes tidying up worth doing. Setting the kind leaves the name
      * alone, and the name is what every list, both exports and the notification texts read, so
      * without it {@code Funkgerät organge} would go on reading {@code Funkgerät organge} under a
-     * heading that says otherwise. It is a destructive edit, which is why it belongs to somebody
+     * heading that shows otherwise. It is a destructive edit, which is why it belongs to somebody
      * deciding it and never to a migration.
      *
      * @param artId   the kind they all become

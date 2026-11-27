@@ -204,7 +204,7 @@ public class LendingRepository {
     /**
      * Adds a line to a request, labelled with what it names at this moment: the kind of thing, the
      * piece or the inventory, in that order, and nothing where it names none of them here. The label
-     * outlives the gear, so the line still says what it asked for once its references are emptied.
+     * outlives the gear, so the line still shows what it asked for once its references are emptied.
      *
      * @return the stored line
      */

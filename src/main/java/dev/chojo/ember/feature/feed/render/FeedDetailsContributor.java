@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
  * What a feature adds to the feed entries of its own notifications.
  *
  * <p>The feed renderer writes the parts every entry has: title, link, categories, summary and the
- * frame of the body. What a notification is about, and what can be looked up to say more about it,
+ * frame of the body. What a notification is about, and what can be looked up to show more about it,
  * only its feature knows, so each feature contributes that here. Every contributor is asked about
  * every notification and answers only for its own parameter records, which is why each ignores the
  * rest rather than refusing them.

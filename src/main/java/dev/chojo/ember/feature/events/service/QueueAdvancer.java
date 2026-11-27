@@ -42,8 +42,8 @@ import java.util.Optional;
  * that is called off, falls into a break or is no longer a date of the series moves nobody up.
  *
  * <p>An entry whose sign-up no longer waits leaves the list without taking a place, so a list that
- * drifted from the statuses never stalls. Callers hold the appointment's lock and tell whoever moved
- * up once the change is kept; a partner's member moving up is announced here, for its station to be told
+ * drifted from the statuses never stalls. Callers hold the appointment's lock and notify whoever moved
+ * up once the change is kept; a partner's member moving up is announced here, for its station to be notified
  * once the change is kept.
  */
 @Singleton
@@ -66,7 +66,7 @@ public class QueueAdvancer {
      * @param queue         the waiting lists
      * @param registrations the registrations moved up
      * @param calendar      the station's clock, for when a date starts
-     * @param eventBus      where a partner's member moving up is announced, so the partner is told
+     * @param eventBus      where a partner's member moving up is announced, so the partner is notified
      */
     @Inject
     public QueueAdvancer(
@@ -87,7 +87,7 @@ public class QueueAdvancer {
      * @param queue         the waiting lists
      * @param registrations the registrations moved up
      * @param calendar      the station's clock, for when a date starts
-     * @param eventBus      where a partner's member moving up is announced, so the partner is told
+     * @param eventBus      where a partner's member moving up is announced, so the partner is notified
      * @param clock         the current time
      */
     public QueueAdvancer(
@@ -185,7 +185,7 @@ public class QueueAdvancer {
     }
 
     /**
-     * Whether a start lies less than a day ahead, which a member moving up is told plainly.
+     * Whether a start lies less than a day ahead, which a member moving up is notified of plainly.
      *
      * @param clock the current time
      * @param start the start

@@ -31,7 +31,7 @@ import java.util.List;
  *
  * <p>A few days and one day before sign-ups close, members the event group is meant for who never answered
  * it are reminded. Once they closed with sign-ups still waiting for a decision, whoever runs events
- * is told. The parts' own deadlines are left out of the appointment checks, so nobody hears of a
+ * is notified. The parts' own deadlines are left out of the appointment checks, so nobody hears of a
  * event group once for every part.
  */
 @Singleton

@@ -11,7 +11,7 @@ import java.time.LocalDate;
 
 /**
  * How a document came to be generated, which decides whether the member it is about sees it and what
- * the generation log says about it.
+ * the generation log shows about it.
  *
  * @param way       who generated it in which role
  * @param eventId   the appointment that asks for it, or null where none does
@@ -50,7 +50,7 @@ public record GenerationOrigin(
         return way == GenerationWay.SELF_SERVICE;
     }
 
-    /** @return whether a manager generated it, who may hide it from the member as the template says */
+    /** @return whether a manager generated it, who may hide it from the member as the template defines */
     public boolean byManager() {
         return way == GenerationWay.MANAGER;
     }

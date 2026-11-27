@@ -134,7 +134,7 @@ final class AuthorityStatements {
      *
      * @param der       the list, DER encoded
      * @param authority the authority it was stated for
-     * @return it, when it reads, was signed by that authority and says when the next one is due
+     * @return it, when it reads, was signed by that authority and shows when the next one is due
      */
     static Optional<X509CRL> revocationListOf(byte[] der, X509Certificate authority) {
         try {

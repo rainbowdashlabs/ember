@@ -30,7 +30,7 @@ import java.util.UUID;
 @Singleton
 public class FailedMailService {
 
-    /** How many failed mails a page holds when the caller does not say. */
+    /** How many failed mails a page holds when the caller gives none. */
     public static final int DEFAULT_SIZE = 25;
 
     /** How many failed mails a page may hold at most. */

@@ -17,7 +17,7 @@ import java.util.List;
  * @param category  whom or what it is about, the first step the picker offers it under
  * @param path      the steps the picker offers it under in the station's language, from the word of its
  *                  category to its own name there. The name can be shorter than the label, because the
- *                  steps before it already say the rest: "Vorname" under "Erziehungsberechtigte 1"
+ *                  steps before it already show the rest: "Vorname" under "Erziehungsberechtigte 1"
  * @param informal  whether only informal templates may use it, which is the case for the name a member
  *                  is called by: a legal document names people by their official names
  * @param eventOnly whether it has a value only where a document is generated for an appointment

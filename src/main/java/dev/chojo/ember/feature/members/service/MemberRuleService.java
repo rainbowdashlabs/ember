@@ -40,9 +40,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>A station's rules run again a few seconds after its people change (somebody joins, leaves, changes type,
  * changes groups or tags, or has profile answers changed), so a burst of changes leads to a single run. Every
  * station with rules also runs every half hour, which carries a rule past midnight, when a date check starts
- * counting from a new day, and catches the writers that change member data without saying so. All runs go
+ * counting from a new day, and catches the writers that change member data without signalling it. All runs go
  * through one lane, so two runs never meet, and a run already waiting for a station takes the place of another.
- * A rule that fails is logged and the station's other rules still run. A run that moves anybody tells the station
+ * A rule that fails is logged and the station's other rules still run. A run that moves anybody lets the station know
  * that its people changed, as a hand edit would; nobody is notified about joining or leaving by a rule.
  */
 @Singleton
@@ -77,7 +77,7 @@ public class MemberRuleService implements TaskSource {
     }
 
     /**
-     * Says that the people of a station may have changed, so its rules run again once the changes settle.
+     * Signals that the people of a station may have changed, so its rules run again once the changes settle.
      *
      * @param stationId the station
      */

@@ -36,7 +36,7 @@ import java.util.Objects;
  * <p>The template's first step asks the new member, and their guardians, to sign the application; handing
  * out the gear and the introduction to the vehicle hall wait for it. The carers run it. The procedure is
  * started through the procedure service like one a manager starts, so its application is generated and
- * asked for, except that nobody is told it was handed to them.
+ * asked for, except that nobody gets a notice that it was handed to them.
  *
  * <p>It runs after the modules, so the outcome is the same on every seeding: at the first station the youth
  * warden has agreed to sign letters for the station by then, so the application comes out signed for its

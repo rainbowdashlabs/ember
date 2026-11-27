@@ -67,7 +67,7 @@ public class LoginNameService {
      * The same, for an account that may have nothing else to sign in with.
      *
      * <p>An account with no address of its own is reached by its name and by nothing else, so taking
-     * the name away would lock it out without saying so. Give it an address first.
+     * the name away would lock it out without warning. Give it an address first.
      *
      * @throws RefusalResponse when the name is malformed, taken, or the only way into the account
      */

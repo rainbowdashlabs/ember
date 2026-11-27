@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 /**
- * Says which owners may appear in an inventory. It is never consulted to decide what happens to an
+ * Defines which owners may appear in an inventory. It is never consulted to decide what happens to an
  * item: what happens to an item follows from that item's own {@link ItemOwner}.
  */
 public enum InventoryType {

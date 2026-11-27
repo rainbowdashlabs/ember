@@ -132,7 +132,7 @@ public class MemberRuleRepository {
     }
 
     /**
-     * Makes the members of a group or tag exactly the given ones, and says who came in and who went out.
+     * Makes the members of a group or tag exactly the given ones, and returns who came in and who went out.
      *
      * @param owner     the group or tag
      * @param memberIds the members it is to hold

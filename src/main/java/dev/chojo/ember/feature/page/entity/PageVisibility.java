@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.page.entity;
 /**
  * Who reaches a station page.
  *
- * <p>This replaces a published flag, which could say only yes or no and so could not say the case
+ * <p>This replaces a published flag, which could only be yes or no and so could not hold the case
  * this exists for: a page meant for the people who were sent its link and for nobody else.
  *
  * <p>The two questions below are the whole of the interface on purpose. A reader asks the one it

@@ -119,9 +119,9 @@ public record AppointmentField(
     }
 
     /**
-     * The same question, telling the reader asking whether they may put themselves into it.
+     * The same question, showing the reader asking whether they may put themselves into it.
      *
-     * @param state what the reader may do, or null to say nothing
+     * @param state what the reader may do, or null to show nothing
      * @return the question with that state
      */
     public AppointmentField withSelfRegistration(@Nullable SelfRegistration state) {
@@ -141,11 +141,11 @@ public record AppointmentField(
     }
 
     /**
-     * The same member field of an event group on one of its appointments, telling the reader asking
+     * The same member field of an event group on one of its appointments, showing the reader asking
      * whether they stand in it for the whole group.
      *
      * @param inWholeGroup whether they do
-     * @return the field with that said
+     * @return the field with that applied
      */
     public AppointmentField withReaderInWholeGroup(boolean inWholeGroup) {
         return new AppointmentField(

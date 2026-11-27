@@ -67,7 +67,7 @@ public class PasskeyAdminService {
 
     /**
      * Everything the mode panel shows. The readiness half can only compare the instance's own
-     * configuration, never what a browser sees; the screen says so in its own words.
+     * configuration, never what a browser sees; the screen shows this in its own words.
      */
     public ModeStatus status() {
         return new ModeStatus(
@@ -106,7 +106,7 @@ public class PasskeyAdminService {
 
     /**
      * The bulk form, because sixty accounts one at a time is how this gets abandoned halfway.
-     * Acts only on the accounts that pass the same test as the single action, and says how many
+     * Acts only on the accounts that pass the same test as the single action, and reports how many
      * it passed over: an operator who ends sixty sessions on a Tuesday has a Tuesday nobody
      * forgets, which is why this one ends none at all.
      */

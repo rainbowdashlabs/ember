@@ -881,7 +881,7 @@ public class EmailQueueRepository {
     /**
      * How many waiting mails sit on each provider of the list.
      *
-     * <p>This is what says who is next: a mail waits at the provider whose turn it is, and moves on
+     * <p>This is what decides who is next: a mail waits at the provider whose turn it is, and moves on
      * only once that one has used its attempts or its allowance.
      *
      * @param stationId the station whose post is meant, or null for the instance's
@@ -913,7 +913,7 @@ public class EmailQueueRepository {
      * The mails a dead worker left in sending, oldest first.
      *
      * <p>Nothing picks these up again on its own, which is the whole reason they can be named: the
-     * counter alone says how many there are without saying which, and an operator cannot act on a
+     * counter alone shows how many there are without showing which, and an operator cannot act on a
      * number.
      *
      * @param stationId the station whose post is meant, or null for the instance's

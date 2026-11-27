@@ -21,7 +21,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *
  * @param id              the mailbox identifier
  * @param stationId       the station whose mailbox this is
- * @param name            what the station calls it, so a page listing several can tell them apart
+ * @param name            what the station calls it, so a page listing several can distinguish them
  * @param host            the mail server
  * @param port            the port on that server
  * @param security        how the connection is secured

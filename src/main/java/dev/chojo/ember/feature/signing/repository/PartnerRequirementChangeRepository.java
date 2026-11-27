@@ -18,19 +18,19 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * The changes of shared appointments' documents that partner stations still have to be told, one row per
+ * The changes of shared appointments' documents that partner stations still have to be notified, one row per
  * appointment and partner that gathers every change until the partner took the notice.
  */
 @Singleton
 public class PartnerRequirementChangeRepository {
 
     /**
-     * Notes a change for a partner, gathered into what it was not told yet, and makes it due at once. A document
-     * added back is no longer told as taken off.
+     * Notes a change for a partner, gathered into what it was not notified of yet, and makes it due at once. A document
+     * added back is no longer notified as taken off.
      *
      * @param stationId the station holding the appointment
      * @param eventId   the appointment
-     * @param partnerId the partnership with the station to tell
+     * @param partnerId the partnership with the station to notify
      * @param removed   the templates taken off
      * @param added     the templates added
      */
@@ -59,7 +59,7 @@ public class PartnerRequirementChangeRepository {
 
     /**
      * @param eventId the appointment
-     * @return what its partners still have to be told
+     * @return what its partners still have to be notified
      */
     public List<PartnerRequirementChange> forEvent(int eventId) {
         return query(
@@ -72,7 +72,7 @@ public class PartnerRequirementChangeRepository {
 
     /**
      * @param now         the moment that counts as now
-     * @param maxAttempts the failures in a row after which telling is given up
+     * @param maxAttempts the failures in a row after which notifying is given up
      * @param limit       the most rows to name
      * @return the changes whose next try is due, the one waiting longest first
      */
@@ -103,7 +103,7 @@ public class PartnerRequirementChangeRepository {
     }
 
     /**
-     * Forgets a change that no longer has anybody to tell.
+     * Forgets a change that no longer has anybody to notify.
      *
      * @param id the row
      */
@@ -114,7 +114,7 @@ public class PartnerRequirementChangeRepository {
     }
 
     /**
-     * Records that telling the partner failed, and when to try again.
+     * Records that notifying the partner failed, and when to try again.
      *
      * @param id    the row
      * @param retry when to try again

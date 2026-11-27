@@ -352,7 +352,7 @@ public class WaitingListRoutes implements Routes {
      * worth collecting.
      *
      * <p>While the invitation is open, only dates whose appointment has not begun are listed, and an
-     * invitation that named dates and has none still ahead says so: the station sends new ones. Once
+     * invitation that named dates and has none still ahead shows that: the station sends new ones. Once
      * it is answered every date is listed, because the answer names one of them.
      *
      * <p>An invited entry without dates, because the invitation named none or every appointment it
@@ -424,7 +424,7 @@ public class WaitingListRoutes implements Routes {
     }
 
     /**
-     * Answers the request itself when the caller has asked too often, and says so.
+     * Answers the request itself when the caller has asked too often, and signals so.
      *
      * <p>The entry endpoints are keyed by the token rather than by the list, because the token is
      * what a guess would have to hit and it now returns something worth guessing at.
@@ -436,7 +436,7 @@ public class WaitingListRoutes implements Routes {
     }
 
     /**
-     * Answers the request itself when the caller has read entry pages too often, and says so.
+     * Answers the request itself when the caller has read entry pages too often, and signals so.
      *
      * <p>Reading is held apart from registering. The status page is a link a family opens again
      * whenever they wonder where they stand, and behind a shared connection one address speaks for
@@ -450,7 +450,7 @@ public class WaitingListRoutes implements Routes {
     }
 
     /**
-     * Answers a caller who is asking faster than the list allows, saying so and when to come back.
+     * Answers a caller who is asking faster than the list allows, reporting that and when to come back.
      *
      * @return whether the request was answered here and the handler should go no further
      */
@@ -1313,7 +1313,7 @@ public class WaitingListRoutes implements Routes {
      *                     those whose appointment has not begun, once answered every one
      * @param message      the personal note the station wrote into the invitation, empty for none
      * @param noDatesLeft  whether the open invitation named dates and none of them is left to come to,
-     *                     so the page says the station sends new ones instead of asking for a date
+     *                     so the page shows the station sends new ones instead of asking for a date
      */
     public record WaitingListPublicInvitation(
             int round, List<WaitingListPublicAppointment> appointments, String message, boolean noDatesLeft) {}
@@ -1326,7 +1326,7 @@ public class WaitingListRoutes implements Routes {
      * @param appointmentDate the date written out for a reader
      * @param appointmentTime when the appointment itself runs
      * @param arrivalTime     when they were asked to be there, empty when the invitation named no time
-     * @param location        where it is, empty when neither the appointment nor the station says
+     * @param location        where it is, empty when neither the appointment nor the station has one
      */
     public record WaitingListPublicAppointment(
             int position,
@@ -1453,7 +1453,7 @@ public class WaitingListRoutes implements Routes {
      *
      * @param eventId     the appointment, required
      * @param date        the one date of it, as {@code YYYY-MM-DD}, required
-     * @param arrivalTime when they should be there, as {@code HH:MM}, or null to say nothing about it
+     * @param arrivalTime when they should be there, as {@code HH:MM}, or null to leave it out
      */
     public record WaitingListInvitationOptionRequest(
             @Nullable Integer eventId,

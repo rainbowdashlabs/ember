@@ -44,7 +44,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param queueOrder           how the waiting lists of its dates are ordered; null reads as by time
  * @param repeatCount          how many times a recurring event takes place in total, counted from its
  *                             first date, or null where it has no end. Never set together with
- *                             {@code repeatUntil}: they are two ways of saying the same thing
+ *                             {@code repeatUntil}: they are two ways of expressing the same thing
  */
 public record StationEvent(
         int id,
@@ -257,7 +257,7 @@ public record StationEvent(
      *
      * <p>A one-off appointment carries its own dates and keeps them, which is what lets one run over
      * a weekend. A repeating one carries only the time of day and the length of the occasion: the
-     * date beside them is the day somebody first configured it and says nothing about the occurrence
+     * date beside them is the day somebody first configured it and shows nothing about the occurrence
      * being recorded, so those are placed on the day asked for. Taking that date as it stood is what
      * once opened a sheet for a Tuesday two years ago.
      *

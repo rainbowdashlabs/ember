@@ -52,7 +52,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Tells people about signatures: that a document waits for theirs, that it still does, and that it was given.
+ * Notifies people about signatures: that a document waits for theirs, that it still does, and that it was given.
  *
  * <p><b>Who is asked.</b> A field asks the people who may sign it, exactly as the open tasks list it: the
  * member and their guardians for a member's own field (a member without a login signs through a guardian's
@@ -68,18 +68,18 @@ import java.util.Optional;
  * ({@link MailRecipientService}). One address gets one mail per document, however many of its fields it is
  * asked for, linked to the first of them. The mail is written in the station's language.
  *
- * <p><b>Given.</b> Every signature is told in the app to the member who asked for the signatures, unless they
+ * <p><b>Given.</b> Every signature is reported in the app to the member who asked for the signatures, unless they
  * gave it themselves; their digest mails it where they chose so.
  *
- * <p><b>Withdrawn.</b> A withdrawn agreement is told in the app to whoever runs the appointment that asked for
+ * <p><b>Withdrawn.</b> A withdrawn agreement is reported in the app to whoever runs the appointment that asked for
  * it, or to whoever asked for the signatures, except to whoever withdrew it. One a partner station reports
- * withdrawn by its member is told to whoever runs the appointment here, naming the member only where the
+ * withdrawn by its member is reported to whoever runs the appointment here, naming the member only where the
  * partner shares the name.
  *
  * <p><b>Settled.</b> Once a field no longer waits, by a signature, on paper, waived or withdrawn, the unread
  * requests and reminders for it are taken back, since there is nothing left to do about them.
  *
- * <p>Telling people runs after the change it is about has been stored and never undoes it: a failure here is
+ * <p>Notifying people runs after the change it is about has been stored and never undoes it: a failure here is
  * logged, and the signature, the request or the reminder count stands.
  */
 @Singleton
@@ -136,7 +136,7 @@ public class SignatureNotices {
     }
 
     /**
-     * Tells whoever asked for the signatures that a field was signed.
+     * Notifies whoever asked for the signatures that a field was signed.
      *
      * @param request  the request
      * @param evidence the act
@@ -167,8 +167,8 @@ public class SignatureNotices {
     }
 
     /**
-     * Tells the side that asked for an agreement that it was withdrawn: whoever runs the appointment that
-     * asked for it, else whoever asked for the signatures. Whoever withdrew it is not told.
+     * Notifies the side that asked for an agreement that it was withdrawn: whoever runs the appointment that
+     * asked for it, else whoever asked for the signatures. Whoever withdrew it is not notified.
      *
      * @param request    the request whose agreement was withdrawn
      * @param withdrawal the withdrawal
@@ -208,7 +208,7 @@ public class SignatureNotices {
     }
 
     /**
-     * Tells whatever rests on a request that it no longer waits for anybody. It stands as agreed where no
+     * Notifies whatever rests on a request that it no longer waits for anybody. It stands as agreed where no
      * field is open and at least one {@linkplain FieldState#agrees() agrees}: was signed, confirmed on paper
      * or waived. Fields withdrawn beside them do not change that. This is wider than a complete request,
      * which takes a signature or a paper confirmation: a request whose only settled field was waived stands
@@ -228,7 +228,7 @@ public class SignatureNotices {
     }
 
     /**
-     * Tells whatever rests on a request that it was replaced by one for a corrected document.
+     * Notifies whatever rests on a request that it was replaced by one for a corrected document.
      *
      * @param replaced the request replaced
      * @param created  the request for the corrected document
@@ -253,7 +253,7 @@ public class SignatureNotices {
     }
 
     /**
-     * Tells whoever runs an appointment that a partner station reported a signed agreement of one of its
+     * Notifies whoever runs an appointment that a partner station reported a signed agreement of one of its
      * members withdrawn there.
      *
      * @param stationId     the station holding the appointment

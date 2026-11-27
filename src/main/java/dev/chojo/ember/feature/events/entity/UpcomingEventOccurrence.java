@@ -15,7 +15,7 @@ import java.time.LocalDate;
  * Used by the upcoming view to display a paginated, chronologically sorted list of event occurrences
  * (expanding recurring events into individual dates).
  *
- * <p>A date that was called off stays on the list and says so, rather than leaving a gap nobody can
+ * <p>A date that was called off stays on the list and shows it, rather than leaving a gap nobody can
  * explain.
  *
  * @param event        the appointment

@@ -55,7 +55,7 @@ public final class QuestionText {
     }
 
     /**
-     * The answer as an export prints it, saying what becomes of a member the export cannot name.
+     * The answer as an export prints it, showing what becomes of a member the export cannot name.
      *
      * @param unknown what is printed for a member missing from {@code names}
      * @see #format(FieldType, String, Map, String)

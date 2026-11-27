@@ -21,7 +21,7 @@ import java.util.UUID;
  * <p>The instance identity is {@code sha256(publicKey)} and discovery publishes that key. A slot
  * derived from it would be computable by anybody, so the arrival time of a metrics row would name
  * its sender however carefully the payload avoided doing so, permanently and for every row. The
- * metrics identifier is not published, so a slot drawn from it spreads a fleet without saying who is
+ * metrics identifier is not published, so a slot drawn from it spreads a fleet without showing who is
  * who.
  */
 @Singleton

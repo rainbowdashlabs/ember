@@ -24,7 +24,7 @@ import org.jspecify.annotations.Nullable;
  * @param itemName      the piece it was about, so the reader knows which of their gear this is
  * @param reason        why it was called off, in the words of whoever did it
  * @param itemStayedAway whether the piece did not come back, having already left the station
- * @param actorMemberId who called it off, so they are not told about their own doing
+ * @param actorMemberId who called it off, so they are not notified of their own doing
  */
 public record MovementCancelled(
         int stationId,

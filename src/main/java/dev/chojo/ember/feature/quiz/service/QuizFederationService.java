@@ -112,7 +112,7 @@ public class QuizFederationService implements FederationServer {
     /**
      * One catalog this station shares with a partner, with its categories and questions.
      *
-     * <p>Being paired with the station that owns a catalog says nothing about being allowed to read
+     * <p>Being paired with the station that owns a catalog implies nothing about being allowed to read
      * it, and catalog ids are sequential, so a catalog that is missing, belongs to another station or
      * is not shared is refused alike: a partner could otherwise count its way through the whole
      * question bank.

@@ -63,7 +63,7 @@ public class EquipmentBrowseService {
      * Counts a collected list again against what the partners have free now.
      *
      * <p>The answer names what each line would still find and whether that differs from what the
-     * collector saw, so the send screen can say what changed instead of silently sending less.
+     * collector saw, so the send screen can show what changed instead of silently sending less.
      *
      * @param stationId the station collecting
      * @param from      the first day the gear is needed
@@ -91,7 +91,7 @@ public class EquipmentBrowseService {
      * How many requests a collected list turns into.
      *
      * <p>A request has a single owning station, so a list spanning three stations is three requests.
-     * The split is visible while collecting and the send button says how many it will make, because a
+     * The split is visible while collecting and the send button shows how many it will make, because a
      * list that quietly became three letters is a list nobody can follow up.
      *
      * @param lines the list as it stands

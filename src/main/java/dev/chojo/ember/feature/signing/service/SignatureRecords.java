@@ -34,7 +34,7 @@ import java.security.cert.CertificateEncodingException;
  *
  * <p>A sealed version carries the evidence of its signatures invisibly, as an attachment, and shows nothing
  * but the signature pictures on its pages. Its record is rendered from that attachment
- * ({@link SignatureRecordPage}), so it says exactly what the version holds, names the version by its number
+ * ({@link SignatureRecordPage}), so it shows exactly what the version holds, names the version by its number
  * and SHA-256, and is sealed by the station at the moment it is built. It comes on its own, to keep and print
  * beside the document, or joined to the document as one copy to hand out ({@link #withRecord}). Neither is a
  * version of the document: the document stays as it was filed, and each copy is built and sealed afresh.

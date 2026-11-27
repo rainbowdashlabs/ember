@@ -81,7 +81,7 @@ public class ProblemLogFlusher implements TaskSource, ShutdownFlush {
     /**
      * Writes everything gathered so far.
      *
-     * @param shuttingDown whether the application is stopping, which has no time to tell a refused problem
+     * @param shuttingDown whether the application is stopping, which has no time to distinguish a refused problem
      *                     from an outage: the first failure then ends the run
      * @return how many problems were written
      */
@@ -98,7 +98,7 @@ public class ProblemLogFlusher implements TaskSource, ShutdownFlush {
     /**
      * Hands every problem that is new or came back to whoever listens.
      *
-     * @param listener what to tell, or null to stop telling anybody
+     * @param listener the listener to notify, or null to stop notifying anybody
      */
     public void onNewOrReopened(@Nullable Consumer<StoredProblem> listener) {
         this.listener = listener;

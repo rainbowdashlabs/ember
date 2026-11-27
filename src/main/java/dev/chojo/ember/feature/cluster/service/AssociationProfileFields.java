@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
  *
  * <p>Its questions are put to kinds of member only (a member group belongs to one station, which the
  * association cannot name), reach the stations of a group of stations or all of them, and their answers
- * live in {@code cluster_profile_field_value}. Where the association itself writes, the member is told,
+ * live in {@code cluster_profile_field_value}. Where the association itself writes, the member is notified,
  * because the person who changed their profile is not at their station.
  */
 @Singleton
@@ -162,7 +162,7 @@ public class AssociationProfileFields implements ProfileFieldOwner {
     }
 
     /**
-     * Tells the member when the association wrote, whatever the questions were. The station's member
+     * Notifies the member when the association wrote, whatever the questions were. The station's member
      * management hears through the station, which hears of every change.
      */
     @Override

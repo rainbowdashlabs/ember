@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.mail.entity;
 /**
  * What became of an email after the relay accepted it.
  *
- * <p>This is a different question from the send status on the queue, which only says whether the
+ * <p>This is a different question from the send status on the queue, which only shows whether the
  * relay took the message off our hands. A relay answering "250 OK" has promised to try, not to
  * succeed: the message can still be refused by the receiving server minutes later, and that answer
  * comes back as a provider event rather than as the result of our own send.

@@ -33,7 +33,7 @@ public enum ProcedureRefusal implements Refusal {
     /** A step of a template that went before the deletion reached it. */
     PROCEDURE_TEMPLATE_STEP_NOT_HERE_TO_DELETE(8, HttpStatus.NOT_FOUND, Sentences.PROCEDURE_STEP_NOT_HERE_ON_WRITE),
 
-    /** Procedures asked for by appointment without saying which day of it. */
+    /** Procedures asked for by appointment without indicating which day of it. */
     PROCEDURE_OCCURRENCE_DAY_MISSING(
             9, HttpStatus.BAD_REQUEST, "Name the day of the appointment the procedures were prepared for"),
 
@@ -103,7 +103,7 @@ public enum ProcedureRefusal implements Refusal {
             HttpStatus.BAD_REQUEST,
             "The managing party names a group, tag or member of another station, so nothing was saved"),
 
-    /** A managing party set without saying who it is. */
+    /** A managing party set without indicating who it is. */
     PROCEDURE_PARTY_MISSING(31, HttpStatus.BAD_REQUEST, "Say who runs the procedure, so nothing was saved"),
 
     /** A procedure started from a template that is not one of the station's own. */

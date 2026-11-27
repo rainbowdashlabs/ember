@@ -39,10 +39,10 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Telling the body above the station that a piece of its gear is gone, and asking for another.
+ * Notifying the body above the station that a piece of its gear is gone, and asking for another.
  *
  * <p>Three things are kept apart here and were one thing before. Marking gear lost is a fact about where it
- * is, recorded at the station and told to nobody. Reporting it is a request, and the only thing the owner
+ * is, recorded at the station and reported to nobody. Reporting it is a request, and the only thing the owner
  * ever hears. What the owner does about it is a third act, and it is answered on the movement like any other
  * step: it may send a replacement or refuse one, and the loss stands either way.
  */
@@ -108,7 +108,7 @@ public class LossReportService {
     /**
      * What this item's owner wants to see before it will consider a replacement.
      *
-     * <p>An association outside Ember has said nothing here about what it wants, so a report to it needs
+     * <p>An association outside Ember has recorded nothing here about what it wants, so a report to it needs
      * nothing beyond itself; the station files it standing in for the association.
      *
      * @param itemId the item somebody is about to report

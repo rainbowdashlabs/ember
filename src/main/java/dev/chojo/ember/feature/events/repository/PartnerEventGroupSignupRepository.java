@@ -87,7 +87,7 @@ public class PartnerEventGroupSignupRepository {
     }
 
     /**
-     * Takes in a decision the partner told about this station's member, unless it is not newer than the
+     * Takes in a decision the partner sent about this station's member, unless it is not newer than the
      * one already taken in.
      *
      * @param memberId           the member

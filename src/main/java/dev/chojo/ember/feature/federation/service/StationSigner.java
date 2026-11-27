@@ -14,8 +14,8 @@ import java.util.UUID;
 /**
  * Signs federation traffic on behalf of a station, named by its id.
  *
- * <p>This is the only way federation code reaches a station's private key: callers say which
- * station speaks and get a signature back, and the key itself never travels through a service or
+ * <p>This is the only way federation code reaches a station's private key: callers pass which
+ * station signs and get a signature back, and the key itself never travels through a service or
  * route signature. The key is looked up in {@link StationKeyStore}, which keeps it encrypted at
  * rest and decoded in memory.
  */

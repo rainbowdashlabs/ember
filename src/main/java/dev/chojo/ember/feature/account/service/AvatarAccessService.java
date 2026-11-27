@@ -174,7 +174,7 @@ public class AvatarAccessService {
     /**
      * Whether the caller is acting for an association the target account also belongs to.
      *
-     * <p>An association's people are its own: belonging to it says nothing about belonging to any of
+     * <p>An association's people are its own: belonging to it implies nothing about belonging to any of
      * its stations, so two of them may share no station at all. Without this they would look at each
      * other's rows and see nobody, which is what the roll and the group screens showed.
      */

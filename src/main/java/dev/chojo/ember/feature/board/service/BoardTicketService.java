@@ -105,7 +105,7 @@ public class BoardTicketService {
     /**
      * Refuses to hand a ticket to somebody who may not write on its board.
      *
-     * <p>The board already says who may work on it, and a ticket put on a name that cannot open it
+     * <p>The board already defines who may work on it, and a ticket put on a name that cannot open it
      * is an instruction nobody can follow. The question is asked of the person being handed the
      * work rather than of the person handing it over, and it is asked exactly as the board asks it
      * of an editor, so somebody who administers every board may be handed a ticket on one they were

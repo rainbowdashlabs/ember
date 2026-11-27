@@ -261,7 +261,7 @@ public class KnowledgeBaseRepository {
     /**
      * Whether a folder of that name already sits directly in a parent folder.
      *
-     * <p>The database says the same thing through {@code UNIQUE (station_id, parent_id, name)}, but
+     * <p>The database enforces the same thing through {@code UNIQUE (station_id, parent_id, name)}, but
      * only by refusing the statement. Asking first is what turns the refusal into a sentence naming
      * the folder rather than a failed request.
      *

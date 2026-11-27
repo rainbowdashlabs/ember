@@ -211,7 +211,7 @@ public enum StationPermission implements RouteRole {
     DOCUMENT_EDIT(StationModule.DOCUMENTS, DOCUMENT_READ),
 
     /**
-     * Allows saying which members a document names, and everything that follows from it.
+     * Allows indicating which members a document names, and everything that follows from it.
      *
      * <p>Implies {@link #DOCUMENT_READ_MEMBER}, and that is what keeps the store honest rather than a
      * convenience. Whether a document names a member decides who may read it, so a permission to

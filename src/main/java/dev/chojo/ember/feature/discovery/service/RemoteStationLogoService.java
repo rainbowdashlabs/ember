@@ -49,7 +49,7 @@ import java.util.regex.Pattern;
  * what came in is ever served.
  *
  * <p>A logo that could not be fetched leaves the copy kept before in place. Where the other instance
- * says there is none, or names an address that is not its own, the copy goes. A peer's due logos are
+ * reports there is none, or names an address that is not its own, the copy goes. A peer's due logos are
  * fetched {@value #PARALLEL_FETCHES} at a time.
  *
  * <p>Copies are kept per instance and station, under a short fingerprint of the instance's public key
@@ -148,7 +148,7 @@ public class RemoteStationLogoService {
     }
 
     /**
-     * Asks for one logo. The copy kept here is trusted to be what the card's row says: it is asked
+     * Asks for one logo. The copy kept here is trusted to be what the card's row holds: it is asked
      * for with the tags it came with, and a copy that went missing from storage is caught where it
      * is read, not looked for on every refresh.
      */
@@ -203,7 +203,7 @@ public class RemoteStationLogoService {
     }
 
     /**
-     * A copy a card's row says is kept but storage does not hold is a fault: it is logged and the row
+     * A copy a card's row records as kept but storage does not hold is a fault: it is logged and the row
      * forgets the copy, so the next refresh fetches the logo afresh instead of asking whether it changed.
      */
     private void forgetLost(String fingerprint, String stationUid) {

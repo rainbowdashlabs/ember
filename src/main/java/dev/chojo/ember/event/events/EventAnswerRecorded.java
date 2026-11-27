@@ -18,7 +18,7 @@ import java.time.LocalDate;
  * @param eventId   the appointment
  * @param memberId  whose answer it is
  * @param eventDate the date it answers for
- * @param status    what the answer now says
+ * @param status    what the answer now shows
  */
 public record EventAnswerRecorded(
         int stationId, int eventId, int memberId, LocalDate eventDate, RegistrationStatus status)

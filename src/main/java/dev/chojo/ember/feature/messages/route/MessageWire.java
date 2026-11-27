@@ -78,7 +78,7 @@ public final class MessageWire {
      * @param id         the message
      * @param author     who wrote it, or null for a deleted account and a line nobody wrote
      * @param text       the start of its text, mentions written as names
-     * @param systemKind what a system line says, or null for a written message
+     * @param systemKind what a system line shows, or null for a written message
      * @param subject    whom a system line is about, or null
      * @param deleted    whether it was deleted
      * @param createdAt  when it was written
@@ -277,7 +277,7 @@ public final class MessageWire {
      * @param author     who wrote it, or null for a deleted account and a line nobody wrote
      * @param content    the text, with line breaks and mentions; empty once deleted
      * @param replyTo    the message it answers, or null
-     * @param systemKind what a system line says, or null for a written message
+     * @param systemKind what a system line shows, or null for a written message
      * @param subject    whom a system line is about, or null
      * @param createdAt  when it was written
      * @param editedAt   when it was last changed, or null

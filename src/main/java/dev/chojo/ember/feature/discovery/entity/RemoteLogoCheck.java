@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  * A cached station card whose logo is due to be asked for again, and what is known of the copy kept here.
  *
  * @param stationUid the station's identifier as the other instance sent it
- * @param logoUrl    where the other instance says the logo is, or {@code null} where it named nothing
+ * @param logoUrl    where the other instance reports the logo is, or {@code null} where it named nothing
  * @param stored     whether a copy of the logo is kept here
  * @param tags       what the other instance sent with that copy
  */

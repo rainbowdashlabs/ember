@@ -512,7 +512,7 @@ public class InventoryCheckRoutes implements Routes {
      *                     recorded as holding nothing
      * @param pickedItemId a piece from the free stock, or {@code null} to make a new one
      * @param sizeId       the size of a new piece
-     * @param ownerKind    who owns a new piece, which only a mixed inventory has to be told
+     * @param ownerKind    who owns a new piece, which only a mixed inventory has to be given
      * @param internalId   the number on a new piece
      * @param metadata     the inventory's own fields for a new piece
      */

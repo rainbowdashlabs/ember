@@ -41,7 +41,7 @@ import java.util.UUID;
  *
  * <p>Reminders by hand and automatic ones go through the same rules and send the same mail. A manager who
  * cannot sign in yet is sent a fresh link: to choose a password where none was chosen, to confirm the
- * address where one was. A manager who can sign in is told the station waits to be set up, in the
+ * address where one was. A manager who can sign in gets a reminder that the station waits to be set up, in the
  * station's language. Every reminder is written down in the same transaction that queues its mail, so a
  * reminder that was not written was not sent either.
  */

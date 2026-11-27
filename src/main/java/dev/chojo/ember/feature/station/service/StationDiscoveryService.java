@@ -39,7 +39,7 @@ import java.util.UUID;
  * <p>Visitors without a session only see stations that opted into public visibility; signed-in users
  * additionally see instance-visible stations and stations exposing public content.
  *
- * <p>Each card says for the one reading it whether it may be asked to federate and whether its invite
+ * <p>Each card shows for the one reading it whether it may be asked to federate and whether its invite
  * code may be had, so the page draws its buttons from the card alone.
  */
 @Singleton

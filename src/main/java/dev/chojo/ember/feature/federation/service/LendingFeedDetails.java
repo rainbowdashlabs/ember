@@ -15,7 +15,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 /**
- * What a feed entry says about a lending between stations: the other station, the request, its
+ * What a feed entry shows about a lending between stations: the other station, the request, its
  * status or who wrote, and from the request itself when the items are needed.
  */
 @Singleton

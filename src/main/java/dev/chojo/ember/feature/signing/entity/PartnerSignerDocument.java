@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  *
  * @param templateId      the document
  * @param name            what it is called
- * @param state           where it stands; {@link PartnerAgreementState#MISSING} where the partner never said it
+ * @param state           where it stands; {@link PartnerAgreementState#MISSING} where the partner never confirmed it
  *                        takes the document on
  * @param complete        for a signed one, whether every signature field is settled at the partner
  * @param agreementId     the record of it, which a signed copy is read through, or null where none was written

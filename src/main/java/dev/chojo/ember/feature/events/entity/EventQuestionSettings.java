@@ -41,7 +41,7 @@ import java.util.List;
  * @param max              the largest number a registrant may answer
  * @param managersOnly     whether the answer is kept for whoever runs the appointment: the registrant
  *                         is still asked, but only they, their household and the organisers read it
- * @param description      a sentence saying what the registrant's question is after, shown under its
+ * @param description      a sentence describing what the registrant's question is after, shown under its
  *                         label when answering, never in tables or exports; null for none
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -82,7 +82,7 @@ public record EventQuestionSettings(
         return QuestionConfigs.toJson(this);
     }
 
-    /** What this question says about the answer it takes, as the one check reads it. */
+    /** What this question defines about the answer it takes, as the one check reads it. */
     public QuestionSettings settings() {
         return QuestionSettings.required(required)
                 .withDefault(defaultValue)

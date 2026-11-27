@@ -55,7 +55,7 @@ public record OccurrenceRule(
      * number, the way an excluded date still counts in a calendar.
      *
      * @param event the appointment
-     * @param zone  the station's clock, which says which day its start falls on
+     * @param zone  the station's clock, which decides which day its start falls on
      * @return the rule, empty where the appointment has no start or its end comes before its first date
      */
     public static Optional<OccurrenceRule> of(StationEvent event, ZoneId zone) {

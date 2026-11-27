@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Planning the examiners of a test run, and telling a tester what of a run is theirs to grade.
+ * Planning the examiners of a test run, and showing a tester what of a run is theirs to grade.
  *
  * <p>Registered ahead of {@link TestProtocolRoutes}, whose {@code /protocols/{id}} would otherwise
  * take the candidate list's fixed path for a protocol's number.

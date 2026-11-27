@@ -28,7 +28,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param deep        whether a container-scope check walks descendant containers
  * @param reportedBy  who reported what the check records, where that is somebody other than the
  *                    person who signed it off, and {@code null} on a check somebody walked
- *                    themselves. A piece checked at arm's length can be told from one somebody held.
+ *                    themselves. A piece checked at arm's length can be distinguished from one somebody held.
  */
 public record InventoryCheck(
         int id,

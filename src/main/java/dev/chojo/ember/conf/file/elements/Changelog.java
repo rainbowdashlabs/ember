@@ -10,7 +10,7 @@ import dev.chojo.ocular.override.Overwrite;
 import dev.chojo.ocular.override.OverwritePrefix;
 
 /**
- * Configuration for what the instance says about its own changelog.
+ * Configuration for what the instance shows about its own changelog.
  */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 @OverwritePrefix("CHANGELOG")

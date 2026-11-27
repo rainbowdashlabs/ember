@@ -18,7 +18,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells the people at the cluster who decide about stations that one is waiting.
+ * Notifies the people at the cluster who decide about stations that one is waiting.
  */
 @Singleton
 public class ClusterApplicationSubmittedHandler implements DomainEventHandler<ClusterApplicationSubmitted> {

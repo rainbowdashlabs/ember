@@ -130,7 +130,7 @@ public class FormAnalyticsAssembler {
     }
 
     /**
-     * Who was expected and has not answered, which only an internal form can say.
+     * Who was expected and has not answered, which only an internal form can know.
      *
      * <p>A contact form and a poll on a public page are answered by whoever opens the link, and the
      * station's own members are not the people being asked. Listing them as missing would name
@@ -231,7 +231,7 @@ public class FormAnalyticsAssembler {
      * names them, so the individual answers can follow the same filter. {@code questions} describes
      * each question once; {@code groups} holds the counted answers, one entry per group of
      * respondents. An ungrouped view is a single group holding every counted response.
-     * {@code groupsOverlap} says a respondent can count in more than one group, as with groups and
+     * {@code groupsOverlap} marks that a respondent can count in more than one group, as with groups and
      * tags, so the groups can add up to more responses than {@code totalResponses}.
      */
     public record FormAnalytics(

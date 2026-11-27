@@ -36,7 +36,7 @@ import java.util.Optional;
  *
  * <p>One date on its own leaves the series and becomes an appointment of its own on that day, set up
  * the way the editor saved it. The series skips the date from then on without calling it off, so
- * nobody is told it is off. One date and the ones after it end the series the day before and go on
+ * nobody is notified that it is off. One date and the ones after it end the series the day before and go on
  * as a new series from that date. A series that ended after a number of dates keeps that total: the
  * old one gets an end date, the new one the number still left. Edited from its first date that takes
  * place, with nothing of it left before, a series is simply changed as a whole.
@@ -52,7 +52,7 @@ import java.util.Optional;
  * pattern that would name it again: the date belongs to the appointment that took it over.
  *
  * <p>Creating the new appointment announces nothing. It is the same occasion the members already
- * know, and whether they are told that it changed is decided where the edit is saved.
+ * know, and whether they are notified that it changed is decided where the edit is saved.
  */
 @Singleton
 public class EventEditScopeService {
@@ -189,7 +189,7 @@ public class EventEditScopeService {
 
     /**
      * Changes the appointment as a whole, the way it always was: the change and its end are saved one
-     * after the other, and what follows a move runs after each, so whoever is told about it is told
+     * after the other, and what follows a move runs after each, so whoever is notified hears
      * about what was saved.
      */
     private StationEvent changeWhole(StationEvent series, EventDraft draft) {
@@ -287,7 +287,7 @@ public class EventEditScopeService {
         return new Settled(current, moveService.settle(current));
     }
 
-    /** Tells whoever lost a place once the edit is saved, so nobody hears of one that was rolled back. */
+    /** Notifies whoever lost a place once the edit is saved, so nobody hears of one that was rolled back. */
     private StationEvent told(Settled settled) {
         moveService.tellDropped(settled.event(), settled.withdrawn());
         return settled.event();
@@ -297,7 +297,7 @@ public class EventEditScopeService {
      * The appointment an edit was saved into, and the places it withdrew on dates it does not fall on.
      *
      * @param event     the appointment
-     * @param withdrawn the places withdrawn, whose members are still to be told
+     * @param withdrawn the places withdrawn, whose members are still to be notified
      */
     private record Settled(StationEvent event, List<EventRegistration> withdrawn) {}
 }

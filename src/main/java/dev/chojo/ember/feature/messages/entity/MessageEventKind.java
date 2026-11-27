@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.messages.entity;
 
-/** What a signal on the message stream says has news, so the page knows what to fetch again. */
+/** What a signal on the message stream indicates has news, so the page knows what to fetch again. */
 public enum MessageEventKind {
     /** A message was written, changed, deleted or reacted to: fetch that one message. */
     MESSAGE,

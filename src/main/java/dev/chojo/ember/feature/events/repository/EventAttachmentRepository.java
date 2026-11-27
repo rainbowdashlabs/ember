@@ -26,10 +26,10 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * the files an event group hands over on every part. Every read joins the media library, because an
  * attachment without its file name and size is not something a reader can be handed.
  *
- * <p>All live in tables of the same shape; {@link AppointmentOwner} says which one a call means. A
+ * <p>All live in tables of the same shape; {@link AppointmentOwner} defines which one a call means. A
  * template's attachment reads back with the template's id where an appointment's carries the
  * appointment's, and an event group's with the event group's. Read for one of its parts, an event
- * group's file carries the part's id and says it comes from the event group.
+ * group's file carries the part's id and shows it comes from the event group.
  */
 @Singleton
 public class EventAttachmentRepository {

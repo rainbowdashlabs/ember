@@ -10,7 +10,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * A form field an uploaded PDF brings, as the editor lists it.
  *
- * <p>The name is often a generated one such as {@code Text1}. What tells a field apart for a reader is
+ * <p>The name is often a generated one such as {@code Text1}. What distinguishes a field for a reader is
  * the tooltip its author gave it and the text it already holds, so both are kept where the PDF has
  * them. A PDF inspected before these were kept has neither until it is uploaded again.
  *

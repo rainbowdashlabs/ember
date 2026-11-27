@@ -91,7 +91,7 @@ public class RemoteStationListingService {
     }
 
     /**
-     * The station's public page on its instance, where the card says it has one. The address is built
+     * The station's public page on its instance, where the card shows it has one. The address is built
      * from the instance as it is known here and never taken from the card itself.
      */
     private static @Nullable String publicPageUrl(PublishedRemoteStation published) {

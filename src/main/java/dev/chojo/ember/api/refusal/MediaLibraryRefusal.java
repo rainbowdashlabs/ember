@@ -31,7 +31,7 @@ public enum MediaLibraryRefusal implements Refusal {
 
     /**
      * A file in the media library that is gone, or one held back from this reader. The two are one
-     * code deliberately: telling them apart would say that the file is there and withheld.
+     * code deliberately: distinguishing them would reveal that the file is there and withheld.
      */
     FILE_NOT_HERE(1, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
 

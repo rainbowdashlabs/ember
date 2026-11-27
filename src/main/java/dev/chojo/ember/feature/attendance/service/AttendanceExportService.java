@@ -138,7 +138,7 @@ public class AttendanceExportService {
      * What a sheet is called: the appointment it is for, and the day it falls on.
      *
      * <p>The title the reader typed for this export wins over the session's own, because it is the
-     * more recent thing they said about what this sheet is. Where neither says anything, the day
+     * more recent thing they said about what this sheet is. Where neither is set, the day
      * carries the name on its own.
      */
     static String sheetFileName(AttendanceSession session, @Nullable String chosenTitle, ZoneId zone, String locale) {

@@ -46,7 +46,7 @@ import java.util.Objects;
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
- * What the instance says to every station at once.
+ * What the instance sends to every station at once.
  *
  * <p>A system entry is one row belonging to no station, which every station reads in its own news
  * list. Writing, correcting and withdrawing it happen here, and nowhere else: these routes refuse
@@ -304,7 +304,7 @@ public class AdminNewsRoutes implements Routes {
     /**
      * The entry behind an id, if the instance published it, and a 404 otherwise.
      *
-     * <p>These routes answer for what the instance said and for nothing else. A station's own entry
+     * <p>These routes answer for what the instance published and for nothing else. A station's own entry
      * is its own business: an instance administrator has every right over the instance and none
      * over what one station wrote to its members.
      */
@@ -359,7 +359,7 @@ public class AdminNewsRoutes implements Routes {
      *                   them, so they are not offered
      * @param publish    whether it goes out at once, defaulting to true
      * @param notifyMembers whether members are notified of it, defaulting to false. Most of what an
-     *                   instance says is met when someone next looks, and waking every member of
+     *                   instance publishes is met when someone next looks, and waking every member of
      *                   every station for it teaches them to ignore the ones that matter
      */
     public record SystemNewsRequest(

@@ -263,7 +263,7 @@ public class ProfileFieldService {
      * One question as one audience meets it.
      *
      * @param required          whether this audience must answer, the definition's answer unless their
-     *                          assignment says otherwise
+     *                          assignment sets otherwise
      * @param position          where it sits on this audience's form
      * @param width             how much of a row it takes, null meaning the whole row
      * @param readonly          whether this audience may read the answer but not write it
@@ -275,7 +275,7 @@ public class ProfileFieldService {
      *                          takes effect where that field is asked on the same form: hidden and not required
      *                          until it lets it in (a yes, or any answer to a choice or text)
      * @param fieldSet          the bundle of the same origin this one belongs to, or {@code null}. A form keeps
-     *                          its questions together and shows its name above them where it says so
+     *                          its questions together and shows its name above them where it is set to
      */
     public record MergedField(
             int id,
@@ -291,13 +291,13 @@ public class ProfileFieldService {
             boolean readonlyAtStation,
             @Nullable Integer shownIfFieldId,
             @Nullable FieldSetLabel fieldSet) {
-        /** A field nobody writes is never required, whatever its definition or assignment still says. */
+        /** A field nobody writes is never required, whatever its definition or assignment still holds. */
         public MergedField {
             required = required && fieldType.isWritten();
         }
 
         /**
-         * What tells this question apart from every other one a member can be asked.
+         * What distinguishes this question from every other one a member can be asked.
          *
          * @return who asked, and the id within their numbering
          */
@@ -782,7 +782,7 @@ public class ProfileFieldService {
     /**
      * An answer, and which table its question lives in.
      *
-     * <p>The two id spaces are separate, so a bare field id says nothing on its own: the profile screen
+     * <p>The two id spaces are separate, so a bare field id shows nothing on its own: the profile screen
      * carries the origin back with every answer it saves, and this is the shape it reads them in.
      *
      * @param fieldId the field the answer belongs to, in its own table

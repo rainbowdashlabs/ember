@@ -12,7 +12,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import jakarta.inject.Singleton;
 
 /**
- * What a feed entry says about a newly published form: its title.
+ * What a feed entry shows about a newly published form: its title.
  */
 @Singleton
 public class FormFeedDetails implements FeedDetailsContributor {

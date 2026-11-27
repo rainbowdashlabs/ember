@@ -585,7 +585,7 @@ public class TestProtocolService implements FederationServer {
      * Finishes the examination of one member and stores their score.
      *
      * <p>Refused while any top-level section has not been marked as checked: a sheet nobody walked to
-     * the end is not an examination, whatever its ticks say. Marking the last section finishes it on
+     * the end is not an examination, whatever its ticks show. Marking the last section finishes it on
      * its own, so this is only ever needed by a client that marks no sections.
      *
      * @return whether a member was completed; false when they are not part of the run or were already

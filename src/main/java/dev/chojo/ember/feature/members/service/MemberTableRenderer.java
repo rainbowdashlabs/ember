@@ -61,7 +61,7 @@ public class MemberTableRenderer {
      * @param table       the drawn table
      * @param station     the station it belongs to, which decides the language and the letterhead
      * @param title       what the sheet is called
-     * @param subtitle    a line under the title saying which people these are, or empty
+     * @param subtitle    a line under the title showing which people these are, or empty
      * @param generatedBy who asked for it
      * @return the rendered document
      * @throws Exception where the renderer refuses the document

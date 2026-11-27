@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Who owns a single piece of a mixed inventory, changed after it was written down.
  *
- * <p>Internal and external inventories need none of this: their type says whose gear they hold, and switching
+ * <p>Internal and external inventories need none of this: their type defines whose gear they hold, and switching
  * the type rewrites every piece. A mixed inventory holds both, so a piece written down under the wrong owner can
  * only be put right one piece at a time.
  *

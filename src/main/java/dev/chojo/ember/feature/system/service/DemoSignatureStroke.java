@@ -32,7 +32,7 @@ final class DemoSignatureStroke {
     private DemoSignatureStroke() {}
 
     /**
-     * @param signer what tells the signer's stroke apart, such as their name
+     * @param signer what distinguishes the signer's stroke, such as their name
      * @return their stroke as a PNG
      */
     static byte[] of(String signer) {

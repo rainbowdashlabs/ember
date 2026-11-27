@@ -37,7 +37,7 @@ import static dev.chojo.ember.feature.signing.entity.PartnerSealVerdict.UNREADAB
  *
  * <p>The check trusts the partner's pinned authorities alone, never this installation's or another
  * partner's, and recognises a seal only when its certificate names the partner station itself. Its own
- * verdict, {@link PartnerSealVerdict}, says whether the document may be taken; the public check of
+ * verdict, {@link PartnerSealVerdict}, shows whether the document may be taken; the public check of
  * {@link SealVerifier} is not involved and answers as it always did.
  *
  * <p>The partner is asked for its authorities first when nothing is pinned for it yet or the pins are due

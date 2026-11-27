@@ -34,7 +34,7 @@ public enum CommentRefusal implements Refusal {
 
     /**
      * A comment being deleted that is gone, or whose station could not be read behind it. The two
-     * are one code deliberately: telling them apart would say that the comment sits at a station
+     * are one code deliberately: distinguishing them would reveal that the comment sits at a station
      * the caller may not see.
      */
     COMMENT_NOT_HERE_ON_DELETE(7, HttpStatus.NOT_FOUND, Sentences.COMMENT_NOT_HERE),

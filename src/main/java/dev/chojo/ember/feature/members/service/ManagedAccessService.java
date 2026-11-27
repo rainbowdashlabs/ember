@@ -149,7 +149,7 @@ public class ManagedAccessService {
      * <p>This is what makes a login possible for a child with no address of their own: the name is
      * what they type, and everything Ember would write to them goes to their guardians instead.
      * Clearing it is refused while it is the only way in and signing in is switched on, because that
-     * would lock the member out without saying so. The name is a way into the account, so like the
+     * would lock the member out without warning. The name is a way into the account, so like the
      * address it is the guardian's only where {@link AccountReach} finds the account this station's
      * alone and confirmed by its owner.
      *
@@ -177,7 +177,7 @@ public class ManagedAccessService {
      * <p>The change takes effect at once rather than through the confirmation both addresses
      * normally exchange: the guardian is the one who reads the child's mail, and a member without a
      * real address has nothing to confirm from. Open sessions of that member end, and where there
-     * was a real address before, both of them are told.
+     * was a real address before, both of them are notified.
      *
      * @param guardianMemberId the member acting as guardian
      * @param memberId         the member in their care
@@ -271,7 +271,7 @@ public class ManagedAccessService {
      * <p>Switching it on needs an address to send the invitation to; switching it off ends the
      * sessions that are open, so the change is not merely cosmetic.
      *
-     * <p>The member is told by mail, but not straight away: the change is handed to
+     * <p>The member is notified by mail, but not straight away: the change is handed to
      * {@link ManagedLoginNoticeService}, which waits a few minutes so a toggle flicked by mistake
      * and flicked back reaches nobody. That is also where the password-setup mail for an account
      * nobody has claimed yet comes from.

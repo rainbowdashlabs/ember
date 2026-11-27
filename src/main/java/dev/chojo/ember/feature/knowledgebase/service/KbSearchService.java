@@ -21,7 +21,7 @@ import java.util.List;
 
 /**
  * Full-text search over a station's knowledge base and the index that backs it. Every write that
- * changes what a file says routes through {@link #reindex(int, String)} so the stored index stays
+ * changes what a file holds routes through {@link #reindex(int, String)} so the stored index stays
  * in step with the file's title, description and body.
  *
  * <p>The text search configuration follows the station's locale, so stemming and stop words match

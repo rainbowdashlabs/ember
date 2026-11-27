@@ -144,7 +144,7 @@ public class RequirementsService {
      * care.
      *
      * <p>Whose each one is rides along only where it is not the reader's own, which is what lets a
-     * guardian tell their children apart without the screen naming the reader to themselves.
+     * guardian distinguish their children without the screen naming the reader to themselves.
      */
     private List<RegistrationUpdateItem> registrationUpdates(int memberId, boolean guardian) {
         return registrationService.findShortOfAnswer(household(memberId, guardian)).stream()
@@ -185,7 +185,7 @@ public class RequirementsService {
     /**
      * One self-check the reader is answerable for, their own or one held for a member in their care.
      *
-     * @param memberId whose gear it is about, which is what tells a guardian's several apart
+     * @param memberId whose gear it is about, which is what distinguishes a guardian's several
      * @param dueOn    the day the answer is wanted by, or {@code null} where none was named
      */
     public record SelfCheckItem(
@@ -195,7 +195,7 @@ public class RequirementsService {
      * One registration short of an answer to a question its appointment gained after the sign-up.
      *
      * @param memberName whose registration it is, named only where it is not the reader's own, so
-     *                   a guardian can tell the members in their care apart
+     *                   a guardian can distinguish the members in their care
      */
     public record RegistrationUpdateItem(
             int registrationId,
@@ -216,7 +216,7 @@ public class RequirementsService {
      *                      null
      * @param capacity      who signs: the reader, a member in their care through the reader's account, or
      *                      the reader as guardian on that member's behalf. One document can ask a guardian
-     *                      for both of the latter, and this is what tells the two apart.
+     *                      for both of the latter, and this is what distinguishes the two.
      */
     public record SignatureItem(
             int fieldId,

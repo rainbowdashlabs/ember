@@ -82,7 +82,7 @@ import java.util.stream.Stream;
 
 /**
  * Seeds the body above the demo station: a district association with its own station, the people who act for
- * it, the gear it owns and the things it has said.
+ * it, the gear it owns and the things it has published.
  *
  * <p>Per the seeder convention it goes through the services wherever one exists, so the domain events fire on
  * their own and the demo instance looks like one somebody has been using rather than one somebody inserted.
@@ -180,7 +180,7 @@ public class DemoClusterSeeder implements DemoSeeder {
     /**
      * After the federation band, because the station left standing outside the cluster is the federation
      * partner: the demo needs one station that stayed out, and inventing a second one purely to be left out
-     * would say less than using the one that is already there.
+     * would show less than using the one that is already there.
      */
     @Override
     public int order() {
@@ -189,7 +189,7 @@ public class DemoClusterSeeder implements DemoSeeder {
 
     /**
      * One of the two full stations joins and the other answers to nobody, so the same feature can be looked at
-     * both ways; which one joins is the profile's to say. The neighbouring station joins too, so the screens
+     * both ways; which one joins is for the profile to decide. The neighbouring station joins too, so the screens
      * that reach across a cluster have two stations to reach across, and the federation partner stays outside
      * with an application waiting. The cluster keeps its gear itself, which is what lets its own steps appear
      * in a movement.
@@ -238,7 +238,7 @@ public class DemoClusterSeeder implements DemoSeeder {
      * The waiting request, asked for by the station's own owner through the same call the screen makes.
      *
      * <p>Written this way rather than as a row because an application is something a station does: only its
-     * owner may ask, and the cluster is told that somebody has. A row put in behind that would leave the
+     * owner may ask, and the cluster is notified that somebody has. A row put in behind that would leave the
      * demo with a request nobody could take back.
      */
     private void seedApplication(Cluster cluster, DemoRunContext run) {
@@ -342,7 +342,7 @@ public class DemoClusterSeeder implements DemoSeeder {
     /**
      * The room the cluster hands out, in every place a station can get its numbers from.
      *
-     * <p>The instance grants a pool, the cluster says what a station it has decided nothing about may keep,
+     * <p>The instance grants a pool, the cluster sets what a station it has decided nothing about may keep,
      * and it keeps two tiers to hand out. The four stations then sit in four different places on that
      * screen on purpose: its own store on numbers set by hand, the demo station on the larger tier, the
      * neighbour on the smaller one, and the station it made itself on nothing at all, which is the row that
@@ -662,7 +662,7 @@ public class DemoClusterSeeder implements DemoSeeder {
     }
 
     /**
-     * Something for the cluster to have said: a folder with an article in it, one news entry and one
+     * Something for the cluster to have published: a folder with an article in it, one news entry and one
      * appointment, all of which reach every member station without anybody sharing them. Somebody from a
      * member station has signed up for the appointment, which is the point of an event held above the
      * stations rather than at one of them.

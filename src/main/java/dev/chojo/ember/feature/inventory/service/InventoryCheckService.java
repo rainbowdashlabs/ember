@@ -357,8 +357,8 @@ public class InventoryCheckService {
      * <p>Borrowed gear is walked with everything else, because it is in the building and a shelf that
      * skips a third of what is on it is not a shelf that has been walked. What it does not get is the
      * loss: the borrower's row is a copy that goes away when the loan ends, and writing a loss on it
-     * would leave the owner's row still saying a partner has the piece. The check keeps the result, so
-     * the walk still says plainly that the piece was not there, and telling the owner happens on the
+     * would leave the owner's row still showing a partner has the piece. The check keeps the result, so
+     * the walk still shows plainly that the piece was not there, and notifying the owner happens on the
      * lending request the gear came in on.
      *
      * @param result    one line of the walk
@@ -372,7 +372,7 @@ public class InventoryCheckService {
     /**
      * Refuses a walk that reports a piece missing which may not be marked so, before any of it is written.
      *
-     * <p>A piece an open movement carries or a loan holds is told about there, not here. Asking each
+     * <p>A piece an open movement carries or a loan holds is reported there, not here. Asking each
      * piece first keeps a walk from stopping halfway with some losses written and the rest not. The
      * refusal names the piece, since a walk holds many and the reader has to find the one it means.
      *
@@ -393,7 +393,7 @@ public class InventoryCheckService {
 
     /**
      * What a piece is called where a station would recognise it: its name and the identifier written on
-     * it, which is what tells two helmets apart in a refusal about one of them.
+     * it, which is what distinguishes two helmets in a refusal about one of them.
      */
     private String recognisableName(int itemId) {
         return inventoryRepository
@@ -406,7 +406,7 @@ public class InventoryCheckService {
     }
 
     /**
-     * Whether a line of a walk writes a loss: it says the piece was not there, names one, and the piece
+     * Whether a line of a walk writes a loss: it shows the piece was not there, names one, and the piece
      * is not borrowed, whose loss travels on its loan instead.
      */
     private boolean marksAMissingPiece(CheckItemRequest result) {
@@ -522,7 +522,7 @@ public class InventoryCheckService {
      *
      * <p>The cluster's requirements count too, read at the station and never copied. A piece handed in
      * for an exchange counts towards what the member has, since an exchange can take weeks and would
-     * otherwise report a gap for gear already in the post; the row says how many are away that way. A
+     * otherwise report a gap for gear already in the post; the row shows how many are away that way. A
      * piece reported missing does not count, though it stays on the member's record: the gap shows and
      * a hand-out is offered for it.
      *
@@ -588,7 +588,7 @@ public class InventoryCheckService {
     }
 
     /**
-     * Puts right what a check found: the member is holding something other than what the record says.
+     * Puts right what a check found: the member is holding something other than what the record shows.
      *
      * <p>Nothing changes hands here. The piece named in the correction is already in the member's
      * hands, so this is one write of the truth and not a movement: no exchange is raised, no chain is
@@ -598,13 +598,13 @@ public class InventoryCheckService {
      * own goes back into the station's store. The owner's goes back to the owner where the owner runs
      * on this instance and so has a store of its own. Where it does not, there is no store to go back
      * to and nobody who could ever tidy the row up, so the piece is deleted rather than left standing
-     * as a record of something that, as the correction says, was never there.
+     * as a record of something that, as the correction shows, was never there.
      *
      * @param memberId   the member being checked
      * @param correction what the member actually holds
      * @return the piece the member holds once the record agrees with them
      * @throws RefusalResponse if the inventory or either piece is unknown, the old piece is not the
-     *                         member's, the new one is not free, or a mixed inventory was not told who
+     *                         member's, the new one is not free, or a mixed inventory was not given who
      *                         owns the new piece
      */
     public InventoryItem correct(int memberId, ItemCorrection correction) {
@@ -645,7 +645,7 @@ public class InventoryCheckService {
     }
 
     /**
-     * Who owns a piece a correction makes. Only an inventory that holds both owners has to be told;
+     * Who owns a piece a correction makes. Only an inventory that holds both owners has to be given it;
      * anywhere else the inventory itself is the answer and asking would be a question with one option.
      * A partner's gear arrives by handover only, so a correction never writes a piece as theirs.
      */
@@ -698,7 +698,7 @@ public class InventoryCheckService {
      * missing one would grow the store by a thing nobody can find, and end the loss without anybody
      * deciding to. It comes off the member and stays missing, which is also why it is not ended here
      * even where its owner has no store, because a loss is a fact about a real thing rather than a
-     * record the correction says was never true.
+     * record the correction shows was never true.
      *
      * <p>Only gear the body above the station owns goes back to an owner with a store of its own. A
      * borrowed piece rests on the shelf of the station that borrowed it, exactly as its own gear
@@ -736,8 +736,8 @@ public class InventoryCheckService {
      * @param unassigned available unassigned items per inventory, keyed by inventory ID
      * @param onTheMove  where the movement already running on a piece stands, keyed by piece, worded as
      *                   the movement list words it, so the walk leaves out a swap the station would only
-     *                   refuse and says why
-     * @param overtookSelfChecks the tasks this walk closed, so the walker is told a member had been
+     *                   refuse and shows why
+     * @param overtookSelfChecks the tasks this walk closed, so the walker sees that a member had been
      *                           asked to answer for themselves and that their answers are not applied
      */
     public record MemberCheckState(

@@ -8,7 +8,7 @@ package dev.chojo.ember.event.events;
 import dev.chojo.ember.event.DomainEvent;
 
 /**
- * A station took its request back before the cluster decided. Worth telling the cluster, because somebody
+ * A station took its request back before the cluster decided. Worth letting the cluster know, because somebody
  * there may have been about to answer it.
  *
  * @param stationId   the station that changed its mind

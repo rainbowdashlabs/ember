@@ -390,7 +390,7 @@ public class FederationRepository {
      * Drops a request the station still has open towards the given partner.
      *
      * <p>An unanswered request and a finished partnership are the same connection at two moments,
-     * so once the partnership stands the request has nothing left to say.
+     * so once the partnership stands the request has nothing left to add.
      *
      * @return how many open requests were dropped
      */

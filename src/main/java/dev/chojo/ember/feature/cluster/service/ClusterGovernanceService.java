@@ -137,11 +137,11 @@ public class ClusterGovernanceService {
      *
      * <p>Nothing is deleted. A denied module stops being reachable and everything already in it stays where
      * it is, ready to reappear if the denial is lifted or the station released. The stations that were
-     * actually using one are told, because a page disappearing without explanation is the kind of thing
+     * actually using one are notified, because a page disappearing without explanation is the kind of thing
      * people report as a fault.
      *
      * <p>Denials add up and never cancel: a station loses a module when the cluster denies it outright or
-     * denies it for any group that station is in. So the stations told about a new denial are the ones it
+     * denies it for any group that station is in. So the stations notified of a new denial are the ones it
      * actually reaches, which for a group is the stations filed under it and for everybody is all of them.
      *
      * @param clusterId      the cluster

@@ -29,7 +29,7 @@ import java.util.Set;
 /**
  * Calls off the event groups that too few sign-ups were accepted for in time.
  *
- * <p>An event group with a minimum says how many days before its first part the minimum must be
+ * <p>An event group with a minimum sets how many days before its first part the minimum must be
  * reached. The first part is the earliest one as it stands, a called-off one included, the same start
  * the sign-up deadline counts from, and the check is due from midnight that many days before it on the
  * station's calendar, as for an appointment.

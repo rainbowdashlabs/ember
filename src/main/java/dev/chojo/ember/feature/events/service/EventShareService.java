@@ -63,7 +63,7 @@ public class EventShareService {
      * <p>A part of an event group is shared with its event group and not on its own. An appointment that
      * not every member here may know about is not handed over: its audiences name groups, tags and members
      * of this station, none of which mean anything at the partner, so a shared appointment would stand
-     * open to everybody there, the opposite of what restricting it said. Nor is one whose documents to
+     * open to everybody there, the opposite of what restricting it meant. Nor is one whose documents to
      * bring partners could not sign alike: such a document names a person, or reads differently for some
      * members, and the partner's members would each need their own.
      *

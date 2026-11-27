@@ -194,7 +194,7 @@ public class PublicFormRoutes implements Routes {
      * whatever its state, so a form nobody had opened was readable in full by anybody holding its
      * address, and the reader learned it was closed only after filling it in and pressing send.
      *
-     * <p>The state travels instead, so the page can say which of the three it is rather than
+     * <p>The state travels instead, so the page can show which of the three it is rather than
      * offering fields that will be refused. Closed covers both a form somebody closed and one whose
      * end date has passed, because a reader has no use for the difference.
      */
@@ -327,11 +327,11 @@ public class PublicFormRoutes implements Routes {
     }
 
     /**
-     * Reads the answers somebody sent, and says so in the form's own terms when they cannot be read.
+     * Reads the answers somebody sent, and reports so in the form's own terms when they cannot be read.
      *
      * <p>The general answer for a body that will not parse names the field it stumbled on and
-     * nothing else, which is what an endpoint a program calls should say. Somebody who has just
-     * filled a form in needs to be told that their answers are the thing that did not arrive, and
+     * nothing else, which is what an endpoint a program calls should return. Somebody who has just
+     * filled a form in needs to see that their answers are the thing that did not arrive, and
      * that filling it in again is what to do about it.
      */
     private PublicFormSubmitRequest readAnswers(Context ctx) {
@@ -378,15 +378,15 @@ public class PublicFormRoutes implements Routes {
             /** The pages, in their order; empty unless the form is open, like the questions. */
             List<PublicFormPage> pages,
             List<PublicFormQuestion> questions,
-            /** What the form says once it is sent, or null for the general thanks; null unless the form is open. */
+            /** What the form shows once it is sent, or null for the general thanks; null unless the form is open. */
             @Nullable PublicFormCompletion completion) {}
 
     /**
-     * What a public form says once it is sent.
+     * What a public form shows once it is sent.
      *
      * @param message   the form's own message, or null for the general thanks
      * @param link      where the reader may go on to, or null
-     * @param linkLabel what the link says, or null for the address itself
+     * @param linkLabel what the link shows, or null for the address itself
      */
     public record PublicFormCompletion(
             @Nullable String message,

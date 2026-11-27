@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
  * <p>Changes are made one at a time, so two administrators saving at once cannot interleave their
  * values. A change is validated before it gets here and applied through the typed setters of the
  * configuration elements, which cannot fail; what can fail is writing the file. When it does, the
- * change is taken back, so the instance keeps running on what the file says, and the request is
+ * change is taken back, so the instance keeps running on what the file defines, and the request is
  * refused instead of answering as though it had been saved.
  */
 @Singleton

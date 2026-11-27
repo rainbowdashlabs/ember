@@ -18,7 +18,7 @@ import java.time.Instant;
  *                        the same way the forced password rotation carries its own.
  * @param oneTimePasswordExpired whether the sign-in was refused because the password was a one-time
  *                        password whose time is up. Only ever set after the password proved right, so
- *                        it tells a guesser nothing a correct password would not.
+ *                        it gives a guesser nothing a correct password would not.
  */
 public record LoginResult(
         boolean success,

@@ -207,7 +207,7 @@ public class EventSharingRoutes implements Routes {
      * know whose decision a pending visitor is: without it that screen shows accept and deny buttons
      * beside people it may not decide about, and the refusal only arrives once somebody presses one.
      *
-     * <p>Asked with a day, each partner's line also says how many of its places are taken on it.
+     * <p>Asked with a day, each partner's line also shows how many of its places are taken on it.
      */
     @OpenApi(
             path = "/api/v1/events/federation-registrations/queue",

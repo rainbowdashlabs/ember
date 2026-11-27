@@ -29,9 +29,9 @@ import java.util.Optional;
  *
  * <p>They are read and written by the station owning the file; a file of another station answers
  * the same as one that does not exist, as {@link KbGuards#requireOwnedFile} does for the file itself.
- * Only their author changes them; their author or a knowledge manager removes them. A reply tells
- * the author of the answered comment and a comment tells whoever it mentions; a comment from a
- * partner station tells nobody.
+ * Only their author changes them; their author or a knowledge manager removes them. A reply notifies
+ * the author of the answered comment and a comment notifies whoever it mentions; a comment from a
+ * partner station notifies nobody.
  */
 @Singleton
 public class KbCommentTarget implements CommentTarget {

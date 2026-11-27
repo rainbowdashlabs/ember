@@ -17,8 +17,8 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * What goes with a piece somebody has just picked.
  *
  * <p>Two sources, in order. Everything carrying a word the picked piece carries, across the
- * inventories, which is the thing neither the inventory nor the kind could say: a radio, its charging
- * station and an antenna filed somewhere else belong together and only a word says so. Then the other
+ * inventories, which is the thing neither the inventory nor the kind could show: a radio, its charging
+ * station and an antenna filed somewhere else belong together and only a word links them. Then the other
  * pieces filed beside it, in the same inventory.
  *
  * <p>Words win where both apply, and a piece is never recommended twice.

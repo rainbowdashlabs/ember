@@ -241,9 +241,9 @@ public class OnboardingService {
     }
 
     /**
-     * A dismissed task stays dismissed, whatever its data would now say.
+     * A dismissed task stays dismissed, whatever its data would now show.
      *
-     * @param elsewhere whether the marks are the reader's own from another station, which is said
+     * @param elsewhere whether the marks are the reader's own from another station, which is shown
      *                  rather than passed off as a mark left here
      */
     private OnboardingTaskView view(

@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Board notifications between partners: tells the partners a board is shared with that it was
+ * Board notifications between partners: notifies the partners a board is shared with that it was
  * renamed, stopped being shared or changed its share mode, and takes in the same notifications from
  * the partners sharing boards with this station, keeping the saved boards of its members current.
  *
@@ -85,7 +85,7 @@ public class FederatedBoardNotificationService implements FederationServer {
     }
 
     /**
-     * Tells one partner the board was renamed.
+     * Notifies one partner that the board was renamed.
      *
      * @param partnerId   the partner the board is shared with
      * @param boardId     the renamed board
@@ -102,7 +102,7 @@ public class FederatedBoardNotificationService implements FederationServer {
     }
 
     /**
-     * Tells one partner that a board is no longer shared with it. Called once the share target is
+     * Notifies one partner that a board is no longer shared with it. Called once the share target is
      * gone, so the partner is named explicitly rather than read from the board's share targets.
      *
      * @param partnerId the partner the board was shared with
@@ -118,7 +118,7 @@ public class FederatedBoardNotificationService implements FederationServer {
     }
 
     /**
-     * Tells one partner how it may use the board from now on.
+     * Notifies one partner how it may use the board from now on.
      *
      * @param partnerId the partner the board is shared with
      * @param boardId   the board

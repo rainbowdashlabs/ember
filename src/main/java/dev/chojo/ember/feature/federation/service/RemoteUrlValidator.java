@@ -81,7 +81,7 @@ public class RemoteUrlValidator {
     }
 
     /**
-     * Whether an address is one this instance may connect to on somebody else's say-so.
+     * Whether an address is one this instance may connect to on somebody else's word.
      *
      * @param address a resolved address
      * @return true for a public unicast address

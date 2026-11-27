@@ -107,11 +107,11 @@ public class FederationHttpClient {
      *
      * <p>Unlike the typed helpers around it, this one reports what went wrong rather than folding
      * every failure into {@code null}. A person is waiting on the answer, and "we could not reach
-     * them" and "they say that code is used up" are different things to be told.
+     * them" and "they report that code is used up" are different things to report.
      *
      * @param remoteBaseUrl the base URL of the instance that issued the code
      * @param body          the handshake payload
-     * @return what the far side said, or why it could not be asked
+     * @return what the far side answered, or why it could not be asked
      */
     public HandshakeAttempt handshake(String remoteBaseUrl, RemoteFederationRoutes.HandshakeRequest body) {
         String url = apiUrl(remoteBaseUrl) + RemoteFederationRoutes.HANDSHAKE.path();
@@ -444,7 +444,7 @@ public class FederationHttpClient {
     public record HandshakeAttempt(
             HandshakeStatus status, RemoteFederationRoutes.@Nullable HandshakeResponse response) {}
 
-    /** How a handshake attempt ended, in terms a person entering a code can be told about. */
+    /** How a handshake attempt ended, in terms a person entering a code can be shown. */
     public enum HandshakeStatus {
         /** The far side accepted, redeemed the token and answered with its own half. */
         ESTABLISHED,

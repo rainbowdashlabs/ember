@@ -41,7 +41,7 @@ import java.util.UUID;
  *
  * <p>Serving, every request is held to the appointments shared with the partner it arrived on, so a
  * partner cannot read or write under another appointment by its id, and a comment is only changed or
- * removed by the partner's member who wrote it. Whom a partner's comment tells here the appointment's
+ * removed by the partner's member who wrote it. Whom a partner's comment notifies here the appointment's
  * comment target decides: a new top-level comment reaches the appointment managers, nothing else does.
  *
  * <p>Asking, this station's members read and write the thread at the station holding the appointment;
@@ -154,7 +154,7 @@ public class EventCommentFederation implements FederationServer {
     }
 
     /**
-     * Creates a comment from a remote federated partner. Whom it tells here the appointment's comment
+     * Creates a comment from a remote federated partner. Whom it notifies here the appointment's comment
      * target decides: a new top-level comment reaches the appointment managers, and nothing else does.
      */
     public CommentResponse createRemoteComment(

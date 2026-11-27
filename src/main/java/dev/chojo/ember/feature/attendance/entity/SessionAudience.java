@@ -27,7 +27,7 @@ public record SessionAudience(Set<StationUserType> userTypes, List<Integer> grou
         groupIds = groupIds == null ? List.of() : List.copyOf(groupIds);
     }
 
-    /** Whether the sheet was told nothing, in which case the template's own user types and groups decide. */
+    /** Whether the sheet was given nothing, in which case the template's own user types and groups decide. */
     public boolean namesNobody() {
         return userTypes.isEmpty() && groupIds.isEmpty();
     }

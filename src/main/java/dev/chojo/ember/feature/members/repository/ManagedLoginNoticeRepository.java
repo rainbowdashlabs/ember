@@ -17,7 +17,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * The access changes a guardian made that the members in their care have not been told about yet.
+ * The access changes a guardian made that the members in their care have not yet been notified about.
  *
  * <p>A member has at most one of them: only the newest change is worth announcing, so scheduling
  * another one for the same member replaces what was waiting.

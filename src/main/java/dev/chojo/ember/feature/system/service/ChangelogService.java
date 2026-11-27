@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  * What every version of this instance brought, in the language that asks for it.
  *
  * <p>The changelog travels in the jar rather than being fetched from GitHub by whoever is reading
- * it. An installation with no way out can still say what it changed, the rate limit of a public API
+ * it. An installation with no way out can still show what it changed, the rate limit of a public API
  * is not spent per reader, and nobody has to leave an address somewhere else to read what their own
  * instance does.
  *
@@ -56,7 +56,7 @@ public class ChangelogService {
     }
 
     /**
-     * Lets a test say which versions were released and when.
+     * Lets a test define which versions were released and when.
      *
      * <p>The shipped record is written by the build out of the tags of whatever checkout it ran in,
      * so a test that read it would assert something different on a machine with the tags than on one
@@ -99,7 +99,7 @@ public class ChangelogService {
     /**
      * What one version brought, or empty where the changelog does not name it.
      *
-     * <p>A development build has no section of its own, and an announcement with an empty body says
+     * <p>A development build has no section of its own, and an announcement with an empty body shows
      * less than nothing, so the absence is the answer rather than a heading with nothing under it.
      *
      * @param locale the language to read it in; anything else falls back to English
@@ -133,7 +133,7 @@ public class ChangelogService {
     /**
      * The version as the changelog writes it: the numbers alone.
      *
-     * <p>What the instance reports about itself carries more than that. A build off a branch says
+     * <p>What the instance reports about itself carries more than that. A build off a branch shows
      * {@code 26.17.0 main-1a2b3c4 @ 2026-09-15 10:00}, and the part a changelog can be asked about
      * is the first word of it, without its {@code v}.
      */
@@ -235,7 +235,7 @@ public class ChangelogService {
     /**
      * Splits one file into its versions, keeping everything under a heading as it was written:
      * these are entries somebody wrote to be read, and rewrapping them would only lose what they
-     * say.
+     * contain.
      */
     private Map<String, String> read(String locale) {
         Map<String, String> sections = new LinkedHashMap<>();

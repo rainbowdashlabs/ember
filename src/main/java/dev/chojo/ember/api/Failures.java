@@ -19,7 +19,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Reads a failure nobody wrote a message for and works out what to tell the reader.
+ * Reads a failure nobody wrote a message for and works out what to show the reader.
  *
  * <p>A request that breaks used to answer with a bare status and an empty body, which leaves the
  * reader unable to tell whether they sent something wrong or Ember fell over. What comes out of
@@ -68,11 +68,11 @@ public final class Failures {
      * <p>The cause chain is walked for a database refusal first, because those are the failures
      * that are frequently not Ember's fault at all: a second row with details that have to be
      * unique, a row naming something already deleted, a value longer than the column holds. Each
-     * of those gets the status that says so and a sentence saying that nothing was saved.
+     * of those gets the status that fits and a sentence showing that nothing was saved.
      * Everything else is a fault, named as one rather than dressed up as something specific.
      *
      * <p>A storage server that could not be reached comes before all of that: it is not Ember's
-     * fault either, and the reader is told the storage is unreachable and to try again.
+     * fault either, and the reader sees that the storage is unreachable and is asked to try again.
      *
      * @param err what was thrown
      * @return the refusal to answer with

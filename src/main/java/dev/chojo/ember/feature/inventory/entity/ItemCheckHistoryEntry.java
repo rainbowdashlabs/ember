@@ -19,8 +19,8 @@ import java.time.Instant;
  * @param checkerName   display name of the member who signed the check off
  * @param reporterName  display name of whoever said what was there, where that is somebody other
  *                      than the person who signed it off; empty on a check somebody walked
- *                      themselves. A piece checked at arm's length can be told from one somebody
- *                      held only if the history says both names.
+ *                      themselves. A piece checked at arm's length can be distinguished from one somebody
+ *                      held only if the history shows both names.
  * @param containerName name of the container the check covered; {@code null} for member-scope checks
  * @param scope         {@code CONTAINER} or {@code MEMBER}
  * @param note          free-text note recorded for this item, or empty

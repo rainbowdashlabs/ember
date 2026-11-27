@@ -74,7 +74,7 @@ public class ProblemReportRepository {
     }
 
     /**
-     * How many reports nobody has looked at yet, which the sidebar shows so an operator does not have to
+     * How many reports nobody has looked at yet, which the sidebar shows that an operator does not have to
      * open the page to find out whether there is anything on it.
      *
      * @return the number of unacknowledged reports

@@ -8,8 +8,8 @@ package dev.chojo.ember.feature.form.entity;
 /**
  * How far a form meant for people outside the station reaches.
  *
- * <p>This says nothing about whether the form is taking answers, which its status and its dates
- * already decide. It says who can get to it at all.
+ * <p>This has no bearing on whether the form is taking answers, which its status and its dates
+ * already decide. It defines who can get to it at all.
  *
  * <p>An internal form has neither reach: it is answered from inside the station and carries this
  * only because every form has a column.

@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * Calls off the dates that too few registrations were accepted for in time, one date at a time.
  *
- * <p>An appointment with a minimum says how many days before each date the minimum must be reached:
+ * <p>An appointment with a minimum sets how many days before each date the minimum must be reached:
  * the check is due from midnight that many days before the date, on the station's calendar. Every
  * half hour each date inside that stretch is counted on its own: the accepted registrations of that
  * date and no other. A date that falls short is called off, and every other date of the series stays

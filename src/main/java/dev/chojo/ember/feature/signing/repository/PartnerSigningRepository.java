@@ -165,7 +165,7 @@ public class PartnerSigningRepository {
     /**
      * Notes a sign-up of a member for a date of a partner's appointment with the status the partner gave
      * it, or the status it holds now where the sign-up was noted already. The partner's instant is left
-     * as it was, since this station's clock does not say when the partner decided.
+     * as it was, since this station's clock does not show when the partner decided.
      *
      * @param stationId         the station of the member
      * @param memberId          the member
@@ -222,7 +222,7 @@ public class PartnerSigningRepository {
     }
 
     /**
-     * Takes in a decision a partner told about a member's sign-up, unless it is not newer than the one
+     * Takes in a decision a partner reported about a member's sign-up, unless it is not newer than the one
      * already taken in.
      *
      * @param memberId          the member
@@ -345,7 +345,7 @@ public class PartnerSigningRepository {
     }
 
     /**
-     * @param stationId         the station of the members, which is the one the partner told: another station
+     * @param stationId         the station of the members, which is the one the partner reported: another station
      *                          here that is a partner of the same station is none of its business
      * @param partnerStationUid the station holding the appointment
      * @param remoteEventId     the appointment there
@@ -409,7 +409,7 @@ public class PartnerSigningRepository {
 
     /**
      * The rows with something the partner has not taken yet and whose next try is due: the partner was never
-     * told the document is asked for here, or a sealed copy newer than the one it took is filed.
+     * notified that the document is asked for here, or a sealed copy newer than the one it took is filed.
      *
      * @param now         the moment that counts as now
      * @param maxAttempts the failures in a row after which sending is given up

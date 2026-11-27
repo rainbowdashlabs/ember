@@ -15,7 +15,7 @@ import java.util.Locale;
  * What a file actually is, read from its first bytes rather than from what it is called.
  *
  * <p>A name and a declared type are both written by whoever sent the mail, so neither can be trusted
- * to say what is in the file. Reading the bytes is the cheapest guard there is against an executable
+ * to show what is in the file. Reading the bytes is the cheapest guard there is against an executable
  * arriving as {@code invoice.pdf}, and it costs a comparison of a dozen bytes.
  *
  * <p>An unrecognised file is not an error and not a type: it comes back as nothing, and the caller
@@ -42,7 +42,7 @@ public final class ContentSniffer {
      * The type of these bytes, or null where they are none this recognises.
      *
      * @param data the file as it arrived
-     * @return the content type, or null where the bytes say nothing this knows
+     * @return the content type, or null where the bytes show nothing this knows
      */
     public static @Nullable String sniff(byte[] data) {
         if (data == null) return null;
@@ -56,7 +56,7 @@ public final class ContentSniffer {
      * Whether the name a file arrived under agrees with what the bytes turned out to be.
      *
      * <p>A disagreement is refused rather than corrected. The bytes are the authority on what the file
-     * is, but a file whose name says something else was either produced by something broken or sent by
+     * is, but a file whose name shows something else was either produced by something broken or sent by
      * somebody hoping the name would be believed, and neither belongs in a document store.
      *
      * <p>A name carrying no extension at all agrees with everything: there is nothing to contradict.
@@ -81,7 +81,7 @@ public final class ContentSniffer {
 
     /**
      * Whether a file claims, by its name or by the type it was declared as, to be one of the kinds the
-     * bytes could tell. Bytes that tell nothing then contradict the claim: a picture that is not one is
+     * bytes could identify. Bytes that show nothing then contradict the claim: a picture that is not one is
      * not to be shown as one.
      *
      * @param fileName     the name the file arrived under

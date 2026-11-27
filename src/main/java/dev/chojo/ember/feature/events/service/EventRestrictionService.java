@@ -28,8 +28,8 @@ import java.util.Set;
  * machinery.
  *
  * <p>An event carries two audiences, and they answer different questions. The registration audience
- * says who the appointment is for; everybody else still sees it in the calendar and simply cannot
- * answer it. The view audience says who may know it exists at all, and for everybody else the event
+ * defines who the appointment is for; everybody else still sees it in the calendar and simply cannot
+ * answer it. The view audience defines who may know it exists at all, and for everybody else the event
  * is absent from every list, feed and notification.
  *
  * <p>Seeing contains registering: {@link #canRegister} reads both, so no caller has to remember the
@@ -155,7 +155,7 @@ public class EventRestrictionService {
      *
      * <p>Every event one of these members may see is answered, including those none of them may
      * register for, which then carry an empty list. An event none of them may see is left out, since
-     * naming it would tell the reader it exists.
+     * naming it would reveal to the reader that it exists.
      *
      * @param events            the events to answer for
      * @param memberIds         the reader and the members they answer for

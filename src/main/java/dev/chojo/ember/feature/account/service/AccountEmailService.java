@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  * asked to put right is usually wrong or dead, which is exactly the address the old half of that
  * confirmation would be sent to. So this writes the address at once, and pays for it in the two
  * things that make the change visible: every session of that account ends, and both addresses are
- * told, as far as mail can reach them.
+ * notified, as far as mail can reach them.
  */
 @Singleton
 public class AccountEmailService {
@@ -50,7 +50,7 @@ public class AccountEmailService {
     }
 
     /**
-     * What stands in the way of an address, so a caller that has something of its own to say about
+     * What stands in the way of an address, so a caller that has something of its own to show for
      * each answer can ask before it writes.
      */
     public enum AddressProblem {

@@ -153,7 +153,7 @@ final class AnswerLimits {
         return bound;
     }
 
-    /** Whether one bound lies after the other on every day, which only bounds of the same sort can say. */
+    /** Whether one bound lies after the other on every day, which only bounds of the same sort can decide. */
     private static boolean after(DayBound earliest, DayBound latest) {
         var earliestDay = earliest.day();
         var latestDay = latest.day();

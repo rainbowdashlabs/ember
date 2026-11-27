@@ -332,7 +332,7 @@ public class ProcedureService {
     /**
      * Writes a procedure, snapshots the template it was started from and gives it its managing party:
      * the one asked for, else the template's, else none. The members the party names one by one are
-     * told it was handed to them.
+     * notified that it was handed to them.
      *
      * <p>A document step of the template is checked against the member the procedure is about before
      * anything is written, and those that are unlocked right away are generated and asked for once it
@@ -351,7 +351,7 @@ public class ProcedureService {
     }
 
     /**
-     * Starts a procedure as {@link #createProcedure} does, except that nobody is told it was handed to
+     * Starts a procedure as {@link #createProcedure} does, except that nobody is notified that it was handed to
      * them. Only for procedures seeded as demo data, which nobody handed to anybody.
      *
      * @param draft         what the procedure starts with
@@ -398,7 +398,7 @@ public class ProcedureService {
      * is written, so nothing is left half made by a member who does not fit. The procedures are written
      * first and their document steps asked for after, so the slow part comes last.
      *
-     * <p>The members the party names one by one are told once, about the first procedure under the name it
+     * <p>The members the party names one by one are notified once, about the first procedure under the name it
      * is stored with, rather than once for every person.
      *
      * <p>It is not one transaction: a failure while writing leaves the procedures written so far.
@@ -451,7 +451,7 @@ public class ProcedureService {
         }
     }
 
-    /** Writes one procedure as planned, under its own name and about its own member, without telling anybody. */
+    /** Writes one procedure as planned, under its own name and about its own member, without notifying anybody. */
     private Procedure persist(Plan plan, String name, @Nullable Integer aboutMemberId) {
         var draft = plan.draft();
         var procedure = repository.createProcedure(
@@ -477,7 +477,7 @@ public class ProcedureService {
     }
 
     /**
-     * Tells the members the planned party names one by one that a procedure was handed to them, under the
+     * Notifies the members the planned party names one by one that a procedure was handed to them, under the
      * name the procedure is stored with.
      */
     private void tellNamed(Plan plan, Procedure procedure) {
@@ -846,7 +846,7 @@ public class ProcedureService {
     /**
      * Opens the document step again whose agreement was withdrawn. The steps that depend on it lock again
      * while they are not ticked; a ticked one stays ticked. On a resolved procedure whoever resolved it is
-     * told, and the procedure stays resolved until somebody reopens it.
+     * notified, and the procedure stays resolved until somebody reopens it.
      *
      * @param generationId the generation log entry of the document
      * @param withdrawnBy  the member who withdrew it
@@ -883,7 +883,7 @@ public class ProcedureService {
 
     /**
      * The managing party of a procedure: who sees its public steps, ticks the steps marked for them and
-     * is told about it.
+     * is notified about it.
      *
      * @param procedureId the procedure
      * @return the party; one naming nobody where the procedure has none
@@ -920,7 +920,7 @@ public class ProcedureService {
 
     /**
      * Gives a procedure another managing party. The members it names one by one for the first time are
-     * told it was handed to them.
+     * notified that it was handed to them.
      *
      * @param procedureId        the procedure
      * @param party              the new party; one naming nobody leaves it to those who edit procedures
@@ -946,7 +946,7 @@ public class ProcedureService {
     }
 
     /**
-     * Who of the party is told about a procedure: its members, but only where the procedure is public,
+     * Who of the party is notified about a procedure: its members, but only where the procedure is public,
      * since a member of the party who does not edit procedures may not open one that is not.
      */
     private List<Integer> toldOf(Procedure procedure) {

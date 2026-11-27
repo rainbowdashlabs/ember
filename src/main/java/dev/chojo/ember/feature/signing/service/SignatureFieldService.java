@@ -53,7 +53,7 @@ import java.util.UUID;
  * in front of the witness has their own guardian link copied into the evidence.
  *
  * <p>Once a field is settled, the unread requests and reminders for it are taken back, and a signature is
- * told to whoever asked for it ({@link SignatureNotices}). A field a manager settles is sealed into the
+ * reported to whoever asked for it ({@link SignatureNotices}). A field a manager settles is sealed into the
  * document by {@link SigningStateSweeper}. A request completed by the field it settled is handed on to
  * {@link AgreementOutcomes}.
  */
@@ -107,7 +107,7 @@ public class SignatureFieldService {
     }
 
     /**
-     * Tells whatever rests on a request that closed, and {@link AgreementOutcomes} of one that completed,
+     * Notifies whatever rests on a request that closed, and {@link AgreementOutcomes} of one that completed,
      * logging rather than throwing.
      */
     private void tellIfClosed(int requestId, int settledBy) {

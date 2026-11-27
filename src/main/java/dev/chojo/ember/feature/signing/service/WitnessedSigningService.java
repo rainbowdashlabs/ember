@@ -45,7 +45,7 @@ import java.util.Objects;
  *
  * <p>The document is an open field of one of the person's documents, or one generated on the spot from a
  * template that asks the member or a guardian to sign, filed with the person alone. Whom the witness
- * reaches and which fields they collect is {@link WitnessReach}'s to say; every step here asks it again, so
+ * reaches and which fields they collect is {@link WitnessReach}'s to decide; every step here asks it again, so
  * the witness reads a document only while they may collect a signature on it.
  *
  * <p>The act itself is the one every signature goes through ({@link SigningActService}), with the capacity
@@ -154,7 +154,7 @@ public class WitnessedSigningService {
     public record Offers(List<WitnessedField> fields, List<DocumentTemplate> templates) {}
 
     /**
-     * Generates a document from a template for the person and asks for its signatures, without telling
+     * Generates a document from a template for the person and asks for its signatures, without notifying
      * anybody, so they can be signed in front of the witness right away.
      *
      * @param session    the witness
@@ -170,14 +170,14 @@ public class WitnessedSigningService {
 
     /**
      * Asks for the signatures of a document the reader just generated for a person, to collect them in
-     * front of the reader right away, without telling anybody. The reader has to be allowed to change the
+     * front of the reader right away, without notifying anybody. The reader has to be allowed to change the
      * document and to collect signatures from the person, both checked before anything is asked. Where the
      * document holds nothing the witness may collect, such as a field any guardian signs of the witness's
-     * own child, everybody it asks is told as with an ordinary request, so nobody waits unasked.
+     * own child, everybody it asks is notified as with an ordinary request, so nobody waits unasked.
      *
      * @param session      the witness
      * @param generationId the generation log entry of the document
-     * @return the fields the witness may collect on the document, none where everybody was told instead
+     * @return the fields the witness may collect on the document, none where everybody was notified instead
      */
     public List<WitnessedField> requireOwnedThenAskInPerson(StationSession session, int generationId) {
         reach.requireWitness(session);

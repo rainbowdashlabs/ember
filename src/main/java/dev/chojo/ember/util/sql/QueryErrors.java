@@ -8,13 +8,13 @@ package dev.chojo.ember.util.sql;
 import java.sql.SQLException;
 
 /**
- * Says in one line what went wrong with a query, for the log line every failed query writes.
+ * Shows in one line what went wrong with a query, for the log line every failed query writes.
  *
  * <p>The query library wraps the database's error in one of its own whose message repeats the whole
- * statement over several lines. A log line that only said "Database query error" left the reader with
+ * statement over several lines. A log line that only showed "Database query error" left the reader with
  * the stack trace, and wherever the trace is split from its line, as in a log collector that takes
  * every printed line on its own, with nothing at all. The database's own error, first line only, is
- * what tells one failed query from another.
+ * what distinguishes one failed query from another.
  */
 public final class QueryErrors {
 

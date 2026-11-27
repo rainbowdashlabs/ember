@@ -13,7 +13,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
  *
  * <p>Only raised for stations that actually had it on. A page vanishing without explanation is the kind of
  * thing people report as a fault, so the ones who lose something hear why, and the ones who never had it are
- * not told about a change that means nothing to them.
+ * not notified of a change that means nothing to them.
  *
  * @param stationId   the station losing it
  * @param clusterName the cluster that decided, for the reader

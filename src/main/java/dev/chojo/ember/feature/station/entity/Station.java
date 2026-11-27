@@ -97,7 +97,7 @@ public record Station(
      * A station as it is read where the question of nicknames does not arise.
      *
      * <p>Reading them is the ordinary case, so the places that build a station row by hand do not
-     * have to say so.
+     * have to spell it out.
      */
     public Station(
             int id,

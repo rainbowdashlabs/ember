@@ -325,7 +325,7 @@ public class LetterRenderer {
         return new Converted(typst, placed.pictures());
     }
 
-    /** @return how many converted texts are kept, which says how often Pandoc ran */
+    /** @return how many converted texts are kept, which shows how often Pandoc ran */
     long convertedTexts() {
         converted.cleanUp();
         return converted.estimatedSize();

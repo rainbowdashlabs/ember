@@ -75,7 +75,7 @@ public final class GenericGdprDeleter {
     /**
      * Whether this column is one the requested identity may be matched against.
      *
-     * <p>It has to be a column that could hold such an identity, and where the table says which of its
+     * <p>It has to be a column that could hold such an identity, and where the table defines which of its
      * columns carry which identity, one it names for this type. Without the second half a strategy
      * unrelated to the identity being erased would run anyway: station_member.id is deleted outright,
      * but only ever for a member, never for the account behind them.
@@ -99,7 +99,7 @@ public final class GenericGdprDeleter {
      * <p>A table that declares no identity columns is treated permissively, which is what lets a rule
      * stand on its own. Permissive cannot mean anything goes: a member's uuid compared against an
      * integer column is not a rule that matches nothing, it is SQL the database refuses outright, and
-     * the whole deletion stops on it. Only the shape of the column can say, so it is asked here.
+     * the whole deletion stops on it. Only the shape of the column can settle it, so it is asked here.
      */
     private static boolean typeCanHoldIdentity(IdentityType type, ColumnEntry column) {
         String columnType = column.type();

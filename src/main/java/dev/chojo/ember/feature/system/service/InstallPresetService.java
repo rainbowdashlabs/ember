@@ -128,7 +128,7 @@ public class InstallPresetService {
         return preset;
     }
 
-    /** How long a code lasts, so the page can say it rather than leave somebody guessing. */
+    /** How long a code lasts, so the page can show it rather than leave somebody guessing. */
     public Duration lifetime() {
         return TTL;
     }

@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
  *
  * <p>A family is used where text is set in it (the body, the styles, the lists, the headers and footers)
  * and in the theme, which is where a form leaves the fonts it takes from Word's defaults. The list of
- * fonts the document carries also names fonts no text is set in, so it says nothing about what the form
+ * fonts the document carries also names fonts no text is set in, so it shows nothing about what the form
  * uses. Replacing a family rewrites every name of it, that list included, so LibreOffice draws the form in
  * the family chosen instead of one of its own choosing.
  */

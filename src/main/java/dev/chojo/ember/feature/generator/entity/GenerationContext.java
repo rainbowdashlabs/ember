@@ -59,12 +59,12 @@ public record GenerationContext(
     }
 
     /**
-     * What a document says about the appointment it is generated for.
+     * What a document shows about the appointment it is generated for.
      *
      * @param name     what the appointment is called
      * @param start    when it begins
      * @param end      when it ends
-     * @param location where it takes place, or null where that is not said
+     * @param location where it takes place, or null where that is not given
      */
     public record EventFacts(
             String name,

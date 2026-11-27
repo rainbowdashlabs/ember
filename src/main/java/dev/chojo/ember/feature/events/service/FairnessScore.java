@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 
 /**
- * How strongly a member's sign-up history says they should be let in next.
+ * How strongly a member's sign-up history suggests they should be let in next.
  *
  * <p>The score rises with denials and falls with acceptances: {@code denialRatio * 50 + denied * 5 -
  * accepted * 2 + 50}, rounded to one decimal and never below zero. Somebody without any decision yet

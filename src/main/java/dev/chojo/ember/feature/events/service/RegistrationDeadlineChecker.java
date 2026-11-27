@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Tells the managers once per date when its sign-up deadline passed with sign-ups still waiting for
+ * Notifies the managers once per date when its sign-up deadline passed with sign-ups still waiting for
  * a decision. Nothing is declined: the waiting sign-ups stay for the managers to decide, late or not.
  *
  * <p>Each date is asked on its own and on its station's clock, since a relative deadline closes each
@@ -79,11 +79,11 @@ public class RegistrationDeadlineChecker implements TaskSource {
 
     /**
      * Handles the waiting dates of one appointment whose deadline passed. A fixed deadline closes
-     * every date at once, so its dates are told about in one notice with their sign-ups added up;
-     * a relative one closes each date on its own and is told about per date.
+     * every date at once, so its dates are reported in one notice with their sign-ups added up;
+     * a relative one closes each date on its own and is reported per date.
      *
      * <p>A date already handled counts as handled only for the close it was handled for: once its
-     * deadline moved and passed again, it is told about again.
+     * deadline moved and passed again, it is reported again.
      */
     private void handle(
             StationEvent event,
@@ -116,7 +116,7 @@ public class RegistrationDeadlineChecker implements TaskSource {
     }
 
     /**
-     * Tells the managers, naming the date where a series closes each date on its own.
+     * Notifies the managers, naming the date where a series closes each date on its own.
      */
     private void tell(StationEvent event, int pendingCount, @Nullable LocalDate date) {
         eventBus.publish(new RegistrationDeadlineExpired(

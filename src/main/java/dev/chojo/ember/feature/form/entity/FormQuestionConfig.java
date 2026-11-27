@@ -122,7 +122,7 @@ public sealed interface FormQuestionConfig {
      * One option of a choice or ranking question, or one statement of a Likert grid.
      *
      * @param key   short text that names the option for good; made when the option is added and never changed
-     * @param label what the option says, which the editor may change at any time
+     * @param label what the option shows, which the editor may change at any time
      */
     record Option(String key, String label) {
         /**

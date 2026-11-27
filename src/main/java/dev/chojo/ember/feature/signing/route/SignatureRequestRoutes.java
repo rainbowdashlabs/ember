@@ -259,7 +259,7 @@ public class SignatureRequestRoutes implements Routes {
      *
      * @param uid             the request
      * @param state           how it stands
-     * @param retentionMonths how many months it is kept after the member has gone, as the template said when
+     * @param retentionMonths how many months it is kept after the member has gone, as the template defined it when
      *                        it was made, or null for only while the member is a member
      * @param copyAttached    whether each signer's copy by mail carries the sealed PDF
      */

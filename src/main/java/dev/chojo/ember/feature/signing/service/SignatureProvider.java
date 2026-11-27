@@ -20,7 +20,7 @@ import java.util.List;
  * a {@link CompletedSigning}, whoever ran the act, and the station seals the document from the evidence it
  * records, whichever provider gave it.
  *
- * <p>An act has two halves. {@link #start} opens an attempt and says how it goes on: in Ember with a
+ * <p>An act has two halves. {@link #start} opens an attempt and defines how it goes on: in Ember with a
  * step-up, or at an outside provider the signer is sent to, whose callback leads to {@link #complete}.
  * The caller keeps what the start returned on the server, spends it once, and hands the nonce back with
  * the confirmation; a provider holds no state between the two halves.

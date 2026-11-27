@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * Where files are to be kept, as a station, an association or the instance describes it on the wire.
  *
- * <p>One model for every owner. Which destinations an owner may name is the owner's to say: a station may
+ * <p>One model for every owner. Which destinations an owner may name is the owner's to decide: a station may
  * ask for the instance's storage and its association's, an association only for remote storage, and the
  * instance for remote storage or a directory of its own. Credentials travel in plain text over HTTPS and are
  * encrypted before they are written anywhere.
@@ -37,7 +37,7 @@ public sealed interface BackendRequest {
 
     /**
      * The current version of the association's storage. Has no fields: which storage that is, is the
-     * association's to say and not the station's to type.
+     * association's to decide and not the station's to type.
      */
     record ClusterStorageRequest() implements BackendRequest {}
 

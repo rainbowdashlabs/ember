@@ -13,7 +13,7 @@ import java.time.Instant;
 
 /**
  * This station decided about a partner station's member's event group sign-up, or the sign-up moved up
- * from the waiting list. Published once the change is kept, so the partner can be told.
+ * from the waiting list. Published once the change is kept, so the partner can be notified.
  *
  * @param stationId      the station holding it, which decided
  * @param signUpId      the partner's event group sign-up

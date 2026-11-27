@@ -465,7 +465,7 @@ public class EventGroupPartnerService {
         });
     }
 
-    /** Announces a decision about a partner's member's sign-up once it is kept, so the partner is told. */
+    /** Announces a decision about a partner's member's sign-up once it is kept, so the partner is notified. */
     private void tellPartner(
             EventGroup eventGroup, int signUpId, RegistrationStatus status, @Nullable Integer queuePosition) {
         var changedAt = Instant.now();
@@ -524,13 +524,13 @@ public class EventGroupPartnerService {
     }
 
     /**
-     * Tells every partner whose members hold or wait for a place that the event group was called off,
+     * Notifies every partner whose members hold or wait for a place that the event group was called off,
      * naming those members. A partner that cannot be reached misses the notice; the event group page
      * still shows the event group as called off.
      *
      * @param eventGroupId   the event group
      * @param eventGroupName its name
-     * @param reason         why, as told to the people signed up, or null
+     * @param reason         why, as shown to the people signed up, or null
      */
     public void tellCancelled(int eventGroupId, String eventGroupName, @Nullable String reason) {
         var byPartner = partners.findByEventGroup(eventGroupId).stream()
@@ -650,7 +650,7 @@ public class EventGroupPartnerService {
     }
 
     /**
-     * Where a partner's member stands in an event group, as the partner is told.
+     * Where a partner's member stands in an event group, as the partner receives it.
      *
      * @param memberUid    the member, by the id their own station gave them
      * @param status       the sign-up's status, or null where they are not signed up

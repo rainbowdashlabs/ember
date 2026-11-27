@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Which templates are meant for which members of one station, as their audiences say.
+ * Which templates are meant for which members of one station, as their audiences define.
  *
  * <p>The station's members, or the one member asked about, are read once, and each template's audience the
  * first time it is asked about, so a list of templates or of participants asks the database a fixed number

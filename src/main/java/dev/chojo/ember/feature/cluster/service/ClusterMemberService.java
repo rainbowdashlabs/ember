@@ -144,7 +144,7 @@ public class ClusterMemberService {
     /**
      * Everything one member holds, split by where it came from.
      *
-     * <p>Split rather than merged, because the screen showing it has to say which grants can be taken away
+     * <p>Split rather than merged, because the screen showing it has to show which grants can be taken away
      * here and which follow from the user type or a group.
      *
      * @param clusterId the cluster
@@ -229,7 +229,7 @@ public class ClusterMemberService {
     }
 
     /**
-     * Closes a group. Everybody who was in it is told, because what it carried is no longer theirs.
+     * Closes a group. Everybody who was in it is notified, because what it carried is no longer theirs.
      *
      * @param clusterId the cluster
      * @param groupId   the group
@@ -244,7 +244,7 @@ public class ClusterMemberService {
     }
 
     /**
-     * Replaces who is in a group, telling everybody whose standing actually moved.
+     * Replaces who is in a group, notifying everybody whose standing actually moved.
      *
      * @param clusterId the cluster
      * @param groupId   the group
@@ -259,7 +259,7 @@ public class ClusterMemberService {
      *
      * <p>One request may name all three, and a refusal for the last part must not leave the first two
      * written: a group renamed and granted more while its people stayed the same is a state nobody asked
-     * for. Everybody whose standing moved is told once the change holds, and not before.
+     * for. Everybody whose standing moved is notified once the change holds, and not before.
      *
      * @param clusterId the cluster
      * @param groupId   the group
@@ -381,7 +381,7 @@ public class ClusterMemberService {
     }
 
     /**
-     * Replaces what a group carries. Everybody in it is told, because their standing has moved.
+     * Replaces what a group carries. Everybody in it is notified, because their standing has moved.
      *
      * @param clusterId   the cluster
      * @param groupId     the group

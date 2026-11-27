@@ -354,7 +354,7 @@ public class EventFieldService {
 
     /**
      * The questions of an appointment as one reader sees them, each member question that takes
-     * self-registration telling whether this reader may put themselves in.
+     * self-registration showing whether this reader may put themselves in.
      *
      * <p>The state is worked out by the same checks {@link #toggleSelfRegistration} refuses with, so
      * a button offered from it is one the toggle accepts, except where a single slot is already
@@ -452,9 +452,9 @@ public class EventFieldService {
      * <p>Who may put themselves in is the field's own business and not the appointment's. Standing
      * in one now holds a place on the list, so it is a second way onto it, and deliberately so: a
      * station that switched self-registration on for a field and then narrowed who may stand in it
-     * has said twice over who belongs there, and a register audience that happens not to name the
+     * has declared twice over who belongs there, and a register audience that happens not to name the
      * same group is far more likely to be an oversight than a decision. The closing date is the one
-     * thing that still holds, because it is the appointment saying it is done taking people, and
+     * thing that still holds, because it is the appointment marking itself done taking people, and
      * that is not a thing a field of it can overrule.
      *
      * <p>Coming back off the list is never refused, whatever the date and whoever the question is
@@ -644,7 +644,7 @@ public class EventFieldService {
     }
 
     /**
-     * A field of an event group as its own page shows it to one reader, telling them whether they may
+     * A field of an event group as its own page shows it to one reader, showing them whether they may
      * put themselves in for the whole group.
      *
      * @param eventGroupId      the event group

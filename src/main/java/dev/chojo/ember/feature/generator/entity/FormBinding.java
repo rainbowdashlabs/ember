@@ -11,7 +11,7 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * What a form field the uploaded PDF brings is filled with.
  *
  * <p>A text field takes the text with its placeholders filled in; a check box is ticked where that
- * text says yes, the same way a check field drawn on the page decides.
+ * text means yes, the same way a check field drawn on the page decides.
  *
  * @param fieldName the fully qualified name of the form field
  * @param text      the text with placeholders

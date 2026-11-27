@@ -285,7 +285,7 @@ public class ProcurementService {
         log.info("Procurement {} named item {} as the replacement of swap {}", proc.id(), itemId, swap.id());
     }
 
-    /** Tells the member an order for them arrived, once that is written, and records it. */
+    /** Notifies the member that an order for them arrived, once that is written, and records it. */
     private void announceFulfilled(Procurement proc) {
         String inventoryName = inventoryRepository
                 .findById(proc.inventoryId())
@@ -313,7 +313,7 @@ public class ProcurementService {
      * not happened.
      *
      * <p>A station that has no chain for handing its own gear out keeps the old behaviour rather than
-     * losing the piece to a refusal: the record then says what it always said.
+     * losing the piece to a refusal: the record then shows what it always showed.
      */
     private void handOver(Procurement proc, InventoryItem item) {
         Integer memberId = proc.memberId();
@@ -410,7 +410,7 @@ public class ProcurementService {
         return movement;
     }
 
-    /** What the movement says it is for, which is the order it came out of. */
+    /** What the movement shows it is for, which is the order it came out of. */
     private String reasonFor(Procurement proc) {
         String notes = proc.notes();
         return notes == null || notes.isBlank()

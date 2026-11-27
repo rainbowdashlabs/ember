@@ -10,7 +10,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.Instant;
 
 /**
- * What a listed appointment says about the event group it is a part of: "Jugendflamme 1, part 2 of 4".
+ * What a listed appointment shows about the event group it is a part of: "Jugendflamme 1, part 2 of 4".
  *
  * @param eventGroupId   the event group
  * @param eventGroupName its name

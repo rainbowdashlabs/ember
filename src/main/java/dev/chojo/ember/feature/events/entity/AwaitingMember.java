@@ -5,5 +5,5 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
-/** Somebody who still owes an answer, named so a guardian can tell their children apart. */
+/** Somebody who still owes an answer, named so a guardian can distinguish their children. */
 public record AwaitingMember(int memberId, String name) {}

@@ -193,7 +193,7 @@ public class FederatedEventRoutes implements Routes {
      *
      * <p>This used to put the answer together itself, reading the questions out of this instance's
      * own tables, which are not where a remote partner's live, and never asking about the places at
-     * all. The station holding the appointment is the one that knows all three, so it says all three.
+     * all. The station holding the appointment is the one that knows all three, so it reports all three.
      */
     @OpenApi(
             path = "/api/v1/federated/{stationuid}/events/{id}",
@@ -216,7 +216,7 @@ public class FederatedEventRoutes implements Routes {
      *                   it always did
      * @param questions  the registration questions a member answers on signing up, as this station's own
      *                   sign-up form reads them
-     * @param datePlaces how the places of the date in view stand, or {@code null} where the partner said
+     * @param datePlaces how the places of the date in view stand, or {@code null} where the partner sent
      *                   nothing about them
      */
     public record PartnerEventDetail(
@@ -295,9 +295,9 @@ public class FederatedEventRoutes implements Routes {
     /**
      * Signing one of our members up for a partner's appointment.
      *
-     * <p>What comes back is the status the other station actually recorded. It used to say pending
+     * <p>What comes back is the status the other station actually recorded. It used to show pending
      * whatever happened, so a member accepted at once by an appointment that asks for no confirmation
-     * was told they were waiting on one that nobody would ever give.
+     * saw that they were waiting on one that nobody would ever give.
      *
      * <p>Where the appointment asks its partners' members to sign a document, it is filed in the member's
      * documents here and signed here; the answer lists those documents, so the registration can end on the
@@ -349,7 +349,7 @@ public class FederatedEventRoutes implements Routes {
      *
      * <p>Whether it is still possible is theirs to answer, because they hold the row and the clock
      * that measures the few minutes. A refusal is not a failure here: it means the time has passed,
-     * and the member is told so rather than left wondering whether the press landed.
+     * and the member is notified rather than left wondering whether the press landed.
      */
     @OpenApi(
             path = "/api/v1/federated/{stationuid}/events/{id}/register/undo",
@@ -426,7 +426,7 @@ public class FederatedEventRoutes implements Routes {
 
     /**
      * Signing the agreement of a partner's appointment without registrations for a member: the documents are
-     * filed in the member's documents here and signed here, and the signature says they will come. An
+     * filed in the member's documents here and signed here, and the signature means they will come. An
      * appointment that takes registrations asks for them on registering instead.
      */
     @OpenApi(

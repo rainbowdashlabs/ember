@@ -302,7 +302,7 @@ public class GdprExportService {
      *
      * <p>An article in the trash is still there and still theirs, so leaving it out would make the
      * export incomplete. It goes into a folder of its own instead, because handing it over beside
-     * the live articles would say it is one.
+     * the live articles would show it is one.
      */
     private void addKbFiles(ZipOutputStream zip, int memberId) throws IOException {
         var files = query("""

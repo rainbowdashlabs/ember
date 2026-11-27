@@ -37,9 +37,9 @@ public record InventoryIntakeRow(
      * member who has not been given anything yet is a row with nothing in it, not a piece with
      * nothing written on it. Such a row is passed over rather than having to be deleted first.
      *
-     * <p>Which leaves the piece there is nothing to say about: an inventory with no sizes and no
-     * fields, holding gear nobody ever wrote a number on. Guessing from an empty row cannot tell
-     * that from a member who was given nothing, so the line says so itself.
+     * <p>Which leaves the piece there is nothing to record about: an inventory with no sizes and no
+     * fields, holding gear nobody ever wrote a number on. Guessing from an empty row cannot distinguish
+     * that from a member who was given nothing, so the line shows it itself.
      */
     public boolean namesAPiece() {
         if (askedFor) return true;

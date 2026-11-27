@@ -67,7 +67,7 @@ public final class FieldSets {
      * @param ownerId     the station or association the form belongs to
      * @param fieldIds    the questions in the order they were dragged into
      * @param sets        the owner's bundles
-     * @param applyForm   writes the form's order and says how many questions it moved
+     * @param applyForm   writes the form's order and returns how many questions it moved
      * @param regroupAll  puts every form of the owner back together once a bundle's order changed
      * @return how many questions of the form moved
      */

@@ -179,7 +179,7 @@ public class InventoryTagService {
     }
 
     /**
-     * Says which words a thing wears, writing down any that the station does not have yet.
+     * Sets which words a thing wears, writing down any that the station does not have yet.
      *
      * <p>The form speaks in words rather than identifiers because that is what somebody typed, and
      * because it is the only shape in which a word made up on the spot and a word picked from the
@@ -243,7 +243,7 @@ public class InventoryTagService {
 
     /**
      * The station's own tag, refused alike whether it is gone or another station's, so the answer
-     * does not say that a tag exists elsewhere.
+     * does not show that a tag exists elsewhere.
      *
      * @param stationId the station the tag has to belong to
      * @param id        the tag
@@ -258,7 +258,7 @@ public class InventoryTagService {
 
     /**
      * Refuses a thing that is gone, sits in an inventory that is gone, or belongs to another
-     * station, all alike, so the answer does not say that it exists elsewhere.
+     * station, all alike, so the answer does not show that it exists elsewhere.
      *
      * @param stationId the station the thing has to belong to
      * @param itemId    the thing

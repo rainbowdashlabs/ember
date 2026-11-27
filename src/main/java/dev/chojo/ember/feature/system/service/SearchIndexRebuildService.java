@@ -26,7 +26,7 @@ import java.util.Optional;
  * and words go missing from the results without anything failing.
  *
  * <p>The major version the indexes were last built on is kept, and a start that finds another one
- * builds them again. An instance that has never recorded one builds them once, since it cannot tell
+ * builds them again. An instance that has never recorded one builds them once, since it cannot know
  * whether it was upgraded before this check existed. The version is only recorded once everything
  * went through, so a rebuild that fails halfway is tried again on the next start.
  */

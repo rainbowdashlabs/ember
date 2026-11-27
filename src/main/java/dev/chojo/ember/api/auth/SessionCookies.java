@@ -22,7 +22,7 @@ import java.util.Optional;
  *
  * <p>The session token lives in an {@code HttpOnly} cookie and nowhere else, so no script running on
  * the page can read it, copy it or send it anywhere. Beside it sits a readable cookie with the token
- * {@link CsrfGuard} wants back on every change, which also tells the page that a session exists.
+ * {@link CsrfGuard} wants back on every change, which also signals to the page that a session exists.
  * Both are {@code SameSite=Lax}, which keeps them off requests another site starts in the background,
  * and live exactly as long as the session. {@code Secure} is left off on a dev or demo instance, which
  * is reached over plain HTTP, exactly as the remembered-device cookie does it.

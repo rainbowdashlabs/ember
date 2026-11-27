@@ -39,7 +39,7 @@ import java.util.Optional;
  * instance. With the provider set to {@link GeocodingProvider#NONE} every search is refused.
  *
  * <p>Photon answers GeoJSON, whose points are {@code [longitude, latitude]}; they are swapped into
- * latitude first here and nowhere else. The {@code type} of the match says how close it is
+ * latitude first here and nowhere else. The {@code type} of the match shows how close it is
  * ({@link GeocodePrecision#ofPhotonType(String)}). A search without a match is an empty answer,
  * not a failure; a server that does not answer within {@value #TIMEOUT_SECONDS} seconds, or answers
  * with something that is not a search result, is refused as

@@ -20,7 +20,7 @@ public enum AcceptedFormats {
     WITHOUT_WEBP;
 
     /**
-     * What a request's {@code Accept} header says it takes. Only an explicit {@code image/webp}
+     * What a request's {@code Accept} header shows it takes. Only an explicit {@code image/webp}
      * counts, since a bare wildcard is also what a client sends that has never heard of WebP.
      *
      * @param acceptHeader the header, possibly {@code null}

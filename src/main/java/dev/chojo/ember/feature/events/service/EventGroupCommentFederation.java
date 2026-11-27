@@ -41,7 +41,7 @@ import java.util.UUID;
  *
  * <p>Serving, every request is held to the event groups shared with the partner it arrived on, so a
  * partner cannot read or write under another event group by its id, and a comment is only changed
- * or removed by the partner's member who wrote it. Whom a partner's comment tells here the event
+ * or removed by the partner's member who wrote it. Whom a partner's comment notifies here the event
  * group's comment target decides: a new top-level comment reaches the appointment managers, nothing
  * else does.
  *

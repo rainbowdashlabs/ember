@@ -61,7 +61,7 @@ public final class ExpiryReminderSchedule {
      * @param settings  the field's settings
      * @param today     the day it is, on the station's clock
      * @param sent      the reminders already done with for this member, field and date
-     * @param zone      the station's clock, which says on which day a reminder went out
+     * @param zone      the station's clock, which shows on which day a reminder went out
      * @return the reminder owed, or nothing where none is
      */
     public static Optional<Due> due(

@@ -25,7 +25,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
  * @param pinnedAt           when it was pinned
  * @param lastListedAt       when a statement of the partner last named it
  * @param revocationList     its newest revocation list taken in, DER encoded; null while none came
- * @param revocationNextUpdate when that list says the next one is due; null while none came
+ * @param revocationNextUpdate when the next one is due according to that list; null while none came
  */
 public record PinnedAuthority(
         int partnerId,

@@ -11,7 +11,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * Who a profile field is asked of, and how it is put to them.
  *
- * <p>The definition beside this says what the question is. Everything here is about one audience, so
+ * <p>The definition beside this shows what the question is. Everything here is about one audience, so
  * the same question can stand on two forms without being two questions, first on one and last on the
  * other.
  *
@@ -41,9 +41,9 @@ public record ProfileFieldAssignment(
         @Nullable Boolean requiredOverride) {
 
     /**
-     * Whether only the member management may write the answer here, given what the definition says.
+     * Whether only the member management may write the answer here, given what the definition shows.
      *
-     * @param definitionReadonly what the field says of everybody asked it
+     * @param definitionReadonly what the field shows of everybody asked it
      * @return what holds for this audience
      */
     public boolean readonly(boolean definitionReadonly) {
@@ -51,7 +51,7 @@ public record ProfileFieldAssignment(
     }
 
     /**
-     * Whether this audience must answer, given what the definition says.
+     * Whether this audience must answer, given what the definition shows.
      *
      * @param definitionRequired what the field asks of everybody
      * @return what it asks of this audience
@@ -61,7 +61,7 @@ public record ProfileFieldAssignment(
     }
 
     /**
-     * How much of a row this audience gives the question, given what the definition says.
+     * How much of a row this audience gives the question, given what the definition shows.
      *
      * @param definitionWidth the width the question carries
      * @return the width this audience draws it at

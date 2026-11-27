@@ -135,7 +135,7 @@ public final class SignatureMarks {
         stream.drawImage(image, left, bottom, width, drawnHeight);
     }
 
-    /** The page a field's widget sits on, from the widget itself or, where it does not say, by search. */
+    /** The page a field's widget sits on, from the widget itself or, where it holds none, by search. */
     static Optional<PDPage> pageOf(PDDocument document, PDAnnotationWidget widget) throws IOException {
         @Nullable PDPage page = widget.getPage();
         if (page != null) return Optional.of(page);

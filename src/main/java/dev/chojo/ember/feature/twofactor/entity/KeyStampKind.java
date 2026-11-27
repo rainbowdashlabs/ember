@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.twofactor.entity;
 
 /**
- * How a credential's public key came by its timestamp, which says how much the timestamp proves about
+ * How a credential's public key came by its timestamp, which indicates how much the timestamp proves about
  * the key. Only a stamp taken right after the registration fixes the key as the one registered; every
  * later stamp fixes it only from its own time on.
  */

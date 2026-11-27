@@ -159,7 +159,7 @@ public final class NotificationLinks {
     }
 
     /**
-     * The page of one lending request between two stations, for whichever side is told.
+     * The page of one lending request between two stations, for whichever side is notified.
      *
      * @param requestId the lending request
      * @return the link its notifications carry
@@ -217,7 +217,7 @@ public final class NotificationLinks {
     }
 
     /**
-     * The link to one form. Its number travels as text, which is what the stored notifications say.
+     * The link to one form. Its number travels as text, which is what the stored notifications carry.
      *
      * @param formId the form
      * @return the link its notifications carry
@@ -282,7 +282,7 @@ public final class NotificationLinks {
     }
 
     /**
-     * The federation page of the station told, where its partners and its requests to federate are
+     * The federation page of the station notified, where its partners and its requests to federate are
      * listed.
      *
      * @return the link its notifications carry

@@ -34,7 +34,7 @@ import javax.crypto.spec.SecretKeySpec;
  * still verifies. Entries of any other version are skipped, and one matching entry is enough, which
  * is how a sender rotating its secret signs with both. Every comparison is constant time.
  *
- * <p>A timestamp further than {@link #TOLERANCE} from now is refused whatever the signature says:
+ * <p>A timestamp further than {@link #TOLERANCE} from now is refused whatever the signature shows:
  * the timestamp is signed, so this is what keeps a captured call from being replayed later.
  *
  * <p>The body has to be the bytes as received. Parsing the JSON and writing it out again would

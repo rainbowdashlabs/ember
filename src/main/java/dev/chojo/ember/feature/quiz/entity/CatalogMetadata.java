@@ -10,7 +10,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * Where a catalog's questions came from. A catalog is exported to a file, handed to another
  * station and imported there, and without this it arrives anonymous: the receiving station
- * cannot say who wrote the questions or under what terms it may use them.
+ * cannot know who wrote the questions or under what terms it may use them.
  *
  * <p>Every part is free text nobody is obliged to fill in. A blank is stored as absent, so a
  * form that submits empty strings does not leave the catalog claiming an empty author.

@@ -153,7 +153,7 @@ public class NewsRepository {
 
     /**
      * Every system entry, newest first, which is what the instance sees when it looks at what it has
-     * said. Unpublished ones are included: their author is the only one who can see them at all.
+     * published. Unpublished ones are included: their author is the only one who can see them at all.
      *
      * @param offset pagination offset
      * @param limit  maximum number of results
@@ -309,7 +309,7 @@ public class NewsRepository {
     /**
      * Resolves a news entry of the station by its public UUID, when every reader of the given
      * audience may read it: published and unrestricted, and for the public also on the public blog.
-     * Empty for anything else, never told apart.
+     * Empty for anything else, never distinguished.
      */
     public Optional<News> findOpenByUid(int stationId, BlockAudience audience, UUID publicUid) {
         var where = openTo(audience);

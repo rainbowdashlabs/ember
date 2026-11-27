@@ -46,7 +46,7 @@ public class RefusalResponse extends HttpResponseException {
     }
 
     /**
-     * What the refusal is answered with. A refusal that says more than one sentence, such as one per
+     * What the refusal is answered with. A refusal that carries more than one sentence, such as one per
      * question of a form, answers with that as well.
      *
      * @return the error body

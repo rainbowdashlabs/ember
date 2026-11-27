@@ -55,7 +55,7 @@ public class NotificationRepository {
      *
      * <p>In the same statement, every notification written is queued as a push to each device its
      * reader's account allowed push on, where the reader wants this type pushed (the third
-     * placeholder joins reader to account and says so) and whose sign-in is still valid.
+     * placeholder joins reader to account and shows it) and whose sign-in is still valid.
      * Notification and push are written together, so a restart in between cannot lose the push.
      */
     private static final String INSERT_FOR_READERS = """
@@ -418,7 +418,7 @@ public class NotificationRepository {
     /**
      * Writes one notification to every station member the audience reaches, in one statement.
      *
-     * <p>The parts of the audience are united in the database, so a member reached twice is told
+     * <p>The parts of the audience are united in the database, so a member reached twice is notified
      * once. Members who have left are dropped, as are the guardians of a ward who has left and
      * everybody who switched this type off in the app. With {@link Delivery#ONCE_WHILE_UNREAD} a
      * member who already has the same notification waiting is skipped, however that one was sent,

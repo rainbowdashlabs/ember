@@ -29,19 +29,19 @@ public enum TwoFactorRefusal implements Refusal {
     /** New recovery codes asked for on an account with no second factor. */
     NOT_ENROLLED_ON_BACKUP_CODES(5, HttpStatus.BAD_REQUEST, Sentences.NO_SECOND_FACTOR_SET_UP),
 
-    /** A second factor being answered without saying which sign-in it is for, or with what. */
+    /** A second factor being answered without indicating which sign-in it is for, or with what. */
     TWO_FACTOR_CHECK_DETAILS_MISSING(6, HttpStatus.BAD_REQUEST, Sentences.REQUEST_INCOMPLETE),
 
     /**
      * A sign-in waiting on a second factor that is unknown, has run out, or was never waiting on
-     * one. One code and one sentence deliberately: telling them apart would say whether a guessed
+     * one. One code and one sentence deliberately: distinguishing them would reveal whether a guessed
      * half-finished sign-in was ever real, which is exactly what this step withholds.
      */
     SIGN_IN_NOT_WAITING_ON_A_FACTOR(7, HttpStatus.UNAUTHORIZED, Sentences.SIGN_IN_NOT_WAITING),
 
     /**
      * A second factor that did not match at sign-in. One code for a wrong app code, a wrong
-     * recovery code and a recovery code already spent, so no answer says which of the two was tried
+     * recovery code and a recovery code already spent, so no answer reveals which of the two was tried
      * or whether it had been used before.
      */
     TWO_FACTOR_CODE_WRONG(8, HttpStatus.UNAUTHORIZED, Sentences.VERIFICATION_CODE_WRONG),
@@ -49,7 +49,7 @@ public enum TwoFactorRefusal implements Refusal {
     /** Withdrawing trust from a device that is not one this account trusts. */
     TRUSTED_DEVICE_NOT_HERE(9, HttpStatus.BAD_REQUEST, "That device is not one this account trusts any more"),
 
-    /** Proving who you are again without saying with what, or with which proof. */
+    /** Proving who you are again without indicating with what, or with which proof. */
     STEP_UP_DETAILS_MISSING(10, HttpStatus.BAD_REQUEST, Sentences.REQUEST_INCOMPLETE),
 
     /** Proving a second factor again on an account that has none set up. */
@@ -70,12 +70,12 @@ public enum TwoFactorRefusal implements Refusal {
 
     /**
      * A second factor that could not take the new name. One code for a name the product will not
-     * take and a factor that is gone or belongs to somebody else, so no answer says which.
+     * take and a factor that is gone or belongs to somebody else, so no answer reveals which.
      */
     FACTOR_NOT_RENAMED(
             16, HttpStatus.BAD_REQUEST, "That name could not be given, so the second factor was left as it was"),
 
-    /** A security key sign-in begun without saying which sign-in is waiting. */
+    /** A security key sign-in begun without indicating which sign-in is waiting. */
     SECURITY_KEY_SIGN_IN_TOKEN_MISSING(17, HttpStatus.BAD_REQUEST, Sentences.REQUEST_INCOMPLETE),
 
     /** A security key sign-in finished with one of the three parts left out. */
@@ -99,10 +99,10 @@ public enum TwoFactorRefusal implements Refusal {
     /** Asking another device to confirm where this account has no other device that could. */
     NO_OTHER_DEVICE_TO_CONFIRM(23, HttpStatus.FORBIDDEN, "No other device of this account could confirm this"),
 
-    /** Asking whether the other device has confirmed yet without saying which request. */
+    /** Asking whether the other device has confirmed yet without indicating which request. */
     DEVICE_STEP_UP_POLL_SECRET_MISSING(24, HttpStatus.BAD_REQUEST, Sentences.REQUEST_INCOMPLETE),
 
-    /** Asking another device to confirm without saying what it would be confirming. */
+    /** Asking another device to confirm without indicating what it would be confirming. */
     STEP_UP_CATEGORY_MISSING(25, HttpStatus.BAD_REQUEST, Sentences.REQUEST_INCOMPLETE),
 
     /** Naming something to confirm that this instance does not ask anybody to confirm. */
@@ -112,7 +112,7 @@ public enum TwoFactorRefusal implements Refusal {
     STEP_UP_PASSWORD_MISSING(27, HttpStatus.BAD_REQUEST, Sentences.REQUEST_INCOMPLETE),
 
     /**
-     * A password offered where this account is asked for something stronger. It says no more than
+     * A password offered where this account is asked for something stronger. It shows no more than
      * the screen the reader is already looking at, which offers only the proofs the account has:
      * accepting a password here would let somebody holding a phished one walk past a second factor.
      */
@@ -122,7 +122,7 @@ public enum TwoFactorRefusal implements Refusal {
     STEP_UP_PASSWORD_WRONG(29, HttpStatus.UNAUTHORIZED, "That password was not right, so nothing was confirmed"),
 
     /**
-     * A passkey offered to confirm on an account that holds none. Says no more than the screen the
+     * A passkey offered to confirm on an account that holds none. Reveals no more than the screen the
      * reader is already looking at, which offers the passkey button only where there is a passkey.
      */
     NO_PASSKEY_TO_CONFIRM_WITH(30, HttpStatus.FORBIDDEN, "This account holds no passkey to confirm with"),
@@ -138,7 +138,7 @@ public enum TwoFactorRefusal implements Refusal {
 
     /**
      * A station rule that is gone, or belongs to another station. One code and one sentence
-     * deliberately: splitting them would tell a station administrator that a rule with that number
+     * deliberately: splitting them would show a station administrator that a rule with that number
      * exists on a station they cannot see.
      */
     POLICY_NOT_HERE_ON_STATION_DELETE(36, HttpStatus.BAD_REQUEST, Sentences.POLICY_NOT_HERE),

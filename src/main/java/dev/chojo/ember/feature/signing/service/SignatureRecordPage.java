@@ -37,13 +37,13 @@ import java.util.regex.Pattern;
  * reader's signature panel, which screen readers, phone viewers and paper do not show.
  *
  * <p>The record is not part of the version: it is built on request from the evidence the version carries
- * ({@link SigningEvidenceFile}), so the record and the attachment cannot say different things, and it names
+ * ({@link SigningEvidenceFile}), so the record and the attachment cannot show different things, and it names
  * the version by its number and SHA-256. Names are the official names the evidence recorded.
  *
  * <p>The page is a Typst template in German and English ({@code signature-record.typ}), written as PDF/A-3b,
  * the format of the documents it may be joined to. Typst writes it tagged, with its title and language, so a
  * screen reader can follow it; it cannot claim PDF/UA at the same time as PDF/A, since Typst enforces only
- * one of them per document. Its page numbers start where it is told, so joined to the document they continue
+ * one of them per document. Its page numbers start where it is given, so joined to the document they continue
  * the document's.
  */
 public final class SignatureRecordPage {

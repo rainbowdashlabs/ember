@@ -74,7 +74,7 @@ public interface CommentTarget {
     boolean mayModerate(StationSession session, TargetInfo target, Moderation action);
 
     /**
-     * Who a new comment on this target tells.
+     * Who a new comment on this target notifies.
      *
      * @param target the target
      * @param origin where the comment was written from

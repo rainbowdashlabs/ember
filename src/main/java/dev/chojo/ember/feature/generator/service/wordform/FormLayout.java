@@ -33,7 +33,7 @@ import java.util.Set;
  * <p>A text place whose label {@link GapWords} recognises prints that value of the member. Every other
  * place becomes a question to the person generating: a text, a day where the form asks for a date or the
  * label reads like one ("Datum", "… am"), a tick for a check box. A preset of the form becomes the
- * suggestion of its question, a ticked box one that says yes. Where the form asks for the first name
+ * suggestion of its question, a ticked box one that means yes. Where the form asks for the first name
  * apart, "Name" is the surname.
  *
  * <p>LibreOffice makes a text field only as wide as the blank it held, so a text field is widened up to
@@ -55,7 +55,7 @@ final class FormLayout {
     /** The right margin taken where the form names none, about two centimetres. */
     private static final double DEFAULT_MARGIN = 56;
 
-    /** What a suggestion that ticks a box says. */
+    /** What a suggestion that ticks a box contains. */
     private static final String YES = "Ja";
 
     private final Map<String, String> fields;

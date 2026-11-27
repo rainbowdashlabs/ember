@@ -107,7 +107,7 @@ public class EventGroupPartnerServer implements FederationServer {
                 placesFor(eventGroupId, partner));
     }
 
-    /** The places the partner asking was given, told only to a partner that decides its own sign-ups. */
+    /** The places the partner asking was given, sent only to a partner that decides its own sign-ups. */
     private @Nullable RemotePlaces placesFor(int eventGroupId, ServingPartner partner) {
         var arranged = partners.arrangementWith(eventGroupId, partner.partnerId());
         return arranged.decidedByHost() ? null : new RemotePlaces(arranged.slotBudget(), true);

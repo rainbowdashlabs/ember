@@ -16,7 +16,7 @@ import jakarta.inject.Singleton;
 /**
  * Carries a change of the documents an appointment asks for over to the signatures of the participants already
  * registered: what was taken off withdraws what is still open, what was added is asked for. The partner stations
- * the appointment is shared with are told, so they do the same for their members. Runs in the thread that saved
+ * the appointment is shared with are notified, so they do the same for their members. Runs in the thread that saved
  * the change.
  *
  * <p>The signatures are reached through providers: building them needs the template services, which need the

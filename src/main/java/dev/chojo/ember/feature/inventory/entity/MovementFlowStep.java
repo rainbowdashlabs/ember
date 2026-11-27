@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.inventory.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
 /**
- * One step of a flow. A step says three things: who acknowledges it, which item it is about, and
+ * One step of a flow. A step defines three things: who acknowledges it, which item it is about, and
  * what custody that item is in once it is acknowledged.
  *
  * <p>The label is free text and can be renamed without changing anything, because the behaviour

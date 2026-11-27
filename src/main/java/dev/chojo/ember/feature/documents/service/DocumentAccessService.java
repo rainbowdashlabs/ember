@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * Who may list, read, add and change the documents a station keeps.
  *
- * <p>Two things decide. The permissions of the store say what somebody may do with the documents of
+ * <p>Two things decide. The permissions of the store define what somebody may do with the documents of
  * everybody. Beside them, a member's own paperwork is their business, and the business of whoever
  * looks after them: a guardian is handed the forms of the child in their care, the medical note, the
  * consent, the certificate the station holds. That relation is {@link GuardianPolicy}'s to answer, so

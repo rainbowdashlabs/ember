@@ -10,7 +10,7 @@ package dev.chojo.ember.feature.federation.entity;
  * that decides: a piece beats its kind, and a kind beats the inventory holding it.
  */
 public enum ShareLevel {
-    /** The whole inventory, and with it everything in it that says nothing else. */
+    /** The whole inventory, and with it everything in it that has no setting of its own. */
     INVENTORY,
     /** One kind of thing inside an inventory. */
     ART,

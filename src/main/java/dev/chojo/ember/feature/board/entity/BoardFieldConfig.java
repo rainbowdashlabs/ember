@@ -50,7 +50,7 @@ public sealed interface BoardFieldConfig {
     }
 
     /**
-     * The settings a new field of this type starts with, which also says which record its settings
+     * The settings a new field of this type starts with, which also shows which record its settings
      * are read into.
      *
      * @throws IllegalArgumentException for a type a board does not offer
@@ -66,7 +66,7 @@ public sealed interface BoardFieldConfig {
 
     boolean required();
 
-    /** What this field says about the question it asks, as the one check reads it. */
+    /** What this field shows about the question it asks, as the one check reads it. */
     default QuestionSettings settings() {
         return QuestionSettings.required(required());
     }

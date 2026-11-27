@@ -204,7 +204,7 @@ public class StationRepository {
     /**
      * Finds a station by what a public address names it with.
      *
-     * <p>Either its uid or the readable name it may have been given: the two are told apart by
+     * <p>Either its uid or the readable name it may have been given: the two are distinguished by
      * whether the text parses as a uid, and a public address may carry whichever of them the link
      * was built from.
      */
@@ -359,7 +359,7 @@ public class StationRepository {
      *
      * <p>Ordered the way {@code findAll} is, because this replaced it in every user-facing caller and the
      * order was load-bearing: sorting by name instead moved the station the demo is about out of first
-     * place, and everything that says "the first station with somebody who runs it" quietly went elsewhere.
+     * place, and everything that assumes "the first station with somebody who runs it" quietly went elsewhere.
      *
      * @return every station that is not a cluster's home
      */

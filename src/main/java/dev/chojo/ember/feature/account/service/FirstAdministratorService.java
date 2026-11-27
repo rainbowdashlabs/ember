@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  * no security notice did, and naming it as somebody's address elsewhere in the application was refused
  * as a collision, because a made-up address that is already taken is two different people rather than
  * one. A name is what an account signs in with when it has no address of its own, which is exactly
- * this account's position, and it is a truthful one: it says the instance does not yet know where to
+ * this account's position, and it is a truthful one: it shows the instance does not yet know where to
  * write. Where to write is then asked for at the first sign-in, beside the password, and there is no
  * session until it has been answered.
  */

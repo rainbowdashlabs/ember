@@ -168,7 +168,7 @@ public class InventoryArtService {
      * <p>Nothing cascades. The pieces keep pointing at the same row and the key two stations compare
      * on is maintained by the database, so a corrected spelling is corrected everywhere at once.
      *
-     * <p>The picture is left as it stands, because a caller that says nothing about it is not saying
+     * <p>The picture is left as it stands, because a caller that passes nothing about it is not asking for
      * there should be none.
      *
      * @param id       the kind
@@ -186,7 +186,7 @@ public class InventoryArtService {
     }
 
     /**
-     * Renames a kind or moves it in the list, and says what its pieces are drawn with.
+     * Renames a kind or moves it in the list, and sets what its pieces are drawn with.
      *
      * @param id       the kind
      * @param name     its new name
@@ -254,10 +254,10 @@ public class InventoryArtService {
      * <p>The rewrite is what makes tidying up worth doing rather than decorative. Setting a kind
      * leaves the name alone, and the name is what every list, both exports and the notification
      * texts read, so without this {@code Funkgerät organge} would go on reading
-     * {@code Funkgerät organge} under a heading that says otherwise.
+     * {@code Funkgerät organge} under a heading that shows otherwise.
      *
      * <p>It is a destructive edit and is meant to be: it belongs to somebody choosing it on a screen
-     * that says what it will do, and never to a migration.
+     * that shows what it will do, and never to a migration.
      *
      * @param inventoryId the inventory the pieces are in
      * @param artId       the kind they all become

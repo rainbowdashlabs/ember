@@ -14,7 +14,7 @@ import io.javalin.http.HttpStatus;
  * the highest number here and in {@link RetiredRefusals}.
  */
 public enum MapRefusal implements Refusal {
-    /** A piece of the map asked for without saying which piece. */
+    /** A piece of the map asked for without indicating which piece. */
     MAP_TILE_NUMBER_MISSING(1, HttpStatus.BAD_REQUEST, "Name the piece of the map you want"),
 
     /** A piece of the map tried out by an administrator and named by something that is not a number. */

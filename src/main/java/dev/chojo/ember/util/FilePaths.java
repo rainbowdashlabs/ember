@@ -14,7 +14,7 @@ import java.nio.file.Path;
  *
  * <p>{@link Path#getFileName()} answers null for a root and {@link Path#getParent()} for a path of
  * a single name. Neither happens to an entry of a listed directory or a file resolved below one, but
- * the types do not say so, and calling through them reads as a gamble.
+ * the types do not show that, and calling through them reads as a gamble.
  */
 public final class FilePaths {
 

@@ -88,7 +88,7 @@ public record News(
      *
      * <p>Station ids begin at one, so nothing is ever owned by this one. That matters for more than
      * tidiness: every ownership check compares the entry's station with the caller's, so a system
-     * entry fails all of them, and a station manager cannot edit or delete what the instance said.
+     * entry fails all of them, and a station manager cannot edit or delete what the instance published.
      */
     public static final int NO_STATION = 0;
 

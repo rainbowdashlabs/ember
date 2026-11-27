@@ -12,7 +12,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import jakarta.inject.Singleton;
 
 /**
- * What a feed entry says about a news entry or a comment on one: who wrote it and how it begins.
+ * What a feed entry shows about a news entry or a comment on one: who wrote it and how it begins.
  */
 @Singleton
 public class NewsFeedDetails implements FeedDetailsContributor {

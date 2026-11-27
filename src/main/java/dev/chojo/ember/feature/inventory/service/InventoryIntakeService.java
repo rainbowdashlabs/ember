@@ -134,7 +134,7 @@ public class InventoryIntakeService {
     }
 
     /**
-     * Who owns a piece when the line does not say.
+     * Who owns a piece when the line gives none.
      *
      * <p>An inventory that only holds the association's gear cannot hold the station's, so taking
      * the station as the silent default there refuses every line of the list for a reason nobody

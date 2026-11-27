@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
  * Where files are kept, with nothing secret in it: what every storage screen is shown and what every row of
  * the storage history records, whoever owns the storage.
  *
- * <p>The credentials are replaced by a fingerprint of their encrypted form, so a reader can tell that they
+ * <p>The credentials are replaced by a fingerprint of their encrypted form, so a reader can see that they
  * were written again between two rows without anything that would open the storage. It is {@code null} where
  * nothing encrypted is kept, as for a directory or an instance whose configuration file holds the
  * credentials in plain text.

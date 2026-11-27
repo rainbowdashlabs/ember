@@ -433,7 +433,7 @@ public class EventGroupService {
     }
 
     /**
-     * Who is told when a part leaves its event group, for the documents the event group asks for.
+     * Who is notified when a part leaves its event group, for the documents the event group asks for.
      * Without it, nothing else happens.
      *
      * @param departure what runs as a part leaves
@@ -625,7 +625,7 @@ public class EventGroupService {
     }
 
     /**
-     * What an appointment says about the event group it is a part of.
+     * What an appointment shows about the event group it is a part of.
      *
      * @param stationId the station
      * @param eventId   the appointment

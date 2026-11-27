@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.inventory.entity;
 /**
  * The end of a movement that is not the owner: the station's store, or a member.
  *
- * <p>Purpose says what a movement is for, owner says whose gear it is, and neither of them
+ * <p>Purpose shows what a movement is for, owner shows whose gear it is, and neither of them
  * distinguishes an issue that fills a shelf from one that dresses somebody. Those are different
  * chains with different steps, and without this they would be the same chain and overwrite each
  * other's binding.

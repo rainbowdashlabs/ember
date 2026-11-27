@@ -68,7 +68,7 @@ public enum EventRefusal implements Refusal {
     /** A list of who is coming that could not be drawn as a sheet. */
     REGISTRATION_SHEET_NOT_DRAWN(20, HttpStatus.BAD_REQUEST, "This list cannot be turned into a sheet"),
 
-    /** A list of who is coming asked for without saying which day it covers. */
+    /** A list of who is coming asked for without indicating which day it covers. */
     REGISTRATION_TABLE_NEEDS_A_DAY(21, HttpStatus.BAD_REQUEST, "A list of who is coming needs the day it is about"),
 
     /** A registration for an appointment that takes none. */
@@ -98,7 +98,7 @@ public enum EventRefusal implements Refusal {
     /** A registration for an appointment that happens once and carries no time of its own. */
     EVENT_HAS_NO_START_TIME(30, HttpStatus.BAD_REQUEST, "This appointment has no start time, so nothing was saved"),
 
-    /** A registration for an appointment that comes round again, without saying for which day. */
+    /** A registration for an appointment that comes round again, without indicating for which day. */
     REGISTRATION_NEEDS_A_DAY(
             31, HttpStatus.BAD_REQUEST, "A repeating appointment needs the day you are signing up for"),
 
@@ -110,7 +110,7 @@ public enum EventRefusal implements Refusal {
 
     /**
      * A file of a shared appointment that is gone, hangs on another appointment, or is one the
-     * appointment keeps back. One code deliberately: telling them apart would say that a file kept
+     * appointment keeps back. One code deliberately: distinguishing them would reveal that a file kept
      * back is there.
      */
     SHARED_EVENT_FILE_NOT_HERE(34, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
@@ -148,7 +148,7 @@ public enum EventRefusal implements Refusal {
 
     /**
      * An appointment a partner names that this station does not share with it, which covers one
-     * that is not here at all. One code deliberately: telling them apart would let a partner learn
+     * that is not here at all. One code deliberately: distinguishing them would let a partner learn
      * which appointments exist by trying identifiers.
      */
     EVENT_NOT_SHARED_WITH_PARTNER(45, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
@@ -174,7 +174,7 @@ public enum EventRefusal implements Refusal {
     /** A day an appointment's questions are asked about that is not a date. */
     EVENT_DAY_NOT_A_DATE(52, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
 
-    /** An answer kept per day, written without saying which day it belongs to. */
+    /** An answer kept per day, written without indicating which day it belongs to. */
     EVENT_FIELD_VALUE_NEEDS_A_DAY(53, HttpStatus.BAD_REQUEST, "An answer kept per day needs the day it belongs to"),
 
     /** A file of a partner's appointment that the partner answered nothing for. */
@@ -221,7 +221,7 @@ public enum EventRefusal implements Refusal {
     /** An appointment being written without the times it runs between. */
     EVENT_NEEDS_A_TIME(66, HttpStatus.BAD_REQUEST, "An appointment needs a time it starts and a time it ends"),
 
-    /** An appointment being written without saying whether it happens once or comes round again. */
+    /** An appointment being written without indicating whether it happens once or comes round again. */
     EVENT_NEEDS_A_KIND(
             67, HttpStatus.BAD_REQUEST, "An appointment needs to say whether it happens once or comes round again"),
 
@@ -255,7 +255,7 @@ public enum EventRefusal implements Refusal {
 
     /**
      * A file of an appointment that is gone, hangs on another appointment, or is one this reader
-     * may not be handed. One code deliberately: telling them apart would say that a file held back
+     * may not be handed. One code deliberately: distinguishing them would reveal that a file held back
      * is there.
      */
     EVENT_FILE_NOT_HERE(75, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
@@ -269,7 +269,7 @@ public enum EventRefusal implements Refusal {
     /** A file of an appointment that has no picture to show. */
     EVENT_FILE_PICTURE_NOT_HERE(78, HttpStatus.NOT_FOUND, Sentences.PICTURE_NOT_HERE),
 
-    /** A file hung on an appointment without saying which file of the library it is. */
+    /** A file hung on an appointment without indicating which file of the library it is. */
     EVENT_FILE_NOT_CHOSEN(79, HttpStatus.BAD_REQUEST, "Say which file of the library is to be attached"),
 
     /** A file of an appointment that went before the change to it could be written. */
@@ -295,7 +295,7 @@ public enum EventRefusal implements Refusal {
 
     /**
      * An appointment that is gone, belongs to another station, or is not one the station publishes.
-     * One code deliberately: telling them apart would say that an appointment nobody outside may
+     * One code deliberately: distinguishing them would reveal that an appointment nobody outside may
      * see is there.
      */
     PUBLIC_EVENT_NOT_HERE(86, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
@@ -324,7 +324,7 @@ public enum EventRefusal implements Refusal {
 
     /**
      * An event block naming an appointment that is gone, belongs to another station or is hidden
-     * from the reader. All three answer alike, so a block cannot tell a hidden one from a missing one.
+     * from the reader. All three answer alike, so a block cannot distinguish a hidden one from a missing one.
      */
     EVENT_BLOCK_APPOINTMENT_NOT_HERE(92, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
 
@@ -413,7 +413,7 @@ public enum EventRefusal implements Refusal {
 
     /**
      * An appointment made from a template that is gone or belongs to another station. One code for
-     * both, so a guessed id says nothing about the templates of other stations.
+     * both, so a guessed id reveals nothing about the templates of other stations.
      */
     EVENT_TEMPLATE_TO_APPLY_NOT_HERE(109, HttpStatus.NOT_FOUND, Sentences.EVENT_TEMPLATE_NOT_HERE),
 
@@ -578,11 +578,11 @@ public enum EventRefusal implements Refusal {
             HttpStatus.BAD_REQUEST,
             "Only a repeating appointment has an end to its repetition, so nothing was saved"),
 
-    /** A series told to take place fewer than once. */
+    /** A series set to take place fewer than once. */
     EVENT_SERIES_COUNT_BELOW_ONE(
             150, HttpStatus.BAD_REQUEST, "A series that repeats takes place at least once, so nothing was saved"),
 
-    /** A series told to end on a day before its first. */
+    /** A series set to end on a day before its first. */
     EVENT_SERIES_ENDS_BEFORE_IT_STARTS(
             151, HttpStatus.BAD_REQUEST, "A series cannot end before it starts, so nothing was saved"),
 
@@ -658,7 +658,7 @@ public enum EventRefusal implements Refusal {
     /** One date, or one date and the ones after it, edited without naming the date. */
     EVENT_SCOPE_NEEDS_A_DATE(178, HttpStatus.BAD_REQUEST, "Name the date the change applies to, nothing was saved"),
 
-    /** A scope sent without saying which dates it covers. */
+    /** A scope sent without indicating which dates it covers. */
     EVENT_SCOPE_NEEDS_A_KIND(179, HttpStatus.BAD_REQUEST, "Say which dates the change applies to, nothing was saved"),
 
     /** A note to go with a change notice that is longer than a notice carries. */
@@ -834,19 +834,19 @@ public enum EventRefusal implements Refusal {
 
     /**
      * An appointment copied from one that is gone, belongs to another station or is hidden from the
-     * one copying it. One code for all three, so a guessed id says nothing about appointments the
+     * one copying it. One code for all three, so a guessed id reveals nothing about appointments the
      * caller may not see.
      */
     EVENT_TO_COPY_NOT_HERE(
             222, HttpStatus.NOT_FOUND, "The appointment to copy is not here any more, nothing was saved"),
 
-    /** A place pinned or looked up without saying which place. */
+    /** A place pinned or looked up without indicating which place. */
     PLACE_TEXT_MISSING(223, HttpStatus.BAD_REQUEST, "Name the place first"),
 
     /** A place pinned or looked up under a name longer than a place may have to carry a pin. */
     PLACE_TEXT_TOO_LONG(224, HttpStatus.BAD_REQUEST, "The name of the place is too long, nothing was saved"),
 
-    /** A place pinned at a point that does not lie on the map, or without saying where. */
+    /** A place pinned at a point that does not lie on the map, or without indicating where. */
     PLACE_OFF_THE_MAP(225, HttpStatus.BAD_REQUEST, "That point does not lie on the map, nothing was saved"),
 
     /**
@@ -871,7 +871,7 @@ public enum EventRefusal implements Refusal {
     QUEUE_WITHOUT_LIMIT(
             229, HttpStatus.CONFLICT, "Without a participant limit there is no waiting list, nothing was changed"),
 
-    /** A place in line asked for without saying which. */
+    /** A place in line asked for without indicating which. */
     QUEUE_POSITION_MISSING(230, HttpStatus.BAD_REQUEST, "Say which place in line the sign-up takes"),
 
     /** A set maximum below one or below the set's minimum. Carries the least maximum the set allows. */

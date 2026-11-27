@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.mail.repository;
 
 /**
- * The SQL that says whether a mail did not arrive, for every read that counts, lists or takes note of
+ * The SQL that decides whether a mail did not arrive, for every read that counts, lists or takes note of
  * failed mails, so the overview, the sidebar count and the mail log cannot disagree.
  *
  * <p>A mail did not arrive when the queue gave up on it, or when a provider took it and reported

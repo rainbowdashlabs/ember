@@ -132,7 +132,7 @@ public class LendingRequestViewService {
     }
 
     /**
-     * What the owning station is told the request is for: the appointment's name, and nothing else.
+     * What the owning station sees the request is for: the appointment's name, and nothing else.
      *
      * <p>Copied here rather than resolved later, so a rename does not rewrite what was asked for and
      * nothing that is added to an appointment afterwards can travel with it.

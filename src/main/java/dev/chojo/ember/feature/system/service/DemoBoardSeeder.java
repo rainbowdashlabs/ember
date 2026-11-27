@@ -66,7 +66,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
     }
 
     /**
-     * Writes a demo comment on a ticket, telling whoever a comment written there tells.
+     * Writes a demo comment on a ticket, notifying whoever a comment written there notifies.
      *
      * @return the stored comment
      */

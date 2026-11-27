@@ -56,8 +56,8 @@ public class MessageRepository {
      * Writes a system line.
      *
      * @param conversationId the conversation
-     * @param authorId       who did what it says, or null where nobody did
-     * @param kind           what it says
+     * @param authorId       who did what it shows, or null where nobody did
+     * @param kind           what it shows
      * @param subjectId      whom it is about, or null
      * @param content        the new name of a rename, empty otherwise
      * @return the line's id

@@ -63,7 +63,7 @@ public class OneTimePasswordService {
     }
 
     /**
-     * @param clock what tells the time, so a test can issue a password that has already expired
+     * @param clock what provides the time, so a test can issue a password that has already expired
      */
     public OneTimePasswordService(
             AccountRepository accountRepository,

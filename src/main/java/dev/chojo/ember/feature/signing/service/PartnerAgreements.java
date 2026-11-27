@@ -79,7 +79,7 @@ import java.util.UUID;
  * <p><b>Withdrawn at home.</b> A signed agreement withdrawn at the partner comes back as the sealed version that
  * records the withdrawal, checked like every sealed copy and kept locked beside the signed one, which stays.
  * The first such report marks the document withdrawn, flags the member's standing registration for the date,
- * and tells whoever runs the appointment; a complete signed copy that comes back afterwards takes the flag off.
+ * and notifies whoever runs the appointment; a complete signed copy that comes back afterwards takes the flag off.
  * A withdrawal is taken for a document already reported on even where the registration was given up since.
  *
  * <p><b>Partners that cannot sign.</b> A partner whose installation never reports anything, because it is older,
@@ -284,7 +284,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
      */
     private record TakenCopy(boolean kept, boolean newlyWithdrawn) {}
 
-    /** Flags the member's standing registration for the date and tells whoever runs the appointment. */
+    /** Flags the member's standing registration for the date and notifies whoever runs the appointment. */
     private void withdrawn(
             FederationPartner partner, StationEvent event, RemoteAgreementNotice notice, DocumentTemplate template) {
         boolean flagged = partnerRegistrations.flagAgreementWithdrawn(

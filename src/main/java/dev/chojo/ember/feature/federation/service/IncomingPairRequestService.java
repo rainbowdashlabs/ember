@@ -113,7 +113,7 @@ public class IncomingPairRequestService {
 
     /**
      * Accepts a request from a station of another instance. This side of the partnership is written
-     * at once from what the request carried; the asking instance is told in the background and
+     * at once from what the request carried; the asking instance is notified in the background and
      * writes its side when the answer reaches it, or when it next asks.
      *
      * @param stationId the asked station, which must be the one the request is for
@@ -142,7 +142,7 @@ public class IncomingPairRequestService {
 
     /**
      * Declines a request from a station of another instance. The same station may not ask again for
-     * 30 days; the asking instance is told in the background, or when it next asks.
+     * 30 days; the asking instance is notified in the background, or when it next asks.
      *
      * @param stationId the asked station, which must be the one the request is for
      * @param requestId the request
@@ -159,7 +159,7 @@ public class IncomingPairRequestService {
 
     /**
      * Answers the asking instance's question about where its request stands. The question must be
-     * signed with the keys the request came with, so nobody else learns whether a station said yes.
+     * signed with the keys the request came with, so nobody else learns whether a station accepted.
      *
      * @param query the signed question
      * @return the signed answer

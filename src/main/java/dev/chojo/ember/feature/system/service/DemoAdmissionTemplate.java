@@ -26,7 +26,7 @@ import static dev.chojo.ember.feature.system.service.DemoLetterBlocks.userType;
 
 /**
  * The admission application the demo's procedure "Neues Mitglied aufnehmen" asks a new member to sign: a
- * letter in German saying the member joins the youth fire brigade, what that brings with it and how it ends.
+ * letter in German on how the member joins the youth fire brigade, what that brings with it and how it ends.
  *
  * <p>The member signs it, and so does every guardian of a young member, whose lines and the sentence about
  * them are printed only for the members of the youth fire brigade. The youth warden takes the application

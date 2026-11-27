@@ -93,7 +93,7 @@ final class FontStandIns {
 
     /**
      * @param family a family a document names
-     * @return whether its name says it is a light cut, such as Frutiger 45 Light
+     * @return whether its name shows it is a light cut, such as Frutiger 45 Light
      */
     static boolean light(String family) {
         return LIGHT.matcher(lower(family)).find();

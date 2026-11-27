@@ -116,7 +116,7 @@ public class MovementGuards {
      * Whether the caller may answer for the body that owns the gear this movement is about.
      *
      * <p>Only when they act for the cluster that owns this gear: holding the permission at some
-     * other cluster says nothing about this one. A movement that has not named its piece yet is
+     * other cluster shows nothing about this one. A movement that has not named its piece yet is
      * about the cluster the station answers to.
      *
      * @param session  who is asking

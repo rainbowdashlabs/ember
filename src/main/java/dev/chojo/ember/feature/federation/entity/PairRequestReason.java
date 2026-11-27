@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * Why an instance refused a message about a request to federate, as it says so on the wire.
+ * Why an instance refused a message about a request to federate, as it is sent on the wire.
  *
  * <p>The set is closed and travels by name, so the asking instance reads the reason without knowing
  * the refusal codes of the instance that answered. Each value stands for one refusal the receiving

@@ -23,10 +23,10 @@ import java.util.stream.Collectors;
  * them on once the change is stored: a rename, a share that ends for a partner, and a partner's
  * share mode changing.
  *
- * <p>Every partner is told through its webhook endpoint, wherever it runs, and applies the change to
+ * <p>Every partner is notified through its webhook endpoint, wherever it runs, and applies the change to
  * the saved boards of its members itself.
  *
- * <p>Partners are told only after the local change is written, and telling them can never undo or
+ * <p>Partners are notified only after the local change is written, and notifying them can never undo or
  * fail it: delivery never raises, and anything going wrong while passing a change on is logged and
  * dropped.
  */

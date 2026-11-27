@@ -44,7 +44,7 @@ public record PdfInspection(List<PdfPage> pages, List<FormField> formFields) {
      * Reads the stored column.
      *
      * @param json the column
-     * @return the inspection, an empty one where the column says nothing readable
+     * @return the inspection, an empty one where the column holds nothing readable
      */
     public static PdfInspection parse(String json) {
         return QuestionConfigs.parse(json, PdfInspection.class, EMPTY);
