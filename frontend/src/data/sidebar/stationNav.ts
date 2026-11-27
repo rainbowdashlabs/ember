@@ -270,6 +270,7 @@ export const STATION_NAV: Entry[] = [
             {kind: 'page', key: 'events-registrations', label: 'sidebar.pendingRegistrations', icon: 'clipboard-list', to: '/station/events/registrations', badge: ({counts}) => counts.pendingRegistrations, visible: can(StationPermission.EVENT_REGISTRATION)},
             {kind: 'page', key: 'events', label: 'sidebar.manageEvents', icon: 'gears', to: '/station/events', onboarding: 'nav.events', visible: can(StationPermission.EVENT_EDIT)},
             {kind: 'page', key: 'event-categories', label: 'sidebar.eventCategories', icon: 'folder-plus', to: '/station/events/categories', visible: can(StationPermission.EVENT_MANAGE_CATEGORY)},
+            {kind: 'page', key: 'event-calendar-feeds', label: 'sidebar.eventCalendarFeeds', icon: 'calendar-plus', to: '/station/events/calendar-feeds', visible: can(StationPermission.EVENT_CALENDAR_FEEDS)},
             {kind: 'page', key: 'event-templates', label: 'sidebar.eventTemplates', icon: 'clipboard-list', to: '/station/events/templates', visible: can(StationPermission.EVENT_MANAGE_TEMPLATE)},
         ],
     },

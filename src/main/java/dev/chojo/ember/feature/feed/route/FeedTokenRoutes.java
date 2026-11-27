@@ -5,16 +5,20 @@
  */
 package dev.chojo.ember.feature.feed.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.feed.entity.FeedToken;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.feed.service.PersonalFeedFilterService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -23,14 +27,17 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 @Singleton
 public class FeedTokenRoutes implements Routes {
     private final FeedTokenService tokenService;
+    private final PersonalFeedFilterService filters;
 
     @Inject
-    public FeedTokenRoutes(FeedTokenService tokenService) {
+    public FeedTokenRoutes(FeedTokenService tokenService, PersonalFeedFilterService filters) {
         this.tokenService = tokenService;
+        this.filters = filters;
     }
 
     @Override
@@ -40,6 +47,40 @@ public class FeedTokenRoutes implements Routes {
         routes.post(prefix + "/feed/token", this::createToken, StationPermission.USER);
         routes.post(prefix + "/feed/token/regenerate", this::regenerateToken, StationPermission.USER);
         routes.delete(prefix + "/feed/token", this::revokeToken, StationPermission.USER);
+        routes.get(
+                prefix + "/feed/categories", this::getHiddenCategories, StationPermission.USER, StationModule.EVENTS);
+        routes.put(
+                prefix + "/feed/categories", this::setHiddenCategories, StationPermission.USER, StationModule.EVENTS);
+    }
+
+    @OpenApi(
+            path = "/api/v1/feed/categories",
+            methods = HttpMethod.GET,
+            summary = "Get the categories the current user's calendar feed leaves out",
+            tags = {"Feed Tokens"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = HiddenCategories.class)))
+    private void getHiddenCategories(Context ctx) {
+        ctx.json(new HiddenCategories(
+                filters.hiddenCategories(StationSession.from(ctx).member().id())));
+    }
+
+    @OpenApi(
+            path = "/api/v1/feed/categories",
+            methods = HttpMethod.PUT,
+            summary = "Set the categories the current user's calendar feed leaves out",
+            description =
+                    "Replaces the whole choice. Appointments the member or a member in their care signed up for stay in the feed whatever their category. The address stays.",
+            tags = {"Feed Tokens"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = HiddenCategories.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = HiddenCategories.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setHiddenCategories(Context ctx) {
+        var session = StationSession.from(ctx);
+        var req = ctx.bodyAsClass(HiddenCategories.class);
+        ctx.json(new HiddenCategories(
+                filters.setHiddenCategories(session.member().id(), session.stationId(), req.hiddenCategories())));
     }
 
     @OpenApi(
@@ -127,6 +168,18 @@ public class FeedTokenRoutes implements Routes {
             String createdAt,
             @Nullable String icalPolledAt,
             @Nullable String notificationPolledAt) {}
+
+    /**
+     * The categories a member's personal calendar feed leaves out.
+     *
+     * @param hiddenCategories the category ids, none where absent
+     */
+    public record HiddenCategories(@Nullable List<Integer> hiddenCategories) {
+        @Override
+        public List<Integer> hiddenCategories() {
+            return hiddenCategories == null ? List.of() : hiddenCategories;
+        }
+    }
 
     public record FeedStatusResponse(boolean hasToken, boolean icalActive, boolean notificationActive) {}
 }

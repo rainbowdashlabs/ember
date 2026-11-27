@@ -2,12 +2,13 @@
 
 ## v26.27.0
 
-People who already have an account on this instance can be invited into a station by their name. Inventories and their kinds can carry a photo, which partner stations also see when they borrow. Maps on an appointment offer links to navigate to the place. First steps arrive three at a time, in the order they build on each other.
+People who already have an account on this instance can be invited into a station by their name. Inventories and their kinds can carry a photo, which partner stations also see when they borrow. Stations can create calendar subscriptions of their own for shared calendars. First steps arrive three at a time, in the order they build on each other.
 
 ### New Features
 
 - **Invite people of this instance by name.** The member wizard finds people who already have an account on this instance by their name and asks them to link it, without anybody knowing their address. People who share a station or an association with the inviting manager can be found, everybody else only after turning on "Findable from every station" under Account → Links.
 - **Photos of inventories and kinds.** An inventory can carry a photo, and a kind can carry one of its own that its pieces show instead. The photo appears on the stock page, on a piece's own page and in the overview of what the station lends. Partner stations see the photo, or otherwise the icon, in their lending list. With a partner on another server this works once both run this version, and lending between the two pauses until then.
+- **Calendar feeds for the station.** A station can create calendar subscriptions for shared calendars such as a screen in the station, each showing appointments up to a chosen visibility (public, all members or everything) and leaving out chosen categories. Event managers manage them under Events → Calendar feeds, and the permission can also be given on its own.
 
 ### Improvements
 
@@ -18,6 +19,7 @@ People who already have an account on this instance can be invited into a statio
 - **Meeting point in appointment documents.** Documents for appointments have a new placeholder for the meeting point. The location placeholder keeps showing where the appointment takes place, so photo permissions and similar forms stay as they are.
 - **First steps come three at a time.** The dashboard shows at most three first steps at once, with the station's setup before a person's own. A step that builds on another, such as inviting members after setting up mail, appears once that one is done or skipped.
 - **Procurements fold fulfilled orders and record owners.** The procurement page lists open procurements first. Fulfilled ones sit below in a folded section, most recent first. In a mixed inventory, a procurement records whether it brings the station's piece or the association's. Internal and external inventories settle this by their type.
+- **Personal calendar subscription by category.** The personal calendar subscription can leave out chosen categories under Profile → Settings. Appointments the member or someone in their care is signed up for stay in it.
 
 ### Changes
 

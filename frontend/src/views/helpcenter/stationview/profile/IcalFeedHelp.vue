@@ -23,6 +23,14 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.icalFeed.tokenText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.icalFeed.categoriesTitle')">
+      <p>{{ t('helpCenter.icalFeed.categoriesText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.icalFeed.sharedTitle')">
+      <p>{{ t('helpCenter.icalFeed.sharedText') }}</p>
+    </HelpSection>
+
     <NeutralContainer class="space-y-3">
       <p class="text-sm font-medium">{{ t('helpCenter.icalFeed.stepsTitle') }}</p>
       <ol class="list-decimal list-inside text-sm space-y-1 text-(--text-muted)">

@@ -17,4 +17,9 @@ export default {
     'FD-005': STATION_NOT_HERE,
     'FD-006': 'Der Feed ließ sich nicht zusammenstellen. Ein erneuter Versuch kann klappen; '
         + 'wenn es weiter passiert, melde es bitte',
+    'FD-008': 'Diesen Kalender-Feed gibt es nicht mehr',
+    'FD-009': 'Ein Kalender-Feed braucht einen Namen',
+    'FD-010': 'Der Name eines Kalender-Feeds darf höchstens 100 Zeichen lang sein',
+    'FD-011': 'Ein Kalender-Feed braucht eine Sichtbarkeit: öffentlich, Mitglieder oder alles',
+    'FD-012': 'Eine der gewählten Kategorien gibt es nicht mehr',
 }

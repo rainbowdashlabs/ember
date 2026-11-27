@@ -145,6 +145,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-event-detail-date', path: '/helpcenter/station/events/0/0', i18nPrefix: 'helpCenter.eventDetail'},
     {route: 'help-event-edit', path: '/helpcenter/station/events/0/edit', i18nPrefix: 'helpCenter.eventEdit'},
     {route: 'help-event-batch', path: '/helpcenter/station/events/batch', i18nPrefix: 'helpCenter.batchCreate'},
+    {route: 'help-event-calendar-feeds', path: '/helpcenter/station/events/calendar-feeds', i18nPrefix: 'helpCenter.calendarFeeds'},
     {route: 'help-event-categories', path: '/helpcenter/station/events/categories', i18nPrefix: 'helpCenter.categories'},
     {route: 'help-event-group', path: '/helpcenter/station/events/groups/0', i18nPrefix: ['helpCenter.eventGroupDetail', 'helpCenter.eventGroups']},
     {route: 'help-event-group-edit', path: '/helpcenter/station/events/groups/0/edit', i18nPrefix: ['helpCenter.eventGroupDetail', 'helpCenter.eventGroupEdit', 'helpCenter.eventGroups']},

@@ -45,6 +45,7 @@ import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.repository.PartnerAnswerRepository;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
+import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupPartFactory;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
@@ -66,7 +67,11 @@ import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
+import dev.chojo.ember.feature.feed.entity.StationFeedLevel;
+import dev.chojo.ember.feature.feed.repository.StationCalendarFeedRepository;
+import dev.chojo.ember.feature.feed.service.FeedCategoryFilter;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.feed.service.StationCalendarFeedService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
@@ -443,7 +448,10 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventServices.restriction(),
                 new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility),
                 eventServices.registration(),
-                demoClock);
+                demoClock,
+                new StationCalendarFeedService(
+                        new StationCalendarFeedRepository(),
+                        new FeedCategoryFilter(new EventCategoryService(eventCategoryRepo))));
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo, stationMemberRepo, demoClock);
         var eventGroupQuestions =
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility);
@@ -737,6 +745,21 @@ class DemoServiceTest extends RepositoryTestBase {
         assertTrue(
                 stations.stream().anyMatch(s -> "Jugendfeuerwehr Musterstadt".equals(s.name())),
                 "Station 'Jugendfeuerwehr Musterstadt' should exist");
+    }
+
+    /** Every demo station holds a calendar feed for a shared screen, showing what all members may see. */
+    @Test
+    @Order(3)
+    void verifyTheDemoStationHasACalendarFeed() {
+        var station = stationRepo.findAll().stream()
+                .filter(s -> "Jugendfeuerwehr Musterstadt".equals(s.name()))
+                .findFirst()
+                .orElseThrow();
+        var feeds = new StationCalendarFeedRepository().findByStation(station.id());
+        assertEquals(1, feeds.size());
+        assertEquals("Bildschirm Fahrzeughalle", feeds.getFirst().name());
+        assertEquals(StationFeedLevel.MEMBERS, feeds.getFirst().level());
+        assertNotNull(feeds.getFirst().createdBy());
     }
 
     /** The demo looks addresses up on the public Photon server, so places can be found on the map right away. */

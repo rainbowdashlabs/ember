@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api.auth;
 
+import dev.chojo.ember.feature.station.entity.StationModule;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumMap;
@@ -41,6 +42,17 @@ class PermissionsTest {
         assertTrue(expanded.contains(StationPermission.PROTOCOL_MANAGER));
         assertTrue(expanded.contains(StationPermission.PROTOCOL_TESTER));
         assertTrue(expanded.contains(StationPermission.STATION_FEDERATION));
+    }
+
+    @Test
+    void calendarFeedsComeWithEventManagementAndGoWithTheEventsModule() {
+        assertTrue(StationPermission.expand(EnumSet.of(StationPermission.EVENT_MANAGER))
+                .contains(StationPermission.EVENT_CALENDAR_FEEDS));
+        assertTrue(StationPermission.expand(EnumSet.of(StationPermission.STATION_ADMINISTRATOR))
+                .contains(StationPermission.EVENT_CALENDAR_FEEDS));
+        assertFalse(StationPermission.expand(
+                        EnumSet.of(StationPermission.STATION_ADMINISTRATOR), EnumSet.of(StationModule.EVENTS))
+                .contains(StationPermission.EVENT_CALENDAR_FEEDS));
     }
 
     @Test

@@ -39,7 +39,27 @@ public enum FeedRefusal implements Refusal {
     FEED_NOT_BUILT(
             6,
             HttpStatus.INTERNAL_SERVER_ERROR,
-            "The feed could not be put together. Trying again may work; if it keeps happening, please report it");
+            "The feed could not be put together. Trying again may work; if it keeps happening, please report it"),
+
+    /** A station calendar feed that is not here, or that belongs to another station. */
+    FEED_STATION_FEED_NOT_HERE(8, HttpStatus.NOT_FOUND, "That calendar feed is not here any more"),
+
+    /** A station calendar feed created or renamed without a name. */
+    FEED_STATION_FEED_NEEDS_A_NAME(9, HttpStatus.BAD_REQUEST, "A calendar feed needs a name"),
+
+    /** A station calendar feed name longer than the list and a calendar app can show. */
+    FEED_STATION_FEED_NAME_TOO_LONG(
+            10, HttpStatus.BAD_REQUEST, "The name of a calendar feed may be at most 100 characters long"),
+
+    /** A station calendar feed created or changed without saying how far it reaches. */
+    FEED_STATION_FEED_NEEDS_A_LEVEL(
+            11, HttpStatus.BAD_REQUEST, "A calendar feed needs a visibility: public, members or everything"),
+
+    /**
+     * A category to leave out of a feed that is not one of the station's own. One code for a category that
+     * is gone and one of another station, so a feed cannot be used to probe other stations' categories.
+     */
+    FEED_CATEGORY_NOT_HERE(12, HttpStatus.NOT_FOUND, "One of the chosen categories is not here any more");
 
     private final Definition definition;
 

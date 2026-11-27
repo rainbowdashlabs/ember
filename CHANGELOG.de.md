@@ -2,12 +2,13 @@
 
 ## v26.27.0
 
-Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren Namen in eine Wache einladen. Inventare und ihre Arten können ein Foto haben, das auch Partnerwachen beim Ausleihen sehen. Karten an einem Termin bieten Links für den Weg dorthin. Erste Schritte erscheinen zu dritt und in der Reihenfolge, in der sie aufeinander aufbauen.
+Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren Namen in eine Wache einladen. Inventare und ihre Arten können ein Foto haben, das auch Partnerwachen beim Ausleihen sehen. Wachen können eigene Kalenderabos für gemeinsame Kalender anlegen. Erste Schritte erscheinen zu dritt und in der Reihenfolge, in der sie aufeinander aufbauen.
 
 ### Neue Funktionen
 
 - **Personen der Instanz über ihren Namen einladen.** Beim Anlegen eines Mitglieds lassen sich Personen mit einem Konto auf dieser Instanz über ihren Namen finden und um die Verknüpfung ihres Kontos bitten, ohne dass jemand ihre Adresse kennen muss. Gefunden werden Personen, die eine Wache oder einen Verband teilen, alle anderen erst, wenn sie unter Konto → Verknüpfungen „Für alle Wachen auffindbar“ einschalten.
 - **Fotos für Inventare und Arten.** Ein Inventar kann ein Foto haben, und eine Art ein eigenes, das ihre Gegenstände stattdessen zeigen. Das Foto erscheint auf der Bestandsseite, auf der Seite eines Gegenstands und in der Übersicht dessen, was die Wache verleiht. Partnerwachen sehen in ihrer Ausleihliste das Foto, sonst das Symbol. Mit einer Partnerwache auf einem anderen Server funktioniert das, sobald beide diese Version haben; bis dahin pausiert das Ausleihen zwischen beiden.
+- **Kalender-Feeds der Wache.** Eine Wache kann Kalenderabos für gemeinsame Kalender wie einen Bildschirm in der Wache anlegen, jedes mit einer gewählten Sichtbarkeit (öffentlich, alle Mitglieder oder alles) und ohne die Kategorien, die es weglassen soll. Die Terminverwaltung pflegt sie unter Termine → Kalender-Feeds, die Berechtigung lässt sich auch einzeln vergeben.
 
 ### Verbesserungen
 
@@ -18,6 +19,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Treffpunkt in Termindokumenten.** Dokumente für Termine haben einen neuen Platzhalter für den Treffpunkt. Der Platzhalter für den Ort zeigt weiter, wo der Termin stattfindet, so bleiben Fotoerlaubnisse und ähnliche Formulare, wie sie sind.
 - **Erste Schritte kommen zu dritt.** Die Startseite zeigt höchstens drei erste Schritte gleichzeitig, die Einrichtung der Wache vor den eigenen. Ein Schritt, der auf einem anderen aufbaut, erscheint erst, wenn dieser erledigt oder übersprungen ist, etwa das Einladen von Mitgliedern nach dem Mailversand.
 - **Beschaffungen klappen Erledigtes ein und halten den Besitz fest.** Die Beschaffungsseite zeigt zuerst die offenen Beschaffungen. Erledigte stehen darunter in einem eingeklappten Bereich, die neuesten zuerst. In einem gemischten Inventar hält eine Beschaffung fest, ob sie ein Stück der Wache oder des Trägers bringt. Bei internen und externen Inventaren steht das durch ihre Art fest.
+- **Eigenes Kalenderabo nach Kategorien.** Das eigene Kalenderabo kann unter Profil → Einstellungen Kategorien weglassen. Termine, zu denen das Mitglied oder jemand in seiner Obhut angemeldet ist, bleiben darin.
 
 ### Änderungen
 

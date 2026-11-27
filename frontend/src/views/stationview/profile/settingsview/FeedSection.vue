@@ -24,6 +24,7 @@ import {useFlashMessage} from '@/composables/useFlashMessage'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import FeedCard from './feedsection/FeedCard.vue'
 import RssFallback from './feedsection/RssFallback.vue'
+import PersonalFeedCategories from './feedsection/PersonalFeedCategories.vue'
 
 const {t} = useI18n()
 
@@ -106,6 +107,7 @@ async function copyUrl(url: string) {
             :copied="copied"
             @copy="copyUrl"
           />
+          <PersonalFeedCategories/>
           <FeedCard
             :icon="['fas', 'rss']"
             :title="t('userSettings.feedAtom')"

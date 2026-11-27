@@ -676,6 +676,7 @@ export default {
         eventEdit: 'Termin bearbeiten',
         eventDetail: 'Termin-Details',
         eventCategories: 'Kategorien',
+        eventCalendarFeeds: 'Kalender-Feeds',
         eventTemplates: 'Vorlagen',
         eventBatch: 'Mehrfach erstellen',
         forms: 'Umfragen',
@@ -1700,6 +1701,10 @@ export default {
         'event-categories': {
             title: 'Termin-Kategorien',
             subtitle: 'Kategorien verwalten',
+        },
+        'event-calendar-feeds': {
+            title: 'Kalender-Feeds der Wache',
+            subtitle: 'Termine für gemeinsame Kalender',
         },
         'event-group': {
             title: 'Terminreihe',
@@ -4543,6 +4548,10 @@ export default {
         EVENT_MANAGE_CATEGORY: {
             label: 'Kategorien',
             desc: 'Kann Terminkategorien anlegen und bearbeiten.',
+        },
+        EVENT_CALENDAR_FEEDS: {
+            label: 'Kalender-Feeds der Wache',
+            desc: 'Kann Kalender-Abos der Wache für gemeinsame Kalender anlegen, ändern und löschen.',
         },
         EVENTS_FEDERATE: {
             label: 'Termine föderieren',
@@ -12746,6 +12755,41 @@ export default {
         addPersonHint: 'Du kannst jemanden auch anmelden, wenn die Vorgaben nicht erfüllt sind oder der Anmeldeschluss vorbei ist. Die Terminreihe zeigt das dann an.',
         choosePerson: 'Person wählen',
         lockedByEventGroup: 'Die Terminreihe legt für diesen Termin fest, wie die Anmeldung läuft und wer sich anmelden darf.',
+    },
+    calendarFeeds: {
+        intro: 'Ein Kalender-Feed der Wache gehört keinem Mitglied. Er eignet sich für gemeinsame Kalender wie einen Bildschirm in der Wache oder den Kalender der Führung und zeigt keine Anmeldungen.',
+        create: 'Kalender-Feed anlegen',
+        edit: 'Kalender-Feed bearbeiten',
+        empty: 'Die Wache hat noch keine Kalender-Feeds.',
+        name: 'Name',
+        namePlaceholder: 'z.B. Bildschirm Fahrzeughalle',
+        levelLabel: 'Sichtbarkeit',
+        level: {
+            PUBLIC: 'Öffentlich',
+            MEMBERS: 'Mitglieder',
+            ALL: 'Alles',
+        },
+        levelHint: {
+            PUBLIC: 'Nur Termine, die auch im öffentlichen Kalender der Wache stehen.',
+            MEMBERS: 'Alle Termine ohne Sichtbarkeitsbeschränkung.',
+            ALL: 'Alle Termine, auch die eingeschränkten.',
+        },
+        everythingWarning: 'Wer die Adresse dieses Feeds hat, sieht auch eingeschränkte Termine, ohne sich anzumelden.',
+        everythingConfirmTitle: 'Eingeschränkte Termine einbeziehen?',
+        everythingConfirm: 'Trotzdem speichern',
+        hiddenCategories: 'Diese Kategorien weglassen',
+        hiddenCategoriesHint: 'Ohne Auswahl zeigt der Feed alle Kategorien. Termine ohne Kategorie erscheinen immer.',
+        noCategories: 'Die Wache hat noch keine Kategorien.',
+        leavesOut: 'Ohne: {names}',
+        lastFetched: 'Zuletzt abgerufen: {when}',
+        neverFetched: 'Noch nie abgerufen',
+        copy: 'Adresse kopieren',
+        regenerate: 'Neue Adresse',
+        regenerateConfirmTitle: 'Neue Adresse erzeugen?',
+        regenerateConfirmBody: 'Kalender mit der bisherigen Adresse erhalten den Feed danach nicht mehr und müssen die neue Adresse eintragen.',
+        deleteConfirmTitle: 'Kalender-Feed löschen',
+        deleteConfirmBody: 'Soll der Kalender-Feed „{name}" wirklich gelöscht werden? Kalender mit seiner Adresse erhalten danach keine Termine mehr.',
+        personalHint: 'Termine, zu denen du oder jemand in deiner Obhut angemeldet ist, bleiben immer im Feed.',
     },
     categoryManage: {
         title: 'Kategorien verwalten',
