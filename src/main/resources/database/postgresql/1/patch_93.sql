@@ -83,3 +83,11 @@ WHERE f.id IN (SELECT DISTINCT ON (m.event_group_id) m.id
                   FROM ember_schema.event_group_field o
                   WHERE o.event_group_id = f.event_group_id
                     AND (o.config ->> 'calendarLocation')::BOOLEAN IS TRUE);
+
+-- A procurement in a mixed inventory records whose piece it brings, the station's or the association's.
+
+ALTER TABLE ember_schema.equipment_procurement
+    ADD COLUMN owner_kind TEXT CHECK (owner_kind IN ('STATION', 'CLUSTER'));
+
+COMMENT ON COLUMN ember_schema.equipment_procurement.owner_kind
+    IS 'Who owns the piece the procurement brings, for a mixed inventory only: STATION for the station, CLUSTER for the association above it. Null for an inventory whose type already settles the owner, and for orders placed before the choice existed.';

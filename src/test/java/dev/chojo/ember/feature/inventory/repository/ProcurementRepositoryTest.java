@@ -46,7 +46,7 @@ class ProcurementRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void create() {
-        var proc = procurementRepo.create(station.id(), inventory.id(), member.id(), null, "Need helmet");
+        var proc = procurementRepo.create(station.id(), inventory.id(), member.id(), null, "Need helmet", null, null);
         assertNotNull(proc);
         assertEquals(station.id(), proc.stationId());
         assertEquals(member.id(), proc.memberId());

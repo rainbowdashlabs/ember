@@ -62569,6 +62569,13 @@
           },
           "notes" : {
             "type" : [ "string", "null" ]
+          },
+          "owner" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ItemOwner"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -80749,9 +80756,12 @@
           "movementId" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "owner" : {
+            "$ref" : "#/components/schemas/ItemOwner"
           }
         },
-        "required" : [ "id", "inventoryId", "inventoryName", "memberId", "memberName", "memberIdentity", "sizeId", "sizeLabel", "notes", "requestedAt", "fulfilledAt", "stock", "movementId" ]
+        "required" : [ "id", "inventoryId", "inventoryName", "memberId", "memberName", "memberIdentity", "sizeId", "sizeLabel", "notes", "requestedAt", "fulfilledAt", "stock", "movementId", "owner" ]
       },
       "ProfileField" : {
         "type" : "object",

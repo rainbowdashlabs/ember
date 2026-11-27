@@ -11,9 +11,11 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcurementCreated;
 import dev.chojo.ember.event.events.ProcurementFulfilled;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
@@ -70,9 +72,10 @@ public class ProcurementService {
     }
 
     /**
-     * Records something that has been ordered. Nobody is notified about an order that is for nobody.
+     * Records something that has been ordered, in an inventory whose type settles whose piece it brings.
      *
      * @param memberId who it is for, or {@code null} for an order a cluster places for its own store
+     * @see #create(int, int, Integer, Integer, String, ItemOwner)
      */
     public Procurement create(
             int stationId,
@@ -80,16 +83,38 @@ public class ProcurementService {
             @Nullable Integer memberId,
             @Nullable Integer sizeId,
             @Nullable String notes) {
-        String inventoryName = inventoryRepository
+        return create(stationId, inventoryId, memberId, sizeId, notes, null);
+    }
+
+    /**
+     * Records something that has been ordered. Nobody is notified about an order that is for nobody.
+     *
+     * <p>Whose piece the order brings follows the inventory's type. A mixed inventory holds both, so the
+     * order records the owner there; an owner given for another inventory has to be the one its type holds.
+     * An order of the association's piece is how a station notes down what it asked an association
+     * outside Ember for.
+     *
+     * @param memberId  who it is for, or {@code null} for an order a cluster places for its own store
+     * @param ownerKind whose piece it brings, required for a mixed inventory and optional elsewhere
+     */
+    public Procurement create(
+            int stationId,
+            int inventoryId,
+            @Nullable Integer memberId,
+            @Nullable Integer sizeId,
+            @Nullable String notes,
+            @Nullable ItemOwner ownerKind) {
+        Inventory inventory = inventoryRepository
                 .findById(inventoryId)
-                .filter(inventory -> inventory.stationId() == stationId)
-                .map(Inventory::name)
+                .filter(candidate -> candidate.stationId() == stationId)
                 .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_ON_PROCUREMENT::raise);
         inventoryService.requireHomogeneous(
                 inventoryId,
                 InventoryRefusal.INVENTORY_NOT_HERE_FOR_ORDER,
                 InventoryRefusal.INVENTORY_ORDER_ON_A_COLLECTION);
-        var procurement = procurementRepository.create(stationId, inventoryId, memberId, sizeId, notes);
+        String inventoryName = inventory.name();
+        var procurement = procurementRepository.create(
+                stationId, inventoryId, memberId, sizeId, notes, null, ownerToStore(inventory, ownerKind));
         if (memberId != null) {
             eventBus.publish(new ProcurementCreated(stationId, memberId, inventoryId, inventoryName));
         }
@@ -146,14 +171,14 @@ public class ProcurementService {
         if (!inventoryRepository.findFreeStock(inventoryId, wantedSize).isEmpty()) {
             throw InventoryRefusal.MOVEMENT_REPLACEMENT_IN_STOCK.raise();
         }
+        Optional<Inventory> inventory = inventoryRepository.findById(inventoryId);
+        ItemOwner stored =
+                inventory.map(Inventory::inventoryType).orElse(null) == InventoryType.MIXED ? ItemOwner.STATION : null;
         var order = procurementRepository.create(
-                stationId, inventoryId, swap.memberId(), wantedSize, swap.reason(), movementId);
+                stationId, inventoryId, swap.memberId(), wantedSize, swap.reason(), movementId, stored);
         Integer memberId = swap.memberId();
         if (memberId != null) {
-            String inventoryName = inventoryRepository
-                    .findById(inventoryId)
-                    .map(Inventory::name)
-                    .orElse("?");
+            String inventoryName = inventory.map(Inventory::name).orElse("?");
             Transactions.afterCommit(
                     () -> eventBus.publish(new ProcurementCreated(stationId, memberId, inventoryId, inventoryName)));
         }
@@ -243,21 +268,18 @@ public class ProcurementService {
 
         var inv = inventoryService.findById(proc.inventoryId());
         if (inv.isPresent()) {
-            var owner = clusterRepository.findByHomeStation(proc.stationId());
-            var item = owner.isPresent()
-                    ? inventoryService.createItem(
-                            proc.inventoryId(),
-                            "",
-                            inv.get().name(),
-                            proc.sizeId(),
-                            null,
-                            ItemOwner.CLUSTER,
-                            owner.get().id())
-                    : inventoryService.createItem(
-                            proc.inventoryId(), "", inv.get().name(), proc.sizeId(), null);
+            ItemOwner owner = ownerOf(proc, inv.get().inventoryType());
+            Integer ownStore = owner == ItemOwner.CLUSTER
+                    ? clusterRepository
+                            .findByHomeStation(proc.stationId())
+                            .map(Cluster::id)
+                            .orElse(null)
+                    : null;
+            var item = inventoryService.createItem(
+                    proc.inventoryId(), "", inv.get().name(), proc.sizeId(), null, owner, ownStore);
             if (proc.memberId() != null) {
                 handOver(proc, item);
-            } else {
+            } else if (owner == ItemOwner.STATION || ownStore != null) {
                 custodyService.returnToOwner(item.id());
             }
         }
@@ -268,6 +290,67 @@ public class ProcurementService {
         }
         log.warn("Fulfill of procurement {} did not change any row", id);
         return false;
+    }
+
+    /**
+     * Whose piece an order brings.
+     *
+     * <p>An internal inventory holds the station's own gear and an external one the association's. A mixed
+     * inventory holds both, so the order records which. One placed there before that choice existed brings
+     * what it brought then: the association's at an association's own store, the station's elsewhere.
+     *
+     * @param procurement the order
+     * @return the owner of the piece it brings
+     */
+    public ItemOwner ownerOf(Procurement procurement) {
+        InventoryType type = inventoryRepository
+                .findById(procurement.inventoryId())
+                .map(Inventory::inventoryType)
+                .orElse(InventoryType.INTERNAL);
+        return ownerOf(procurement, type);
+    }
+
+    /**
+     * Whose piece an order brings, for a caller that already holds the inventory's type.
+     *
+     * @param procurement the order
+     * @param type        the type of the inventory it is in
+     * @return the owner of the piece it brings
+     */
+    public ItemOwner ownerOf(Procurement procurement, InventoryType type) {
+        ItemOwner stored = procurement.ownerKind();
+        return switch (type) {
+            case INTERNAL -> ItemOwner.STATION;
+            case EXTERNAL -> ItemOwner.CLUSTER;
+            case MIXED -> {
+                if (stored != null) yield stored;
+                yield clusterRepository
+                                .findByHomeStation(procurement.stationId())
+                                .isPresent()
+                        ? ItemOwner.CLUSTER
+                        : ItemOwner.STATION;
+            }
+        };
+    }
+
+    /**
+     * The owner an order keeps, which is only one given in a mixed inventory. Elsewhere the type settles it,
+     * and a given owner must be one that type holds.
+     */
+    private static @Nullable ItemOwner ownerToStore(Inventory inventory, @Nullable ItemOwner given) {
+        if (given == ItemOwner.PARTNER_STATION) throw InventoryRefusal.PROCUREMENT_OWNER_NOT_POSSIBLE.raise();
+        InventoryType type = inventory.inventoryType();
+        if (type == InventoryType.MIXED) {
+            if (given == null) throw InventoryRefusal.PROCUREMENT_NEEDS_AN_OWNER.raise();
+            return given;
+        }
+        if (given != null && !type.holds(given)) {
+            throw (given == ItemOwner.STATION
+                            ? InventoryRefusal.INVENTORY_HOLDS_NO_STATION_GEAR
+                            : InventoryRefusal.INVENTORY_HOLDS_NO_ASSOCIATION_GEAR)
+                    .raise();
+        }
+        return null;
     }
 
     /**

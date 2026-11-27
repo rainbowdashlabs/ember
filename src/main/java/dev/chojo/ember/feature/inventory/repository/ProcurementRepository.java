@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -24,30 +25,10 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class ProcurementRepository {
     private static final String EQUIPMENT_PROCUREMENT_COLUMNS =
-            "id, station_id, inventory_id, member_id, size_id, notes, requested_at, fulfilled_at, movement_id";
+            "id, station_id, inventory_id, member_id, size_id, notes, requested_at, fulfilled_at, movement_id, owner_kind";
 
     /**
-     * Creates a new procurement request.
-     *
-     * @param stationId   the station ID
-     * @param inventoryId the inventory the equipment is from
-     * @param memberId    the member the equipment is being procured for, or {@code null} for an order
-     *                    a cluster places for its own store
-     * @param sizeId      the requested size, or {@code null} if not applicable
-     * @param notes       additional notes
-     * @return the created procurement
-     */
-    public Procurement create(
-            int stationId,
-            int inventoryId,
-            @Nullable Integer memberId,
-            @Nullable Integer sizeId,
-            @Nullable String notes) {
-        return create(stationId, inventoryId, memberId, sizeId, notes, null);
-    }
-
-    /**
-     * Creates a new procurement request, linked to the swap whose replacement it brings.
+     * Creates a new procurement request, linked to the swap whose replacement it brings where there is one.
      *
      * @param stationId   the station ID
      * @param inventoryId the inventory the equipment is from
@@ -55,6 +36,7 @@ public class ProcurementRepository {
      * @param sizeId      the requested size, or {@code null} if not applicable
      * @param notes       additional notes
      * @param movementId  the swap waiting for this order, or {@code null} for an order of its own
+     * @param ownerKind   whose piece the order brings, for a mixed inventory; {@code null} otherwise
      * @return the created procurement
      */
     public Procurement create(
@@ -63,18 +45,21 @@ public class ProcurementRepository {
             @Nullable Integer memberId,
             @Nullable Integer sizeId,
             @Nullable String notes,
-            @Nullable Integer movementId) {
+            @Nullable Integer movementId,
+            @Nullable ItemOwner ownerKind) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO equipment_procurement(station_id, inventory_id, member_id, size_id, notes, movement_id)
-                VALUES(:station_id, :inventory_id, :member_id, :size_id, :notes, :movement_id)
+                INSERT INTO equipment_procurement(station_id, inventory_id, member_id, size_id, notes, movement_id,
+                                                  owner_kind)
+                VALUES(:station_id, :inventory_id, :member_id, :size_id, :notes, :movement_id, :owner_kind)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("inventory_id", inventoryId)
                         .bind("member_id", memberId)
                         .bind("size_id", sizeId)
                         .bind("notes", notes != null ? notes : "")
-                        .bind("movement_id", movementId),
+                        .bind("movement_id", movementId)
+                        .bind("owner_kind", ownerKind == null ? null : ownerKind.name()),
                 Procurement.map(),
                 EQUIPMENT_PROCUREMENT_COLUMNS);
     }

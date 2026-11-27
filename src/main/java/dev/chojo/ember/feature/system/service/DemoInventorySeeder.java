@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -269,7 +270,8 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                         handschuheInv.get().id(),
                         anfaengerMembers.get(2).id(),
                         sizes.isEmpty() ? null : sizes.get(2 % sizes.size()).id(),
-                        "Handschuhe verloren");
+                        "Handschuhe verloren",
+                        stationsOwnWhereMixed(handschuheInv.get()));
             }
         }
         var sporttascheInv =
@@ -283,11 +285,21 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                         .anyMatch(i -> i.inventoryId() == sporttascheInv.get().id());
                 if (!hasSporttasche) {
                     procurementService.create(
-                            stationId, sporttascheInv.get().id(), kid.id(), null, "Sporttasche fehlt");
+                            stationId,
+                            sporttascheInv.get().id(),
+                            kid.id(),
+                            null,
+                            "Sporttasche fehlt",
+                            stationsOwnWhereMixed(sporttascheInv.get()));
                 }
             }
         }
         log.info("Demo: Created procurements");
+    }
+
+    /** The owner a demo order names: the station's own piece in a mixed inventory, the type's elsewhere. */
+    private static @Nullable ItemOwner stationsOwnWhereMixed(Inventory inventory) {
+        return inventory.inventoryType() == InventoryType.MIXED ? ItemOwner.STATION : null;
     }
 
     /**
