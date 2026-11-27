@@ -344,7 +344,7 @@ test.describe('Members', () => {
     })
 
     /**
-     * A group is one of the audiences a question can be put to, and the assignment that records so is a
+     * A group is one of the audiences a question can be put to, and the assignment that records that is a
      * row of its own.
      *
      * <p>It used to live inside the question's configuration, as one opaque lump that no type on

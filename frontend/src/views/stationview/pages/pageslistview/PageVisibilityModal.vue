@@ -38,7 +38,7 @@ const {t} = useI18n()
 const chosen = ref<PageVisibility>(PageVisibility.DRAFT)
 
 /**
- * The dialog is open exactly while a page is being asked about. Closing it signals so upwards, since
+ * The dialog is open exactly while a page is being asked about. Closing it signals that upwards, since
  * the page it is about is what the caller holds.
  */
 const open = computed({

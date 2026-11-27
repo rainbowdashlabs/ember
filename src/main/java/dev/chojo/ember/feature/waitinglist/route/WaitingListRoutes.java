@@ -424,7 +424,7 @@ public class WaitingListRoutes implements Routes {
     }
 
     /**
-     * Answers the request itself when the caller has asked too often, and signals so.
+     * Answers the request itself when the caller has asked too often, and signals that.
      *
      * <p>The entry endpoints are keyed by the token rather than by the list, because the token is
      * what a guess would have to hit and it now returns something worth guessing at.
@@ -436,7 +436,7 @@ public class WaitingListRoutes implements Routes {
     }
 
     /**
-     * Answers the request itself when the caller has read entry pages too often, and signals so.
+     * Answers the request itself when the caller has read entry pages too often, and signals that.
      *
      * <p>Reading is held apart from registering. The status page is a link a family opens again
      * whenever they wonder where they stand, and behind a shared connection one address speaks for

@@ -65,7 +65,7 @@ const guessed = computed(() => props.missing.missing
 
 /**
  * The choice a font starts on: the family offered first, else the default font, light where the name of
- * the font indicates so and that family ships a light cut.
+ * the font indicates that and that family ships a light cut.
  */
 function firstChoice(family: string): FormFontChoice {
   const replacement = props.missing.suggested[family]?.family ?? ''

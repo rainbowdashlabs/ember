@@ -76,7 +76,7 @@ const subjectName = computed(() => {
 })
 
 /**
- * The walk ends where the steps end. Ember signals so rather than vanishing mid-page, and the list is
+ * The walk ends where the steps end. Ember signals that rather than vanishing mid-page, and the list is
  * read again, because whether the task counts as done is the server's answer and not the last click's.
  *
  * <p>A task Ember cannot read for itself is settled by the walk, because walking it is the whole of
