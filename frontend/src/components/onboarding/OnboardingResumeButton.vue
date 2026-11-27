@@ -22,9 +22,10 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
-const {openOf, startNext, activeTaskId, guideDismissed, reopenGuide} = useOnboardingTasks()
+const {anythingOpenOnPageOf, startNext, activeTaskId, guideDismissed, reopenGuide} = useOnboardingTasks()
 
-const visible = computed(() => openOf(props.level).length > 0 && (activeTaskId.value === null || guideDismissed.value))
+const visible = computed(() => anythingOpenOnPageOf(props.level)
+    && (activeTaskId.value === null || guideDismissed.value))
 
 function resume() {
   reopenGuide()

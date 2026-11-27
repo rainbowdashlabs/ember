@@ -12,6 +12,7 @@ import {
     type OnboardingTaskView,
 } from '@/api/generated/schema'
 import {flowFor} from '@/util/onboardingFlows'
+import {hiddenCount, pageLevels, visibleTasks, type WindowTask} from '@/util/onboardingWindow'
 import {clearActiveTask, onboardingState} from '@/util/onboardingState'
 
 /**
@@ -31,6 +32,36 @@ export function useOnboardingTasks() {
 
     function openOf(level: OnboardingLevel): OnboardingTaskView[] {
         return (onboardingStatus.value[level]?.tasks ?? []).filter(t => t.state === OnboardingTaskState.OPEN)
+    }
+
+    /** The few tasks the page of this level shows, across every card on it. */
+    function windowOf(level: OnboardingLevel): WindowTask[] {
+        return visibleTasks(onboardingStatus.value, pageLevels(level))
+    }
+
+    /** The tasks of this level that are in its page's window, which is all its card lists. */
+    function shownOf(level: OnboardingLevel): OnboardingTaskView[] {
+        return windowOf(level).filter(entry => entry.level === level).map(entry => entry.task)
+    }
+
+    /** How many open tasks of the page wait behind the ones shown. */
+    function hiddenOnPageOf(level: OnboardingLevel): number {
+        return hiddenCount(onboardingStatus.value, pageLevels(level))
+    }
+
+    /** Whether anything on the page of this level is still open, on whichever card. */
+    function anythingOpenOnPageOf(level: OnboardingLevel): boolean {
+        return pageLevels(level).some(pageLevel => openOf(pageLevel).length > 0)
+    }
+
+    /**
+     * Whether this level's card is the last one drawn on its page, which is where the line about the
+     * tasks still to come belongs. A card is drawn while it has an open or a skipped task.
+     */
+    function lastCardOnPage(level: OnboardingLevel): boolean {
+        const drawn = pageLevels(level).filter(pageLevel => (onboardingStatus.value[pageLevel]?.tasks ?? [])
+            .some(task => task.state === OnboardingTaskState.OPEN || task.state === OnboardingTaskState.SKIPPED))
+        return drawn.at(-1) === level
     }
 
     /**
@@ -92,13 +123,14 @@ export function useOnboardingTasks() {
     }
 
     /**
-     * Starts the first open task that has a way to be walked, which is what the resume button does.
-     * A task that happens outside Ember, such as putting a bookmark somewhere, is passed over here:
-     * there would be nothing to point at.
+     * Starts the first task shown on the page of this level that has a way to be walked, which is
+     * what the resume button does. It may belong to another card on the same page. A task that
+     * happens outside Ember, such as putting a bookmark somewhere, is passed over here: there would
+     * be nothing to point at. A task held back or behind the first few is never started.
      */
     function startNext(level: OnboardingLevel) {
-        const next = openOf(level).find(task => flowFor(task.key).length > 0)
-        if (next) start(level, next)
+        const next = windowOf(level).find(entry => flowFor(entry.task.key).length > 0)
+        if (next) start(next.level, next.task)
     }
 
     function stop() {
@@ -123,6 +155,10 @@ export function useOnboardingTasks() {
         guideDismissed: readonly(guideDismissed),
         reopenGuide,
         openOf,
+        shownOf,
+        hiddenOnPageOf,
+        anythingOpenOnPageOf,
+        lastCardOnPage,
         load,
         confirm,
         skip,

@@ -10421,6 +10421,9 @@ export default {
             skippedHint: 'Verworfene Aufgaben verschwinden dauerhaft und kommen nicht zurück.',
             settledBy: 'von {name}',
             settledElsewhere: 'auf einer anderen Wache',
+            waitingForOther: 'Geht weiter, sobald die Schritte oben erledigt sind.',
+            laterOne: 'Danach wartet noch ein Schritt.',
+            later: 'Danach warten noch {count} Schritte.',
             MEMBER: {
                 title: 'Deine ersten Schritte',
                 hint: 'Ich zeige dir, wo alles liegt. Du klickst selbst, dann kennst du den Weg beim nächsten Mal.',

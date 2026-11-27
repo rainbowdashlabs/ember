@@ -28,15 +28,49 @@ test.describe.configure({mode: 'serial'})
 
 const TASK = 'member.absence'
 
-async function setTaskState(page: Page, state: 'OPEN' | 'DONE' | 'SKIPPED') {
-    const response = await page.request.put(`/api/v1/onboarding/member/${TASK}`, {
+/**
+ * The steps before the absences, in an order where each is ready by the time it is passed over. Only
+ * a few steps are shown at once, so the stories pass these over to bring theirs to the front.
+ */
+const BEFORE = [
+    'member.tour',
+    'member.profile',
+    'member.notifications',
+    'member.push',
+    'member.eventAnswer',
+    'member.calendar',
+]
+
+async function setStateOf(page: Page, key: string, state: 'OPEN' | 'DONE' | 'SKIPPED') {
+    const response = await page.request.put(`/api/v1/onboarding/member/${key}`, {
         headers: await apiHeaders(page),
         data: {state},
     })
     expect(response.ok(), await response.text()).toBeTruthy()
 }
 
+async function setTaskState(page: Page, state: 'OPEN' | 'DONE' | 'SKIPPED') {
+    await setStateOf(page, TASK, state)
+}
+
+async function passOverTheStepsBefore(page: Page) {
+    for (const key of BEFORE) await setStateOf(page, key, 'SKIPPED')
+}
+
+/** Taking a step up again never waits for anything, so the order does not matter here. */
+async function takeEveryStepUpAgain(page: Page) {
+    for (const key of [...BEFORE, TASK, 'member.bookmark']) await setStateOf(page, key, 'OPEN')
+}
+
 test.describe('Onboarding tasks', () => {
+    test.beforeEach(async ({memberPage: page}) => {
+        await passOverTheStepsBefore(page)
+    })
+
+    test.afterEach(async ({memberPage: page}) => {
+        await takeEveryStepUpAgain(page)
+    })
+
     test('a member is offered their first steps and can begin one', async ({memberPage: page}) => {
         await setTaskState(page, 'OPEN')
         await page.goto('/station/dashboard/overview')
@@ -83,7 +117,8 @@ test.describe('Onboarding tasks', () => {
         await page.reload()
 
         await expect(page.getByTestId(`onboarding-task-${TASK}`)).toHaveCount(0)
-        await page.getByRole('button', {name: 'Wieder aufnehmen'}).first().click()
+        await page.getByText('Schauen, wo Abwesenheiten eingetragen werden', {exact: true}).locator('..')
+            .getByRole('button', {name: 'Wieder aufnehmen'}).click()
         await expect(page.getByTestId(`onboarding-task-${TASK}`)).toBeVisible()
 
         await setTaskState(page, 'OPEN')
@@ -120,6 +155,32 @@ test.describe('Onboarding tasks', () => {
         expect(tasks.find(task => task.key === 'member.bookmark')?.state).toBe('DONE')
 
         await page.request.put('/api/v1/onboarding/member/member.bookmark', {headers, data: {state: 'OPEN'}})
+    })
+
+    test('a member sees three steps at most and how many follow', async ({memberPage: page}) => {
+        await takeEveryStepUpAgain(page)
+        await page.goto('/station/dashboard/overview')
+
+        const shown = page.locator('li[data-testid^="onboarding-task-"]')
+        await expect(page.getByTestId('onboarding-task-member.tour')).toBeVisible()
+        expect(await shown.count()).toBeLessThanOrEqual(3)
+        await expect(page.getByTestId(`onboarding-task-${TASK}`)).toHaveCount(0)
+        await expect(page.getByTestId('onboarding-later')).toContainText('Danach wart')
+    })
+
+    test('a step that waits for another can be neither ticked off nor passed over', async ({memberPage: page}) => {
+        await setStateOf(page, 'member.tour', 'OPEN')
+        await setStateOf(page, 'member.profile', 'OPEN')
+        const headers = await apiHeaders(page)
+
+        for (const state of ['SKIPPED', 'DONE']) {
+            const response = await page.request.put('/api/v1/onboarding/member/member.profile', {
+                headers,
+                data: {state},
+            })
+
+            expect(response.status(), `the profile waits for the walk past the areas (${state})`).toBe(409)
+        }
     })
 
     test('the tour offers nothing that belongs to somebody else', async ({memberPage: page}) => {
