@@ -9,9 +9,21 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import {inventory, inventoryArts} from '@/api'
-import type {InventoryArt, InventoryItem, InventorySize, ItemLocationResponse} from '@/api/generated/schema'
+import {inventory, inventoryArts, inventoryTags} from '@/api'
+import type {
+  InventoryArt,
+  InventoryDetail,
+  InventoryItem,
+  InventorySize,
+  InventoryTag,
+  ItemLocationResponse,
+  TagResponse,
+} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
+import GearGlyph from '@/components/inventory/GearGlyph.vue'
+import AuthImage from '@/components/display/AuthImage.vue'
+import {itemPictureUrl} from '@/api/inventoryPictures'
+import {pieceGlyph} from '@/util/glyph'
 import ItemEditForm from './ItemEditForm.vue'
 import ItemMetadataDisplay from './ItemMetadataDisplay.vue'
 import ItemOwnerField from '../ItemOwnerField.vue'
@@ -41,6 +53,10 @@ const editSizeId = ref('')
 const editArtId = ref<number | null>(null)
 const editArtDraft = ref('')
 const arts = ref<InventoryArt[]>([])
+const owningInventory = ref<InventoryDetail | null>(null)
+const itemTags = ref<InventoryTag[]>([])
+const stationTags = ref<TagResponse[]>([])
+const editTagNames = ref<string[]>([])
 const ownerChoice = useItemOwnerChoice(() => props.item)
 const {owner: editOwner, offered: ownerOffered, atRest: ownerAtRest} = ownerChoice
 
@@ -56,11 +72,53 @@ async function loadArts() {
   }
 }
 
-watch(() => props.item.inventoryId, loadArts, {immediate: true})
+/** The inventory the piece lies in, read for its picture. Without it the piece keeps a plain shape. */
+async function loadInventory() {
+  try {
+    owningInventory.value = await inventory.getInventory(props.item.inventoryId)
+  } catch {
+    owningInventory.value = null
+  }
+}
+
+watch(() => props.item.inventoryId, () => Promise.all([loadArts(), loadInventory()]), {immediate: true})
+
+/** The tags this piece carries. A failure shows it without tags rather than without its page. */
+async function loadItemTags() {
+  try {
+    itemTags.value = await inventoryTags.itemTags(props.item.id)
+  } catch {
+    itemTags.value = []
+  }
+}
+
+watch(() => props.item.id, loadItemTags, {immediate: true})
+
+/** The station's tags to pick from, fetched when editing starts since only the form offers them. */
+async function loadStationTags() {
+  try {
+    stationTags.value = await inventoryTags.listTags()
+  } catch {
+    stationTags.value = []
+  }
+}
 
 const showArt = computed(() => arts.value.length > 0 || props.item.artId != null)
 
-const artName = computed(() => arts.value.find(art => art.id === props.item.artId)?.name ?? null)
+const itemTagNames = computed(() => itemTags.value.map(tag => tag.name))
+
+const art = computed(() => arts.value.find(candidate => candidate.id === props.item.artId) ?? null)
+
+const artName = computed(() => art.value?.name ?? null)
+
+/** The kind's picture where the kind has one, otherwise the inventory's. */
+const glyph = computed(() => pieceGlyph(art.value, owningInventory.value))
+
+/** The photo the piece is shown with, by the same order: the kind's, otherwise the inventory's. */
+const pictureSrc = computed(() => {
+  const key = art.value?.pictureKey ?? owningInventory.value?.pictureKey
+  return key ? itemPictureUrl(props.item.id, key, 512) : null
+})
 
 function startEdit() {
   editName.value = props.item.name ?? ''
@@ -68,15 +126,17 @@ function startEdit() {
   editSizeId.value = props.item.sizeId != null ? String(props.item.sizeId) : ''
   editArtId.value = props.item.artId ?? null
   editArtDraft.value = ''
+  editTagNames.value = [...itemTagNames.value]
   ownerChoice.reset()
+  void loadStationTags()
   editing.value = true
 }
 
 /**
  * Writes the piece's description back.
  *
- * <p>A kind typed into the picker reaches the server only now, together with the piece it was typed for. A
- * changed owner is handed over after the description is saved.
+ * <p>A kind typed into the picker reaches the server only now, together with the piece it was typed for. The
+ * tags are written after the description, and a changed owner is handed over last.
  */
 async function saveEdit() {
   try {
@@ -90,6 +150,7 @@ async function saveEdit() {
       artId: showArt.value ? resolvedArt : props.item.artId ?? null,
       metadata: parseItemMetadata(props.item.metadata),
     })
+    itemTags.value = await inventoryTags.setItemTags(props.item.id, editTagNames.value)
     const reowned = await ownerChoice.apply()
     editing.value = false
     if (editArtDraft.value) await loadArts()
@@ -110,12 +171,18 @@ const assignedMemberIdentity = computed(() => {
 <template>
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between">
-      <SubHeader>{{ props.item.name }}</SubHeader>
+      <div class="flex min-w-0 items-center gap-2">
+        <GearGlyph :glyph="glyph" size="lg"/>
+        <SubHeader>{{ props.item.name }}</SubHeader>
+      </div>
       <SecondaryButton v-if="props.canEditItem && !editing" data-testid="item-edit"
                        :icon="['fas', 'pen']" @click="startEdit">
         {{ t('itemDetail.edit') }}
       </SecondaryButton>
     </div>
+
+    <AuthImage v-if="pictureSrc" :src="pictureSrc" alt="" data-testid="item-picture"
+               class="max-h-64 w-full rounded-theme border border-(--border) object-contain sm:w-auto"/>
 
     <ItemEditForm
       v-if="editing"
@@ -124,6 +191,8 @@ const assignedMemberIdentity = computed(() => {
       v-model:size-id="editSizeId"
       v-model:art-id="editArtId"
       v-model:art-draft="editArtDraft"
+      v-model:tag-names="editTagNames"
+      :tags="stationTags"
       :sizes="props.sizes"
       :arts="arts"
       :show-art="showArt"
@@ -138,6 +207,7 @@ const assignedMemberIdentity = computed(() => {
       :item="props.item"
       :sizes="props.sizes"
       :art-name="artName"
+      :tag-names="itemTagNames"
       :location="props.location"
       :assigned-member-identity="assignedMemberIdentity"
     />

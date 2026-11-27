@@ -311,7 +311,14 @@ public enum FederationRefusal implements Refusal {
     PAIR_STATUS_NOT_HERE(73, HttpStatus.NOT_FOUND, "No request to federate from that station is known here"),
 
     /** A request to federate that a station would send to a station with its own identity. */
-    PAIR_REQUEST_TO_OWN_STATION(74, HttpStatus.BAD_REQUEST, "A station cannot federate with itself");
+    PAIR_REQUEST_TO_OWN_STATION(74, HttpStatus.BAD_REQUEST, "A station cannot federate with itself"),
+
+    /**
+     * A photo of a partner's gear asked for that is not among what the partner offers the asking
+     * station, or a partner that does not lend to it. One answer for both, so nothing is learned about
+     * gear that is not offered.
+     */
+    LENDING_PICTURE_NOT_OFFERED(75, HttpStatus.NOT_FOUND, "That photo is not part of what is offered to your station");
 
     private final Definition definition;
 

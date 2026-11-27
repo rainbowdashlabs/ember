@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryTag;
 import dev.chojo.ember.feature.inventory.entity.TaggedItemSummary;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryTagRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -22,9 +23,14 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The words a station puts on its things, and which thing wears which.
@@ -169,10 +175,7 @@ public class InventoryTagService {
      * @return item id to its tags, holding only the things that wear one
      */
     public Map<Integer, List<InventoryTag>> findTagsInInventory(int stationId, int inventoryId) {
-        Inventory inventory = inventoryRepository
-                .findById(inventoryId)
-                .orElseThrow(InventoryRefusal.INVENTORY_TAG_INVENTORY_NOT_HERE::raise);
-        if (inventory.stationId() != stationId) throw InventoryRefusal.INVENTORY_TAG_INVENTORY_NOT_HERE.raise();
+        requireOwnInventory(stationId, inventoryId, InventoryRefusal.INVENTORY_TAG_INVENTORY_NOT_HERE);
         return tagRepository.findTagsForItems(inventoryRepository.findItems(inventoryId).stream()
                 .map(InventoryItem::id)
                 .toList());
@@ -201,6 +204,53 @@ public class InventoryTagService {
         }
         tagRepository.setItemTags(itemId, stationId, ids);
         return tagRepository.findTagsForItem(itemId);
+    }
+
+    /**
+     * Puts words on and takes words off many things of one inventory at once.
+     *
+     * <p>Every thing is checked before anything is written, so one piece from another inventory
+     * leaves all of them as they were, and the writes share one transaction. Words to add that the
+     * station does not have yet are written down, words to remove that it does not have are
+     * ignored. A word listed in both ends up removed, since the removal is applied last.
+     *
+     * @param stationId   the station the inventory has to belong to
+     * @param inventoryId the inventory the things are in
+     * @param itemIds     the things
+     * @param add         the words to put on, blanks ignored
+     * @param remove      the words to take off, blanks ignored
+     * @return every thing asked for, in the order asked, to the tags it now wears, empty where it wears none
+     */
+    public Map<Integer, List<InventoryTag>> changeTagsOfItems(
+            int stationId,
+            int inventoryId,
+            @Nullable List<Integer> itemIds,
+            @Nullable List<String> add,
+            @Nullable List<String> remove) {
+        List<Integer> items = requireItemsOfInventory(stationId, inventoryId, itemIds);
+        if (items.isEmpty()) return Map.of();
+        Map<Integer, List<InventoryTag>> worn = Transactions.call(() -> {
+            var added = new LinkedHashSet<Integer>();
+            for (String name : words(add)) {
+                added.add(create(stationId, name, null).id());
+            }
+            var removed = new LinkedHashSet<Integer>();
+            for (String name : words(remove)) {
+                tagRepository.findByName(stationId, name).ifPresent(tag -> removed.add(tag.id()));
+            }
+            tagRepository.addTagsToItems(items, stationId, added);
+            tagRepository.removeTagsFromItems(items, stationId, removed);
+            log.info(
+                    "Tags of {} pieces in inventory {} changed: {} added, {} removed",
+                    items.size(),
+                    inventoryId,
+                    added.size(),
+                    removed.size());
+            return tagRepository.findTagsForItems(items);
+        });
+        var byItem = new LinkedHashMap<Integer, List<InventoryTag>>();
+        for (Integer itemId : items) byItem.put(itemId, worn.getOrDefault(itemId, List.of()));
+        return byItem;
     }
 
     /**
@@ -254,6 +304,51 @@ public class InventoryTagService {
         var tag = tagRepository.findById(id).orElseThrow(missing::raise);
         if (tag.stationId() != stationId) throw missing.raise();
         return tag;
+    }
+
+    private static List<String> words(@Nullable List<String> names) {
+        if (names == null) return List.of();
+        return names.stream().filter(name -> name != null && !name.isBlank()).toList();
+    }
+
+    /**
+     * The things listed, each checked to lie in the inventory, which has to be the station's.
+     *
+     * <p>A thing at another station is refused as gone, like everywhere else here, so the answer
+     * does not reveal that it exists there. Only a thing in another inventory of the same station is
+     * refused as such.
+     *
+     * @param stationId   the station the inventory has to belong to
+     * @param inventoryId the inventory
+     * @param itemIds     the things, repeats and blanks ignored
+     * @return the distinct things
+     */
+    private List<Integer> requireItemsOfInventory(int stationId, int inventoryId, @Nullable List<Integer> itemIds) {
+        requireOwnInventory(stationId, inventoryId, InventoryRefusal.INVENTORY_TAG_BATCH_INVENTORY_NOT_HERE);
+        if (itemIds == null || itemIds.isEmpty()) return List.of();
+        Set<Integer> inInventory = inventoryRepository.findItems(inventoryId).stream()
+                .map(InventoryItem::id)
+                .collect(Collectors.toSet());
+        List<Integer> distinct =
+                itemIds.stream().filter(Objects::nonNull).distinct().toList();
+        for (Integer itemId : distinct) {
+            if (inInventory.contains(itemId)) continue;
+            requireOwnItem(stationId, itemId, InventoryRefusal.INVENTORY_TAG_BATCH_ITEM_NOT_HERE);
+            throw InventoryRefusal.INVENTORY_TAG_BATCH_ITEM_IN_ANOTHER_INVENTORY.raise();
+        }
+        return distinct;
+    }
+
+    /**
+     * Refuses an inventory that is gone or belongs to another station, both alike.
+     *
+     * @param stationId   the station the inventory has to belong to
+     * @param inventoryId the inventory
+     * @param missing     what to refuse with where it is not the station's
+     */
+    private void requireOwnInventory(int stationId, int inventoryId, Refusal missing) {
+        Inventory inventory = inventoryRepository.findById(inventoryId).orElseThrow(missing::raise);
+        if (inventory.stationId() != stationId) throw missing.raise();
     }
 
     /**

@@ -50,6 +50,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static dev.chojo.ember.feature.federation.FederationTestContracts.pathIs;
 import static org.junit.jupiter.api.Assertions.*;
@@ -592,8 +593,8 @@ class LendingServiceTest extends RepositoryTestBase {
     @Order(204)
     void availableInventoryEntryRecord() {
         var station = UUID.randomUUID();
-        var entry =
-                new LendingService.AvailableInventoryEntry(42, "Test Inv", 9, "Blau", station, "Station X", 5, null);
+        var entry = new LendingService.AvailableInventoryEntry(
+                42, "Test Inv", 9, "Blau", station, "Station X", 5, null, null, null, null, true);
         assertEquals(42, entry.inventoryId());
         assertEquals("Test Inv", entry.inventoryName());
         assertEquals(9, entry.artId());
@@ -1340,6 +1341,49 @@ class LendingServiceTest extends RepositoryTestBase {
                 "and not the one a loan holds");
     }
 
+    /**
+     * What a partner is offered carries the kind's photo and icon before the inventory's, and only the
+     * photos of gear on offer may be asked for.
+     */
+    @Test
+    @Order(608)
+    void anOfferCarriesItsKindsPhotoBeforeItsInventorys() {
+        var tents = inventoryRepo.create(stationA.id(), "LendSvcPictureInv", InventoryType.INTERNAL, false);
+        inventoryRepo.setPictureKey(tents.id(), "inventory-photo");
+        var dome = artRepo.create(tents.id(), "Kuppel", "", 0);
+        artRepo.setPictureKey(dome.id(), "kind-photo");
+        var domeTent = inventoryRepo.createItem(tents.id(), "PI-001", "Kuppelzelt", null, null);
+        inventoryRepo.createItem(tents.id(), "PI-002", "Plane", null, null);
+        artRepo.setArt(dome.id(), List.of(domeTent.id()));
+        var hidden = inventoryRepo.create(stationA.id(), "LendSvcPictureHidden", InventoryType.INTERNAL, false);
+        inventoryRepo.setPictureKey(hidden.id(), "hidden-photo");
+        inventoryRepo.createItem(hidden.id(), "PI-003", "Nicht verliehen", null, null);
+        shareService.setInventoryShare(stationA.id(), tents.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+        UUID elsewhere = UUID.randomUUID();
+        var asking = new ServingPartner(partnerElsewhere(elsewhere), elsewhere);
+
+        var offered = service.serveAvailability(asking, null, null, null).entries().stream()
+                .filter(entry -> entry.inventoryId() == tents.id())
+                .toList();
+
+        assertEquals(
+                Set.of("kind-photo", "inventory-photo"),
+                offered.stream()
+                        .map(RemoteLendingRoutes.RemoteAvailableEntry::pictureKey)
+                        .collect(Collectors.toSet()));
+        assertEquals(
+                "kind-photo",
+                offered.stream()
+                        .filter(entry -> Integer.valueOf(dome.id()).equals(entry.artId()))
+                        .findFirst()
+                        .orElseThrow()
+                        .pictureKey());
+        assertTrue(service.isPictureOffered(asking, "kind-photo"));
+        assertTrue(service.isPictureOffered(asking, "inventory-photo"));
+        assertFalse(service.isPictureOffered(asking, "hidden-photo"), "a photo of gear not on offer is not served");
+        assertFalse(service.isPictureOffered(asking, UUID.randomUUID().toString()));
+    }
+
     /** A partnership of station A with a station on another instance, with lending switched on. */
     private static FederationPartner partnerElsewhere(UUID elsewhere) {
         var keyPair = federationService.generateKeyPair();
@@ -1451,7 +1495,9 @@ class LendingServiceTest extends RepositoryTestBase {
                         eq(stationA.id()),
                         eq(RemoteLendingRoutes.RemoteAvailability.class)))
                 .thenReturn(new RemoteLendingRoutes.RemoteAvailability(
-                        List.of(new RemoteLendingRoutes.RemoteAvailableEntry(77, "Funkgeräte", null, null, 4)), true));
+                        List.of(new RemoteLendingRoutes.RemoteAvailableEntry(
+                                77, "Funkgeräte", null, null, 4, null, null, null, true)),
+                        true));
         var found = service.findAvailableInventory(stationA.id(), "Funk", null, null)
                 .entries();
         assertTrue(found.stream().anyMatch(entry -> entry.inventoryId() == 77 && elsewhere.equals(entry.stationId())));

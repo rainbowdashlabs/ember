@@ -11,6 +11,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import ItemFact from './ItemFact.vue'
 import {
@@ -32,8 +33,10 @@ const props = withDefaults(
       assignedMemberIdentity: PersonIdentity | null
       /** What kind of thing this piece is, or null when nobody has said, which is the ordinary state. */
       artName?: string | null
+      /** The tags the piece carries, empty for most pieces. */
+      tagNames?: string[]
     }>(),
-    {artName: null},
+    {artName: null, tagNames: () => []},
 )
 
 const {t} = useI18n()
@@ -62,6 +65,11 @@ const ownerLabel = computed(() =>
     </ItemFact>
     <ItemFact v-if="props.artName" :label="t('inventory.art.field')">
       <span>{{ props.artName }}</span>
+    </ItemFact>
+    <ItemFact v-if="props.tagNames.length > 0" :label="t('inventory.tag.field')">
+      <span class="flex flex-wrap gap-1">
+        <SecondaryBadge v-for="name in props.tagNames" :key="name">{{ name }}</SecondaryBadge>
+      </span>
     </ItemFact>
     <ItemFact v-if="props.sizes.length > 0" :label="t('itemDetail.size')">
       <span>{{ sizeLabel(props.item.sizeId) }}</span>

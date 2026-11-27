@@ -26818,6 +26818,50 @@
         }
       }
     },
+    "/api/v1/federated/lending/pictures/{stationUid}/{pictureKey}" : {
+      "get" : {
+        "summary" : "The photo a partner station shows offered gear with",
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "pictureKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/federated/my-registrations" : {
       "get" : {
         "summary" : "List the reader's household's registrations at partner stations",
@@ -31068,6 +31112,149 @@
         } ]
       }
     },
+    "/api/v1/inventories/{inventoryId}/arts/{artId}/picture" : {
+      "get" : {
+        "summary" : "The photo of a kind",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "artId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Give a kind a new photo, shown on its pieces before the inventory's",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PictureResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "artId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Take a kind's photo away",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "artId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/inventories/{inventoryId}/fields" : {
       "post" : {
         "summary" : "Add a custom field definition to an inventory",
@@ -31348,6 +31535,65 @@
         } ]
       }
     },
+    "/api/v1/inventories/{inventoryId}/item-tags/batch" : {
+      "post" : {
+        "summary" : "Put words on and take words off many things of one inventory at once",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ItemTagsResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ItemTagsBatchRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/inventories/{inventoryId}/items" : {
       "post" : {
         "summary" : "Create an inventory item",
@@ -31459,6 +31705,125 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/inventories/{inventoryId}/picture" : {
+      "get" : {
+        "summary" : "The photo of an inventory",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Give an inventory a new photo",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PictureResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Take an inventory's photo away",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/inventories/{inventoryId}/sizes" : {
@@ -33130,6 +33495,43 @@
         }
       }
     },
+    "/api/v1/inventory-items/{itemId}/picture" : {
+      "get" : {
+        "summary" : "The photo a piece is shown with: its kind's, otherwise its inventory's",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "itemId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/inventory-items/{itemId}/tags" : {
       "get" : {
         "summary" : "The words one thing wears",
@@ -33223,6 +33625,42 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/inventory-pictures/{pictureKey}" : {
+      "get" : {
+        "summary" : "A photo of one of this station's inventories or kinds, by its key",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "pictureKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/inventory-requirements" : {
@@ -57172,9 +57610,21 @@
           },
           "distanceKm" : {
             "type" : [ "number", "null" ]
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          },
+          "homogeneous" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "inventoryId", "inventoryName", "artId", "artName", "stationId", "stationName", "availableCount", "distanceKm" ]
+        "required" : [ "inventoryId", "inventoryName", "artId", "artName", "stationId", "stationName", "availableCount", "distanceKm", "pictureKey", "icon", "color", "homogeneous" ]
       },
       "AvailableInventoryResult" : {
         "type" : "object",
@@ -70693,9 +71143,12 @@
           },
           "color" : {
             "type" : [ "string", "null" ]
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "id", "stationId", "name", "inventoryType", "hasSizes", "homogeneous", "borrowed", "icon", "color" ]
+        "required" : [ "id", "stationId", "name", "inventoryType", "hasSizes", "homogeneous", "borrowed", "icon", "color", "pictureKey" ]
       },
       "InventoryArt" : {
         "type" : "object",
@@ -70726,9 +71179,12 @@
           },
           "color" : {
             "type" : [ "string", "null" ]
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "id", "inventoryId", "name", "note", "position", "mergeKey", "icon", "color" ]
+        "required" : [ "id", "inventoryId", "name", "note", "position", "mergeKey", "icon", "color", "pictureKey" ]
       },
       "InventoryBlock" : {
         "type" : "object",
@@ -70969,9 +71425,12 @@
           },
           "color" : {
             "type" : [ "string", "null" ]
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "id", "stationId", "name", "inventoryType", "hasSizes", "homogeneous", "sizes", "icon", "color" ]
+        "required" : [ "id", "stationId", "name", "inventoryType", "hasSizes", "homogeneous", "sizes", "icon", "color", "pictureKey" ]
       },
       "InventoryFieldDefinition" : {
         "type" : "object",
@@ -71827,6 +72286,30 @@
           "ownerClusterId" : {
             "type" : [ "string", "null" ],
             "format" : "uuid"
+          }
+        }
+      },
+      "ItemTagsBatchRequest" : {
+        "type" : "object",
+        "properties" : {
+          "itemIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "add" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "remove" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "string"
+            }
           }
         }
       },
@@ -79192,6 +79675,15 @@
           }
         },
         "required" : [ "pageUid", "title", "slug", "updatedAt" ]
+      },
+      "PictureResponse" : {
+        "type" : "object",
+        "properties" : {
+          "pictureKey" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "pictureKey" ]
       },
       "PlaceAnswer" : {
         "type" : "object",
@@ -87383,6 +87875,18 @@
           "itemInternalId" : {
             "type" : [ "string", "null" ]
           },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          },
+          "homogeneous" : {
+            "type" : "boolean"
+          },
           "partners" : {
             "type" : "array",
             "items" : {
@@ -87390,7 +87894,7 @@
             }
           }
         },
-        "required" : [ "share", "inventoryName", "artName", "itemName", "itemInternalId", "partners" ]
+        "required" : [ "share", "inventoryName", "artName", "itemName", "itemInternalId", "pictureKey", "icon", "color", "homogeneous", "partners" ]
       },
       "ShareGrant" : {
         "type" : "string",
@@ -89703,7 +90207,7 @@
       },
       "StorageCategory" : {
         "type" : "string",
-        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "DOCUMENT_TEMPLATES", "ASSOCIATION_DOCUMENT_TEMPLATES", "FONTS", "ASSOCIATION_FONTS", "INSTANCE_FONTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_SIGNATURE", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "IMAGE_DOCUMENT_TEMPLATE_PICTURE", "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
+        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "DOCUMENT_TEMPLATES", "ASSOCIATION_DOCUMENT_TEMPLATES", "FONTS", "ASSOCIATION_FONTS", "INSTANCE_FONTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_SIGNATURE", "IMAGE_LOST_AND_FOUND", "IMAGE_INVENTORY", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "IMAGE_DOCUMENT_TEMPLATE_PICTURE", "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO", "IMAGE_PARTNER_LENDING" ]
       },
       "StorageQuotaPreset" : {
         "type" : "object",

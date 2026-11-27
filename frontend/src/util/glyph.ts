@@ -68,3 +68,29 @@ export function glyphFor(source: GlyphSource): Glyph {
     const color = firstNamed(source.color, source.artColor, source.inventoryColor)
     return {icon, color}
 }
+
+/** The parts of a kind or an inventory a piece's picture is chosen from. */
+export interface GlyphOwner {
+    icon?: string | null
+    color?: string | null
+}
+
+/**
+ * What one piece is drawn with: its kind's picture where the kind has one, otherwise its
+ * inventory's, by the same order as {@link glyphFor}.
+ *
+ * @param art       the kind the piece is sorted into, if any
+ * @param inventory the inventory it lies in, with whether it is a drawer of different things
+ */
+export function pieceGlyph(
+    art: GlyphOwner | null | undefined,
+    inventory: (GlyphOwner & {homogeneous?: boolean}) | null | undefined,
+): Glyph {
+    return glyphFor({
+        artIcon: art?.icon,
+        artColor: art?.color,
+        inventoryIcon: inventory?.icon,
+        inventoryColor: inventory?.color,
+        homogeneous: inventory?.homogeneous,
+    })
+}

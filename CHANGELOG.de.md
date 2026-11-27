@@ -2,14 +2,17 @@
 
 ## v26.27.0
 
-Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren Namen in eine Wache einladen. Karten an einem Termin bieten Links für den Weg dorthin. Kalenderabos zeigen den Treffpunkt als Ort eines Termins. Einzelne Termine stehen in Kalenderabos in der Zeitzone der Wache.
+Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren Namen in eine Wache einladen. Inventare und ihre Arten können ein Foto haben, das auch Partnerwachen beim Ausleihen sehen. Karten an einem Termin bieten Links für den Weg dorthin. Kalenderabos zeigen den Treffpunkt als Ort eines Termins, in der Zeitzone der Wache.
 
 ### Neue Funktionen
 
 - **Personen der Instanz über ihren Namen einladen.** Beim Anlegen eines Mitglieds lassen sich Personen mit einem Konto auf dieser Instanz über ihren Namen finden und um die Verknüpfung ihres Kontos bitten, ohne dass jemand ihre Adresse kennen muss. Gefunden werden Personen, die eine Wache oder einen Verband teilen, alle anderen erst, wenn sie unter Konto → Verknüpfungen „Für alle Wachen auffindbar“ einschalten.
+- **Fotos für Inventare und Arten.** Ein Inventar kann ein Foto haben, und eine Art ein eigenes, das ihre Gegenstände stattdessen zeigen. Das Foto erscheint auf der Bestandsseite, auf der Seite eines Gegenstands und in der Übersicht dessen, was die Wache verleiht. Partnerwachen sehen in ihrer Ausleihliste das Foto, sonst das Symbol. Mit einer Partnerwache auf einem anderen Server funktioniert das, sobald beide diese Version haben; bis dahin pausiert das Ausleihen zwischen beiden.
 
 ### Verbesserungen
 
+- **Arten und Tags auf den Inventarseiten.** Auf der Bestandsseite lassen sich mehrere Gegenstände auswählen und in einem Schritt einer Art zuordnen oder Tags hinzufügen und entfernen. Die Suche eines Inventars findet Gegenstände über ihre Art und ihre Tags, auch wenn diese Spalten ausgeblendet sind. Freie Gegenstände zum Ausgeben zeigen ihre Art. Die Seite eines Gegenstands zeigt seine Tags, und beim Bearbeiten lassen sie sich ändern.
+- **Symbole von Inventaren und Arten.** Das Symbol eines Inventars, einer Art oder eines Behältertyps wird durch Auswahl eines anderen ersetzt, ohne das alte erst zu entfernen. Die Liste zeigt alle Symbole statt nur der ersten. Neue Symbole gibt es für Möbel, Anhänger, Grill, Hüpfburg und andere Dinge für Feste und Veranstaltungen. Gegenstände zeigen das Symbol ihrer Art, wenn die Art eines hat.
 - **Karten zu Terminorten auf Wunsch, mit Navigation.** Ein Ort mit Markierung auf der Seite eines Termins zeigt hinter seiner Adresse einen Kartenknopf, und die Karte öffnet sich erst auf Knopfdruck. Unter der Karte starten Links die Navigation dorthin. Android-Handys bieten dabei ihre eigene Auswahl an Navigations-Apps an. iPhones und Computer bekommen Apple Karten und Google Maps, der Link zu OpenStreetMap bleibt.
 - **Jedes Ortsfeld als Ort im Kalender.** Ein Ortsfeld eines Termins, einer Vorlage oder einer Terminreihe lässt sich als Ort im Kalender markieren. Nur ein Ortsfeld je Formular trägt die Markierung, und die eigene Markierung eines Termins geht der seiner Terminreihe vor.
 - **Treffpunkt in Termindokumenten.** Dokumente für Termine haben einen neuen Platzhalter für den Treffpunkt. Der Platzhalter für den Ort zeigt weiter, wo der Termin stattfindet, so bleiben Fotoerlaubnisse und ähnliche Formulare, wie sie sind.
@@ -23,6 +26,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Ein zweiter Ort fehlte in Kalendereinträgen.** Hatte ein Termin einen Ort und einen Treffpunkt, zeigten Kalenderabos nur einen davon, der andere fehlte ganz. Der andere Ort steht jetzt in der Beschreibung des Eintrags, in jeder Einstellung des Abos.
 - **Einzelne Termine in Kalenderabos standen in UTC.** Im persönlichen und im öffentlichen Abo standen einmalige Termine in UTC, während Serien schon die Zeitzone der Wache trugen. Einmalige Termine stehen jetzt ebenfalls in der Zeitzone der Wache, mit Sommer- und Winterzeit, wie sie an ihrem Datum gilt.
 - **Stunden auf gedruckten Anwesenheitslisten im falschen Zahlenformat.** In manchen Fällen standen die Stunden auf gedruckten Anwesenheitslisten und Berichten bei einer englischsprachigen Wache mit Dezimalkomma oder bei einer deutschsprachigen mit Dezimalpunkt. Die Stunden folgen jetzt der Sprache der Wache, wie schon im Tabellenexport.
+- **Die Inventarseite sprang nach oben.** Nach jeder Änderung an einem Gegenstand wurde die ganze Liste neu geladen, und die Stelle darin ging verloren. Die Seite bleibt jetzt beim Aktualisieren, wo sie war.
 
 ## v26.26.4
 

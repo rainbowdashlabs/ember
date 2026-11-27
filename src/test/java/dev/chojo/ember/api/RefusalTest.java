@@ -211,6 +211,7 @@ class RefusalTest {
                         MailImportRefusal.MAILBOX_NOT_HERE_AFTER_SAVE,
                         MailImportRefusal.MAILBOX_RULE_NOT_HERE_AFTER_SAVE,
                         InventoryRefusal.INVENTORY_TAG_NOT_HERE_AFTER_CHANGE,
+                        InventoryRefusal.INVENTORY_PICTURE_NOT_PROCESSED,
                         ClusterRefusal.CLUSTER_INVENTORY_TAG_NOT_HERE_AFTER_CHANGE,
                         EventRefusal.APPOINTMENT_DATE_ANSWER_NOT_HERE_AFTER_SAVE,
                         EventRefusal.APPOINTMENT_FIELD_NOT_HERE_AFTER_SELF_REGISTRATION,

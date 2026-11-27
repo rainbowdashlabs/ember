@@ -29,8 +29,17 @@ class InventoryShareRoutesTest {
     void theOverviewListsTheStationsShareRowsAsDescribed() {
         var overview = mock(InventoryShareOverviewService.class);
         when(overview.overview(3))
-                .thenReturn(List.of(
-                        new ShareDetail(null, "Zelte", null, null, null, List.of(new SharePartner(7, "Wache Nord")))));
+                .thenReturn(List.of(new ShareDetail(
+                        null,
+                        "Zelte",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        true,
+                        List.of(new SharePartner(7, "Wache Nord")))));
         var harness = RouteHarness.serving(new InventoryShareRoutes(mock(InventoryShareService.class), overview));
 
         var answer = harness.request(client -> client.get(

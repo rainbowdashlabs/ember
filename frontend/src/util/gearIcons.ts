@@ -8,7 +8,7 @@ import {iconSetOf} from './iconName'
 /**
  * Which part of a station's gear a picture belongs to, so the picker can group a long list.
  */
-export type GearIconGroup = 'protection' | 'equipment' | 'medical' | 'youth' | 'general'
+export type GearIconGroup = 'protection' | 'equipment' | 'medical' | 'youth' | 'furniture' | 'events' | 'general'
 
 /**
  * One picture an inventory or a kind can be drawn with.
@@ -98,6 +98,28 @@ export const GEAR_ICONS: readonly GearIcon[] = [
     entry('camera', 'youth', ['kamera', 'foto']),
     entry('bullhorn', 'youth', ['megafon', 'durchsage', 'lautsprecher']),
     entry('graduation-cap', 'youth', ['ausbildung', 'prüfung', 'lehrgang']),
+
+    entry('chair', 'furniture', ['stuhl', 'klappstuhl', 'sitz']),
+    entry('ph:desk', 'furniture', ['tisch', 'biertisch', 'klapptisch', 'schreibtisch']),
+    entry('ph:park', 'furniture', ['bank', 'bierbank', 'sitzbank', 'festzeltgarnitur']),
+
+    entry('trailer', 'events', ['anhänger', 'hänger', 'getränkeanhänger', 'kühlanhänger']),
+    entry('fire-burner', 'events', ['grill', 'schwenkgrill', 'gasgrill', 'bratwurst']),
+    entry('mug-hot', 'events', ['kaffeemaschine', 'kaffee', 'tee', 'heißgetränk']),
+    entry('utensils', 'events', ['geschirr', 'besteck', 'teller', 'küche']),
+    entry('cash-register', 'events', ['kasse', 'kassenbox', 'wechselgeld']),
+    entry('umbrella-beach', 'events', ['sonnenschirm', 'schirm', 'schatten']),
+    entry('bolt', 'events', ['stromerzeuger', 'generator', 'aggregat', 'strom']),
+    entry('gift', 'events', ['tombola', 'preise', 'geschenk', 'verlosung']),
+    entry('tree', 'events', ['weihnachtsbaum', 'maibaum', 'baum']),
+    entry('snowflake', 'events', ['kühlschrank', 'kühlung', 'kühlwagen', 'eis']),
+    entry('ph:castle-turret', 'events', ['hüpfburg', 'spielburg', 'kinderfest']),
+    entry('ph:beer-stein', 'events', ['bier', 'zapfanlage', 'ausschank', 'schankwagen']),
+    entry('ph:cooking-pot', 'events', ['topf', 'gulaschkanone', 'kessel', 'suppe']),
+    entry('ph:speaker-hifi', 'events', ['lautsprecher', 'musikanlage', 'boxen', 'beschallung']),
+    entry('ph:microphone', 'events', ['mikrofon', 'mikro', 'durchsage']),
+    entry('ph:balloon', 'events', ['dekoration', 'deko', 'ballon', 'luftballon']),
+    entry('ph:popcorn', 'events', ['popcorn', 'popcornmaschine', 'kinderfest']),
 
     entry('box', 'general', ['kiste', 'karton', 'behälter']),
     entry('box-open', 'general', ['kiste', 'offen']),

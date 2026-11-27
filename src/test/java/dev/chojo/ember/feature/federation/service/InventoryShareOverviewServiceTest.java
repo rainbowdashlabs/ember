@@ -142,4 +142,30 @@ class InventoryShareOverviewServiceTest {
         assertNull(rows.get(1).artName());
         assertNull(rows.get(2).itemName());
     }
+
+    @Test
+    void aRowIsShownWithItsKindsPhotoAndIconBeforeItsInventorys() {
+        var tents = mock(Inventory.class);
+        when(tents.id()).thenReturn(2);
+        when(tents.name()).thenReturn("Zelte");
+        when(tents.pictureKey()).thenReturn("inventory-photo");
+        when(tents.icon()).thenReturn("tent");
+        when(tents.color()).thenReturn("#2563eb");
+        when(tents.homogeneous()).thenReturn(false);
+        when(inventories.findByStation(STATION)).thenReturn(List.of(tents));
+        var dome = mock(InventoryArt.class);
+        when(dome.name()).thenReturn("Kuppelzelt");
+        when(dome.inventoryId()).thenReturn(2);
+        when(dome.pictureKey()).thenReturn("kind-photo");
+        when(arts.findById(4)).thenReturn(Optional.of(dome));
+        when(shares.findShares(STATION)).thenReturn(List.of(share(1, null, 4, null), share(2, 2, null, null)));
+
+        var rows = service.overview(STATION);
+
+        assertEquals("kind-photo", rows.get(0).pictureKey());
+        assertEquals("tent", rows.get(0).icon(), "a kind without its own icon is drawn with the inventory's");
+        assertEquals("#2563eb", rows.get(0).color());
+        assertEquals("inventory-photo", rows.get(1).pictureKey());
+        assertEquals(false, rows.get(1).homogeneous(), "a drawer of different things is drawn as one");
+    }
 }
