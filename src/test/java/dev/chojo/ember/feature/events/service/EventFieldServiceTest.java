@@ -324,4 +324,24 @@ class EventFieldServiceTest extends RepositoryTestBase {
         assertEquals(EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED, refused.refusal());
         assertEquals(before, service.findByEvent(eventId), "nothing was written");
     }
+
+    /** Two places that both claim to be the calendar's location are refused, since an entry has one place. */
+    @Test
+    @Order(9)
+    void twoCalendarLocationsAreRefused() {
+        var before = service.findByEvent(eventId);
+        var meetingPoint = EventQuestionSettings.parse("{\"calendarLocation\":true}");
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.replaceFields(
+                        eventId,
+                        List.of(
+                                new EventFieldDraft("Ort", FieldType.LOCATION, meetingPoint, "A", false, null, false),
+                                new EventFieldDraft(
+                                        "Treffpunkt", FieldType.LOCATION, meetingPoint, "B", false, null, false))));
+
+        assertEquals(EventRefusal.APPOINTMENT_TWO_CALENDAR_LOCATIONS, refused.refusal());
+        assertEquals(before, service.findByEvent(eventId), "nothing was written");
+    }
 }

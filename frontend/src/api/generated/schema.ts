@@ -74395,6 +74395,7 @@ export interface components {
             continues: components["schemas"]["EventLink"] | null;
         };
         EventQuestionSettings: {
+            calendarLocation: boolean;
             defaultValue?: string;
             description?: string;
             /** Format: int32 */

@@ -23,7 +23,7 @@ function field(over: Partial<AppointmentField>): AppointmentField {
         name: 'Ort',
         fieldType: FieldType.LOCATION,
         value: 'Gerätehaus',
-        config: {perDate: false, selfRegistration: false, required: false, managersOnly: false},
+        config: {perDate: false, selfRegistration: false, required: false, managersOnly: false, calendarLocation: false},
         position: 0,
         overview: true,
         isPublic: true,

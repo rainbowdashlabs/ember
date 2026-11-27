@@ -29,7 +29,23 @@ export const SHARED_SETTINGS: Record<EventQuestionMode, readonly QuestionSetting
 
 /** The settings of a question that carries none of its own. */
 export function emptySettings(): EventQuestionSettings {
-    return {selfRegistration: false, perDate: false, required: false, managersOnly: false}
+    return {selfRegistration: false, perDate: false, required: false, managersOnly: false, calendarLocation: false}
+}
+
+/**
+ * The questions with the given one as the only location the calendar shows, where it has just
+ * become that location; the others give it up, since a calendar entry has one place.
+ *
+ * @param fields the questions after the change
+ * @param index  the question that changed
+ * @param before the same question before the change
+ */
+export function withOneCalendarLocation<T extends EventQuestionDraft>(fields: T[], index: number, before: T | undefined): T[] {
+    const changed = fields[index]
+    if (!changed?.config?.calendarLocation || before?.config?.calendarLocation) return fields
+    return fields.map((field, at) => at === index || !field.config?.calendarLocation
+        ? field
+        : {...field, config: {...field.config, calendarLocation: false}})
 }
 
 /** A question nobody has written yet: a line of text without a name. */
@@ -141,14 +157,17 @@ export interface QuickField {
     fieldType: FieldType
     overview: boolean
     isPublic: boolean
+    /** Whether the field is where people meet, which the calendar shows as the appointment's location. */
+    calendarLocation?: boolean
 }
 
 /**
  * The fields offered for one-click adding, in the order they are offered. Where the appointment
- * happens and where people meet are place fields, so they can carry a pin on the map.
+ * happens and where people meet are place fields, so they can carry a pin on the map; the meeting
+ * point is the location the calendar shows.
  */
 export const QUICK_FIELDS: readonly QuickField[] = [
     {name: 'Ort', fieldType: FieldType.LOCATION, overview: true, isPublic: true},
-    {name: 'Treffpunkt', fieldType: FieldType.LOCATION, overview: true, isPublic: true},
+    {name: 'Treffpunkt', fieldType: FieldType.LOCATION, overview: true, isPublic: true, calendarLocation: true},
     {name: 'Thema', fieldType: FieldType.TEXT, overview: true, isPublic: false},
 ]

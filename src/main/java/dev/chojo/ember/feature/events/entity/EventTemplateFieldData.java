@@ -28,11 +28,12 @@ public record EventTemplateFieldData(
 
     /** The question as the server stores it; no type reads as a line of text, no settings as none. */
     public AppointmentTemplateFieldDraft toDraft() {
+        var type = Objects.requireNonNullElse(fieldType, FieldType.TEXT);
         return new AppointmentTemplateFieldDraft(
                 name,
-                Objects.requireNonNullElse(fieldType, FieldType.TEXT),
+                type,
                 Objects.requireNonNullElse(config, EventQuestionSettings.empty())
-                        .organisers(),
+                        .organisers(type),
                 position,
                 overview,
                 isPublic,

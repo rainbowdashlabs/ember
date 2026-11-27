@@ -36,7 +36,7 @@ const PUBLIC_FIELDS: AppointmentField[] = [
     name: 'Treffpunkt',
     value: 'Hof der Wache',
     fieldType: 'TEXT',
-    config: {perDate: false, selfRegistration: false, required: false, managersOnly: false},
+    config: {perDate: false, selfRegistration: false, required: false, managersOnly: false, calendarLocation: false},
     position: 0,
     overview: false,
     isPublic: true,

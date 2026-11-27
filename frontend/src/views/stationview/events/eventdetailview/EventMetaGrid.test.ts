@@ -21,7 +21,7 @@ function memberQuestion(over: Partial<AppointmentField>): AppointmentField {
         name: 'Fahrer',
         fieldType: FieldType.MEMBER_LIST,
         value: '',
-        config: {perDate: false, selfRegistration: true, required: false, managersOnly: false},
+        config: {perDate: false, selfRegistration: true, required: false, managersOnly: false, calendarLocation: false},
         position: 0,
         overview: false,
         isPublic: false,

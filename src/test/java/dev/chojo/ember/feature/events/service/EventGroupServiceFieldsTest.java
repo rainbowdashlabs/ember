@@ -184,7 +184,7 @@ class EventGroupServiceFieldsTest extends EventGroupServiceTestBase {
                 fields.findOverviewFieldsByEvents(List.of(part.id()), Map.of(part.id(), day)).get(part.id()).stream()
                         .map(AppointmentField::name)
                         .toList());
-        assertEquals("Sportplatz", AppointmentField.firstLocation(eventFieldRepo.findShownOn(part.id(), day)));
+        assertEquals("Sportplatz", AppointmentField.venue(eventFieldRepo.findShownOn(part.id(), day)));
     }
 
     @Test

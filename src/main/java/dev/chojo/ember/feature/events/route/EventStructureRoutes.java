@@ -529,12 +529,13 @@ public class EventStructureRoutes implements Routes {
 
         /** The question as the server writes it; what is left out reads as a plain, empty line of text. */
         EventFieldDraft toDraft() {
+            var type = Objects.requireNonNullElse(fieldType, FieldType.TEXT);
             return new EventFieldDraft(
                     id,
                     name,
-                    Objects.requireNonNullElse(fieldType, FieldType.TEXT),
+                    type,
                     Objects.requireNonNullElse(config, EventQuestionSettings.empty())
-                            .organisers(),
+                            .organisers(type),
                     Objects.requireNonNullElse(value, ""),
                     Boolean.TRUE.equals(overview),
                     attendanceFieldId,

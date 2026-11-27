@@ -435,7 +435,7 @@ class DemoPhotoConsentSeederTest extends DemoTestBase {
                 "registration is still open");
         assertEquals(
                 DemoEventSeeder.BUERGERFEST_PLACE,
-                AppointmentField.firstLocation(eventFieldRepo.findByEventOn(festival.id(), day)));
+                AppointmentField.venue(eventFieldRepo.findByEventOn(festival.id(), day)));
         assertEquals(
                 List.of(consentId()),
                 requirementRepo.forEvent(festival.id()).stream()

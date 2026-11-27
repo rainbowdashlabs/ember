@@ -12732,6 +12732,8 @@ export default {
         namePlaceholder: 'z.B. Treffpunkt',
         overview: 'Übersicht',
         selfRegistration: 'Selbsteintragung erlauben',
+        calendarLocation: 'Ort im Kalender',
+        calendarLocationHint: 'Diesen Ort zeigt das Kalenderabo als Ort des Termins, etwa den Treffpunkt. Ohne Haken steht dort der erste ausgefüllte Ort. Nur ein Ort kann es sein.',
         perDate: 'Pro Termin beantworten',
         perDateHint: 'Bei einem wiederkehrenden Termin hat jeder Termin eine eigene Antwort. Ohne Haken gilt eine Antwort für alle Termine.',
         perDateKeptAnswers: 'Bereits erfasste Antworten je Termin bleiben erhalten und gelten wieder, sobald der Haken zurückgesetzt wird.',
