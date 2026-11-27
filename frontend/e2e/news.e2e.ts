@@ -134,7 +134,7 @@ test.describe('News', () => {
         await expect(page.getByText(SEEDED_FILE).first()).toBeVisible()
         await page.getByRole('button', {name: /Speichern/}).last().click()
 
-        await page.waitForURL(/\/station\/news$/)
+        await page.waitForURL(/\/station\/news(\?[^#]*)?$/)
 
         await page.goto(detailUrl)
         const download = page.getByRole('link', {name: new RegExp(SEEDED_FILE)})
@@ -186,7 +186,7 @@ test.describe('News', () => {
         await expect(page.getByText(written).first()).toBeVisible()
 
         await page.getByRole('button', {name: /Speichern|Veröffentlichen|Erstellen/}).last().click()
-        await page.waitForURL(/\/station\/news$/)
+        await page.waitForURL(/\/station\/news(\?[^#]*)?$/)
 
         await page.getByText(article).first().click()
         await page.waitForURL(/\/station\/news\/\d+/)
@@ -217,7 +217,7 @@ test.describe('News', () => {
             await page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}).click()
             await page.getByRole('button', {name: /Speichern|Veröffentlichen|Erstellen/}).last().click()
 
-            await page.waitForURL(/\/station\/news$/)
+            await page.waitForURL(/\/station\/news(\?[^#]*)?$/)
             await expect(page.getByText(article).first()).toBeVisible()
 
             await page.getByText(article).first().click()
@@ -303,7 +303,7 @@ test.describe('News', () => {
 
                 await memberPage.goto('/station/dashboard/overview')
                 await memberPage.getByTestId('notification-entry').filter({hasText: removed}).click()
-                await memberPage.waitForURL(new RegExp(`/station/news/${removedId}$`))
+                await memberPage.waitForURL(new RegExp(`/station/news/${removedId}(\\?[^#]*)?$`))
 
                 await managerPage.request.delete(`/api/v1/news/${removedId}`, {
                     headers: await apiHeaders(managerPage),

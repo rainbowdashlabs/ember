@@ -50,7 +50,7 @@ test.describe('Cluster', () => {
         await expect(page.getByRole('button', {name: 'Verband'}).first()).toBeVisible()
 
         await page.getByRole('button', {name: 'Verband'}).first().click()
-        await page.waitForURL(/\/cluster$/)
+        await page.waitForURL(/\/cluster(\?[^#]*)?$/)
 
         await expect(page.getByText(cluster.name).first()).toBeVisible()
     })
@@ -91,7 +91,7 @@ test.describe('Cluster', () => {
     test('the cluster space is refused without membership', async ({memberPage: page}) => {
         await page.goto('/cluster')
 
-        await expect(page).not.toHaveURL(/\/cluster$/)
+        await expect(page).not.toHaveURL(/\/cluster(\?[^#]*)?$/)
     })
 
     /**
@@ -200,7 +200,7 @@ test.describe('Cluster', () => {
         await page.getByRole('button', {name: 'Alles erlauben'}).click()
         await page.getByText(`${clusterOnly!.firstName} ${clusterOnly!.lastName}`).first().click()
 
-        await page.waitForURL(/\/cluster$/)
+        await page.waitForURL(/\/cluster(\?[^#]*)?$/)
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
         const cluster = must((await clustersOf(page))[0], 'a cluster this account acts for')
@@ -268,7 +268,7 @@ test.describe('Cluster', () => {
         }
 
         await sidebarEntry(page, 'Wiki').click()
-        await expect(page).toHaveURL(/\/cluster\/knowledge$/)
+        await expect(page).toHaveURL(/\/cluster\/knowledge(\?[^#]*)?$/)
         await expect(activeSidebarGroup(page)).toHaveText(/Wiki/)
     })
 })

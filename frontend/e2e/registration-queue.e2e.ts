@@ -276,7 +276,7 @@ test.describe('Nachrückliste', () => {
             }
 
             await rows.click()
-            await expect(page).toHaveURL(new RegExp(`/station/events/groups/${groupId}$`))
+            await expect(page).toHaveURL(new RegExp(`/station/events/groups/${groupId}(\\?[^#]*)?$`))
         } finally {
             await page.request.delete(`/api/v1/events/groups/${groupId}`, {headers})
             for (const part of parts) await page.request.delete(`/api/v1/events/${part}`, {headers})

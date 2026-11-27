@@ -62,7 +62,7 @@ test.describe('Cluster notifications', () => {
             }).toPass({timeout: 30_000})
 
             await bell(page).click()
-            await expect(page).toHaveURL(/\/cluster\/notifications$/)
+            await expect(page).toHaveURL(/\/cluster\/notifications(\?[^#]*)?$/)
 
             const notice = page.getByTestId('notification-entry')
                 .filter({hasText: `${own.stationName} möchte dem Verband beitreten`})
@@ -70,7 +70,7 @@ test.describe('Cluster notifications', () => {
             await expect(notice).toContainText('Neue Beitrittsanfrage')
 
             await notice.click()
-            await expect(page).toHaveURL(/\/cluster\/applications$/)
+            await expect(page).toHaveURL(/\/cluster\/applications(\?[^#]*)?$/)
             await expect(page.getByText(own.stationName, {exact: true}), 'the request waits on the page it opened')
                 .toBeVisible()
 

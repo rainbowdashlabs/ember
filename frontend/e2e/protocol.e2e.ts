@@ -42,7 +42,7 @@ async function startRun(page: Page, sheet: string): Promise<string> {
     await page.keyboard.press('Escape')
 
     await page.getByRole('button', {name: 'Neuer Prüfungslauf'}).last().click()
-    await page.waitForURL(/\/station\/protocols\/runs\/\d+\/plan$/)
+    await page.waitForURL(/\/station\/protocols\/runs\/\d+\/plan(\?[^#]*)?$/)
     return run
 }
 
@@ -54,7 +54,7 @@ async function createRun(page: Page, sheet: string): Promise<string> {
     const run = await startRun(page, sheet)
 
     await page.getByRole('button', {name: 'Ohne Prüfer weiter'}).click()
-    await page.waitForURL(/\/station\/protocols\/runs\/\d+$/)
+    await page.waitForURL(/\/station\/protocols\/runs\/\d+(\?[^#]*)?$/)
     await expect(page.getByText(run).first()).toBeVisible()
     return run
 }
@@ -75,7 +75,7 @@ test.describe('Protocols', () => {
 
         await expect(page.getByRole('button', {name: 'Wie beim letzten Mal'})).toBeVisible()
         await page.getByRole('button', {name: 'Speichern'}).click()
-        await page.waitForURL(/\/station\/protocols\/runs\/\d+$/)
+        await page.waitForURL(/\/station\/protocols\/runs\/\d+(\?[^#]*)?$/)
         await expect(page.getByRole('button', {name: 'Prüfer planen'})).toBeVisible()
     })
 
@@ -99,7 +99,7 @@ test.describe('Protocols', () => {
         await page.keyboard.press('Escape')
 
         await page.getByRole('button', {name: 'Speichern'}).click()
-        await page.waitForURL(/\/station\/protocols\/runs\/\d+$/)
+        await page.waitForURL(/\/station\/protocols\/runs\/\d+(\?[^#]*)?$/)
         await expect(page.getByRole('button', {name: 'Prüfen'}).first()).toBeVisible()
     })
 

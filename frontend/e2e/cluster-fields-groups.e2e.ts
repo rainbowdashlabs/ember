@@ -109,10 +109,10 @@ test.describe('Cluster fields and groups', () => {
         const page = await clusterPage(browser, request, account)
 
         await page.goto('/cluster/fields')
-        await expect(page).toHaveURL(/\/cluster\/members\/fields$/)
+        await expect(page).toHaveURL(/\/cluster\/members\/fields(\?[^#]*)?$/)
 
         await page.goto('/cluster/members/groups')
-        await expect(page).toHaveURL(/\/cluster\/team\/groups$/)
+        await expect(page).toHaveURL(/\/cluster\/team\/groups(\?[^#]*)?$/)
 
         await page.context().close()
     })

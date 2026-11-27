@@ -29,7 +29,7 @@ async function createProcedureWithStep(page: Page): Promise<string> {
     await page.getByPlaceholder('Titel').first().fill('Erster Schritt')
 
     await page.getByRole('button', {name: 'Neuer Ablauf'}).last().click()
-    await page.waitForURL(/\/station\/procedures\/\d+$/)
+    await page.waitForURL(/\/station\/procedures\/\d+(\?[^#]*)?$/)
 
     return procedure
 }
@@ -115,7 +115,7 @@ test.describe('Procedures', () => {
         await chooseAbout(page)
         await page.getByRole('button', {name: 'Neuer Ablauf'}).last().click()
 
-        await page.waitForURL(/\/station\/procedures\/\d+$/)
+        await page.waitForURL(/\/station\/procedures\/\d+(\?[^#]*)?$/)
         await expect(page.getByText(stepTitle).first()).toBeVisible()
     })
 
@@ -137,7 +137,7 @@ test.describe('Procedures', () => {
             .toContainText('Einführung neues Mitglied: ')
         await dialog.getByTestId('procedure-from-template-submit').click()
 
-        await page.waitForURL(/\/station\/procedures\/\d+$/)
+        await page.waitForURL(/\/station\/procedures\/\d+(\?[^#]*)?$/)
         await expect(page.getByTestId('procedure-about'), 'the page names whom it is about').toBeVisible()
         const procedureId = page.url().match(/procedures\/(\d+)/)?.[1]
         const detail = await (await page.request.get(`/api/v1/procedures/${procedureId}`, {headers})).json()
@@ -210,7 +210,7 @@ test.describe('Procedures', () => {
             .toHaveValue(new RegExp(appointment))
 
         await page.getByTestId('signup-procedure-submit').click()
-        await page.waitForURL(/\/station\/procedures$/)
+        await page.waitForURL(/\/station\/procedures(\?[^#]*)?$/)
 
         const date = stationDay(day)
         const prepared = await page.request.get(`/api/v1/procedures/for-event/${eventId}?date=${date}`, {headers})

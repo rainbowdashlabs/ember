@@ -106,7 +106,7 @@ test.describe('Cluster inventory screens', () => {
         await expect(page.getByTestId('inventory-module-setting')).toHaveCount(0)
 
         await page.getByTestId('tab-cluster-inventory-settings').click()
-        await expect(page).toHaveURL(/\/cluster\/inventory\/settings$/)
+        await expect(page).toHaveURL(/\/cluster\/inventory\/settings(\?[^#]*)?$/)
         await expect(page.getByTestId('inventory-module-setting')).toBeVisible({timeout: 15000})
         await page.context().close()
     })
@@ -225,10 +225,10 @@ test.describe('Cluster inventory screens', () => {
 
         await page.goto('/cluster/inventory')
         await page.getByTestId('tab-cluster-inventory-out').click()
-        await expect(page).toHaveURL(/\/cluster\/inventory\/out$/)
+        await expect(page).toHaveURL(/\/cluster\/inventory\/out(\?[^#]*)?$/)
 
         await page.reload()
-        await expect(page).toHaveURL(/\/cluster\/inventory\/out$/)
+        await expect(page).toHaveURL(/\/cluster\/inventory\/out(\?[^#]*)?$/)
         await expect(page.getByTestId('cluster-inventory-tabs')).toBeVisible()
         await page.context().close()
     })
@@ -351,7 +351,7 @@ test.describe('Cluster inventory screens', () => {
         await page.getByRole('button', {name: 'Erstellen'}).click()
 
         await page.getByText(name).first().click()
-        await expect(page).toHaveURL(/\/cluster\/inventory\/storage\/\d+$/, {timeout: 15000})
+        await expect(page).toHaveURL(/\/cluster\/inventory\/storage\/\d+(\?[^#]*)?$/, {timeout: 15000})
         await expect(page.getByTestId('container-item')).toHaveCount(0)
 
         await page.getByTestId('container-add-items').click()

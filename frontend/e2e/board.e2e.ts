@@ -272,7 +272,7 @@ test.describe('Boards', () => {
         const board = page.locator('main [class*="cursor-pointer"]').first()
         await expect(board).toBeVisible()
         await board.click()
-        await page.waitForURL(/\/station\/boards\/[^/]+$/)
+        await page.waitForURL(/\/station\/boards\/[^/]+(\?[^#]*)?$/)
 
         await page.goto(`${page.url()}/archived`)
         await expect(page.getByText(/archiviert/).first()).toBeVisible()

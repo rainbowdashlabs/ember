@@ -24,6 +24,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import {withoutPlace} from '@/util/placeInAddress'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -71,7 +72,7 @@ function selectCluster(clusterUid: string) {
 function selectStation(stationId: string) {
   setActiveStation(stationId)
   const redirect = resolveRedirect()
-  window.location.href = redirect ?? '/station/dashboard/overview'
+  window.location.href = redirect ? withoutPlace(redirect) : '/station/dashboard/overview'
 }
 
 </script>

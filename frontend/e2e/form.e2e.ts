@@ -34,7 +34,7 @@ test.describe('Forms', () => {
 
         await expect(page.getByTestId('form-sent')).toBeVisible()
         await page.getByRole('button', {name: 'Zurück zu den Umfragen'}).click()
-        await page.waitForURL(/\/station\/forms$/)
+        await page.waitForURL(/\/station\/forms(\?[^#]*)?$/)
         await expect(page.getByRole('button', {name: /Ausfüllen|Antwort bearbeiten/}).first()).toBeVisible()
     })
 
