@@ -6,7 +6,8 @@ Calendar subscriptions show single appointments in the station's timezone.
 
 ### Fixes
 
-- **Single appointments in calendar subscriptions were written in UTC.** The calendar file of the personal and the public subscription gave one-time appointments in GMT, while series already carried the station's timezone. One-time appointments are now written in the station's timezone too, with summer and winter time as the date has them.
+- **Single appointments in calendar subscriptions were written in UTC.** In the personal and the public subscription, one-time appointments were written in UTC, while series already carried the station's timezone. One-time appointments are now written in the station's timezone too, with summer and winter time as the date has them.
+- **Hours on printed attendance sheets had the wrong number format.** In some cases, printed attendance sheets and reports showed hours with a decimal comma for an English station, or with a decimal point for a German one. The hours now follow the station's language, as they already did in the spreadsheet export.
 
 ## v26.26.4
 
