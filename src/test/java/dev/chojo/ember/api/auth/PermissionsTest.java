@@ -44,6 +44,18 @@ class PermissionsTest {
         assertTrue(expanded.contains(StationPermission.STATION_FEDERATION));
     }
 
+    /**
+     * Movements and inventory checks create the pieces they need in their own steps, so neither lets
+     * its holder create the association's pieces anywhere else. Creating items still does.
+     */
+    @Test
+    void movementsAndChecksDoNotCreateExternalPieces() {
+        assertFalse(StationPermission.INVENTORY_MOVEMENTS.includes(StationPermission.INVENTORY_CREATE_EXTERNAL));
+        assertFalse(StationPermission.INVENTORY_CHECK.includes(StationPermission.INVENTORY_CREATE_EXTERNAL));
+        assertTrue(StationPermission.INVENTORY_CREATE.includes(StationPermission.INVENTORY_CREATE_EXTERNAL));
+        assertTrue(StationPermission.INVENTORY_MANAGER.includes(StationPermission.INVENTORY_CREATE_EXTERNAL));
+    }
+
     @Test
     void calendarFeedsComeWithEventManagementAndGoWithTheEventsModule() {
         assertTrue(StationPermission.expand(EnumSet.of(StationPermission.EVENT_MANAGER))

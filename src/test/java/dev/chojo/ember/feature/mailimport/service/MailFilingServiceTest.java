@@ -67,7 +67,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
     private static final Instant ARRIVED = Instant.parse("2026-09-10T08:15:00Z");
 
     /** The whole store, hidden documents included. */
-    private static final DocumentFilter EVERYTHING = new DocumentFilter(List.of(), null, true, false, false);
+    private static final DocumentFilter EVERYTHING = new DocumentFilter(List.of(), null, true, false, false, false);
 
     @BeforeAll
     static void setup() {
@@ -345,7 +345,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
 
         assertEquals(MailImportOutcome.IMPORTED, outcome);
         var filed = memberDocumentRepo.findByStation(
-                station.id(), new DocumentFilter(List.of(memberId), null, true, false, false), "simple", 20, 0);
+                station.id(), new DocumentFilter(List.of(memberId), null, true, false, false, false), "simple", 20, 0);
         assertTrue(filed.stream().anyMatch(document -> "Attest Anna Weber".equals(document.title())));
     }
 

@@ -145,7 +145,7 @@ class DocumentServiceTest extends RepositoryTestBase {
 
         var found = memberDocumentRepo.findByStation(
                 station.id(),
-                new DocumentFilter(List.of(), "Loeschzug", true, false, false),
+                new DocumentFilter(List.of(), "Loeschzug", true, false, false, false),
                 service.searchConfigOf(station.id()),
                 50,
                 0);

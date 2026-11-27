@@ -304,6 +304,8 @@ public class DocumentRepository {
                 .addIf(!filter.includeHidden(), "AND NOT d.hidden")
                 .addIf(filter.unboundOnly(), """
                         AND NOT EXISTS (SELECT 1 FROM member_document_member m2 WHERE m2.document_id = d.id)""")
+                .addIf(filter.boundOnly(), """
+                        AND EXISTS (SELECT 1 FROM member_document_member m3 WHERE m3.document_id = d.id)""")
                 .addIf(filter.departedOnly(), """
                         AND EXISTS (SELECT 1 FROM member_document_member gone WHERE gone.document_id = d.id)
                         AND NOT EXISTS (SELECT 1

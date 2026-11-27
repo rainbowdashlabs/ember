@@ -43,6 +43,8 @@ defineProps<{
   canGenerate?: boolean
   /** Whether the reader may read the documents of members, without which nobody who left is listed. */
   readsMembers?: boolean
+  /** Whether the reader may read the station's own paperwork, the documents that name nobody. */
+  readsStationDocuments?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -79,7 +81,8 @@ const {t} = useI18n()
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <SelectionToggleButton :selected="unbound" data-testid="documents-unbound" @toggle="unbound = !unbound">
+        <SelectionToggleButton v-if="readsStationDocuments" :selected="unbound" data-testid="documents-unbound"
+                               @toggle="unbound = !unbound">
           {{ t('documents.onlyUnbound') }}
         </SelectionToggleButton>
         <SelectionToggleButton

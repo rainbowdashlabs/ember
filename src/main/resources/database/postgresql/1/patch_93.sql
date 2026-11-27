@@ -109,6 +109,52 @@ INSERT INTO ember_schema.station_permission (name)
 VALUES ('EVENT_CALENDAR_FEEDS')
 ON CONFLICT (name) DO NOTHING;
 
+-- Reading and editing members no longer bring member documents along. Whoever held a member permission
+-- that reached them is given the document permission of their own, so nothing changes until a station
+-- gives the two apart.
+
+INSERT INTO ember_schema.station_user_type_permission (station_id, user_type, permission_id)
+SELECT held.station_id, held.user_type, child.id
+FROM ember_schema.station_user_type_permission held
+         JOIN ember_schema.station_permission parent ON parent.id = held.permission_id
+         JOIN (VALUES ('MEMBER_READ', 'DOCUMENT_READ_MEMBER'),
+                      ('MEMBER_NOTES', 'DOCUMENT_READ_MEMBER'),
+                      ('MEMBER_CHANGES', 'DOCUMENT_READ_MEMBER'),
+                      ('MEMBER_EXPORT', 'DOCUMENT_READ_MEMBER'),
+                      ('MEMBER_EDIT', 'DOCUMENT_EDIT_MEMBER'),
+                      ('MEMBER_MANAGER', 'DOCUMENT_EDIT_MEMBER')) AS inclusion(parent, child)
+              ON inclusion.parent = parent.name
+         JOIN ember_schema.station_permission child ON child.name = inclusion.child
+ON CONFLICT DO NOTHING;
+
+INSERT INTO ember_schema.member_group_permission (group_id, permission_id)
+SELECT held.group_id, child.id
+FROM ember_schema.member_group_permission held
+         JOIN ember_schema.station_permission parent ON parent.id = held.permission_id
+         JOIN (VALUES ('MEMBER_READ', 'DOCUMENT_READ_MEMBER'),
+                      ('MEMBER_NOTES', 'DOCUMENT_READ_MEMBER'),
+                      ('MEMBER_CHANGES', 'DOCUMENT_READ_MEMBER'),
+                      ('MEMBER_EXPORT', 'DOCUMENT_READ_MEMBER'),
+                      ('MEMBER_EDIT', 'DOCUMENT_EDIT_MEMBER'),
+                      ('MEMBER_MANAGER', 'DOCUMENT_EDIT_MEMBER')) AS inclusion(parent, child)
+              ON inclusion.parent = parent.name
+         JOIN ember_schema.station_permission child ON child.name = inclusion.child
+ON CONFLICT DO NOTHING;
+
+INSERT INTO ember_schema.station_member_permission (member_id, permission_id)
+SELECT held.member_id, child.id
+FROM ember_schema.station_member_permission held
+         JOIN ember_schema.station_permission parent ON parent.id = held.permission_id
+         JOIN (VALUES ('MEMBER_READ', 'DOCUMENT_READ_MEMBER'),
+                      ('MEMBER_NOTES', 'DOCUMENT_READ_MEMBER'),
+                      ('MEMBER_CHANGES', 'DOCUMENT_READ_MEMBER'),
+                      ('MEMBER_EXPORT', 'DOCUMENT_READ_MEMBER'),
+                      ('MEMBER_EDIT', 'DOCUMENT_EDIT_MEMBER'),
+                      ('MEMBER_MANAGER', 'DOCUMENT_EDIT_MEMBER')) AS inclusion(parent, child)
+              ON inclusion.parent = parent.name
+         JOIN ember_schema.station_permission child ON child.name = inclusion.child
+ON CONFLICT DO NOTHING;
+
 -- A place question can be the location the calendar shows for its appointment. Where a station kept the
 -- meeting point the templates offer, that place question becomes the calendar's location, unless another
 -- place of the same form already is. Only the first such question of a form is marked.
