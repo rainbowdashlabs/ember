@@ -32,6 +32,12 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryProcurement.createMember') }}</p>
       <p>{{ t('helpCenter.inventoryProcurement.createSize') }}</p>
       <p>{{ t('helpCenter.inventoryProcurement.createNotes') }}</p>
+      <p>{{ t('helpCenter.inventoryProcurement.createOwner') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryProcurement.outsideTitle')">
+      <p>{{ t('helpCenter.inventoryProcurement.outsideText') }}</p>
+      <p>{{ t('helpCenter.inventoryProcurement.outsideFulfilled') }}</p>
     </HelpSection>
 
     <div class="space-y-3">

@@ -17,11 +17,12 @@ People who already have an account on this instance can be invited into a statio
 - **Any place field as the location in the calendar.** A place field of an appointment, a template or an event group can be marked as the location in the calendar. Only one place field per form carries the mark, and an appointment's own mark wins over the one of its event group.
 - **Meeting point in appointment documents.** Documents for appointments have a new placeholder for the meeting point. The location placeholder keeps showing where the appointment takes place, so photo permissions and similar forms stay as they are.
 - **First steps come three at a time.** The dashboard shows at most three first steps at once, with the station's setup before a person's own. A step that builds on another, such as inviting members after setting up mail, appears once that one is done or skipped.
-- **Fulfilled procurements are folded away.** The procurement page lists open procurements first. Fulfilled ones sit below in a folded section, most recent first.
+- **Procurements fold fulfilled orders and record owners.** The procurement page lists open procurements first. Fulfilled ones sit below in a folded section, most recent first. In a mixed inventory, a procurement records whether it brings the station's piece or the association's. Internal and external inventories settle this by their type.
 
 ### Changes
 
 - **Calendar subscriptions show the meeting point.** Calendar subscriptions show the marked place as an appointment's location, and otherwise the first place filled in. Existing place fields named meeting point are marked during the update. The venue stays in the description of the entry. Waiting list invitations show the same place.
+- **Requests outside Ember become procurements.** Where the association does not keep its gear in Ember, "Note down request" on the inventory overview records the request as a procurement of the association's piece. It carries the mark "Requested from the association". Requests to the association are offered only where it keeps its gear in Ember. Elsewhere the request chains on the movement chains page are hidden.
 
 ### Fixes
 
@@ -30,6 +31,7 @@ People who already have an account on this instance can be invited into a statio
 - **Hours on printed attendance sheets had the wrong number format.** In some cases, printed attendance sheets and reports showed hours with a decimal comma for an English station, or with a decimal point for a German one. The hours now follow the station's language, as they already did in the spreadsheet export.
 - **Marking a member as former could do nothing.** In some cases, confirming the dialog had no effect when it was opened while the member's page was still loading. The dialog now marks the member in that case too.
 - **The inventory page jumped back to the top.** After every change to a piece, the whole stock list loaded again and the place in it was lost. The page now stays where it was while it refreshes.
+- **External inventory procurements brought station-owned pieces.** Marking a procurement fulfilled in an inventory that holds only the association's gear created a piece owned by the station. The piece now belongs to the association and stays at the station.
 
 ## v26.26.4
 

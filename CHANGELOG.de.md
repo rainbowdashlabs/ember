@@ -17,11 +17,12 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Jedes Ortsfeld als Ort im Kalender.** Ein Ortsfeld eines Termins, einer Vorlage oder einer Terminreihe lässt sich als Ort im Kalender markieren. Nur ein Ortsfeld je Formular trägt die Markierung, und die eigene Markierung eines Termins geht der seiner Terminreihe vor.
 - **Treffpunkt in Termindokumenten.** Dokumente für Termine haben einen neuen Platzhalter für den Treffpunkt. Der Platzhalter für den Ort zeigt weiter, wo der Termin stattfindet, so bleiben Fotoerlaubnisse und ähnliche Formulare, wie sie sind.
 - **Erste Schritte kommen zu dritt.** Die Startseite zeigt höchstens drei erste Schritte gleichzeitig, die Einrichtung der Wache vor den eigenen. Ein Schritt, der auf einem anderen aufbaut, erscheint erst, wenn dieser erledigt oder übersprungen ist, etwa das Einladen von Mitgliedern nach dem Mailversand.
-- **Erledigte Beschaffungen sind eingeklappt.** Die Beschaffungsseite zeigt zuerst die offenen Beschaffungen. Erledigte stehen darunter in einem eingeklappten Bereich, die neuesten zuerst.
+- **Beschaffungen klappen Erledigtes ein und halten den Besitz fest.** Die Beschaffungsseite zeigt zuerst die offenen Beschaffungen. Erledigte stehen darunter in einem eingeklappten Bereich, die neuesten zuerst. In einem gemischten Inventar hält eine Beschaffung fest, ob sie ein Stück der Wache oder des Trägers bringt. Bei internen und externen Inventaren steht das durch ihre Art fest.
 
 ### Änderungen
 
 - **Kalenderabos zeigen den Treffpunkt.** Kalenderabos zeigen den markierten Ort als Ort eines Termins und sonst den ersten ausgefüllten Ort. Bestehende Ortsfelder mit dem Namen Treffpunkt werden beim Update markiert. Der Ort der Veranstaltung bleibt in der Beschreibung des Eintrags. Einladungen von der Nachrückliste zeigen denselben Ort.
+- **Anfragen ohne Ember werden zu Beschaffungen.** Führt der Träger sein Material nicht in Ember, legt „Anfrage notieren“ in der Inventarübersicht die Anfrage als Beschaffung eines Stücks des Trägers an. Sie trägt den Hinweis „Beim Träger angefragt“. Anfragen an den Träger gibt es nur noch, wenn er sein Material in Ember führt. Sonst sind die Ketten für Anfragen auf der Seite der Abläufe ausgeblendet.
 
 ### Fehlerbehebungen
 
@@ -30,6 +31,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Stunden auf gedruckten Anwesenheitslisten im falschen Zahlenformat.** In manchen Fällen standen die Stunden auf gedruckten Anwesenheitslisten und Berichten bei einer englischsprachigen Wache mit Dezimalkomma oder bei einer deutschsprachigen mit Dezimalpunkt. Die Stunden folgen jetzt der Sprache der Wache, wie schon im Tabellenexport.
 - **Ein Mitglied als ehemalig zu markieren blieb manchmal ohne Wirkung.** In manchen Fällen tat die Bestätigung nichts, wenn der Dialog geöffnet wurde, während die Seite des Mitglieds noch lud. Der Dialog markiert das Mitglied jetzt auch dann.
 - **Die Inventarseite sprang nach oben.** Nach jeder Änderung an einem Gegenstand wurde die ganze Liste neu geladen, und die Stelle darin ging verloren. Die Seite bleibt jetzt beim Aktualisieren, wo sie war.
+- **Beschaffungen in externen Inventaren brachten Stücke der Wache.** Wurde eine Beschaffung in einem Inventar, das nur Material des Trägers enthält, als erledigt markiert, entstand ein Stück im Besitz der Wache. Das Stück gehört jetzt dem Träger und bleibt bei der Wache.
 
 ## v26.26.4
 

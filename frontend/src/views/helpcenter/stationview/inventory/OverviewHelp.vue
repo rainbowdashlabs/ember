@@ -29,6 +29,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryOverview.lostItems') }}</p>
       <p>{{ t('helpCenter.inventoryOverview.openExchanges') }}</p>
       <p>{{ t('helpCenter.inventoryOverview.openProcurement') }}</p>
+      <p>{{ t('helpCenter.inventoryOverview.requestPanel') }}</p>
     </HelpSection>
 
     <NeutralContainer class="space-y-3">
