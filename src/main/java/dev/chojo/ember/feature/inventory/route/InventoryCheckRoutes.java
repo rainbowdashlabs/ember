@@ -119,62 +119,62 @@ public class InventoryCheckRoutes implements Routes {
                 prefix + "/inventory-checks",
                 this::overview,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_MEMBER_CHECKS);
         routes.post(
                 prefix + "/inventory-checks/{memberId}/start",
                 this::startCheck,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_MEMBER_CHECKS);
         routes.post(
                 prefix + "/inventory-checks/{memberId}/complete",
                 this::completeCheck,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_MEMBER_CHECKS);
         routes.post(
                 prefix + "/inventory-checks/{memberId}/cancel",
                 this::cancelCheck,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_MEMBER_CHECKS);
         routes.get(
                 prefix + "/inventory-checks/{memberId}/last",
                 this::lastCheck,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_MEMBER_CHECKS);
         routes.put(
                 prefix + "/inventory-checks/{memberId}/assign",
                 this::assignItem,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_MEMBER_CHECKS);
         routes.put(
                 prefix + "/inventory-checks/{memberId}/unassign",
                 this::unassignItem,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_MEMBER_CHECKS);
         routes.post(
                 prefix + "/inventory-checks/{memberId}/create-assign",
                 this::createAndAssign,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_MEMBER_CHECKS);
         routes.post(
                 prefix + "/inventory-checks/{memberId}/correct",
                 this::correctItem,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_MEMBER_CHECKS);
         routes.get(
                 prefix + "/inventory-checks/next",
                 this::nextMember,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_MEMBER_CHECKS);
         routes.get(
                 prefix + "/inventory-checks/container/{containerId}/expected",
                 this::containerExpectedItems,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_CONTAINER_CHECKS);
         routes.get(
                 prefix + "/inventory-checks/container/{containerId}/last-results",
                 this::containerLastItemResults,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_CONTAINER_CHECKS);
         routes.get(
                 prefix + "/inventory-checks/item/{itemId}/history",
                 this::itemCheckHistory,
@@ -184,7 +184,7 @@ public class InventoryCheckRoutes implements Routes {
                 prefix + "/inventory-checks/container/{containerId}/complete",
                 this::completeContainerCheck,
                 StationPermission.INVENTORY_CHECK,
-                StationModule.INVENTORY_CHECKS);
+                StationModule.INVENTORY_CONTAINER_CHECKS);
     }
 
     @OpenApi(

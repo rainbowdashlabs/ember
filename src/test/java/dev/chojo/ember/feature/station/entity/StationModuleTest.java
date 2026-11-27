@@ -18,25 +18,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StationModuleTest {
 
-    /** The five parts of the inventory name it as their parent, every other module stands alone. */
+    /**
+     * Four parts sit right under the inventory, the two kinds of checks under its checks, and
+     * self-checks under member checks.
+     */
     @Test
-    void inventoryHasFiveParts() {
+    void inventoryHasFourParts() {
         Set<StationModule> parts = EnumSet.noneOf(StationModule.class);
         for (StationModule module : StationModule.values()) {
-            module.parent().ifPresent(parent -> {
-                assertEquals(StationModule.INVENTORY, parent);
-                parts.add(module);
-            });
+            module.parent().filter(StationModule.INVENTORY::equals).ifPresent(parent -> parts.add(module));
         }
         assertEquals(
                 EnumSet.of(
                         StationModule.INVENTORY_MOVEMENTS,
                         StationModule.INVENTORY_LENDING,
                         StationModule.INVENTORY_PROCUREMENT,
-                        StationModule.INVENTORY_SELF_CHECKS,
                         StationModule.INVENTORY_CHECKS),
                 parts);
         assertEquals(Optional.empty(), StationModule.INVENTORY.parent());
+        assertEquals(Optional.of(StationModule.INVENTORY_CHECKS), StationModule.INVENTORY_MEMBER_CHECKS.parent());
+        assertEquals(Optional.of(StationModule.INVENTORY_CHECKS), StationModule.INVENTORY_CONTAINER_CHECKS.parent());
+        assertEquals(Optional.of(StationModule.INVENTORY_MEMBER_CHECKS), StationModule.INVENTORY_SELF_CHECKS.parent());
     }
 
     /** Expanding a set adds the parts of every module in it and leaves a part alone. */
@@ -45,11 +47,22 @@ class StationModuleTest {
         Set<StationModule> expanded = StationModule.withChildren(List.of(StationModule.INVENTORY, StationModule.NEWS));
         assertTrue(expanded.contains(StationModule.INVENTORY_LENDING));
         assertTrue(expanded.contains(StationModule.NEWS));
-        assertEquals(7, expanded.size());
+        assertTrue(expanded.contains(StationModule.INVENTORY_CONTAINER_CHECKS));
+        assertEquals(9, expanded.size());
 
         assertEquals(
-                Set.of(StationModule.INVENTORY_CHECKS),
+                Set.of(
+                        StationModule.INVENTORY_CHECKS,
+                        StationModule.INVENTORY_MEMBER_CHECKS,
+                        StationModule.INVENTORY_SELF_CHECKS,
+                        StationModule.INVENTORY_CONTAINER_CHECKS),
                 StationModule.withChildren(Set.of(StationModule.INVENTORY_CHECKS)));
+        assertEquals(
+                Set.of(StationModule.INVENTORY_MEMBER_CHECKS, StationModule.INVENTORY_SELF_CHECKS),
+                StationModule.withChildren(Set.of(StationModule.INVENTORY_MEMBER_CHECKS)));
+        assertEquals(
+                Set.of(StationModule.INVENTORY_CONTAINER_CHECKS),
+                StationModule.withChildren(Set.of(StationModule.INVENTORY_CONTAINER_CHECKS)));
         assertTrue(StationModule.withChildren(List.of()).isEmpty());
     }
 
@@ -64,5 +77,19 @@ class StationModuleTest {
         assertTrue(StationModule.INVENTORY_MOVEMENTS.isOffIn(Set.of(StationModule.INVENTORY)));
         assertFalse(StationModule.INVENTORY.isOffIn(Set.of(StationModule.INVENTORY_MOVEMENTS)));
         assertFalse(StationModule.EVENTS.isOffIn(Set.of()));
+    }
+
+    /** A part of a part follows both modules above it and leaves its sibling alone. */
+    @Test
+    void aPartOfAPartFollowsEveryModuleAboveIt() {
+        assertTrue(StationModule.INVENTORY_MEMBER_CHECKS.belongsTo(StationModule.INVENTORY));
+        assertTrue(StationModule.INVENTORY_MEMBER_CHECKS.isOffIn(Set.of(StationModule.INVENTORY)));
+        assertTrue(StationModule.INVENTORY_MEMBER_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_CHECKS)));
+        assertFalse(StationModule.INVENTORY_MEMBER_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_CONTAINER_CHECKS)));
+        assertFalse(StationModule.INVENTORY_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_MEMBER_CHECKS)));
+        assertTrue(StationModule.INVENTORY_SELF_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_MEMBER_CHECKS)));
+        assertTrue(StationModule.INVENTORY_SELF_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_CHECKS)));
+        assertFalse(StationModule.INVENTORY_SELF_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_CONTAINER_CHECKS)));
+        assertFalse(StationModule.INVENTORY_MEMBER_CHECKS.isOffIn(Set.of(StationModule.INVENTORY_SELF_CHECKS)));
     }
 }

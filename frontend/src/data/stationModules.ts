@@ -15,9 +15,11 @@ export interface StationModuleOption {
     descriptionKey: string
     /** The module this one is a part of, which takes it along when it is switched off. */
     parent?: StationModule
+    /** How many modules this one sits under, which lists use to indent it. */
+    depth: number
 }
 
-type ModuleDetails = Omit<StationModuleOption, 'value'>
+type ModuleDetails = Omit<StationModuleOption, 'value' | 'depth'>
 
 /**
  * What each module is called and looks like, in the order the station's own module screen lists
@@ -29,8 +31,10 @@ const DETAILS: Record<StationModule, ModuleDetails> = {
     [StationModule.INVENTORY_MOVEMENTS]: {labelKey: 'stationManage.moduleInventoryMovements', icon: ['fas', 'rotate'], descriptionKey: 'stationManage.moduleInventoryMovementsText', parent: StationModule.INVENTORY},
     [StationModule.INVENTORY_LENDING]: {labelKey: 'stationManage.moduleInventoryLending', icon: ['fas', 'handshake'], descriptionKey: 'stationManage.moduleInventoryLendingText', parent: StationModule.INVENTORY},
     [StationModule.INVENTORY_PROCUREMENT]: {labelKey: 'stationManage.moduleInventoryProcurement', icon: ['fas', 'folder-plus'], descriptionKey: 'stationManage.moduleInventoryProcurementText', parent: StationModule.INVENTORY},
-    [StationModule.INVENTORY_SELF_CHECKS]: {labelKey: 'stationManage.moduleInventorySelfChecks', icon: ['fas', 'user-check'], descriptionKey: 'stationManage.moduleInventorySelfChecksText', parent: StationModule.INVENTORY},
     [StationModule.INVENTORY_CHECKS]: {labelKey: 'stationManage.moduleInventoryChecks', icon: ['fas', 'clipboard-check'], descriptionKey: 'stationManage.moduleInventoryChecksText', parent: StationModule.INVENTORY},
+    [StationModule.INVENTORY_MEMBER_CHECKS]: {labelKey: 'stationManage.moduleInventoryMemberChecks', icon: ['fas', 'user-check'], descriptionKey: 'stationManage.moduleInventoryMemberChecksText', parent: StationModule.INVENTORY_CHECKS},
+    [StationModule.INVENTORY_SELF_CHECKS]: {labelKey: 'stationManage.moduleInventorySelfChecks', icon: ['fas', 'user-check'], descriptionKey: 'stationManage.moduleInventorySelfChecksText', parent: StationModule.INVENTORY_MEMBER_CHECKS},
+    [StationModule.INVENTORY_CONTAINER_CHECKS]: {labelKey: 'stationManage.moduleInventoryContainerChecks', icon: ['fas', 'box-open'], descriptionKey: 'stationManage.moduleInventoryContainerChecksText', parent: StationModule.INVENTORY_CHECKS},
     [StationModule.NEWS]: {labelKey: 'stationManage.moduleNews', icon: ['fas', 'newspaper'], descriptionKey: 'stationManage.moduleNewsText'},
     [StationModule.EVENTS]: {labelKey: 'stationManage.moduleEvents', icon: ['fas', 'calendar-days'], descriptionKey: 'stationManage.moduleEventsText'},
     [StationModule.ATTENDANCE]: {labelKey: 'stationManage.moduleAttendance', icon: ['fas', 'clipboard-user'], descriptionKey: 'stationManage.moduleAttendanceText'},
@@ -51,27 +55,33 @@ const DETAILS: Record<StationModule, ModuleDetails> = {
  * them can offer fewer modules than the station has.
  */
 export const STATION_MODULE_OPTIONS: readonly StationModuleOption[] = Object.entries(DETAILS)
-    .map(([value, details]) => ({value: value as StationModule, ...details}))
+    .map(([value, details]) => ({value: value as StationModule, ...details, depth: ancestors(value as StationModule).length}))
+
+/** The modules the given one sits under, its own parent first. */
+function ancestors(module: StationModule): StationModule[] {
+    const found: StationModule[] = []
+    for (let parent = DETAILS[module].parent; parent !== undefined; parent = DETAILS[parent].parent) found.push(parent)
+    return found
+}
 
 /**
  * Whether a module is on, given a test for one module on its own: a part of a module is off whenever
- * the module is, so its parent is asked as well.
+ * the module is, so every module above it is asked as well.
  *
  * @param module the module or part asked about
  * @param isOn whether one module, taken alone, is on
  */
 export function moduleRuns(module: StationModule, isOn: (module: StationModule) => boolean): boolean {
-    const parent = DETAILS[module].parent
-    return isOn(module) && (parent === undefined || isOn(parent))
+    return isOn(module) && parentAllows(module, isOn)
 }
 
 /**
- * Whether a module's switch can be used: a part of a module that is off stays off and is not offered.
+ * Whether a module's switch can be used: a part of a module that is off stays off and is not offered,
+ * and so does a part of such a part.
  *
  * @param module the module or part
  * @param isOn whether one module, taken alone, is on
  */
 export function parentAllows(module: StationModule, isOn: (module: StationModule) => boolean): boolean {
-    const parent = DETAILS[module].parent
-    return parent === undefined || isOn(parent)
+    return ancestors(module).every(isOn)
 }

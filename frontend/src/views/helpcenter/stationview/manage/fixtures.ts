@@ -71,6 +71,8 @@ const ENABLED_MODULES: ReadonlySet<StationModule> = new Set<StationModule>([
   StationModule.INVENTORY_LENDING,
   StationModule.INVENTORY_SELF_CHECKS,
   StationModule.INVENTORY_CHECKS,
+  StationModule.INVENTORY_MEMBER_CHECKS,
+  StationModule.INVENTORY_CONTAINER_CHECKS,
   StationModule.NEWS,
   StationModule.EVENTS,
   StationModule.ATTENDANCE,
