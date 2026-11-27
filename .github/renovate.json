@@ -13,6 +13,9 @@
   },
   "minimumReleaseAge": "14 days",
   "internalChecksFilter": "strict",
+  "registryAliases": {
+    "mirror.gcr.io": "docker.io"
+  },
   "packageRules": [
     {
       "description": "Auto-merge minor and patch updates (non-major)",
@@ -45,7 +48,7 @@
     {
       "description": "Every PostgreSQL image moves in one PR, so the compose files, the installer, the hosting help and the tests never run different versions",
       "matchDatasources": ["docker"],
-      "matchDepNames": ["postgres", "public.ecr.aws/docker/library/postgres"],
+      "matchDepNames": ["postgres", "docker.io/library/postgres", "mirror.gcr.io/library/postgres"],
       "groupName": "postgres",
       "groupSlug": "postgres"
     },
