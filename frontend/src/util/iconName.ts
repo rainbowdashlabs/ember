@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /**
- * How an icon's name says which set it belongs to.
+ * How an icon's name shows which set it belongs to.
  *
  * <p>One place for the two rules, because they have to agree: a name is turned into a set here and
  * back into a component name here, and a spelling that survives one direction but not the other

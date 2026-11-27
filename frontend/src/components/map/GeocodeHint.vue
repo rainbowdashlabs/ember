@@ -11,7 +11,7 @@ import type {GeocodeOutcome} from '@/composables/useGeocode'
 
 /**
  * What the reader should do after a lookup that was not exact: drag the pin onto the building, or
- * place it by hand. An exact match and no lookup at all say nothing.
+ * place it by hand. An exact match and no lookup at all show nothing.
  */
 const props = withDefaults(defineProps<{
   /** How the last lookup came out, or null before the first one. */

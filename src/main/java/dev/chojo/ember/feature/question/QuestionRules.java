@@ -21,7 +21,7 @@ import java.util.List;
  */
 public sealed interface QuestionRules {
 
-    /** A kind with nothing further to say about what it accepts. */
+    /** A kind with no further rules about what it accepts. */
     record None() implements QuestionRules {}
 
     /**

@@ -50,7 +50,7 @@ import java.util.UUID;
  * token that finds the request, but it only opens the question for that session and answers nothing on
  * its own: whoever holds the mail without the account learns nothing and can do nothing with it. Every
  * other miss, a request of somebody else, one already answered and one whose time ran out, is refused
- * alike, so a probe cannot tell them apart.
+ * alike, so a probe cannot distinguish them.
  */
 @Singleton
 public class LinkAnswerService {
@@ -90,7 +90,7 @@ public class LinkAnswerService {
     }
 
     /**
-     * @param clock what tells the time, so a test can answer a request whose time is up
+     * @param clock what provides the time, so a test can answer a request whose time is up
      */
     public LinkAnswerService(
             AccountLinkRepository repository,
@@ -188,7 +188,7 @@ public class LinkAnswerService {
      * gave it, its permissions among them, which reach the account from now on. The answer and the link
      * are written together or not at all, while the account is held, so two requests of one station
      * accepted at once cannot give the account two members there. The account's own audit records it,
-     * and whoever edits members at the station is told.
+     * and whoever edits members at the station is notified.
      */
     private void acceptStation(
             int accountId, AccountLinkRequest request, @Nullable String userAgent, @Nullable String country) {

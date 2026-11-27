@@ -59,7 +59,7 @@ const notice = ref('')
 
 /**
  * Somebody putting their own address right confirms it from both ends before it takes effect, so
- * saying "saved" would be a lie on this one screen. Doing it for somebody else takes effect at once.
+ * showing "saved" would be a lie on this one screen. Doing it for somebody else takes effect at once.
  */
 function ownAccount(): boolean {
   return sessionInfo.value?.account?.id === props.member.accountId
@@ -81,7 +81,7 @@ async function onJoinDateChange(value: string | undefined) {
  *
  * <p>The account is written first and caught on its own, because an address or a username somebody else
  * already has is the ordinary way this fails and the server names which. What follows is caught apart:
- * by then the account is changed, and a reader told plainly that saving failed retypes an address that
+ * by then the account is changed, and a reader shown plainly that saving failed retypes an address that
  * is already in.
  */
 async function save() {

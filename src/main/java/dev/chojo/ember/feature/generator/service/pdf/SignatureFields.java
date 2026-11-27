@@ -62,7 +62,7 @@ public final class SignatureFields {
      * @param document the document
      * @param page     the page it sits on
      * @param rect     where it sits, in the page's unturned coordinates
-     * @param name     the name of the field, which says who signs in it
+     * @param name     the name of the field, which shows who signs in it
      * @throws IOException where the page's annotations cannot be read
      */
     public static void add(PDDocument document, PDPage page, PDRectangle rect, String name) throws IOException {

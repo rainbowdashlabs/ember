@@ -67,7 +67,7 @@ export interface AnnouncedEvent {
  * keeps showing them as the appointment changes. Below it come the appointment's own description,
  * which the author will most likely want to reword, and then what the event block does not show:
  * how signing up works and the fields marked for the overview. Values are written as a reader would
- * read them, because a field's value is text whatever its type says and a naive draft would announce
+ * read them, because a field's value is text whatever its type is and a naive draft would announce
  * a yes/no field as `true`.
  *
  * <p>The text blocks are a copy and do not follow the appointment afterwards, which is the honest
@@ -124,7 +124,7 @@ export function buildAnnouncementDraft(
 
 /**
  * Whether the appointment happens on more than one day of its own. Only then does the event block
- * need to be told which one; a one-off appointment, even one running over several days, is shown
+ * need to show which one; a one-off appointment, even one running over several days, is shown
  * with its own start.
  */
 function repeats(event: StationEvent): boolean {

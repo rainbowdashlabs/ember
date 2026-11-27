@@ -10,7 +10,7 @@ package dev.chojo.ember.feature.inventory.entity;
  */
 public enum SelfCheckRaisedKind {
     /**
-     * A piece the member cannot find, counted as missing from the moment it is said.
+     * A piece the member cannot find, counted as missing from the moment it is reported.
      */
     LOSS,
     /**

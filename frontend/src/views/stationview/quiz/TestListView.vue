@@ -78,7 +78,7 @@ const { loading, failure, reload: loadData } = useAsyncLoader(async () => {
  *
  * <p>The two halves belong to the lifecycle, so a test that is gone and a list that then failed to
  * refresh does not read as a test that would not go. The refusal itself used to be caught and
- * dropped: a delete the server turned down said nothing whatever.
+ * dropped: a delete the server turned down showed nothing whatever.
  */
 const confirmAction = useConfirmAction<PendingConfirm>({
   onConfirm: pending => pending.action(),

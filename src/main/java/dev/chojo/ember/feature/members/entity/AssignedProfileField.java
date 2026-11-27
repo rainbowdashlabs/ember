@@ -12,8 +12,8 @@ import org.jspecify.annotations.Nullable;
 /**
  * A question together with how it is put to one audience.
  *
- * <p>Read as a pair because a form needs both halves at once: the definition says what is asked, the
- * assignment says where it sits, how wide it is drawn, and whether this audience may write it.
+ * <p>Read as a pair because a form needs both halves at once: the definition shows what is asked, the
+ * assignment shows where it sits, how wide it is drawn, and whether this audience may write it.
  *
  * @param field      what is asked
  * @param assignment how it is put to this audience
@@ -24,7 +24,7 @@ public record AssignedProfileField(
         ProfileFieldAssignment assignment,
         @Nullable FieldSetLabel set) {
 
-    /** The columns this reads, with the two identifiers told apart. */
+    /** The columns this reads, with the two identifiers kept apart. */
     public static final String COLUMNS = """
             f.id, f.station_id, f.name, f.field_type, f.config, f.required, f.readonly, f.width,
             f.keep_on_archive, f.shown_if_field_id, f.field_set_id, f.set_position,

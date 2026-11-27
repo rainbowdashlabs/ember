@@ -10,7 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SigningStepFrame from '../signingview/SigningStepFrame.vue'
 
 /**
- * The screen the witness hands the device over on: it says plainly whom it is for, and the person takes it
+ * The screen the witness hands the device over on: it shows plainly whom it is for, and the person takes it
  * up by saying who they are.
  */
 const props = defineProps<{

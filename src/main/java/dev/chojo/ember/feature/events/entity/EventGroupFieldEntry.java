@@ -24,7 +24,7 @@ import java.util.List;
  */
 public record EventGroupFieldEntry(int groupFieldId, int eventId, int memberId, Kind kind) {
 
-    /** What an entry says about the appointment. */
+    /** What an entry shows about the appointment. */
     public enum Kind {
         /** In the field on this appointment only. */
         ENTERED,

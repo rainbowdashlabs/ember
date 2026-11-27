@@ -17,14 +17,14 @@ const props = defineProps<{
    * Whether this list was made from a named set of people rather than from a rule.
    *
    * <p>Then refreshing resolves the very same names again and can never bring anybody in, which is
-   * the opposite of what a button called Auffrischen promises. It says so instead of pretending.
+   * the opposite of what a button called Auffrischen promises. It shows that instead of pretending.
    */
   frozen?: boolean
   /**
    * Whether this list follows one date of an appointment.
    *
    * <p>Then refreshing does bring people in, namely whoever has taken a place since the list was
-   * last looked at, and that is worth saying because "follows" invites the stronger reading that
+   * last looked at, and that is worth pointing out because "follows" invites the stronger reading that
    * it happens on its own.
    */
   followsEvent?: boolean

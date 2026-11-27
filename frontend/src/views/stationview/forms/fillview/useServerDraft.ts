@@ -18,7 +18,7 @@ interface DraftWalk {
  * another device.
  *
  * <p>Kept on every step to the next page and when the fill screen is left. Opening the form again
- * continues on the page where the reader stopped, with a note saying so and a way to start over. A
+ * continues on the page where the reader stopped, with a note to that effect and a way to start over. A
  * draft is never an answer, and saving one that fails costs the reader nothing they had not typed
  * anyway, so it fails quietly.
  *

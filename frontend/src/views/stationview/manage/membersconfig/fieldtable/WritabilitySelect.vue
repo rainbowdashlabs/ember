@@ -16,13 +16,13 @@ import {
  * Who may change the answer to this question, as one named choice rather than as a switch.
  *
  * <p>An association can lock a question from the member, from the member and the station both, or
- * from nobody. Those are two flags underneath, and the pair has a fourth combination that says the
+ * from nobody. Those are two flags underneath, and the pair has a fourth combination that means the
  * member may write an answer their own station may not, which is not a thing anybody wants. Naming
  * the three that make sense is what puts the fourth out of reach.
  *
  * <p>A station has nobody above it and so has two rungs rather than three, but it gets the same
  * named choice. It used to get a bare switch under the heading "changeable by", which asks for a
- * who and is answered by an on and an off: nothing on the screen said which way round it meant.
+ * who and is answered by an on and an off: nothing on the screen showed which way round it meant.
  *
  * <p>Both flags are the question's own, so this sits on the question rather than beside one of its
  * audiences: who may write an answer holds for everybody who is asked it.

@@ -22,15 +22,15 @@ import {OnboardingTaskState, type OnboardingLevel, type OnboardingTaskView} from
 /**
  * What Ember still asks of the reader, on the level it asks it.
  *
- * On the station and the instance the list is shared, so it also says who settled a task: a
+ * On the station and the instance the list is shared, so it also shows who settled a task: a
  * colleague arriving later can see whose decision they are looking at, and take a skipped one back
  * up.
  *
- * A task that teaches how Ember works and was passed over on another station of the same person says
+ * A task that teaches how Ember works and was passed over on another station of the same person shows
  * so, since nothing on this station explains why it is not open.
  *
  * Who may see a level is not decided here. The card asks for it, and somebody who may not have it
- * is told so by the request rather than by a second permission check that could disagree with the
+ * learns so from the request rather than by a second permission check that could disagree with the
  * first: the card then simply has nothing to show and draws nothing.
  */
 const props = defineProps<{
@@ -51,7 +51,7 @@ const shared = computed(() => props.level !== 'MEMBER')
  *
  * <p>An open task does, and so does a skipped one: it waits to be taken back up or thrown away. A
  * task that is done or thrown away asks nothing, and the card used to stay on the dashboard for
- * those too, so somebody who had settled every one of them kept a panel that only said so.
+ * those too, so somebody who had settled every one of them kept a panel that only showed that.
  */
 const anythingLeft = computed(() => open.value.length > 0 || skipped.value.length > 0)
 const logo = computed(() => emberGuide(open.value.length === 0 ? 'cheer' : 'plain'))

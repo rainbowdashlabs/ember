@@ -46,7 +46,7 @@ class ClusterMemberRoutesTest extends RepositoryTestBase {
     }
 
     /**
-     * One request names the group, says what it carries and who is in it. A refusal for any part leaves
+     * One request names the group, lists what it carries and who is in it. A refusal for any part leaves
      * all three as they were: a group renamed and granted more while its people stayed the same is a
      * state nobody asked for.
      */

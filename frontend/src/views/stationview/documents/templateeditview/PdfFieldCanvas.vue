@@ -87,7 +87,7 @@ function bindingOf(field: FormField): string {
   return props.formBindings.find(binding => binding.fieldName === field.name)?.text ?? ''
 }
 
-/** What a form field's outline says: what the template fills it with, else what the PDF calls it. */
+/** What a form field's outline shows: what the template fills it with, else what the PDF calls it. */
 function formLabelOf(field: FormField): string {
   return labelledText(bindingOf(field), props.labels) || field.tooltip || field.name
 }
@@ -101,7 +101,7 @@ function drawn(viewport: PageViewport) {
   emit('drawn', geometry.value)
 }
 
-/** What a box says about itself: its text with the placeholders by name, or else the signer or its kind. */
+/** What a box shows about itself: its text with the placeholders by name, or else the signer or its kind. */
 function labelOf(field: PdfField): string {
   const text = labelledText(field.text ?? '', props.labels)
   if (field.kind === PdfFieldKind.SIGNATURE) return text || t(`documentTemplates.signer.${field.role ?? 'PARTICIPANT'}`)

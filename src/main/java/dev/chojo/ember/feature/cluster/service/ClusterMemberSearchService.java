@@ -115,7 +115,7 @@ public class ClusterMemberSearchService {
 
     /**
      * @param stationOwner whether they are their station's owner, which the cluster may not edit
-     * @param stationNames every station of this association the person belongs to, so a row can say so
+     * @param stationNames every station of this association the person belongs to, so a row can show it
      *                     rather than naming only the membership it came from
      */
     public record ManagedMemberResponse(

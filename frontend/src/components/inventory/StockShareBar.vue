@@ -15,11 +15,11 @@ import {useI18n} from 'vue-i18n'
  * second time, and the third is what the other two leave over, so the strip is always exactly the
  * whole line and never claims a piece twice or loses one.
  *
- * <p>A line with nothing on it draws no share at all. A full strip and an empty strip both say
- * something about a stock that exists, and a size nobody keeps says neither.
+ * <p>A line with nothing on it draws no share at all. A full strip and an empty strip both show
+ * something about a stock that exists, and a size nobody keeps shows neither.
  *
  * <p>The three counts stand in the label as well as in the colours, because a strip read by colour
- * alone says nothing to a reader who cannot tell the colours apart.
+ * alone shows nothing to a reader who cannot tell the colours apart.
  */
 const props = defineProps<{
   total: number

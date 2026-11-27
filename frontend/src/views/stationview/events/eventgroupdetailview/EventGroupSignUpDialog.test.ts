@@ -254,7 +254,7 @@ describe('EventGroupSignUpDialog', () => {
     expect(box(11).disabled).toBe(false)
   })
 
-  /** A full part says so, and choosing it says the whole sign-up waits on the waiting list. */
+  /** A full part is marked, and choosing it shows the whole sign-up waits on the waiting list. */
   it('marks a full part and says choosing it puts the sign-up on the waiting list', async () => {
     const full = detail()
     full.parts = full.parts.map(part => (part.eventId === 13 ? {...part, accepted: 8, places: 8} : part))
@@ -314,7 +314,7 @@ describe('EventGroupSignUpDialog', () => {
     expect(save().disabled).toBe(false)
   })
 
-  /** Changing the parts of a sign-up keeps where it stands, so it is never told it will wait. */
+  /** Changing the parts of a sign-up keeps where it stands, so it is never shown that it will wait. */
   it('never says a change of parts will wait', async () => {
     const full = detail()
     full.parts = full.parts.map(part => (part.eventId === 13 ? {...part, accepted: 8, places: 8} : part))
@@ -329,7 +329,7 @@ describe('EventGroupSignUpDialog', () => {
     expect(document.body.querySelector('[data-testid="event-group-sign-up-waits"]')).toBeNull()
   })
 
-  /** Whoever runs events is asked when the server finds the choice full, so they are not told beforehand. */
+  /** Whoever runs events is asked when the server finds the choice full, so they are not warned beforehand. */
   it('does not tell a manager the sign-up will wait', async () => {
     const full = detail()
     full.parts = full.parts.map(part => (part.eventId === 13 ? {...part, accepted: 8, places: 8} : part))
@@ -354,7 +354,7 @@ describe('EventGroupSignUpDialog', () => {
     expect(box(13).disabled).toBe(false)
   })
 
-  /** A block over its maximum but not short says only that it is over, not that parts are missing. */
+  /** A block over its maximum but not short shows only that it is over, not that parts are missing. */
   it('names only the excess of a block that holds enough parts', async () => {
     const limited = detail()
     limited.sets = [{...limited.sets[0]!, minimum: 1, maximum: 1}, limited.sets[1]!]

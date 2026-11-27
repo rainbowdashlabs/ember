@@ -11,13 +11,13 @@ import {audienceWords, namesSomebody, normalizedRestriction} from '@/components/
 type Translate = (key: string, arg?: number | Record<string, unknown>) => string
 
 /**
- * Who may answer an appointment, as one readable sentence, or null where saying so would not help.
+ * Who may answer an appointment, as one readable sentence, or null where a sentence would not help.
  *
  * <p>The sentence exists for the reader who sees an appointment and cannot answer it: seeing is
  * granted more widely than answering, so without a word they take the missing button for a bug.
  * Where both audiences are the same no such reader exists, because whoever is outside the answering
  * audience never sees the appointment, and where no answering audience is named at all everybody
- * who sees it may answer. Both cases say nothing.
+ * who sees it may answer. Both cases give null.
  */
 export function registrationAudienceNote(
     restrictions: AllEventRestrictions,

@@ -22,7 +22,7 @@ const props = defineProps<{
   /** The answers already on file, where an existing registration is being corrected. */
   values?: EventRegistrationFieldValue[]
   title?: string
-  /** What the confirming button says, for a dialog that changes an answer rather than gives one. */
+  /** What the confirming button shows, for a dialog that changes an answer rather than gives one. */
   confirmLabel?: string
   busy?: boolean
   error?: string

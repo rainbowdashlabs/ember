@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class ExpirySettingsTest {
 
-    /** A field that says nothing warns a month ahead and reminds the member a month and a week ahead. */
+    /** A field that holds nothing warns a month ahead and reminds the member a month and a week ahead. */
     @Test
     void aFieldThatSaysNothingWorksByTheDefaults() {
         var settings = ProfileFieldConfig.empty().expiry();

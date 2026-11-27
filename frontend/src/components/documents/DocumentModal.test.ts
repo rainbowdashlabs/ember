@@ -19,7 +19,7 @@ vi.mock('@/util/downloadAuthed', () => ({
 /**
  * An open document, which offers its reader what they may change. A sealed one is locked for
  * everybody, so it offers neither removing it nor choosing its members, and shows its versions, each to
- * save. Where signatures were asked for it says how they stand, and their manager looks after them there.
+ * save. Where signatures were asked for it shows how they stand, and their manager looks after them there.
  */
 
 const stubs = {

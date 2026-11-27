@@ -52,7 +52,7 @@ import static org.mockito.Mockito.verify;
 
 /**
  * What a comment on an appointment does today, pinned over the real routes, service and storage:
- * who reads, writes, changes and removes it, how it is listed and whom it tells.
+ * who reads, writes, changes and removes it, how it is listed and whom it notifies.
  */
 class EventCommentBehaviourTest extends RepositoryTestBase {
     private static final DomainEventBus BUS = mock(DomainEventBus.class);
@@ -297,7 +297,7 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
         assertEquals("x".repeat(100) + "…", created.getFirst().preview());
     }
 
-    /** A new thread tells the appointment managers, leaving out its author and whoever it mentions. */
+    /** A new thread notifies the appointment managers, leaving out its author and whoever it mentions. */
     @Test
     void aTopLevelCommentTellsTheManagersAndTheMentioned() {
         var mentioned = stationMemberRepo.findById(other.id()).orElseThrow();

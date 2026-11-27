@@ -186,7 +186,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
         refused(field, "\"XL\"");
     }
 
-    /** Nothing said is nothing kept: the answer is left out rather than stored empty. */
+    /** Nothing given is nothing kept: the answer is left out rather than stored empty. */
     @Test
     void aRequiredQuestionMayStayEmpty() {
         var field = ask(FieldType.TEXT, "{}", true);

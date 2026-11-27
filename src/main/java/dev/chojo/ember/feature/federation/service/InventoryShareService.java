@@ -194,21 +194,21 @@ public class InventoryShareService {
         return share;
     }
 
-    /** Removes what was said about an inventory, which leaves it unshared unless a row is written again. */
+    /** Removes what was set for an inventory, which leaves it unshared unless a row is written again. */
     public boolean removeInventoryShare(int stationId, int inventoryId) {
         boolean removed = repository.deleteInventoryShare(stationId, inventoryId);
         if (removed) log.info("Station {} stopped offering inventory {}", stationId, inventoryId);
         return removed;
     }
 
-    /** Removes what was said about a kind, which puts it back under whatever its inventory says. */
+    /** Removes what was set for a kind, which puts it back under whatever its inventory defines. */
     public boolean removeArtShare(int stationId, int artId) {
         boolean removed = repository.deleteArtShare(stationId, artId);
         if (removed) log.info("Station {} cleared the lending share on kind {}", stationId, artId);
         return removed;
     }
 
-    /** Removes what was said about an item, which puts it back under whatever its kind says. */
+    /** Removes what was set for an item, which puts it back under whatever its kind defines. */
     public boolean removeItemShare(int stationId, int itemId) {
         boolean removed = repository.deleteItemShare(stationId, itemId);
         if (removed) log.info("Station {} cleared the lending share on item {}", stationId, itemId);

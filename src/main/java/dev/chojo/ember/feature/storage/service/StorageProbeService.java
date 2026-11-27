@@ -26,7 +26,7 @@ import java.util.concurrent.Callable;
 /**
  * Whether a storage answers, for every owner, with the reason of a failure kept in the log.
  *
- * <p>The probe opens a connection to an address from the request, so a verbatim failure would tell apart a
+ * <p>The probe opens a connection to an address from the request, so a verbatim failure would distinguish a
  * refused connection, a timeout and a protocol error, which is a port scan of whatever the address check
  * does not cover. Every answer that leaves here has the reason replaced by {@link #PROBE_FAILED}, whoever
  * asked: a station, an association or the instance. A probe of storage that is already saved is written to
@@ -38,8 +38,8 @@ import java.util.concurrent.Callable;
 @Singleton
 public class StorageProbeService {
     /**
-     * What a failed probe tells the client. What is said names the three things that are actually wrong when
-     * this happens and says where the rest of it is, because an operator who has mistyped a key needs to
+     * What a failed probe shows the client. The text lists the three things that are actually wrong when
+     * this happens and points to where the rest of it is, because an operator who has mistyped a key needs to
      * know to go and look rather than to conclude that Ember is broken.
      */
     public static final String PROBE_FAILED =

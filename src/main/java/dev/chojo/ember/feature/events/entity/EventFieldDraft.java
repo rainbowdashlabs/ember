@@ -26,7 +26,7 @@ public record EventFieldDraft(
 
     /**
      * A question the caller does not name a row for, which is one being asked for the first
-     * time. Everything that builds questions from scratch, a template or an import says it this
+     * time. Everything that builds questions from scratch, a template or an import does it this
      * way; only the editor, which is writing over questions that already exist, names ids.
      */
     public EventFieldDraft(

@@ -249,7 +249,7 @@ export function useFieldsConfig(port: FieldsPort) {
     /**
      * Fetches everything back after a write that already succeeded.
      *
-     * <p>A failure here is the screen falling behind, not the write being refused, and it says so.
+     * <p>A failure here is the screen falling behind, not the write being refused, and the message shows that.
      * The two used to share one `catch`: a question that was created and a list that then failed to
      * come back reported a refused creation, and the reader writes the question a second time.
      */
@@ -346,7 +346,7 @@ export function useFieldsConfig(port: FieldsPort) {
 
     /**
      * A question nobody is asked. Legal and sometimes wanted while one is being written, but it reaches
-     * no profile until an audience is named, so the screen says so rather than leaving it to be noticed.
+     * no profile until an audience is named, so the screen points this out rather than leaving it to be noticed.
      */
     const askedOfNobody = computed(() =>
         questions.value.filter(f => assignmentsOf(f.id).length === 0))
@@ -577,9 +577,9 @@ export function useFieldsConfig(port: FieldsPort) {
      * <p>The new order is written into the lists held here before the request goes, and nothing is
      * loaded again when it succeeds. Reloading put the whole screen back through its loading state,
      * which unmounts the panels and drops the reader at the top of the page: one drag near the
-     * bottom of a long form and they had to find their place again. The server is told the same
+     * bottom of a long form and they had to find their place again. The server receives the same
      * order it is being shown and works out the groups the same way, so there is nothing to fetch
-     * back; a refusal puts the old order back and says so.
+     * back; a refusal puts the old order back and reports it.
      */
     async function onReorder(role: ProfileFieldScope, fromIndex: number, toIndex: number) {
         const ordered = keepSetsTogether(
@@ -602,8 +602,8 @@ export function useFieldsConfig(port: FieldsPort) {
     /**
      * The questions ticked for putting to somebody all at once.
      *
-     * <p>Apart from the one selected question, which is a different act: that one says whose panel is
-     * being shown, these say what the next assignment is about. A station writing down fifteen
+     * <p>Apart from the one selected question, which is a different act: that one decides whose panel is
+     * being shown, these set what the next assignment is about. A station writing down fifteen
      * questions and putting the same twelve to three kinds of member should not have to do that
      * thirty-six times.
      */

@@ -63,7 +63,7 @@ public class NewsService {
     /**
      * What a system entry is shown as having been written by. The instance is not a member of any
      * station, so there is no identity to resolve and no avatar to draw: the product's own name
-     * stands in, and the badge beside it says the rest.
+     * stands in, and the badge beside it shows the rest.
      */
     public static final String SYSTEM_AUTHOR_NAME = "Ember";
 
@@ -141,7 +141,7 @@ public class NewsService {
      * restrictions it takes are user types alone, because groups, tags and single members are
      * things one station has and the entry is read in all of them.
      *
-     * <p>Notifying is asked for rather than assumed. Most of what an instance has to say is a
+     * <p>Notifying is asked for rather than assumed. Most of what an instance has to publish is a
      * notice people meet when they next look, and waking every member of every station for it would
      * teach them to ignore the ones that matter.
      *
@@ -165,7 +165,7 @@ public class NewsService {
     }
 
     /**
-     * Tells every station about a system entry, one station at a time, because that is what a
+     * Notifies every station about a system entry, one station at a time, because that is what a
      * notification is addressed to. The entry itself is still the single row they all read.
      */
     private void notifySystemEntry(News news, String title, String contentMarkdown) {
@@ -208,8 +208,8 @@ public class NewsService {
      * asked for, not only when it comes back from a listing. That is the same question the listings
      * ask of every row they return, so it is asked in the same place rather than restated here.
      *
-     * <p>Both refusals are a 404 rather than a 403, because saying "not for you" about an entry
-     * still tells the asker it exists.
+     * <p>Both refusals are a 404 rather than a 403, because answering "not for you" about an entry
+     * still shows the asker it exists.
      *
      * @param session the reader
      * @param newsId  the entry
@@ -316,7 +316,7 @@ public class NewsService {
     /**
      * The entry a news block names, when every reader of the audience may read it: published and
      * kept to nobody in particular, and for the public also on the public blog. Anything else is
-     * empty, never told apart.
+     * empty, never distinguished.
      *
      * @param stationId the station the block belongs to
      * @param audience  who reads the content the block sits in
@@ -382,8 +382,8 @@ public class NewsService {
     }
 
     /**
-     * The blocks of a rich entry as a reader sees them: a picture the entry says nothing about
-     * carries what its media file says. A system entry's pictures live in the instance library,
+     * The blocks of a rich entry as a reader sees them: a picture the entry does not describe
+     * carries what its media file shows. A system entry's pictures live in the instance library,
      * which is where they are looked up. Only for reading; the editor gets {@link #loadBlocks}, or
      * saving would write the file's words into the entry for good.
      */

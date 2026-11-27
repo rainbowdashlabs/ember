@@ -96,7 +96,7 @@ test.describe('Account & session', () => {
 
     /**
      * The demo instance carries more than one station in full, so the accounts on offer are the
-     * picked station's rather than all of them. The picker says which station each set belongs to and
+     * picked station's rather than all of them. The picker shows which station each set belongs to and
      * how many people it holds, and picking another one changes who is offered.
      */
     test('the demo login offers the people of the station that is picked', async ({page, request}) => {
@@ -158,7 +158,7 @@ test.describe('Account & session', () => {
     })
 
     /**
-     * Logs out a member of the second seeded station, told apart by its .nord suffix: the passkey
+     * Logs out a member of the second seeded station, distinguished by its .nord suffix: the passkey
      * stories own fixed members of the shared one, and logging one of those out would break them.
      * The button is taken from the header, since signing off an appointment carries the same name.
      */

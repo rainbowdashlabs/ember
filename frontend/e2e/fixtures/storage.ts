@@ -99,7 +99,7 @@ export async function putSomething(
 /**
  * Reads a stored file back and hands over what came out.
  *
- * The whole point of every move story: a row that says "on the association's storage" says exactly the same
+ * The whole point of every move story: a row that shows "on the association's storage" shows exactly the same
  * thing after a migration that copied nothing.
  */
 export async function readBack(
@@ -132,7 +132,7 @@ export function historyRow(page: Page, action: string, outcome?: string) {
     return outcome ? rows.filter({hasText: outcome}) : rows
 }
 
-/** What an apply reports having carried, which is what says whether anything moved. */
+/** What an apply reports having carried, which is what shows whether anything moved. */
 export function movedCounts(result: {totalKeys: number; copied: number; deleted: number}) {
     return {total: result.totalKeys, copied: result.copied, deleted: result.deleted}
 }

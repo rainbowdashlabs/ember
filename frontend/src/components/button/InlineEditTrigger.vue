@@ -7,7 +7,7 @@
 /**
  * A value shown in place of its editor, which opens the editor on a click or on Enter and Space.
  *
- * <p>It stays a button for everybody, so a reader who may not edit it is told so by it being disabled
+ * <p>It stays a button for everybody, so a reader who may not edit it sees so from it being disabled
  * rather than by it vanishing from the tab order; the one who may sees it light up under the pointer.
  */
 defineProps<{

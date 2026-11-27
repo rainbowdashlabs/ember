@@ -110,7 +110,7 @@ public final class RegistrationRowLookups {
      * off it again.
      *
      * <p>Several questions may name the same member on the same date, and the first of them is
-     * enough: what the line beside the entry has to say is that a question holds the place, not how
+     * enough: what the line beside the entry has to show is that a question holds the place, not how
      * many do.
      *
      * @return the question's name, or null where none of them names the member

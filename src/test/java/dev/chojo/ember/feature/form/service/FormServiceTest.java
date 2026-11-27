@@ -611,7 +611,7 @@ class FormServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Opening a form for the public tells nobody. The notification says a new form is there to fill
+     * Opening a form for the public notifies nobody. The notification shows a new form is there to fill
      * in and points at the internal page for filling one in, which refuses anybody who is not a
      * member: wrong audience, wrong destination.
      */
@@ -706,7 +706,7 @@ class FormServiceTest extends RepositoryTestBase {
         service.delete(form.id());
     }
 
-    /** A form for the station's own members is not sent by link, and says so the same way twice. */
+    /** A form for the station's own members is not sent by link, and shows that the same way twice. */
     @Test
     @Order(91)
     void anInternalFormIsNotSentByLink() {

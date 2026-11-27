@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * What an invitation mail says about the dates somebody is asked to pick from.
+ * What an invitation mail shows about the dates somebody is asked to pick from.
  *
  * <p>Everything is already a piece of text: the mail is the last stop, and a date the reader has to
  * make sense of is a date somebody chose how to write. Any field may be blank, and a blank one is
@@ -35,7 +35,7 @@ public record WaitlistInvitationDetails(List<Appointment> appointments, String m
      * @param date            the one date they are asked for
      * @param time            when the appointment itself runs
      * @param arrivalTime     when they were asked to be there, usually earlier than everybody else
-     * @param location        where it is, when the appointment or the station says so
+     * @param location        where it is, when the appointment or the station defines it
      */
     public record Appointment(
             int position, String appointmentName, String date, String time, String arrivalTime, String location) {
@@ -50,7 +50,7 @@ public record WaitlistInvitationDetails(List<Appointment> appointments, String m
                     "location", location);
         }
 
-        /** The appointment named in one line, for a notification that has to say which date was picked. */
+        /** The appointment named in one line, for a notification that has to show which date was picked. */
         public String summary() {
             return date.isBlank() ? appointmentName : appointmentName + ", " + date;
         }

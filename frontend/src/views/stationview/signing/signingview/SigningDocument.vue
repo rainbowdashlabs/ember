@@ -23,10 +23,10 @@ import {saveBlob} from '@/util/saveBlob'
  *
  * <p>The page is drawn on a canvas, which a screen reader cannot read, so the same bytes are offered
  * twice more: saved as a file, and opened in the browser's own viewer in a new tab, where a screen
- * reader and the browser's zoom reach the text. The hint saying so comes before the drawing, so a
+ * reader and the browser's zoom reach the text. The hint to that effect comes before the drawing, so a
  * reader who cannot see it hears where to go before meeting it.
  *
- * <p>A document that could not be opened says so in place of the drawing.
+ * <p>A document that could not be opened shows that in place of the drawing.
  */
 const props = withDefaults(defineProps<{
   fieldId: number

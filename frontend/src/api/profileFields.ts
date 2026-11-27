@@ -172,7 +172,7 @@ export async function orderSet(id: number, fieldIds: number[]): Promise<void> {
     await client.put(`/profile-field-sets/${id}/order`, {fieldIds})
 }
 
-/** The languages a gender field gives pronouns in, the roles each tells apart and the two predefined answers. */
+/** The languages a gender field gives pronouns in, the roles each distinguishes and the two predefined answers. */
 export async function pronounLanguages(): Promise<PronounLanguage[]> {
     const res = await client.get<PronounLanguage[]>('/pronoun-presets')
     return res.data
@@ -202,7 +202,7 @@ export async function unassignField(fieldId: number, target: AssignmentTarget): 
 /**
  * The questions this member's profile asks: the station's own and the ones its association adds.
  *
- * One list rather than two, so the profile lays out as one form. Each entry says who asked, which is what
+ * One list rather than two, so the profile lays out as one form. Each entry shows who asked, which is what
  * decides whether the people at the station may write the answer.
  */
 export async function getMemberFields(memberId: number): Promise<MergedField[]> {
@@ -210,7 +210,7 @@ export async function getMemberFields(memberId: number): Promise<MergedField[]> 
     return res.data
 }
 
-/** A member's answers, each saying which table its question lives in. */
+/** A member's answers, each showing which table its question lives in. */
 export async function getValues(memberId: number): Promise<MergedValue[]> {
     const res = await client.get<MergedValue[]>(`/station-members/${memberId}/profile`)
     return res.data

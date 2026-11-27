@@ -12,7 +12,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 defineProps<{
   name: string
   foundAt: string
-  /** What the badge says about the claim, or nothing at all where the entry is still free. */
+  /** What the badge shows about the claim, or nothing at all where the entry is still free. */
   claimLabel?: string
   /** True where the card stands for an entry that carries a picture. */
   hasImage: boolean

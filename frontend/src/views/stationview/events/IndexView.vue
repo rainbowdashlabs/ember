@@ -124,8 +124,8 @@ async function saveBreak(data: { name: string; startDate: string; endDate: strin
 /**
  * Writes each school holiday as a break of its own.
  *
- * <p>How many went in is said where some did, because the list comes from a directory of dozens and
- * a reader told only that it failed cannot tell whether to run it again or fix the rest by hand.
+ * <p>How many went in is shown where some did, because the list comes from a directory of dozens and
+ * a reader shown only that it failed cannot tell whether to run it again or fix the rest by hand.
  */
 async function onImportHolidays(holidays: Array<{ name: string; startDate: string; endDate: string }>) {
   failure.value = null
@@ -147,7 +147,7 @@ async function onImportHolidays(holidays: Array<{ name: string; startDate: strin
   await catchUp()
 }
 
-/** Fetches the page again, saying so where that is the only thing that failed. */
+/** Fetches the page again, reporting it where that is the only thing that failed. */
 async function catchUp() {
   try {
     await reload()

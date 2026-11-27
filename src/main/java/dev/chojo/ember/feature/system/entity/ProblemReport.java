@@ -13,7 +13,7 @@ import java.time.Instant;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * A problem somebody wrote down, and what the screen could say for itself.
+ * A problem somebody wrote down, and what the screen could show for itself.
  *
  * @param screenshotFileId the picture of the page, or null where the reporter gave none
  * @param acknowledgedAt   when it was marked dealt with, which is when its thirty days begin
@@ -36,7 +36,7 @@ public record ProblemReport(
         @Nullable Instant forwardedAt,
         Instant createdAt) {
 
-    /** Whether a picture came with it, which decides what a beacon is told and what a screen draws. */
+    /** Whether a picture came with it, which decides what a beacon is sent and what a screen draws. */
     public boolean hasScreenshot() {
         return screenshotFileId != null;
     }

@@ -37,7 +37,7 @@ test.describe('Members', () => {
 
     /**
      * Somebody the station still has something with cannot simply be written off - equipment in
-     * their hands, profiles in their care. The page refuses and says what stands in the way, and
+     * their hands, profiles in their care. The page refuses and shows what stands in the way, and
      * the reason being given is the part worth holding.
      *
      * The story looks for such a person rather than naming one: who holds what changes as the rest
@@ -399,12 +399,12 @@ test.describe('Members', () => {
     })
 
     /**
-     * A group is one of the audiences a question can be put to, and the assignment that says so is a
+     * A group is one of the audiences a question can be put to, and the assignment that records that is a
      * row of its own.
      *
      * <p>It used to live inside the question's configuration, as one opaque lump that no type on
      * either side described, and a question that lost its group belonged nowhere and was shown
-     * nowhere. Only walking both ends says whether it survived being saved.
+     * nowhere. Only walking both ends shows whether it survived being saved.
      */
     test('a question put to a group is still at that group afterwards', async ({managerPage: page}) => {
         const field = unique('Gruppenfeld')
@@ -431,7 +431,7 @@ test.describe('Members', () => {
     /**
      * A station arriving with its members in a spreadsheet imports them. The story walks the whole
      * wizard and then looks for the imported person in the member list, which is the only place
-     * that says the import did anything.
+     * that shows the import did anything.
      *
      * The file uses semicolons, the separator the wizard starts with, and maps at least the name,
      * without which the wizard does not go on. The person is searched for by the name the address is
@@ -539,8 +539,8 @@ test.describe('Members', () => {
      * of it broke on its own while the parts beside it went on working.
      *
      * <p>The answers are read back off the member rather than off the report the import writes: a
-     * count of what was set says nothing about whether it reached the person it was set on, which is
-     * exactly how a mapped question came to be dropped while the wizard said it had been kept.
+     * count of what was set shows nothing about whether it reached the person it was set on, which is
+     * exactly how a mapped question came to be dropped while the wizard showed it had been kept.
      */
     test('a list with questions, a group and a parent is read in whole', async ({managerPage: page}) => {
         const surname = unique('Vollstaendig')
@@ -576,7 +576,7 @@ test.describe('Members', () => {
      * A parent the list gives no address for is still a parent.
      *
      * <p>A youth list carries a telephone number far more often than an address, and a contact
-     * without one used to be dropped where it stood: no guardian, no link, and nothing said. An
+     * without one used to be dropped where it stood: no guardian, no link, and nothing shown. An
      * address is made up for them the same way it is for a member who arrives without one.
      */
     test('a parent without an address is written down all the same', async ({managerPage: page}) => {
@@ -662,7 +662,7 @@ test.describe('Members', () => {
      *
      * The note is one field per member, so it is kept when the field still holds it after a reload.
      * The helper is cast rather than picked by the note right alone: the right to manage members
-     * carries the right to read notes, and the grants say nothing of what they imply.
+     * carries the right to read notes, and the grants show nothing of what they imply.
      */
     test('a note is shown to whoever may read notes and hidden from the rest', async ({managerPage, browser, request}) => {
         const note = unique('Notiz')
@@ -703,7 +703,7 @@ test.describe('Members', () => {
      */
     /**
      * A child entered without a login of their own gets no address, rather than one made up to look
-     * like one. The list has to say so plainly: an empty address, and no offer to write to them,
+     * like one. The list has to show that plainly: an empty address, and no offer to write to them,
      * because there is nowhere for that mail to go until a guardian with an address is attached.
      */
     /**
@@ -723,11 +723,11 @@ test.describe('Members', () => {
     }
 
     /**
-     * Clicks on until the wizard says the account was made.
+     * Clicks on until the wizard shows the account was made.
      *
      * <p>Counting clicks was the trouble: four instant visibility checks ended the walk while a step
      * was still rendering, and the story then looked for a member nobody had created and blamed the
-     * list. The wizard says when it is finished, so that is what to wait for, and the click stops
+     * list. The wizard shows when it is finished, so that is what to wait for, and the click stops
      * the moment it does.
      */
     async function finishTheWizard(page: Page) {

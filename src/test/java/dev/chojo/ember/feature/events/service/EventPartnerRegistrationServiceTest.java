@@ -363,7 +363,7 @@ class EventPartnerRegistrationServiceTest extends EventFederationTestBase {
         assertEquals(8, event.repeatCount());
     }
 
-    /** A series that ends says so to a partner as well, or it repeats for ever on their screen. */
+    /** A series that ends is passed on to a partner as well, or it repeats for ever on their screen. */
     @Test
     @Order(98)
     void aSharedSeriesCarriesItsEnd() {

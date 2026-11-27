@@ -85,7 +85,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
      *
      * <p>Those are opposite directions and a beacon that reports nowhere has only the first. The route
      * handed over the second, so every signed delivery was turned away as "addressed to another
-     * beacon" unless the instance happened to report to itself. This test is the pair told apart.
+     * beacon" unless the instance happened to report to itself. This test is the pair kept apart.
      */
     @Test
     void theAudienceIsTheBeaconsOwnAddressAndNotTheOneItReportsTo() {
@@ -113,7 +113,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
                 BeaconRefusal.BEACON_DELIVERY_FOR_ANOTHER_BEACON, () -> service.accept(key(), elsewhere, OWN_URL));
     }
 
-    /** A delivery that says nothing about itself cannot be judged and is refused. */
+    /** A delivery that carries nothing about itself cannot be judged and is refused. */
     @Test
     void anEnvelopeWithoutItsFieldsIsRefused() {
         assertRefused(BeaconRefusal.BEACON_DELIVERY_ENVELOPE_INCOMPLETE, () -> service.accept(key(), null, OWN_URL));
@@ -121,7 +121,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
         assertRefused(BeaconRefusal.BEACON_DELIVERY_ENVELOPE_INCOMPLETE, () -> service.accept(key(), noNonce, OWN_URL));
     }
 
-    /** A beacon says so rather than guessing when a newer instance speaks a protocol it does not. */
+    /** A beacon signals that rather than guessing when a newer instance speaks a protocol it does not. */
     @Test
     void aNewerProtocolIsRefused() {
         var ahead = new BeaconPayloads.Envelope(
@@ -225,7 +225,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
         assertEquals(2, service.storeMetrics(batch));
     }
 
-    /** A batch that says nothing, or says it is from the future, is refused. */
+    /** A batch that carries nothing, or shows it is from the future, is refused. */
     @Test
     void anImpossibleBatchIsRefused() {
         assertRefused(
@@ -248,7 +248,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
         assertRefused(BeaconRefusal.BEACON_FIGURES_DAY_MISSING, () -> service.storeMetrics(noDay));
     }
 
-    /** A report that says something is stored, with the contact of whoever sent it. */
+    /** A report that carries something is stored, with the contact of whoever sent it. */
     @Test
     void aReportIsStored() {
         byte[] key = key();

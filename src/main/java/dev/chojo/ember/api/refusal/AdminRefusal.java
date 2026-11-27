@@ -18,8 +18,8 @@ public enum AdminRefusal implements Refusal {
     PEER_NAMED_NO_KEY(1, HttpStatus.BAD_REQUEST, Sentences.PEER_DID_NOT_ANSWER),
 
     /**
-     * A peer whose discovery card could not be fetched at all. Named because a screen has to tell
-     * this one refusal apart from every other refusal the peer form can get.
+     * A peer whose discovery card could not be fetched at all. Named because a screen has to distinguish
+     * this one refusal from every other refusal the peer form can get.
      */
     PEER_DID_NOT_ANSWER(2, HttpStatus.BAD_REQUEST, Sentences.PEER_DID_NOT_ANSWER),
 

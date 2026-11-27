@@ -65,8 +65,8 @@ class MovementCancelledHandlerTest extends RepositoryTestBase {
     }
 
     /**
-     * The member it concerned is told, and the one who pressed it is handed over as the exception so
-     * nobody is told about their own doing.
+     * The member it concerned is notified, and the one who pressed it is handed over as the exception so
+     * nobody is notified about their own doing.
      */
     @Test
     void theMemberHearsAboutIt() {

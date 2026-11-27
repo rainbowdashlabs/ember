@@ -65,7 +65,7 @@ const waitingOnMe = computed(() =>
 /**
  * Why the list could not be fetched.
  *
- * <p>A failed fetch used to empty the list instead of saying so, which reads as "nothing is out",
+ * <p>A failed fetch used to empty the list instead of showing that, which reads as "nothing is out",
  * the one answer nobody can act on. After calling a movement off it was worse still: the piece
  * vanished from the screen and looked handed back.
  */
@@ -103,7 +103,7 @@ async function callOff(movement: MovementResponse) {
  * Fetching the list again after something was done to it, which is not part of doing it.
  *
  * <p>Sharing one attempt meant a movement that really was called off, followed by a list that failed
- * to come back, read as a call-off that had failed. Somebody told that presses the button again, on a
+ * to come back, read as a call-off that had failed. Somebody shown that presses the button again, on a
  * movement that no longer exists.
  */
 async function catchUp() {

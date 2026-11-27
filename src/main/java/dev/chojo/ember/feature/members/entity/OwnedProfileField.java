@@ -13,7 +13,7 @@ import java.util.Optional;
 /**
  * A profile question as the shared answer pipeline reads it, whichever owner asked it.
  *
- * @param origin  who asked it, which also says which table its answers live in
+ * @param origin  who asked it, which also shows which table its answers live in
  * @param id      the question, within its owner's numbering
  * @param ownerId the station or association that asked it
  * @param name    what it is called

@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
  * The mentions a comment makes and the notifications they raise, the same for every kind of comment.
  *
  * <p>A mention is announced once: when the comment is written, or when an edit adds it. Whoever the
- * text already mentioned before the edit is not told a second time, and the author is never told
+ * text already mentioned before the edit is not notified a second time, and the author is never notified
  * about their own mention.
  *
  * <p>Members are read only in the form carrying a station and a member uid, resolved through the

@@ -17,13 +17,13 @@ public enum AttendanceRefusal implements Refusal {
     /**
      * An attendance sheet that is gone, whose template is gone, or that sits at another station.
      * One code for all three deliberately: the lookup asks only about this station's own sheets, and
-     * telling them apart would say that the sheet exists at a station the reader may not see.
+     * distinguishing them would reveal that the sheet exists at a station the reader may not see.
      */
     ATTENDANCE_SHEET_NOT_HERE(1, HttpStatus.NOT_FOUND, Sentences.ATTENDANCE_SHEET_NOT_HERE),
 
     /**
      * A template that is gone, or belongs to another station. One code deliberately: the lookup and
-     * the station check right behind it answer alike, because telling them apart would say that the
+     * the station check right behind it answer alike, because distinguishing them would reveal that the
      * template exists at a station the reader may not see.
      */
     ATTENDANCE_TEMPLATE_NOT_HERE_OR_NOT_YOURS(2, HttpStatus.NOT_FOUND, Sentences.EVENT_TEMPLATE_NOT_HERE),
@@ -33,7 +33,7 @@ public enum AttendanceRefusal implements Refusal {
 
     /**
      * A member that is gone, or belongs to another station. One code deliberately: the lookup and
-     * the station check right behind it answer alike, because telling them apart would say that the
+     * the station check right behind it answer alike, because distinguishing them would reveal that the
      * member is at a station the reader may not see.
      */
     ATTENDANCE_MEMBER_NOT_HERE(4, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
@@ -83,7 +83,7 @@ public enum AttendanceRefusal implements Refusal {
     /** A sheet that went before the deletion reached it. */
     ATTENDANCE_SHEET_NOT_HERE_TO_DELETE(19, HttpStatus.NOT_FOUND, Sentences.ATTENDANCE_SHEET_NOT_HERE_ON_WRITE),
 
-    /** An entry put on a sheet without saying which member it is for. */
+    /** An entry put on a sheet without indicating which member it is for. */
     ATTENDANCE_ENTRY_NAMES_NO_MEMBER(
             20, HttpStatus.BAD_REQUEST, "Name the member this entry is for, so nothing was saved"),
 
@@ -96,7 +96,7 @@ public enum AttendanceRefusal implements Refusal {
     /** An entry that went before the deletion reached it. */
     ATTENDANCE_ENTRY_NOT_HERE_TO_DELETE(23, HttpStatus.NOT_FOUND, Sentences.ATTENDANCE_ENTRY_NOT_HERE_ON_WRITE),
 
-    /** An entry changed without saying what the member's attendance now is. */
+    /** An entry changed without indicating what the member's attendance now is. */
     ATTENDANCE_STATUS_NOT_GIVEN(
             24,
             HttpStatus.BAD_REQUEST,
@@ -136,7 +136,7 @@ public enum AttendanceRefusal implements Refusal {
     /** A saved report that went before the deletion reached it. */
     ATTENDANCE_REPORT_PRESET_NOT_HERE_TO_DELETE(34, HttpStatus.NOT_FOUND, Sentences.ATTENDANCE_REPORT_PRESET_NOT_HERE),
 
-    /** An absence written down without saying whom it is for. */
+    /** An absence written down without indicating whom it is for. */
     ABSENCE_MEMBER_NOT_NAMED(35, HttpStatus.BAD_REQUEST, "Name the member this absence is for, so nothing was saved"),
 
     /** An absence written down without its first or its last day. */
@@ -265,7 +265,7 @@ public enum AttendanceRefusal implements Refusal {
             HttpStatus.BAD_REQUEST,
             "A rule names a group, tag or member that is not part of this station, so nothing was saved"),
 
-    /** A change to whether somebody did the preparation and follow-up that does not say which. */
+    /** A change to whether somebody did the preparation and follow-up that does not indicate which. */
     ATTENDANCE_EXTRA_TIME_NOT_GIVEN(
             63,
             HttpStatus.BAD_REQUEST,

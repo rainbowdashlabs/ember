@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The token that says who sends a push is one the push service accepts: signed with ES256 over the
+ * The token that identifies who sends a push is one the push service accepts: signed with ES256 over the
  * header and claims, naming the service's origin, a time it ends and the operator to contact.
  */
 class VapidSignerTest {

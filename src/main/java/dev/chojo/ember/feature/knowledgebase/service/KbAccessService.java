@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  * station's public knowledge base.
  *
  * <p>Both axes inherit downwards. A restricted or hidden folder hides everything below it, no
- * matter what the child itself says.
+ * matter what the child itself sets.
  */
 @Singleton
 public class KbAccessService {
@@ -109,7 +109,7 @@ public class KbAccessService {
     }
 
     /**
-     * Replaces the grants of a folder or file, each naming an audience and, when it says so, what
+     * Replaces the grants of a folder or file, each naming an audience and, when it defines one, what
      * that audience may do.
      *
      * @param folderId the folder, or {@code null} when setting them on a file
@@ -236,7 +236,7 @@ public class KbAccessService {
     /**
      * Decides whether a folder or file is visible on the station's public knowledge base. Items
      * carrying access restrictions are never public; the rest follow the station mode unless an
-     * explicit override says otherwise. Folder visibility is inherited by everything below it.
+     * explicit override sets otherwise. Folder visibility is inherited by everything below it.
      *
      * @param mode     the station's public knowledge-base mode
      * @param folderId the folder, or {@code null} when asking about a file
@@ -272,7 +272,7 @@ public class KbAccessService {
      *
      * <p>This is the question the move dialog asks. It matters in one direction in particular: a
      * station that publishes everything by default turns an entry nobody ever published into a
-     * public page the moment it lands in a public folder, and the reader deserves to be told that
+     * public page the moment it lands in a public folder, and the reader deserves to be warned of that
      * before it happens rather than after.
      *
      * @param mode           the station's public knowledge-base mode
@@ -325,12 +325,12 @@ public class KbAccessService {
     }
 
     /**
-     * Resolves a member's level together with the folder that decided it, so a reader can be told
+     * Resolves a member's level together with the folder that decided it, so a reader can see
      * why an action is missing rather than left to guess.
      *
      * <p>Silent absence is the standing support cost of permission systems: a button that is simply
      * not there reads as a bug. The source is the name of the folder whose grant set the level, or
-     * empty when nothing in the tree said anything and the station permission decided.
+     * empty when nothing in the tree set anything and the station permission decided.
      *
      * @param access   the member's memberships and station rights
      * @param folderId the folder, or {@code null} when asking about a file
@@ -391,7 +391,7 @@ public class KbAccessService {
      * the way that carries grants gates: a member who matches none of its rows is out, which is the
      * rule the knowledge base has always had. Past the gate, the deepest row that names a level
      * decides it, so a folder can be read-only for a group while one file inside it is theirs to
-     * write. A row without a level says nothing about it and leaves the station permission in
+     * write. A row without a level holds nothing about it and leaves the station permission in
      * charge, which is why a station that never sets one sees no change at all.
      *
      * @param access   the member's memberships and station rights
@@ -627,7 +627,7 @@ public class KbAccessService {
 
     /**
      * The level carried down to a folder from everything above and including it, or {@code null}
-     * when nothing along the way said anything, or {@link KbAccessLevel#NONE} when the member is
+     * when nothing along the way set anything, or {@link KbAccessLevel#NONE} when the member is
      * gated out.
      */
     private @Nullable KbAccessLevel carriedLevel(MemberAccess access, @Nullable Integer folderId) {
@@ -730,7 +730,7 @@ public class KbAccessService {
     }
 
     /**
-     * The level a member holds where nothing in the tree says otherwise.
+     * The level a member holds where nothing in the tree defines otherwise.
      *
      * <p>The station-wide edit right maps to {@link KbAccessLevel#MANAGE} rather than
      * {@link KbAccessLevel#WRITE} because that is what it already grants: an editor deletes and

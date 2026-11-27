@@ -15,7 +15,7 @@ const {t} = useI18n()
 const {sessionInfo} = useSession()
 
 /**
- * What "standard" means here, said out loud rather than left to be remembered. The wiki either publishes
+ * What "standard" means here, spelled out rather than left to be remembered. The wiki either publishes
  * everything nobody has opted out of, or nothing nobody has opted in, and which of the two it is decides
  * what leaving this entry alone does to it.
  */
@@ -28,7 +28,7 @@ const standard = computed(() => {
 /**
  * Whether this entry stands on the public wiki.
  *
- * <p>Shown even where the wiki is not public at all, saying so, rather than hidden. Hiding it is how the
+ * <p>Shown even where the wiki is not public at all, with a note, rather than hidden. Hiding it is how the
  * setting became impossible to find: somebody looking for it saw nothing and no reason for nothing.
  */
 defineProps<{

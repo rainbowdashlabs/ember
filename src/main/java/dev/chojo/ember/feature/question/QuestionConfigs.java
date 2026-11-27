@@ -15,7 +15,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * Reading and writing the settings a feature stores beside a question.
  *
  * <p>Six features kept the same fifteen lines: a mapper, a logger, a read that falls back to empty
- * settings where the column says something unreadable, and a write that falls back to an empty
+ * settings where the column holds something unreadable, and a write that falls back to an empty
  * object. Two of the six used a mapper that refuses to write a config with nothing in it and three
  * used one that does not, which is the kind of difference nobody chose and nobody could see.
  *

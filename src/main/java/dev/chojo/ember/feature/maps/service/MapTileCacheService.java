@@ -428,7 +428,7 @@ public class MapTileCacheService {
 
     /**
      * The raster formats a tile may come in, and the extension each is kept under. The extension is
-     * what records the content type on disk, so a tile is served as what the upstream said it was.
+     * what records the content type on disk, so a tile is served as what the upstream reported it to be.
      */
     private enum TileFormat {
         PNG("png", "image/png"),

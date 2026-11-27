@@ -470,7 +470,7 @@ class PageServiceTest extends RepositoryTestBase {
      * A page keeps the one link it was given, however its reach changes afterwards.
      *
      * <p>Opening it to everybody and closing it again used to be the moment to worry about: a link
-     * already handed out has to go on working, and only the button that says so ends it.
+     * already handed out has to go on working, and only the button made for it ends it.
      */
     @Test
     @Order(90)
@@ -522,7 +522,7 @@ class PageServiceTest extends RepositoryTestBase {
 
     /**
      * A link opens nothing while the station keeps its pages closed, and a new station starts with
-     * them closed. Whoever hands the link out has to be told, or the first to hear of it is a
+     * them closed. Whoever hands the link out has to be warned, or the first to hear of it is a
      * stranger holding a link that leads nowhere.
      */
     @Test

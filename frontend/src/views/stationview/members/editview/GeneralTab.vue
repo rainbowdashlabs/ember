@@ -107,7 +107,7 @@ const editRoleIds = ref(new Set(props.initialRoleIds))
  * Writes the ticked permissions back.
  *
  * <p>The picker keeps the new ticks either way, so a refusal has to be read to be noticed at all. It
- * is the refusal most worth saying plainly too: granting a right one does not hold oneself is the
+ * is the refusal most worth showing plainly too: granting a right one does not hold oneself is the
  * ordinary way this is refused, and that is the station's business rather than a fault in Ember.
  */
 async function onPermissionsChange(newIds: Set<number>) {

@@ -233,7 +233,7 @@ public class StationService {
     }
 
     /**
-     * The name of the cluster a station answers to, for a screen that has to say who locked something.
+     * The name of the cluster a station answers to, for a screen that has to show who locked something.
      *
      * @param stationId the station
      * @return the cluster's name, or empty when it answers to nobody
@@ -488,9 +488,9 @@ public class StationService {
     }
 
     /**
-     * Says whether the address of this installation is printed at the foot of the station's exports.
+     * Returns whether the address of this installation is printed at the foot of the station's exports.
      *
-     * <p>What is hidden is the address and nothing else: a printed sheet still says who made it, when,
+     * <p>What is hidden is the address and nothing else: a printed sheet still shows who made it, when,
      * and which page it is, and still carries the station's own name and logo.
      */
     public void updatePdfHidesInstanceUrl(int stationId, boolean hides) {

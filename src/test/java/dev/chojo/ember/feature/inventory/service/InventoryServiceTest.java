@@ -221,8 +221,8 @@ class InventoryServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The picture an inventory is drawn with: written on creation, kept by a caller that says nothing
-     * about it, and cleared only by one that says so.
+     * The picture an inventory is drawn with: written on creation, kept by a caller that leaves it out
+     * about it, and cleared only by one that asks for that.
      */
     @Test
     @Order(58)
@@ -436,7 +436,7 @@ class InventoryServiceTest extends RepositoryTestBase {
 
     /**
      * A station under a cluster reads what the cluster asks of its people beside what it asks itself, and
-     * the cluster's rows say whose they are so the screen can badge them and take the controls away.
+     * the cluster's rows show whose they are so the screen can badge them and take the controls away.
      */
     @Test
     @Order(72)
@@ -478,7 +478,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Switching an inventory between internal and external re-says the owner on every item it
+     * Switching an inventory between internal and external rewrites the owner on every item it
      * holds, so the pieces and the inventory never contradict each other. Mixed holds both kinds
      * and rewrites nothing, and borrowed gear is nobody's to re-declare. The borrowed row is written
      * the way the lending flow writes one, because it carries the loan it came in on.

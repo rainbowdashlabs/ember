@@ -16,8 +16,8 @@ import type {
 } from '@/api/generated/schema'
 
 /**
- * One thing the member is asked about: a piece the station says they hold, or a place their role
- * says should be filled and is not.
+ * One thing the member is asked about: a piece the station records as theirs, or a place their role
+ * requires to be filled and is not.
  *
  * <p>The list is the walk's own, read from the same required-items shape, so the two cannot drift.
  * A place is identified by its inventory and its position among that inventory's empty places,
@@ -50,7 +50,7 @@ export interface RaisedReport {
  * raised one.
  *
  * <p>A dropped one does not count as raised: the answer it hung on came to nothing, so the member is
- * free to say the same thing again, and the screen says why it fell away rather than barring them.
+ * free to say the same thing again, and the screen shows why it fell away rather than barring them.
  */
 export function standingOf(reports: RaisedReport[], kind: SelfCheckRaisedKind): SelfCheckRaisedState | null {
     const mine = reports.filter(report => report.kind === kind)
@@ -120,7 +120,7 @@ export function answersFor(entry: SelfCheckEntry): SelfCheckAnswer[] {
 export function useSelfCheck(task: Ref<SelfCheckResponse | null>) {
     const drafts = ref<Map<string, SelfCheckDraft>>(new Map())
 
-    /** The pieces of one inventory the station says the member holds. */
+    /** The pieces of one inventory the station records the member as holding. */
     function piecesOf(inventoryId: number): InventoryItem[] {
         return (task.value?.assigned ?? []).filter(item => item.inventoryId === inventoryId)
     }
@@ -222,7 +222,7 @@ export function useSelfCheck(task: Ref<SelfCheckResponse | null>) {
     /**
      * Which entries still ask for something.
      *
-     * <p>A piece the station has already written off is not among them: leaving it alone says it is
+     * <p>A piece the station has already written off is not among them: leaving it alone signals it is
      * still missing, which is a perfectly good answer and the one most members will give.
      */
     const unanswered = computed(() =>

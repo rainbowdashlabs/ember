@@ -49,7 +49,7 @@ import java.util.Optional;
  * once. While a scan waits, a new one replaces it and the waiting one is deleted, since it was filed
  * for nothing else, and it can be taken back the same way; once one is confirmed, no further scan is taken
  * until the agreement it was confirmed for is withdrawn. A scan turned down stays filed and
- * on record with its reason, the participant and their guardians are told, and the document is open
+ * on record with its reason, the participant and their guardians are notified, and the document is open
  * again.
  *
  * <p>The scan is reached here through the appointment, so a manager of the registrations can read it
@@ -202,7 +202,7 @@ public class PaperSubmissionService {
     }
 
     /**
-     * Turns a scan that waits down, which opens the document again, and tells the participant and their
+     * Turns a scan that waits down, which opens the document again, and notifies the participant and their
      * guardians why.
      *
      * @param session      the manager of the registrations

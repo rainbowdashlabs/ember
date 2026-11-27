@@ -13,14 +13,14 @@ import java.util.List;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * A change of a shared appointment's documents a partner station still has to be told.
+ * A change of a shared appointment's documents a partner station still has to be notified.
  *
  * @param id                 the row
  * @param eventId            the appointment
- * @param partnerId          the partnership with the station to tell
- * @param removedTemplateIds the documents taken off since the partner was last told
+ * @param partnerId          the partnership with the station to notify
+ * @param removedTemplateIds the documents taken off since the partner was last notified
  * @param changedAt          when the documents last changed
- * @param deliveryAttempts   how many times in a row telling the partner failed
+ * @param deliveryAttempts   how many times in a row notifying the partner failed
  */
 public record PartnerRequirementChange(
         int id, int eventId, int partnerId, List<Integer> removedTemplateIds, Instant changedAt, int deliveryAttempts) {

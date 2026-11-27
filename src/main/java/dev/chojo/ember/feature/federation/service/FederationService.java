@@ -349,7 +349,7 @@ public class FederationService {
     }
 
     /**
-     * Remembers where a partner wants to be told about changes.
+     * Remembers where a partner wants to be notified of changes.
      *
      * @param partnerId  the partnership
      * @param webhookUrl the partner's webhook address, already checked as one this instance calls
@@ -409,7 +409,7 @@ public class FederationService {
     }
 
     /**
-     * Declines a pending pair request and tells the asking station.
+     * Declines a pending pair request and notifies the asking station.
      */
     public void declinePairRequest(int partnerId) {
         var request = repository.findPartnerById(partnerId);
@@ -552,7 +552,7 @@ public class FederationService {
      *
      * <p>Two things at once, and they are governed differently. The home pair, in both directions between
      * the station and the cluster's own station, is how cluster content arrives, so it is made whatever the
-     * cluster's settings say. The mesh pairs, between this station and every other member station, are made
+     * cluster's settings define. The mesh pairs, between this station and every other member station, are made
      * only when the cluster asked for them, because whether stations under one roof see each other is a
      * choice the cluster gets to make.
      *

@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * breaks most easily when a document is changed after Typst wrote it: the XMP identification, the output
  * intent with its profile, a document that is not encrypted and carries its file identifier, fonts that
  * are all embedded, annotations that print and, except links, have an appearance, no form that asks the reader to draw
- * appearances, no JavaScript, and attachments that say how they relate to the document and are listed in
+ * appearances, no JavaScript, and attachments that show how they relate to the document and are listed in
  * the catalog's associated files.
  */
 final class PdfA3b {

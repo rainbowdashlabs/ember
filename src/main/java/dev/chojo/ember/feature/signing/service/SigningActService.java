@@ -164,7 +164,7 @@ public class SigningActService {
      *
      * <p>Whose the field is comes first: a field that does not ask the caller is refused the same way
      * whether it exists or not, and whatever state it is in, so nobody learns about fields that are not
-     * theirs by trying their numbers. Only the caller's own field is told apart as no longer waiting.
+     * theirs by trying their numbers. Only the caller's own field is distinguished as no longer waiting.
      *
      * @param session the signer
      * @param fieldId the field

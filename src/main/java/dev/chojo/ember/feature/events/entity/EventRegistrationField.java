@@ -31,7 +31,7 @@ public record EventRegistrationField(
     /**
      * This question as everything that checks one reads it.
      *
-     * <p>The row stays what it is; what it means is said once, here, so the same rules measure an
+     * <p>The row stays what it is; what it means is defined once, here, so the same rules measure an
      * answer to it as measure an answer to a profile field or a waiting list.
      */
     public Question question() {

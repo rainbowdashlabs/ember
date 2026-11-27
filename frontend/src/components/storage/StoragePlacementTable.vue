@@ -12,7 +12,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import type {PlacementResponse} from '@/api/generated/schema'
 
 /**
- * Every station of the association, where its files are and where the association's decision says they
+ * Every station of the association, where its files are and where the association's decision has them
  * belong.
  *
  * A row where those two differ is a station whose bytes have not been carried yet, which is a thing to do

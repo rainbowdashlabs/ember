@@ -124,7 +124,7 @@ class MemberTableRendererTest {
         assertTrue(csv.contains("'=1+1"), "and one that reads as a formula is not left as one");
     }
 
-    /** What the table carries as a token, the file says in words. */
+    /** What the table carries as a token, the file shows in words. */
     @Test
     void tokensBecomeWords() {
         var table = new MemberTable(
@@ -218,7 +218,7 @@ class MemberTableRendererTest {
                 renderer.toCsv(table, stationSpeaking("de-DE"), CsvWriter.Separator.SEMICOLON));
     }
 
-    /** An answer somebody gave is their own words and is never reworded, whatever it says. */
+    /** An answer somebody gave is their own words and is never reworded, whatever it contains. */
     @Test
     void anAnswerIsLeftAsItWasGiven() {
         var table = new MemberTable(

@@ -46,7 +46,7 @@ public final class LibreOffice {
      * Converts a document to PDF.
      *
      * @param data      the bytes of the document
-     * @param extension the extension that tells LibreOffice what the document is, such as {@code docx}
+     * @param extension the extension that shows LibreOffice what the document is, such as {@code docx}
      * @param filter    the PDF export filter with its options, such as
      *                  {@code pdf:writer_pdf_Export:{...}}, or null for the plain export
      * @param fonts     directories of fonts to draw with besides the machine's own, none for none

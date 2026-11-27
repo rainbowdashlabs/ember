@@ -14,7 +14,7 @@ export function answerProblemsOf(e: unknown): AnswerProblem[] {
 
 /**
  * Where to show refused answers: the reader's path up to the first page with a problem, and what to
- * say at each question on it.
+ * show at each question on it.
  *
  * <p>The server walked the same answers the browser did, so the pages it names lie on the reader's
  * path. A problem on a question the form does not have names no page, and stays on the page shown.

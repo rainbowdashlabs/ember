@@ -24,7 +24,7 @@ import java.util.Optional;
  *
  * <p>A picture of a page holds whatever was on that page, which on most screens of this product is
  * the data of people who never agreed to appear in a bug report. Everything here is arranged around
- * that: only what the browser says it sent is accepted, only what it actually is is believed, and
+ * that: only what the browser reports it sent is accepted, only what it actually is is believed, and
  * the bytes travel no further than the instance until somebody says so.
  *
  * <p>Kept as a file of the instance rather than of the station. A station's library is a place
@@ -48,7 +48,7 @@ public class ProblemReportScreenshotService {
      * Takes the picture a report was sent with and keeps it, or nothing where none was sent.
      *
      * <p>What arrives is text, so it is decoded, weighed and then read: a type somebody wrote in a
-     * request says nothing, and the first bytes of the picture say everything. Anything that is not
+     * request shows nothing, and the first bytes of the picture show everything. Anything that is not
      * a PNG or a WebP is refused rather than stored and puzzled over later.
      *
      * @param encoded  the picture as base64, with or without the {@code data:} preamble a browser
@@ -106,7 +106,7 @@ public class ProblemReportScreenshotService {
         return picture;
     }
 
-    /** What the bytes say they are, rather than what the request claimed. */
+    /** What the bytes show they are, rather than what the request claimed. */
     private static ImageFormat formatOf(byte[] picture) {
         return ImageFormat.sniff(picture)
                 .filter(format -> format == ImageFormat.PNG || format == ImageFormat.WEBP)

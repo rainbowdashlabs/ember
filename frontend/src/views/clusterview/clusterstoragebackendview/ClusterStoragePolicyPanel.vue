@@ -24,7 +24,7 @@ import {ClusterBackendReach} from '@/api/generated/schema'
  * and until then a station under every-station reach is out of place rather than relocated.
  *
  * Giving the storage up is beside them rather than inside the reach, because it is a different act: the
- * reach says what the storage is for and giving it up says there is none, and whoever is standing on the old
+ * reach defines what the storage is for and giving it up means there is none, and whoever is standing on the old
  * one keeps reaching their files either way.
  */
 defineProps<{

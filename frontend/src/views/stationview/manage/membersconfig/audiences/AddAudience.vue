@@ -17,7 +17,7 @@ import type {MemberGroup} from '@/api/generated/schema'
  * control empties itself as the question reaches everybody.
  *
  * <p>Kinds of member and groups are listed under headings of their own. They were one flat list, and
- * a station whose group is called something like a kind of member had no way to tell which of the two
+ * a station whose group is called something like a kind of member had no way to see which of the two
  * a name meant, which matters: a kind of member is one somebody is, a group is one they were put in.
  */
 const props = defineProps<{

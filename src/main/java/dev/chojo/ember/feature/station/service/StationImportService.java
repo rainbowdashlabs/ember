@@ -561,7 +561,7 @@ public class StationImportService {
 
     /**
      * Removes the staged copies of an import that finished. Every file already lies under its new key and
-     * the source has been told the move is complete, so copies left behind fail neither: they are reported
+     * the source has been notified that the move is complete, so copies left behind fail neither: they are reported
      * as an error naming where they lie, and no later move reads them, since each move stages apart.
      */
     private void releaseStaging(SharedStorageFiles.@Nullable Run sharedStorage) {
@@ -576,7 +576,7 @@ public class StationImportService {
     /**
      * Gives the source back the files a failed import copied over in the storage both share, when the
      * import takes away the station it made. A station that was here before keeps what arrived, so only
-     * the staged copies go. When that fails it is reported as an error, and the source is still told and the
+     * the staged copies go. When that fails it is reported as an error, and the source is still notified and the
      * station still taken away.
      */
     private void settleSharedStorage(SharedStorageFiles.@Nullable Run sharedStorage, ImportProgress p) {

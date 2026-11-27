@@ -266,7 +266,7 @@ class InventoryKindTest extends RepositoryTestBase {
         service.delete(id);
     }
 
-    /** Renaming an inventory says nothing about what it holds, so it must not quietly change it. */
+    /** Renaming an inventory implies nothing about what it holds, so it must not quietly change it. */
     @Test
     void aRenameLeavesTheKindAlone() {
         int id = drawer("Umbenannt");

@@ -147,7 +147,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
         memberGroupRepo.findByStation(station.id()).forEach(group -> memberGroupRepo.delete(group.id()));
     }
 
-    /** A group a rule fills is left to its rule: the import goes on and says so on the row. */
+    /** A group a rule fills is left to its rule: the import goes on and notes it on the row. */
     @Test
     void aGroupARuleFillsIsLeftOutWithAWarning() {
         var ruled = memberGroupRepo.create(station.id(), "Jugend");
@@ -172,7 +172,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
 
     /**
      * A whole year group is often written down long before anybody is meant to hear about it, so the
-     * import can be told to leave the mails for later without leaving the accounts unusable.
+     * import can be set to leave the mails for later without leaving the accounts unusable.
      */
     @Test
     void anImportCanBeToldToHoldTheSetupMailsBack() {
@@ -561,7 +561,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
      * A parent the list gives no address for is a parent all the same.
      *
      * <p>A contact without one used to be dropped where it stood: nobody written down, nobody linked,
-     * and nothing said about it. A youth list gives a telephone number far more often than an address.
+     * and nothing reported about it. A youth list gives a telephone number far more often than an address.
      */
     @Test
     void aParentWithoutAnAddressIsStillWrittenDown() {
@@ -644,7 +644,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
         }
     }
 
-    /** The preview says where each row came from, which is what striking one out refers to. */
+    /** The preview shows where each row came from, which is what striking one out refers to. */
     @Test
     void thePreviewNumbersItsRowsAndMarksTheStruckOutOnes() {
         String csv = "Vorname;Name\nMax;Müller\nLena;Fischer\n";

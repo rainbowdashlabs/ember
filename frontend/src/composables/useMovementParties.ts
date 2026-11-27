@@ -13,7 +13,7 @@ export type PartiesOf = Pick<MovementResponse,'ownerKind' | 'ownerName'>
 /**
  * The parties of one movement, by name rather than by role.
  *
- * <p>"The owner" is true of every movement and tells nobody anything: the person holding a pair of
+ * <p>"The owner" is true of every movement and informs nobody of anything: the person holding a pair of
  * gloves cannot tell from it whether the gloves are the station's or the association's, which is the
  * one thing that decides where they go back to. Where the association is on this instance it has a
  * name, and that name belongs on every place the role was written.

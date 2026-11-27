@@ -417,7 +417,7 @@ public class PasskeyRoutes implements Routes {
      *
      * <p>A step-up always stamps the session that raised it, so the subject is the account that
      * asked, whoever answers for it. A guardian answering for a member in their care is the point of
-     * the exercise, and the choice the screen offered has no say in it.
+     * the exercise, and the choice the screen offered has no influence on it.
      *
      * <p>Otherwise the approver, unless this is a sign-in they are making for somebody in their care.
      * The guardianship is checked here and not only where the screen offered the choice, so a
@@ -456,7 +456,7 @@ public class PasskeyRoutes implements Routes {
      * one itself and spends it rather than riding a window somebody opened earlier.
      *
      * <p>The demand comes after the code has been read and the subject settled, so a reader who typed
-     * a wrong code is told so without being asked to prove themselves first.
+     * a wrong code gets the refusal without being asked to prove themselves first.
      */
     @OpenApi(
             path = "/api/v1/account/passkeys/device-approve",
@@ -839,12 +839,12 @@ public class PasskeyRoutes implements Routes {
     public record DeviceCodeRequest(String code, Integer forAccountId, Integer pickedNumber) {}
 
     /**
-     * @param purpose what approving this buys, so the screen can say it in the reader's terms
+     * @param purpose what approving this buys, so the screen can show it in the reader's terms
      * @param stepUpCategory what a step-up was demanded for, absent for the other purposes
      * @param stepUpSubject whose step-up it is, where that is somebody in the reader's care rather
      *         than the reader themselves
      * @param numberChoices the six numbers to offer, in the order to offer them, one of which is
-     *         the one the requesting screen shows. Which is never said here
+     *         the one the requesting screen shows. Which is never revealed here
      * @param candidates whom this reader may sign in, for a sign-in. Themselves first
      */
     public record DeviceLookupResponse(

@@ -113,7 +113,7 @@ public record StationCalendar(
     }
 
     /**
-     * What a reader is told about this date being off, whether the date was called off or the whole
+     * What a reader sees about this date being off, whether the date was called off or the whole
      * series was, empty while it takes place.
      */
     public Optional<CancellationNotice> noticeOn(StationEvent event, LocalDate date) {
@@ -133,7 +133,7 @@ public record StationCalendar(
     }
 
     /**
-     * What a reader is told about the appointment as a whole being off: a series called off, or a
+     * What a reader sees about the appointment as a whole being off: a series called off, or a
      * one-time appointment whose one date was. Empty while it takes place.
      */
     public Optional<CancellationNotice> noticeAltogether(StationEvent event) {
@@ -148,7 +148,7 @@ public record StationCalendar(
     }
 
     /**
-     * The dates of a series that were called off one by one, which a calendar is told as dates of the
+     * The dates of a series that were called off one by one, which a calendar receives as dates of the
      * series that do not take place.
      *
      * @param event the appointment
@@ -221,7 +221,7 @@ public record StationCalendar(
     }
 
     /**
-     * The dates the repetition names that a break takes out, which a calendar is told as exceptions
+     * The dates the repetition names that a break takes out, which a calendar receives as exceptions
      * to the rule.
      *
      * @param event the appointment
@@ -244,7 +244,7 @@ public record StationCalendar(
 
     /**
      * Every date the repetition names that the series does not hold: those a break takes out and those
-     * that became appointments of their own, which a calendar is told as exceptions to the rule.
+     * that became appointments of their own, which a calendar receives as exceptions to the rule.
      *
      * @param event the appointment
      * @return those dates in order, none for a one-off appointment

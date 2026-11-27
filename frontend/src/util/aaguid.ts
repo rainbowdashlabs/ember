@@ -8,7 +8,7 @@
  * https://github.com/passkeydeveloper/passkey-authenticator-aaguids. Names only, no icons: the
  * icon set is a megabyte of base64 SVG and buys nothing a word does not. A member who cannot
  * tell their passkeys apart will not remove any of them, and a list they cannot prune is a list
- * they distrust; the provider name is what tells "the phone" from "the password manager".
+ * they distrust; the provider name is what distinguishes "the phone" from "the password manager".
  */
 const PROVIDER_NAMES: Record<string, string> = {
     'ea9b8d66-4d01-1d21-3ce4-b6b48cb575d4': 'Google Passwortmanager',

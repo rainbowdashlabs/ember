@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.function.IntPredicate;
 
 /**
- * Document templates for steps as a test decides them: suitable where the predicate says so, meant for the
+ * Document templates for steps as a test decides them: suitable where the predicate holds, meant for the
  * members the other predicate takes in, and named after their id.
  *
  * @param suitable which templates a step may generate
@@ -21,7 +21,7 @@ public record SuitableDocuments(IntPredicate suitable, IntPredicate meantFor) im
     public static final SuitableDocuments NONE = new SuitableDocuments(template -> false);
 
     /**
-     * Templates suitable where the predicate says so and meant for every member.
+     * Templates suitable where the predicate holds and meant for every member.
      *
      * @param suitable which templates a step may generate
      */

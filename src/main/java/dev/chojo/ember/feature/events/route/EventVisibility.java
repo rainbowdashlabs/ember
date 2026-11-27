@@ -29,7 +29,7 @@ import static dev.chojo.ember.feature.events.service.EventOwnership.requireOwned
  *
  * <p>Owning the event is not enough to read it: an event can be hidden from most of its own
  * station, and its id is a counter anybody can step through. Whoever may write events is let
- * through whatever the event says about who may see it, since an editor still has to open an
+ * through whatever the event defines about who may see it, since an editor still has to open an
  * appointment they restricted to one group. A guardian sees what the members they look after see,
  * the same as in the event list.
  */

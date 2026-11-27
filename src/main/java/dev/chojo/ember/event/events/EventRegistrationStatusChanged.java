@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
  * A registration changed state.
  *
  * @param memberName the member's name, carried so the notification means something to an event
- *                   manager, who is told about somebody else's registration and cannot resolve an
+ *                   manager, who is notified of somebody else's registration and cannot resolve an
  *                   identifier
  * @param queuePosition the place in line where the registration now waits, or null
  * @param movedUp       whether it moved up from the waiting list into a place that fell free

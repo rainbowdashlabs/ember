@@ -11,28 +11,28 @@ package dev.chojo.ember.feature.inventory.entity;
  */
 public enum AckKind {
     /**
-     * The party that owns the step said so itself.
+     * The party that owns the step confirmed it itself.
      */
     CONFIRMED,
     /**
-     * The station said so on behalf of an owner that does not use Ember and cannot answer.
+     * The station confirmed on behalf of an owner that does not use Ember and cannot answer.
      */
     ASSERTED,
     /**
      * The flow owner overrode a party that could have answered and did not. Carries a mandatory
      * note, because an unresponsive counterparty must not be able to freeze an item in transit
-     * forever and the record should say who decided that it would not.
+     * forever and the record should show who decided that it would not.
      */
     FORCED,
     /**
      * Nobody acknowledged anything: somebody put the movement where it should have been. Carries a
      * mandatory reason, and reads as a correction rather than as a step, because a record that
-     * cannot tell the two apart is worth less than one that admits the difference.
+     * cannot distinguish the two is worth less than one that admits the difference.
      */
     CORRECTED,
     /**
      * The member's receipt of a piece, confirmed for them the moment the movement reached it, because
-     * the chain says that receipt is not waited for. Recorded in the member's name and marked as automatic,
+     * the chain defines that receipt is not waited for. Recorded in the member's name and marked as automatic,
      * so the history never reads it as something the member pressed.
      */
     AUTO_CONFIRMED

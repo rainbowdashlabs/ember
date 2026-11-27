@@ -45,7 +45,7 @@ import java.util.Map;
  *
  * <p>What a visit does, in order: read the envelopes that arrived since the mailbox starts from, skip the
  * messages already dealt with, find the rule that takes each one, file what its attachments turn out to
- * be, then do what the rule says with the message. Every message that was read leaves a log entry,
+ * be, then do what the rule defines with the message. Every message that was read leaves a log entry,
  * including the ones nothing was taken from. One the mail server could not hand over leaves none: it is
  * skipped, and looked at again on the next visit if it is still there.
  */
@@ -157,7 +157,7 @@ public class MailImportService {
     }
 
     /**
-     * Tells whoever looks after the station's mail that a mailbox has stopped being tried.
+     * Lets whoever looks after the station's mail know that a mailbox has stopped being tried.
      *
      * <p>The error is on the mailbox either way, but nobody goes looking at a page for an import that
      * silently stopped a month ago, so this is pushed rather than waited for.
@@ -177,7 +177,7 @@ public class MailImportService {
     }
 
     /**
-     * Tells whoever may read documents that paperwork is waiting to be sorted.
+     * Lets whoever may read documents know that paperwork is waiting to be sorted.
      *
      * <p>Filing under nobody is the ordinary outcome, so this is not a failure report. What nobody
      * notices is the store quietly filling up, and one line per cycle is what answers that.
@@ -204,7 +204,7 @@ public class MailImportService {
      * Deals with one message, or skips it where the server cannot hand it over.
      *
      * <p>A message another client expunged mid-cycle, or one the server cannot read back, fails on its
-     * own and says nothing about the rest of the mailbox. Failing the cycle for it would fail every cycle
+     * own and shows nothing about the rest of the mailbox. Failing the cycle for it would fail every cycle
      * after it too, since the mailbox starts from the same moment each time, until the mailbox is
      * suspended over a single message. So it is skipped and counted against the budget like a message
      * that carried nothing. A lost connection still ends the cycle, since every message after it would
@@ -349,7 +349,7 @@ public class MailImportService {
     }
 
     /**
-     * Whether the receiving server said the sending domain failed its own checks.
+     * Whether the receiving server reported the sending domain failed its own checks.
      *
      * <p>Only an explicit failure is refused, and a message carrying no verdict is let through. That is
      * not because the header could be forged: a sender's own header is prepended below the receiving

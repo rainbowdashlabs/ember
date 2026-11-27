@@ -16,7 +16,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * One date of an appointment that was called off, a one-time appointment included.
  *
  * <p>The date is off while {@code restoredAt} is empty. A restored row is kept rather than removed,
- * because it is what tells the minimum-registration check that a manager brought the date back on
+ * because it is what shows the minimum-registration check that a manager brought the date back on
  * purpose and it is not to be called off again.
  *
  * @param eventId     the appointment
@@ -53,7 +53,7 @@ public record EventDateCancellation(
         return restoredAt == null;
     }
 
-    /** What a reader is told about this cancellation. */
+    /** What a reader sees about this cancellation. */
     public CancellationNotice notice() {
         return new CancellationNotice(eventDate, cause, reason, cancelledAt);
     }

@@ -20,7 +20,7 @@ export interface PendingMove {
 /**
  * Adding somebody to a group of a set who is already in another group of it, which is a move.
  *
- * <p>Whoever is in a sibling group is known before they are picked, so the picker can say so beside
+ * <p>Whoever is in a sibling group is known before they are picked, so the picker can show that beside
  * their name, and adding them asks "move from X?" instead of being refused by the server. Shift
  * skips the question and moves them at once.
  *

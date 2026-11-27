@@ -117,7 +117,7 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
                 true);
     }
 
-    /** What the member is told, which is that this appointment wants something from them. */
+    /** What the member is notified of, which is that this appointment wants something from them. */
     private void verifyToldOnce() {
         verify(notifications)
                 .notify(
@@ -128,9 +128,9 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
     }
 
     /**
-     * Somebody who signed up before the question existed is told that it is there, and the second
-     * save of the same questions tells them nothing: the notification marks the change, and being
-     * short of an answer is a state the screens say for as long as it lasts.
+     * Somebody who signed up before the question existed is notified that it is there, and the second
+     * save of the same questions notifies them of nothing: the notification marks the change, and being
+     * short of an answer is a state the screens show for as long as it lasts.
      */
     @Test
     void aQuestionAddedAfterwardsTellsWhoeverIsNowShortOfAnAnswer() {

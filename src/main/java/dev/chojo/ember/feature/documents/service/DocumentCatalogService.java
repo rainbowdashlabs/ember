@@ -169,7 +169,7 @@ public class DocumentCatalogService {
      * @param uploadedBy    the member who put it in, where it was put in at the station
      * @param uploaderName  the name of whoever put it in, a member of the station or a manager of the
      *                      association, or null where nobody did or they are gone
-     * @param memberIds     the members it is bound to, so a reader can tell whose it is
+     * @param memberIds     the members it is bound to, so a reader can see whose it is
      * @param departedNames the names of members who were deleted while it was kept for them
      * @param sealed        whether it is sealed, which locks it: never deleted, its members fixed
      * @param sealedVersions its sealed versions, newest first; none for a document that is not sealed

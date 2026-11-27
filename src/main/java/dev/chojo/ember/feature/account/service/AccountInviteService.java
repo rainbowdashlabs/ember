@@ -101,8 +101,8 @@ public class AccountInviteService {
      *
      * <p>No address at all, rather than one made up to look like one. A made-up address is shown in
      * the member list as though somebody could write to it, is offered a setup mail that can only
-     * fail, and has to be explained to whoever reads it. An account without one says the same thing
-     * and says it plainly: this person has no address, and whatever concerns them goes to whoever
+     * fail, and has to be explained to whoever reads it. An account without one shows the same thing
+     * and shows it plainly: this person has no address, and whatever concerns them goes to whoever
      * looks after them.
      *
      * @param stationId the station entering them

@@ -10,7 +10,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
 
 /**
- * What the set holds and what it had to leave behind, said before anything is created.
+ * What the set holds and what it had to leave behind, shown before anything is created.
  *
  * <p>A count that is quietly smaller than the one on the screen behind it is the thing that makes
  * somebody distrust the whole list, so the two groups that cannot be carried over are named here
@@ -23,7 +23,7 @@ defineProps<{
   /**
    * Whether what is being made stays tied to this occurrence instead of copying it once.
    *
-   * <p>The closing sentence is the one people read hardest, and it has to say the opposite thing in
+   * <p>The closing sentence is the one people read hardest, and it has to read the opposite way in
    * each case: a copy never catches up, while a list that follows the occurrence does, but only when
    * somebody presses the refresh button on it.
    */

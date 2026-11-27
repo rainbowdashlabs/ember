@@ -673,7 +673,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
      * A member who signed at home withdraws the agreement there while the organiser cannot be reached: the
      * sealed version recording the withdrawal goes out again later, is checked and kept beside the signed copy,
      * which stays, the document shows as withdrawn, the registration is flagged, and whoever runs the
-     * appointment is told.
+     * appointment is notified.
      */
     @Test
     void aWithdrawalAtHomeReachesTheOrganiserOnceItIsUpAgain() {
@@ -828,9 +828,9 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     }
 
     /**
-     * A document added after a partner's member registered reaches them at home: the organiser tells the
+     * A document added after a partner's member registered reaches them at home: the organiser notifies the
      * partner, the partner fetches the documents of the date again and asks the member for the new one only,
-     * and the organiser hears it was taken on. Telling again asks nobody twice, and a date already past stays
+     * and the organiser hears it was taken on. Notifying again asks nobody twice, and a date already past stays
      * as it is.
      */
     @Test
@@ -933,7 +933,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     }
 
     /**
-     * A partner that cannot be reached when the documents change is told again later, after the time a failure
+     * A partner that cannot be reached when the documents change is notified again later, after the time a failure
      * waits, and its member is asked then.
      */
     @Test
@@ -959,7 +959,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         assertTrue(changeRepo.forEvent(camp.id()).isEmpty());
     }
 
-    /** A change for a partner the appointment is no longer shared with is dropped rather than told. */
+    /** A change for a partner the appointment is no longer shared with is dropped rather than notified. */
     @Test
     void aPartnerTheAppointmentIsNoLongerSharedWithIsNotTold() {
         var member = homeMember("Sina", "Sauer");

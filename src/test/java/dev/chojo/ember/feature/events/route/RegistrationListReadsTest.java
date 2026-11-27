@@ -70,7 +70,7 @@ import static org.mockito.Mockito.when;
  *
  * <p>Every row used to read its member, the member's account, whoever filed it and their account,
  * the appointment and the appointment's questions on its own, so a list of a hundred people cost
- * some six hundred round trips. The rows must still say exactly what they said before.
+ * some six hundred round trips. The rows must still show exactly what they showed before.
  */
 class RegistrationListReadsTest {
     private static final int STATION_ID = 3;

@@ -15,7 +15,7 @@ import {canHavePicture, fileKindIcon} from '@/util/fileKind'
  * <p>The bytes come from an endpoint that wants a token, so the picture cannot simply be pointed at
  * and is fetched into an object URL the way every other guarded image here is. A file whose kind
  * carries no picture is never asked for one: the server would refuse, and a refusal per tile is a
- * row of failed requests to say what the type alone already said.
+ * row of failed requests to show what the type alone already showed.
  *
  * <p>A refusal is not a fault either. A picture is made when a file is stored, so one stored before
  * this existed has none until it is stored again, and the icon is the honest answer meanwhile.
@@ -27,7 +27,7 @@ const props = defineProps<{
   alt?: string
   /** The size classes of the tile, so a list and a row can ask for different ones. */
   size?: string
-  /** Shows the picture from its top rather than its middle, where a page that does not fit says what it is. */
+  /** Shows the picture from its top rather than its middle, where a page that does not fit shows what it is. */
   anchorTop?: boolean
 }>()
 
@@ -73,7 +73,7 @@ async function load() {
  * Nothing is fetched until the tile is somewhere near the screen.
  *
  * <p>A browser skips an image it cannot see; a fetch does not, so a library page of two hundred files
- * asked for two hundred pictures at once the moment it opened. Where the browser cannot tell us what
+ * asked for two hundred pictures at once the moment it opened. Where the browser cannot report to us what
  * is on screen, everything is wanted at once, which is what used to happen anyway.
  */
 const {isSupported: canTellWhatIsOnScreen, stop: stopWatchingTheScreen} = useIntersectionObserver(root, entries => {

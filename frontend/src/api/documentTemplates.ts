@@ -89,7 +89,7 @@ export function formFontSizeTaken(size: number): boolean {
 
 /**
  * The templates of one owner: a station or an association. Each lists, writes and archives its own
- * templates, says what they can name, reads a text into a letter, draws a draft and keeps the PDF of a
+ * templates, shows what they can name, reads a text into a letter, draws a draft and keeps the PDF of a
  * PDF template. A station's list also holds the templates of its association, marked as such.
  */
 export interface TemplateSource {

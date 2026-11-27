@@ -19,7 +19,7 @@ import java.util.Set;
  *
  * <p>Deliberately hard to satisfy. The text has to name a block <em>and</em> name the sending side
  * as the thing blocked, so "mailbox full" and "message rejected as spam" are left alone. Shutting a
- * provider out of a whole domain is worth doing only when the receiving side has said plainly that
+ * provider out of a whole domain is worth doing only when the receiving side has signalled plainly that
  * it is the sender it refuses.
  */
 public final class RelayBlockDetector {
@@ -35,7 +35,7 @@ public final class RelayBlockDetector {
             Set.of("sender ip", "sending ip", "sender address", "sender", "relay", "your ip", "client host", "helo");
 
     /**
-     * Whether this reason says the relay itself is refused.
+     * Whether this reason shows the relay itself is refused.
      *
      * @param detail what the receiving side gave as the reason, or null
      */

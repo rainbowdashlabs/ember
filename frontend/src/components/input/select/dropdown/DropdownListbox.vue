@@ -10,7 +10,7 @@ import {ListboxContent, ListboxRoot, type AcceptableValue} from 'reka-ui'
 /**
  * The list inside a dropdown, as a screen reader and a keyboard meet it.
  *
- * <p>It is a listbox of options that says which are chosen. Up and down walk it and come round at
+ * <p>It is a listbox of options that shows which are chosen. Up and down walk it and come round at
  * either end, Home and End jump to the ends, Enter and Space take the highlighted entry, and typing
  * jumps to an entry by its first letters. Where a search sits in the `head` slot the focus stays in
  * the search and the highlight moves under it, so the reader types and walks without switching.

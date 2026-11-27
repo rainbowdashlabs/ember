@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
  *
  * <p>An answer is kept the way it is sent: a text as written, a day as an ISO date, a number as a plain
  * decimal, a choice as its entry is written, a tick as {@code true} or {@code false}. A question the person generating did not answer takes its suggestion,
- * filled in for the member: a text as it reads, a day where the text names one, a tick where it says yes.
+ * filled in for the member: a text as it reads, a day where the text names one, a tick where it means yes.
  *
  * <p>A text and a choice print as written, a number with the decimal mark of the template's language, a
  * day in the format its placeholder names or as {@code 03.10.2026}, and a

@@ -65,7 +65,7 @@ const showingNotes = ref(false)
 const anyNotes = computed(() => hasAnything(props.notes))
 const birthday = computed(() => hasBirthday(props.notes))
 
-/** Nothing to settle leaves the line saying only that there is something to read, which is the birthday. */
+/** Nothing to settle leaves the line showing only that there is something to read, which is the birthday. */
 const notesLabel = computed(() => {
   const count = actionCount(props.notes)
   if (count === 0) return t('checkNotes.openNone')

@@ -68,8 +68,8 @@ public enum MemberRefusal implements Refusal {
 
     /**
      * A self-registration the sign-up refused, whether over the registration code it named or the
-     * address it chose. One code deliberately: an endpoint nobody has signed in to must not say
-     * which addresses are already registered here, and telling the reasons apart would.
+     * address it chose. One code deliberately: an endpoint nobody has signed in to must not reveal
+     * which addresses are already registered here, and distinguishing the reasons would.
      */
     REGISTRATION_REFUSED(
             19, HttpStatus.CONFLICT, "You could not be registered with these details, so no account was made"),
@@ -79,13 +79,13 @@ public enum MemberRefusal implements Refusal {
 
     /**
      * A confirmation link that is unknown, has run out, or has already been spent. One code
-     * deliberately: telling them apart would say whether an address was ever asked to confirm
+     * deliberately: distinguishing them would reveal whether an address was ever asked to confirm
      * itself here, which is the thing this endpoint withholds from anybody guessing links.
      */
     EMAIL_VERIFICATION_LINK_NOT_GOOD(
             21, HttpStatus.BAD_REQUEST, "That confirmation link is no longer good, so the address was not confirmed"),
 
-    /** A second confirmation mail asked for without saying where to send it. */
+    /** A second confirmation mail asked for without indicating where to send it. */
     RESEND_VERIFICATION_ADDRESS_MISSING(22, HttpStatus.BAD_REQUEST, Sentences.ADDRESS_MISSING),
 
     /** A password being set without the link that allows it, or without the password itself. */
@@ -126,7 +126,7 @@ public enum MemberRefusal implements Refusal {
     /** An address another account on this instance already carries, given at the sign-in stop. */
     ADDRESS_TAKEN_ON_SETUP(34, HttpStatus.CONFLICT, Sentences.ADDRESS_BELONGS_TO_ANOTHER),
 
-    /** A forgotten password asked about without saying whose. */
+    /** A forgotten password asked about without indicating whose. */
     FORGOTTEN_PASSWORD_ADDRESS_MISSING(35, HttpStatus.BAD_REQUEST, Sentences.ADDRESS_MISSING),
 
     /** A sign-in that left one of the two fields empty. */
@@ -136,7 +136,7 @@ public enum MemberRefusal implements Refusal {
      * A sign-in that did not work, for every reason a sign-in does not work: no such account, the
      * wrong password, an address nobody has confirmed, an account whose password has been switched
      * off. One code and one sentence deliberately, because that is the whole point of this line:
-     * anybody trying addresses at this endpoint must be told the same thing every time, or the
+     * anybody trying addresses at this endpoint must get the same answer every time, or the
      * endpoint becomes a list of who has an account here.
      */
     SIGN_IN_REFUSED(
@@ -144,7 +144,7 @@ public enum MemberRefusal implements Refusal {
             HttpStatus.UNAUTHORIZED,
             "Signing in did not work. Check what you typed, and whether your address is confirmed"),
 
-    /** A quick sign-in on a demo instance that said nobody to sign in as. */
+    /** A quick sign-in on a demo instance that gave nobody to sign in as. */
     DEMO_SIGN_IN_ADDRESS_MISSING(38, HttpStatus.BAD_REQUEST, Sentences.ADDRESS_MISSING),
 
     /** A quick sign-in that did not work, on the demo instances where one is offered at all. */
@@ -184,7 +184,7 @@ public enum MemberRefusal implements Refusal {
     /** A member named by the identifier a member menu hands over, who is gone or has left. */
     MEMBER_NOT_HERE_BY_UID(52, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
 
-    /** A membership being made without saying whose account it is for. */
+    /** A membership being made without indicating whose account it is for. */
     MEMBER_ACCOUNT_NOT_NAMED(53, HttpStatus.BAD_REQUEST, "Name the account to add as a member"),
 
     /** A member who cannot yet be written off the register. */
@@ -203,10 +203,10 @@ public enum MemberRefusal implements Refusal {
     ACCOUNT_NOBODY_TO_WRITE_TO(
             59, HttpStatus.BAD_REQUEST, "Nobody can be written to about this account, so no invitation was sent"),
 
-    /** A member's kind being set without saying which kind. */
+    /** A member's kind being set without indicating which kind. */
     MEMBER_USER_TYPE_NOT_NAMED(60, HttpStatus.BAD_REQUEST, "Name the kind of member this should be"),
 
-    /** A member's joining date being set without saying which date. */
+    /** A member's joining date being set without indicating which date. */
     MEMBER_JOIN_DATE_NOT_NAMED(61, HttpStatus.BAD_REQUEST, "Name the date this member joined"),
 
     /** An account that administers the instance, acted on from a permission below that. */
@@ -215,10 +215,10 @@ public enum MemberRefusal implements Refusal {
             HttpStatus.FORBIDDEN,
             "An account that administers the instance can only be acted on by one that does too"),
 
-    /** A fresh way in being made for somebody, without saying whose account. */
+    /** A fresh way in being made for somebody, without indicating whose account. */
     ACCOUNT_NOT_NAMED_ON_ONBOARDING_AGAIN(63, HttpStatus.BAD_REQUEST, Sentences.ACCOUNT_NOT_NAMED),
 
-    /** A passkey code being handed out, without saying whose account it is for. */
+    /** A passkey code being handed out, without indicating whose account it is for. */
     ACCOUNT_NOT_NAMED_ON_PASSKEY_CODE(64, HttpStatus.BAD_REQUEST, Sentences.ACCOUNT_NOT_NAMED),
 
     /** A passkey code asked for on behalf of somebody who can be written to directly. */
@@ -240,7 +240,7 @@ public enum MemberRefusal implements Refusal {
      */
     MEMBER_NOT_PROVISIONED(69, HttpStatus.CONFLICT, "That member could not be set up, so nothing was saved"),
 
-    /** A password reset asked for without saying whose account. */
+    /** A password reset asked for without indicating whose account. */
     ACCOUNT_NOT_NAMED_ON_PASSWORD_RESET(70, HttpStatus.BAD_REQUEST, Sentences.ACCOUNT_NOT_NAMED),
 
     /** A profile question being made with no name or no kind. */
@@ -256,7 +256,7 @@ public enum MemberRefusal implements Refusal {
     /** A profile question being changed to have no name or no kind. */
     PROFILE_FIELD_DETAILS_MISSING_ON_CHANGE(74, HttpStatus.BAD_REQUEST, Sentences.PROFILE_FIELD_DETAILS_MISSING),
 
-    /** Profile questions being put in order without saying whose order it is. */
+    /** Profile questions being put in order without indicating whose order it is. */
     PROFILE_FIELD_ORDER_AUDIENCE_MISSING(75, HttpStatus.BAD_REQUEST, "Name the kind of member this order is for"),
 
     /** A group being made without a name. */
@@ -332,7 +332,7 @@ public enum MemberRefusal implements Refusal {
 
     /**
      * A registration code that went between the list being drawn and it being opened, or one of
-     * another station. One code for both, so a number does not say that a code exists elsewhere.
+     * another station. One code for both, so a number does not reveal that a code exists elsewhere.
      */
     REGISTRATION_CODE_NOT_HERE(99, HttpStatus.NOT_FOUND, Sentences.REGISTRATION_CODE_NOT_HERE),
 
@@ -811,7 +811,7 @@ public enum MemberRefusal implements Refusal {
     /**
      * A link request answered or opened that is not waiting for this account: unknown, someone else's,
      * answered or expired. Every one of those lines answers with this one constant on purpose, so a
-     * token or uid probed by somebody else says nothing about whether it exists.
+     * token or uid probed by somebody else reveals nothing about whether it exists.
      */
     LINK_REQUEST_NOT_OPEN(
             219, HttpStatus.NOT_FOUND, "This link request is not open, it may have been answered or expired"),

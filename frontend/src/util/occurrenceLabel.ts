@@ -8,7 +8,7 @@ import {formatDaySpan, formatTime, formatWeekdayDate, stationDayOf} from '@/util
 /**
  * One occurrence of an event, written out: `Dienstag, 14.10.2026, 18:00 bis 20:00`.
  *
- * <p>A weekly event has no single date, so naming only the event says nothing about which evening
+ * <p>A weekly event has no single date, so naming only the event shows nothing about which evening
  * is meant. The day comes from the occurrence and the clock from the event, which keeps the same
  * hours on every day it repeats.
  *

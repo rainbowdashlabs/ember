@@ -78,7 +78,7 @@ public class StepUpRoutes implements Routes {
     /**
      * Raises the request and shows its code.
      *
-     * <p>The category travels with it so the approving device can say what it is confirming rather
+     * <p>The category travels with it so the approving device can show what it is confirming rather
      * than asking somebody to trust a blank, and nothing else does: whoever raises this may already
      * hold a stolen cookie, so every word on the approval screen is the product's own.
      */
@@ -163,7 +163,7 @@ public class StepUpRoutes implements Routes {
     /**
      * The password proof. A password oracle reachable with any live session, so it is throttled
      * per account and per client address before anything else happens, and every failure is
-     * written down: a log with only the successes in it says nothing about the endpoint an
+     * written down: a log with only the successes in it shows nothing about the endpoint an
      * attacker would grind.
      */
     @OpenApi(

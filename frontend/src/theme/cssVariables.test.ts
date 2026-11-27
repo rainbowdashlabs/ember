@@ -13,7 +13,7 @@ import {describe, expect, it} from 'vitest'
  *
  * <p>A variable nobody defines does not fail anywhere: the browser drops the declaration and the
  * element quietly loses its colour. That is how fifty-odd places asked for a primary colour under a
- * name the theme never had, and nothing said so.
+ * name the theme never had, and nothing flagged it.
  *
  * <p>A definition counts wherever it is written: the theme and the root rules in `style.css`, a
  * scoped style block, or the variables the palette sets on the page at runtime. A use is a

@@ -35,7 +35,7 @@ public enum KbAccessLevel {
     MANAGE;
 
     /**
-     * Tells whether this level is enough for an action that needs {@code required}.
+     * Returns whether this level is enough for an action that needs {@code required}.
      *
      * @param required the level the action needs
      * @return whether this level covers it

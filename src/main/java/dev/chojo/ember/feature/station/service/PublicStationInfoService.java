@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 /**
- * What a station tells the open web about itself, and whether it answers the open web at all.
+ * What a station shows the open web about itself, and whether it answers the open web at all.
  *
  * <p>A station answers when it publishes anything: its wiki, its calendar, a listed page, a
  * waiting list, its blog, or a form anybody can reach by its link. A station with none of these is
@@ -167,7 +167,7 @@ public class PublicStationInfoService {
     }
 
     /**
-     * What a station tells the open web about itself.
+     * What a station shows the open web about itself.
      *
      * <p>The timezone is here because a public page is written twice, once by the server and once by
      * the browser, and neither of those two machines is where the reader is. A date put on whichever

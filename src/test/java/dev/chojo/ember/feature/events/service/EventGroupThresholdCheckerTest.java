@@ -53,7 +53,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * An event group with a minimum: it is called off as a whole, with the notice saying why, once its
+ * An event group with a minimum: it is called off as a whole, with the notice showing why, once its
  * first part is within the days it names and too few sign-ups were accepted; otherwise it is left
  * alone. And the minimum is only stored complete.
  */

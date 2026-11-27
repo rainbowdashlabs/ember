@@ -9,11 +9,11 @@ import AppIcon from '@/components/display/AppIcon.vue'
 
 /**
  * The small mark beside a group or tag that takes its members from a rule. It names that on hover and to a screen
- * reader; where somebody asks why a membership cannot be changed by hand, as on a member's chips, it also says so
+ * reader; where somebody asks why a membership cannot be changed by hand, as on a member's chips, it also shows that
  * in a word, since a phone shows no hover.
  */
 defineProps<{
-  /** Whether the mark says in a word what it means, beside the icon. */
+  /** Whether the mark shows in a word what it means, beside the icon. */
   labelled?: boolean
 }>()
 

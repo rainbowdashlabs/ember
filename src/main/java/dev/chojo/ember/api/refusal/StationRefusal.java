@@ -28,7 +28,7 @@ public enum StationRefusal implements Refusal {
 
     /**
      * A public address another station on this instance already answers at. Named because a screen
-     * has to tell this one refusal apart from every other refusal a settings form can get, and
+     * has to distinguish this one refusal from every other refusal a settings form can get, and
      * matching on the English sentence to do it broke the moment anybody reworded it.
      */
     STATION_SLUG_TAKEN(5, HttpStatus.CONFLICT, "Another station is already reached at that address"),
@@ -99,7 +99,7 @@ public enum StationRefusal implements Refusal {
     NEW_OWNER_NOT_A_MANAGER(
             25, HttpStatus.BAD_REQUEST, "Only a manager of this station can be made its owner, so nothing was changed"),
 
-    /** An import started without the transfer code that says what is being fetched. */
+    /** An import started without the transfer code that shows what is being fetched. */
     IMPORT_NEEDS_A_TRANSFER_CODE(
             26, HttpStatus.BAD_REQUEST, "Give the transfer code of the instance you are moving from"),
 
@@ -177,7 +177,7 @@ public enum StationRefusal implements Refusal {
      * A station asked about from the open web that has nothing to show there. One code for all four
      * ways of getting here deliberately: an address nobody answers at, a station that has put
      * nothing on the open web, an association's own station, and one whose wiki is switched off all
-     * say the same thing, because telling them apart would let a stranger learn which stations exist
+     * carry the same message, because distinguishing them would let a stranger learn which stations exist
      * and which of them are merely hidden.
      */
     PUBLIC_STATION_NOTHING_TO_SHOW(45, HttpStatus.NOT_FOUND, "There is nothing here for the open web to see"),
@@ -259,14 +259,14 @@ public enum StationRefusal implements Refusal {
     /** An import from an address that is not a public HTTPS address. */
     STATION_IMPORT_SOURCE_NOT_PUBLIC(64, HttpStatus.BAD_REQUEST, Sentences.FEDERATION_ADDRESS_NOT_PUBLIC),
 
-    /** An import from another instance that could not tell which version it runs. */
+    /** An import from another instance that could not determine which version it runs. */
     STATION_IMPORT_SOURCE_NOT_READ(
             65,
             HttpStatus.BAD_REQUEST,
             "The other instance could not be asked which version it runs, so nothing was imported. "
                     + "The reason is in the instance log"),
 
-    /** An import from an instance too old to say which version it runs. */
+    /** An import from an instance too old to report which version it runs. */
     STATION_IMPORT_SOURCE_TOO_OLD(
             66,
             HttpStatus.BAD_REQUEST,

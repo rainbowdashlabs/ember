@@ -110,7 +110,7 @@ export async function instanceRequest(baseUrl: string): Promise<APIRequestContex
  * cookie and sends the token every change needs on each request. The station travels on the header,
  * because an account can be at a station and nothing guesses which one is meant.
  *
- * Both instances answer on `localhost`, and a cookie does not tell ports apart, so a context only
+ * Both instances answer on `localhost`, and a cookie does not distinguish ports, so a context only
  * ever talks to the one instance it signed in at.
  */
 export async function instanceRequestAs(

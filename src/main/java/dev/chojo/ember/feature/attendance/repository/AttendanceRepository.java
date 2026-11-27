@@ -456,7 +456,7 @@ public class AttendanceRepository {
     }
 
     /**
-     * Whom a sheet was told to expect when it was started.
+     * Whom a sheet was set up to expect when it was started.
      *
      * @param sessionId the session ID
      * @return the user types and groups, the groups in the order they were chosen; naming nobody
@@ -482,7 +482,7 @@ public class AttendanceRepository {
     }
 
     /**
-     * Records whom a sheet was told to expect, replacing what it was told before.
+     * Records whom a sheet was set up to expect, replacing what it was set up with before.
      *
      * @param sessionId the session ID
      * @param audience  the user types and groups, the groups in the order they were chosen
@@ -598,8 +598,8 @@ public class AttendanceRepository {
     /**
      * Finds the session an appointment has on one day.
      *
-     * <p>A repeating appointment is one row that comes round again and again, so its sheets are told
-     * apart by the day they run on. Asked for the appointment alone, this answered with the sheet of
+     * <p>A repeating appointment is one row that comes round again and again, so its sheets are distinguished
+     * by the day they run on. Asked for the appointment alone, this answered with the sheet of
      * its first occurrence, and every later date opened that one instead of its own.
      *
      * @param eventId the event ID

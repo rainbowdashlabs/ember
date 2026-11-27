@@ -16,7 +16,7 @@ import type {PreviewResponse} from '@/api/generated/schema'
  * A document drawn from a template before it is generated, with the data it still lacks.
  *
  * <p>A placeholder without a value prints as a line to fill in by hand on a letter and stays empty on
- * a filled-in PDF, so the document can still be generated; the warning says which data is missing, so
+ * a filled-in PDF, so the document can still be generated; the warning shows which data is missing, so
  * it can be entered in the profile first. Characters no font can print are named too, since the
  * document leaves them out.
  */

@@ -44,7 +44,7 @@ import java.util.List;
  * @param language        the language the documents are written in, the station's where left out
  * @param issuerId        the member of the station who issues the documents, or null for nobody; a
  *                        template of an association names none
- * @param issuerFunction  what the issuer does at the station, or null where nothing is said
+ * @param issuerFunction  what the issuer does at the station, or null where nothing is set
  * @param header          the rows across the top of every page of a letter
  * @param footer          the rows across the bottom of every page of a letter
  * @param body            the rows of a letter, placeholders written as {@code {{key}}} in its texts
@@ -52,7 +52,7 @@ import java.util.List;
  * @param fields          the fields drawn on the pages of a PDF template
  * @param formBindings    what the form fields of a PDF template's PDF are filled with
  * @param signing         how the documents are kept and sent once they are signed; left out, a new
- *                        template starts as {@link TemplateSigning#startingWith} says and a change keeps
+ *                        template starts as {@link TemplateSigning#startingWith} defines and a change keeps
  *                        what the template had
  * @param questions       what the template asks the person generating a document, in the order it asks;
  *                        left out, it asks nothing

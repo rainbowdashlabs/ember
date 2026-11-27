@@ -25,10 +25,10 @@ import {describeFailure} from '@/util/failure'
 /**
  * When this station's gathered notifications are mailed out.
  *
- * <p>A station says the moments rather than a length of time. Seven in the morning means seven in the
+ * <p>A station sets the moments rather than a length of time. Seven in the morning means seven in the
  * morning, where "no more often than every six hours" meant whenever the server was last restarted.
  *
- * <p>Two ways of saying it, because that is how somebody thinks about it: a few times of day, or
+ * <p>Two ways of setting it, because that is how somebody thinks about it: a few times of day, or
  * simply every hour. They are one thing underneath, every hour being the list that holds all
  * twenty-four, so nothing here has to know which was chosen once it is written down.
  */
@@ -63,7 +63,7 @@ const {loading, failure} = useAsyncLoader(async () => {
 /**
  * Whether the station is asking to be written to more often than the installation allows.
  *
- * <p>Said out loud rather than silently ignored: a station that asks for hourly mail on an
+ * <p>Shown rather than silently ignored: a station that asks for hourly mail on an
  * installation whose operator allows one mail every six hours would otherwise believe it had it.
  */
 const askingTooOften = computed(() => {
@@ -74,7 +74,7 @@ const askingTooOften = computed(() => {
 
 /**
  * What the installation does for a station that leaves the times to it, so "as the instance says"
- * names what the instance says: gathered mail at most every so many hours or minutes, or none.
+ * stands for what the instance sets: gathered mail at most every so many hours or minutes, or none.
  */
 const operatorSchedule = computed(() => {
     const minutes = floorMinutes.value

@@ -104,7 +104,7 @@ public final class Transactions {
      * running. Work planned in a transaction that rolls back never runs. Work that throws is logged
      * and does not keep the rest from running, since what it follows has been committed already.
      *
-     * @param work what follows the commit, such as telling others about it
+     * @param work what follows the commit, such as notifying others about it
      */
     public static void afterCommit(Runnable work) {
         List<Runnable> waiting = AFTER_COMMIT.get();

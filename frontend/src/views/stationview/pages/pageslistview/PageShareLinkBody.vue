@@ -19,7 +19,7 @@ import type {Failure} from '@/util/failure'
  * The link a page is reached at, for whoever hands it out.
  *
  * <p>A link opens nothing while the station keeps its public pages switched off, and a new station
- * starts that way. Said here, beside the link, because the only other one to find out is a stranger
+ * starts that way. Shown here, beside the link, because the only other one to find out is a stranger
  * who holds the link and has nobody to ask.
  */
 defineProps<{

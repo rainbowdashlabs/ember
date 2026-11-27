@@ -45,12 +45,12 @@ import java.util.UUID;
  *
  * <p>Every answer here is the partner's: this station asks the station holding the appointment through
  * the federation transport, whether that station sits on this instance or another one, and passes on
- * what it said.
+ * what it answered.
  *
- * <p>The station holding the appointment tells this station when it decides about one of its members, or
+ * <p>The station holding the appointment notifies this station when it decides about one of its members, or
  * when the member moves up from its waiting list. That is believed only for a member this station
- * signed up, taken in only where it is newer than what this station knows, and told to the member's
- * household only where the status changed. Confirming one of its own members tells the household the same
+ * signed up, taken in only where it is newer than what this station knows, and passed on to the member's
+ * household only where the status changed. Confirming one of its own members notifies the household the same
  * way.
  */
 @Singleton
@@ -99,7 +99,7 @@ public class PartnerEventService implements FederationServer {
     }
 
     /**
-     * Takes in a decision a partner told about one of this station's members and tells their household
+     * Takes in a decision a partner sent about one of this station's members and lets their household know
      * where the status changed.
      */
     private void statusChanged(ServingPartner partner, RemoteRegistrationStatus told) {
@@ -140,7 +140,7 @@ public class PartnerEventService implements FederationServer {
      *
      * <p>What comes back is the same shape either way: the appointment, the questions it asks openly,
      * and the places it set aside for us where it set any aside. A partner on this instance is read
-     * here and a remote one answers for itself, and both have to say the same things, or a member
+     * here and a remote one answers for itself, and both have to report the same things, or a member
      * would find the choosing handed to their station on one and not on the other.
      *
      * <p>The places hang off the holder's own record of us, never ours of them, which is what the
@@ -202,11 +202,11 @@ public class PartnerEventService implements FederationServer {
     }
 
     /**
-     * Registers one of our members for a partner's appointment, and reports what they said about it.
+     * Registers one of our members for a partner's appointment, and reports what they answered.
      *
      * <p>The status is theirs to decide and worth carrying back: an appointment that asks for no
-     * confirmation accepts at once, and telling our own member they are waiting for one would be
-     * telling them something the other station never said. A partner that cannot be reached is a
+     * confirmation accepts at once, and showing our own member they are waiting for one would be
+     * showing them something the other station never sent. A partner that cannot be reached is a
      * registration that was not taken.
      *
      * @param answers the member's answers to the questions the partner asks, empty where it asks none
@@ -263,7 +263,7 @@ public class PartnerEventService implements FederationServer {
      *
      * <p>The places are theirs and so is the counting, so this asks rather than decides. A refusal
      * means either that they never handed the decision over or that the places they gave are full,
-     * and both are things to tell the person pressing the button rather than retry.
+     * and both are things to show the person pressing the button rather than retry.
      */
     public void confirmOwnFederatedMember(
             int stationId, UUID partnerStationUid, int eventId, UUID remoteMemberId, LocalDate eventDate) {
@@ -279,7 +279,7 @@ public class PartnerEventService implements FederationServer {
         tellConfirmed(stationId, partnerStationUid, eventId, remoteMemberId, eventDate, confirmed);
     }
 
-    /** Records where a member this station confirmed stands now, and tells their household where it changed. */
+    /** Records where a member this station confirmed stands now, and lets their household know where it changed. */
     private void tellConfirmed(
             int stationId,
             UUID partnerStationUid,

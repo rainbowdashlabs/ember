@@ -61,7 +61,7 @@ public class BeaconReportService {
     private static final int QUEUE_CAPACITY = 200;
     private static final long BACKOFF_SECONDS = 30;
 
-    /** How many wordings of one fault travel. Enough to tell them apart, not a log shipped whole. */
+    /** How many wordings of one fault travel. Enough to distinguish them, not a log shipped whole. */
     private static final int MAX_DISTINCT_MESSAGES = 10;
 
     private static final int MAX_MESSAGE_CHARS = 4000;
@@ -155,7 +155,7 @@ public class BeaconReportService {
      * {@link #CONTEXT_DELAY}, so the lines logged just after the fault have reached the stored log. Both
      * switches are asked again when it goes, so turning either off in the meantime is honoured.
      *
-     * @param problems the problem log's writer, which says when a problem is new
+     * @param problems the problem log's writer, which decides when a problem is new
      * @param version  this instance's version
      */
     public void startForwarding(ProblemLogFlusher problems, String version) {
@@ -306,7 +306,7 @@ public class BeaconReportService {
      * What the fault was logged with, which is most of what names it.
      *
      * <p>A warning without an exception carries no class and no frames, so without this a beacon is
-     * told a logger name and a count: several different failures logged by one class arrive as one
+     * sent a logger name and a count: several different failures logged by one class arrive as one
      * row nobody can act on. The distinct wordings the group gathered are carried too, capped,
      * because the same fingerprint often covers "failed: HTTP 409" and "failed: HTTP 500" and the
      * difference between them is the whole of the diagnosis.
@@ -498,7 +498,7 @@ public class BeaconReportService {
     }
 
     /**
-     * Hands one payload to the beacon and says so where it was turned away.
+     * Hands one payload to the beacon and reports it where it was turned away.
      *
      * <p>A refusal used to be a {@code false} nobody read: a closed port, a wrong address and a
      * rejected signature all looked alike and none of them reached a log. An operator who had
@@ -585,7 +585,7 @@ public class BeaconReportService {
      * The calls the screen made, with every address stripped of its query the way the page is.
      *
      * <p>They travel as the screen recorded them, which is JSON. A query carries what somebody
-     * searched for and sometimes who they looked at, and none of that says which call went wrong,
+     * searched for and sometimes who they looked at, and none of that shows which call went wrong,
      * so the same rule applies to each of them as to the page the report was written on.
      */
     private static @Nullable String requestsWithoutQueries(@Nullable String recentRequests) {

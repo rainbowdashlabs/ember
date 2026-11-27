@@ -188,7 +188,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * That this member's household, the member and whoever looks after them, was told a date went
+     * That this member's household, the member and whoever looks after them, was notified that a date went
      * away, and which next date it was offered.
      */
     private void verifyToldDropped(StationMember member, LocalDate date, LocalDate nextDate) {
@@ -205,7 +205,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
 
     /**
      * A weekly Tuesday moved to Wednesdays gives back every Tuesday place still ahead, pending or
-     * confirmed, and tells the member and whoever looks after them, naming the Wednesday that follows.
+     * confirmed, and notifies the member and whoever looks after them, naming the Wednesday that follows.
      * A Tuesday somebody had already said no to stays a no.
      */
     @Test
@@ -239,8 +239,8 @@ class EventMoveServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A series told to end sooner withdraws the places after its new last day and keeps the ones up
-     * to it. Nothing follows the dates it gave up, and the message says so.
+     * A series set to end sooner withdraws the places after its new last day and keeps the ones up
+     * to it. Nothing follows the dates it gave up, and the message shows that.
      */
     @Test
     void aSeriesEndingSoonerWithdrawsTheDatesAfterItsNewEnd() {
@@ -257,7 +257,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
 
     /**
      * A one-off appointment moved to another day is the same occasion: the place goes with it,
-     * confirmed as it was, and so does what the question asked of that day. Telling the new time is
+     * confirmed as it was, and so does what the question asked of that day. Notifying of the new time is
      * left to the save, once every part of it landed.
      */
     @Test
@@ -294,7 +294,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
 
     /**
      * A date the series gave away to an appointment of its own is not a date it left: whatever is
-     * still found on it stays, and nobody is told the date is gone.
+     * still found on it stays, and nobody is notified that the date is gone.
      */
     @Test
     void aDetachedDateIsLeftAloneWhenTheSeriesChanges() {
@@ -322,7 +322,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
         assertFalse(eventDateCancellationRepo.isCancelled(event.id(), day));
     }
 
-    /** A date the series no longer falls on takes what said it was off with it. */
+    /** A date the series no longer falls on takes what marked it as off with it. */
     @Test
     void theCancellationOfADroppedDateIsForgotten() {
         weeklyOn(DayOfWeek.TUESDAY);
@@ -376,7 +376,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
                 .containsKey(nextTuesday()));
     }
 
-    /** A new name moves no date, so nothing filed against one changes and nobody is told. */
+    /** A new name moves no date, so nothing filed against one changes and nobody is notified. */
     @Test
     void aRenameDoesNothing() {
         weeklyOn(DayOfWeek.TUESDAY);

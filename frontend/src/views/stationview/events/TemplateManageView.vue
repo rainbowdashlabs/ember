@@ -60,7 +60,7 @@ async function createTemplate() {
  * Copies a template, questions and all, and opens the copy.
  *
  * <p>Most templates a station writes are a small change to one it already has, and writing the second
- * one from nothing means typing every question again. What is copied is everything the template says
+ * one from nothing means typing every question again. What is copied is everything the template holds
  * about an event, its files, field starting values and partner share included; the copy is opened
  * straight away because the first thing anybody does with it is change the part that differs.
  *

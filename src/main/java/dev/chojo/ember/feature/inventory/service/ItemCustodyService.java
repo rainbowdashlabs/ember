@@ -113,7 +113,7 @@ public class ItemCustodyService {
      * <p>Custody used to be written without reading it first. A loss was undone by the next write
      * nobody meant as a finding, a piece promised to one member was handed to another, and the further
      * pieces of a dispatch were invisible to every check because the movement names only one. This is
-     * the one place that says whether a piece is free, so every writer asks the same question.
+     * the one place that decides whether a piece is free, so every writer asks the same question.
      *
      * <p>A promised piece is refused with its own words, since the remedy differs: it is handed out on
      * the movement that promised it. A piece that does not exist is left to the caller, which knows
@@ -183,7 +183,7 @@ public class ItemCustodyService {
      * Refuses to write anything but the loss itself onto a piece reported missing.
      *
      * <p>The row keeps a loss until it is found again, and every other write leaves such a row as it was.
-     * Refusing here says so, where the write would otherwise report success and change nothing.
+     * Refusing here shows it, where the write would otherwise report success and change nothing.
      *
      * @param item the piece
      * @throws RefusalResponse when it is reported missing
@@ -251,7 +251,7 @@ public class ItemCustodyService {
 
     /**
      * Takes an item back for a caller that may find more on it than an ordinary write, such as a movement
-     * putting its own piece back as it closes. A take-back never ends a loss, whatever the allowance says:
+     * putting its own piece back as it closes. A take-back never ends a loss, whatever the allowance sets:
      * a piece reported missing is refused here and ends its loss only by being found.
      *
      * @param itemId    the item ID
@@ -295,7 +295,7 @@ public class ItemCustodyService {
     }
 
     /**
-     * Places an item in a container, or takes it out of one. A container says where in the store an
+     * Places an item in a container, or takes it out of one. A container shows where in the store an
      * item is, not who has it, so the custody only moves when the item was with a member: somebody
      * putting gear on a shelf is handing it back at the same time.
      *
@@ -335,20 +335,20 @@ public class ItemCustodyService {
      * moment it is reported would hide exactly the fact worth seeing. It does leave the free stock,
      * because nobody can hand out what nobody can find.
      *
-     * <p>Nobody above the station is told. Losing track of a jacket is the station's own business
+     * <p>Nobody above the station is notified. Losing track of a jacket is the station's own business
      * until it wants something done about it, and wanting something done is a separate act: the
      * station raises a report, and that is what reaches the owner.
      *
      * <p>Gear borrowed from a partner is refused. The borrower's row is a copy that disappears when
      * the loan ends, so a loss written on it would be gone by the time it mattered, and the owner's
-     * row would go on saying the partner has the piece. The fact belongs to the owner, and it travels
+     * row would go on showing the partner has the piece. The fact belongs to the owner, and it travels
      * on the loan the gear came in on, which is the one channel both stations already read.
      *
      * @param itemId the item ID
      * @param note   what whoever reported it wrote, or {@code null} when they wrote nothing
      * @param noteBy who wrote that note, which is the guardian when one acted for a member
      * <p>A piece an open movement carries or a loan holds is refused: the movement or the loan is where
-     * its loss is told, and a loss written past them leaves both walking a piece nobody has.
+     * its loss is reported, and a loss written past them leaves both walking a piece nobody has.
      *
      * @return the updated item, or empty if the item was not found
      * @throws RefusalResponse if the item is borrowed from a federation partner, carried by an open
@@ -478,7 +478,7 @@ public class ItemCustodyService {
     /**
      * Puts an item into the custody a movement step names.
      *
-     * <p>The step says what custody its subject item is in once it is acknowledged, and this is
+     * <p>The step defines what custody its subject item is in once it is acknowledged, and this is
      * where that sentence becomes a row. Which custody is legal for a step is settled when the step
      * is written, so anything arriving here is a custody a flow may ask for.
      *

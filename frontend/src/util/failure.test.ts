@@ -36,7 +36,7 @@ describe('a refusal said in the reader\'s language', () => {
         expect(failure.code).toBe('F-012')
     })
 
-    /** The server's own sentence still says what happened, which beats a German sentence that does not. */
+    /** The server's own sentence still shows what happened, which beats a German sentence that does not. */
     it('keeps the server\'s sentence for a refusal nobody has translated yet', () => {
         const failure = describeFailure(
             rejected(409, {code: 'Q-001', message: 'The paper is already in'}),
@@ -59,7 +59,7 @@ describe('a refusal said in the reader\'s language', () => {
      * A dot is how vue-i18n walks into a nested message, so a code carrying a hyphen is only safe
      * if the hyphen stays an ordinary character inside one segment. This asks the real translator
      * rather than assuming, because getting it wrong shows every reader an English sentence with a
-     * German page around it and nothing anywhere says why.
+     * German page around it and nothing anywhere shows why.
      */
     it('reaches a hyphenated code through the real translator', () => {
         const i18n = createI18n({
@@ -92,7 +92,7 @@ function german() {
 }
 
 describe('the value a refusal was about', () => {
-    /** CU-145, the association's pool: the number that says what would still fit is the whole point. */
+    /** CU-145, the association's pool: the number that shows what would still fit is the whole point. */
     it('names what is left of the pool after our sentence', () => {
         const failure = describeFailure(rejected(400, {
             code: 'CU-145',
@@ -212,7 +212,7 @@ describe('describeFailure', () => {
     })
 
     /**
-     * The distinction the whole thing exists for. Telling somebody to file a bug because their station
+     * The distinction the whole thing exists for. Advising somebody to file a bug because their station
      * never gave them a permission sends them to strangers who cannot help.
      */
     it('does not offer a report for what the reader or their station can put right', () => {
@@ -248,7 +248,7 @@ describe('describeFailure', () => {
         expect(describeFailure(rejected(400, {message: 'Der Ordner fehlt'}), t).technical).toBeUndefined()
     })
 
-    /** Every kind has to say what to do about it, or the reader is back to guessing. */
+    /** Every kind has to show what to do about it, or the reader is back to guessing. */
     it('carries a message and guidance for every kind', () => {
         for (const [kind, thrown] of Object.entries(oneOfEach())) {
             const described = describeFailure(thrown, t)
@@ -258,7 +258,7 @@ describe('describeFailure', () => {
         }
     })
 
-    /** Somebody with no signal must not be told that Ember is broken. */
+    /** Somebody with no signal must not be shown that Ember is broken. */
     it('knows a dropped connection from a broken server', () => {
         expect(describeFailure({code: 'ERR_NETWORK', message: 'Network Error'}, t).kind)
             .toBe(FailureKind.OFFLINE)

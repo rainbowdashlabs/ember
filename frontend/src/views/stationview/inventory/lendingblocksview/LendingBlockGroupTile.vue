@@ -16,7 +16,7 @@ import type {BlockInventory, GroupedBlock} from './types'
 /**
  * One block on the list: its period, whether it stops all lending or which inventories and pieces
  * it holds back, and its reason. Lifting it is the screen's business, so the delete button only
- * says it was pressed.
+ * reports that it was pressed.
  */
 defineProps<{
   group: GroupedBlock

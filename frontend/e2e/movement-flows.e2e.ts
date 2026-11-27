@@ -188,7 +188,7 @@ test.describe('Movement flows', () => {
      * ITM-25 - Which flow applies follows the item's owner.
      *
      * Two pieces in one inventory, owned differently, walk different chains. That is the whole point of
-     * the rework: the item says who owns it, and the inventory no longer stands in for that.
+     * the rework: the item shows who owns it, and the inventory no longer stands in for that.
      */
     test('two owners in one inventory walk different chains', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -220,7 +220,7 @@ test.describe('Movement flows', () => {
     /**
      * ITM-53 - A chain that skips the member's receipt confirms it for them.
      *
-     * The switch on the chain's card is what says so, and only that chain stops waiting. The movement then
+     * The switch on the chain's card is what shows that, and only that chain stops waiting. The movement then
      * ends as soon as the station has handed the piece over, and its history names the member's step as
      * confirmed automatically rather than as something the member pressed.
      */

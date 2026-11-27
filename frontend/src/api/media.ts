@@ -142,7 +142,7 @@ export async function unassignMediaTag(fileId: number, tagId: number): Promise<v
  * the public route asks nothing beyond knowing the hash, which is right for a page anybody may read
  * and wrong for a sheet an appointment keeps back from the room.
  *
- * <p>Refused where the file has no picture, which is what tells a tile to draw its kind instead.
+ * <p>Refused where the file has no picture, which is what makes a tile draw its kind instead.
  */
 export function mediaPictureUrl(contentHash: string, width?: number): string {
     const base = `/media/picture/${contentHash}`

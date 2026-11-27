@@ -90,7 +90,7 @@ class HtmlSanitizerTest {
     /**
      * Every picture the media browser inserts is addressed on one of the library's two routes, so a
      * body that mentions one has to survive being rendered. Left out, the sanitiser drops the image
-     * silently and the author is never told the picture they inserted is gone.
+     * silently and the author is never notified that the picture they inserted is gone.
      */
     @Test
     void mediaLibraryPathsAreAllowed() {

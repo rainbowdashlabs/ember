@@ -18,7 +18,7 @@ import {KbAccessLevel, type FolderTreeEntry} from '@/api/generated/schema'
  * The tree is drawn as one indented list rather than as folders that open: a reader looking for
  * somewhere to put something wants to see where the places are, and a list that has to be unfolded
  * hides exactly that. A search box narrows it once the tree grows past what fits on a screen, and a
- * match keeps the folders above it so the row still says where it is.
+ * match keeps the folders above it so the row still shows where it is.
  *
  * Folders the reader may not write in are shown and cannot be picked. Leaving them out would make
  * the tree lie about its own shape, and the server refuses them anyway.

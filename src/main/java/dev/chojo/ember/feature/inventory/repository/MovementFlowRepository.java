@@ -26,7 +26,7 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * Repository for movement flows, their steps and the bindings that say which flow applies.
+ * Repository for movement flows, their steps and the bindings that define which flow applies.
  */
 @Singleton
 public class MovementFlowRepository {
@@ -71,7 +71,7 @@ public class MovementFlowRepository {
     }
 
     /**
-     * Says whether the member's confirmation of a received piece confirms itself on this chain.
+     * Returns whether the member's confirmation of a received piece confirms itself on this chain.
      *
      * @param id   the chain
      * @param skip whether the receipt is confirmed for the member as soon as a movement reaches it
@@ -349,7 +349,7 @@ public class MovementFlowRepository {
      *
      * <p>What the seeding uses. Two requests arriving together both find a combination unbound and
      * both write it, and the second one used to end the request with an error the reader could do
-     * nothing about. The one that gets there second is told so here instead.
+     * nothing about. The one that gets there second sees that here instead.
      *
      * @return whether this call is the one that bound it
      */
@@ -411,7 +411,7 @@ public class MovementFlowRepository {
     }
 
     /**
-     * Whether a station has any flow at all, which is how the preset seeding tells a station that
+     * Whether a station has any flow at all, which is how the preset seeding distinguishes a station that
      * has never been set up from one that has.
      */
     public boolean hasAnyFlow(int stationId) {

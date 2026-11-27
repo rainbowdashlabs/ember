@@ -11,7 +11,7 @@ import type {DocumentTemplateSummary} from '@/api/generated/schema'
 import TemplateBadges from './TemplateBadges.vue'
 
 /**
- * The first page of a template at full width, for telling apart templates that look alike on their
+ * The first page of a template at full width, for distinguishing templates that look alike on their
  * tiles before choosing one.
  */
 const open = defineModel<boolean>({required: true})

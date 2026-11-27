@@ -162,7 +162,7 @@ public final class FeedDetails {
         rows.put(label, value);
     }
 
-    /** Adds a row where the value says something. */
+    /** Adds a row where the value holds something. */
     public void putIfPresent(String label, @Nullable String value) {
         if (notBlank(value)) rows.put(label, value);
     }

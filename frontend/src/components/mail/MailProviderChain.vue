@@ -38,9 +38,9 @@ const props = defineProps<{
    * empty list over a full one, which is not something anybody comes to this page to do.
    */
   ready?: boolean
-  /** Which entry is being tested right now, so only that row says so. */
+  /** Which entry is being tested right now, so only that row shows that. */
   testingPosition?: number | null
-  /** What the last test said, per entry, keyed by position. */
+  /** What the last test reported, per entry, keyed by position. */
   testResults?: Record<number, {ok: boolean; message: string}>
 }>()
 

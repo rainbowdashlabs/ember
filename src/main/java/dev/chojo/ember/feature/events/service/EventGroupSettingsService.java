@@ -34,7 +34,7 @@ import java.util.Optional;
  * <p>A part without a setting of its own follows the event group's, read live wherever the setting
  * matters (the attendance sheet, the reminder job, lists and the calendar), so changing the event group
  * reaches every part that has none of its own. A part's own setting replaces the event group's; there is
- * no way for a part to say "explicitly none", since removing its own setting is how it falls back.
+ * no way for a part to express "explicitly none", since removing its own setting is how it falls back.
  *
  * <p>The field pre-fills belong to the attendance template they fill in: a part with a template of its
  * own uses its own pre-fills, a part following the event group's template the event group's.

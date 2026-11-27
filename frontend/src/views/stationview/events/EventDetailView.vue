@@ -163,14 +163,14 @@ const pageTitle = computed(() => event.value?.name || t('pages.event-detail.titl
 
 /**
  * The day the page is bound to, under the name. A repeating appointment is a different page on
- * every date it falls on, all of them called the same thing, so the date is what tells them apart.
+ * every date it falls on, all of them called the same thing, so the date is what distinguishes them.
  */
 const pageSubtitle = computed(() =>
     formatWeekdayDate(effectiveDate.value) || t('pages.event-detail.subtitle'))
 
 /**
  * Whom the reader may sign up here, themselves and whoever they answer for, narrowed to those the
- * server says the appointment is open to. It is asked for every reader, not only for guardians: a
+ * server reports the appointment is open to. It is asked for every reader, not only for guardians: a
  * member the appointment is not open to must not be offered a sign-up the server refuses.
  */
 const registrableMembers = computed((): AnswerablePerson[] => answerableMembers(

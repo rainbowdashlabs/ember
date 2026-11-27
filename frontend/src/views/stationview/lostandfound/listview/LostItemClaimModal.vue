@@ -20,7 +20,7 @@ import type {ManagedMember} from '@/api/generated/schema'
  * Claiming an item, for oneself or for somebody in one's care.
  *
  * A parent collecting a glove for their child is the ordinary case in a youth station, and the
- * picker is what makes the entry say whose it is: without it every claim reads as the parent's own.
+ * picker is what makes the entry show whose it is: without it every claim reads as the parent's own.
  */
 const visible = defineModel<boolean>({required: true})
 

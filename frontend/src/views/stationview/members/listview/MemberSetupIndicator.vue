@@ -45,7 +45,7 @@ const pendingTitle = computed(() => {
   return `${base} ${t(when, {date})}`
 })
 
-/** What pressing the paper plane will do, said in full, because who receives it is not obvious. */
+/** What pressing the paper plane will do, spelled out in full, because who receives it is not obvious. */
 const resendTitle = computed(() => {
   const who = props.member.mailReaches === 'GUARDIANS'
       ? t('membersList.setupMailToGuardians')
@@ -53,7 +53,7 @@ const resendTitle = computed(() => {
   return `${pendingTitle.value} ${who}`
 })
 
-/** Why there is no button here, which the hourglass alone never said. */
+/** Why there is no button here, which the hourglass alone never showed. */
 const waitingTitle = computed(() => `${pendingTitle.value} ${t('membersList.setupMailToNobody')}`)
 </script>
 

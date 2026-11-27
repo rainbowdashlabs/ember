@@ -41,7 +41,7 @@ const props = defineProps<{
   ownerClusterId?: string | null
   /**
    * Which kind of inventory the pieces have to sit in: the station's own gear, the association's, or
-   * a shelf that holds both. A mixed shelf answers for either side, because it is what its pieces say
+   * a shelf that holds both. A mixed shelf answers for either side, because it is what its pieces show
    * it is.
    */
   inventoryType?: InventoryType | null

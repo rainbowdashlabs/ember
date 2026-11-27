@@ -11,6 +11,6 @@ import org.jspecify.annotations.Nullable;
  * The outcome of trying a mail provider.
  *
  * @param success whether the provider took the connection or the message
- * @param error   what it said when it did not, or {@code null}
+ * @param error   what it reported when it did not, or {@code null}
  */
 public record MailTestResponse(boolean success, @Nullable String error) {}

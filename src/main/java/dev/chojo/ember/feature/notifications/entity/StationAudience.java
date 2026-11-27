@@ -18,8 +18,8 @@ import java.util.Set;
  * Station members a notification goes to, as parts the database unites when it writes the rows.
  *
  * <p>Built with the factories and combined with {@link #and} and {@link #except}. Whoever the parts
- * reach is told once, however many parts reach them; members who have left the station are never
- * told, and a ward who has left brings in no guardians.
+ * reach is notified once, however many parts reach them; members who have left the station are never
+ * notified, and a ward who has left brings in no guardians.
  *
  * @param memberIds       members named one by one
  * @param wholeStationId  the station whose every member is meant, or {@code null}

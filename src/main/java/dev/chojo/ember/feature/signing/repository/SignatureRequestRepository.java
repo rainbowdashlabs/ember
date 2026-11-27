@@ -130,7 +130,7 @@ public class SignatureRequestRepository {
 
     /**
      * Writes a request with its fields for a document no template here generated: one a partner station
-     * handed out for its appointment, which says itself how long it is kept and whether a signer's copy
+     * handed out for its appointment, which itself defines how long it is kept and whether a signer's copy
      * carries it.
      *
      * @param request what the request is about
@@ -749,7 +749,7 @@ public class SignatureRequestRepository {
 
     /**
      * Whether a field at the station asks a member, whatever state it and its request are in, by the same
-     * rule as {@link #pendingFor}: so a member can be told that a field of theirs no longer waits, while
+     * rule as {@link #pendingFor}: so a member can see that a field of theirs no longer waits, while
      * anybody else learns nothing about it.
      *
      * @param stationId the station

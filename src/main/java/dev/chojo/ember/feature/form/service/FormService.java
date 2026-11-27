@@ -255,15 +255,15 @@ public class FormService {
     }
 
     /**
-     * Sets what a form tells the reader once it is sent: its own message, and a link to go on to.
+     * Sets what a form shows the reader once it is sent: its own message, and a link to go on to.
      *
      * <p>Blank parts are stored as none, which keeps the general thanks. The link is shown to anybody
      * who sends a public form, so only a web address or an address on this site is taken.
      *
      * @param id      the form
-     * @param message what the reader is told
+     * @param message what the reader is shown
      * @param link    where the reader may go on to
-     * @param label   what the link says
+     * @param label   what the link shows
      * @throws dev.chojo.ember.api.refusal.RefusalResponse where the link is neither
      */
     public void setCompletion(int id, @Nullable String message, @Nullable String link, @Nullable String label) {
@@ -424,7 +424,7 @@ public class FormService {
     /**
      * Opens a form for answers.
      *
-     * <p>Only an internal form tells the station about it. A contact form and a public poll are
+     * <p>Only an internal form notifies the station about it. A contact form and a public poll are
      * answered by people who are not members, and the notification pointed every member at the
      * internal page for filling a form in, which refuses them: wrong audience, wrong destination.
      *

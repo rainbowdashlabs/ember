@@ -13,7 +13,7 @@ import type {useEventFederationShare} from '../eventeditview/useEventFederationS
 /**
  * Sharing an event group with partner stations: every part goes with it, parts added later included.
  * Each partner it is shared with can be left to decide its own sign-ups, within places counted for the
- * whole event group. It is a folded section of the event group's form that says with whom it is shared.
+ * whole event group. It is a folded section of the event group's form that shows with whom it is shared.
  */
 defineProps<{
   federationShare: ReturnType<typeof useEventFederationShare>

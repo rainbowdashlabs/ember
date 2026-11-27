@@ -6,13 +6,13 @@
 package dev.chojo.ember.feature.signing.entity;
 
 /**
- * What this installation's current revocation lists say about a signer's certificate.
+ * What this installation's current revocation lists show about a signer's certificate.
  */
 public enum RevocationStatus {
     /** One of this installation's authorities issued the certificate and its list does not name it. */
     GOOD,
     /** One of this installation's authorities issued the certificate and its list names it as revoked. */
     REVOKED,
-    /** No authority of this installation issued the certificate, so its lists say nothing about it. */
+    /** No authority of this installation issued the certificate, so its lists show nothing about it. */
     UNKNOWN
 }

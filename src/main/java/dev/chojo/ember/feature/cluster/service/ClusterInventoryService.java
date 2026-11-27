@@ -84,7 +84,7 @@ public class ClusterInventoryService {
      * question a person actually has is where a particular jacket got to.
      *
      * @param clusterId the cluster
-     * @return its items, each saying where it is
+     * @return its items, each showing where it is
      */
     public List<ClusterItem> findItems(int clusterId) {
         var owned = inventoryRepository.findItemsOwnedByCluster(clusterId);
@@ -254,7 +254,7 @@ public class ClusterInventoryService {
      * <p>One chain per purpose, refused rather than accepted and ignored. When gear moves, the oldest
      * unarchived chain for that purpose wins and the rest are never reached, so an association that made
      * a second one because the first was wrong would have kept walking the first forever without
-     * anything saying so. Archive the one in the way, then make the new one.
+     * anything showing that. Archive the one in the way, then make the new one.
      *
      * @param clusterId the cluster
      * @param name      what it is called
@@ -298,7 +298,7 @@ public class ClusterInventoryService {
      *
      * @param clusterId    the cluster
      * @param flowId       the chain
-     * @param label        what the button says
+     * @param label        what the button shows
      * @param actor        who presses it
      * @param subject      what it is about
      * @param custodyAfter where the gear is once it is pressed
@@ -370,7 +370,7 @@ public class ClusterInventoryService {
     }
 
     /**
-     * Says whether the cluster keeps its gear here at all.
+     * Returns whether the cluster keeps its gear here at all.
      *
      * <p>Switching it off leaves everything already recorded alone. What changes is what happens next: a
      * movement started afterwards falls through to the station's own chain, which carries no owner steps,
@@ -467,7 +467,7 @@ public class ClusterInventoryService {
      */
     /**
      * @param wantedSize what the station asked for, where it asked for a size. An association that
-     *                   cannot see this is being asked to send something without being told what
+     *                   cannot see this is being asked to send something without being shown what
      * @param reason     why they asked, in their own words
      */
     public record QueueEntry(

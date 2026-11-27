@@ -14,7 +14,7 @@ import {InventoryKinds, inventoryKindOf, isStock} from '@/api/inventory'
  * The choice between the two kinds of inventory, named on both sides.
  *
  * <p>It was a tick box called "one thing in many copies", which left the other kind with no name at
- * all and nothing to recognise it by. Both kinds are now written out with the example that tells
+ * all and nothing to recognise it by. Both kinds are now written out with the example that sets
  * them apart, and the hint below follows whichever is chosen.
  *
  * <p>The wire carries a boolean and this field speaks in names, which is the one translation

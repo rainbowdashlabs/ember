@@ -40,7 +40,7 @@ import java.util.UUID;
  * are withdrawn, the request turns revoked, and the withdrawal is recorded with who, when, from where and
  * why. What was signed stays: the versions of the document that carry the signatures stay filed and valid,
  * and the withdrawal is sealed into a version of its own after them ({@link SigningStateSealer}), whose record
- * page says the agreement was withdrawn. A version whose sealing fails is sealed by
+ * page shows the agreement was withdrawn. A version whose sealing fails is sealed by
  * {@link SigningStateSweeper}. An agreement only confirmed on paper has no sealed version to carry its
  * withdrawal, which then stands recorded with the request alone.
  *
@@ -49,7 +49,7 @@ import java.util.UUID;
  * registrations, the member's standing registration for the date is flagged and the agreement is asked for
  * anew on a fresh copy, so it is among the open signatures again; on one that takes none, the agreement is
  * offered again on the appointment's page. Whoever runs the appointment, or whoever asked for the signatures,
- * is told ({@link SignatureNotices}). An agreement signed here for a partner station's appointment reaches its
+ * is notified ({@link SignatureNotices}). An agreement signed here for a partner station's appointment reaches its
  * organiser with the sealed version that records the withdrawal, which travels like every sealed state
  * ({@link PartnerDeliveries}), and is asked for anew here on a date still ahead while the member stays registered
  * there ({@link PartnerSignatures#askAnew}).

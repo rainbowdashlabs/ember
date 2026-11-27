@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * What a letter template says and how it looks: a header and a footer drawn on every page, the body,
+ * What a letter template contains and how it looks: a header and a footer drawn on every page, the body,
  * and the page they are set on. All three are rows of blocks, the same rows pages are built from: a row
  * holds up to three columns, a column a text, a picture, a line, a gap, or blocks stacked in it, and the
  * body also signature lines.

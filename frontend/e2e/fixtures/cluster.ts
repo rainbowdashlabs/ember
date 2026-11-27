@@ -22,8 +22,8 @@ import {browserContextWith, demoSignIn, sessionHeaders} from './session'
  * What every cluster a story builds is called first.
  *
  * Stories run four at a time and several of them make a cluster, so "the cluster this account may act
- * for" stops meaning anything unless the made-up ones can be told from the seeded one by looking. This
- * is how they are told apart, and it is a prefix rather than a suffix so it reads at a glance.
+ * for" stops meaning anything unless the made-up ones can be distinguished from the seeded one by looking. This
+ * is how they are distinguished, and it is a prefix rather than a suffix so it reads at a glance.
  */
 export const MADE_BY_A_STORY = 'E2E-'
 

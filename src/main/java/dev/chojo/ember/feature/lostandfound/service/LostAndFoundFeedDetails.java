@@ -14,7 +14,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * What a feed entry says about a found item: its description, when it was found and, once claimed,
+ * What a feed entry shows about a found item: its description, when it was found and, once claimed,
  * when that was, together with its picture.
  */
 @Singleton

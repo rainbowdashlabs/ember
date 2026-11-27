@@ -49,7 +49,7 @@ const closedSince = computed(() => closedSinceOf(props.form))
 
 /**
  * A form answered from outside that has been set to answer at its link and nowhere else. Worth
- * saying on the tile, because it is the difference between a form anybody can find and one only the
+ * marking on the tile, because it is the difference between a form anybody can find and one only the
  * people who were sent it can.
  */
 const sentByLinkAlone = computed(

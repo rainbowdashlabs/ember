@@ -23,7 +23,7 @@ import {useSession} from '@/composables/useSession'
  * What is on the move, on the dashboard: the piece, the step it stands on, and whose turn it is.
  *
  * <p>A guardian sees their charges' as well as their own, which is why a row that is not the reader's
- * says whose it is.
+ * shows whose it is.
  */
 const {t} = useI18n()
 const {isGuardian, sessionInfo} = useSession()

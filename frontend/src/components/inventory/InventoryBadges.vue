@@ -11,7 +11,7 @@ import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import {InventoryType} from '@/api/generated/schema'
 
 /**
- * What an inventory is, said in labels rather than in a sentence, so a list of a dozen of them can
+ * What an inventory is, shown in labels rather than in a sentence, so a list of a dozen of them can
  * be read without opening any.
  *
  * <p>Three things stand here: who owns it, whether it uses sizes, and which of the two kinds it is.
@@ -19,7 +19,7 @@ import {InventoryType} from '@/api/generated/schema'
  * A screen that knows something further about the inventory puts it in the slot, which keeps the
  * row of labels one row rather than two that wrap differently.
  *
- * <p>A collection also says how many kinds are defined in it, which is the number that tells a box
+ * <p>A collection also shows how many kinds are defined in it, which is the number that distinguishes a box
  * somebody has sorted from a box nobody has. A uniform inventory has no such number: there is only
  * ever one thing in it, and writing a one would be noise.
  */

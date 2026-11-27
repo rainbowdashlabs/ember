@@ -174,7 +174,7 @@ public class ApplicationLogService {
      * @param databaseLevel   the lowest severity being stored
      * @param retentionDays   how long lines are kept
      * @param dropped         how many lines were dropped since start because the queue was full,
-     *                        which is what says the log is incomplete rather than quiet
+     *                        which is what shows the log is incomplete rather than quiet
      */
     public record ApplicationLogPage(
             List<LogEntry> entries,

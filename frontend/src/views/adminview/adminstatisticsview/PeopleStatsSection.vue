@@ -17,7 +17,7 @@ import {categoryColor, seriesChart, useChartPaint} from './instanceCharts'
 /**
  * The people of the instance by member type: one figure per type, the people in all and the
  * memberships, and the types over time from the daily snapshot. One person can hold several types
- * in different stations, which the hint says, because the types then add up to more than the total.
+ * in different stations, which the hint shows, because the types then add up to more than the total.
  */
 const props = defineProps<{
   people: PeopleFigures

@@ -16,7 +16,7 @@ import jakarta.inject.Singleton;
  * count have a failed mail to show and to acknowledge.
  *
  * <p>A demo instance cannot fail a mail of its own: without a provider the instance's mail waits for one
- * instead of failing. The recipient is on a domain that cannot exist and the subject says what the mail
+ * instead of failing. The recipient is on a domain that cannot exist and the subject shows what the mail
  * is, so nobody takes it for real post. It is queued and given up on in one transaction, so no sender
  * ever sees it waiting.
  */

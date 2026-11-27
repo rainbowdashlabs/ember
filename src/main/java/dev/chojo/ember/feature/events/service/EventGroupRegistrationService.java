@@ -444,7 +444,7 @@ public class EventGroupRegistrationService {
         return queueLists.entries(RegistrationQueueRepository.ofEventGroup(eventGroupId));
     }
 
-    /** Tells a member that somebody else put them on the event group's waiting list, with their place in line. */
+    /** Notifies a member that somebody else put them on the event group's waiting list, with their place in line. */
     private void announceQueued(EventGroup eventGroup, int memberId, @Nullable Integer rank) {
         eventBus.publish(new EventGroupRegistrationStatusChanged(
                 eventGroup.stationId(),
@@ -458,7 +458,7 @@ public class EventGroupRegistrationService {
                 false));
     }
 
-    /** Tells the member and whoever runs events what became of the sign-up, once for the event group. */
+    /** Notifies the member and whoever runs events what became of the sign-up, once for the event group. */
     private void announce(EventGroup eventGroup, int memberId, RegistrationStatus status) {
         eventBus.publish(new EventGroupRegistrationStatusChanged(
                 eventGroup.stationId(),
@@ -574,7 +574,7 @@ public class EventGroupRegistrationService {
     }
 
     /**
-     * The parts of an event group in date order, each saying whether it is called off or already past.
+     * The parts of an event group in date order, each showing whether it is called off or already past.
      *
      * @param eventGroupId the event group
      * @return its parts

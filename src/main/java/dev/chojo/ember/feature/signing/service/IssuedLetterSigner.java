@@ -38,7 +38,7 @@ import java.util.Optional;
  *
  * <p>Where any of it does not hold, the letter is filed as it was drawn: the issuer field stays empty and
  * the letter is not sealed. A letter is sealed only together with the issuer's signature, never on its own,
- * since a seal without the signature it is meant to carry would say the station issued a letter its issuer
+ * since a seal without the signature it is meant to carry would show the station issued a letter its issuer
  * never signed; the empty field can still be signed by hand. A failure while signing (a station key that does
  * not open, a document that cannot be drawn into) is logged and the letter is filed unsigned the same way,
  * so generating never fails over the signature.

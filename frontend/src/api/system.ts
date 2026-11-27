@@ -16,7 +16,7 @@ export async function getUpdateStatus(): Promise<UpdateStatus> {
  * What every version brought, newest first, as the instance itself holds it.
  *
  * <p>Read from the instance rather than from GitHub, so an installation with no way out can still
- * say what it changed and nobody has to leave an address elsewhere to find out.
+ * show what it changed and nobody has to leave an address elsewhere to find out.
  */
 export async function getChangelog(lang = 'de'): Promise<ChangelogEntry[]> {
     const res = await client.get<ChangelogEntry[]>('/public/changelog', {params: {lang}})

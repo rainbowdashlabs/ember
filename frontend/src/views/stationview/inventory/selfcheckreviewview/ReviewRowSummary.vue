@@ -16,7 +16,7 @@ import type {SelfCheckReviewRow} from '@/api/generated/schema'
 /**
  * What the member said about one thing, and what settling it would do.
  *
- * <p>Whether the gear comes in sizes is told rather than read off the answer, because a size nobody
+ * <p>Whether the gear comes in sizes is passed in rather than read off the answer, because a size nobody
  * gave and a kind of gear that has none look the same from here and only one of them is worth a
  * line on the screen.
  */

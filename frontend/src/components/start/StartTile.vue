@@ -10,7 +10,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 
 /**
  * One way to start something, as a tile in a grid of such ways: a title, the button that starts it and
- * a line or two saying what it brings.
+ * a line or two on what it brings.
  *
  * <p>The whole tile answers a click. The button carries no handler of its own: its click, by mouse or
  * keyboard, rises to the tile, so the tile is reached with the keyboard once and starts once however it

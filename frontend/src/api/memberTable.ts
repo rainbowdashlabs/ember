@@ -15,7 +15,7 @@ import type {
 } from './generated/schema'
 
 /**
- * One column as a screen asks for it, named by what it points at rather than by what it says.
+ * One column as a screen asks for it, named by what it points at rather than by what it shows.
  *
  * <p>A saved column comes back with a well-formed flag as well; a request names only the three
  * parts that point at the column.

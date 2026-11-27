@@ -74,7 +74,7 @@ public class AuthRoutes implements Routes {
         return s == null || s.isBlank();
     }
 
-    /** Answers a sign-in: the session goes into the cookie, and the body says what was decided. */
+    /** Answers a sign-in: the session goes into the cookie, and the body shows what was decided. */
     private void answerSignIn(Context ctx, @Nullable LoginResult login) {
         sessionCookies.issue(ctx, login);
         ctx.status(HttpStatus.OK).json(LoginResponse.of(login));
@@ -493,8 +493,8 @@ public class AuthRoutes implements Routes {
      * Outcome of confirming one half of an email change.
      *
      * @param status COMMITTED once both addresses have confirmed, WAITING while the other one
-     *               still has to. The page tells the two apart by this rather than by the wording.
-     * @param message what to say about it
+     *               still has to. The page distinguishes the two by this rather than by the wording.
+     * @param message what to show about it
      */
     public record EmailChangeResponse(EmailChangeStatus status, String message) {}
 
@@ -539,7 +539,7 @@ public class AuthRoutes implements Routes {
      * Response body for login: a finished sign-in, or the one step still standing in the way of one.
      *
      * <p>A finished sign-in travels in the session cookie, never in the body, so {@code expiresAt}
-     * says only how long the session lasts.
+     * shows only how long the session lasts.
      */
     public record LoginResponse(
             @Nullable Instant expiresAt,
@@ -575,7 +575,7 @@ public class AuthRoutes implements Routes {
         }
 
         /**
-         * Whatever the sign-in decided, said the way the API says it: a session, or the one step
+         * Whatever the sign-in decided, in the form the API gives it: a session, or the one step
          * still standing in the way of one.
          */
         public static LoginResponse of(@Nullable LoginResult login) {

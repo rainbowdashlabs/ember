@@ -253,7 +253,7 @@ public class SigningAssertions {
     }
 
     /**
-     * What a verified answer says about the credential that gave it.
+     * What a verified answer shows about the credential that gave it.
      *
      * @param proof          {@link StepUpProof#PASSKEY} for a sign-in passkey, {@link StepUpProof#SECURITY_KEY}
      *                       for a second-factor key

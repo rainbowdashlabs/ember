@@ -15,12 +15,12 @@ const props = defineProps<{
  * Whether the flag may be painted yet.
  *
  * <p>Whether it is forced on is known only to the browser: the setting is fetched after the page is
- * served, so a server render always says no. Painting it during hydration would therefore disagree with
+ * served, so a server render always yields no. Painting it during hydration would therefore disagree with
  * the markup the server sent, and Vue does not repair a class that disagrees at hydration: it keeps what
- * the server said and never revisits it. The flag stayed off for good on every server-rendered page,
+ * the server sent and never revisits it. The flag stayed off for good on every server-rendered page,
  * which is the landing page, the login page and the public station pages.
  *
- * <p>So the first client render deliberately agrees with the server, says no, and the flag appears one
+ * <p>So the first client render deliberately agrees with the server, yields no, and the flag appears one
  * tick later as an ordinary change, which Vue does apply.
  */
 const painted = ref(false)

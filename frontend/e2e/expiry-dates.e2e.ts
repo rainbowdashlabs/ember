@@ -93,7 +93,7 @@ test.describe('Expiry dates', () => {
 
     /**
      * Member management's reminder leads to the member list narrowed to the dates that ran out, and
-     * the list says so in words beside the date.
+     * the list shows that in words beside the date.
      */
     test('the member list opens on the dates that ran out', async ({managerPage, memberPage}) => {
         const headers = await apiHeaders(managerPage)

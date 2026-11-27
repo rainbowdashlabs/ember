@@ -53,7 +53,7 @@ const props = withDefaults(defineProps<{
   declinable?: boolean
   /**
    * Whether signing up now puts somebody on the waiting list rather than giving them a place, which
-   * the button then says.
+   * the button then shows.
    */
   signUpQueues?: boolean
   /** Whether the date is already over. */
@@ -87,19 +87,19 @@ const canAnswer = computed(() => !props.requiresRegistration || stillOpen.value)
 /** Why there is nothing to press, where the appointment is open to nobody in this household. */
 const notOpenLabel = computed(() => props.people.length > 0 ? '' : t(notOpenLabelKey(props.hasManagedMembers)))
 
-/** What the button says for somebody who has not answered: coming, onto the waiting list, or not coming. */
+/** What the button shows for somebody who has not answered: coming, onto the waiting list, or not coming. */
 const answerLabel = computed(() => {
   if (!props.requiresRegistration) return t('eventsUpcoming.decline')
   return props.signUpQueues ? t('registrationQueue.join') : t('eventsUpcoming.register')
 })
 
-/** The name of the one person a button answers for, said along with what it does. */
+/** The name of the one person a button answers for, shown along with what it does. */
 function registerForLabel(name: string): string {
   return props.signUpQueues ? t('registrationQueue.joinFor', {name}) : t('eventsUpcoming.registerFor', {name})
 }
 
 /**
- * What the one button says. Where it answers for a single named person out of a household, it says
+ * What the one button shows. Where it answers for a single named person out of a household, it shows
  * whose answer it is, so a guardian pressing it knows which of their children it settles.
  */
 const buttonLabel = computed(() => {
@@ -109,7 +109,7 @@ const buttonLabel = computed(() => {
   return props.requiresRegistration ? registerForLabel(name) : t('eventsUpcoming.declineFor', {name})
 })
 
-/** What the refusal beside the sign-up says, naming the person where it answers for one of a household. */
+/** What the refusal beside the sign-up shows, naming the person where it answers for one of a household. */
 const declineLabel = computed(() => {
   const open = peopleWithoutAnswer.value
   if (!props.hasManagedMembers || open.length !== 1) return t('eventsUpcoming.decline')

@@ -41,7 +41,7 @@ public enum ImageProfile {
      * The family the pictures of a storage category belong to.
      *
      * <p>Member documents have none: their pictures share the category with the documents themselves,
-     * so the category cannot say which of its files is a picture.
+     * so the category cannot show which of its files is a picture.
      *
      * @param category the storage category
      * @return the family, or empty for a category that holds no picture sets

@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 /**
- * A turning wheel saying something is on its way.
+ * A turning wheel showing something is on its way.
  *
  * <p>The large size is what a page or a section shows while it loads, so it stands centred on a line
  * of its own with room above and below. Left inline it sat in the top left corner, where it reads as

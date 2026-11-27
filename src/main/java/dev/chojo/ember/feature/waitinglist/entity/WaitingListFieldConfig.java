@@ -32,7 +32,7 @@ public record WaitingListFieldConfig(
     }
 
     /**
-     * What this field says about the question it asks. Whether it has to be answered is a column of
+     * What this field defines about the question it asks. Whether it has to be answered is a column of
      * its own on a waiting list rather than a setting, so the field itself adds that.
      */
     public QuestionSettings settings() {

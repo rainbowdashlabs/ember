@@ -316,7 +316,7 @@ public class EventGroupSignUpRules {
 
     /**
      * Which parts of an event group are called off and which already took place, as the station's
-     * calendar says.
+     * calendar shows.
      *
      * @param calledOff the parts called off
      * @param past      the parts whose day lies before today

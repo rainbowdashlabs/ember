@@ -12,6 +12,6 @@ import dev.chojo.ember.api.auth.StationUserType;
  *
  * @param memberId the member
  * @param name     their official name, which the document and the signature carry
- * @param userType what kind of member they are, which tells a trial user apart
+ * @param userType what kind of member they are, which distinguishes a trial user
  */
 public record WitnessPerson(int memberId, String name, StationUserType userType) {}

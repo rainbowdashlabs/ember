@@ -25,7 +25,7 @@ import {describeFailure, type Failure} from '@/util/failure'
  *
  * The instructions sit here rather than only in the help centre because this is where somebody is
  * when they need them, and because they differ per provider: what is under "Transactional" at one
- * is under "Mail Settings" at the next, and one provider cannot report back at all. Saying that
+ * is under "Mail Settings" at the next, and one provider cannot report back at all. Showing that
  * plainly is more useful than a generic sentence that fits nobody.
  */
 const props = defineProps<{

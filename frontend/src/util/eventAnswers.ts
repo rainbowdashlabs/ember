@@ -43,7 +43,7 @@ export interface GivenAnswer<K extends string | number = number, U = number> ext
      * The question of the appointment that puts this person on the list, where one does.
      *
      * <p>Such a place is not an answer they gave, so there is nothing to take back: the way off the
-     * list is out of the question, and this is what says so in place of the button.
+     * list is out of the question, and this is what shows that in place of the button.
      */
     heldByField?: string | null
     /**
@@ -61,13 +61,13 @@ export interface PersonAnswer<K extends string | number = number> {
     fields: EventRegistrationFieldValue[]
 }
 
-/** Whether an answer says somebody is not coming, which is what taking it back would undo. */
+/** Whether an answer means somebody is not coming, which is what taking it back would undo. */
 export function isRefusal(status: RegistrationStatus): boolean {
     return status === RegistrationStatus.DECLINED || status === RegistrationStatus.DENIED
 }
 
 /**
- * Whether an answer says the member will not be at the appointment.
+ * Whether an answer means the member will not be at the appointment.
  *
  * <p>A refusal always does. A withdrawal only does where it gave a place up on an appointment that
  * has to be signed up for. Where everybody is expected, or where a refusal was taken back, the member
@@ -213,7 +213,7 @@ export function answerableMembers(
 }
 
 /**
- * What an appointment says to a reader it is open to nobody for, where there is nothing to press.
+ * What an appointment shows to a reader it is open to nobody for, where there is nothing to press.
  *
  * <p>An appointment narrowed for registration is still shown to everybody, so without a word the
  * reader would meet a date with no answer on it and no reason given.
@@ -273,7 +273,7 @@ export interface AnswerTotal {
  *
  * <p>Only the people who have a place are counted. An answer outlives the place it was given with:
  * somebody turned away or who called off still has their catering choice on file, and counting
- * those left a station ordering food for people who were told not to come. A place is the same
+ * those left a station ordering food for people who were asked not to come. A place is the same
  * thing here as everywhere else in the product, down to the count that decides whether the event
  * happens at all: accepted, and nothing else. Somebody still waiting on an answer has asked for a
  * place rather than been given one.

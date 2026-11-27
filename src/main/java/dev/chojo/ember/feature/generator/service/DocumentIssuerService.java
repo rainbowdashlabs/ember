@@ -46,7 +46,7 @@ public class DocumentIssuerService {
      * An issuer a manager picks for one document or one run.
      *
      * @param memberId the member of the station who issues it
-     * @param function what they do at the station, or null where nothing is said
+     * @param function what they do at the station, or null where nothing is set
      */
     public record IssuerChoice(int memberId, @Nullable String function) {}
 

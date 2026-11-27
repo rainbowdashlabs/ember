@@ -146,7 +146,7 @@ public class MemberRuleEditService {
     /**
      * The fields a check of a rule at a station can read: its own, then its association's, each in their order,
      * leaving out those no check reads and those the reader may not read, since a rule and its preview would
-     * otherwise tell them who answered what.
+     * otherwise show them who answered what.
      *
      * @param session the reader, at the station
      */
@@ -352,7 +352,7 @@ public class MemberRuleEditService {
         }
     }
 
-    /** Checks that a check names exactly the target its subject reads, at this station, and says its field type. */
+    /** Checks that a check names exactly the target its subject reads, at this station, and returns its field type. */
     private @Nullable FieldType targetType(
             int stationId, @Nullable Integer clusterId, ReadableFields readable, RuleSubject subject, RuleNode node) {
         Integer field = node.fieldId();

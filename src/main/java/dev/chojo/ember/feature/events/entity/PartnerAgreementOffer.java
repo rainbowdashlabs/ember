@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.events.entity;
 
 /**
  * A document a partner station's appointment without registrations offers the members of this station to
- * sign on its page, where signing it says they will come.
+ * sign on its page, where signing it means they will come.
  *
  * @param templateId the document, by the id of its template at the partner
  * @param title      what it is called

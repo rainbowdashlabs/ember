@@ -47,7 +47,7 @@ import java.util.concurrent.Executor;
  * sign stands: that it was taken on, and then every sealed state of it, the newest one each time.
  *
  * <p>Every notice is a federation request, signed with this station's federation key. A sealed copy carries
- * the signers' official names on its record page and its evidence attached; the notice says nothing more of
+ * the signers' official names on its record page and its evidence attached; the notice reveals nothing more of
  * the member than the id the registration names. The sealed version that records a withdrawal of the agreement
  * here ({@link SignatureWithdrawals}) is sent as a withdrawal, so the partner marks it and flags the
  * registration; every other sealed state is sent as signed.
@@ -139,7 +139,7 @@ public class PartnerDeliveries implements SealedStateFollowUp, TaskSource {
     }
 
     /**
-     * Tells the partner that a document was taken on, in the background.
+     * Notifies the partner that a document was taken on, in the background.
      *
      * @param link the request and what it answers
      */

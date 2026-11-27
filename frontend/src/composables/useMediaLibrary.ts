@@ -26,11 +26,11 @@ const CONTENT_PERMISSIONS = [
  *
  * <p>Only the files are everybody's. Folders and tags are refused to a member who authors none of
  * the station's content, so they are asked for only where they can be read: a member who is in the
- * library to put a picture on a board ticket was otherwise told, by a message naming three
+ * library to put a picture on a board ticket otherwise saw, in a message naming three
  * permissions that have nothing to do with what they were doing, that they may not do the thing
  * they had just done.
  *
- * <p>The files are also loaded apart from the two, so a library that cannot say how it is organised
+ * <p>The files are also loaded apart from the two, so a library that cannot report how it is organised
  * still shows what is in it.
  *
  * @param instance reads the library the instance holds rather than a station's. Those files have

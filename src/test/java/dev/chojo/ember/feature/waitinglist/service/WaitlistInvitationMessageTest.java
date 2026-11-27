@@ -38,7 +38,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
- * What the invitation mail can say about the appointment, and who it goes to.
+ * What the invitation mail can show about the appointment, and who it goes to.
  */
 class WaitlistInvitationMessageTest extends RepositoryTestBase {
 

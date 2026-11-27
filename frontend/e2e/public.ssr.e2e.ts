@@ -10,7 +10,7 @@ import {demoSignIn, sessionHeaders} from './fixtures/session'
 /**
  * The public routes, run by the `ssr-no-js` project with JavaScript switched off.
  *
- * Without that, every one of these would pass on hydration alone and say nothing about whether the
+ * Without that, every one of these would pass on hydration alone and show nothing about whether the
  * route rules still server-render. What breaks here is a browser API touched during setup in a
  * component a public page happens to use - invisible in the browser, invisible in a component test,
  * and the first thing an anonymous visitor meets.
@@ -54,7 +54,7 @@ test.describe('Public pages without JavaScript', () => {
     /**
      * The text itself, not just a heading: these pages exist to carry a document, and an instance
      * lays one down in each language on its first start. A page that arrives with its frame and no
-     * document would pass a weaker assertion while telling a visitor nothing.
+     * document would pass a weaker assertion while showing a visitor nothing.
      */
     /**
      * Every public page of a station hangs inside one shell, and the shell used to load itself in
@@ -82,7 +82,7 @@ test.describe('Public pages without JavaScript', () => {
 
     /**
      * A link whose whole purpose is to be pasted into a message. The questions have to be in the
-     * page the server sends, or the preview drawn beside the link says nothing, and the instruction
+     * page the server sends, or the preview drawn beside the link shows nothing, and the instruction
      * not to index it has to be there too, since a crawler that runs no scripts would otherwise
      * never see one.
      *

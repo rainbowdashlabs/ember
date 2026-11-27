@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * What somebody asked to be told, and where.
+ * What somebody asked to be notified of, and where.
  *
  * <p>Whether a notification is written at all is decided when it is written, in the same statement;
  * this is for the screens and the feeds that show or change the choices. A station membership has a

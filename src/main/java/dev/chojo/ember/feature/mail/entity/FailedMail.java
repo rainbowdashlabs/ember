@@ -18,7 +18,7 @@ import java.time.Instant;
  * @param createdAt   when it was written
  * @param failedAt    when it failed: when the queue last took it in hand, or when the provider reported
  * @param cause       why it did not arrive
- * @param detail      what the provider said about it, or null where the queue gave up on its own
+ * @param detail      what the provider reported about it, or null where the queue gave up on its own
  * @param requeueable whether it can be sent again: only a mail the queue gave up on, and only one
  *                    that failed since the queue keeps its reason and its files
  */

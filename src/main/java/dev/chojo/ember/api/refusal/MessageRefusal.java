@@ -19,13 +19,13 @@ public enum MessageRefusal implements Refusal {
 
     /**
      * A conversation that does not exist, or that the reader does not take part in. One code for
-     * both, so a guessed address says nothing about whether somebody else talks there.
+     * both, so a guessed address reveals nothing about whether somebody else talks there.
      */
     CONVERSATION_NOT_HERE(2, HttpStatus.NOT_FOUND, "That conversation is not here, or it is not yours to open"),
 
     /**
      * Somebody the reader cannot write to: unknown, sharing no station with them, without messages,
-     * or blocking them. One code for every reason, because the blocked person is not to be told.
+     * or blocking them. One code for every reason, because the blocked person is not to learn it.
      */
     PERSON_NOT_REACHABLE(3, HttpStatus.FORBIDDEN, "That person cannot be written to"),
 
@@ -69,8 +69,8 @@ public enum MessageRefusal implements Refusal {
     REPLY_NOT_HERE(16, HttpStatus.BAD_REQUEST, "The message being answered is not in this conversation"),
 
     /**
-     * A message to a direct conversation whose other side blocked the writer. It does not say why,
-     * because the blocked person is not to be told.
+     * A message to a direct conversation whose other side blocked the writer. It does not reveal why,
+     * because the blocked person is not to learn it.
      */
     MESSAGE_NOT_DELIVERED(17, HttpStatus.FORBIDDEN, "That message could not be delivered"),
 
@@ -150,7 +150,7 @@ public enum MessageRefusal implements Refusal {
     /** Anything about messages while an administrator turned them off for the whole instance. */
     MESSAGES_OFF(48, HttpStatus.NOT_FOUND, "Messages are turned off on this instance"),
 
-    /** Changing a station chat without saying whom it is for or whether guardians are in it. */
+    /** Changing a station chat without indicating whom it is for or whether guardians are in it. */
     STATION_CHAT_CHANGE_UNSAID(
             49, HttpStatus.BAD_REQUEST, "Say whom the chat is for and whether the guardians are in it");
 

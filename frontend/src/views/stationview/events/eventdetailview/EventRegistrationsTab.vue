@@ -75,7 +75,7 @@ const {loadedRegistrations, loadedFederatedRegs, registrations, federatedRegs} =
 const registrationStats = ref<RegistrationStatsResponse[]>([])
 
 /**
- * What each partner may do with this appointment. Read so the list can say which partners decide for
+ * What each partner may do with this appointment. Read so the list can show which partners decide for
  * themselves rather than offering buttons the server would refuse.
  */
 const partnerPlaces = ref<PartnerPlacesView[]>([])
@@ -158,8 +158,8 @@ const joinsQueue = computed(() =>
     signUpQueues(props.datePlaces ?? places.value, !!props.event.requiresConfirmation))
 
 /**
- * Reads the sign-ups. `afterAction` says this is the catching-up half of something the reader just
- * did, so a failure here is said as one: the act went through and doing it again would be wrong.
+ * Reads the sign-ups. `afterAction` marks this as the catching-up half of something the reader just
+ * did, so a failure here is reported as one: the act went through and doing it again would be wrong.
  */
 async function loadRegistrations(afterAction = false) {
   try {
@@ -191,7 +191,7 @@ async function reloadAndRefresh() {
  * Deciding the sign-ups and keeping the waiting list, each followed by reading the tab back.
  *
  * <p>The two are answered for separately. A decision the server took, followed by a refresh that
- * failed, used to say the decision had been refused, and whoever read that pressed the button again.
+ * failed, used to show that the decision had been refused, and whoever read that pressed the button again.
  */
 const queueActions = useQueueActions(() => places.value, reloadAndRefresh, failure, appointmentQueueRoutes,
     appointmentStatuses(() => registrations.value, () => federatedRegs.value))

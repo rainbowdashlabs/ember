@@ -412,7 +412,7 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                 null, teamGroupId, null, null, null, true, false, false, null, null, null, false, null);
     }
 
-    /** A size chosen from the usual ones, starting from M, that has to be answered and says what it is for. */
+    /** A size chosen from the usual ones, starting from M, that has to be answered and shows what it is for. */
     private static EventQuestionSettings sizeQuestion() {
         return new EventQuestionSettings(
                 List.of("XS", "S", "M", "L", "XL"),

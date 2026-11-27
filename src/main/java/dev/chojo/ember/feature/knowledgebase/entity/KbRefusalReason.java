@@ -9,7 +9,7 @@ package dev.chojo.ember.feature.knowledgebase.entity;
  * Why one entry of a knowledge-base request was left where it was.
  *
  * <p>A closed set rather than a sentence: there is one language file, and a reason that travels as
- * free text cannot be written in it. Each value is a whole reason on its own, so a reader is told
+ * free text cannot be written in it. Each value is a whole reason on its own, so a reader sees
  * what to do about it rather than that something went wrong.
  */
 public enum KbRefusalReason {

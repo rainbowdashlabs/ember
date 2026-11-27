@@ -10,8 +10,8 @@ import {mount} from '@vue/test-utils'
 import LabelledField from './LabelledField.vue'
 
 /**
- * A labelled input says what it is for under the field, or behind a hint beside the label where a dense
- * screen asks for that. What is wrong with the input is always said under it.
+ * A labelled input shows what it is for under the field, or behind a hint beside the label where a dense
+ * screen asks for that. What is wrong with the input is always shown under it.
  */
 describe('LabelledField', () => {
     function field(props: Record<string, unknown>) {

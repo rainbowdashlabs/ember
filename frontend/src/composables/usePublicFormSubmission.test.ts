@@ -171,7 +171,7 @@ function refused(status: number, code: string, message: string) {
     return {response: {status, data: {code, message}}}
 }
 
-/** Fills in the first page, agrees and sends, then reads what the page says about the refusal. */
+/** Fills in the first page, agrees and sends, then reads what the page shows about the refusal. */
 async function sendRefused() {
     const form = open()
     await form.load()

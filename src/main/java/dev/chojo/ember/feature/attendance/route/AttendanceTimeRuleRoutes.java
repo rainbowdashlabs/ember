@@ -187,7 +187,7 @@ public class AttendanceTimeRuleRoutes implements Routes {
     }
 
     /**
-     * The template of a sheet of the caller's station, which is what says whose the sheet is.
+     * The template of a sheet of the caller's station, which is what decides whose the sheet is.
      *
      * @throws io.javalin.http.HttpResponseException {@link AttendanceRefusal#ATTENDANCE_SHEET_NOT_HERE}
      *     where there is no such sheet or it is another station's

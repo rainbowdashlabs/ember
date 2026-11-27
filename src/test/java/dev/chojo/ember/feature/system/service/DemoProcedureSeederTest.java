@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verify;
 
 /**
  * The demo procedures: those started from the onboarding template carry their template's steps and a party
- * naming members, and seeding them tells nobody that a procedure was handed to them.
+ * naming members, and seeding them notifies nobody that a procedure was handed to them.
  */
 class DemoProcedureSeederTest extends DemoTestBase {
     private static DemoRunContext run;
@@ -45,7 +45,7 @@ class DemoProcedureSeederTest extends DemoTestBase {
         new DemoProcedureSeeder(procedureRepo, restrictionService, procedures).seedStation(run, run.primaryStation());
     }
 
-    /** The members the seeded parties name are not told a procedure was handed to them. */
+    /** The members the seeded parties name are not notified that a procedure was handed to them. */
     @Test
     void seedingTellsNobody() {
         verify(bus, never()).publish(any(ProcedureAssigned.class));

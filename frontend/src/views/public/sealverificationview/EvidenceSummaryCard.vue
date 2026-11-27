@@ -17,7 +17,7 @@ import {proofWords} from '@/components/documents/signatures/proofWords'
  * The signatures a signed document records in the details it carries: who signed which field, when and
  * with what, whether in front of a witness, and whether several fields were confirmed together; and where the station's issuer signed
  * when the document was made. They come from the file itself, so whether they can be trusted is what the
- * seal check above says.
+ * seal check above shows.
  */
 defineProps<{evidence: EvidenceSummary}>()
 

@@ -185,7 +185,7 @@ public class MemberTableRoutes implements Routes {
         }
     }
 
-    /** A member list is a snapshot, so the day it was taken is what tells two of them apart. */
+    /** A member list is a snapshot, so the day it was taken is what distinguishes two of them. */
     private static String memberListName(Station station, String extension) {
         String language = StationFormat.languageOf(station);
         String filename = DocumentName.of(

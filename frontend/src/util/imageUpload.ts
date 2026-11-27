@@ -7,7 +7,7 @@
  * Thrown when the browser cannot read the picked file as a picture at all.
  *
  * A phone camera hands over whatever format the phone keeps its photos in, and on some devices
- * that is a format only the phone itself understands. Saying so before anything is sent is the
+ * that is a format only the phone itself understands. Reporting so before anything is sent is the
  * whole point: the alternative is a long upload that the server refuses at the end of it.
  */
 export class UnreadableImageError extends Error {
@@ -89,7 +89,7 @@ export async function prepareImageUpload(file: File, budget: ImageBudget = DEFAU
 /**
  * Lets the screen catch up before the work starts.
  *
- * <p>Whatever said it was busy said so in the same breath as calling this, and a frame has to be
+ * <p>Whatever signalled it was busy did so in the same breath as calling this, and a frame has to be
  * drawn for anybody to see it. Decoding and encoding a photograph from a modern camera holds the
  * thread long enough that the spinner would otherwise appear only once the work was already over,
  * which is what left people pressing the button again and wondering whether anything had happened.

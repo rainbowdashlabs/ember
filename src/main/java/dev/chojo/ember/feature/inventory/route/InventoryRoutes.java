@@ -262,7 +262,7 @@ public class InventoryRoutes implements Routes {
      * The body this caller answers for when they change how a piece of gear is described.
      *
      * <p>An association's own gear sits on the station it owns, and its screens act there, so its requests
-     * arrive as ordinary station requests. What tells them apart from a station holding somebody else's
+     * arrive as ordinary station requests. What distinguishes them from a station holding somebody else's
      * jacket is the association they name and the right they hold at it.
      *
      * @param session who is asking
@@ -298,7 +298,7 @@ public class InventoryRoutes implements Routes {
      */
     /** Whose gear somebody may write down: their own station's, the association's, or both. */
     /**
-     * Who a piece taken into this inventory belongs to, which is what says whose permission it takes
+     * Who a piece taken into this inventory belongs to, which is what decides whose permission it takes
      * to create one. The service works this out the same way when it creates the piece.
      */
     private static ItemOwner ownerOf(Inventory inventory) {
@@ -1348,7 +1348,7 @@ public class InventoryRoutes implements Routes {
     /**
      * A refused change of kind, carrying everything that stands in its way.
      *
-     * @param error    names the refusal, so the screen can tell it from any other bad request
+     * @param error    names the refusal, so the screen can distinguish it from any other bad request
      * @param message  what is being refused, in plain words
      * @param blockers what stands in the way, each named well enough to go and deal with
      */

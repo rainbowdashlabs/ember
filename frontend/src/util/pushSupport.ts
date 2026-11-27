@@ -7,12 +7,12 @@ import {translator} from '@/util/translatorState'
 import {BROWSER_NAMES, browserOf, SYSTEM_NAMES, systemOf} from '@/util/userAgent'
 
 /**
- * Where this browser stands with push messages, as the device card tells it.
+ * Where this browser stands with push messages, as the device card shows it.
  *
  * - `unsupported`: the browser cannot receive push messages at all.
  * - `installFirst`: an iPhone or iPad, where Safari delivers pushes only to a site added to the
  *   home screen and opened from there.
- * - `blocked`: the browser was told to refuse notifications from this site; only its settings change that.
+ * - `blocked`: the browser was set to refuse notifications from this site; only its settings change that.
  * - `ask`: nothing decided yet, so a press can ask.
  * - `allowed`: notifications are allowed; whether this browser is registered is a separate question.
  */

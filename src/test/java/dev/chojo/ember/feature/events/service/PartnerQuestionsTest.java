@@ -69,7 +69,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * A partner station's member answers the registration questions of a shared appointment as this
- * station's own members do, and the shared appointment tells the partner how its places stand. Station
+ * station's own members do, and the shared appointment shows the partner how its places stand. Station
  * B signs its members up for appointments of station A, both on this instance, through the same serving
  * functions a partner elsewhere reaches.
  */
@@ -329,7 +329,7 @@ class PartnerQuestionsTest extends RepositoryTestBase {
         assertEquals(EventRefusal.REGISTRATION_ANSWER_TO_UNKNOWN_QUESTION, refused.refusal());
     }
 
-    /** A full date says so, and a partner's member signing up then waits on the waiting list. */
+    /** A full date shows that, and a partner's member signing up then waits on the waiting list. */
     @Test
     void aFullDateIsToldAndTheSignUpWaits() {
         var answers = List.of(new EventRegistrationFieldValue(questionIds.get("Größe"), "S"));

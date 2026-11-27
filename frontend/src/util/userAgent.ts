@@ -28,8 +28,8 @@ export const BROWSER_NAMES: Readonly<Record<Exclude<UserAgentBrowser, 'unknown'>
 }
 
 /**
- * The operating system a browser's description names. Phones come first: an iPhone says "like Mac OS X" and an
- * Android phone says "Linux", so asking for those first would misplace both.
+ * The operating system a browser's description names. Phones come first: an iPhone reports "like Mac OS X" and an
+ * Android phone reports "Linux", so asking for those first would misplace both.
  */
 export function systemOf(agent: string | null): UserAgentSystem {
     if (!agent) return 'unknown'
@@ -43,7 +43,7 @@ export function systemOf(agent: string | null): UserAgentSystem {
 
 /**
  * The browser a browser's description names. Edge and Opera describe themselves as Chrome too, and Chrome as
- * Safari, so the more particular ones are asked for first. On iPhones every browser says Safari and names itself
+ * Safari, so the more particular ones are asked for first. On iPhones every browser reports Safari and names itself
  * with a mark of its own (CriOS, FxiOS, EdgiOS).
  */
 export function browserOf(agent: string | null): UserAgentBrowser {

@@ -89,7 +89,7 @@ public class SitemapService {
 
     /**
      * One station's sitemap, as XML. A station that is not here, or publishes nothing, has none,
-     * and the two are not told apart.
+     * and the two are not distinguished.
      */
     public String forStation(UUID stationUid) {
         var station = stations.findByUid(stationUid).orElseThrow(SystemRefusal.SITEMAP_NOT_HERE::raise);
@@ -150,7 +150,7 @@ public class SitemapService {
     }
 
     /**
-     * Whether a crawler is told this station exists at all.
+     * Whether a crawler learns that this station exists at all.
      *
      * <p>Pages are counted rather than the switch that allows them. A station whose only page is one
      * reached by its own link has nothing for a crawler to find, and naming it here would advertise

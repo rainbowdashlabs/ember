@@ -18,8 +18,8 @@ import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 
 /**
- * Tells a partner station that this station decided about one of its members on a date of a shared
- * appointment, or that the member moved up from the waiting list. The partner tells its member.
+ * Notifies a partner station that this station decided about one of its members on a date of a shared
+ * appointment, or that the member moved up from the waiting list. The partner notifies its member.
  *
  * <p>The instant sent is the one taken as the change was made. It runs once the change is kept: a partner on this instance takes the notice in at once, and one
  * elsewhere is sent it with the usual retries. A notice that does not arrive is caught up by the next

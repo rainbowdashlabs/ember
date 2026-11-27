@@ -16,7 +16,7 @@ import { TELLS_THE_FAMILY, type PendingTransition, type TransitionKind } from '.
 import TransitionMessage from './TransitionMessage.vue'
 
 /**
- * Confirms a move before it runs. A move the family is told about also takes what the station
+ * Confirms a move before it runs. A move the family is notified about also takes what the station
  * writes to them, beside the addresses it goes to.
  */
 const message = defineModel<string>('message', { required: true })

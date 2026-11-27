@@ -61,10 +61,10 @@ import static org.mockito.Mockito.when;
 
 /**
  * A member's gear on their page, the same piece on a checker's walk and the movement in the movement
- * list tell the same story, at every step of the chain and however the movement ends.
+ * list show the same story, at every step of the chain and however the movement ends.
  *
  * <p>All three answers are read over HTTP from the routes the screens call. The gear and the walk used
- * to wear the label of the step being waited on, which has not happened yet, while the list said which
+ * to wear the label of the step being waited on, which has not happened yet, while the list showed which
  * step had happened and whose turn it was; and a replacement handed over while the chain still waited
  * for the member to confirm it showed no movement at all.
  */
@@ -199,10 +199,10 @@ class MovementStandingParityTest extends RepositoryTestBase {
                 .findFirst();
     }
 
-    /** The part of a checker's walk that says what is running on the member's pieces. */
+    /** The part of a checker's walk that shows what is running on the member's pieces. */
     private record WalkState(Map<Integer, MovementStanding> onTheMove) {}
 
-    /** What a checker walking the member is told runs on the piece, empty when nothing does. */
+    /** What a checker walking the member sees running on the piece, empty when nothing does. */
     private static Optional<MovementStanding> onTheWalk(HttpClient client, int itemId) {
         var walk = read(
                 client.post(
@@ -224,8 +224,8 @@ class MovementStandingParityTest extends RepositoryTestBase {
     }
 
     /**
-     * The piece is on the member's list and on the checker's walk, and both say exactly what the
-     * movement's own row says.
+     * The piece is on the member's list and on the checker's walk, and both show exactly what the
+     * movement's own row shows.
      */
     private static MovementStanding sameStory(HttpClient client, int itemId, int movementId) {
         var onThePage = piece(client, itemId).orElseThrow(() -> new AssertionError("the piece is on the member"));

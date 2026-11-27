@@ -52,7 +52,7 @@ const imageInputRef = ref<HTMLInputElement | null>(null)
  *
  * <p>A picture the browser could not read never reached the server, so this screen is the only one
  * with words for it. Everything else is described: a dropped connection and a request that timed out
- * both say so, and only a failure nobody can name falls back to admitting that.
+ * are both described as what they are, and only a failure nobody can name falls back to admitting that.
  */
 function failureText(e: unknown): string {
   if (e instanceof UnreadableImageError) return t('lostAndFound.imageUnreadable')

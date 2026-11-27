@@ -21,7 +21,7 @@ import java.util.Set;
  * <p>A font without a glyph would stop the whole document, so one name nobody's font knows (one
  * "Łukasz" in a run of a hundred members) would stop them all. Here a text is cut into runs instead,
  * each in the first font that can print it, and a character no font can print is left out and named,
- * so the screen can say which ones went missing.
+ * so the screen can show which ones went missing.
  */
 public final class FontChain {
     private final List<PDFont> fonts;

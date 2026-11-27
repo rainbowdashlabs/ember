@@ -42,9 +42,9 @@ const forwarded = ref('')
 /**
  * Whether reports go to a beacon on their own, and whether one carrying a picture waits first.
  *
- * <p>Read so a row can say which of the three things it is: gone, waiting for somebody here, or
+ * <p>Read so a row can show which of the three things it is: gone, waiting for somebody here, or
  * going nowhere because nothing is forwarded at all. A report that waits looks exactly like one that
- * has been sent unless the screen says otherwise, which is how holding one reads as losing one.
+ * has been sent unless the screen shows otherwise, which is how holding one reads as losing one.
  */
 const forwardsOnItsOwn = ref(false)
 const picturesWaitForReview = ref(false)
@@ -63,9 +63,9 @@ function forward(id: number) {
 }
 
 /**
- * Says it went, and reads the list again so the row says so too.
+ * Reports it went, and reads the list again so the row shows that too.
  *
- * <p>Without the reload the row would go on saying it is waiting for somebody, which is the very
+ * <p>Without the reload the row would go on showing it is waiting for somebody, which is the very
  * thing that made a held report look like a lost one.
  */
 async function onForwarded() {

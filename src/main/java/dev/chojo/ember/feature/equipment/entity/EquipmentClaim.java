@@ -19,7 +19,7 @@ import java.time.LocalDate;
  * written and it holds nothing outside its own window: a need written in March for June takes nothing
  * away in March, and a piece claimed in March is free in April.
  *
- * <p>Most claims are loose and say four blue ones without saying which four, because picking fourteen
+ * <p>Most claims are loose and ask for four blue ones without choosing which four, because picking fourteen
  * particular jackets in March for a June exercise is busywork that will be redone on the day. A claim
  * firms up at handover, when the pieces that went are known.
  *

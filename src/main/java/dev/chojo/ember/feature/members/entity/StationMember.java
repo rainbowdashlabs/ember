@@ -43,7 +43,7 @@ public record StationMember(
      * A member as they are read where the name they are called by does not matter.
      *
      * <p>Kept so that the places building a member row by hand, chiefly tests and the seeders, do
-     * not each have to say "and no nickname" to mean an ordinary member.
+     * not each have to spell out "and no nickname" to mean an ordinary member.
      */
     public StationMember(
             int id,

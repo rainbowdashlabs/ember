@@ -23,7 +23,7 @@ import type {SharedPage} from '@/api/generated/schema'
  *
  * <p>Fetched while the server renders rather than after mounting, which every other public page
  * does. A link whose whole purpose is to be pasted into a message has to carry its title and its
- * description in the page the server sends, or the preview drawn beside it says nothing at all.
+ * description in the page the server sends, or the preview drawn beside it shows nothing at all.
  */
 const {t} = useI18n()
 const route = useRoute()
@@ -40,7 +40,7 @@ const page = computed(() => shared.value?.page ?? null)
 
 /**
  * A fetch that succeeded and still left no page behind counts as the link being gone: from where the
- * reader stands there is nothing to tell the two apart, and both are answered by asking whoever sent
+ * reader stands there is nothing to distinguish the two, and both are answered by asking whoever sent
  * the link for a current one.
  */
 const linkFailure = usePublicFailure(

@@ -52,7 +52,7 @@ export async function getWitnessOffers(memberId: number): Promise<WitnessOffersR
 }
 
 /**
- * Makes a document from a template for the person and asks for its signatures without telling anybody,
+ * Makes a document from a template for the person and asks for its signatures without notifying anybody,
  * so they can be signed in front of the reader right away.
  *
  * @param memberId   the person

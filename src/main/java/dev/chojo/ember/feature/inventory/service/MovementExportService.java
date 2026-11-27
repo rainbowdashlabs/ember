@@ -80,7 +80,7 @@ public class MovementExportService {
      *
      * <p>The column is as wide as a size, and a size is two or three characters. Writing out that the
      * piece has none took more room than the column has and pushed the sheet out of shape, for a cell
-     * whose only job is to say that there is nothing to choose. A mark does that in one character and
+     * whose only job is to show that there is nothing to choose. A mark does that in one character and
      * in every language.
      */
     private static final String UNSIZED = "x";
@@ -263,7 +263,7 @@ public class MovementExportService {
      * What a queue export is called, which is whatever is in it.
      *
      * <p>A sheet of nothing but exchanges is an exchange sheet, and one holding exchanges and issues
-     * says both. The purposes are named in the order they are declared rather than the order the rows
+     * shows both. The purposes are named in the order they are declared rather than the order the rows
      * were picked, so the same selection always produces the same name.
      *
      * <p>All four purposes at once makes a name nobody reads, so that case is the word for the whole

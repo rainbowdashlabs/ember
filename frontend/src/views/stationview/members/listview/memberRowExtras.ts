@@ -6,11 +6,11 @@
 import {inject, provide, type InjectionKey} from 'vue'
 
 /**
- * The two things an association's list says about a person that a station's never has to.
+ * The two things an association's list shows about a person that a station's never has to.
  *
- * <p>A station's list is one station's, so naming the station on every row would say nothing. An
+ * <p>A station's list is one station's, so naming the station on every row would show nothing. An
  * association's reaches across all of them, and it also has people it may not touch: a station's
- * owner, and the reader's own membership. Both are refused by the server, and a row that says why
+ * owner, and the reader's own membership. Both are refused by the server, and a row that shows why
  * beats a button that fails.
  *
  * <p>Injected rather than handed through the four components between the screen and a row, none of

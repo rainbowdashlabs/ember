@@ -93,7 +93,7 @@ public class DevRoutes implements Routes {
      * describes rather than from whatever the run before it left behind.
      *
      * <p>A wipe that fails answers with the failure rather than with success, because the end-to-end
-     * suite asks for this before every run and stops when it is refused. Told that a database it
+     * suite asks for this before every run and stops when it is refused. Led to believe that a database it
      * never got was fresh, it would run its stories against whatever the run before left.
      */
     @OpenApi(
@@ -133,7 +133,7 @@ public class DevRoutes implements Routes {
      * An error the frontend ran into.
      *
      * @param source  where it was caught, such as the window or a component
-     * @param message what it said
+     * @param message what it reported
      * @param stack   where it was thrown
      * @param context the page or component it happened on
      */

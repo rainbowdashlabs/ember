@@ -44,7 +44,7 @@ const enrolling = ref(false)
 const failure = ref<Failure | null>(null)
 
 /**
- * Something the browser or the reader decided, which no server said and nobody should report.
+ * Something the browser or the reader decided, which no server sent and nobody should report.
  *
  * <p>A cancelled prompt and a browser without security keys are not faults in Ember, and offering
  * to report them buries the reports that are.
@@ -53,7 +53,7 @@ function fromBrowser(message: string, guidance: string): Failure {
   return {kind: FailureKind.REJECTED, message, guidance, reportable: false}
 }
 
-/** What the far side said, and what this screen knows about the ways the browser refuses. */
+/** What the far side returned, and what this screen knows about the ways the browser refuses. */
 function enrollmentFailure(e: unknown): Failure {
   const said = errorMessage(e)
   if (said === 'webauthn-cancelled') {

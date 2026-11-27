@@ -50,7 +50,7 @@ public record ItemMovement(
         Instant createdAt,
         /**
          * When it last moved: a step acknowledged, forced or corrected, a refusal, a call-off or a move
-         * onto another chain. A queue is read by what has gone quiet, and the starting date cannot say
+         * onto another chain. A queue is read by what has gone quiet, and the starting date cannot show
          * that.
          */
         Instant updatedAt,

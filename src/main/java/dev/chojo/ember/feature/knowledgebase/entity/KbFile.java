@@ -17,7 +17,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 /**
  * A file in the knowledge base.
  *
- * <p>{@code contentMode} says how a markdown article was written. A rich one is built from blocks
+ * <p>{@code contentMode} shows how a markdown article was written. A rich one is built from blocks
  * and its stored text is a projection of them, which is what lets search, the PDF export and the
  * version history keep reading the same body they always did. The file type stays
  * {@code MARKDOWN} either way: a rich article is still an article, and a new type would ripple

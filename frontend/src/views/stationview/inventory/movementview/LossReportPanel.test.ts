@@ -65,7 +65,7 @@ describe('LossReportPanel', () => {
         expect(presentFile).toHaveBeenCalledWith(file)
     })
 
-    /** A refusal is described rather than waved at, so the reader is told what to do about it. */
+    /** A refusal is described rather than waved at, so the reader sees what to do about it. */
     it('reports a refused download instead of handing anything over', async () => {
         downloadDocument.mockRejectedValue(new Error('denied'))
 

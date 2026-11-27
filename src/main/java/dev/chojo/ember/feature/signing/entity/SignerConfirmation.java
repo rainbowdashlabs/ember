@@ -50,7 +50,7 @@ public sealed interface SignerConfirmation
 
     /**
      * The caller verified a step-up proof that cannot carry the challenge, such as a code from an
-     * authenticator app or the password. It says only that the check passed; the code or password itself
+     * authenticator app or the password. It shows only that the check passed; the code or password itself
      * never reaches the provider.
      *
      * @param nonce         the nonce issued when the act started

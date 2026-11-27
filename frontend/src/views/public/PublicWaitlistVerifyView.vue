@@ -57,7 +57,7 @@ onMounted(async () => {
  * <p>A link that has already been used, or that expired, is the ordinary outcome here and not a fault:
  * the reader needs a fresh mail, not a bug report. Anything else is Ember failing to do the one thing
  * this page exists for, and somebody who came here from a mail with no account and no station to ask
- * should be told that plainly, and handed the way to say so.
+ * should see that plainly, and handed the way to say so.
  */
 function describeVerification(e: unknown): Failure {
   const described = describeFailure(e, t)

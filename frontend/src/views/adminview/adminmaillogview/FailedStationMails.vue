@@ -16,7 +16,7 @@ import {stationFailedMailColumns} from './failedMailColumns'
 
 /**
  * The stations' mails that did not arrive, one row per station: how many and why, never whom they
- * were for or what they said. Taking note of a station reaches the failures the row shows and no
+ * were for or what they contained. Taking note of a station reaches the failures the row shows and no
  * later one, and leaves what the station sees on its own mail page alone.
  */
 const props = defineProps<{

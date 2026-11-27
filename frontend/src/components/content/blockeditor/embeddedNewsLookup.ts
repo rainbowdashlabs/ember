@@ -29,7 +29,7 @@ export interface FoundNews extends NewsTeaser {
  * @param newsUid    the public id the block names
  * @param audience   who reads the content the block sits in
  * @returns the entry, or null where the entry is not available to these readers; rejects on any
- *          other failure, which says nothing about the entry
+ *          other failure, which shows nothing about the entry
  */
 export async function findEmbeddedNews(
     apiBase: string,

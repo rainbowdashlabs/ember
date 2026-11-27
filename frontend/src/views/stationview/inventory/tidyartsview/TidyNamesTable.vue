@@ -12,8 +12,8 @@ import type {ItemNameCount} from '@/api/generated/schema'
 /**
  * The distinct names written on the pieces, commonest first.
  *
- * <p>This is the view that shows a station where its typos are. Six rows saying one thing and one
- * row saying nearly the same thing sit next to each other here and nowhere else.
+ * <p>This is the view that shows a station where its typos are. Six rows reading one way and one
+ * row reading nearly the same way sit next to each other here and nowhere else.
  */
 defineProps<{
   names: ItemNameCount[]

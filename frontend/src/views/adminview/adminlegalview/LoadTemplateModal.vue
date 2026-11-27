@@ -24,7 +24,7 @@ const {t} = useI18n()
 const props = defineProps<{
   type: string
   locale: string
-  /** What the editor already holds, so a section that would be replaced says so beforehand. */
+  /** What the editor already holds, so a section that would be replaced shows that beforehand. */
   existing: string[]
 }>()
 
@@ -39,7 +39,7 @@ const emit = defineEmits<{
 const templates = ref<TemplateSection[]>([])
 const selected = ref<Set<string>>(new Set())
 /**
- * Fetches the templates on offer, and says so when it cannot.
+ * Fetches the templates on offer, and reports that when it cannot.
  *
  * <p>It used to swallow the failure and leave the list empty, which reads as an installation that
  * ships no templates at all rather than one that could not be asked.

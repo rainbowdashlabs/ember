@@ -526,7 +526,7 @@ public class KnowledgeBaseRoutes implements Routes {
      *
      * <p>A refusal is part of the answer rather than a failed request: the reader picked a folder
      * that turns out to hold a folder of the same name, or that lies inside the one being moved,
-     * and the screen has to say which of those it was.
+     * and the screen has to show which of those it was.
      */
     @OpenApi(
             path = "/api/v1/kb/folders/{id}/parent",
@@ -629,7 +629,7 @@ public class KnowledgeBaseRoutes implements Routes {
 
     /**
      * How much a marked selection would really take, folder contents counted, so the confirmation
-     * can say the true number rather than the number of ticked boxes.
+     * can show the true number rather than the number of ticked boxes.
      */
     @OpenApi(
             path = "/api/v1/kb/bulk/delete/impact",
@@ -1312,7 +1312,7 @@ public class KnowledgeBaseRoutes implements Routes {
     /**
      * The articles of one list the caller may open, resolved for the whole list at once.
      *
-     * <p>Being allowed to read the article that names them says nothing about the ones it names,
+     * <p>Being allowed to read the article that names them grants nothing for the ones it names,
      * which may sit anywhere in the tree, so each has to be asked about separately. Asking one
      * query per article turns a page of cross-references into a page of queries, which is why the
      * levels for the whole list are resolved together.
@@ -1600,7 +1600,7 @@ public class KnowledgeBaseRoutes implements Routes {
      * empty list rather than a 404, so the reader can ask before it knows which kind it has.
      *
      * <p>{@code rows} are the blocks as written, for the editor. {@code describedRows} are the same
-     * blocks as a reader sees them, with a picture the article says nothing about carrying the words
+     * blocks as a reader sees them, with a picture the article has nothing about carrying the words
      * of its media file. Keeping the two apart is what stops a save from writing those words into
      * the article.
      */
@@ -1608,7 +1608,7 @@ public class KnowledgeBaseRoutes implements Routes {
 
     /**
      * A file with what the reader may do with it and, when a folder decided that, which one - so
-     * the page can say why an action is missing instead of just not showing it.
+     * the page can show why an action is missing instead of just not showing it.
      */
     public record FileResponse(
             KbFile file,

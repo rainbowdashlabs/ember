@@ -15,7 +15,7 @@ import {ownCluster} from './fixtures/cluster'
  * pressing them. Walking only the first of them is how the chain for gear belonging to a body outside
  * Ember came to be one nobody could finish: it was never walked end to end by anything.
  *
- * Each configuration walks its own gear and the owner's, and the run ends where the chain says it
+ * Each configuration walks its own gear and the owner's, and the run ends where the chain defines it
  * ends, with both pieces where the chain put them.
  */
 
@@ -75,7 +75,7 @@ async function withoutCluster(page: Page): Promise<Setup> {
  * A station under an association, which either keeps its gear here or does not.
  *
  * An association that keeps none has nobody to press its steps, so its stations walk the chain alone
- * and the record says the owner's steps were asserted. One that does keeps them for itself.
+ * and the record shows the owner's steps were asserted. One that does keeps them for itself.
  */
 async function underCluster(
     admin: Page,
@@ -113,7 +113,7 @@ async function detail(page: Page, headers: Record<string, string>, id: number) {
  * Walks a chain to its end, letting whichever session may press the step press it.
  *
  * The station presses its own steps and the association presses its own, which is the point of the
- * third configuration. Where nobody may press what is left, the walk stops and says which step.
+ * third configuration. Where nobody may press what is left, the walk stops and shows which step.
  */
 async function walkTogether(setup: Setup, id: number, arriving: () => Promise<Record<string, unknown>>) {
     for (let guard = 14; guard > 0; guard -= 1) {

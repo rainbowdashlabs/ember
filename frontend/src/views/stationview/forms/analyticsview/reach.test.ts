@@ -8,7 +8,7 @@ import {answeredLine, reachLines} from './reach'
 
 const t = (key: string, named?: Record<string, unknown>) => `${key} ${JSON.stringify(named ?? {})}`
 
-/** A question only some readers were shown says so, and one everybody saw does not. */
+/** A question only some readers were shown is marked as such, and one everybody saw is not. */
 describe('reach', () => {
     it('says how many were shown a question only some reached', () => {
         expect(answeredLine({questionId: 1, answerCount: 3, reachedCount: 4}, 10, t))

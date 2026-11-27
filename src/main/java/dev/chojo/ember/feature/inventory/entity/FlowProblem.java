@@ -34,7 +34,7 @@ public record FlowProblem(Code code, @Nullable String detail) {
         OUTGOING_NAMES_ITEM,
         /** An exchange without a piece going or without one coming. */
         EXCHANGE_NEEDS_BOTH_DIRECTIONS,
-        /** Something arrives and no step says which piece it is. */
+        /** Something arrives and no step shows which piece it is. */
         ARRIVAL_UNNAMED,
         /** A movement is walking the chain, so its steps cannot change under it. */
         FLOW_IN_USE,

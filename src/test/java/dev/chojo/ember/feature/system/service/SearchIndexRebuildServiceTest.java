@@ -108,7 +108,7 @@ class SearchIndexRebuildServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * An instance that never recorded a version cannot tell whether it was upgraded before the check
+     * An instance that never recorded a version cannot determine whether it was upgraded before the check
      * existed, so it builds everything once, and a document indexed before its text was kept is read
      * back out of storage for it.
      */

@@ -24,8 +24,8 @@ import type {ItemTableApi} from './useItemTable'
  * The pieces of one inventory, in the table every screen of the inventory shows them in.
  *
  * <p>The piece's name leads to its own page and the holder's name to what else they hold. A piece
- * that is lost is dimmed and says since when; one lent to another station says to whom, and one an
- * open movement carries says which movement and leads to it.
+ * that is lost is dimmed and shows since when; one lent to another station shows to whom, and one an
+ * open movement carries shows which movement and leads to it.
  */
 const props = withDefaults(defineProps<{
   items: ItemTableApi

@@ -30,8 +30,8 @@ import java.util.Optional;
 /**
  * How an appointment is written down for a calendar.
  *
- * <p>One place rather than one per feed: the station's own calendar file and the public one said the
- * same thing twice, so an appointment that runs out said it in the one that had been remembered and
+ * <p>One place rather than one per feed: the station's own calendar file and the public one carried the
+ * same thing twice, so an appointment that runs out carried it in the one that had been remembered and
  * repeated for ever in the other.
  *
  * <p>A series is written from the same {@link OccurrenceRule} the application reads its dates from.
@@ -43,7 +43,7 @@ import java.util.Optional;
  * {@link #timeZoneOf} beside it, so a calendar repeats it at the same time of day on both sides of a
  * change of the clocks. Written in UTC, it repeated an hour off for half of the year.
  *
- * <p>A date called off is not an exception: it still belongs to the series, and a calendar is told
+ * <p>A date called off is not an exception: it still belongs to the series, and a calendar receives
  * about it as an override of that one date, marked cancelled, so it shows the date crossed out and
  * every other date as it was.
  */
@@ -100,7 +100,7 @@ public final class EventRecurrence {
      *
      * @param event    the appointment
      * @param summary  the headline the entry carries
-     * @param calendar the station's calendar, which names its clock, where a series starts and what its breaks take out
+     * @param calendar the station's calendar, which defines its clock, where a series starts and what its breaks take out
      * @return the entry, empty for a series that falls on no date at all
      */
     public static Optional<VEvent> entryOf(StationEvent event, String summary, StationCalendar calendar) {

@@ -77,12 +77,12 @@ export function placesFromCounts(
 }
 
 /**
- * The line saying how the places stand: how many are taken while some are free, and once none is,
+ * The line showing how the places stand: how many are taken while some are free, and once none is,
  * that the date is full and how many wait.
  *
- * <p>A date taken beyond its limit, where a manager let somebody in anyway, says the count as it is
+ * <p>A date taken beyond its limit, where a manager let somebody in anyway, shows the count as it is
  * ("13 von 12") rather than only full, so the overrun stays visible. Places with a free one and people
- * waiting all the same, which an event group has where they wait for a full part, say both.
+ * waiting all the same, which an event group has where they wait for a full part, show both.
  */
 export function placesLabel(state: Places, t: Translate): string {
     const counted = {taken: state.taken, limit: state.limit, waiting: state.waiting}

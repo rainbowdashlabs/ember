@@ -26,7 +26,7 @@ import java.util.Collection;
  *
  * <p>A document added asks every member holding a place, pending or accepted, for its signatures, exactly as
  * registering does ({@link AppointmentSignatures#askForAdded}): the copy is generated, everybody asked is
- * told, reminded, and finds it among their open tasks, and the issuer's field signs itself where it can.
+ * notified, reminded, and finds it among their open tasks, and the issuer's field signs itself where it can.
  * Nothing is asked again where a copy already has its signatures asked for or signed, or its signed paper
  * copy was confirmed. An appointment that takes no registrations offers its agreements on its page, so
  * nobody is asked there.
@@ -35,7 +35,7 @@ import java.util.Collection;
  * the requests already out are taken back.
  *
  * <p>A participant who cannot be asked is logged and left out; the change to the appointment stands. Members of
- * partner stations are asked at home, once their station is told ({@link PartnerRequirementNotices}).
+ * partner stations are asked at home, once their station is notified ({@link PartnerRequirementNotices}).
  */
 @Singleton
 public class ChangedRequirementSignatures {

@@ -53,7 +53,7 @@ const canEdit = ref(false)
 
 /**
  * The ticket's identifier and its headline at the head of the page, so that the tab, the history and
- * a bookmark say which ticket is open instead of saying "Ticket" over and over. The word stands
+ * a bookmark show which ticket is open instead of "Ticket" over and over. The word stands
  * until board and ticket have both arrived, and where either failed to load.
  */
 const pageTitle = computed(() => board.value && ticket.value
@@ -173,7 +173,7 @@ const actionFailure = ref<Failure | null>(null)
 
 /**
  * Changing the ticket and then catching the screen up, which are two things and not one. The second
- * failing means the change worked and the page is merely behind, which is said in those words and
+ * failing means the change worked and the page is merely behind, which is shown in those words and
  * asks the reader for nothing.
  *
  * @param change what to do
@@ -244,7 +244,7 @@ async function saveFieldValue(fieldId: number, fieldType: BoardFieldTypeName, va
 let kbSearchTimeout: ReturnType<typeof setTimeout> | null = null
 /**
  * Searches the wiki as the reader types. A failed search used to leave the list empty, which reads as
- * there being no such article, so it says what happened instead.
+ * there being no such article, so it shows what happened instead.
  */
 function onKbSearch() {
     if (kbSearchTimeout) clearTimeout(kbSearchTimeout)

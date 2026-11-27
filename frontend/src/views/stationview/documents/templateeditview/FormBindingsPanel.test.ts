@@ -22,7 +22,7 @@ async function mountPanel(chosen: string | null = null) {
 }
 
 /**
- * A PDF often calls its fields Text1 and so on, so each entry says what the author called it, where it
+ * A PDF often calls its fields Text1 and so on, so each entry shows what the author called it, where it
  * sits and what it holds, and the entries and the fields on the page choose each other.
  */
 describe('FormBindingsPanel', () => {

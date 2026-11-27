@@ -294,7 +294,7 @@ class LetterLayoutTest {
     }
 
     /**
-     * Each field of a line confirms what the line says, trimmed; a line without a statement and a line the
+     * Each field of a line confirms what the line contains, trimmed; a line without a statement and a line the
      * member does not get leave their fields out, so they keep the default.
      */
     @Test

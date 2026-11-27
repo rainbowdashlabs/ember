@@ -65,8 +65,8 @@ const pageTitle = computed(() => (detail.value?.name
 /**
  * Fetches the inventory again after a section changed it.
  *
- * <p>Caught on its own, because the section has already said its own piece succeeded. A reader told
- * that saving failed when only the refresh did would save a second time, so this says what it is: the
+ * <p>Caught on its own, because the section has already reported its own piece as succeeded. A reader shown
+ * that saving failed when only the refresh did would save a second time, so this reports what it is: the
  * change is in, the screen is behind.
  */
 async function reloadDetail() {

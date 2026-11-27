@@ -124,10 +124,10 @@ test.describe('Quiz', () => {
     })
 
     /**
-     * A test sheet is assembled rather than written: it says how many questions to draw from which
+     * A test sheet is assembled rather than written: it defines how many questions to draw from which
      * catalogue, and the questions are picked when somebody sits it. The story builds one section
      * over the catalogue it just filled and finds the sheet again in the list afterwards. A fresh
-     * section has no sources yet; the catalogue select is told apart from the category select beside
+     * section has no sources yet; the catalogue select is distinguished from the category select beside
      * it by the choice it offers.
      */
     test('a test sheet is assembled from a catalogue', async ({managerPage: page}) => {

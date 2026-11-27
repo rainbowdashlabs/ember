@@ -206,7 +206,7 @@ test.describe('Legal documents', () => {
 
     /**
      * The consent text carries the same generated section. It is a separate document with its own
-     * version, so covering the privacy policy says nothing about it.
+     * version, so covering the privacy policy shows nothing about it.
      */
     test('the consent text carries the generated storage section too', async ({adminPage: page}) => {
         await openDocument(page, 'consent')
@@ -222,7 +222,7 @@ test.describe('Legal documents', () => {
      * editor showing the right thing would prove nothing.
      *
      * The save is awaited by its response: the document above was saved a moment ago and its button
-     * already reads "Gespeichert", so that word says nothing about this save.
+     * already reads "Gespeichert", so that word shows nothing about this save.
      */
     test('a placeholder from the shipped imprint is filled in and published', async ({adminPage, page}) => {
         const operator = unique('Jugendfeuerwehr')

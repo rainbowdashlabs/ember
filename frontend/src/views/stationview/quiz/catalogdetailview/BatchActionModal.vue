@@ -44,7 +44,7 @@ const progress = ref('')
  * What the generator refused on, kept aside rather than thrown.
  *
  * <p>The other questions of the batch were written and must stay written, so the run finishes and
- * the refusal is said afterwards. Nothing used to be said at all: a batch where every generation
+ * the refusal is shown afterwards. Nothing used to be shown at all: a batch where every generation
  * was turned down reported itself as done.
  */
 const refusedWhileGenerating = ref<unknown>(null)
@@ -172,7 +172,7 @@ async function regenerateQuestion(q: QuizQuestion, prompt: string, credentials: 
 /**
  * Regenerates each question of the batch, and hands back the first refusal.
  *
- * <p>A missing key is the reader's own setting rather than a fault in Ember, so it is said as such
+ * <p>A missing key is the reader's own setting rather than a fault in Ember, so it is shown as such
  * and no report is offered for it.
  */
 async function batchGenerate(targets: QuizQuestion[]): Promise<unknown> {

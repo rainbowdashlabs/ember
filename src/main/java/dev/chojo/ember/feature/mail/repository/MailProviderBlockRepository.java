@@ -23,7 +23,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 /**
  * Which provider a receiving domain refuses outright.
  *
- * <p>Only ever written from a report of BLOCKED, which is the receiving side saying it refused the
+ * <p>Only ever written from a report of BLOCKED, which is the receiving side reporting that it refused the
  * relay rather than the message. Everything else stays out: a hard bounce usually means the address
  * does not exist, and shutting a provider out of a whole domain over one bad address would cost far
  * more than the attempt it saves.

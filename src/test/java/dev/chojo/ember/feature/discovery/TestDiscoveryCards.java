@@ -82,7 +82,7 @@ public final class TestDiscoveryCards {
 
     /**
      * The card, as a peer that publishes no public offers would send it, taking requests only where
-     * the test said so.
+     * the test asks for it.
      *
      * @return the card
      */

@@ -15,6 +15,6 @@ package dev.chojo.ember.feature.members.entity;
 public enum FieldOrigin {
     /** The station's own question, which the station may change. */
     STATION,
-    /** A question the cluster above the station asks, which the station may not, unless it says otherwise. */
+    /** A question the cluster above the station asks, which the station may not, unless set otherwise. */
     CLUSTER
 }

@@ -26,7 +26,7 @@ public class RefusedDestinationException extends IOException {
     }
 
     /**
-     * Why the destination was refused, for callers that tell an operator what to fix.
+     * Why the destination was refused, for callers that show an operator what to fix.
      *
      * @return the reason
      */

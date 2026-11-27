@@ -13,7 +13,7 @@ import {test, expect} from './fixtures/auth'
  * named in was replaced by the page tree. Nothing failed: no route is missing as far as a build is
  * concerned, so the linters, the type check and the production build all stayed green while every
  * unknown address quietly fell through to a bare page carrying none of the application's own
- * navigation. Only a visit says otherwise, which is what these stories are.
+ * navigation. Only a visit shows otherwise, which is what these stories are.
  */
 test.describe('Unknown address', () => {
     /** An address no page tree of this application will ever match. */
@@ -24,7 +24,7 @@ test.describe('Unknown address', () => {
      *
      * The status is asserted beside the panel because either alone would pass while the other is
      * broken: the bare page it fell through to also answered 404, and a page that renders the panel
-     * with a 200 would tell a search engine the address is real.
+     * with a 200 would signal to a search engine the address is real.
      */
     test('an address that does not exist answers 404 with the error page', async ({page}) => {
         const response = await page.goto(nowhere)

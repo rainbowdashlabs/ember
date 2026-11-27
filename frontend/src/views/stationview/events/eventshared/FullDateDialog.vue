@@ -20,7 +20,7 @@ import type {FullDateQuestion} from '@/composables/useFullDateChoice'
  * all taken.
  *
  * <p>Signing somebody up offers the waiting list and going beyond the limit; accepting a sign-up only
- * asks whether to go beyond it. Either says how the places stand, where the screen knows.
+ * asks whether to go beyond it. Either shows how the places stand, where the screen knows.
  */
 const props = defineProps<{
   question: FullDateQuestion | null

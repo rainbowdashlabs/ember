@@ -93,8 +93,8 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A station that switched the inventory off is not told that its cluster now denies a part of it: the
-     * part was gone there already. A station that kept it is told.
+     * A station that switched the inventory off is not notified that its cluster now denies a part of it: the
+     * part was gone there already. A station that kept it is notified.
      */
     @Test
     void aDenialOfAPartIsNotAnnouncedWhereItsModuleIsAlreadyOff() {
@@ -186,7 +186,7 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
 
     /**
      * Dropping a filing that modules are switched off for would switch them back on at every station in
-     * it, without anybody deciding that. Refused, saying how many are in the way.
+     * it, without anybody deciding that. Refused, showing how many are in the way.
      */
     @Test
     void aGroupModulesAreDeniedForCannotBeRemoved() {

@@ -225,7 +225,7 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A sign-in leaves nothing behind, so the mail must not say a passkey was made. Somebody told
+     * A sign-in leaves nothing behind, so the mail must not claim a passkey was made. Somebody informed
      * otherwise would go hunting through their security page for a credential that is not there.
      */
     @Test

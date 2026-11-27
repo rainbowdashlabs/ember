@@ -88,7 +88,7 @@ public class BeaconSettings {
 
     /**
      * Whether a fault forwarded on its own takes the stored log lines around it along. Off unless an
-     * operator turns it on: the lines say more about what the instance did than a fault does, and are
+     * operator turns it on: the lines show more about what the instance did than a fault does, and are
      * agreed to separately, the way reports are.
      */
     public boolean forwardLogContext() {

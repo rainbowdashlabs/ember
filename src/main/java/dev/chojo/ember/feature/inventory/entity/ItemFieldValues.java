@@ -55,7 +55,7 @@ public record ItemFieldValues(@JsonValue Map<String, FieldValue> values) {
      * discriminator drives Jackson's polymorphic deserialization.
      *
      * <p>The kind is the shared field type name. A choice answered before the names were shared
-     * says {@code ENUM}, which is still read.
+     * holds {@code ENUM}, which is still read.
      */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "kind")
     @JsonSubTypes({

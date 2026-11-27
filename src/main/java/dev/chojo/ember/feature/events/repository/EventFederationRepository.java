@@ -197,7 +197,7 @@ public class EventFederationRepository {
      * An event is shared if it has scope='ALL_PARTNERS', or scope='SPECIFIC' with the partner in targets.
      *
      * <p>An event that not every member of the owning station may know about is never among them,
-     * whatever the share says. Deciding it here rather than at each caller also settles the order the
+     * whatever the share defines. Deciding it here rather than at each caller also settles the order the
      * two settings were made in: restricting an event that was already shared withdraws it.
      *
      * @param partnerId the federation partner ID
@@ -415,7 +415,7 @@ public class EventFederationRepository {
     }
 
     /**
-     * Fills one of a partner's places, and says whether there was one to fill. The count is per date,
+     * Fills one of a partner's places, and returns whether there was one to fill. The count is per date,
      * since the budget is per occurrence.
      *
      * <p>Two people at the partner pressing confirm at the same moment must not both take the last
@@ -488,7 +488,7 @@ public class EventFederationRepository {
     /**
      * Records that a partner's member gave their place back.
      *
-     * <p>The row stays where it used to be deleted. The host could not otherwise tell somebody who
+     * <p>The row stays where it used to be deleted. The host could not otherwise distinguish somebody who
      * withdrew from somebody who never answered, and a withdrawal with no row is a withdrawal nobody
      * can take back.
      *

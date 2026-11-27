@@ -48,7 +48,7 @@ async function walkUntilTheHandOver(
  * Opens what stands beside a member's name on the sheet, which a row keeps folded away.
  *
  * <p>A station of forty people with a swap each would otherwise turn the sheet into a page of
- * errands, so a row says only how many there are until it is asked.
+ * errands, so a row shows only how many there are until it is asked.
  *
  * @param page   the sheet
  * @param rows   the rows to open, or every row that has anything when none is named
@@ -169,7 +169,7 @@ test.describe('Attendance', () => {
      * A sheet for people no template describes, which is what took the empty template away.
      *
      * <p>The story asks for one member type and nothing else, so what lands on the sheet can be
-     * checked against what the station says its members are. A template still lends its fields, and
+     * checked against what the station lists as its members. A template still lends its fields, and
      * its own groups must not come with them.
      */
     test('a sheet started without a template enters the types and groups it was told', async ({managerPage: page}) => {
@@ -210,7 +210,7 @@ test.describe('Attendance', () => {
      * Recording who was there is the whole of attendance. The story opens a past session, marks
      * someone present and reloads: a mark that does not survive a reload never reached the server.
      *
-     * Which session it lands in is not fixed, so it takes one the list says somebody was away
+     * Which session it lands in is not fixed, so it takes one the list shows somebody was away
      * from: those are the members whose "present" button is still there to be pressed, and a
      * session nobody was ever entered in offers no buttons at all.
      *
@@ -373,7 +373,7 @@ test.describe('Attendance', () => {
 
     /**
      * A swap whose replacement is at the station is handed over from the sheet itself, which is the
-     * point of being told about it there.
+     * point of being informed about it there.
      *
      * <p>The story raises its own swap rather than spending the one the demo leaves: handing that one
      * over consumes it, and a story that eats its own fixture passes once and fails every time after.
@@ -648,7 +648,7 @@ test.describe('Attendance', () => {
 
     /**
      * The hours the report adds up are what a station pays against, and the clock is not always the
-     * number that is owed. The sheet keeps its times and says what a presence at it is worth.
+     * number that is owed. The sheet keeps its times and shows what a presence at it is worth.
      */
     test('what a sheet counts as is kept and reaches the report', async ({managerPage: page}) => {
         await page.goto('/station/attendance/new')
@@ -672,7 +672,7 @@ test.describe('Attendance', () => {
 
     /**
      * Somebody who prepares an evening is credited with it: the template names who, the sheet copies
-     * the rule and says so beside their name, and the report counts the minutes. Marked as not having
+     * the rule and shows that beside their name, and the report counts the minutes. Marked as not having
      * done it, the person counts their presence alone.
      */
     test('preparation and follow-up reach the sheet and the report', async ({managerPage: page}) => {
@@ -866,7 +866,7 @@ test.describe('Attendance', () => {
     /**
      * A sheet handed out to be signed. The story opens one of its own, asks for the signature column
      * and room for people nobody expected, and takes the file: an export that renders nothing is a
-     * download of no bytes, which is what the size says.
+     * download of no bytes, which is what the size shows.
      */
     test('a sheet is printed to be signed by hand', async ({managerPage: page}) => {
         await page.goto('/station/attendance/new')

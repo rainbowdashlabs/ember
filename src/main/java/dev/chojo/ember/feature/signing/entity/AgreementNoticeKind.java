@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.signing.entity;
 
 /**
- * What a member's home installation tells the station holding a shared appointment about a document that
+ * What a member's home installation reports to the station holding a shared appointment about a document that
  * appointment asks the member to sign.
  */
 public enum AgreementNoticeKind {

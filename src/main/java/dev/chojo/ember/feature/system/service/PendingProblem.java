@@ -152,7 +152,7 @@ final class PendingProblem {
         return fingerprint;
     }
 
-    /** How often writing this problem failed in a row, which tells a refused record from an outage. */
+    /** How often writing this problem failed in a row, which distinguishes a refused record from an outage. */
     synchronized int failedWrites() {
         return failedWrites;
     }

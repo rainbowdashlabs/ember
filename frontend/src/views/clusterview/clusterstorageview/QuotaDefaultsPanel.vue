@@ -24,7 +24,7 @@ import {
  *
  * <p>Not weighed against the pool: a default is not a promise to any one station, and what the pool bounds is
  * what was actually granted. A dimension left empty is one the association is not deciding, and whatever the
- * instance says about it stands.
+ * instance sets about it stands.
  */
 const props = defineProps<{
   defaults: Dimensions

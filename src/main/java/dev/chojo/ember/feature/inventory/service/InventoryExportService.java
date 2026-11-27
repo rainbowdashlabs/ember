@@ -222,7 +222,7 @@ public class InventoryExportService {
      * The same rows as the sheet, written for a spreadsheet.
      *
      * <p>Built from what the printout is built from rather than assembled a second time, which is
-     * what stops the two saying different things about the same member. A member holding several
+     * what stops the two showing different things about the same member. A member holding several
      * pieces out of one inventory has them in one cell, because a column is an inventory and splitting
      * it would put the same member on two rows.
      */

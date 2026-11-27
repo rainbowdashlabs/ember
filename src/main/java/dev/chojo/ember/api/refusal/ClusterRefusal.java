@@ -14,7 +14,7 @@ import io.javalin.http.HttpStatus;
  * the highest number here and in {@link RetiredRefusals}.
  */
 public enum ClusterRefusal implements Refusal {
-    /** An order for a cluster's questions, sent without saying which audience the order is for. */
+    /** An order for a cluster's questions, sent without indicating which audience the order is for. */
     CLUSTER_FIELD_ORDER_NEEDS_AN_AUDIENCE(
             1, HttpStatus.BAD_REQUEST, "An order of questions belongs to one audience, so nothing was saved"),
 
@@ -55,18 +55,18 @@ public enum ClusterRefusal implements Refusal {
     CLUSTER_CHAIN_ORDER_NEEDS_STEPS(
             12, HttpStatus.BAD_REQUEST, "Name the steps in the order they are to be walked. Nothing was saved"),
 
-    /** A step of a chain saved without saying who walks it, what it is about and who holds the gear after. */
+    /** A step of a chain saved without indicating who walks it, what it is about and who holds the gear after. */
     CLUSTER_STEP_DETAILS_MISSING(
             13,
             HttpStatus.BAD_REQUEST,
             "A step needs who does it, what it is done to, and who holds the gear afterwards, "
                     + "so nothing was saved"),
 
-    /** Gear sent out of the cluster's own store without saying which station it is going to. */
+    /** Gear sent out of the cluster's own store without indicating which station it is going to. */
     CLUSTER_DISPATCH_NEEDS_A_STATION(
             14, HttpStatus.BAD_REQUEST, "Name the station the gear is going to. Nothing was sent"),
 
-    /** What a loss report has to carry, saved without saying what that is. */
+    /** What a loss report has to carry, saved without indicating what that is. */
     CLUSTER_LOSS_REPORT_NEEDS_A_REQUIREMENT(
             15, HttpStatus.BAD_REQUEST, "Say what a loss report has to carry. Nothing was saved"),
 
@@ -76,14 +76,14 @@ public enum ClusterRefusal implements Refusal {
     /** The cluster behind its gear, gone between the session being opened and the request. */
     CLUSTER_NOT_HERE_FOR_CLUSTER_INVENTORY(17, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
 
-    /** A chain of steps saved without saying what it is walked for. */
+    /** A chain of steps saved without indicating what it is walked for. */
     CLUSTER_CHAIN_NEEDS_A_PURPOSE(18, HttpStatus.BAD_REQUEST, "A chain needs a purpose, so nothing was saved"),
 
     /** A chain given a purpose that is not one of the purposes on offer. */
     CLUSTER_CHAIN_PURPOSE_UNKNOWN(
             19, HttpStatus.BAD_REQUEST, "That is not a purpose a chain can have, so nothing was saved"),
 
-    /** The words a cluster recommends for its stations' gear, asked for without saying which cluster. */
+    /** The words a cluster recommends for its stations' gear, asked for without indicating which cluster. */
     NO_CLUSTER_CHOSEN_FOR_INVENTORY_TAGS(20, HttpStatus.BAD_REQUEST, Sentences.NO_CLUSTER_CHOSEN),
 
     /** The cluster behind its recommended words, gone between the session being opened and the request. */
@@ -100,7 +100,7 @@ public enum ClusterRefusal implements Refusal {
     /** A document about one of the cluster's people whose bytes could not be taken in. */
     CLUSTER_MEMBER_DOCUMENT_UNREADABLE(24, HttpStatus.BAD_REQUEST, "That file could not be read, so nothing was filed"),
 
-    /** An answer filed against a question said to come from somewhere questions do not come from. */
+    /** An answer filed against a question claimed to come from somewhere questions do not come from. */
     CLUSTER_FIELD_ORIGIN_UNKNOWN(
             25, HttpStatus.BAD_REQUEST, "That is not somewhere a question can come from, so nothing was saved"),
 
@@ -137,8 +137,8 @@ public enum ClusterRefusal implements Refusal {
 
     /**
      * A station asked for from a cluster that does not stand over it. A station nobody has ever
-     * created and a station belonging to another cluster are one code deliberately: telling them
-     * apart would let a cluster administrator map the stations standing outside their own cluster.
+     * created and a station belonging to another cluster are one code deliberately: distinguishing them
+     * would let a cluster administrator map the stations standing outside their own cluster.
      */
     STATION_NOT_IN_THIS_CLUSTER(34, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
 
@@ -168,7 +168,7 @@ public enum ClusterRefusal implements Refusal {
     /** A cluster being handed its first person to act for it that is not here any more. */
     CLUSTER_NOT_HERE_ON_APPOINTMENT(42, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
 
-    /** A cluster handed its first person without saying who that person is. */
+    /** A cluster handed its first person without indicating who that person is. */
     CLUSTER_APPOINTMENT_NEEDS_AN_ACCOUNT(
             43, HttpStatus.BAD_REQUEST, "Name the account that is to act for this cluster. Nobody was appointed"),
 
@@ -184,7 +184,7 @@ public enum ClusterRefusal implements Refusal {
     /** A cluster named in an address, written as no cluster can be. */
     CLUSTER_NOT_AN_IDENTITY(47, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_AN_IDENTITY),
 
-    /** The way a cluster files its stations, asked for without saying which cluster. */
+    /** The way a cluster files its stations, asked for without indicating which cluster. */
     NO_CLUSTER_CHOSEN_FOR_STATION_GROUPS(48, HttpStatus.BAD_REQUEST, Sentences.NO_CLUSTER_CHOSEN),
 
     /** The cluster behind its groups of stations, gone between the session and the request. */
@@ -202,7 +202,7 @@ public enum ClusterRefusal implements Refusal {
     /** A station a cluster is letting go, named in a way no station can be named. */
     STATION_NOT_AN_IDENTITY_ON_CLUSTER_RELEASE(53, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_AN_IDENTITY),
 
-    /** The reach of a cluster's storage, saved without saying how far it reaches. */
+    /** The reach of a cluster's storage, saved without indicating how far it reaches. */
     CLUSTER_STORAGE_POLICY_NEEDS_A_REACH(
             54, HttpStatus.BAD_REQUEST, "Say how far the cluster's storage reaches, so nothing was saved"),
 
@@ -290,7 +290,7 @@ public enum ClusterRefusal implements Refusal {
     /**
      * A request to join that is not here, or one addressed to another cluster.
      *
-     * <p>One code for both on purpose: telling them apart would say that a station asked to join a
+     * <p>One code for both on purpose: distinguishing them would reveal that a station asked to join a
      * cluster the reader does not act for.
      */
     CLUSTER_APPLICATION_NOT_HERE(79, HttpStatus.NOT_FOUND, "That request to join is not here any more"),
@@ -310,7 +310,7 @@ public enum ClusterRefusal implements Refusal {
     /**
      * A cluster article removed that is not here, or one kept at another station.
      *
-     * <p>One code for both on purpose: telling them apart would say that the article exists somewhere
+     * <p>One code for both on purpose: distinguishing them would reveal that the article exists somewhere
      * the cluster has no business with.
      */
     CLUSTER_KB_ARTICLE_NOT_HERE(84, HttpStatus.NOT_FOUND, Sentences.KB_ARTICLE_NOT_HERE),
@@ -363,7 +363,7 @@ public enum ClusterRefusal implements Refusal {
     /**
      * A cluster chain that is not here, or one belonging to another cluster or a station.
      *
-     * <p>One code for both on purpose: telling them apart would say that the chain exists somewhere
+     * <p>One code for both on purpose: distinguishing them would reveal that the chain exists somewhere
      * the cluster has no business with.
      */
     CLUSTER_INVENTORY_FLOW_NOT_HERE(96, HttpStatus.NOT_FOUND, Sentences.FLOW_NOT_HERE),
@@ -390,14 +390,14 @@ public enum ClusterRefusal implements Refusal {
     /**
      * A recommended word that is not here, or one another cluster recommends.
      *
-     * <p>One code for both on purpose: telling them apart would say what another cluster recommends.
+     * <p>One code for both on purpose: distinguishing them would reveal what another cluster recommends.
      */
     CLUSTER_INVENTORY_TAG_NOT_HERE(103, HttpStatus.NOT_FOUND, Sentences.CLUSTER_TAG_NOT_HERE),
 
     /**
      * A member taken on at a station that is not here or does not belong to the cluster.
      *
-     * <p>One code for both on purpose: telling them apart would say that a station exists outside the
+     * <p>One code for both on purpose: distinguishing them would reveal that a station exists outside the
      * cluster.
      */
     CLUSTER_MANAGED_MEMBER_STATION_NOT_HERE(104, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
@@ -408,7 +408,7 @@ public enum ClusterRefusal implements Refusal {
     /**
      * A document a cluster asked for that is not here, or one about nobody at its stations.
      *
-     * <p>One code for both on purpose: telling them apart would say what is filed at a station outside
+     * <p>One code for both on purpose: distinguishing them would reveal what is filed at a station outside
      * the cluster.
      */
     CLUSTER_MANAGED_DOCUMENT_NOT_HERE(106, HttpStatus.NOT_FOUND, Sentences.DOCUMENT_NOT_HERE),
@@ -420,7 +420,7 @@ public enum ClusterRefusal implements Refusal {
      * A member a cluster reached for who is not here, whose station is gone, or who belongs to a
      * station outside the cluster.
      *
-     * <p>One code for all three on purpose: telling them apart would say that somebody is a member of a
+     * <p>One code for all three on purpose: distinguishing them would reveal that somebody is a member of a
      * station outside the cluster.
      */
     CLUSTER_MANAGED_MEMBER_NOT_HERE(108, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
@@ -460,14 +460,14 @@ public enum ClusterRefusal implements Refusal {
     /**
      * A cluster member that is not here, or one of another cluster.
      *
-     * <p>One code for both on purpose: telling them apart would say who belongs to another cluster.
+     * <p>One code for both on purpose: distinguishing them would reveal who belongs to another cluster.
      */
     CLUSTER_MEMBER_NOT_HERE(117, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
 
     /**
      * A group of cluster members that is not here, or one of another cluster.
      *
-     * <p>One code for both on purpose: telling them apart would say which groups another cluster keeps.
+     * <p>One code for both on purpose: distinguishing them would reveal which groups another cluster keeps.
      */
     CLUSTER_MEMBER_GROUP_NOT_HERE(118, HttpStatus.NOT_FOUND, Sentences.GROUP_NOT_HERE),
 
@@ -557,7 +557,7 @@ public enum ClusterRefusal implements Refusal {
     /**
      * A group of stations that is not here, or one of another cluster.
      *
-     * <p>One code for both on purpose: telling them apart would say that the group exists at a
+     * <p>One code for both on purpose: distinguishing them would reveal that the group exists at a
      * cluster the reader does not act for.
      */
     CLUSTER_STATION_GROUP_NOT_HERE(140, HttpStatus.NOT_FOUND, "That group of stations is not here any more"),
@@ -588,7 +588,7 @@ public enum ClusterRefusal implements Refusal {
     /**
      * A tier of room that is not here, or one of another cluster.
      *
-     * <p>One code for both on purpose: telling them apart would say that the tier exists at a
+     * <p>One code for both on purpose: distinguishing them would reveal that the tier exists at a
      * cluster the reader does not act for.
      */
     CLUSTER_QUOTA_TIER_NOT_HERE(147, HttpStatus.NOT_FOUND, "That tier is not here any more"),
@@ -619,7 +619,7 @@ public enum ClusterRefusal implements Refusal {
             HttpStatus.BAD_REQUEST,
             "Set up the cluster's storage before deciding what it is for, so nothing was saved"),
 
-    /** A station's files moved that are already where the cluster's storage says they belong. */
+    /** A station's files moved that are already where the cluster's storage places them. */
     CLUSTER_STORAGE_STATION_ALREADY_IN_PLACE(
             155, HttpStatus.BAD_REQUEST, "That station's files are already where they belong, so nothing was moved"),
 
@@ -667,7 +667,7 @@ public enum ClusterRefusal implements Refusal {
     /**
      * A cluster question that is not here, or one of another cluster.
      *
-     * <p>One code for both on purpose: telling them apart would say that the question exists at a
+     * <p>One code for both on purpose: distinguishing them would reveal that the question exists at a
      * cluster the reader does not act for.
      */
     CLUSTER_PROFILE_FIELD_NOT_HERE(167, HttpStatus.NOT_FOUND, Sentences.PROFILE_FIELD_NOT_HERE),
@@ -698,10 +698,10 @@ public enum ClusterRefusal implements Refusal {
     /** A pronoun of an association's gender field longer than a pronoun may be. */
     CLUSTER_PROFILE_PRONOUN_TOO_LONG(177, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG),
 
-    /** The fonts of a cluster, asked for without saying which cluster. */
+    /** The fonts of a cluster, asked for without indicating which cluster. */
     NO_CLUSTER_CHOSEN_FOR_FONTS(178, HttpStatus.BAD_REQUEST, Sentences.NO_CLUSTER_CHOSEN),
 
-    /** The document templates of a cluster, asked for without saying which cluster. */
+    /** The document templates of a cluster, asked for without indicating which cluster. */
     NO_CLUSTER_CHOSEN_FOR_DOCUMENT_TEMPLATES(179, HttpStatus.BAD_REQUEST, Sentences.NO_CLUSTER_CHOSEN),
 
     /** An address added to an association while a request to its account still waits for an answer. */

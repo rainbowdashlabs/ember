@@ -60,7 +60,7 @@ import static org.mockito.Mockito.when;
  *
  * <p>Pictures are found as runs of dark pixel rows, texts by the top of their capital letters, read from
  * the drawn page above the baseline PDFBox reports, and by their baselines, which is where Typst ends a
- * block of text. The header is written in K, the footer in F and the body in B, so each letter says which
+ * block of text. The header is written in K, the footer in F and the body in B, so each letter shows which
  * part it belongs to.
  */
 class LetterPlacementTest extends GeneratorTestBase {
@@ -109,7 +109,7 @@ class LetterPlacementTest extends GeneratorTestBase {
         assertEquals(pictures.get(1), bodyText, TOLERANCE, "the body's text starts at its picture's top");
     }
 
-    /** A picture narrower than its column stands where its alignment says, centred where none is set. */
+    /** A picture narrower than its column stands where its alignment defines, centred where none is set. */
     @Test
     void aPictureStandsWhereItsAlignmentSays() throws IOException {
         var left = darkSpan(alignedPicture(CellConfig.ImageAlign.LEFT));

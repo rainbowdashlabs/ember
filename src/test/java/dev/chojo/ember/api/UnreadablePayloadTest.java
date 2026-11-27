@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>What is checked here is the half that has to be got right whatever the endpoint. The place the
  * reading stopped is named in the sender's own words, nothing of the type it failed to become comes
- * out with it, and whatever the library itself said stays behind.
+ * out with it, and whatever the library itself reported stays behind.
  */
 class UnreadablePayloadTest {
     private static final JsonMapper MAPPER = JsonMapper.builder()

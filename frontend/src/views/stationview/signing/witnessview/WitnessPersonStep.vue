@@ -26,7 +26,7 @@ import {useWitnessPeopleTable} from './useWitnessPeopleTable'
  *
  * <p>"Offen" lists those something waits on and is where the page opens; where nothing waits on anybody it
  * opens on "Alle", since a document can still be generated for anyone from a template. The list is read
- * again on the way back from a signature, so the tab follows what it then says until the reader picks one
+ * again on the way back from a signature, so the tab follows what it then shows until the reader picks one
  * themselves. Picking a person leads to what they may sign.
  */
 const props = defineProps<{

@@ -205,7 +205,7 @@ public class InventoryTagRoutes implements Routes {
     }
 
     /**
-     * A tag with the number of things wearing it, which is what tells a list of words which of them
+     * A tag with the number of things wearing it, which is what shows a list of words which of them
      * are doing any work.
      *
      * @param id       the tag

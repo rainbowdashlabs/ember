@@ -250,7 +250,7 @@ class AttendanceFieldArchiveRouteTest extends RepositoryTestBase {
         return values.stream().mapToInt(Integer::intValue);
     }
 
-    /** Deletes the field row outright, the way only a mistake would, and says whether it went. */
+    /** Deletes the field row outright, the way only a mistake would, and returns whether it went. */
     private static boolean deletesQuietly(int id) {
         try {
             return SqlSupport.deleteById("attendance_template_field", id);

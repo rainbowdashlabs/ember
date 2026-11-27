@@ -28,7 +28,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 /**
- * Turning one attachment into a document, or saying why it did not become one.
+ * Turning one attachment into a document, or showing why it did not become one.
  *
  * <p>Every path through here ends in a log entry, including the ones that file nothing. A rule that
  * quietly imports nothing is the likeliest complaint this feature will produce, and the log is the only
@@ -208,8 +208,8 @@ public class MailFilingService {
      * Which members the document is bound to.
      *
      * <p>Filing under nobody is the ordinary outcome rather than a failure, so an empty answer here is
-     * the normal one: the mail comes from the office or the scanner and says nothing about whom it
-     * concerns. The subject is the only thing that can say otherwise, which is a guess about a line a
+     * the normal one: the mail comes from the office or the scanner and shows nothing about whom it
+     * concerns. The subject is the only thing that can show otherwise, which is a guess about a line a
      * human typed and binds nobody where it is ambiguous. The candidates come from the mailbox's own
      * station, so a rule cannot reach a member of another one.
      */

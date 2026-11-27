@@ -19,7 +19,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
  * A Word form drawn twice, side by side: in its own fonts and with the replacements chosen, so a line
  * that breaks elsewhere shows before the form is converted. Both are drawn when the pair appears and
  * again on request, since every drawing takes the server a few seconds. One page turner moves both. Where
- * the original has to show a look-alike for a font, it says so above it.
+ * the original has to show a look-alike for a font, it shows this above it.
  */
 const props = defineProps<{
   draw: (version: FormPreviewVersion) => Promise<Blob>

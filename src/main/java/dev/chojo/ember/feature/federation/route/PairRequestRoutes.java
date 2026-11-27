@@ -105,7 +105,7 @@ public class PairRequestRoutes implements Routes {
         ctx.json(withReason(ctx, () -> incoming.status(query)));
     }
 
-    /** The instance that was asked tells this one what its station answered. */
+    /** The instance that was asked sends this one what its station answered. */
     @OpenApi(
             path = "/api/v1/public/discovery/pair-request/answer",
             methods = HttpMethod.POST,

@@ -42,11 +42,11 @@ test.describe('Profile fields', () => {
     }
 
     /**
-     * A question just written reaches nobody, and the row says so.
+     * A question just written reaches nobody, and the row shows that.
      *
      * <p>It used to be asked of whichever tab it was written in, which is a guess. A question that
      * reaches nobody looks exactly like one that works until somebody goes looking for it, so the
-     * list says it out loud instead.
+     * list shows it out loud instead.
      */
     test('a new question is asked of nobody until somebody is named', async ({browser}) => {
         const page = await pageAs(browser, 'manager')
@@ -87,8 +87,8 @@ test.describe('Profile fields', () => {
     })
 
     /**
-     * Dropping one audience leaves the question and every other audience alone, which is what tells a
-     * definition apart from the form it happens to stand on.
+     * Dropping one audience leaves the question and every other audience alone, which is what distinguishes a
+     * definition from the form it happens to stand on.
      */
     test('dropping one audience keeps the question and the others', async ({browser}) => {
         const page = await pageAs(browser, 'manager')

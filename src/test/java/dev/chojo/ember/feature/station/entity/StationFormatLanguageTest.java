@@ -14,10 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Which language a station's documents come out in.
  *
- * <p>Every export that renders a template asks this, so the answer for a station that has said nothing
+ * <p>Every export that renders a template asks this, so the answer for a station that has set nothing
  * decides what most installations receive. It is German: that is the language of the interface the
  * button was pressed in, and English is something a station asks for rather than something it arrives
- * at by saying nothing.
+ * at by setting nothing.
  */
 class StationFormatLanguageTest {
 

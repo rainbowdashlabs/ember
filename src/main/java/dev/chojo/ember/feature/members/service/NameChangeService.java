@@ -100,7 +100,7 @@ public class NameChangeService {
     }
 
     /**
-     * Asks for a new name and tells whoever confirms member changes at each of the member's
+     * Asks for a new name and notifies whoever confirms member changes at each of the member's
      * stations. A request still open is replaced.
      *
      * @param account   the account asking, with the name it carries now
@@ -143,7 +143,7 @@ public class NameChangeService {
     }
 
     /**
-     * Approves a request: the account takes the name, and the member is told.
+     * Approves a request: the account takes the name, and the member is notified.
      *
      * @param stationId the station deciding, which the member has to belong to
      * @param deciderId the account deciding
@@ -164,7 +164,7 @@ public class NameChangeService {
     }
 
     /**
-     * Denies a request: the account keeps its name, and the member is told, with the reason where
+     * Denies a request: the account keeps its name, and the member is notified, with the reason where
      * one was given.
      *
      * @param stationId the station deciding, which the member has to belong to

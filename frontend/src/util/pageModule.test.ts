@@ -7,7 +7,7 @@ import {describe, expect, it} from 'vitest'
 import {pageModuleKeys, titleWithModule} from './pageModule'
 
 /**
- * Which parts of the product a page is said to belong to, and how the tab reads them out.
+ * Which parts of the product a page belongs to, and how the tab reads them out.
  *
  * @vitest-environment happy-dom
  *
@@ -27,7 +27,7 @@ describe('the part of the product a page belongs to', () => {
         expect(pageModuleKeys('/cluster/events/7')).toEqual(['pageModule.events', 'pageModule.cluster'])
     })
 
-    /** A partner's catalogue is a catalogue, and it is a partner's: the tab is allowed to say both. */
+    /** A partner's catalogue is a catalogue, and it is a partner's: the tab is allowed to show both. */
     it('names the section and then the area for a partner station page', () => {
         expect(pageModuleKeys('/station/federation/quiz/abc/3'))
             .toEqual(['pageModule.quiz', 'pageModule.federation'])
@@ -54,7 +54,7 @@ describe('the part of the product a page belongs to', () => {
         expect(titleWithModule('Sommerfest', ['Termine', 'Verband'])).toBe('Sommerfest - Termine - Verband')
     })
 
-    /** A section's own front page is titled after the section, and saying it twice says nothing. */
+    /** A section's own front page is titled after the section, and repeating it adds nothing. */
     it('leaves out a part the title already says', () => {
         expect(titleWithModule('Boards', ['Boards'])).toBe('Boards')
     })

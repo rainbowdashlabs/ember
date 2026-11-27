@@ -19,7 +19,7 @@ import type {TransitionKind} from './entryTransitions'
  * <p>The start of the trial keeps its message on the entry's page as well, so the box stays even when
  * nobody is written to. A withdrawal deletes the entry and its page, so a message nobody would be
  * written to would reach nobody: the box only appears once the addresses are known and there are
- * some, and the dialog says so otherwise.
+ * some, and the dialog shows a note otherwise.
  */
 const message = defineModel<string>({required: true})
 

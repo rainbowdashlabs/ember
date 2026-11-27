@@ -26,7 +26,7 @@ import java.util.Optional;
  */
 @Singleton
 public class StorageAuditLogService {
-    /** How many entries a page holds when the caller does not say. */
+    /** How many entries a page holds when the caller gives none. */
     public static final int DEFAULT_LIMIT = 50;
 
     private static final int MAX_LIMIT = 200;

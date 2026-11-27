@@ -135,7 +135,7 @@ public class NotificationText {
     }
 
     /**
-     * The status of a registration in words, as a push or a mail says it: whoever moved up is told so,
+     * The status of a registration in words, as a push or a mail shows it: whoever moved up sees so,
      * at short notice where the start is less than a day away, and whoever waits their place in line.
      */
     private static String registrationStatusWords(String locale, NotificationParams.EventRegistrationStatus p) {

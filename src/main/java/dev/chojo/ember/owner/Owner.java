@@ -9,7 +9,7 @@ package dev.chojo.ember.owner;
  * Whose data a shared core touches: a station, an association, or the instance itself.
  *
  * <p>Several systems keep one copy of their rules and one set of tables per owner (profile fields,
- * storage backends). The rules are written once and told by this type whose tables, permissions and
+ * storage backends). The rules are written once and this type decides whose tables, permissions and
  * refusal codes apply. It is built at the route edge from the session, through
  * {@code StationSession.owner()}, {@code UserSession.association(...)} and {@code UserSession.instance()},
  * and never from anything the request sends: a route that built one from a path or body would let a

@@ -14,7 +14,7 @@ import TimeShortInput from './TimeShortInput.vue'
  * `datetime-local` field does.
  *
  * <p>Two fields rather than one, because a phone opens one native `datetime-local` field as a calendar
- * followed by a clock, neither of which says which field it belongs to. The clock read as a second date
+ * followed by a clock, neither of which shows which field it belongs to. The clock read as a second date
  * being asked for, and changing only the day of a start always seemed to ask for the end as well. Each
  * field here opens one picker, and changing the day leaves the time alone.
  *

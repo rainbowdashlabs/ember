@@ -21,7 +21,7 @@ import type { RequirementGroup } from './types'
 const props = defineProps<{
   group: RequirementGroup
   inventoryName: (id: number) => string
-  /** The association's ways of filing its stations, so a requirement can say which it is for. */
+  /** The association's ways of filing its stations, so a requirement can show which it is for. */
   stationGroups?: StationGroupResponse[]
 }>()
 

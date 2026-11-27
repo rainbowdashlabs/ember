@@ -278,7 +278,7 @@ public class PageService {
      *
      * <p>A page reached by its link stands outside the page tree, so becoming one detaches the page
      * from its parent and is refused while it still has children of its own. Lifting those children
-     * to the top by itself would change every one of their public addresses without saying so, and
+     * to the top by itself would change every one of their public addresses without notice, and
      * which of them belongs where is the editor's judgement rather than this method's.
      *
      * @param pageId     the page
@@ -335,7 +335,7 @@ public class PageService {
      *
      * @param pageId   the page
      * @param expected the link the caller was shown, so two administrators cannot take it in turns
-     *                 to end each other's without being told
+     *                 to end each other's without noticing
      * @return the new link, or empty where the page has since been given a different one
      * @throws RefusalResponse where nobody outside the station could open the page anyway, so a
      *                         link to it would be one that leads nowhere
@@ -448,7 +448,7 @@ public class PageService {
      * site exists at all.
      *
      * <p>Listed rather than reachable on purpose. A station whose only page is one reached by its
-     * link has no public site, and saying otherwise would put an empty pages menu on it and name it
+     * link has no public site, and doing otherwise would put an empty pages menu on it and name it
      * in the sitemap on the strength of a page nobody is meant to find.
      */
     /**

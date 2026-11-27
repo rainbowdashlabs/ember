@@ -30,7 +30,7 @@ interface PublicKbSources {
  *
  * <p>A reader outside the station owns nothing here: there is no entry to rename, move or delete, no
  * mark to set and no favourite to keep, so every entry carries an empty list of actions. The public
- * listing says nothing about how far an entry reaches either, which is a question only somebody
+ * listing shows nothing about how far an entry reaches either, which is a question only somebody
  * inside the station has. What it does carry is the pictures, the icon of a folder and the
  * preview of a file, which are served openly and are fetched as plain images rather than with a
  * session nobody has.
@@ -103,7 +103,7 @@ export function usePublicKbItems(sources: PublicKbSources) {
         ...sources.files.value.map(toFileItem),
     ])
 
-    /** A hit is the file it found, told apart from the same file in the listing by its key. */
+    /** A hit is the file it found, distinguished from the same file in the listing by its key. */
     function toSearchItems(results: SearchResultItem[]): KbItem[] {
         return results.map(result => ({
             ...toFileItem(result.file),

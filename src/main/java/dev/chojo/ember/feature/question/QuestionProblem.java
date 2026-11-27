@@ -12,11 +12,11 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Returned rather than thrown, because each feature refuses in its own words and through its own
  * kind of failure: a route answers with a bad request, a batch collects the lines it could not read,
- * and an import says which row it stopped at.
+ * and an import reports which row it stopped at.
  *
  * @param code     what is wrong, for whoever wants to decide rather than to read
  * @param question what the question is called
- * @param detail   the part of the answer that is wrong, or what was expected, where saying it helps
+ * @param detail   the part of the answer that is wrong, or what was expected, where giving it helps
  */
 public record QuestionProblem(
         Code code, String question, @Nullable String detail) {

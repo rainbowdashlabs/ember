@@ -7,7 +7,7 @@ import rule from './button-row.mjs'
 import {vueRuleTester} from './rule-tester'
 
 /**
- * A hand written flex row is reported once it holds two labelled buttons of its own and says
+ * A hand written flex row is reported once it holds two labelled buttons of its own and defines
  * nothing about a narrow width.
  *
  * @vitest-environment node

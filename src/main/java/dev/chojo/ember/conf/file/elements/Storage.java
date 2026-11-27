@@ -93,7 +93,7 @@ public class Storage {
 
     /**
      * Whether the media library writes its width copies, all of which are WebP, and serves them to
-     * browsers that say they take WebP. Off, no copies are made and the original is served for
+     * browsers that signal they take WebP. Off, no copies are made and the original is served for
      * every request. Disable only when there is a specific reason to suppress WebP delivery.
      */
     @Overwrite(env = @Env)

@@ -85,7 +85,7 @@ describe('EventGroupSetsEditor', () => {
     expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Kurs', minimum: 2, maximum: 2}])
   })
 
-  /** Two bare number fields say nothing on their own, so the columns are named above them. */
+  /** Two bare number fields show nothing on their own, so the columns are named above them. */
   it('names the columns of the minimum and the maximum', () => {
     const editor = mountEditor([{id: 1, name: 'Übung', minimum: 1, maximum: 1}], {1: 2})
 

@@ -223,7 +223,7 @@ class MemberRuleRepositoryTest extends RepositoryTestBase {
                 matching(RuleNode.all(RuleNode.userType(RuleOperator.NONE_OF, List.of(StationUserType.TEAM)))));
     }
 
-    /** A group bound to user types never takes a member of another type, whatever its rule says. */
+    /** A group bound to user types never takes a member of another type, whatever its rule defines. */
     @Test
     void aBoundGroupKeepsToItsTypes() {
         assertEquals(are("Ben", "Clara"), matching(RuleNode.all(), List.of(StationUserType.MEMBER)));

@@ -43,7 +43,7 @@ class PagePictureRedrawServiceTest {
         service = new PagePictureRedrawService(settings, documents, media, wikiFiles);
     }
 
-    /** An instance that never recorded a resolution cannot tell how its pictures were drawn. */
+    /** An instance that never recorded a resolution cannot determine how its pictures were drawn. */
     @Test
     void anUnrecordedResolutionDrawsEverythingAndRecordsIt() {
         when(settings.get(PagePictureRedrawService.DRAWN_AT_KEY)).thenReturn(Optional.empty());

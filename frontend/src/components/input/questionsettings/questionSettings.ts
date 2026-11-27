@@ -6,7 +6,7 @@
 import {FieldType, type StationUserType} from '@/api/generated/schema'
 
 /**
- * What a field says about the answer it takes, in the one shape every settings screen edits.
+ * What a field defines about the answer it takes, in the one shape every settings screen edits.
  *
  * <p>Each feature keeps its settings under its own keys, and most of the keys are the same: the
  * answers a choice offers, whether an answer is needed, what the form starts from, the bounds of a

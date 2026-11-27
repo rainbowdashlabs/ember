@@ -26,9 +26,9 @@ const props = defineProps<{
   stationUid: string
   /** What went wrong the last time something was written, or null while everything has landed. */
   failure?: Failure | null
-  /** What the files are for, where the owner is not an event: an event template says so in its own words. */
+  /** What the files are for, where the owner is not an event: an event template supplies its own words. */
   hint?: string
-  /** The explanations behind a hint icon by the heading, which also says that changes here save at once. */
+  /** The explanations behind a hint icon by the heading, which also shows that changes here save at once. */
   compact?: boolean
   /** Whether the owner is still being created, so the files are attached only once it is saved. */
   pending?: boolean

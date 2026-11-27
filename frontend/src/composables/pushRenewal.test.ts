@@ -26,7 +26,7 @@ const SUBSCRIPTION = {endpoint: 'https://push.example/a', p256dh: 'p', auth: 'a'
 
 /**
  * Renewing registers a browser that still has the permission, marked as a renewal and with the address it was
- * registered under before, subscribes anew where the browser dropped its subscription, and says nothing where
+ * registered under before, subscribes anew where the browser dropped its subscription, and reports nothing where
  * it cannot.
  *
  * @vitest-environment happy-dom

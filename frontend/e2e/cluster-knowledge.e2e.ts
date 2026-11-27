@@ -20,7 +20,7 @@ test.describe('Cluster knowledge', () => {
      * an association cannot reach a station's settings. So the field that marks one article public was drawn
      * only where the switch was on, and the switch could never be turned on. The story turns it on from the
      * association's own wiki page and then reads the result with no session at all, which is the only way to
-     * know the switch means what it says. The switch saves as it is flipped, so nothing else is pressed.
+     * know the switch does what it promises. The switch saves as it is flipped, so nothing else is pressed.
      */
     test('an association turns its public wiki on and an article is readable there',
         async ({adminPage: page, browser, request}) => {
@@ -108,7 +108,7 @@ test.describe('Cluster knowledge', () => {
      * CLS-108 - An article for named stations reaches those and not the rest.
      *
      * The association's wiki went to every station under it, always: the share was written for everybody
-     * the moment anything was created and nothing could say otherwise. The scope and the table to hold the
+     * the moment anything was created and nothing could express otherwise. The scope and the table to hold the
      * names both existed; the route carried no list and no screen offered one.
      */
     test('an article for named stations reaches those and not the rest',
@@ -157,9 +157,9 @@ test.describe('Cluster knowledge', () => {
         })
 
     /**
-     * CLS-109 - A tile says how far its entry reaches.
+     * CLS-109 - A tile shows how far its entry reaches.
      *
-     * A tile carried a lock when not everyone at the station could open an entry, and said nothing at all
+     * A tile carried a lock when not everyone at the station could open an entry, and showed nothing at all
      * about who outside could. Three eyes now, and the story walks the whole ladder: blue for an entry
      * every station of the association reads, yellow for one aimed at some of them, green once it is on
      * the public web. Green wins where both would apply, because public is the larger fact.

@@ -56,7 +56,7 @@ public final class QuestionCheck {
      *
      * <p>What a half-filled sheet wants. An attendance sheet is written on through the appointment and
      * saved as it goes, so demanding every required answer at every save would refuse the sheet
-     * itself; what it can still say is that a date is a date.
+     * itself; what it can still check is that a date is a date.
      *
      * @param question what is being answered
      * @param answer   what was given, which may be nothing
@@ -138,9 +138,9 @@ public final class QuestionCheck {
     }
 
     /**
-     * A number, and where the question says so, one that sits between its bounds.
+     * A number, and where the question defines bounds, one that sits between its bounds.
      *
-     * @param whole whether a fraction is refused, which is what tells a count of people from a length
+     * @param whole whether a fraction is refused, which is what distinguishes a count of people from a length
      */
     private static Optional<QuestionProblem> number(Question question, String value, boolean whole) {
         BigDecimal number;

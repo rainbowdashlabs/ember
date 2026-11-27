@@ -19,7 +19,7 @@ defineProps<{
  *
  * <p>A name is what somebody writes on a question and changes their mind about, and the age was
  * pointed at one: renaming the birth date left every age blank, with nothing on either screen
- * saying why. An identifier outlives what the question is called.
+ * showing why. An identifier outlives what the question is called.
  */
 const sourceId = defineModel<number | null>('sourceId', {required: true})
 const mode = defineModel<string>('mode', {required: true})

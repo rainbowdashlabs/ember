@@ -10,7 +10,7 @@ import type {Translate} from '@/util/failure'
  * How many answered a question, and where not everybody was shown it, how many were.
  *
  * <p>"Not shown" is not "not answered". A question behind a branch that only some readers reach looks
- * like one most people skipped unless the results say how many reached it at all.
+ * like one most people skipped unless the results show how many reached it at all.
  *
  * @param tally the counted answers to the question
  * @param total how many responses are counted

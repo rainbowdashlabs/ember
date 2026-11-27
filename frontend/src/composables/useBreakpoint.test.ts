@@ -23,7 +23,7 @@ function everyQueryMatches() {
     }))
 }
 
-/** Mounts a component that notes what the device composables said while it was set up. */
+/** Mounts a component that notes what the device composables reported while it was set up. */
 function mountReader() {
     const seen: {phone: boolean, mouse: boolean}[] = []
     let read = () => seen[0]!
@@ -41,7 +41,7 @@ function mountReader() {
 
 /**
  * The device composables in the browser. What the server rendered knows nothing of the device, so
- * while a page it sent is taken up they have to agree with it, and only afterwards say what the
+ * while a page it sent is taken up they have to agree with it, and only afterwards report what the
  * browser knows.
  */
 describe('device facts', () => {

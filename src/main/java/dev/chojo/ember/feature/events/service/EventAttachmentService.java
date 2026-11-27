@@ -60,7 +60,7 @@ public class EventAttachmentService {
      * <p>The channel between two instances speaks JSON, so a file crossing it is held whole in
      * memory several times over: the bytes, the text they are encoded as, and the body carrying
      * that text. The size a station accepts as an upload is the size it is willing to hand on, and
-     * the question is asked of what the row says rather than of what has already been loaded.
+     * the question is asked of what the row holds rather than of what has already been loaded.
      */
     public static void requireSizeToTravel(long fileSize, long limit) {
         if (fileSize > limit) throw EventRefusal.EVENT_FILE_TOO_LARGE_FOR_PARTNER.raise();

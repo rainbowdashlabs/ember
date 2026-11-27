@@ -36,8 +36,8 @@ public enum InsightsRefusal implements Refusal {
     /**
      * A page that is not here, or one of another station.
      *
-     * <p>One code for both on purpose. These figures are a station's own, and telling the two apart
-     * would say that the page exists at a station the reader may not see.
+     * <p>One code for both on purpose. These figures are a station's own, and distinguishing the two
+     * would reveal that the page exists at a station the reader may not see.
      */
     INSIGHTS_PAGE_NOT_HERE(8, HttpStatus.NOT_FOUND, Sentences.PAGE_NOT_HERE),
 

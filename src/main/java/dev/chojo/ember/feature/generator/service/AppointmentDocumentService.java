@@ -55,7 +55,7 @@ import java.util.Set;
  * <p>The reader sees the documents of every member they act for (themselves and the members in their
  * care) who holds a place, pending or accepted, on the date. Nobody else gets a copy here: a member of
  * another appointment, or of another date of this one, is refused. A copy is never hidden from the
- * participant, whatever the template says, since it is theirs to print and sign. Data the participant's
+ * participant, whatever the template defines, since it is theirs to print and sign. Data the participant's
  * profile lacks is left as a gap to fill in by hand, which is what a form to print is for. The copy is
  * issued by the template's issuer at the station.
  *
@@ -393,7 +393,7 @@ public class AppointmentDocumentService {
 
     /**
      * The documents of an appointment shown for one participant: those meant for them, as each template's
-     * audience says, and any they already hold a copy, a scan or a signature of, which stays in sight even
+     * audience defines, and any they already hold a copy, a scan or a signature of, which stays in sight even
      * where the template is no longer meant for them.
      */
     private static List<RequiredTemplate> shownFor(
@@ -572,7 +572,7 @@ public class AppointmentDocumentService {
                 || signature.state() == RequirementSignatureState.WAIVED;
     }
 
-    /** What a document says about the appointment on the date: its name, its times and its place. */
+    /** What a document shows about the appointment on the date: its name, its times and its place. */
     private GenerationContext.EventFacts facts(StationEvent event, LocalDate date) {
         var span = event.occurrenceOn(date, occurrenceCalendar.zoneOf(event.stationId()))
                 .orElseGet(() -> new StationEvent.Span(event.startTime(), event.endTime()));

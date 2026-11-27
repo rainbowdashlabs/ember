@@ -123,7 +123,7 @@ public final class RestrictionSql {
      * @param type                the restricted entity type
      * @param entityIdExpression  the SQL expression yielding the entity ID, e.g. {@code n.id}
      * @param memberIdExpression  the SQL expression yielding the member ID, e.g. {@code :member_id}
-     * @param managerExpression   the SQL expression saying whether that member manages the type,
+     * @param managerExpression   the SQL expression yielding whether that member manages the type,
      *                            e.g. {@code :is_manager}
      */
     public static String visibleFor(

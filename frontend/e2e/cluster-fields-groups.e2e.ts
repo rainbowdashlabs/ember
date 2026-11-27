@@ -19,7 +19,7 @@ test.describe('Cluster fields and groups', () => {
      * CLS-58 - The questions screen is the station's editor, not a list with a form on top.
      *
      * The questions on one side, who the selected one is asked on the other, a form picker below, and
-     * a way to add. The old screen had none of them, so seeing them is what says the station's editor
+     * a way to add. The old screen had none of them, so seeing them is what shows the station's editor
      * is really what is mounted here.
      */
     test('the association writes its questions in the station editor', async ({browser, request}) => {

@@ -83,7 +83,7 @@ public final class FormResultTally {
      *
      * @param questions   the form's questions, in their order
      * @param answers     every answer of the form
-     * @param responses   every response of the form, which say which pages they went through; {@code
+     * @param responses   every response of the form, which show which pages they went through; {@code
      *                    null} where that is not asked for
      * @param responseIds the responses to count, or {@code null} for all of them
      * @return one tally per question, in the order of the questions
@@ -109,7 +109,7 @@ public final class FormResultTally {
     /**
      * How many of the responses reached the question: those whose path holds its page, and those that
      * answered it. A response given before the form had pages holds only the first page as its path,
-     * and an answer to a question further down still says it was shown.
+     * and an answer to a question further down still records that it was shown.
      */
     private static Integer reached(
             FormQuestion question,

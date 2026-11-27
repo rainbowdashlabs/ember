@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * What a station member or a cluster follower is told through the notifier, and how they read and
+ * What a station member or a cluster follower gets through the notifier, and how they read and
  * clear it in their inbox.
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -233,7 +233,7 @@ class NotificationInboxTest extends RepositoryTestBase {
     }
 
     /**
-     * A station manager is told about the work of every manager role, although none of those
+     * A station manager is notified of the work of every manager role, although none of those
      * rights was ever granted to them by name.
      */
     @Test
@@ -299,7 +299,7 @@ class NotificationInboxTest extends RepositoryTestBase {
     }
 
     /**
-     * What a cluster follower is told, read and acknowledged the way a station member's is.
+     * What a cluster follower is sent, read and acknowledged the way a station member's is.
      *
      * <p>The cluster side of notifications has always been written but never read back by anything
      * that a test covered, which is the same blind spot that let its digest go unnoticed for as long

@@ -56,12 +56,12 @@ import java.util.function.Supplier;
  *       rather than nullable.
  *   <li>A type only ever read as a request body has every property optional, since the mapper reads a
  *       missing property as null or the primitive default. A property marked nullable also takes an
- *       explicit null, whatever the type's inclusion rule says about writing, because that is how a
+ *       explicit null, whatever the type's inclusion rule defines about writing, because that is how a
  *       request names a value it clears.
  *   <li>A sealed hierarchy without a type id is the union of its records. An enum with an accessor
  *       returning the class of one of its members, the way a cell type names its config record, adds an
  *       object from each constant to that record, named {@code <Hierarchy>ByType}.
- *   <li>Dates are named aliases, so a field says what it holds.
+ *   <li>Dates are named aliases, so a field shows what it holds.
  * </ul>
  *
  * <p>Components are named by the simple name of their type. Two types with one name cannot both be

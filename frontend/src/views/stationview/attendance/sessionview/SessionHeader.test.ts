@@ -29,7 +29,7 @@ function sheet(overrides: Partial<AttendanceSession> = {}): AttendanceSession {
 
 /**
  * The sheet's own time frame and worth. The times were once shown only where no appointment stood
- * behind the sheet, which left an appointment-made sheet unable to say that it started late.
+ * behind the sheet, which left an appointment-made sheet unable to show that it started late.
  */
 describe('SessionHeader', () => {
     it('lets the times be corrected on a sheet an appointment made', () => {

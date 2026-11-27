@@ -12,8 +12,8 @@ import {providerName} from '@/util/aaguid'
 import {formatDate} from '@/util/format'
 
 /**
- * The member's passkeys, told apart by the name they gave each and the provider the AAGUID
- * resolves to. An entry that was never used and is older than a month says so quietly: that is
+ * The member's passkeys, distinguished by the name they gave each and the provider the AAGUID
+ * resolves to. An entry that was never used and is older than a month shows that quietly: that is
  * usually a passkey created on a device the member no longer has.
  */
 const {t} = useI18n()

@@ -55,7 +55,7 @@ import static dev.chojo.ember.feature.station.transfer.WireValues.asUuid;
  * has it: two instances name their people independently, and the one already here was not asked. The
  * address is then the login name again, which is what it is for everybody who never had a name. An
  * account that has no address either arrives with no way in at all, and is logged as such, because
- * inventing a name nobody was told about would be worse than saying so.
+ * inventing a name nobody provided would be worse than reporting it.
  */
 @Singleton
 public class AccountTableImporter implements TableImporter {

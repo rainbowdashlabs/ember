@@ -129,7 +129,7 @@ export function requiredPartsOf(setId: number, parts: readonly EventGroupPartSta
 }
 
 /**
- * What a set asks for, as the group page and the sign-up dialog say it: all of its parts, or a number
+ * What a set asks for, as the group page and the sign-up dialog show it: all of its parts, or a number
  * of them, naming the parts it requires.
  *
  * @param set   the set
@@ -205,7 +205,7 @@ type EventGroupCounts = Pick<EventGroupSummary, 'holding' | 'queued'> & {
  *
  * <p>Unlike an appointment, an event group is full for people only once every place is taken. Somebody
  * waiting does not make it full: they may wait for a full part, and are passed over while it stays
- * full. The waiting count is there for the line saying how the places stand.
+ * full. The waiting count is there for the line showing how the places stand.
  */
 export function eventGroupPlaces(summary: EventGroupCounts): Places | null {
     const limit = summary.details.registrationLimit

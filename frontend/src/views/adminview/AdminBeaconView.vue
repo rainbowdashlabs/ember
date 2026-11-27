@@ -24,7 +24,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
  * What other instances have reported here, which is this instance's own error log and its own
  * problem reports over again, gathered from somewhere else.
  *
- * <p>Only an instance that accepts reports has any of this, so the screen says so plainly rather than
+ * <p>Only an instance that accepts reports has any of this, so the screen shows that plainly rather than
  * showing three empty lists to somebody whose instance was never meant to be a beacon.
  *
  * <p>Which page this is comes from the address, because the sidebar is the navigation now. Setting the
@@ -85,11 +85,11 @@ async function acknowledgeReport(id: number) {
 }
 
 /**
- * Takes the saved settings, fills the lists the instance has just gained, and tells the navigation.
+ * Takes the saved settings, fills the lists the instance has just gained, and informs the navigation.
  *
  * <p>Whether the instance gathers anything is what decides which entries the sidebar carries, and it is
- * decided right here. Without saying so, somebody who switches it on sits in front of a menu that still
- * says otherwise until they reload the page.
+ * decided right here. Without reporting so, somebody who switches it on sits in front of a menu that still
+ * shows otherwise until they reload the page.
  */
 function onSaved(stored: BeaconStatus) {
   status.value = stored

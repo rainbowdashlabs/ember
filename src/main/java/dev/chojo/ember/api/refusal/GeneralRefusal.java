@@ -64,7 +64,7 @@ public enum GeneralRefusal implements Refusal {
 
     /**
      * Gone, or another station's, from the loader that does both at once. The two are one code
-     * deliberately: telling them apart would say that the thing exists at another station, which
+     * deliberately: distinguishing them would reveal that the thing exists at another station, which
      * is what the shared answer is there to withhold.
      */
     NOT_HERE_OR_NOT_YOURS(11, HttpStatus.NOT_FOUND, Sentences.NOT_HERE_OR_NOT_YOURS),

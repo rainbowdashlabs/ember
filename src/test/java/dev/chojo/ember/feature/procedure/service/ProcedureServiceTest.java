@@ -508,7 +508,7 @@ class ProcedureServiceTest {
         verify(eventBus).publish(any(ProcedureAssigned.class));
     }
 
-    /** Only the members named for the first time are told the procedure was handed to them. */
+    /** Only the members named for the first time are notified that the procedure was handed to them. */
     @Test
     void setPartyTellsOnlyTheNewlyNamed() {
         var proc = procedure(PROCEDURE_ID, null);
@@ -534,7 +534,7 @@ class ProcedureServiceTest {
         verify(eventBus, never()).publish(any());
     }
 
-    /** A procedure with no party is run by nobody beyond its editors, whatever the restriction check says. */
+    /** A procedure with no party is run by nobody beyond its editors, whatever the restriction check reports. */
     @Test
     void anEmptyPartyRunsNothing() {
         when(restrictions.hasRestrictions(RestrictionType.PROCEDURE, PROCEDURE_ID))
@@ -854,7 +854,7 @@ class ProcedureServiceTest {
         verify(signing, never()).request(anyInt(), anyInt(), any());
     }
 
-    /** Ticking the step a document step waits for asks for that document, after the tick is told. */
+    /** Ticking the step a document step waits for asks for that document, after the tick is reported. */
     @Test
     void tickingTheLastDependencyAsksForTheDocument() {
         var first = ProcedureSteps.check(1, PROCEDURE_ID, "Packen", null, null, true, true, 0, false, null, null);
@@ -1008,7 +1008,7 @@ class ProcedureServiceTest {
         verify(signing).withdraw(70, MEMBER_ID);
     }
 
-    /** A document that stands as agreed ticks its step, tells the party and asks for what that unlocks. */
+    /** A document that stands as agreed ticks its step, notifies the party and asks for what that unlocks. */
     @Test
     void anAgreedDocumentTicksItsStep() {
         var step = documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false);
@@ -1038,7 +1038,7 @@ class ProcedureServiceTest {
         verify(eventBus, never()).publish(any());
     }
 
-    /** A withdrawn agreement opens its step again and tells whoever resolved the procedure. */
+    /** A withdrawn agreement opens its step again and notifies whoever resolved the procedure. */
     @Test
     void aWithdrawnAgreementOpensTheStepAndTellsWhoResolved() {
         var step = documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, true);
@@ -1071,7 +1071,7 @@ class ProcedureServiceTest {
         verify(repository, never()).reopenProcedure(anyInt());
     }
 
-    /** On an open procedure the step opens again and nobody extra is told. */
+    /** On an open procedure the step opens again and nobody extra is notified. */
     @Test
     void aWithdrawnAgreementOnAnOpenProcedureTellsNobodyExtra() {
         var step = documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, true);
@@ -1290,7 +1290,7 @@ class ProcedureServiceTest {
     }
 
     /**
-     * Every member gets a procedure of their own; the members the party names are told once, under the name
+     * Every member gets a procedure of their own; the members the party names are notified once, under the name
      * the first procedure is stored with, and the document steps are asked for only after every procedure is
      * written.
      */

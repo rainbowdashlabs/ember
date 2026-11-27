@@ -19,7 +19,7 @@ import java.util.Base64;
  * <p>A protocol supplies its {@link SignatureAlgorithm} and its {@link SignedEnvelope}; everything
  * else is the same for all of them: the signature travels as Base64, a signature that cannot be
  * decoded or checked is simply not valid, and a request is only taken within a time window around
- * the moment it says it was issued. What happens after that, remembering the nonce so the request
+ * the moment it claims it was issued. What happens after that, remembering the nonce so the request
  * is taken only once, is a {@link ReplayStore}'s job.
  */
 public final class SignedRequests {
@@ -71,7 +71,7 @@ public final class SignedRequests {
     /**
      * Whether a request's issue time lies close enough to now to be taken.
      *
-     * @param issuedAt when the request says it was issued, may be {@code null}
+     * @param issuedAt when the request claims it was issued, may be {@code null}
      * @param now      the receiver's clock
      * @param drift    how far the two may lie apart in either direction
      * @return true when the issue time is present and within the window

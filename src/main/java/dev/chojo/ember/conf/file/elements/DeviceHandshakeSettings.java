@@ -9,9 +9,9 @@ package dev.chojo.ember.conf.file.elements;
  * How hard the device handshake is throttled per network address.
  *
  * <p>Only the address-keyed limits are here, and they are here because an address is a poor way to
- * tell people apart: an office, a school or a scout hut reaches the internet as one, so a limit
+ * distinguish people: an office, a school or a scout hut reaches the internet as one, so a limit
  * meant to stop one machine grinding lands on everybody behind the router instead. An installation
- * that knows how many people sit behind its address can say so.
+ * that knows how many people sit behind its address can widen them.
  *
  * <p>What is deliberately not configurable: the per-account limit on raising requests, and the two
  * limits on the approval screen. Those are what stops somebody guessing a code, and an operator who

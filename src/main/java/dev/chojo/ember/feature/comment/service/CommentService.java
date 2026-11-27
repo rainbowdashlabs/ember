@@ -36,12 +36,12 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * The comments on every kind of target: reading, writing, changing and removing them, and telling
+ * The comments on every kind of target: reading, writing, changing and removing them, and notifying
  * whoever a comment concerns.
  *
  * <p>What all kinds share lives here: the thread, the check that an answer stays on the target of
  * the comment it answers, the soft delete, the one preview cut, the mentions and the events. What
- * differs between kinds (who may read, write and moderate, who else is told, where a notification
+ * differs between kinds (who may read, write and moderate, who else is notified, where a notification
  * opens) is asked of the {@link CommentTarget} bound for the kind.
  *
  * <p>The refusals a route answers for a comment that is missing or not the caller's to change stay
@@ -176,7 +176,7 @@ public class CommentService {
     /**
      * Writes a comment whose writer the caller has already let in: a member of a partner station,
      * whose request was checked against what is shared where it arrived, or a comment the demo
-     * seeds. Whom it tells follows from the writer's origin, as for any other comment.
+     * seeds. Whom it notifies follows from the writer's origin, as for any other comment.
      *
      * @param target  the target
      * @param writer  who writes
@@ -208,7 +208,7 @@ public class CommentService {
 
     /**
      * The comment an answer replies to, refusing one that is not on the same target, which would
-     * otherwise tell the author of a comment elsewhere about it and open the wrong page for them.
+     * otherwise notify the author of a comment elsewhere of it and open the wrong page for them.
      *
      * <p>An answer takes its parent's occurrence date, whatever it was sent with: a thread belongs to
      * the one date its first comment is about, and the whole-appointment view sends answers without one.
@@ -254,7 +254,7 @@ public class CommentService {
     /**
      * Who hears that a new thread was started: whoever runs the target, for a top-level comment only.
      * The author is left out, and so is everybody the comment mentions by name where mentions are
-     * announced, because they are told by the mention already.
+     * announced, because they are notified by the mention already.
      */
     private @Nullable StationAudience toldOfNewThread(
             CreatedAudience audience, int stationId, Comment comment, @Nullable Integer authorMemberId) {
@@ -333,7 +333,7 @@ public class CommentService {
     /**
      * The target as the station of the given member sees it. A news entry the instance published to
      * every station belongs to none of them, and a comment under it belongs to the station its
-     * author wrote from, so that is where whatever it tells goes.
+     * author wrote from, so that is where whatever it sends goes.
      */
     private TargetInfo seenFrom(TargetInfo target, @Nullable MemberIdentity member) {
         if (target.stationId() != null || member == null) return target;
@@ -351,7 +351,7 @@ public class CommentService {
 
     /**
      * Rewrites a comment and announces the mentions the edit added. Whoever the comment already
-     * mentioned is not told again, and an edit from a partner station tells nobody, as its comment
+     * mentioned is not notified again, and an edit from a partner station notifies nobody, as its comment
      * did not either.
      *
      * @param previous the comment as it stands

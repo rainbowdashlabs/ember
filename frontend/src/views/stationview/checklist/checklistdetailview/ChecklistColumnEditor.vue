@@ -75,7 +75,7 @@ function save() {
 }
 
 /**
- * Asks before the column goes, saying how many ticks go with it. While shift is held the column goes
+ * Asks before the column goes, showing how many ticks go with it. While shift is held the column goes
  * at once, and nobody is left waiting for a count to read.
  */
 async function askDelete() {
@@ -97,7 +97,7 @@ async function askDelete() {
  * Why the "this many ticks will be lost" count is missing.
  *
  * <p>It used to fall back to nought, which reads as a column nobody has ticked and makes deleting it
- * look harmless. Saying the count could not be read lets the reader decide with what they actually
+ * look harmless. Showing that the count could not be read lets the reader decide with what they actually
  * know.
  */
 const countFailure = ref<Failure | null>(null)

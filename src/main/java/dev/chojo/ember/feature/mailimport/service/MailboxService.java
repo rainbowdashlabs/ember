@@ -89,7 +89,7 @@ public class MailboxService {
      * Whether a password can be kept at all.
      *
      * <p>Without an encryption key configured there is nowhere safe to put one, and storing it in the clear
-     * is not an option this offers. The page asks first and says so, rather than letting somebody type a
+     * is not an option this offers. The page asks first and shows this, rather than letting somebody type a
      * credential that would then be refused.
      */
     public boolean canStorePasswords() {
@@ -321,7 +321,7 @@ public class MailboxService {
     /**
      * Refuses a host this instance may not connect to, and clear text anywhere but the local network.
      *
-     * <p>Asked as the mailbox is written so that whoever is setting one up is told now, rather than
+     * <p>Asked as the mailbox is written so that whoever is setting one up learns now, rather than
      * finding out from a connection test that the address they typed was never going to be tried.
      */
     private void requireReachable(String host, MailSecurity security) {

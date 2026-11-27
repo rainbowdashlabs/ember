@@ -14,7 +14,7 @@ import {decideReturnLanding} from '@/util/returnLanding'
  *
  * <p>It waits for the page to be mounted, which is not a detail: the landing page is rendered on the
  * server, where there is no browser to ask what anybody did last, and a route guard deciding this
- * would decide it in the middle of hydration, against markup that says something else. The page is
+ * would decide it in the middle of hydration, against markup that shows something else. The page is
  * therefore rendered and sent exactly as it always was, and the reader is moved on once it stands.
  *
  * <p>The page stays reachable on purpose through {@code /?home}, and every link to it inside the

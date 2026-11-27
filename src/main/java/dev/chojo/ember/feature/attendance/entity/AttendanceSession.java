@@ -61,7 +61,7 @@ public record AttendanceSession(
     /**
      * What one member's presence from one moment to another is worth in hours.
      *
-     * <p>The clock decides where the sheet says nothing else. Where it carries a number of its own,
+     * <p>The clock decides where the sheet defines nothing else. Where it carries a number of its own,
      * that number is what a whole presence is worth and a shorter one counts its share of it, so an
      * appointment of four hours counted as three gives three to whoever stayed and one and a half to
      * whoever left halfway. Nobody counts more than the sheet is worth, which is what stops an

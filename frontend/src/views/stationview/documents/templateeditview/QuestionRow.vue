@@ -19,7 +19,7 @@ import {ANSWER_PREFIX, QUESTION_KINDS, keyFromLabel, limitsFor} from './template
 /**
  * One question of a template: what the person generating is asked, what kind of answer it takes, what
  * counts as an answer, what it suggests for the member and whether it has to be answered. Changing the
- * kind starts the limits over, since the limits of one kind say nothing about another.
+ * kind starts the limits over, since the limits of one kind mean nothing for another.
  *
  * <p>The question is named in the template as `{{ask.<name>}}`. Its name follows its label for as long
  * as nothing in the template names it yet, so a new question gets a readable name without being typed

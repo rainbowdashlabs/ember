@@ -34,7 +34,7 @@ export default {
             overviewTip: 'Du kannst den Assistenten jederzeit über das X verlassen - die offenen Punkte erscheinen dann auf der Übersicht.',
             frameTitle: 'So sieht jeder Schritt aus',
             frameText: 'Jeder Schritt hat oben den Namen, rechts daneben die Zählung („Schritt 3 von 12") und darunter einen Fortschrittsbalken. Ganz unten stehen die Schaltflächen: links zurück, rechts speichern und weiter. Optionale Schritte haben zusätzlich „Überspringen".',
-            frameHintNote: 'Der graue Satz unter dem Balken sagt dir kurz, worum es in diesem Schritt geht.',
+            frameHintNote: 'Der graue Satz unter dem Balken zeigt dir kurz, worum es in diesem Schritt geht.',
         },
         setupWelcome: {
             title: 'Schritt: Willkommen',
@@ -58,7 +58,7 @@ export default {
             howTo: 'Wie benutze ich das?',
             howToStep1: 'Fülle Straße, Hausnummer, Postleitzahl und Ort aus.',
             howToStep2: 'Setze den Punkt auf der Karte genau auf euer Wachen-Gebäude.',
-            howToFind: 'Hat die Instanz eine Adresssuche, setzt „Auf der Karte finden" den Punkt auf die eingetippte Adresse. Trifft die Suche nur die Straße oder den Ort, sagt ein Hinweis unter der Karte, dass du den Punkt noch auf das Gebäude ziehen musst. Gespeichert wird erst mit dem Speichern-Knopf.',
+            howToFind: 'Hat die Instanz eine Adresssuche, setzt „Auf der Karte finden" den Punkt auf die eingetippte Adresse. Trifft die Suche nur die Straße oder den Ort, weist ein Hinweis unter der Karte darauf hin, dass du den Punkt noch auf das Gebäude ziehen musst. Gespeichert wird erst mit dem Speichern-Knopf.',
             howToStep3: 'Klicke auf „Speichern und weiter". Fehlt noch etwas, erscheint ein roter Hinweis.',
             exampleTitle: 'So sieht die Seite aus',
             exampleText: 'Ein Formular für die Adresse und darunter eine Karte, auf die du klickst.',
@@ -405,7 +405,7 @@ export default {
                 subtitle: 'So prüfst du, ob ein versiegeltes Dokument echt und unverändert ist.',
                 whatIs: 'Was ist ein Siegel?',
                 whatIsText: 'Manche Dokumente versiegelt deine Wache in Ember. Das Siegel ist eine einfache elektronische Signatur der Wache. Es zeigt, welche Wache das Dokument ausgestellt hat und dass seitdem niemand etwas daran geändert hat.',
-                whatIsText2: 'Ein Siegel ist keine Unterschrift einer Person. Es sagt auch nicht, ob der Inhalt stimmt.',
+                whatIsText2: 'Ein Siegel ist keine Unterschrift einer Person. Es belegt auch nicht, ob der Inhalt stimmt.',
                 howTo: 'Wie prüfe ich ein Dokument?',
                 step1: 'Öffne die Seite Dokument prüfen. Du erreichst sie über den Link hier oder über Dokument prüfen unten auf den öffentlichen Seiten einer Wache. Ein Konto brauchst du nicht.',
                 openPage: 'Zur Seite Dokument prüfen',
@@ -415,17 +415,17 @@ export default {
                 resultSealedHere: 'Grün: Eine Wache dieser Installation hat das Dokument versiegelt, und es ist unverändert.',
                 resultAltered: 'Rot mit Kreuz: Der versiegelte Inhalt wurde verändert oder die Datei ist beschädigt. Verlass dich nicht auf sie.',
                 resultModifiedAfterSealing: 'Rot mit Warnzeichen: Der versiegelte Inhalt ist unverändert, aber die Datei wurde danach geändert. Was sie zeigt, ist nicht genau das, was versiegelt wurde.',
-                resultNotIssuedHere: 'Blau: Das Siegel stammt nicht von dieser Installation. Die Seite kann dazu nichts sagen.',
+                resultNotIssuedHere: 'Blau: Das Siegel stammt nicht von dieser Installation. Die Seite kann es deshalb nicht prüfen.',
                 resultInvalid: 'Rot mit Sperrzeichen: Das Siegel ist ungültig, etwa weil sein Zertifikat gesperrt oder abgelaufen ist.',
                 resultUnclear: 'Grau: Das Siegel ließ sich nicht sicher prüfen. In den Einzelheiten steht, warum.',
                 resultNone: 'Trägt das PDF gar kein Siegel, steht das auch dort.',
                 exampleTitle: 'So sieht das aus',
                 revokedTitle: 'Gesperrter Schlüssel',
-                revokedText: 'Manchmal sperrt eine Wache ihren Schlüssel später. Hat ein Zeitstempel das Siegel vor der Sperre bestätigt, bleibt es gültig. Die Seite sagt dir dann, dass der Schlüssel erst später gesperrt wurde und das Siegel von davor stammt.',
+                revokedText: 'Manchmal sperrt eine Wache ihren Schlüssel später. Hat ein Zeitstempel das Siegel vor der Sperre bestätigt, bleibt es gültig. Die Seite zeigt dir dann, dass der Schlüssel erst später gesperrt wurde und das Siegel von davor stammt.',
                 heldTitle: 'Liegt die Datei bei Ember?',
                 heldText: 'Unter dem Ergebnis steht, ob diese Installation genau diese Datei aufbewahrt. Wenn nicht, ist das kein schlechtes Zeichen. Eine Kopie kann auch woanders liegen.',
                 evidenceTitle: 'Wer hat unterschrieben?',
-                evidenceText: 'Bei einem unterschriebenen Dokument zeigt die Seite außerdem, wer welches Feld wann und womit unterschrieben hat, und ob mehrere Felder in einem Schritt bestätigt wurden. Diese Angaben trägt die Datei unsichtbar bei sich. Ob sie unverändert sind, sagt die Prüfung des Siegels darüber. Den ausführlichen Nachweis zum Ausdrucken lädst du in Ember neben dem Dokument herunter.',
+                evidenceText: 'Bei einem unterschriebenen Dokument zeigt die Seite außerdem, wer welches Feld wann und womit unterschrieben hat, und ob mehrere Felder in einem Schritt bestätigt wurden. Diese Angaben trägt die Datei unsichtbar bei sich. Ob sie unverändert sind, zeigt die Prüfung des Siegels. Den ausführlichen Nachweis zum Ausdrucken lädst du in Ember neben dem Dokument herunter.',
                 compareTitle: 'Selbst nachprüfen',
                 compareText: 'Klappe die Einzelheiten auf. Dort steht der SHA-256-Fingerabdruck unter Ausgestellt von. Vergleiche ihn mit dem Fingerabdruck unten auf den öffentlichen Seiten der Wache. Stimmen beide überein, stammt das Siegel von dieser Installation.',
                 compareText2: 'Ein Fingerabdruck ist eine lange Folge aus Zahlen und Buchstaben. Jede Zertifizierungsstelle hat ihren eigenen.',
@@ -434,7 +434,7 @@ export default {
                 offlineStep1: 'Lade auf den öffentlichen Seiten der Wache unten das Zertifikat herunter. Prüfe, dass sein Fingerabdruck mit dem auf der Seite übereinstimmt.',
                 offlineStep2: 'Füge das Zertifikat in deinem PDF-Programm als vertrauenswürdig hinzu. Im Acrobat Reader geht das unter Einstellungen, Unterschriften, Identitäten und vertrauenswürdige Zertifikate.',
                 offlineStep3: 'Öffne das Dokument. Das Programm zeigt in der Leiste der Unterschriften, ob das Siegel gültig ist und ob das Dokument seitdem geändert wurde.',
-                offlineText2: 'Ohne diesen Schritt meldet das Programm, dass es die Identität nicht kennt. Das heißt nur, dass es der Wache noch nicht vertraut. Über eine Änderung am Dokument sagt diese Meldung nichts.',
+                offlineText2: 'Ohne diesen Schritt meldet das Programm, dass es die Identität nicht kennt. Das heißt nur, dass es der Wache noch nicht vertraut. Eine Änderung am Dokument zeigt diese Meldung nicht an.',
                 limitsTitle: 'Was beweist ein unterschriebenes Dokument nicht?',
                 limitsText: 'Eine Unterschrift in Ember ist eine einfache elektronische Unterschrift. Sie zeigt, welches Konto unterschrieben hat und dass das Dokument danach unverändert blieb. Wer gerade am Gerät saß, kann sie nicht beweisen.',
                 limitsText2: 'Verlangt ein Gesetz die Schriftform, ersetzt sie die Unterschrift auf Papier nicht. Für solche Dokumente braucht es weiter ein unterschriebenes Blatt Papier.',
@@ -1156,9 +1156,9 @@ volumes:
             onboardingGuide: 'Klickst du auf „Los geht’s", zeigt Ember dir Schritt für Schritt, wo du klicken musst. '
                 + 'Die Seite bleibt dabei ganz normal bedienbar, und wenn du zwischendurch woanders hingehst, geht '
                 + 'nichts verloren: Das kleine Symbol unten rechts holt den Hinweis zurück.',
-            onboardingFinish: 'Ist ein Schritt durch, sagt Ember das und bietet dir den Weg zurück zu deiner Liste '
-                + 'an. Wenn ein Knopf noch grau ist, sagt Ember dir das ebenfalls, statt dich darauf klicken zu '
-                + 'lassen.',
+            onboardingFinish: 'Ist ein Schritt durch, zeigt Ember das an und bietet dir den Weg zurück zu deiner Liste '
+                + 'an. Wenn ein Knopf noch grau ist, zeigt Ember dir das ebenfalls an, statt dich darauf '
+                + 'klicken zu lassen.',
             onboardingInstall: 'Bei der Aufgabe „Ember griffbereit halten" bieten manche Browser an, Ember wie eine '
                 + 'App zu installieren. Dann steht dort ein Knopf dafür bereit, und Ember öffnet sich danach in '
                 + 'einem eigenen Fenster. In allen anderen Browsern legst du dir wie bisher ein Lesezeichen an. '
@@ -1268,7 +1268,7 @@ volumes:
             withdraw: 'Unterschrift widerrufen',
             withdrawText: 'Eine Unterschrift lässt sich zurücknehmen: beim Dokument unter „Meine Dokumente" oder auf der Terminseite mit „Unterschrift widerrufen". '
                 + 'Das können die Person, um die es geht, ihre Erziehungsberechtigten und alle, die selbst ein Feld unterschrieben haben. Ein Grund ist freiwillig.',
-            withdrawRecord: 'Die unterschriebene Fassung bleibt als Nachweis erhalten. Der Widerruf kommt in eine neue versiegelte Fassung, deren Signaturnachweis sagt, wer wann widerrufen hat. '
+            withdrawRecord: 'Die unterschriebene Fassung bleibt als Nachweis erhalten. Der Widerruf kommt in eine neue versiegelte Fassung, deren Signaturnachweis zeigt, wer wann widerrufen hat. '
                 + 'Wer die Unterschrift angefragt hat oder den Termin betreut, wird benachrichtigt. Verlangt ein Termin das Dokument, wird die Unterschrift neu angefragt.',
             access: 'Mit Tastatur und Screenreader',
             accessText: 'Jeder Schritt hat eine eigene Überschrift, auf die der Fokus springt, und ist mit der Tastatur erreichbar. Angesagt wird, bei welchem Schritt du bist. '
@@ -1439,7 +1439,7 @@ volumes:
             guardiansTitle: 'Erziehungsberechtigte aufnehmen',
             guardiansText: 'Den Schalter gibt es für jeden Chat, auch für einen für die ganze Wache. Ist er an, sind die Erziehungsberechtigten der Mitglieder ebenfalls im Chat. Sie lesen und schreiben wie alle anderen. Das gilt auch, wenn ihr Kind selbst noch keine Nachrichten hat. In der Mitgliederliste steht bei ihnen, für wen sie dabei sind.',
             closeTitle: 'Schließen und betreuen',
-            closeText: 'Schließt du einen Chat, bleibt er für alle lesbar, nimmt aber nichts Neues mehr an. Mit „Wieder öffnen" geht er wieder auf. Wird eine Gruppe oder ein Tag aus seiner Zielgruppe gelöscht, oder ist niemand der einzeln Ausgewählten mehr da, schließt sich der Chat von selbst und sagt das. Gib ihm dann mit „Bearbeiten" eine neue Zielgruppe, danach lässt er sich wieder öffnen. Private Tags stehen nicht zur Auswahl, denn der Chat zeigt, wer dabei ist.',
+            closeText: 'Schließt du einen Chat, bleibt er für alle lesbar, nimmt aber nichts Neues mehr an. Mit „Wieder öffnen" geht er wieder auf. Wird eine Gruppe oder ein Tag aus seiner Zielgruppe gelöscht, oder ist niemand der einzeln Ausgewählten mehr da, schließt sich der Chat von selbst und zeigt das an. Gib ihm dann mit „Bearbeiten" eine neue Zielgruppe, danach lässt er sich wieder öffnen. Private Tags stehen nicht zur Auswahl, denn der Chat zeigt, wer dabei ist.',
             moderateText: 'Mit der Berechtigung „Chats moderieren" kannst du in jedem Chat, in dem du bist, jede Nachricht für die Wache entfernen. Gemeldete Nachrichten findest du unter „Gemeldete Nachrichten".',
             tip: 'Chats anlegen, ändern und schließen erlaubt die Berechtigung „Chats bearbeiten". „Wachenchats verwalten" umfasst sie und „Chats moderieren".',
             example: {
@@ -1570,7 +1570,7 @@ volumes:
             typesText: 'Die Typen sind Neuigkeiten, Kommentare, Erwähnungen, neue Termine, Kommentare zu Terminen, Anmeldungen, Gruppen, Profil, Beschaffung und Ablaufdaten. „Kommentare zu Terminen" betrifft nur, wer Termine verwaltet: Jeder neue Kommentar, der unter einem Termin eine Unterhaltung beginnt, landet bei dir, auch von Mitgliedern einer Partnerwache. Bist du im Kommentar erwähnt, bekommst du nur die Erwähnung.',
             matrixTitle: 'Benachrichtigungsmatrix',
             matrixText: 'Für jeden Typ kannst du drei Kanäle einzeln aktivieren: App (erscheint auf der Übersicht), E-Mail und Feed. Die Tabelle zeigt jeden Typ mit Schaltern für jeden Kanal. Typen eines Moduls, das deine Wache ausgeschaltet hat, stehen nicht in der Tabelle; deine Einstellung dazu bleibt erhalten.',
-            matrixNoMail: 'Hat deine Wache keinen E-Mail-Versand eingerichtet und teilt die Instanz ihren auch nicht mit ihr, fehlen der Schalter für E-Mails und die Spalte „E-Mail“. Ein Hinweis oben sagt dann, dass Benachrichtigungen nicht per E-Mail kommen können.',
+            matrixNoMail: 'Hat deine Wache keinen E-Mail-Versand eingerichtet und teilt die Instanz ihren auch nicht mit ihr, fehlen der Schalter für E-Mails und die Spalte „E-Mail“. Ein Hinweis oben zeigt dann, dass Benachrichtigungen nicht per E-Mail kommen können.',
             pushTitle: 'Push-Benachrichtigungen',
             pushText: 'Mit Push-Benachrichtigungen erscheinen Benachrichtigungen auf deinem Handy oder Computer, auch wenn Ember geschlossen ist. Du schaltest sie oben auf dieser Seite für das Gerät ein, auf dem du gerade bist; der Browser fragt dann einmal nach der Erlaubnis. Die Spalte „Push“ legt fest, welche Arten gepusht werden. Auf iPhone und iPad geht das nur, wenn Ember auf dem Home-Bildschirm liegt. Neue Nachrichten aus deinen Unterhaltungen kommen ebenfalls als Push, außer aus stummgeschalteten und solange du Ember offen hast; das schaltest du auf der Karte mit „Nachrichten per Push“ für dein ganzes Konto.',
             pushRemove: 'Abschalten kannst du sie hier mit „Entfernen“, in der Liste deiner Anmeldungen mit „Push entfernen“ oder in den Einstellungen des Browsers. Wer sich abmeldet, bekommt auf dem Gerät ebenfalls keine Pushes mehr. Der volle Text erscheint auch auf dem Sperrbildschirm, wenn du das in den Einstellungen deines Telefons nicht ausblendest.',
@@ -1606,7 +1606,7 @@ volumes:
             android4: 'Füge die kopierte Atom-Adresse in das Feld ein und tippe auf „Suchen".',
             android5: 'Feeder zeigt dir den gefundenen Feed. Bestätige mit „OK", dann steht er in deiner Liste.',
             androidAfter: 'Stell in den Einstellungen von Feeder ein, wie oft abgeholt wird, und lass die '
-                + 'Benachrichtigungen der App an. Ohne sie holt Feeder zwar ab, sagt dir aber nichts, und '
+                + 'Benachrichtigungen der App an. Ohne sie holt Feeder zwar ab, zeigt dir aber nichts an, und '
                 + 'dann hast du denselben Zustand wie vorher: du erfährst es, wenn du nachschaust.',
             iosTitle: 'iPhone und iPad mit NetNewsWire',
             iosIntro: 'NetNewsWire ist kostenlos und quelloffen und liegt im App Store.',
@@ -1616,7 +1616,7 @@ volumes:
             ios4: 'Füge die kopierte Atom-Adresse ein.',
             ios5: 'Tippe auf „Add". Der Feed steht danach unter „On My iPhone".',
             iosAfter: 'Erlaube NetNewsWire Mitteilungen, wenn iOS danach fragt, sonst holt die App zwar ab, '
-                + 'sagt dir aber nichts davon. Über iCloud kann sie deine Feeds außerdem zwischen iPhone, '
+                + 'zeigt dir aber nichts davon an. Über iCloud kann sie deine Feeds außerdem zwischen iPhone, '
                 + 'iPad und Mac abgleichen.',
             quietTitle: 'Was in den Feed gehört',
             quietText: 'Was im Feed steht, entscheidest du in Ember unter Benachrichtigungen, je Zeile '
@@ -1847,7 +1847,7 @@ volumes:
             title: 'Anwesenheits-Konfiguration',
             subtitle: 'Vorlagen für die Anwesenheitserfassung einrichten.',
             whatIs: 'Was sind Anwesenheitsvorlagen?',
-            whatIsText: 'Stell dir Vorlagen wie eine vorgefertigte Liste vor: Wenn du eine Anwesenheit startest, sagt die Vorlage, welche Gruppen dabei sein sollen und welche Felder ausgefüllt werden müssen.',
+            whatIsText: 'Stell dir Vorlagen wie eine vorgefertigte Liste vor: Wenn du eine Anwesenheit startest, legt die Vorlage fest, welche Gruppen dabei sein sollen und welche Felder ausgefüllt werden müssen.',
             createTitle: 'Vorlage erstellen',
             createName: 'Gib der Vorlage einen Namen - zum Beispiel „Übungsabend" oder „Jugenddienst".',
             createGroups: 'Füge Gruppen hinzu - welche Mitgliedergruppen bei dieser Anwesenheit erwartet werden.',
@@ -1922,7 +1922,7 @@ volumes:
                 + 'die Leitung ein Datum, das das Team schreibt, ohne dass es zwei Fragen braucht.',
             nobodyTitle: 'Fragen ohne Zielgruppe',
             nobodyText: 'Eine neu angelegte Frage wird zunächst niemandem gestellt und steht in keinem '
-                + 'Profil. Die Liste sagt das an der Zeile, damit es nicht erst auffällt, wenn jemand '
+                + 'Profil. Die Liste zeigt das an der Zeile, damit es nicht erst auffällt, wenn jemand '
                 + 'die Frage sucht.',
             optionsTitle: 'Feld-Optionen',
             optRequired: 'Pflichtfeld - Das Mitglied muss dieses Feld ausfüllen. Einzelne Zielgruppen können es anders halten.',
@@ -1940,7 +1940,7 @@ volumes:
                 + 'und Ember erinnert rechtzeitig daran.',
             typeBoolean: 'Ja/Nein - Schalter.',
             typeEnum: 'Auswahl - Auswahl aus vorgegebenen Werten. Die Werte trägst du einzeln ein, einen pro Zeile; mit den Pfeilen änderst du ihre Reihenfolge.',
-            typeGender: 'Geschlecht - Eine Auswahl, deren Antworten sagen, mit welchen Pronomen Dokumente über '
+            typeGender: 'Geschlecht - Eine Auswahl, deren Antworten festlegen, mit welchen Pronomen Dokumente über '
                 + 'das Mitglied schreiben. Neu angelegt bringt sie männlich und weiblich mit, weitere Antworten '
                 + 'kommen dazu. Jede Antwort steht für er, sie, eigene Pronomen je Sprache oder den Vornamen. '
                 + 'Pro Wache gibt es ein Geschlechtsfeld, das eigene oder das des Verbands. Ein bestehendes '
@@ -2006,7 +2006,7 @@ volumes:
             oneTimePasswordTitle: 'Ohne Mailserver: das Einmalpasswort',
             oneTimePasswordText: 'Hat deine Instanz keinen Mailserver, kommt keine Mail mit Link an. Dann zeigt dir der Assistent den Schalter „Einmalpasswort erstellen". Ist er an, zeigt Ember nach dem Anlegen die Zugangsdaten.',
             oneTimePasswordHandOver: 'Kopiere oder drucke die Zugangsdaten und gib sie der Person selbst. Sie sind nur einmal zu sehen. Beim ersten Anmelden wählt die Person ein eigenes Passwort.',
-            oneTimePasswordShared: 'Gehört die Adresse schon zu einem Konto einer anderen Wache, wird kein Einmalpasswort erstellt. Ember sagt dir dann, warum. Hier hilft die Administration der Instanz.',
+            oneTimePasswordShared: 'Gehört die Adresse schon zu einem Konto einer anderen Wache, wird kein Einmalpasswort erstellt. Ember zeigt dir dann, warum. Hier hilft die Administration der Instanz.',
             step3: 'Schritt 3: Profilfelder',
             step3Text: 'Fülle die Profilfelder aus. Pflichtfelder sind mit einem * markiert.',
             step4: 'Schritt 4: Gruppen',
@@ -2459,7 +2459,7 @@ volumes:
                 + 'verkleinere sie in Prozent und aktualisiere die Vorschau. Die Felder der Vorlage drucken in '
                 + 'derselben Schrift und Größe wie der Text an ihrer Stelle.',
             pronounsTitle: 'Pronomen und Sprache',
-            pronounsText: 'Pronomen folgen dem Geschlechtsfeld der Wache: Jede Antwort dort sagt, welche Pronomen in '
+            pronounsText: 'Pronomen folgen dem Geschlechtsfeld der Wache: Jede Antwort dort legt fest, welche Pronomen in '
                 + 'Dokumenten stehen, je Sprache, oder dass der Vorname steht. Ohne Antwort steht ebenfalls der '
                 + 'Vorname. Die Sprache der Vorlage stellst du unter Allgemein ein.',
             pronounsNameText: 'Pronomen-Platzhalter gibt es als er/sie, ihn/sie, ihm/ihr und sein/ihr, jeweils auch '
@@ -2587,7 +2587,7 @@ volumes:
             createTitle: 'Selbst ein Dokument erstellen',
             createText: 'Unter jeder Liste steht „Dokument erstellen" mit den Vorlagen, die die Wache dafür '
                 + 'freigegeben hat. Ein Klick erstellt das PDF und legt es gleich in die Liste. Fehlen Angaben in '
-                + 'deinem Profil, sagt Ember dir, welche.',
+                + 'deinem Profil, zeigt Ember dir, welche.',
             profileText: 'Im Profil siehst du deine Dokumente weiterhin. Erstellt werden sie hier.',
             exampleTitle: 'So sieht ein Angebot aus',
             exampleOffer: 'Teilnahmebescheinigung',
@@ -2611,7 +2611,7 @@ volumes:
             howTo: 'Suchen und filtern',
             howToText: 'Sortiere über die Spaltenköpfe und filtere zum Beispiel nach einer Vorlage oder nach '
                 + 'selbst erstellten Dokumenten. Über das Spalten-Symbol blendest du Spalten ein und aus.',
-            goneText: 'Ist ein Mitglied gelöscht, steht dort „Nicht mehr da". „In den Dokumenten" sagt, ob das '
+            goneText: 'Ist ein Mitglied gelöscht, steht dort „Nicht mehr da". „In den Dokumenten" zeigt, ob das '
                 + 'Dokument noch abgelegt ist.',
             pagesText: 'Die Liste zeigt zuerst die 500 neuesten Dokumente. Mit „Ältere laden" kommen die nächsten '
                 + 'dazu; Suche und Filter wirken auf alles, was geladen ist.',
@@ -2764,10 +2764,10 @@ volumes:
             title: 'Abläufe',
             subtitle: 'Welche Schritte ein Vorgang von Ausrüstung geht, und wer sie bestätigt.',
             whatIs: 'Was ein Ablauf ist',
-            whatIsText: 'Ein Ablauf ist die Kette von Schritten, die ein Vorgang geht. Jeder Schritt sagt, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach liegt.',
-            shapeText: 'Jede Kette beginnt mit einer Anforderung und endet damit, dass die Stelle, bei der das Teil landet, den Erhalt bestätigt. Kürzer als zwei Schritte geht es deshalb nicht, und eine Kette, die unterwegs endet oder nicht sagt, welches Teil angekommen ist, wird beim Speichern abgelehnt.',
+            whatIsText: 'Ein Ablauf ist die Kette von Schritten, die ein Vorgang geht. Jeder Schritt legt fest, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach liegt.',
+            shapeText: 'Jede Kette beginnt mit einer Anforderung und endet damit, dass die Stelle, bei der das Teil landet, den Erhalt bestätigt. Kürzer als zwei Schritte geht es deshalb nicht, und eine Kette, die unterwegs endet oder nicht festlegt, welches Teil angekommen ist, wird beim Speichern abgelehnt.',
             whichApplies: 'Welcher Ablauf gilt',
-            groupedText: 'Die Ketten stehen nach Zweck gruppiert untereinander. Zugeklappt sagt jede Karte nur, aus wie vielen Schritten die Kette besteht; der Pfeil klappt die Zeichnung und die Schritte auf.',
+            groupedText: 'Die Ketten stehen nach Zweck gruppiert untereinander. Zugeklappt zeigt jede Karte nur, aus wie vielen Schritten die Kette besteht; der Pfeil klappt die Zeichnung und die Schritte auf.',
             whichAppliesText: 'Drei Dinge entscheiden das: wofür der Vorgang läuft, wem das Teil gehört, und ob am anderen Ende das Lager der Wache oder ein Mitglied steht. Für jede dieser Kombinationen gibt es genau eine Kette, und welche Kombination eine Kette bedient, steht oben auf ihrer Karte.',
             ownerText: 'Gehört das Teil dem Träger und führt der Träger sein Lager hier, gelten seine Ketten. Führt er es nicht hier, geht die Wache seine Schritte an seiner Stelle, und im Verlauf steht, dass sie behauptet und nicht bestätigt wurden.',
             editing: 'Schritte ändern',
@@ -2804,7 +2804,7 @@ volumes:
                 + 'Stelle weiter.',
             noStatusRead: 'Ein Schritt ist nach dem Zustand benannt, den er herstellt. In der Zeile steht deshalb der '
                 + 'Schritt, der schon wahr ist, und auf dem Knopf daneben steht der nächste: ihn zu drücken heißt zu '
-                + 'sagen, dass jetzt auch das stimmt.',
+                + 'bestätigen, dass jetzt auch das stimmt.',
             noStatusWhere: 'Wo ein Vorgang steht, wird an den Teilen abgelesen. Deshalb gibt es kein Feld, das dem '
                 + 'Lager widerspricht, und deshalb legt „Richtigstellen" die Teile um, statt eine Stufe zu setzen.',
             ownerTitle: 'Wem das Teil gehört',
@@ -2817,7 +2817,7 @@ volumes:
                 + 'steht auf dem Bild, bevor irgendetwas gespeichert wird.',
             createPrefilled: 'Wird der Vorgang von einer Seite aus gestartet, die die Antworten schon kennt, etwa '
                 + 'vom Inventar eines Mitglieds, fragt der Assistent nur noch das Fehlende.',
-            createNoFlow: 'Gibt es für die Kombination keinen hinterlegten Ablauf, sagt der letzte Schritt das und '
+            createNoFlow: 'Gibt es für die Kombination keinen hinterlegten Ablauf, zeigt der letzte Schritt das an und '
                 + 'verlinkt die Abläufe in den Einstellungen. Ohne Ablauf lässt sich nichts starten.',
             filterTitle: 'Liste eingrenzen und sortieren',
             filterText: 'Über der Liste steht ein Suchfeld für Name, Teil und Kennzeichnung. Gefiltert wird über das '
@@ -2891,7 +2891,7 @@ volumes:
                 + 'Art. Ladestation und Antenne tragen gar keine Art, sie liegen lose in der Sammlung, und das ist '
                 + 'der Normalfall für alles, was es nur einmal gibt.',
             kindsWhyText: 'Nur ein einheitliches Inventar kennt Größen, Vorgaben, Beschaffungen und Tausche, denn „jeder braucht '
-                + 'eines“ und „drei nachbestellen“ sagen über eine Kiste mit lauter Verschiedenem nichts aus. Nur '
+                + 'eines“ und „drei nachbestellen“ ergeben bei einer Kiste mit lauter Verschiedenem keinen Sinn. Nur '
                 + 'eine Sammlung kennt Arten. Umstellen lässt sich das, solange nichts davon daran hängt.',
             badgesText: 'Auf jeder Inventar-Karte stehen Abzeichen: wem es gehört, ob es Größen führt und ob es '
                 + 'einheitlich oder eine Sammlung ist. Bei einer Sammlung steht daneben, wie viele Arten in ihr angelegt sind.',
@@ -2899,7 +2899,7 @@ volumes:
             shareText: 'Darfst du die Ausleihe verwalten, steht auf jeder Karte auch, ob das Inventar den '
                 + 'Partnerwachen angeboten wird. Der Knopf mit dem Teilen-Zeichen öffnet die Entscheidung: anbieten '
                 + 'oder zurückhalten, allen Partnerwachen oder nur bestimmten. „Eintrag entfernen“ macht es wieder '
-                + 'zu einem Inventar, über das nichts gesagt ist, und damit zu einem, das niemand angeboten bekommt.',
+                + 'zu einem Inventar, über das nichts festgelegt ist, und damit zu einem, das niemand angeboten bekommt.',
             shareExternalText: 'Bei einem externen Inventar steht davon nichts. Die Sachen darin gehören dem Kreis '
                 + 'oder Verband über deiner Wache, und was deiner Wache nicht gehört, kann sie auch nicht verleihen.',
             itemsTitle: 'Gegenstände hinzufügen',
@@ -2935,15 +2935,15 @@ volumes:
             seriesText: 'Bei einem wiederkehrenden Termin gilt eine Zeile für jeden seiner Termine. Ein einzelner Termin kann zusätzlich etwas eintragen, ohne die anderen anzufassen: der eine Dienst im Jahr, für den auch der Anhänger gebraucht wird.',
             linesTitle: 'Die Zeilen',
             linesText: 'Eine Zeile benennt ein bestimmtes Stück, fragt nach einer Anzahl einer Art aus einer Sammlung oder nach einer Anzahl aus einem ganzen einheitlichen Inventar.',
-            pickText: 'Gesucht wird durch Tippen: ein paar Buchstaben aus dem Namen genügen, und jeder Treffer sagt gleich, in welchem Inventar er liegt und wie viele Stücke davon an der Wache sind. Eine Liste zum Durchscrollen gibt es nicht mehr, denn bei ein paar hundert Stücken war sie ohnehin nicht mehr zu lesen.',
-            tooManyText: 'Steht neben einer Art oder einem Inventar eine kleinere Zahl als die verlangte, sagt der Dialog es sofort. Verboten wird es nicht: Was fehlt, lässt sich eintragen und danach bei den Partnerwachen suchen. Gezählt wird, was die Wache überhaupt besitzt; was an einem bestimmten Termin noch frei ist, steht neben der Zeile im Ausrüstungs-Reiter, weil eine Zeile für alle Termine gilt und nicht nur für einen.',
+            pickText: 'Gesucht wird durch Tippen: ein paar Buchstaben aus dem Namen genügen, und jeder Treffer zeigt gleich, in welchem Inventar er liegt und wie viele Stücke davon an der Wache sind. Eine Liste zum Durchscrollen gibt es nicht mehr, denn bei ein paar hundert Stücken war sie ohnehin nicht mehr zu lesen.',
+            tooManyText: 'Steht neben einer Art oder einem Inventar eine kleinere Zahl als die verlangte, weist der Dialog sofort darauf hin. Verboten wird es nicht: Was fehlt, lässt sich eintragen und danach bei den Partnerwachen suchen. Gezählt wird, was die Wache überhaupt besitzt; was an einem bestimmten Termin noch frei ist, steht neben der Zeile im Ausrüstungs-Reiter, weil eine Zeile für alle Termine gilt und nicht nur für einen.',
             leadText: 'Ausrüstung ist länger weg als der Termin dauert. Die Funkgeräte werden am Vorabend geholt und kommen am Montag zurück, deshalb trägt jede Zeile ein, wie viele Stunden vorher sie schon aus dem Regal ist und wie lange danach noch. Ein Tag in jede Richtung ist der Normalfall und voreingestellt.',
             coverTitle: 'Was gedeckt ist',
             coverText: 'Neben jeder Zeile steht, woher die Stücke kommen: eigene, geliehene und angefragte. Eine geliehene Kiste ist an der eigenen Wache eine ganz gewöhnliche Zeile und zählt deshalb mit, sonst würde eine Lücke gemeldet, die vor einer Woche geschlossen wurde.',
             overClaimText: 'Zwei Termine dürfen dasselbe Wochenende mit demselben Anhänger planen. Das wird angezeigt und nennt die beteiligten Termine, statt den zweiten zu verbieten: Planen heißt aufschreiben, und ein Werkzeug, das einen Konflikt nicht aufschreiben lässt, verschiebt ihn nur auf den Samstag.',
             borrowTitle: 'Fehlendes leihen',
             borrowText: 'Fehlt etwas, führt ein Knopf auf die Seite, auf der sich zusammenstellen lässt, was die Partnerwachen anbieten. Angeboten wird dort nach Art gezählt und nicht nach ganzer Sammlung, damit „vier blaue“ auch vier blaue werden.',
-            sendText: 'Nichts wird zurückgehalten, solange die Liste wächst. Vor dem Senden wird noch einmal gezählt und angezeigt, was sich geändert hat. Die Liste geht als eine Anfrage je Wache hinaus, und der Knopf sagt, wie viele das sind.',
+            sendText: 'Nichts wird zurückgehalten, solange die Liste wächst. Vor dem Senden wird noch einmal gezählt und angezeigt, was sich geändert hat. Die Liste geht als eine Anfrage je Wache hinaus, und der Knopf zeigt, wie viele das sind.',
             tip: 'Die angefragte Wache sieht nur den Namen des Termins und den Zeitraum. Alles andere am Termin bleibt bei euch.',
         },
         inventoryChecks: {
@@ -3143,9 +3143,9 @@ volumes:
                 + 'sind ihre Mitgliedstypen und Gruppen vorausgewählt: Du kannst sie so übernehmen oder für diese eine '
                 + 'Liste ändern, ohne dass sich die Vorlage ändert.',
             whatATileSaysTitle: 'Was eine Kachel verrät',
-            whatATileSaysText: 'Jede Vorlage sagt auf ihrer Kachel, wen sie einträgt und wonach sie fragt. So musst '
+            whatATileSaysText: 'Jede Vorlage zeigt auf ihrer Kachel, wen sie einträgt und wonach sie fragt. So musst '
                 + 'du nicht aus dem Gedächtnis entscheiden, welche Vorlage die Felder für den Bericht mitbringt oder '
-                + 'welche die Jugendgruppe erwartet. Eine Vorlage, die niemanden einträgt, sagt das ebenfalls.',
+                + 'welche die Jugendgruppe erwartet. Eine Vorlage, die niemanden einträgt, zeigt das ebenfalls.',
             emptyTitle: 'Ohne passende Vorlage starten',
             emptyText: 'Passt keine Vorlage zu den Leuten, die heute da sind, wähle „Leere Anwesenheit". Früher '
                 + 'musste dafür eine leere Vorlage angelegt und für immer behalten werden; das ist nicht mehr nötig.',
@@ -3498,7 +3498,7 @@ volumes:
             announceAudienceText: 'Ist der Termin nur für bestimmte Gruppen sichtbar, startet die Neuigkeit mit derselben Auswahl. Solange sie steht, erreicht die Neuigkeit weder Partnerwachen noch die öffentliche Seite. Das Aufheben ist ein bewusster zweiter Schritt. Einen Terminblock bekommt so ein Entwurf nicht, denn ein Terminblock zeigt nur Termine, die alle Mitglieder sehen dürfen.',
             announceSnapshotText: 'Der Terminblock bleibt immer aktuell. Die Textblöcke darunter sind dagegen eine Abschrift: Ändert sich der Termin später, ändern sie sich nicht mit, genauso wie ein gedruckter Aushang.',
             cancelTitle: 'Termin absagen',
-            cancelText: 'Unter Aktionen sagt „Diesen Termin absagen" nur den Termin ab, den du gerade ansiehst. Bei einem wiederkehrenden Termin bleiben alle anderen Termine bestehen. Der Termin bekommt ein rotes Banner, und wer dafür angemeldet ist, wird benachrichtigt. Die Anmeldungen bleiben erhalten.',
+            cancelText: 'Unter Aktionen betrifft „Diesen Termin absagen" nur den Termin, den du gerade ansiehst. Bei einem wiederkehrenden Termin bleiben alle anderen Termine bestehen. Der Termin bekommt ein rotes Banner, und wer dafür angemeldet ist, wird benachrichtigt. Die Anmeldungen bleiben erhalten.',
             cancelSeriesText: 'Soll ein wiederkehrender Termin ganz enden, wähle „Alle Termine absagen". Dann sind alle Termine abgesagt, und wer für einen kommenden Termin angemeldet ist, wird benachrichtigt. Das lässt sich nicht rückgängig machen. Ganz entfernen lässt sich ein Termin mit „Löschen“ am Ende des Menüs: Ember fragt vorher nach und löscht dann alle seine Termine mit ihren Anmeldungen. Soll nur ein Termin ausfallen, sag ihn stattdessen ab. Gehört der Termin zu einer Terminreihe, verlässt er sie dabei; die Anmeldungen zur Terminreihe bleiben für ihre anderen Termine bestehen.',
             restoreText: 'Einen einzeln abgesagten Termin holst du mit „Termin wiederherstellen" zurück, solange er noch bevorsteht. Wer angemeldet war, ist sofort wieder dabei und bekommt Bescheid.',
             cancelAutomaticText: 'Hat der Termin eine Mindestanzahl, prüft Ember jeden Termin einzeln. Kommen bis zur eingestellten Zahl von Tagen vorher zu wenige Zusagen zusammen, wird nur dieser Termin abgesagt. Einen so abgesagten Termin, den du wiederherstellst, sagt Ember nicht noch einmal ab.',
@@ -3517,7 +3517,7 @@ volumes:
             documentsToBringSigningStatusText: 'Jedes Unterschriftsfeld zeigt seinen Stand: „Unterschrieben", „Unterschrift offen", „Auf Papier bestätigt" oder „Erlassen". Das Feld der ausstellenden Person steht für Teilnehmende und Erziehungsberechtigte als „Wird von der Wache unterschrieben" da: Darum kümmert sich die Wache, es fehlt nichts von dir. Die Terminverwaltung sieht es als offen, bis es unterschrieben ist. Bestätigt die Terminverwaltung einen Scan, gelten alle noch offenen Felder des Dokuments als auf Papier bestätigt. Wer sich wieder abmeldet, für den werden die offenen Unterschriften zurückgezogen und nicht mehr erinnert; schon Unterschriebenes bleibt erhalten.',
             documentsReviewTitle: 'Dokumente der Teilnehmenden',
             documentsReviewText: 'Wer die Anmeldungen verwaltet, findet unter den mitzubringenden Dokumenten für jedes Dokument einen Bereich „Dokumente der Teilnehmenden". Dort hat jede angemeldete Person eine Kachel. Ein Klick auf die Überschrift klappt den Bereich zu oder auf.',
-            documentsReviewGroupsText: 'Die Kacheln stehen in drei Gruppen. „Zu erledigen" heißt: Du bist dran, etwa bei einem Scan zum Prüfen. „Fehlt noch" heißt: Die Person muss noch etwas tun, die Erinnerungen laufen. „Erledigt" heißt: unterschrieben, auf Papier bestätigt oder erlassen. Die Zahl in Klammern sagt, wie viele Personen in der Gruppe sind.',
+            documentsReviewGroupsText: 'Die Kacheln stehen in drei Gruppen. „Zu erledigen" heißt: Du bist dran, etwa bei einem Scan zum Prüfen. „Fehlt noch" heißt: Die Person muss noch etwas tun, die Erinnerungen laufen. „Erledigt" heißt: unterschrieben, auf Papier bestätigt oder erlassen. Die Zahl in Klammern zeigt, wie viele Personen in der Gruppe sind.',
             documentsReviewOpenText: 'Am Anfang ist nur „Zu erledigen" offen, und nur wenn dort jemand steht. Ein Klick auf eine Gruppe klappt sie auf oder zu. Dein Browser merkt sich das für alle Termine, wenn du das Speichern der „Einstellungen der Ansicht" erlaubt hast.',
             documentsReviewActionsText: 'Mit „Herunterladen" speicherst du das Exemplar der Person, nach einer Online-Unterschrift die versiegelte Fassung. „Scan herunterladen" speichert einen eingereichten Scan. Kann niemand ein Feld unterschreiben, etwa weil es keine zweite erziehungsberechtigte Person gibt, steht das auf der Kachel. Wer Mitgliederdokumente bearbeiten darf, bestätigt das Feld dann auf Papier oder erlässt es. Eine widerrufene Vereinbarung steht mit Datum auf der Kachel.',
             documentsReviewSample: 'Einverständnis',
@@ -3533,7 +3533,7 @@ volumes:
             probeVisitorsText: 'Wer die Warteliste lesen darf, sieht hier, wer von der Warteliste zu diesem Termin zur Probe eingeladen ist und ihn gewählt hat: Name, die Uhrzeit, zu der die Person da sein soll, und die Warteliste. Der Name führt zum Eintrag. Diese Personen stehen auf keiner Teilnehmerliste, denn angemeldet haben sie sich nicht. Kommt niemand, fehlt der Abschnitt.',
             signupListsSurveyText: 'Die Umfrage wird als Entwurf angelegt und ist auf genau diese Personen beschränkt. Sie erreicht niemanden, solange sie nicht veröffentlicht ist: erst die Fragen schreiben, dann veröffentlichen. Der Eintrag erscheint nur, wenn das Modul für Umfragen bei der Wache eingeschaltet ist.',
             signupListsText: 'Über dem Anmeldungen-Bereich sitzt ein Menü, das aus den Zusagen eine Checkliste oder eine Umfrage macht. Übernommen wird genau ein Termin, nämlich der, den die Seite gerade zeigt, und nur wer dort einen Platz hat. Wer sich später anmeldet, kommt nicht von selbst dazu: die Liste ist eine Momentaufnahme, und Nachzügler werden von Hand ergänzt.',
-            signupListsLimitsText: 'Drei Gruppen können nicht auf die Liste, und der Dialog sagt vorher, um wie viele es geht: Zusagen von Partnerwachen, weil diese Personen hier keine Mitglieder sind, und Personen, die die Wache inzwischen verlassen haben. Bei einem Termin ohne Anmeldung gibt es gar keine Zusagen, dort erscheint das Menü deshalb nicht. Im Verbandsbereich fehlt es ebenfalls, weil Checklisten und Umfragen der Wache gehören.',
+            signupListsLimitsText: 'Drei Gruppen können nicht auf die Liste, und der Dialog zeigt vorher, um wie viele es geht: Zusagen von Partnerwachen, weil diese Personen hier keine Mitglieder sind, und Personen, die die Wache inzwischen verlassen haben. Bei einem Termin ohne Anmeldung gibt es gar keine Zusagen, dort erscheint das Menü deshalb nicht. Im Verbandsbereich fehlt es ebenfalls, weil Checklisten und Umfragen der Wache gehören.',
             nextOccurrenceTitle: 'Datum-bezogene Ansicht',
             nextOccurrenceText: 'Die Detailansicht ist immer an ein konkretes Datum gebunden. Bei wiederkehrenden Terminen wird das Datum entweder aus der URL übernommen (etwa wenn du aus einer Erinnerung kommst) oder fällt auf den nächsten Termin zurück. Beginn und Ende zeigen genau diesen Tag - kein separater „Nächster Termin"-Kasten mehr nötig. Abwesenheiten beziehen sich auf dasselbe Datum.',
             tip: 'Melde dich rechtzeitig an oder sag rechtzeitig ab, damit die Planung stimmt.',
@@ -3639,7 +3639,7 @@ volumes:
             questionsText: 'Fragen wie die T-Shirt-Größe stellst du einmal für die ganze Terminreihe. Jede Anmeldung beantwortet sie einmal, nicht für jeden Termin neu. Behält eine Frage ihren Namen, bleiben die Antworten erhalten.',
             partsTitle: 'Termine',
             partsText: 'Sobald die Terminreihe gespeichert ist, fügst du Termine hinzu. Du nimmst einen vorhandenen Termin oder legst einen neuen direkt in der Terminreihe an. Mit der Auswahl verschiebst du einen Termin in einen anderen Block.',
-            requiredText: 'Mit dem Schalter „Pflicht“ muss jede Anmeldung diesen Termin wählen. Er zählt zur Mindestzahl des Blocks mit. Verlangt der Block weniger Termine, als Pflicht sind, wird die Zahl erhöht und ein Hinweis sagt es. Wer schon angemeldet ist, ohne den Termin zu haben, wird als unvollständig gezeigt. Ein Pflichttermin, der schon stattgefunden hat, zählt weiter: Wer sich danach anmeldet, erfüllt die Vorgaben nicht mehr und kann nur von der Leitung angemeldet werden.',
+            requiredText: 'Mit dem Schalter „Pflicht“ muss jede Anmeldung diesen Termin wählen. Er zählt zur Mindestzahl des Blocks mit. Verlangt der Block weniger Termine, als Pflicht sind, wird die Zahl erhöht und ein Hinweis zeigt das an. Wer schon angemeldet ist, ohne den Termin zu haben, wird als unvollständig gezeigt. Ein Pflichttermin, der schon stattgefunden hat, zählt weiter: Wer sich danach anmeldet, erfüllt die Vorgaben nicht mehr und kann nur von der Leitung angemeldet werden.',
             partRulesText: 'Nur einmalige Termine können dazugehören. Ein Termin, für den sich schon Leute einzeln angemeldet haben, kann nicht dazukommen. Eigene Fragen eines Termins fallen weg, sobald er zur Terminreihe gehört.',
             tip: 'Anmeldung, Fragen und wer sich anmelden darf stellst du für die einzelnen Termine nicht am Termin ein, sondern hier an der Terminreihe.',
             setsMaximumText: 'Neben der Spalte „Termine mindestens“ steht „Termine höchstens“. Leer, als „beliebig“ angezeigt, heißt: so viele, wie man will. Steht bei einem Block 1 und 1, wählt man genau einen seiner Termine, etwa zwei gleiche Kurse an verschiedenen Tagen. Wird ein Termin zur Pflicht, steigt die Höchstzahl mit, wenn sie zu klein ist.',
@@ -3703,7 +3703,7 @@ volumes:
             signUpText: 'Mit dem ersten Schalter legst du fest, ob sich Mitglieder anmelden müssen. Erst dann erscheinen die übrigen Einstellungen: ob du die Anmeldungen bestätigst, einen Anmeldeschluss und die Zahl der Plätze. Die Fragen zur Anmeldung stehen immer im Formular; fügst du eine hinzu, schaltet sich die Anmeldung ein und bleibt an, solange es Fragen gibt.',
             signUpDeadlineText: 'Eine Vorlage kennt noch kein Datum. Darum gibst du den Anmeldeschluss als Zeitspanne vor dem Beginn an, in Stunden oder Tagen, genau oder um Mitternacht. Ein Termin aus der Vorlage übernimmt diese Regel, und bei wiederkehrenden Terminen gilt sie für jeden Termin einzeln.',
             signUpQueueText: 'Hat die Vorlage begrenzte Plätze, legst du darunter fest, in welcher Reihenfolge die Nachrückliste nachrückt. Termine aus dieser Vorlage starten mit dieser Reihenfolge.',
-            signUpRulesText: 'Mit einer Mindestanzahl sagt der Termin ab, wenn sich bis einige Tage vorher zu wenige angemeldet haben. Negative Zahlen gibt es hier nicht.',
+            signUpRulesText: 'Mit einer Mindestanzahl fällt der Termin aus, wenn sich bis einige Tage vorher zu wenige angemeldet haben. Negative Zahlen gibt es hier nicht.',
             audienceTitle: 'Wer sich anmelden darf und wer den Termin sieht',
             audienceText: 'Wie im Formular eines Termins ist ein Termin aus der Vorlage zunächst für alle offen. Mit „Wer sich anmelden darf“ und „Wer den Termin sehen darf“ fügst du die jeweilige Einschränkung hinzu, „Entfernen“ nimmt sie wieder weg. Beim Anwenden der Vorlage bekommt der Termin beide Angaben und lässt sich danach noch ändern.',
             shareTitle: 'Föderation',
@@ -3717,7 +3717,7 @@ volumes:
             documentsTitle: 'Mitzubringende Dokumente',
             documentsText: 'Über dem Speichern wählst du Dokumentvorlagen „Für Termine", die jeder Termin aus dieser Vorlage von den Teilnehmenden verlangt. Ein Termin übernimmt die Liste beim Anlegen und lässt sich danach unabhängig ändern.',
             remindersTitle: 'Erinnerungen',
-            remindersText: 'Eine Erinnerung sagt, wie viele Tage vor dem Termin die Mitglieder eine Nachricht bekommen. Du kannst mehrere anlegen, zum Beispiel sieben und einen Tag vorher.',
+            remindersText: 'Eine Erinnerung legt fest, wie viele Tage vor dem Termin die Mitglieder eine Nachricht bekommen. Du kannst mehrere anlegen, zum Beispiel sieben und einen Tag vorher.',
             fieldsTitle: 'Eigene Felder',
             fieldsText: 'Eigene Felder sind Zusatzangaben wie Ort oder Treffpunkt. Für die häufigsten gibt es Schnell-Schaltflächen; alle anderen legst du selbst an und entscheidest, ob sie in der Übersicht und öffentlich sichtbar sind.',
             fromAttendanceTitle: 'Felder aus der Anwesenheitsvorlage',
@@ -3753,7 +3753,7 @@ volumes:
             tip: 'Du kannst auch eine CSV-Datei mit vorbereiteten Daten importieren, um die Felder vorzufüllen.',
             templateTitle: 'Aus einer Vorlage',
             templateText: 'Lädst du eine Vorlage, füllt sie das Formular wie bei einem einzelnen Termin, auch Plätze, Reihenfolge der Nachrückliste, Mindestanzahl und Anmeldeschluss. Darunter steht „Aus der Vorlage bekommt jeder Termin außerdem:“ mit dem, was jeder Termin mitbekommt: Erinnerungen, Fragen zur Anmeldung, Dokumente zum Mitbringen, Dateien, vorbelegte Felder der Anwesenheitsliste und die Freigabe für Partnerwachen.',
-            templateLeftOutText: 'Unter „Nicht übernommen:“ steht, was nicht mitkommt, etwa die Wiederholung einer Vorlage für wiederkehrende Termine, denn hier entstehen einzelne Termine. Die Termine entstehen alle zusammen oder gar nicht: Scheitert einer, wird keiner angelegt. Danach wird jeder Termin für die Partnerwachen freigegeben; klappt das nicht, sagt die Seite es.',
+            templateLeftOutText: 'Unter „Nicht übernommen:“ steht, was nicht mitkommt, etwa die Wiederholung einer Vorlage für wiederkehrende Termine, denn hier entstehen einzelne Termine. Die Termine entstehen alle zusammen oder gar nicht: Scheitert einer, wird keiner angelegt. Danach wird jeder Termin für die Partnerwachen freigegeben; klappt das nicht, zeigt die Seite das an.',
             manualTip: 'Eine neue Zeile übernimmt Datum und Zeiten der Zeile davor. So trägst du mehrere Termine am selben Tag schnell ein.',
         },
         checklist: {
@@ -3882,8 +3882,8 @@ volumes:
             requestsTitle: 'Anfragen an Wachen anderer Instanzen',
             requestsText: 'Eine Wache einer anderen Instanz fragst du genauso an wie eine Wache deiner eigenen: über "Verbinden" auf ihrer Kachel im Wachen-Verzeichnis oder mit dem Code, den "Code anfordern" dort zeigt. Deine Instanz schickt die Anfrage an die andere, deren Verwaltung bekommt eine Benachrichtigung und findet die Anfrage auf ihrer Föderations-Seite, mit der Instanz, von der sie kommt.',
             requestsText2: 'Unter "Gesendete Anfragen" siehst du, was noch auf Antwort wartet und was abgelehnt wurde. Nimmt die andere Wache an, steht die Partnerschaft auf beiden Seiten und du wirst benachrichtigt. Lehnt sie ab, kann deine Wache sie erst nach 30 Tagen wieder fragen.',
-            requestsText3: 'Anfragen nimmt eine Instanz nur von Instanzen an, die sie aus dem Wachen-Verzeichnis kennt. Läuft die andere Instanz noch mit einer älteren Version von Ember oder kennt sie deine Instanz nicht, sagt die Meldung das. Dann hilft ein Einladungscode, den die andere Wache für dich erzeugt.',
-            acrossInstancesText3: 'Geht etwas schief, sagt die Meldung im Dialog, woran es lag: keine Antwort, zu lange gewartet, Code dort schon benutzt, Versionen passen nicht zueinander, Wache dort gelöscht, oder eine Adresse, die von hier aus nicht aufgerufen werden darf.',
+            requestsText3: 'Anfragen nimmt eine Instanz nur von Instanzen an, die sie aus dem Wachen-Verzeichnis kennt. Läuft die andere Instanz noch mit einer älteren Version von Ember oder kennt sie deine Instanz nicht, steht das in der Meldung. Dann hilft ein Einladungscode, den die andere Wache für dich erzeugt.',
+            acrossInstancesText3: 'Geht etwas schief, steht in der Meldung im Dialog, woran es lag: keine Antwort, zu lange gewartet, Code dort schon benutzt, Versionen passen nicht zueinander, Wache dort gelöscht, oder eine Adresse, die von hier aus nicht aufgerufen werden darf.',
             capabilitiesTitle: 'Berechtigungen verwalten',
             capabilitiesText: 'Für jeden Partner kannst du einzeln festlegen, was geteilt wird. Es gibt zwei Richtungen: "Empfangen" bedeutet, dass du Inhalte der anderen Wache sehen kannst. "Senden" bedeutet, dass die andere Wache deine Inhalte sehen kann.',
             capabilitiesText2: 'Du kannst Wiki, Quiz-Kataloge, Prüfungsprotokolle und Inventar-Ausleihe einzeln aktivieren oder deaktivieren.',
@@ -4472,7 +4472,7 @@ volumes:
             documentText: 'Mit dem Schalter „Dokument unterschreiben“ wählst du eine Dokumentvorlage, die das Mitglied oder seine Erziehungsberechtigten unterschreiben. Ist der Schritt an der Reihe, erstellt Ember das Dokument und fragt die Unterschriften an. Der Schritt hakt sich selbst ab, sobald das Dokument unterschrieben, auf Papier bestätigt oder erlassen ist. Ein Dokument auswählen kann nur, wer Dokumente für Mitglieder erstellen darf.',
             fromSignupsTitle: 'Ablauf aus den Anmeldungen',
             fromSignupsText: 'Wer für einen Termin zugesagt hat, muss nicht von Hand abgetippt werden. Im Termin öffnest du den Reiter „Anmeldungen“ und wählst im Menü „Aus den Anmeldungen“ den Eintrag „Ablauf aus den Anmeldungen“. Für jede zugesagte Person entsteht ein eigener Ablauf, in dem es um sie geht. Das Fälligkeitsdatum ist der Termin selbst.',
-            fromSignupsTemplateText: 'Eine Vorlage ist dabei nötig, denn die Schritte kommen aus ihr: eine Namensliste ohne Aufgaben hilft niemandem. Hat deine Wache noch keine Vorlage, sagt der Dialog das und du legst zuerst unter Abläufe > Vorlagen eine an.',
+            fromSignupsTemplateText: 'Eine Vorlage ist dabei nötig, denn die Schritte kommen aus ihr: eine Namensliste ohne Aufgaben hilft niemandem. Hat deine Wache noch keine Vorlage, weist der Dialog darauf hin und du legst zuerst unter Abläufe > Vorlagen eine an.',
             fromSignupsSharedText: 'Wer die Abläufe betreut, wählst du im Dialog einmal für alle. Vorbelegt ist die Betreuung aus der Vorlage. Die einzeln genannten Personen bekommen eine Benachrichtigung, nicht eine pro Ablauf. Gibt es für den Termin schon Abläufe aus den Anmeldungen, weist der Dialog darauf hin, listet sie auf und öffnet auf Wunsch den ersten. Neu anlegen geht trotzdem.',
             editTitle: 'Beim Bearbeiten',
             editText: 'Bearbeitest du einen bestehenden Ablauf, fehlt die Vorlagen-Auswahl und die Schaltfläche unten heißt „Speichern". Schon abgehakte Schritte bleiben abgehakt.',
@@ -4715,7 +4715,7 @@ volumes:
             visibilityTitle: 'Wer einen Eintrag sehen darf',
             visibilityText: 'Wer etwas sehen darf, steht nicht im Bearbeiten-Dialog, sondern hat mit "Sichtbarkeit" einen eigenen Punkt im Menü eines Eintrags. Dort legst du fest, für welche Rollen, Gruppen und Tags er gedacht ist und ob er im öffentlichen Wiki steht. Ist das öffentliche Wiki eurer Wache aus, siehst du das an dieser Stelle und wo es eingeschaltet wird.',
             eyesTitle: 'Die Augen auf den Kacheln',
-            eyesText: 'Ein grünes Auge heißt: dieser Eintrag steht im öffentlichen Wiki. Ein gelbes heißt: er ist geteilt, aber nicht mit allen, also mit bestimmten Partnerwachen oder nur für bestimmte Rollen. Kein Auge heißt, dass ihn alle in eurer Wache sehen und sonst niemand. Ein Schloss sagt weiterhin, dass ihn nicht jede Rolle bei euch öffnen darf.',
+            eyesText: 'Ein grünes Auge heißt: dieser Eintrag steht im öffentlichen Wiki. Ein gelbes heißt: er ist geteilt, aber nicht mit allen, also mit bestimmten Partnerwachen oder nur für bestimmte Rollen. Kein Auge heißt, dass ihn alle in eurer Wache sehen und sonst niemand. Ein Schloss zeigt weiterhin, dass ihn nicht jede Rolle bei euch öffnen darf.',
             favouritesTitle: 'Favoriten',
             favouritesText: 'Markiere Dateien und Ordner als Favorit mit dem Stern, in den Aktionen einer Kachel oder oben in einer geöffneten Datei. Das geht auch mit dem, was eine Partnerwache mit euch teilt. Deine Favoriten findest du im Ordner „Favoriten“ auf der Startseite des Wikis, und nur du siehst sie.',
             createMenuTitle: 'Inhalte erstellen (Verwalter)',
@@ -4729,13 +4729,13 @@ volumes:
             moveTitle: 'Einträge verschieben',
             moveText: 'Über „Verschieben" im Aktionsmenü eines Ordners oder einer Datei suchst du dir einen neuen Platz im Wiki aus, über beliebig viele Ebenen und auch ganz nach oben. Ein Ordner nimmt alles mit, was in ihm liegt, und die Links auf die Einträge bleiben gültig.',
             moveRightsText: 'Verschieben verlangt Vollzugriff auf den Eintrag und das Recht, im Zielordner etwas anzulegen. Der Grund: der neue Ordner entscheidet, wer den Eintrag künftig sieht.',
-            movePreviewText: 'Der Dialog sagt vorher, wie weit der Eintrag am neuen Platz sichtbar ist, damit nichts unbemerkt im öffentlichen Wiki oder bei Partnerwachen landet. Ein Ordner, der in sich selbst wandern soll, ein Name, den es im Zielordner schon gibt, und eine Freigabe, die weiter reicht als der Zielordner, werden abgelehnt und beim Namen genannt.',
+            movePreviewText: 'Der Dialog zeigt vorher, wie weit der Eintrag am neuen Platz sichtbar ist, damit nichts unbemerkt im öffentlichen Wiki oder bei Partnerwachen landet. Ein Ordner, der in sich selbst wandern soll, ein Name, den es im Zielordner schon gibt, und eine Freigabe, die weiter reicht als der Zielordner, werden abgelehnt und beim Namen genannt.',
             selectionTitle: 'Mehrere Einträge auf einmal',
             selectionText: 'Mit „Mehrere auswählen" bekommt jeder Eintrag im geöffneten Ordner ein Kästchen. Mit gedrückter Umschalttaste markierst du eine ganze Strecke auf einmal. Ordner und Dateien lassen sich gemischt markieren. In den Suchergebnissen gibt es das nicht, dort fehlt der Ordnerweg, der über die Rechte entscheidet.',
             selectionMove: 'Verschieben: bringt die ganze Auswahl in einen Ordner.',
             selectionTags: 'Taggen: fügt Tags hinzu oder entfernt sie. Vorhandene Tags bleiben erhalten.',
-            selectionDelete: 'Löschen: legt die ganze Auswahl in den Papierkorb. Vorher sagt der Dialog, wie viele Einträge das wirklich sind, den Inhalt der markierten Ordner eingerechnet.',
-            selectionPartialText: 'Was geht, wird getan. Einträge, bei denen es nicht geht, werden danach beim Namen genannt, mit dem Grund dafür. Bei sehr vielen wird die Meldung gekürzt und sagt, wie viele weitere es waren.',
+            selectionDelete: 'Löschen: legt die ganze Auswahl in den Papierkorb. Vorher zeigt der Dialog, wie viele Einträge das wirklich sind, den Inhalt der markierten Ordner eingerechnet.',
+            selectionPartialText: 'Was geht, wird getan. Einträge, bei denen es nicht geht, werden danach beim Namen genannt, mit dem Grund dafür. Bei sehr vielen wird die Meldung gekürzt und zeigt, wie viele weitere es waren.',
             trashTitle: 'Papierkorb',
             trashText: 'Gelöschtes ist nicht sofort fort. Es wandert in den Papierkorb, den du über das Mülleimer-Symbol über der Liste erreichst, und lässt sich von dort mit einem Klick zurückholen.',
             trashWhoSees: 'Du siehst darin genau die Einträge, die du auch löschen durftest. Niemand muss um Hilfe bitten, um den eigenen Fehlgriff zurückzunehmen.',
@@ -5008,7 +5008,7 @@ volumes:
             inheritTitle: 'Prüfer von oben',
             inheritText: 'Wer einen Abschnitt prüft, prüft auch alle Unterabschnitte darin. Bei einem Unterabschnitt steht dann „Geprüft von:“ mit diesen Namen. Du kannst dort trotzdem weitere Prüfer dazunehmen.',
             copyTitle: 'Wie beim letzten Mal',
-            copyText: 'Prüfst du oft mit denselben Leuten? Dann klicke auf „Wie beim letzten Mal“. So übernimmst du die Planung der letzten geplanten Prüfung mit diesem Bogen. Gibt es noch keine, sagt dir ein Hinweis Bescheid.',
+            copyText: 'Prüfst du oft mit denselben Leuten? Dann klicke auf „Wie beim letzten Mal“. So übernimmst du die Planung der letzten geplanten Prüfung mit diesem Bogen. Gibt es noch keine, weist dich ein Hinweis darauf hin.',
             unassignedTitle: 'Abschnitte ohne Prüfer',
             unassignedText: 'Ein Hinweis oben nennt alle Abschnitte, für die noch niemand eingeteilt ist. Das ist erlaubt. Diese Abschnitte darf jeder Prüfer dieser Prüfung bewerten.',
             whoGradesTitle: 'Wer darf bewerten?',
@@ -5457,7 +5457,7 @@ volumes:
             oneTitle: 'Inhalt',
             oneText: 'Diese Seite zeigt, was in diesem Behälter liegt, und welche Behälter darin stehen. Stücke lassen sich hinein- und herauslegen.',
             twoTitle: 'Prüfen',
-            twoText: 'Ein Behälter lässt sich durchgehen: die Liste sagt, was drin sein sollte, und du hakst ab, was wirklich da ist.',
+            twoText: 'Ein Behälter lässt sich durchgehen: die Liste zeigt, was drin sein sollte, und du hakst ab, was wirklich da ist.',
         },
         clusterInventoryProcurement: {
             title: 'Beschaffung',
@@ -5471,7 +5471,7 @@ volumes:
             title: 'Vorgaben des Verbands',
             subtitle: 'Was jemand an einer Wache haben muss.',
             oneTitle: 'Was eine Vorgabe ist',
-            oneText: 'Eine Vorgabe sagt, welches Material jemand mit einer bestimmten Rolle haben muss. Der Verband stellt sie einmal auf, und sie gilt an allen seinen Wachen.',
+            oneText: 'Eine Vorgabe legt fest, welches Material jemand mit einer bestimmten Rolle haben muss. Der Verband stellt sie einmal auf, und sie gilt an allen seinen Wachen.',
             twoTitle: 'Bei der Wache',
             twoText: 'Die Wache sieht die Vorgabe des Verbands neben ihren eigenen, mit einem Hinweis versehen und ohne sie ändern zu können.',
         },
@@ -5497,7 +5497,7 @@ volumes:
             oneTitle: 'Was gezählt wird',
             oneText: 'Alles, was dem Verband gehört: wie viel im eigenen Lager liegt, wie viel bei den Wachen ist und wie viel als verloren gilt.',
             twoTitle: 'Was hier nicht steht',
-            twoText: 'Auswertungen über den ganzen Verband hinweg sind eine eigene Sache und gehören nicht hierher. Diese Seite sagt wie viel, nicht wie gut.',
+            twoText: 'Auswertungen über den ganzen Verband hinweg sind eine eigene Sache und gehören nicht hierher. Diese Seite zeigt wie viel, nicht wie gut.',
         },
         clusterInventoryDispatch: {
             title: 'Material ausgeben',
@@ -5513,7 +5513,7 @@ volumes:
                 + ' unterwegs oder vermisst, steht gar nicht erst auf der Liste.',
             chainTitle: 'Der Ablauf dahinter',
             chainText: 'Ausgeben beginnt bei euch: ihr schickt, die Wache bestätigt. Dafür braucht der'
-                + ' Verband einen eigenen Ablauf für Ausgaben. Fehlt er, sagt euch die Seite das, und ihr'
+                + ' Verband einen eigenen Ablauf für Ausgaben. Fehlt er, weist euch die Seite darauf hin, und ihr'
                 + ' legt ihn in den Materialeinstellungen an.',
             tip: 'Bis die Wache bestätigt, gilt die Sendung an beiden Enden als unterwegs. Ihr seht sie'
                 + ' unter „Offene Schritte" der Wache und in eurer eigenen Liste wieder.',
@@ -5617,7 +5617,7 @@ volumes:
             howToTitle: 'Anlegen und füllen',
             howToText: 'Name vergeben, speichern, dann rechts die Wachen anklicken, die hineingehören. Eine Wache, die den Verband verlässt, fällt aus allen Gruppen heraus.',
             overlapTitle: 'Eine Wache in mehreren Gruppen',
-            overlapText: 'Nach Region und nach Ausstattung sind zwei verschiedene Fragen an dieselbe Wache, also darf sie in beiden Gruppen stehen. Eine Wachgruppe verteilt keine Rechte, sie sagt nur, wen etwas betrifft.',
+            overlapText: 'Nach Region und nach Ausstattung sind zwei verschiedene Fragen an dieselbe Wache, also darf sie in beiden Gruppen stehen. Eine Wachgruppe verteilt keine Rechte, sie legt nur fest, wen etwas betrifft.',
             tip: 'Eine Gruppe, an der Profilfelder hängen, lässt sich nicht löschen. Erst die Felder umhängen, dann die Gruppe.',
         },
         clusterMemberManagement: {
@@ -5960,7 +5960,7 @@ volumes:
             oneTimePasswordTitle: 'Einmalpasswort erstellen',
             oneTimePasswordText: 'Unter den Tabs findest du „Einmalpasswort erstellen". Damit bekommt das Mitglied ein neues Passwort, das Ember auswürfelt. Das hilft, wenn keine Mail mit Link ankommen kann.',
             oneTimePasswordEffects: 'Das alte Passwort funktioniert danach nicht mehr, und alle Sitzungen enden. Ember zeigt dir die Zugangsdaten einmal, zum Kopieren oder Drucken. Beim ersten Anmelden wählt das Mitglied ein eigenes Passwort, das Einmalpasswort gilt sieben Tage.',
-            oneTimePasswordAlone: 'Das geht nur für Konten, die allein zu deiner Wache gehören. Ist das Konto auch an einer anderen Wache, hat es eine Rolle in einem Verband oder verwaltet es die Instanz, sagt Ember dir das. Dann hilft die Administration der Instanz.',
+            oneTimePasswordAlone: 'Das geht nur für Konten, die allein zu deiner Wache gehören. Ist das Konto auch an einer anderen Wache, hat es eine Rolle in einem Verband oder verwaltet es die Instanz, zeigt Ember dir das an. Dann hilft die Administration der Instanz.',
             tip: 'Berechtigungen bestimmen, was ein Mitglied sehen und tun darf. Sei vorsichtig beim Zuweisen von Verwaltungsrechten.',
         },
         membersImport: {
@@ -6281,7 +6281,7 @@ volumes:
                 + 'Sammlung, was für alles gilt, das es nur einmal gibt.',
             threeWordsText: 'Die Art steht neben der Bezeichnung und ersetzt sie nicht. „Pager 01“ bleibt '
                 + '„Pager 01“ und ist ein Stück der Art „Pager“. Die Größe ist noch einmal etwas anderes: '
-                + 'sie sagt, wie groß etwas ist, die Art sagt, welches Ding es ist.',
+                + 'sie gibt an, wie groß etwas ist, die Art gibt an, welches Ding es ist.',
             whereTitle: 'Wo es Arten gibt',
             whereText: 'Nur in einer Sammlung. Ein einheitliches Inventar wird über Größen geordnet und bekommt keine Arten. '
                 + 'Umstellen lässt sich das erst wieder, wenn keine Art mehr darin steht.',
@@ -6394,7 +6394,7 @@ volumes:
             whatIs: 'Worum geht es hier?',
             whatIsText: 'Ein Vorgang ist ein Weg, den ein Ausrüstungsteil zwischen zwei Parteien nimmt: eine Ausgabe, eine Rückgabe oder ein Tausch. Diese Seite zeigt die ganze Kette auf einen Blick.',
             steps: 'Die Schritte',
-            stepsText: 'Jeder Schritt sagt, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach ist. Erledigte Schritte tragen den Namen dessen, der sie bestätigt hat, und den Zeitpunkt. Beim aktuellen Schritt steht der Knopf, sofern du an der Reihe bist, sonst der Hinweis, auf wen gewartet wird.',
+            stepsText: 'Jeder Schritt legt fest, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach ist. Erledigte Schritte tragen den Namen dessen, der sie bestätigt hat, und den Zeitpunkt. Beim aktuellen Schritt steht der Knopf, sofern du an der Reihe bist, sonst der Hinweis, auf wen gewartet wird.',
             acks: 'Bestätigt, vermerkt, erzwungen',
             acksText: 'Bestätigt heißt: die Partei, der der Schritt gehört, hat selbst bestätigt. Von der Wache vermerkt heißt: die Wache hat für einen Träger eingetragen, der Ember nicht nutzt und deshalb nicht antworten kann. Erzwungen heißt: jemand hat einen Schritt über eine Partei hinweg eingetragen, die hätte antworten können. Das steht dauerhaft im Verlauf.',
             arrival: 'Das ankommende Teil',
@@ -6578,7 +6578,7 @@ volumes:
             orderText: 'Ziehe eine Frage an ihrem Griff an eine andere Stelle, auch auf eine andere Seite. Mitglieder sehen die Fragen in genau dieser Reihenfolge.',
             saveTitle: 'Speichern',
             saveText: 'Klicke auf „Speichern", um deine Änderungen zu übernehmen. Solange das Formular noch ein Entwurf ist, werden keine Mitglieder benachrichtigt.',
-            tip: 'Du kannst ein Formular auch nach der Veröffentlichung noch bearbeiten. Bereits abgegebene Antworten bleiben erhalten. Nur wer eine schon beantwortete Frage löscht, verliert ihre Antworten, und vor dem Speichern sagt dir Ember, wie viele das sind.',
+            tip: 'Du kannst ein Formular auch nach der Veröffentlichung noch bearbeiten. Bereits abgegebene Antworten bleiben erhalten. Nur wer eine schon beantwortete Frage löscht, verliert ihre Antworten, und vor dem Speichern zeigt dir Ember, wie viele das sind.',
         },
         kbFileView: {
             title: 'Datei anzeigen',
@@ -6597,10 +6597,10 @@ volumes:
             backlinksTitle: 'Wird verwiesen von',
             backlinksText: 'Unter den verwandten Dateien steht, welche anderen Seiten auf diese hier verweisen. Diese Liste entsteht von selbst: sobald jemand irgendwo eine Verknüpfung setzt, taucht seine Seite hier auf. Entfernen lässt sie sich nur dort, wo sie gesetzt wurde. Seiten, die du nicht öffnen darfst, werden weggelassen und auch nicht mitgezählt.',
             moveTitle: 'Datei verschieben',
-            moveText: 'Über „Verschieben" im Menü mit den drei Punkten legst du die Datei in einen anderen Ordner. Dafür brauchst du Vollzugriff auf die Datei, denn der Zielordner entscheidet darüber, wer sie künftig sieht. Vor dem Verschieben sagt dir der Dialog, wie weit die Datei danach sichtbar ist. Der Link zur Datei bleibt derselbe.',
+            moveText: 'Über „Verschieben" im Menü mit den drei Punkten legst du die Datei in einen anderen Ordner. Dafür brauchst du Vollzugriff auf die Datei, denn der Zielordner entscheidet darüber, wer sie künftig sieht. Vor dem Verschieben zeigt dir der Dialog, wie weit die Datei danach sichtbar ist. Der Link zur Datei bleibt derselbe.',
             deleteTitle: 'Datei löschen',
             deleteText: 'Gelöschte Dateien wandern in den Papierkorb des Wikis und lassen sich von dort zurückholen, samt Verweisen, Tags und Versionsverlauf.',
-            deleteEmbeddedText: 'Ist die Datei auf einer Seite eingebunden, sagt der Löschdialog vorher, auf welcher. Dort stünde danach nur noch ein Ersatztitel, und bei einer veröffentlichten Seite merkt das von außen niemand.',
+            deleteEmbeddedText: 'Ist die Datei auf einer Seite eingebunden, zeigt der Löschdialog vorher, auf welcher. Dort stünde danach nur noch ein Ersatztitel, und bei einer veröffentlichten Seite merkt das von außen niemand.',
             commentsTitle: 'Kommentare',
             commentsText: 'Ganz unten gibt es einen Kommentar-Bereich. Hier können Mitglieder Fragen stellen oder Feedback geben. Deine eigenen Kommentare kannst du ändern und löschen, und wer das Wiki verwaltet, kann auch die Kommentare anderer löschen.',
             shareLinkTitle: 'Teilen-Link',
@@ -6644,7 +6644,7 @@ volumes:
             restoreText: 'Mit dem Wiederherstellen-Button kannst du eine ältere Version wieder aktivieren. Die aktuelle Version bleibt dabei erhalten.',
             revertConfirmText: 'Vor dem Wiederherstellen wirst du in einem Dialog gefragt, ob du sicher bist.',
             blocksTitle: 'Artikel aus Blöcken',
-            blocksText: 'Bei einem Artikel, der mit dem Seiten-Editor geschrieben wurde, kannst du alte Stände ansehen, aber nicht wiederherstellen. Gespeichert wird der aus den Blöcken erzeugte Text - nach dem Zurücksetzen würde der Artikel etwas anderes sagen, als seine Blöcke ergeben.',
+            blocksText: 'Bei einem Artikel, der mit dem Seiten-Editor geschrieben wurde, kannst du alte Stände ansehen, aber nicht wiederherstellen. Gespeichert wird der aus den Blöcken erzeugte Text - nach dem Zurücksetzen würde der Artikel etwas anderes enthalten, als seine Blöcke ergeben.',
             current: 'aktuell',
             tip: 'Der Versionsverlauf ist nur für Artikel verfügbar, nicht für PDFs oder Bilder.',
         },
@@ -7008,10 +7008,10 @@ volumes:
             subtitle: 'Die täglichen Zahlen der Instanzen, die welche schicken.',
             whatIs: 'Was steht hier?',
             whatIsText: 'Einmal am Tag schickt eine Instanz, die das eingeschaltet hat, wie viel sie hält: Konten, Wachen, Mitglieder, Ausrüstung. Die Zahlen kommen als Bereiche wie 10-50 und nicht als genaue Werte.',
-            whatIsText2: 'Jede Instanz und jede Wache trägt dafür eine eigene Kennung, die für nichts anderes benutzt wird. Die Zahlen sagen also wie viel, aber nicht von wem.',
+            whatIsText2: 'Jede Instanz und jede Wache trägt dafür eine eigene Kennung, die für nichts anderes benutzt wird. Die Zahlen zeigen also wie viel, aber nicht von wem.',
             readingTitle: 'Damit arbeiten',
             readingText: 'Über die Tage entsteht ein Bild davon, wie Ember eingesetzt wird: wie viele Instanzen es gibt, wie groß sie sind, und in welchen Versionen sie laufen. Hier gibt es nichts zu bestätigen, deshalb steht in der Seitenleiste auch keine Zahl.',
-            tip: 'Einzelne Tage sagen wenig, weil eine Instanz ausfallen oder neu dazukommen kann. Interessant ist der Verlauf.',
+            tip: 'Einzelne Tage zeigen wenig, weil eine Instanz ausfallen oder neu dazukommen kann. Interessant ist der Verlauf.',
         },
         adminBeacon: {
             title: 'Beacon',
@@ -7078,7 +7078,7 @@ volumes:
                 + 'eine ruhige.',
             gapsTitle: 'Lücken',
             gapsText: 'Fallen Zeilen schneller an, als sie geschrieben werden können, werden die '
-                + 'ältesten verworfen und gezählt. Die Seite sagt dann, wie viele. Vollständig sind '
+                + 'ältesten verworfen und gezählt. Die Seite zeigt dann, wie viele. Vollständig sind '
                 + 'sie weiterhin in der Logdatei auf dem Server.',
             privacyTitle: 'Was hier zu sehen ist',
             privacyText: 'Ein Log enthält Adressen, Namen und Kennungen von Menschen. Diese Seite ist '
@@ -7099,7 +7099,7 @@ volumes:
             statesText: '„Wartet" heißt, die Mail liegt in der Warteschlange. „In Zustellung" heißt, '
                 + 'ein Arbeitsprozess hat sie gerade in der Hand. „Übergeben" heißt, ein Anbieter hat '
                 + 'sie angenommen. „Gescheitert" heißt, jeder Anbieter der Liste hat sie abgelehnt.',
-            deliveryText: 'Der Zustellstatus daneben kommt vom Anbieter selbst und sagt, was danach '
+            deliveryText: 'Der Zustellstatus daneben kommt vom Anbieter selbst und zeigt, was danach '
                 + 'geschah: zugestellt, weich abgewiesen, hart abgewiesen, blockiert. Er erscheint nur, '
                 + 'wenn du beim Anbieter die Rückmeldeadresse eingetragen hast.',
             stuckTitle: 'Hängengebliebene Mails',
@@ -7173,7 +7173,7 @@ volumes:
             whatIsText: 'Papier kommt als Mail: das Amt schickt die Bescheinigung als PDF, die Praxis die Untersuchung, der Ausrüster den Prüfbericht. Bisher wurde jede dieser Dateien von Hand geöffnet, heruntergeladen, umbenannt und wieder hochgeladen.',
             whatIsText2: 'Hier verbindest du ein Postfach einmal, sagst welchen Absendern du traust und welche Dateiarten du willst, und jeder Anhang, der durchkommt, wird von selbst ein Dokument. Der Text der Nachricht wird dabei nie gelesen, nie gespeichert und nie durchsucht: von einer Nachricht bleibt nur, wer sie geschickt hat, wie sie heißt und welche Dateien daran hingen.',
             mailboxTitle: 'Ein Postfach verbinden',
-            mailboxText: 'Server, Port, Verschlüsselung, Benutzer, Kennwort und der Ordner, der beobachtet wird. Das Kennwort wird verschlüsselt gespeichert und nie wieder angezeigt. Ist auf der Instanz kein Schlüssel dafür hinterlegt, sagt die Seite das und lässt kein Postfach anlegen.',
+            mailboxText: 'Server, Port, Verschlüsselung, Benutzer, Kennwort und der Ordner, der beobachtet wird. Das Kennwort wird verschlüsselt gespeichert und nie wieder angezeigt. Ist auf der Instanz kein Schlüssel dafür hinterlegt, zeigt die Seite das an und lässt kein Postfach anlegen.',
             mailboxTestText: '„Verbindung testen" baut die Verbindung auf, listet die Ordner und sendet nichts. Der häufigste Fehler beim Einrichten ist ein Ordner, der anders heißt als man denkt, und genau das zeigt der Test.',
             mailboxIntervalText: 'Wie oft abgerufen wird, bestimmst du, aber nicht kürzer als der Betreiber erlaubt. Papier ist nicht eilig, und eine Viertelstunde zwischen Scan und Dokument merkt niemand. Mit „Jetzt abrufen" prüfst du sofort, was jeder nach der ersten Regel tut.',
             senderTitle: 'Erlaubte Absender',
@@ -7186,7 +7186,7 @@ volumes:
             ruleSizeText: 'Die Mindestgröße hält kleine Bilder heraus, sonst füllt sich die Ablage mit dem Wappen aus jeder Signatur. Nach oben gilt die Dateigrenze der Wache; ist der Speicher voll, steht das im Protokoll und es wird nichts halb abgelegt.',
             ruleActionText: 'Nach dem Ablegen kannst du die Nachricht liegen lassen, als gelesen markieren, markieren oder in einen Ordner verschieben. Löschen wird nicht angeboten: Verschieben tut dasselbe und lässt sich zurücknehmen.',
             memberTitle: 'Wem ein Dokument gehört',
-            memberText: 'Meistens niemandem, und das ist der normale Fall: Post aus dem Büro sagt nichts darüber, wen sie betrifft. Das Dokument landet in der Ablage der Wache, und wer mag, ordnet es später auf der Dokumentenseite einer Person zu.',
+            memberText: 'Meistens niemandem, und das ist der normale Fall: Post aus dem Büro lässt nicht erkennen, wen sie betrifft. Das Dokument landet in der Ablage der Wache, und wer mag, ordnet es später auf der Dokumentenseite einer Person zu.',
             memberSubjectText: 'Zu einer Person kommt ein Dokument nur über den Betreff, und nur wenn die Regel das ausdrücklich erlaubt. Das ist eine Vermutung über eine Zeile, die ein Mensch getippt hat: passt der Betreff auf zwei Personen, wird niemandem zugeordnet. Ein Dokument bei der falschen Person ist schlimmer als eines bei keiner.',
             logTitle: 'Das Protokoll',
             logText: 'Jede angesehene Nachricht steht dort mit dem Ergebnis, auch die, aus denen nichts übernommen wurde: Absender nicht erlaubt, keine Regel passt, Dateiart nicht erlaubt, zu groß, zu klein, kein Anhang, schon vorhanden. Wenn eine Regel scheinbar nichts tut, ist das die einzige Stelle, die es beantwortet.',
@@ -7213,7 +7213,7 @@ volumes:
             noiseText: 'Jede aus dem Internet erreichbare Instanz wird nach Konfigurationsdateien und Verwaltungsseiten fremder Software abgeklopft. Adressen, die es hier nicht gibt, werden mit 404 beantwortet, aber nicht als Problem festgehalten. Anfragen ohne gültige Anmeldung werden ebenfalls nicht festgehalten.',
             contextTitle: 'Umgebende Logzeilen',
             contextText: 'Klappst du einen Eintrag auf, stehen unter den Details die Zeilen des Anwendungslogs um das Problem herum: aus demselben Thread, von 30 Sekunden davor bis 5 Sekunden danach, höchstens 50 Zeilen davor und 10 danach. Die Zeile des Problems selbst ist mit „Dieser Eintrag“ markiert. „Alle Threads“ zeigt alle Zeilen in diesem Zeitraum, und ist ein Eintrag mehrfach aufgetreten, wählst du über die Zeitpunkte eines der letzten fünf Vorkommen.',
-            contextSource: 'Die Zeilen kommen aus dem gespeicherten Anwendungslog. Ist das Speichern in der Datenbank ausgeschaltet, steht dort ein Hinweis mit dem Link „Zu den Einstellungen“. Ist eine Zeile schon gelöscht oder liegt ihre Stufe unter der eingestellten, sagt ein Hinweis das ebenfalls, auch wenn nur die Zeile des Problems selbst fehlt.',
+            contextSource: 'Die Zeilen kommen aus dem gespeicherten Anwendungslog. Ist das Speichern in der Datenbank ausgeschaltet, steht dort ein Hinweis mit dem Link „Zu den Einstellungen“. Ist eine Zeile schon gelöscht oder liegt ihre Stufe unter der eingestellten, zeigt ein Hinweis das ebenfalls an, auch wenn nur die Zeile des Problems selbst fehlt.',
             beaconTitle: 'An einen Beacon senden',
             beaconText: 'Meldet die Instanz an einen Beacon, steht an jedem Fehler und jeder Warnung die Schaltfläche „An Beacon senden“, und links lassen sich Einträge ankreuzen und mit „Ausgewählte senden“ zusammen senden. Ablehnungen werden nie gesendet. Die umgebenden Logzeilen gehen nur mit, wenn du „Umgebende Logzeilen mitsenden“ ankreuzt oder die automatische Weitergabe dafür eingeschaltet ist. Was dabei ersetzt wird, steht in der Hilfe zum Beacon.',
             exampleTitle: 'So sieht die Seite aus',

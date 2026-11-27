@@ -44,7 +44,7 @@ public class DocumentTemplateRepository {
      * Writes a new template, without its content.
      *
      * @param owner    the station or the association that keeps it
-     * @param draft    what it says
+     * @param draft    what it contains
      * @param authorId the account that creates it
      * @return the template as written
      */
@@ -73,7 +73,7 @@ public class DocumentTemplateRepository {
      * Rewrites a template, without its content, counting its version up.
      *
      * @param templateId the template
-     * @param draft      what it says now
+     * @param draft      what it contains now
      * @param authorId   the account that changes it
      * @return the template as written, or empty where it does not exist
      */
@@ -147,7 +147,7 @@ public class DocumentTemplateRepository {
     }
 
     /**
-     * Writes what a letter template says, replacing what it said before.
+     * Writes what a letter template contains, replacing what it contained before.
      *
      * @param templateId the template
      * @param letter     the letter
@@ -216,7 +216,7 @@ public class DocumentTemplateRepository {
 
     /**
      * @param templateId the template
-     * @return what its letter says, or empty where it has none
+     * @return what its letter contains, or empty where it has none
      */
     public Optional<LetterContent> findLetter(int templateId) {
         return query("""

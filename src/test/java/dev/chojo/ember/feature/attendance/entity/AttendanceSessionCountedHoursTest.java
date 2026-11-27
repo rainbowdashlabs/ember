@@ -15,10 +15,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * What a sheet says one member's presence is worth.
+ * What a sheet shows one member's presence is worth.
  *
  * <p>The report adds these numbers up and a station pays against them, so the two readings that must
- * not blur into one another are checked here: the clock, where the sheet says nothing else, and the
+ * not blur into one another are checked here: the clock, where the sheet carries nothing else, and the
  * share of a number the sheet carries, where it does.
  */
 class AttendanceSessionCountedHoursTest {

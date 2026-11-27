@@ -15,7 +15,7 @@ import jakarta.inject.Singleton;
  * <p>Several things wait for a link before they happen: an address is verified, an address is
  * changed, a station is deleted. On an instance with no way of sending, that link is never written
  * and never arrives, so the wait is not a safeguard but a dead end: the thing simply never happens
- * and nothing says why. Where nothing can be sent, the confirmation counts as given and the thing
+ * and nothing shows why. Where nothing can be sent, the confirmation counts as given and the thing
  * happens at once.
  *
  * <p>This holds for every such confirmation and not only for those that prove an address. One that

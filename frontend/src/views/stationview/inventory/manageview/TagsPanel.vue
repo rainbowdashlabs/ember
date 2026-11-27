@@ -69,7 +69,7 @@ function openEdit(tag: TagResponse) {
 /**
  * Writes the word back and fetches the list again.
  *
- * <p>A name already in use is the ordinary way this fails, and the server says which one, so what it
+ * <p>A name already in use is the ordinary way this fails, and the server reports which one, so what it
  * wrote is shown as it stands and no bug report is invited for it. The fetch afterwards is caught on
  * its own, because by then the word is saved and only the list behind the modal is out of date.
  */

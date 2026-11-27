@@ -35,7 +35,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 
 /**
- * What a member is told, once the wait after their guardian's switch is over. The state is read
+ * What a member is sent, once the wait after their guardian's switch is over. The state is read
  * again at that moment, so what is sent describes the member as they are then.
  */
 class ManagedLoginNoticeServiceTest extends RepositoryTestBase {

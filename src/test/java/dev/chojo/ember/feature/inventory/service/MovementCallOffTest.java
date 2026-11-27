@@ -152,7 +152,7 @@ class MovementCallOffTest extends RepositoryTestBase {
         assertEquals(member.id(), piece(old).assignedTo());
     }
 
-    /** A broken piece is kept at the station when the caller says so. */
+    /** A broken piece is kept at the station when the caller asks for it. */
     @Test
     void theStationsOwnPieceStaysOnTheShelfWhenKept() {
         int old = pieceWithMember(ItemOwner.STATION);

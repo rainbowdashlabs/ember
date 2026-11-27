@@ -30,7 +30,7 @@ import java.util.stream.Stream;
  * Copies a document template, so a template that works can be the start of the next one.
  *
  * <p>The copy is a new template of whoever asks for it, starting at version one and in use. It carries
- * everything the template says: how its documents are filed, its flags, its language, its letter or the
+ * everything the template holds: how its documents are filed, its flags, its language, its letter or the
  * fields over its PDF, and its self service with the wait and the audience. The PDF of a PDF template is
  * stored again for the copy, in its owner's storage and counted against its owner's room. What the
  * template did is not copied: the generation log, the self service waits it set off, the appointments

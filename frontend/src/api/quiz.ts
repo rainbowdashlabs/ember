@@ -73,7 +73,7 @@ export const QuizAttemptStatus = {
 
 /**
  * A question of one kind, with the settings that kind has. The settings travel beside the kind
- * rather than naming it themselves, so {@link isQuizQuestionOf} is what tells them apart.
+ * rather than naming it themselves, so {@link isQuizQuestionOf} is what distinguishes them.
  */
 export type QuizQuestionOf<T extends QuizQuestionType> = Omit<QuizQuestion, 'quizQuestionType' | 'config'> & {
     quizQuestionType: T

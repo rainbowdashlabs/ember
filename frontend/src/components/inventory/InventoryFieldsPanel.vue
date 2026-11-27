@@ -30,7 +30,7 @@ import {describeFailure, type Failure} from '@/util/failure'
  * <p>The panel is mounted where the thing lives, and what it is mounted on settles what a new field
  * belongs to. That is why there is no scope to pick: choosing "kind" from a list while standing on
  * the inventory was exactly what made the fields of a kind impossible to find, and the place a
- * field is written down now says what it describes.
+ * field is written down now shows what it describes.
  *
  * <p>Each mount shows its own fields and no others. An overview of what hangs on the kinds and the
  * pieces would put the three levels back in one list, which is the mixing this replaces.

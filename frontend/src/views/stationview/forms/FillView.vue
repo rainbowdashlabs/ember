@@ -120,7 +120,7 @@ function initAnswerDefaults() {
  *
  * <p>This used to be swallowed and the form started blank, which is the worst of both: the reader
  * cannot see that their earlier answer is still there, and sending this one is treated as a first
- * answer rather than a correction. Saying so is the difference between a reader who reloads and one
+ * answer rather than a correction. Showing this is the difference between a reader who reloads and one
  * who overwrites their own work.
  */
 const priorAnswerFailure = ref<Failure | null>(null)
@@ -216,7 +216,7 @@ const {failure: submitFailure, run: send} = useAsyncAction(async () => {
 /**
  * The one failure to show. An answer that could not be sent is what the reader was last doing, so it
  * wins over a form that would not load: the second is a reason to reload the page, the first is a
- * reason to look at what they typed, and being told the wrong one costs them the answer.
+ * reason to look at what they typed, and being shown the wrong one costs them the answer.
  */
 const displayFailure = computed(() => submitFailure.value ?? failure.value ?? priorAnswerFailure.value)
 
@@ -233,7 +233,7 @@ async function sendAnswers(answerMap: Record<number, FormAnswerValue>) {
   }
 }
 
-/** Whether the answer went through, which leaves the member on a screen saying so. */
+/** Whether the answer went through, which leaves the member on a screen showing that. */
 const sent = ref(false)
 
 /** Opens the answer just sent again, to correct it. */

@@ -325,7 +325,7 @@ class RequirementsServiceTest {
 
     /**
      * A document asking a ward to sign through the guardian's account and the guardian to consent lists
-     * both fields for the guardian, told apart by who signs.
+     * both fields for the guardian, distinguished by who signs.
      */
     @Test
     void aWardsOwnFieldAndTheGuardiansConsentAreToldApart() {

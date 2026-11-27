@@ -40,7 +40,7 @@ import java.util.Objects;
  * {@link PdfLayoutChecks}. A font family the template names has to be one the owner reaches
  * ({@link FontLibrary}). The issuer has to be a current member of the station ({@link DocumentIssuerService}).
  *
- * <p>A template for appointments is a legal one whatever the request says, since its copies are handed
+ * <p>A template for appointments is a legal one whatever the request defines, since its copies are handed
  * to participants to sign. It stays one for as long as an appointment or an appointment template
  * requires it.
  *

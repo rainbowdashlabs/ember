@@ -149,7 +149,7 @@ export function useEventForm() {
   /**
    * Fills the form from an event template.
    *
-   * <p>The attendance template comes with it. A template that says which sheet the attendance is
+   * <p>The attendance template comes with it. A template that defines which sheet the attendance is
    * taken on and then leaves the appointment without one makes whoever applied it set the same thing
    * again by hand, which is the one thing a template is for.
    *

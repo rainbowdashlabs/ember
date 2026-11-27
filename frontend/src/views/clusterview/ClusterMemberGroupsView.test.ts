@@ -23,7 +23,7 @@ vi.mock('@/api/clusterMembers', () => ({clusterMemberIdentity: () => null}))
 
 vi.mock('@/api/clusters', () => ({ClusterPermission: {CLUSTER_ADMINISTRATOR: 'CLUSTER_ADMINISTRATOR'}}))
 
-/** The association's member groups offer writes to its administrators, once the session says who that is. */
+/** The association's member groups offer writes to its administrators, once the session shows who that is. */
 describe('ClusterMemberGroupsView', () => {
     it('offers the writes once the session arrives saying the reader administers the association', async () => {
         administrator.value = false

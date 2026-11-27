@@ -40,12 +40,12 @@ import java.util.Locale;
  * <p>The copy names the document, the member it is about, who signed and when, and the SHA-256 of the
  * first sealed version that carries the signature. That hash is the point of the copy: a sealed file cannot
  * print its own hash, and a hash kept in the signer's mailbox, outside the installation, is what makes a
- * version produced later and claimed to be that one tell itself apart. The mail links to the document in
+ * version produced later and claimed to be that one distinguish itself. The mail links to the document in
  * Ember, to the readable record of that version beside it, and to the verification page.
  *
  * <p>The PDF itself goes along only where the request copied that from its template, since a consent form
  * may hold health data and a mailbox is no place for it, and only up to {@link #MAX_ATTACHMENT_BYTES}, which
- * most mailboxes still take; a larger one is left out and the mail says why.
+ * most mailboxes still take; a larger one is left out and the mail shows why.
  *
  * <p>The copy goes to the account whose step-up confirmed the act, through {@link MailRecipientService}, so
  * the guardians read it where that account has no address of its own. An act a witness confirmed is the

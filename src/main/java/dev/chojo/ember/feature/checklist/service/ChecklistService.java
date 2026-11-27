@@ -48,8 +48,8 @@ import java.util.stream.Collectors;
  *
  * <p>A list follows one thing at a time: either its filter rows or one occurrence of an appointment.
  * Both are resolved by {@link #resolveMembership}, and neither ever removes a row. Refresh adds, a
- * row taken off by hand stays off, and everything a read has to say about somebody who no longer
- * belongs is said by marking their row.
+ * row taken off by hand stays off, and everything a read has to show about somebody who no longer
+ * belongs is shown by marking their row.
  */
 @Singleton
 public class ChecklistService {

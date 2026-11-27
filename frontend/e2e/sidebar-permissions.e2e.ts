@@ -10,7 +10,7 @@ import {allSections, sidebarEntry} from './fixtures/sidebar'
 /**
  * What a right does to the sidebar. A page the reader may not open must not be offered to them in
  * the first place: an entry that leads to a refusal is worse than no entry, because the reader
- * cannot tell whether they did something wrong.
+ * cannot know whether they did something wrong.
  *
  * Every story checks both sides at once. Asserting only that the member does not see something
  * would pass just as well if the entry had been renamed and nobody saw it any more.

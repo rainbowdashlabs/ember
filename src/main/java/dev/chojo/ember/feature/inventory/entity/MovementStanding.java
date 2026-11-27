@@ -13,9 +13,9 @@ import java.util.List;
  * Where a movement stands, in the words every screen uses for it: the last step that has happened and
  * whose turn it is now, or how it ended.
  *
- * <p>One record so that a movement's own row and the piece of gear it runs on say the same thing. A
+ * <p>One record so that a movement's own row and the piece of gear it runs on show the same thing. A
  * piece used to wear the label of the step being waited on, which has not happened yet: an exchange
- * asked for this morning read "taken back" on the member's list while the movement said it was waiting
+ * asked for this morning read "taken back" on the member's list while the movement showed it was waiting
  * for the station, with the jacket still on the member.
  *
  * @param id               the movement
@@ -65,7 +65,7 @@ public record MovementStanding(
      * waited on.
      *
      * <p>A step is named after the state it brings about, so the one a movement stands on has not
-     * happened yet: a row wearing that label says a piece has been taken in while it is still on the
+     * happened yet: a row wearing that label shows a piece has been taken in while it is still on the
      * member. What has happened is everything before it, and the last of those is where it stands.
      *
      * @param steps   the chain, in order

@@ -13,12 +13,12 @@ import EventGroupPartBadge from './EventGroupPartBadge.vue'
 import type {EventGroupPartSummary} from '@/api/generated/schema'
 
 /**
- * Tells the reader of an appointment that it is a part of an event group, and where the sign-up for it
+ * Lets the reader of an appointment know that it is a part of an event group, and where the sign-up for it
  * and the settings that come with it live: on the event group.
  */
 const props = defineProps<{
   eventGroup: EventGroupPartSummary
-  /** What the notice says beside the event group: the sign-up on the page, or the locked settings in the editor. */
+  /** What the notice shows beside the event group: the sign-up on the page, or the locked settings in the editor. */
   message: string
   /** Where the event group is opened; this station's event group page unless a partner holds it. */
   to?: RouteLocationRaw

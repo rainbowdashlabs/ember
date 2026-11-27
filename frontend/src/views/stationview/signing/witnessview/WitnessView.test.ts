@@ -193,7 +193,7 @@ describe('WitnessView', () => {
         view.unmount()
     })
 
-    /** The search finds people by the documents that wait on them, and says so when it finds nobody. */
+    /** The search finds people by the documents that wait on them, and shows that when it finds nobody. */
     it('finds people by a waiting document and says when the search finds nobody', async () => {
         const view = await open()
         await click(view, 'witness-tab-all')

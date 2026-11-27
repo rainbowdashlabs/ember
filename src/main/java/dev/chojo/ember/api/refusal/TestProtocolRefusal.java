@@ -48,7 +48,7 @@ public enum TestProtocolRefusal implements Refusal {
 
     /**
      * A protocol asked for by a paired instance that is not here, belongs to a third station or is
-     * not among the ones shared with the asker. One code deliberately: telling the three apart
+     * not among the ones shared with the asker. One code deliberately: distinguishing the three
      * would let a partner count its way through protocols it was never given.
      */
     REMOTE_PROTOCOL_NOT_SHARED(11, HttpStatus.NOT_FOUND, "No protocol here is shared with you under that number"),

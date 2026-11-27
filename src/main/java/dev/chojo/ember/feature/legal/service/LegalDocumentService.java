@@ -500,7 +500,7 @@ public class LegalDocumentService {
         return sb.toString();
     }
 
-    /** Whether a markdown file is switched off, which an underscore at the start of its name says. */
+    /** Whether a markdown file is switched off, which an underscore at the start of its name marks. */
     private static boolean isSwitchedOff(Path markdownFile) {
         return FilePaths.nameOf(markdownFile).startsWith("_");
     }

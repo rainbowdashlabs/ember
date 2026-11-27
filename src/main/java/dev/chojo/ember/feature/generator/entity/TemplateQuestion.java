@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
  * <p>The suggestion is a text with placeholders, filled in for the member the document is about. It
  * prefills the answer for a manager generating one document, who may change it, and it is the answer
  * wherever nobody is asked: in self service, in a run over many members and on an appointment's copy.
- * The suggestion of a check ticks it where it says yes ({@code YesWords}), so a check can follow
+ * The suggestion of a check ticks it where it means yes ({@code YesWords}), so a check can follow
  * the member's data and still be ticked or cleared by hand.
  *
  * <p>An answer outside the limits is refused. A suggestion outside them counts as no answer, so a run

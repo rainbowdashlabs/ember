@@ -74,7 +74,7 @@ export function isBoardFieldType(value: unknown): value is BoardFieldTypeName {
 
 /**
  * The settings record each board field type keeps, as the server binds them. Written down here
- * because the shared type names do not say which record a board's settings are.
+ * because the shared type names do not show which record a board's settings are.
  */
 type BoardFieldConfigByType = {
     TEXT: Simple
@@ -116,14 +116,14 @@ export type TypedBoardFieldValue = {
  *
  * <p>The server binds a field's settings, and a ticket's value of it, by the field type standing next
  * to them, so every field it sends pairs the two; the generated union of every settings record cannot
- * say which one a field holds. This and {@link typedFieldValues} are the one place that reads the
+ * show which one a field holds. This and {@link typedFieldValues} are the one place that reads the
  * pairing.
  */
 export function typedFields(fields: BoardFieldDefinition[]): TypedBoardField[] {
     return fields as TypedBoardField[]
 }
 
-/** A ticket's field values with each value typed by its field type, paired as {@link typedFields} says. */
+/** A ticket's field values with each value typed by its field type, paired as {@link typedFields} defines. */
 export function typedFieldValues(values: BoardTicketFieldValue[]): TypedBoardFieldValue[] {
     return values as TypedBoardFieldValue[]
 }

@@ -14,7 +14,7 @@ import {contrastTextColor} from '@/util/contrastColor'
 import {eventGroupColor, type EventGroupMark} from './eventGroupColor'
 
 /**
- * The bar along the top edge of an appointment of an event group, in the group's colour, that says
+ * The bar along the top edge of an appointment of an event group, in the group's colour, that shows
  * which event group it belongs to, which part it is and over which days the whole event group runs
  * ("Jugendflamme 1", "Teil 2 von 4", "12.12. bis 20.12.2026"), so the appointment does not read as one
  * on its own. Together with the {@link EventGroupBand} on the left edge it frames the appointment; the

@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
  * @param inventoryId   the inventory it is about
  * @param inventoryName that inventory's name, for the reader
  * @param reason        why it was started
- * @param actorMemberId who started it, so they are not told about their own doing
+ * @param actorMemberId who started it, so they are not notified of their own doing
  * @param nextActor     the party whose turn it is now, or {@code null} if it finished on the spot
  * @param ownerClusterId the cluster that owns the gear, or {@code null} when no cluster on this instance does
  */

@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.mail.entity;
 import org.jspecify.annotations.Nullable;
 
 /**
- * What a mail asking for a signature, or reminding of one, says about the document.
+ * What a mail asking for a signature, or reminding of one, shows about the document.
  *
  * @param stationName   the station that asks
  * @param documentTitle the document's title

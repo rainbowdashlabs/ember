@@ -141,7 +141,7 @@ public class Mailing {
      * <p>An instance written before the providers became one list has none of its own; its first
      * provider still stands in the fields on this element, with the rest behind {@code fallbacks}.
      * Both are folded into the same list here, so nothing has to be saved before it sends. A bare
-     * configuration still names SMTP, so only a sender address says the old fields were ever filled
+     * configuration still names SMTP, so only a sender address shows the old fields were ever filled
      * in; without one, an untouched instance would try to send through an empty host.
      */
     public List<MailProviderEntry> providers() {
@@ -216,7 +216,7 @@ public class Mailing {
 
     /**
      * The percentage of each instance provider's daily allowance that stations may use together,
-     * held between 0 and 100 whatever the file says.
+     * held between 0 and 100 whatever the file holds.
      */
     public int stationShare() {
         return Math.clamp(stationShare, 0, 100);
@@ -256,7 +256,7 @@ public class Mailing {
      * @param user          its user
      * @param password      its password
      * @param apiKey        its API key
-     * @param senderAddress its sender address, which also says whether it was ever filled in
+     * @param senderAddress its sender address, which also shows whether it was ever filled in
      * @param providers     the provider list
      * @param fallbacks     the providers after the first in the shape written before the list
      */
@@ -274,7 +274,7 @@ public class Mailing {
         public static final Senders NONE = new Senders(MailProviderType.NONE, "", "", "", "", "", List.of(), List.of());
 
         /**
-         * These senders with the given provider list, which from then on says everything: the
+         * These senders with the given provider list, which from then on holds everything: the
          * providers written before the list are dropped with it.
          */
         public Senders withProviders(List<MailProviderEntry> list) {

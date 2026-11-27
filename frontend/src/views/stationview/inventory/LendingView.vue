@@ -51,7 +51,7 @@ const filteredItems = computed(() => {
 })
 
 /**
- * Why the offers list is empty. The server distinguishes exactly two situations and says nothing
+ * Why the offers list is empty. The server distinguishes exactly two situations and reports nothing
  * finer, so an empty screen reads as an answer rather than as a fault. A search that filters
  * everything away locally is the reader's own doing and keeps the plain message.
  */

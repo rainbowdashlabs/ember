@@ -82,7 +82,7 @@ const summaryLines = computed(() => {
 
 /**
  * What this station may point itself at. Its association's storage only when there is some to move onto,
- * and nothing at all when the association has said it decides.
+ * and nothing at all when the association decides.
  */
 const offeredTypes = computed<StorageBackendChoice[]>(() =>
     backend.value?.clusterOffersStorage

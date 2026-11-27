@@ -15,7 +15,7 @@ import {useMemberRowExtras} from './memberRowExtras'
 import type {RosterMember} from './useMemberData'
 
 /**
- * A member's name in the list, with whatever the list has to say beside it: a note, a profile that
+ * A member's name in the list, with whatever the list has to show beside it: a note, a profile that
  * leaves a required question open, a request to link an existing account that waits, was declined or
  * ran out, and an account nobody has set up yet.
  */

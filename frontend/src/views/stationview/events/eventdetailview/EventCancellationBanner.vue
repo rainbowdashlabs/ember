@@ -11,8 +11,8 @@ import {CancellationCause, type CancellationNotice} from '@/api/generated/schema
 import {formatDateTime} from '@/util/format'
 
 /**
- * Says that the date on screen is off, and why: the reason a manager gave, or that too few had
- * registered in time. A whole series called off says so instead of naming the date.
+ * Shows that the date on screen is off, and why: the reason a manager gave, or that too few had
+ * registered in time. A whole series called off shows that instead of naming the date.
  */
 const props = defineProps<{
   cancellation: CancellationNotice

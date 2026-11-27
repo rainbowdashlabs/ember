@@ -42,7 +42,7 @@ const HOLDING = {
  * The pieces of one inventory as a table: its fixed columns, one per custom field, and the tags
  * where anything wears one.
  *
- * <p>The fields say what they hold, so a date field filters by day, a choice by its options and a
+ * <p>The fields declare what they hold, so a date field filters by day, a choice by its options and a
  * number by a range, without anybody wiring that per field.
  */
 export function useItemTable(options: ItemTableOptions) {

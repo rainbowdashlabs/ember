@@ -29,11 +29,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Telling whoever a question added to an appointment has left owing an answer.
+ * Notifying whoever a question added to an appointment has left owing an answer.
  *
  * <p>Questions are edited on an appointment at any time, and a registration given before a question
  * existed carries no answer to it. Nobody notices that by themselves: the member is registered and
- * the list simply has a hole in it. This is the one moment where that can be said, so it is said
+ * the list simply has a hole in it. This is the one moment where that can be flagged, so it is flagged
  * here.
  */
 @Singleton
@@ -61,12 +61,12 @@ public class RegistrationAnswerReminder {
     }
 
     /**
-     * Replaces the questions an appointment asks, and tells everybody the change leaves owing an
+     * Replaces the questions an appointment asks, and notifies everybody the change leaves owing an
      * answer.
      *
      * <p>Who owed one before is read first, so somebody who was already short of an answer is not
-     * told again every time the questions are saved. The notification marks the change; the mark on
-     * the registration says the state for as long as it lasts.
+     * notified again every time the questions are saved. The notification marks the change; the mark on
+     * the registration shows the state for as long as it lasts.
      *
      * @param eventId the appointment whose questions are being replaced
      * @param fields  the questions it asks from now on
@@ -115,7 +115,7 @@ public class RegistrationAnswerReminder {
     }
 
     /**
-     * Tells one member, and everyone who answers for them, that the appointment now wants something
+     * Notifies one member, and everyone who answers for them, that the appointment now wants something
      * from them. The name rides along because a guardian has to know which of their children it is
      * about.
      */

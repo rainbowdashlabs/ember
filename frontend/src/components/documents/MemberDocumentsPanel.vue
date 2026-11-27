@@ -37,7 +37,7 @@ const props = withDefaults(defineProps<{
   source?: MemberDocumentSource
   /** Whose paperwork this is, where it is not the reader's own. Their own needs no name on it. */
   title?: string
-  /** A sentence under the heading, saying what this reader may do with the documents. */
+  /** A sentence under the heading, showing what this reader may do with the documents. */
   hint?: string
   /** Whether the reader may put documents on this profile. */
   canUpload?: boolean

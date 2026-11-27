@@ -19,7 +19,7 @@ import {fieldGrid} from './fieldGrid'
 import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFieldsConfig'
 
 /**
- * @param audiences how many audiences are asked this question, which a row of none says out loud
+ * @param audiences how many audiences are asked this question, which a row of none flags
  * @param selected  whether the panel beside this one is showing this question's audiences
  *
  * <p>The row selects its question wherever it is pressed, which is a pointer's convenience; the

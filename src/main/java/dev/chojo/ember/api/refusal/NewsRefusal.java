@@ -17,7 +17,7 @@ public enum NewsRefusal implements Refusal {
     /**
      * An entry that is not here, or one the reader was never among the people it was addressed to.
      *
-     * <p>One code for both on purpose. Splitting them would tell a reader that an entry exists
+     * <p>One code for both on purpose. Splitting them would show a reader that an entry exists
      * which they were never meant to know about.
      */
     NEWS_NOT_HERE_OR_NOT_YOURS(1, HttpStatus.NOT_FOUND, Sentences.NOT_HERE_OR_NOT_YOURS),
@@ -145,7 +145,7 @@ public enum NewsRefusal implements Refusal {
     /**
      * A file of the instance that is not here, or one that belongs to a station instead.
      *
-     * <p>One code for both on purpose. A station's file is that station's business, and saying so
+     * <p>One code for both on purpose. A station's file is that station's business, and answering otherwise
      * would confirm it exists to somebody addressing the instance's own library.
      */
     INSTANCE_FILE_NOT_HERE(39, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
@@ -156,7 +156,7 @@ public enum NewsRefusal implements Refusal {
     /**
      * An entry of the instance that is not here, or one a station wrote for its own members.
      *
-     * <p>One code for both on purpose. These routes answer for what the instance said and nothing
+     * <p>One code for both on purpose. These routes answer for what the instance holds and nothing
      * else, and a station's entry has to look absent rather than withheld.
      */
     SYSTEM_NEWS_NOT_HERE(41, HttpStatus.NOT_FOUND, Sentences.NEWS_NOT_HERE),
@@ -203,7 +203,7 @@ public enum NewsRefusal implements Refusal {
     /**
      * A news block naming an entry that is gone, belongs to another station, is not published yet,
      * is kept to part of the station or was never put on the public blog. All of them answer alike,
-     * so a block cannot tell a withheld entry from a missing one.
+     * so a block cannot distinguish a withheld entry from a missing one.
      */
     NEWS_BLOCK_ENTRY_NOT_HERE(55, HttpStatus.NOT_FOUND, "That news entry is not available here"),
 

@@ -19,7 +19,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells the members who kept their place on a date that was called off, and whoever looks after
+ * Notifies the members who kept their place on a date that was called off, and whoever looks after
  * them, that the date takes place after all. Their places were never taken away, so they are
  * expected again without having to answer anew.
  */

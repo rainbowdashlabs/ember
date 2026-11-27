@@ -7,7 +7,7 @@ import {beforeAll, describe, expect, it} from 'vitest'
 import {deviceLabel} from './pushSupport'
 import {setTranslator} from './translatorState'
 
-/** A device is listed under a name its owner recognises, guessed from what the browser says about itself. */
+/** A device is listed under a name its owner recognises, guessed from what the browser reports about itself. */
 describe('deviceLabel', () => {
     beforeAll(() => {
         setTranslator((key, params) => key === 'pushDevices.deviceOn' ? `${params?.browser} auf ${params?.system}` : key, () => 'de-DE')

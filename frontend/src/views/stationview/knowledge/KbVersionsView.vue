@@ -51,7 +51,7 @@ const fileId = computed(() => Number(route.params.id))
  *
  * <p>History stores patches against the stored body, which for an article built from blocks is a
  * projection of them. The history therefore reads and diffs correctly, but restoring one would put
- * the projection back as the body while the blocks stayed where they are: the article would say one
+ * the projection back as the body while the blocks stayed where they are: the article would read as one
  * thing and be built from another. Reading an old version is still offered, because that part works.
  */
 const canRevert = computed(() => file.value?.contentMode !== ContentMode.RICH)
@@ -87,7 +87,7 @@ const {loading: loadingVersion, failure: versionFailure, reload: fetchVersion} =
     if (isCurrent()) selectedVersion.value = found
 }, {autoLoad: false, errorMessageKey: 'kb.versionsLoadFailed'})
 
-/** Opens one version, saying so above the page where it cannot be read. */
+/** Opens one version, with a note above the page where it cannot be read. */
 async function viewVersion(version: KbVersionResponse) {
     versionAsked.value = version.version
     await fetchVersion()

@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * Walks a form's pages with the answers a reader sent, the way the reader's browser walked them.
  *
  * <p>The browser is not trusted to have done it: from the first page on, each page leads where the
- * answer to its deciding question says, or where the page itself says otherwise, until a page sends
+ * answer to its deciding question points, or where the page itself points elsewhere, until a page sends
  * the form. Only the pages visited count. A required question on a page the path skipped is not
  * missing, and an answer to such a question is dropped: it comes from a reader who went down one
  * branch, went back and took the other, and was never meant to answer it.
@@ -113,8 +113,8 @@ public final class FormPathWalker {
     }
 
     /**
-     * Where a page leads with the given answers: where its deciding question's answer says, and where
-     * the page itself says otherwise.
+     * Where a page leads with the given answers: where its deciding question's answer points, and where
+     * the page itself points elsewhere.
      */
     private static PageTarget targetOf(
             FormPage page, List<FormQuestion> questions, Map<Integer, FormAnswerValue> answers) {

@@ -11,7 +11,7 @@ import de from '@/i18n/de-DE'
 import {SmtpEncryption} from '@/api/generated/schema'
 
 /**
- * The choice of how a mail server is reached. Unencrypted is on offer, and says what it costs the
+ * The choice of how a mail server is reached. Unencrypted is on offer, and shows what it costs the
  * moment it is chosen.
  *
  * @vitest-environment happy-dom

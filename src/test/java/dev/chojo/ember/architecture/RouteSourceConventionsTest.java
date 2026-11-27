@@ -114,7 +114,7 @@ class RouteSourceConventionsTest {
      * <p>{@code deleteById} takes a table and an id and asks nothing else, which makes the unscoped
      * delete the path of least resistance for a table that has a station to be scoped by, and that
      * has been the shape of every cross-station delete found here. {@code deleteByIdInStation}
-     * beside it says the station, and a delete that names the wrong station removes nothing rather
+     * beside it shows the station, and a delete that names the wrong station removes nothing rather
      * than somebody else's row.
      *
      * <p>The list above is the state of the codebase when the rule was written, not a set of

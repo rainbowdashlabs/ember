@@ -88,7 +88,7 @@ public class MemberGearService {
 
     /**
      * Where the movement on a piece stands, read from the movement itself rather than from the step it
-     * is waiting on, so the piece and the movement's own row cannot tell two different stories.
+     * is waiting on, so the piece and the movement's own row cannot show two different stories.
      */
     private @Nullable MovementStanding standing(@Nullable Integer movementId) {
         if (movementId == null) return null;
@@ -106,7 +106,7 @@ public class MemberGearService {
 
     /**
      * Who wrote the note about a loss, as an identity rather than a name. It matters who it was: a
-     * guardian may report a loss for the person they act for, and the note then says so rather than
+     * guardian may report a loss for the person they act for, and the note then shows it rather than
      * reading as if the member wrote it themselves.
      */
     private @Nullable MemberIdentity noteAuthor(@Nullable Integer memberId) {

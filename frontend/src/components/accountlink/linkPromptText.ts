@@ -15,7 +15,7 @@ export function askerOf(prompt: LinkPrompt): string {
     return (isAssociationRequest(prompt) ? prompt.associationName : prompt.stationName) ?? ''
 }
 
-/** The message key that confirms an answer, which says what the answer did for this kind of request. */
+/** The message key that confirms an answer, which shows what the answer did for this kind of request. */
 export function answeredKey(prompt: LinkPrompt, accepting: boolean): string {
     if (isAssociationRequest(prompt)) return accepting ? 'accountLinks.roleAccepted' : 'accountLinks.roleDeclined'
     return accepting ? 'accountLinks.accepted' : 'accountLinks.declined'

@@ -10,7 +10,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import {ItemCustody} from '@/api/generated/schema'
 
 /**
- * Where one of a movement's two pieces is said to be, or nothing to leave it where it is.
+ * Where one of a movement's two pieces is recorded to be, or nothing to leave it where it is.
  *
  * <p>The four places are the same for both pieces, which is why they are asked for the same way.
  */

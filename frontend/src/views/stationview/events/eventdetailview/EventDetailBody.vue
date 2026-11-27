@@ -190,7 +190,7 @@ const closesAtKnown = ref(false)
 
 /**
  * Asks the server when the date on screen closes; an answer for a date already left is dropped.
- * Where the server cannot be asked, a fixed deadline still says when, and a relative one counts as open.
+ * Where the server cannot be asked, a fixed deadline still shows when, and a relative one counts as open.
  */
 async function loadClosesAt() {
   const date = props.effectiveDate
@@ -215,9 +215,9 @@ const stillTakingAnswers = computed(() => !props.event.requiresRegistration || !
  * Whether the block is worth drawing at all.
  *
  * <p>An answer to show, or one that can still be given. Where the appointment is open to nobody in
- * the household it stays, because the block is then the one place saying why: an empty box is what
+ * the household it stays, because the block is then the one place showing why: an empty box is what
  * this used to be on a date whose deadline had passed with nobody having answered. Until the server
- * has said when sign-up closes, an appointment that needs sign-up shows no block at all, so no button
+ * has reported when sign-up closes, an appointment that needs sign-up shows no block at all, so no button
  * appears open only to vanish a moment later.
  */
 const showAnswerBlock = computed(() => {
@@ -293,7 +293,7 @@ watch(tabs, entries => {
 
 /**
  * Which cancellation the dialog is open for: the date on screen, the whole series, or none. The
- * dialog is told the date, or null for the series.
+ * dialog is given the date, or null for the series.
  */
 const cancelling = ref<'date' | 'series' | null>(null)
 const cancelDate = computed(() => cancelling.value === 'date' ? props.effectiveDate : null)

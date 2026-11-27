@@ -280,7 +280,7 @@ test.describe('Losing a piece of the association gear', () => {
      * CLS-52e - A guardian reports for the person they act for.
      *
      * The same screen, the other tab. The note records the guardian as its author acting for the member,
-     * so the trail says who actually wrote it. The gear lives at the manager's own station, since gear
+     * so the trail shows who actually wrote it. The gear lives at the manager's own station, since gear
      * at another station is not the guardian's to report, and is reported from the charge's tab.
      */
     test('a guardian reports a loss for the person they act for', async ({

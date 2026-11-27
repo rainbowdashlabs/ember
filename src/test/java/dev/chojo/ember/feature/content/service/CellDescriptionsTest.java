@@ -27,7 +27,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * What a picture is called where its cell has not said, for every reader of blocks alike.
+ * What a picture is called where its cell has not set it, for every reader of blocks alike.
  */
 class CellDescriptionsTest {
     private static final int STATION = 3;

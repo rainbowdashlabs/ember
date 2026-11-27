@@ -27,7 +27,7 @@ import {describeFailure, type Failure} from '@/util/failure'
  *
  * <p>There is no status to set: where a movement stands is read off its two pieces. So the form asks
  * where the pieces are, and the chain follows to whichever step that world has not reached. The log
- * keeps the reason and says the movement was corrected rather than walked.
+ * keeps the reason and records that the movement was corrected rather than walked.
  */
 const props = defineProps<{
   movementId: number

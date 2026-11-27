@@ -68,8 +68,8 @@ public final class RouteSupport {
      * Loads an entity by id and confirms it belongs to the caller's station, returning it.
      *
      * <p>A missing entity and one belonging to another station answer the same {@code 404}. The
-     * variant that answered {@code 403} on a mismatch is gone: it told a caller that the id exists
-     * somewhere on the instance, which is the one thing an ownership check is meant not to say, and
+     * variant that answered {@code 403} on a mismatch is gone: it showed a caller that the id exists
+     * somewhere on the instance, which is the one thing an ownership check is meant not to reveal, and
      * having both meant the weaker one was picked by whoever wrote the handler next.
      *
      * @param finder    the repository/service lookup for the entity type

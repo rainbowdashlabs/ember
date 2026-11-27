@@ -16,7 +16,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * Where a document came from, where it came by mail.
  *
  * <p>A document filed by the importer has no uploader, because nobody uploaded it. Without this the
- * detail shows an empty uploader and says nothing; with it, it can say the document arrived from that
+ * detail shows an empty uploader and nothing else; with it, it can show the document arrived from that
  * address on that day.
  *
  * <p>It belongs to the document rather than to the import log. Leaving it in the log would mean a

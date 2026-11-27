@@ -11,7 +11,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import {outlineFor} from '@/util/glyphOutline'
 import {bestSidebarMatch, followSidebarMatch} from '@/util/sidebarGroupState'
 
-/** A sidebar group reduced to what it tells the register: how well it matches, and what is best. */
+/** A sidebar group reduced to what it reports to the register: how well it matches, and what is best. */
 const MatchingGroup = defineComponent({
     props: {length: {type: Number, required: true}},
     setup(props) {

@@ -140,7 +140,7 @@ describe('SealVerificationResult', () => {
         expect(heldText).toContain('Siegel mit Zeitstempel, offline prüfbar')
         const notHeldText = notHeld.get('[data-testid="seal-held-copy"]').text()
         expect(notHeldText).toContain('bewahrt keine Datei mit genau diesem Inhalt auf')
-        expect(notHeldText).toContain('Das sagt nichts über das Siegel')
+        expect(notHeldText).toContain('Für das Siegel bedeutet das nichts')
     })
 
     it('keeps fingerprints, serials and the standard verdicts in closed details', () => {

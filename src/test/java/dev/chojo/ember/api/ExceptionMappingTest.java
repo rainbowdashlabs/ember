@@ -50,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
- * Every exception answers with a status that says whose problem it is and a sentence that says what
+ * Every exception answers with a status that shows whose problem it is and a sentence that shows what
  * it was, judged on an application that installs nothing but the mapping.
  */
 class ExceptionMappingTest {

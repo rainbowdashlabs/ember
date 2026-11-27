@@ -18,7 +18,7 @@ export interface QueueContext {
  * The word for what somebody answered, the same wherever an answer is named: a badge, a filter or a
  * column. Declined and withdrawn read alike, as the badge has always shown them.
  *
- * <p>A sign-up on the waiting list says its place in line where it is known, and once the date is
+ * <p>A sign-up on the waiting list shows its place in line where it is known, and once the date is
  * over that nobody moved it up: it did not get a place.
  *
  * @param status the answer

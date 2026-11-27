@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-/** An invitation left without a date asks the station for its next step, so whoever looks after the lists is told. */
+/** An invitation left without a date asks the station for its next step, so whoever runs the lists is notified. */
 class WaitlistInvitationDatesGoneHandlerTest {
 
     private Notifier notifier;

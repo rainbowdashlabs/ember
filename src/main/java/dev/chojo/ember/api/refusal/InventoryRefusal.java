@@ -28,7 +28,7 @@ public enum InventoryRefusal implements Refusal {
 
     /**
      * A requirement that is gone, or belongs to another station. One code deliberately: the one
-     * lookup asks only about this station's own, and telling the two apart would say that the
+     * lookup asks only about this station's own, and distinguishing the two would reveal that the
      * requirement exists at a station the reader may not see.
      */
     REQUIREMENT_NOT_HERE(5, HttpStatus.NOT_FOUND, Sentences.REQUIREMENT_NOT_HERE),
@@ -42,7 +42,7 @@ public enum InventoryRefusal implements Refusal {
     /** An inventory being written down without a name. */
     INVENTORY_NEEDS_A_NAME(8, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_NEEDS_A_NAME),
 
-    /** An inventory being written down without saying what kind of thing it holds. */
+    /** An inventory being written down without indicating what kind of thing it holds. */
     INVENTORY_NEEDS_A_KIND(9, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_NEEDS_A_KIND),
 
     /** An inventory that went between the list being drawn and it being opened. */
@@ -134,11 +134,11 @@ public enum InventoryRefusal implements Refusal {
     /** A piece of gear that was already gone when its deletion was asked for. */
     ITEM_NOT_DELETED(38, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
 
-    /** A requirement written down without saying which inventory it is about. */
+    /** A requirement written down without indicating which inventory it is about. */
     REQUIREMENT_NEEDS_AN_INVENTORY(
             39, HttpStatus.BAD_REQUEST, "A requirement has to say which inventory it is about, so nothing was saved"),
 
-    /** A requirement written down without saying who it applies to. */
+    /** A requirement written down without indicating who it applies to. */
     REQUIREMENT_NEEDS_SOMEBODY_TO_APPLY_TO(
             40,
             HttpStatus.BAD_REQUEST,
@@ -162,7 +162,7 @@ public enum InventoryRefusal implements Refusal {
     /** The chain of steps a movement is bound to, which is gone. */
     FLOW_NOT_HERE_BEHIND_BINDING(46, HttpStatus.NOT_FOUND, Sentences.NO_FLOW_FOR_THIS_MOVEMENT),
 
-    /** A question about which chain would be walked that does not say what the movement is for. */
+    /** A question about which chain would be walked that does not indicate what the movement is for. */
     MOVEMENT_PURPOSE_MISSING(47, HttpStatus.BAD_REQUEST, Sentences.MOVEMENT_PURPOSE_MISSING),
 
     /** A purpose spelled in a way no movement can have. */
@@ -171,7 +171,7 @@ public enum InventoryRefusal implements Refusal {
     /** Something in the address that has to be a number and is not one. */
     NUMBER_EXPECTED_IN_ADDRESS(49, HttpStatus.BAD_REQUEST, "A number was expected here and this is not one"),
 
-    /** A chain of steps being written down without saying what it is for. */
+    /** A chain of steps being written down without indicating what it is for. */
     FLOW_NEEDS_A_PURPOSE(
             50, HttpStatus.BAD_REQUEST, "A chain of steps has to say what it is for, so nothing was saved"),
 
@@ -200,7 +200,7 @@ public enum InventoryRefusal implements Refusal {
     STEP_ORDER_NAMES_NO_STEPS(
             57, HttpStatus.BAD_REQUEST, "Name the steps in the order they are to be walked, so nothing was saved"),
 
-    /** A step written down without saying who confirms it, what it is about, or where it leaves the gear. */
+    /** A step written down without indicating who confirms it, what it is about, or where it leaves the gear. */
     STEP_NEEDS_ITS_PARTS(
             58,
             HttpStatus.BAD_REQUEST,
@@ -208,7 +208,7 @@ public enum InventoryRefusal implements Refusal {
 
     /**
      * A chain of steps that is gone, or belongs to another station. The two are one code
-     * deliberately: telling them apart would say that the chain exists at a station the reader may
+     * deliberately: distinguishing them would reveal that the chain exists at a station the reader may
      * not see.
      */
     FLOW_NOT_HERE(59, HttpStatus.NOT_FOUND, Sentences.FLOW_NOT_HERE),
@@ -222,7 +222,7 @@ public enum InventoryRefusal implements Refusal {
     /** A container asked for by a route that then checks which station it is at. */
     CONTAINER_NOT_HERE(62, HttpStatus.NOT_FOUND, Sentences.CONTAINER_NOT_HERE),
 
-    /** A kind of container that was read and then refused for what it said. */
+    /** A kind of container that was read and then refused for what it contained. */
     CONTAINER_KIND_NOT_CREATED(63, HttpStatus.BAD_REQUEST, Sentences.CONTAINER_KIND_NOT_CREATED),
 
     /** A kind of container that is gone, or belongs to another station. */
@@ -240,13 +240,13 @@ public enum InventoryRefusal implements Refusal {
     /** A kind of container that went between being read and being deleted. */
     CONTAINER_KIND_NOT_DELETED(68, HttpStatus.NOT_FOUND, Sentences.CONTAINER_KIND_NOT_HERE),
 
-    /** A container that was read and then refused for what it said. */
+    /** A container that was read and then refused for what it contained. */
     CONTAINER_NOT_CREATED(69, HttpStatus.BAD_REQUEST, Sentences.CONTAINER_NOT_SAVED),
 
     /** A container that went before the change to it could be written. */
     CONTAINER_NOT_HERE_ON_CHANGE(70, HttpStatus.NOT_FOUND, Sentences.CONTAINER_NOT_HERE),
 
-    /** A change to a container that was read and then refused for what it said. */
+    /** A change to a container that was read and then refused for what it contained. */
     CONTAINER_NOT_CHANGED(71, HttpStatus.BAD_REQUEST, Sentences.CONTAINER_NOT_SAVED),
 
     /** A container that was already gone when its deletion was asked for. */
@@ -258,7 +258,7 @@ public enum InventoryRefusal implements Refusal {
     /** A code no container at this station carries. */
     CONTAINER_NOT_HERE_BY_CODE(74, HttpStatus.NOT_FOUND, "No container here carries that code"),
 
-    /** A movement started without saying what it is for. */
+    /** A movement started without indicating what it is for. */
     MOVEMENT_NEEDS_A_PURPOSE(75, HttpStatus.BAD_REQUEST, Sentences.MOVEMENT_PURPOSE_MISSING),
 
     /** A movement raised for a member the reader neither is nor answers for. */
@@ -270,7 +270,7 @@ public enum InventoryRefusal implements Refusal {
             HttpStatus.BAD_REQUEST,
             "This movement is about no inventory, so a new piece of gear has nowhere to go and nothing was saved"),
 
-    /** A piece written down as newly arrived where the owner already says what it sent. */
+    /** A piece written down as newly arrived where the owner already shows what it sent. */
     ARRIVAL_NAMED_BY_THE_OWNER(
             78,
             HttpStatus.BAD_REQUEST,
@@ -279,7 +279,7 @@ public enum InventoryRefusal implements Refusal {
     /** A piece written down as newly arrived without a name. */
     ARRIVAL_NEEDS_A_NAME(79, HttpStatus.BAD_REQUEST, Sentences.ITEM_NEEDS_A_NAME),
 
-    /** Everything a member holds asked back without saying which member. */
+    /** Everything a member holds asked back without indicating which member. */
     RETURN_OF_EVERYTHING_NEEDS_A_MEMBER(80, HttpStatus.BAD_REQUEST, "Say which member is to hand everything back"),
 
     /** A member named for a return who is not at this station. */
@@ -305,7 +305,7 @@ public enum InventoryRefusal implements Refusal {
 
     /**
      * A movement that is gone, or one this reader may not see. The two are one code deliberately:
-     * telling them apart would say that the movement exists somewhere they are not shown.
+     * distinguishing them would reveal that the movement exists somewhere they are not shown.
      */
     MOVEMENT_NOT_HERE_OR_NOT_YOURS(87, HttpStatus.NOT_FOUND, Sentences.NOT_HERE_OR_NOT_YOURS),
 
@@ -318,7 +318,7 @@ public enum InventoryRefusal implements Refusal {
     /** A piece of gear whose fields were asked for and which is gone. */
     ITEM_NOT_HERE_ON_FIELDS(90, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
 
-    /** A field that was read and then refused for what it said. */
+    /** A field that was read and then refused for what it contained. */
     FIELD_NOT_CREATED(
             91,
             HttpStatus.BAD_REQUEST,
@@ -328,7 +328,7 @@ public enum InventoryRefusal implements Refusal {
     /** A field that went before the change to it could be written. */
     FIELD_NOT_HERE_ON_CHANGE(92, HttpStatus.NOT_FOUND, Sentences.FIELD_NOT_HERE),
 
-    /** A change to a field that was read and then refused for what it said. */
+    /** A change to a field that was read and then refused for what it contained. */
     FIELD_NOT_CHANGED(
             93,
             HttpStatus.BAD_REQUEST,
@@ -341,7 +341,7 @@ public enum InventoryRefusal implements Refusal {
     SELF_CHECK_WITHOUT_ANSWERS(
             95, HttpStatus.BAD_REQUEST, "The check arrived without any answers in it, so nothing was saved"),
 
-    /** A loss or a swap held back for review that says neither which it is nor about what. */
+    /** A loss or a swap held back for review that shows neither which it is nor about what. */
     HELD_REPORT_INCOMPLETE(
             96,
             HttpStatus.BAD_REQUEST,
@@ -441,7 +441,7 @@ public enum InventoryRefusal implements Refusal {
             HttpStatus.BAD_REQUEST,
             "This inventory holds different things, so there is nothing to swap a piece for"),
 
-    /** A step forced without the note saying why. */
+    /** A step forced without the note explaining why. */
     MOVEMENT_FORCE_NEEDS_A_NOTE(
             123, HttpStatus.BAD_REQUEST, "Forcing a step needs a note saying why, so nothing was changed"),
 
@@ -484,7 +484,7 @@ public enum InventoryRefusal implements Refusal {
             HttpStatus.BAD_REQUEST,
             "The chain this movement belongs on has no steps to stand on, so nothing was changed"),
 
-    /** A movement moved onto its chain without a step, where the chain does not say on its own where it stands. */
+    /** A movement moved onto its chain without a step, where the chain does not show on its own where it stands. */
     MOVEMENT_RECHAIN_LANDING_NOT_CLEAR(
             134,
             HttpStatus.BAD_REQUEST,
@@ -700,32 +700,32 @@ public enum InventoryRefusal implements Refusal {
 
     /**
      * A tag renamed that is gone or belongs to another station. One code for both, so the answer
-     * does not say that a tag exists elsewhere.
+     * does not reveal that a tag exists elsewhere.
      */
     INVENTORY_TAG_NOT_HERE_ON_CHANGE(184, HttpStatus.NOT_FOUND, Sentences.INVENTORY_TAG_NOT_HERE),
 
     /**
      * A tag deleted that is gone or belongs to another station. One code for both, so the answer
-     * does not say that a tag exists elsewhere.
+     * does not reveal that a tag exists elsewhere.
      */
     INVENTORY_TAG_NOT_HERE_ON_DELETE(185, HttpStatus.NOT_FOUND, Sentences.INVENTORY_TAG_NOT_HERE),
 
     /**
      * A piece of gear whose tags were asked for that is gone, sits in an inventory that is gone, or
-     * belongs to another station. One code for all three, so the answer does not say it exists
+     * belongs to another station. One code for all three, so the answer does not reveal it exists
      * elsewhere.
      */
     INVENTORY_TAG_ITEM_NOT_HERE_ON_READ(186, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
 
     /**
      * A piece of gear given new tags that is gone, sits in an inventory that is gone, or belongs to
-     * another station. One code for all three, so the answer does not say it exists elsewhere.
+     * another station. One code for all three, so the answer does not reveal it exists elsewhere.
      */
     INVENTORY_TAG_ITEM_NOT_HERE_ON_TAGGING(187, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
 
     /**
      * An inventory whose tags were asked for that is gone or belongs to another station. One code
-     * for both, so the answer does not say it exists elsewhere.
+     * for both, so the answer does not reveal it exists elsewhere.
      */
     INVENTORY_TAG_INVENTORY_NOT_HERE(188, HttpStatus.NOT_FOUND, Sentences.INVENTORY_NOT_HERE),
 
@@ -738,7 +738,7 @@ public enum InventoryRefusal implements Refusal {
     /** A self-check answer somebody else settled between being read and being taken. */
     SELF_CHECK_REVIEW_SETTLED_BEFORE_TAKING(190, HttpStatus.CONFLICT, Sentences.SELF_CHECK_ANSWER_ALREADY_SETTLED),
 
-    /** A record put right for a self-check answer that does not say the record is wrong. */
+    /** A record put right for a self-check answer that does not indicate the record is wrong. */
     SELF_CHECK_REVIEW_NOTHING_TO_PUT_RIGHT(
             191,
             HttpStatus.BAD_REQUEST,
@@ -755,7 +755,7 @@ public enum InventoryRefusal implements Refusal {
     SELF_CHECK_REVIEW_SETTLED_BEFORE_SENDING_BACK(
             194, HttpStatus.CONFLICT, Sentences.SELF_CHECK_ANSWER_ALREADY_SETTLED),
 
-    /** A record put right for a self-check answer without saying what the member actually holds. */
+    /** A record put right for a self-check answer without indicating what the member actually holds. */
     SELF_CHECK_REVIEW_CORRECTION_MISSING(
             195, HttpStatus.BAD_REQUEST, "Say what the member is actually holding, so nothing was changed"),
 
@@ -776,13 +776,13 @@ public enum InventoryRefusal implements Refusal {
 
     /**
      * A self-check under review that is gone or belongs to another station. One code for both, so
-     * the answer does not say that it exists elsewhere.
+     * the answer does not reveal that it exists elsewhere.
      */
     SELF_CHECK_REVIEW_TASK_NOT_HERE(199, HttpStatus.NOT_FOUND, Sentences.SELF_CHECK_NOT_HERE),
 
     /**
      * A self-check answer under review that is gone or belongs to another submission. One code for
-     * both, so the answer does not say that it exists elsewhere.
+     * both, so the answer does not reveal that it exists elsewhere.
      */
     SELF_CHECK_REVIEW_ANSWER_NOT_HERE(200, HttpStatus.NOT_FOUND, "That answer is not here any more"),
 
@@ -874,7 +874,7 @@ public enum InventoryRefusal implements Refusal {
 
     /**
      * A self-check that is gone or belongs to another station, opened by the member answering it.
-     * One code for both, so the answer does not say that it exists elsewhere.
+     * One code for both, so the answer does not reveal that it exists elsewhere.
      */
     SELF_CHECK_NOT_HERE(226, HttpStatus.NOT_FOUND, Sentences.SELF_CHECK_NOT_HERE),
 
@@ -885,7 +885,7 @@ public enum InventoryRefusal implements Refusal {
     /** A self-check answered or handed in after it was handed in or closed. */
     SELF_CHECK_CLOSED(228, HttpStatus.CONFLICT, "This self-check no longer takes answers, so nothing was saved"),
 
-    /** A self-check answer that says nothing at all. */
+    /** A self-check answer that shows nothing at all. */
     SELF_CHECK_ANSWER_EMPTY(229, HttpStatus.BAD_REQUEST, "Every answer has to say something, so nothing was saved"),
 
     /** A self-check answer meant for an empty place, given about a piece of gear. */
@@ -898,11 +898,11 @@ public enum InventoryRefusal implements Refusal {
     /** A self-check answer about a piece that is not on the member's record. */
     SELF_CHECK_ANSWERED_ITEM_NOT_THE_MEMBERS(232, HttpStatus.BAD_REQUEST, Sentences.ITEM_NOT_ON_MEMBERS_RECORD),
 
-    /** A self-check answer saying the station's own gear is missing, which belongs with the losses. */
+    /** A self-check answer reporting the station's own gear is missing, which belongs with the losses. */
     SELF_CHECK_OWN_GEAR_MISSING_NOT_REPORTED_HERE(
             233, HttpStatus.BAD_REQUEST, "Report the station's own gear as missing where losses are reported"),
 
-    /** A self-check answer saying a piece turned up that nobody reported missing. */
+    /** A self-check answer reporting a piece turned up that nobody reported missing. */
     SELF_CHECK_TURNED_UP_BUT_NOT_MISSING(
             234, HttpStatus.BAD_REQUEST, "This piece of gear is not recorded as missing, so it cannot have turned up"),
 
@@ -910,7 +910,7 @@ public enum InventoryRefusal implements Refusal {
     SELF_CHECK_PIECE_ANSWER_WITHOUT_PIECE(
             235, HttpStatus.BAD_REQUEST, "That answer is about a piece of gear, and no piece was named"),
 
-    /** A self-check answer about an empty place that does not say which place. */
+    /** A self-check answer about an empty place that does not indicate which place. */
     SELF_CHECK_PLACE_NOT_NAMED(236, HttpStatus.BAD_REQUEST, "An answer about an empty place has to say which one"),
 
     /** A self-check answer about gear of a kind the member is not asked to hold. */
@@ -923,7 +923,7 @@ public enum InventoryRefusal implements Refusal {
     SELF_CHECK_NUMBER_ON_WRONG_ANSWER(
             239, HttpStatus.BAD_REQUEST, "Only a place you are holding something for takes a number"),
 
-    /** A size given on a self-check answer that does not say what the member actually holds. */
+    /** A size given on a self-check answer that does not indicate what the member actually holds. */
     SELF_CHECK_SIZE_ON_WRONG_ANSWER(
             240, HttpStatus.BAD_REQUEST, "Only an answer that says what the member actually holds takes a size"),
 

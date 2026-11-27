@@ -20,7 +20,7 @@ import jakarta.inject.Singleton;
 /**
  * Answers the station owner who asked to join a cluster.
  *
- * <p>Only the owner hears. Applying was theirs to do, and a station full of members has no reason to be told
+ * <p>Only the owner hears. Applying was theirs to do, and a station full of members has no reason to be notified
  * about a request most of them never knew was open.
  */
 @Singleton

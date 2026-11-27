@@ -22,7 +22,7 @@ import type {ShareSetting} from '@/api/generated/schema'
  *
  * <p>It renders for nobody but a lending manager, and nowhere the station does not lend: an
  * association issues its gear rather than lending it, and its screens name no lending route. It
- * also says nothing about gear the station does not own, where an offer could never be filled.
+ * also shows nothing about gear the station does not own, where an offer could never be filled.
  */
 const props = withDefaults(defineProps<{
   target: ShareTarget

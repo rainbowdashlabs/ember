@@ -31,7 +31,7 @@ import java.util.Map;
 /**
  * Prints a test as a sheet, either the questions to hand out or the answers to mark against. The
  * sheet is the {@code quiz-sheet.typ} template in the station's document language, fed with the
- * test as data, so nothing a question says is ever read as markup.
+ * test as data, so nothing a question contains is ever read as markup.
  */
 @Singleton
 public class QuizPdfService {
@@ -74,8 +74,8 @@ public class QuizPdfService {
     /**
      * A test as a sheet, either the questions to hand out or the answers to mark against.
      *
-     * <p>The name carries the test's own, because a folder full of question sheets that all say
-     * "questions" tells whoever is printing them nothing at all.
+     * <p>The name carries the test's own, because a folder full of question sheets that all read
+     * "questions" shows whoever is printing them nothing at all.
      */
     private ExportedDocument export(int testId, boolean withAnswers) throws IOException, InterruptedException {
         var test = testRepository.findById(testId).orElseThrow();

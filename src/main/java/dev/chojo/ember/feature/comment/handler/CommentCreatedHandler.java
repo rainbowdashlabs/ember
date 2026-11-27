@@ -19,9 +19,9 @@ import jakarta.inject.Singleton;
 import java.util.Objects;
 
 /**
- * Tells the author of the answered comment about a reply, whoever the comment's target names
+ * Notifies the author of the answered comment about a reply, whoever the comment's target names
  * besides about every comment, and whoever runs the target about a new top-level comment. Who that
- * is the target decided when the comment was written; the author is never told about their own
+ * is the target decided when the comment was written; the author is never notified of their own
  * comment.
  */
 @Singleton

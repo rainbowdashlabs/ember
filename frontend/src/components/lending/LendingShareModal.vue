@@ -27,7 +27,7 @@ import {describeFailure} from '@/util/failure'
 
 /**
  * The one place a station says what it offers a partner, used from the inventory and from a single
- * item alike. Nothing is offered until a row here says so, and the narrower row wins: an inventory
+ * item alike. Nothing is offered until a row here allows it, and the narrower row wins: an inventory
  * can go out with one piece kept back.
  */
 const open = defineModel<boolean>({default: false})

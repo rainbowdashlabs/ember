@@ -193,7 +193,7 @@ public class UserSettingsRoutes implements Routes {
             List<MailProvider> mailProviders) {}
 
     /**
-     * One provider a member's mail may go out through, as the member is told about it.
+     * One provider a member's mail may go out through, as the member sees it.
      *
      * @param type the kind of provider, shown where no name was given
      * @param name the name its owner gave it, empty for none

@@ -210,7 +210,7 @@ interface SignalCapableCredential {
 }
 
 /**
- * Tells the authenticator which credentials still exist, so a passkey deleted here disappears
+ * Informs the authenticator which credentials still exist, so a passkey deleted here disappears
  * from the member's phone instead of haunting its account picker. Best effort: the signal
  * methods are new and their absence must never break the screen that calls this. A device the
  * signal fails on keeps a stale entry until the next one succeeds.

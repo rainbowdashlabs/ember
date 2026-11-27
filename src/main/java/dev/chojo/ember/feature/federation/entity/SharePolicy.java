@@ -16,10 +16,10 @@ import java.util.Map;
  * <p>The narrowest row that exists decides. A piece's own row beats its kind's, and a kind's beats
  * its inventory's, whether they grant or withhold; a row that exists but names other partners is
  * still the narrowest row: "the trailer goes to A but not to B" is written as a grant to A on the
- * trailer, and B is told no by that same row rather than by the inventory above it.
+ * trailer, and B is refused by that same row rather than by the inventory above it.
  *
  * <p>Above all of it sits the partnership itself. A partner the station has turned lending off for
- * is offered nothing, whatever any row says.
+ * is offered nothing, whatever any row defines.
  *
  * @param lendingEnabled whether the partnership still permits lending at all
  * @param byInventory    per inventory, whether the row that exists grants to this partner
@@ -65,7 +65,7 @@ public record SharePolicy(
 
     /**
      * Whether this partner is offered anything at all. It separates the two empty answers a browse
-     * screen may give, and says nothing finer than that on purpose.
+     * screen may give, and shows nothing finer than that on purpose.
      */
     public boolean offersAnything() {
         if (!lendingEnabled) return false;

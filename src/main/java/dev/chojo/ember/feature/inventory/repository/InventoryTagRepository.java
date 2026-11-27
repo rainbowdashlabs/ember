@@ -249,7 +249,7 @@ public class InventoryTagRepository {
     }
 
     /**
-     * How many items carry each of a station's tags, so the tag list can say what it is worth.
+     * How many items carry each of a station's tags, so the tag list can show what it is worth.
      *
      * @param stationId the station
      * @return tag id to the number of items carrying it, holding only the tags that are used

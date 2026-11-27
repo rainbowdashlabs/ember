@@ -186,8 +186,8 @@ public class OutboundHttp {
 
     /**
      * Posts a JSON body that carries no request signature and reports how the call ended: what the
-     * other side answered, or why nothing could be had. Every failure is told apart from an answer,
-     * so a caller whose reader is waiting can say whether the address was refused, the other side
+     * other side answered, or why nothing could be had. Every failure is distinguished from an answer,
+     * so a caller whose reader is waiting can report whether the address was refused, the other side
      * took too long, or it could not be reached at all.
      *
      * @param url     where the body goes
@@ -240,7 +240,7 @@ public class OutboundHttp {
          * The other side answered.
          *
          * @param status what it answered with
-         * @param body   what it said
+         * @param body   what it returned
          */
         record Answered(int status, String body) implements JsonPost {
             /**

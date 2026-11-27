@@ -1026,7 +1026,7 @@ public class AccountRepository {
     /**
      * A session another device vouched for. Its own method rather than a flag on the others, because
      * everything about it is deliberately the plainest the product can mint: nothing proved here, no
-     * trusted device, and a mark it carries for life saying it may never vouch for anybody else.
+     * trusted device, and a mark it carries for life: it may never vouch for anybody else.
      */
     public void createVouchedSession(
             int accountId, String token, Instant expiresAt, @Nullable String userAgent, @Nullable String location) {
@@ -1151,7 +1151,7 @@ public class AccountRepository {
     /**
      * Updates the last-used timestamp, user agent, and location of a session.
      *
-     * <p>This runs on every authenticated request, so the row is only written when it would say
+     * <p>This runs on every authenticated request, so the row is only written when it would record
      * something new: the last use is at least a minute old, or the user agent or location changed.
      * The session list therefore stays accurate to the minute without a write per request.
      *

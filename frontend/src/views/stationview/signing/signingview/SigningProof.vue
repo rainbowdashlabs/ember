@@ -16,7 +16,7 @@ import type {TypedProof} from './useBatchSigning'
 import {isWebAuthnSupported} from '@/util/webauthn'
 
 /**
- * The one action that confirms every chosen signature, in the way the reader's account allows, said in
+ * The one action that confirms every chosen signature, in the way the reader's account allows, put in
  * plain words: with a passkey or security key, with the code from the authenticator app, or, for an account
  * without a second factor, with the password.
  */

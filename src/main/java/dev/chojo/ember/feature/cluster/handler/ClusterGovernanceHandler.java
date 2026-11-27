@@ -18,7 +18,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells the people who run a station that its cluster has switched a module off.
+ * Notifies the people who run a station that its cluster has switched a module off.
  *
  * <p>Addressed to whoever manages the station's modules rather than to everybody: the page is gone for all of
  * them, but only those people were ever in a position to turn it on, and only they will wonder why they now

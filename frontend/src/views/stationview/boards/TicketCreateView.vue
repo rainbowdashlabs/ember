@@ -224,7 +224,7 @@ const {running: submitting, failure: submitFailure, run: runSubmit} = useAsyncAc
 
 /**
  * What to show: the reader's own omission first, then whatever the last attempt ran into. Where the
- * ticket already exists, the sentence says so, because pressing the button again finishes it rather
+ * ticket already exists, the sentence shows that, because pressing the button again finishes it rather
  * than repeating it.
  */
 const shownFailure = computed<Failure | null>(() => {

@@ -31,12 +31,12 @@ import {eventGroupQueueRoutes} from '../eventshared/queueRoutes'
  * The sign-ups partner stations' members sent for a shared event group, decided the same way as the
  * station's own. Nothing is shown while no partner member signed up.
  *
- * <p>A partner's member on the waiting list says their place in line, which counts over the one list
+ * <p>A partner's member on the waiting list shows their place in line, which counts over the one list
  * the station's own wait in too, and is moved up by hand from here. One waiting for a decision can be
  * put on the list. Accepting where the people or a chosen part is full asks first.
  *
  * <p>Where a partner decides its own sign-ups, its rows offer no accepting, denying or putting on the
- * list, and say who chooses instead: the server refuses all three, and a row that simply refused when
+ * list, and show who chooses instead: the server refuses all three, and a row that simply refused when
  * pressed would leave the reader guessing why. Moving within the waiting list stays with this station.
  */
 const props = defineProps<{

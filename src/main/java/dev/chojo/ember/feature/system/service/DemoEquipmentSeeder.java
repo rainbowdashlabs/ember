@@ -22,13 +22,13 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * What the demo station's appointments need, so the panel has something to say on the first look.
+ * What the demo station's appointments need, so the panel has something to show on the first look.
  *
  * <p>Two shapes, because they read differently. The weekly Übung asks for four of a kind and gets
  * them, which is the ordinary appointment. The Kreiswettbewerb asks for more radios than the station
  * has, which is what the borrowing screen exists for.
  *
- * <p>It runs after the inventory and the appointments both exist, which is what the band says.
+ * <p>It runs after the inventory and the appointments both exist, which is what the band defines.
  */
 @Singleton
 public class DemoEquipmentSeeder implements DemoPerStationSeeder {

@@ -97,7 +97,7 @@ const filteredMembers = computed(() => {
  * Closes the run, then reads it back.
  *
  * <p>Answered for separately: a run the server had already closed, followed by a page that would
- * not refresh, used to say the run would not close, and closing it again is not what anybody wants
+ * not refresh, used to show that the run would not close, and closing it again is not what anybody wants
  * to be invited to do.
  */
 async function handleClose() {
@@ -118,7 +118,7 @@ function startGrading(memberId: number) {
 
 /**
  * The run's own name at the head of the page, since a station holds many runs of the same protocol
- * and "Prüfungsdurchlauf" tells none of them apart in a tab or a bookmark.
+ * and "Prüfungsdurchlauf" distinguishes none of them in a tab or a bookmark.
  */
 const pageTitle = computed(() => run.value?.name || t('pages.protocol-run-detail.title'))
 

@@ -23,8 +23,8 @@ import java.util.List;
  * What the people handling a station's chats do to a message: remove it for the station.
  *
  * <p>A removed message shows as removed by the station to everybody; who removed it shows only to
- * the people handling the station's chats. Its author is not told on their own, the line in the chat
- * says it. Every open report of the message is handled with the removal.
+ * the people handling the station's chats. Its author is not notified on their own, the line in the chat
+ * shows it. Every open report of the message is handled with the removal.
  */
 @Singleton
 public class MessageModeration {

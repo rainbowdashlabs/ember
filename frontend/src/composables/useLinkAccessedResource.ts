@@ -20,7 +20,7 @@ import { FailureKind, type Failure } from '@/util/failure'
  *
  * <p>A third case was hidden inside the second: the server not rejecting the link but failing to
  * answer at all. Reporting that as an expired link sends somebody away from a link that still works,
- * and they have no account and nobody here to ask, so only an actual rejection says so now.
+ * and they have no account and nobody here to ask, so only an actual rejection reports it now.
  *
  * <p>The resource is read once the page mounts.
  *

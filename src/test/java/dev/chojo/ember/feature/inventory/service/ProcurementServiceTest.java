@@ -136,7 +136,7 @@ class ProcurementServiceTest extends RepositoryTestBase {
      *
      * <p>An order is a promise: the piece turns up at the station and somebody gives it to the member
      * at the next duty. Writing it straight onto them recorded a hand-over that had not happened, and
-     * the shelf then said a piece was gone that was still lying there.
+     * the shelf then showed a piece was gone that was still lying there.
      */
     @Test
     @Order(12)

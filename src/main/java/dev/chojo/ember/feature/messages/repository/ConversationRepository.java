@@ -77,7 +77,7 @@ public class ConversationRepository {
     }
 
     /**
-     * Whether a message still has something to say to one reader as a push: the conditions of
+     * Whether a message still has something to deliver to one reader as a push: the conditions of
      * {@link #pushReaders(int)}, read again when the push goes out, so a mute, a block, a read or a
      * deleted message in between keeps it quiet.
      */

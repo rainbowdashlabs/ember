@@ -215,7 +215,7 @@ public class ClusterService {
      *
      * <p>The files move back first, for the same reason as on joining. The station's answers go, but the
      * history of who changed what stays: an audit trail is not the cluster's to take away. The storage grant
-     * goes with the membership, and what the instance says about the station applies again.
+     * goes with the membership, and what the instance defines for the station applies again.
      *
      * @param clusterId the cluster letting go
      * @param stationId the station being released
@@ -241,7 +241,7 @@ public class ClusterService {
     }
 
     /**
-     * Says whether the cluster wants its stations connected to each other.
+     * Returns whether the cluster wants its stations connected to each other.
      *
      * <p>Turning it on fills in the pairs that were never made. Turning it off leaves the ones that exist
      * alone: the stations have been seeing each other's calendars and lending each other gear, and quietly
@@ -347,7 +347,7 @@ public class ClusterService {
     /**
      * The members of a cluster who hold a given permission, expanded.
      *
-     * <p>What somebody at the cluster is told about follows from what they are allowed to act on, so this is
+     * <p>What somebody at the cluster is notified about follows from what they are allowed to act on, so this is
      * how a notification finds its recipients. Resolved per member rather than in one query, because the
      * expansion of a user type's defaults lives in the enum and not in the database.
      *

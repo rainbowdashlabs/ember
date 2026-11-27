@@ -60,7 +60,7 @@ public final class PdfInspector {
 
     /**
      * The page a widget sits on, counted from one, asked of the widget first and of the pages' lists of
-     * annotations where the widget does not say.
+     * annotations where the widget does not give it.
      *
      * @param document the document
      * @param widget   the widget

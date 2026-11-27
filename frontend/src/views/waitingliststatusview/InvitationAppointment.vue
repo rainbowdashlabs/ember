@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import StatusFieldRow from './StatusFieldRow.vue'
 import type {WaitingListPublicAppointment} from '@/api/generated/schema'
 
-/** One date an invitation offers, with whatever the mail said about it. */
+/** One date an invitation offers, with whatever the mail carried about it. */
 const props = defineProps<{appointment: WaitingListPublicAppointment}>()
 
 const {t} = useI18n()

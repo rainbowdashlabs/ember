@@ -20,7 +20,7 @@ import ManagerReminder from './ManagerReminder.vue'
 /**
  * The stations as a table, the same facts as the tiles, with the reminder, edit and delete per row. The
  * last reminder has a column of its own, so the row carries the reminder's button alone, and a refused
- * reminder is said once above the table rather than inside a cell.
+ * reminder is shown once above the table rather than inside a cell.
  */
 defineProps<{
   table: DataTableApi<AdminStationSummary>

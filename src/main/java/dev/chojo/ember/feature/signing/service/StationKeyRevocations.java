@@ -46,7 +46,7 @@ import java.util.Optional;
  *
  * <p><b>Given-up authorities.</b> An authority an administrator gave up because its key no longer opens
  * ({@link SigningKeyRecovery}) can sign no list. Its readers get the last list it signed, as it was, with
- * the {@code nextUpdate} it carries telling them it is no newer; should its key open again, it signs
+ * the {@code nextUpdate} it carries marking it as no newer; should its key open again, it signs
  * fresh lists as before. None of its keys can be revoked any more, since no list could name them.
  *
  * <p>Revoking an authority itself is not possible: its certificate is the anchor readers pin, so there

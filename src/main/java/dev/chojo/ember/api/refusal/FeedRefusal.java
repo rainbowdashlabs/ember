@@ -16,7 +16,7 @@ import io.javalin.http.HttpStatus;
 public enum FeedRefusal implements Refusal {
     /**
      * A feed link that opens nothing, or that stands for a member who has since gone. One code
-     * deliberately: two would tell somebody trying links which of them are real.
+     * deliberately: two would show somebody trying links which of them are real.
      */
     FEED_LINK_NOT_GOOD(1, HttpStatus.NOT_FOUND, "That feed link does not lead anywhere any more"),
 

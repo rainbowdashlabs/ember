@@ -31,7 +31,7 @@ public enum PageRefusal implements Refusal {
     PAGE_ADDRESS_MISSING_ON_SAVE(
             17, HttpStatus.BAD_REQUEST, "A page needs an address of its own, so nothing was saved"),
 
-    /** A page whose visibility was changed without saying what to. */
+    /** A page whose visibility was changed without indicating what to. */
     PAGE_VISIBILITY_MISSING(18, HttpStatus.BAD_REQUEST, "Say who may see the page, so nothing was changed"),
 
     /** A share link replaced from a screen that was still showing the link before it. */
@@ -66,7 +66,7 @@ public enum PageRefusal implements Refusal {
     /** A page that went between the editor being opened and the save being asked for. */
     PAGE_NOT_HERE_ON_SAVE(1, HttpStatus.NOT_FOUND, Sentences.PAGE_NOT_HERE),
 
-    /** A page whose contents were read and then refused for what they said. */
+    /** A page whose contents were read and then refused for what they contained. */
     PAGE_NOT_SAVED(2, HttpStatus.BAD_REQUEST, "The page could not be saved"),
 
     /** A page that went before a copy of it could be made. */

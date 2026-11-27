@@ -138,7 +138,7 @@ public record FederationPartner(
      *
      * <p>A mesh pair between two member stations may be paused, because whether they want to see each other
      * is a matter between them. The pair carrying the cluster's own content may not: pausing it would leave
-     * the station quietly missing what its cluster publishes, with nothing on screen saying why.
+     * the station quietly missing what its cluster publishes, with nothing on screen showing why.
      */
     public boolean pausableByStation() {
         return !clusterHome;

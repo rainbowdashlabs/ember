@@ -21,12 +21,12 @@ const router = useRouter()
 const {reload, requiredSteps} = useSetupStatus()
 
 /**
- * The three things this step can have to say, kept apart because they are not alike.
+ * The three things this step can have to show, kept apart because they are not alike.
  *
  * <p>An address that saved, an address that would not save, and an address that is only half filled
  * in used to share one line and one alert. The last of those is the reader's to finish and never a
  * fault in Ember, so it must not come with the offer to report a bug; the middle one often is, and
- * has to keep that offer along with whatever the server said about why.
+ * has to keep that offer along with whatever the server returned about why.
  */
 const message = ref('')
 const failure = ref<Failure | null>(null)

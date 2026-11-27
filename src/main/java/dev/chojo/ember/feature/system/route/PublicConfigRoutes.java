@@ -23,7 +23,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
- * What the instance tells anybody who asks, before they have signed in: where its demo is, whether it is
+ * What the instance shows anybody who asks, before they have signed in: where its demo is, whether it is
  * one, and which version it runs.
  */
 @Singleton
@@ -73,7 +73,7 @@ public class PublicConfigRoutes implements Routes {
      *
      * @param demoUrl where the demo instance is, or empty where none is named
      * @param demo    whether this is a demo or a development instance
-     * @param version the version this instance runs, or {@code unknown} where the build did not say
+     * @param version the version this instance runs, or {@code unknown} where the build did not set one
      */
     public record PublicConfigResponse(String demoUrl, boolean demo, String version) {}
 }

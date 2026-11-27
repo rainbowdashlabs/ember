@@ -174,7 +174,7 @@ public class FederationRoutes implements Routes {
     }
 
     /**
-     * A refusal is reported with the reason as its own field, so the page can say what actually
+     * A refusal is reported with the reason as its own field, so the page can show what actually
      * stands in the way instead of guessing at an expiry that no pairing code has.
      */
     @OpenApi(

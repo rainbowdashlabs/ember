@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  *
  * <p>A request may name a cluster as well as a station, since one person can wear both hats at
  * once. A station or cluster header naming something this instance cannot find is answered as a
- * bad request, not as an unauthorized one. Only the session says whether the sign-in still stands,
+ * bad request, not as an unauthorized one. Only the session decides whether the sign-in still stands,
  * and every client reads a 401 as the sign-in being over: answering a stale header that way threw
  * away a perfectly good session and put the reader back on the login screen, which is the one
  * thing a wrong header must not be able to do.
@@ -199,7 +199,7 @@ public class AccessGate implements Handler {
      * <p>Permissions are already expanded on the session. A step-up category stands beside the
      * permissions: they still gate access, and the category additionally requires a recent
      * verification. The refusal names the set of permissions the route asked about, cluster ones
-     * where the route wants a cluster permission and station ones otherwise, because telling
+     * where the route wants a cluster permission and station ones otherwise, because showing
      * somebody their station permissions when the route wanted a cluster one explains nothing.
      */
     private void checkRoles(Context ctx, Set<RouteRole> routeRoles, UserSession session) {

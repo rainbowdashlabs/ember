@@ -65,11 +65,11 @@ public class MailDashboardService {
      * @param position       where in the order it sits
      * @param provider       which service it is
      * @param senderAddress  the address it sends under, so two entries of the same service are
-     *                       told apart
+     *                       distinguishable
      * @param attempts       how many attempts it gets before the next takes over
      * @param dailySendLimit what it may send in a day, or zero for no limit
      * @param sentToday      what it has sent today
-     * @param waiting        how many mails sit at this provider right now, which is what says who
+     * @param waiting        how many mails sit at this provider right now, which is what decides who
      *                       carries the next one
      * @param exhausted      whether its allowance is spent, so the next one is carrying the post
      * @param viaInstance    whether this is one of the instance's providers at the end of a

@@ -108,7 +108,7 @@ class KbSearchServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A search reaches an article without walking the folders above it, so a match says nothing
+     * A search reaches an article without walking the folders above it, so a match shows nothing
      * about whether the searcher may see it. A word that appears in one restricted article and
      * nowhere else must not lead anyone else to its title or its excerpt, while the readers it was
      * restricted to keep finding it.

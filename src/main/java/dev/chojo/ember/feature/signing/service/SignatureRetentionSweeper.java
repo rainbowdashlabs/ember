@@ -29,7 +29,7 @@ import java.util.List;
  *
  * <p>Signed documents and their evidence are kept past a deletion request under Art. 17(3)(e) GDPR, as
  * evidence for legal claims, and only for as long as that needs. Retention starts when the member leaves
- * or is deleted, however that happens, so the sweep finds those requests itself rather than being told by
+ * or is deleted, however that happens, so the sweep finds those requests itself rather than being notified by
  * every path that removes a member: a request whose member is former or gone gets its {@code retain_until},
  * and one whose member came back loses it again. Where the template set no retention, an archived member's
  * signed documents stay for {@link #ARCHIVED_GRACE_MONTHS} months after the archiving, so an archiving

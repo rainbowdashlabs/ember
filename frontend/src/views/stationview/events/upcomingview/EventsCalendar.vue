@@ -72,7 +72,7 @@ const categoryStyle = computed<Record<number, {bg: string; fg: string}>>(() => {
 
 /**
  * The dates cancelled one by one, as `eventId|date`. Read by the calendar itself, because the list of
- * appointments it is handed says only which series are cancelled as a whole.
+ * appointments it is handed shows only which series are cancelled as a whole.
  */
 const cancelledKeys = ref(new Set<string>())
 

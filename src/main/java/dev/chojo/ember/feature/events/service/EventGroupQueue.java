@@ -270,7 +270,7 @@ public class EventGroupQueue {
     }
 
     /**
-     * Moves everybody up whose choice fits now, first in line first, and tells this station's members
+     * Moves everybody up whose choice fits now, first in line first, and notifies this station's members
      * who moved up once the change is kept.
      *
      * @param eventGroup the event group, locked with its parts

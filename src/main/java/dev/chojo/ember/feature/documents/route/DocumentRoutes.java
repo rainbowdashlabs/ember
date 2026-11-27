@@ -168,7 +168,7 @@ public class DocumentRoutes implements Routes {
     }
 
     /**
-     * Reads what is said about an upload and files it.
+     * Reads what is sent about an upload and files it.
      *
      * <p>Shared by the two ways in: onto a member, and into the store without anybody attached.
      */

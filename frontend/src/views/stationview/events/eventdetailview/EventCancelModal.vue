@@ -19,7 +19,7 @@ import {formatWeekdayDate} from '@/util/format'
 /**
  * Asks for a reason and calls an appointment off: the one date on screen, or the whole series.
  *
- * <p>The two are said apart in the heading, the question and the button, because calling off a
+ * <p>The two are distinguished in the heading, the question and the button, because calling off a
  * series is final and calling off a date is not.
  */
 const props = defineProps<{

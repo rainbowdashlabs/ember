@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  * A field drawn on a page of a PDF template.
  *
  * <p>A text field prints its text with the placeholders filled in, in the default font or in a family
- * of uploaded fonts. A check field prints a cross where its text, filled in, says yes: anything but
+ * of uploaded fonts. A check field prints a cross where its text, filled in, means yes: anything but
  * nothing and the word for no. A signature field becomes an empty PDF signature field for its role and
  * prints as a line, which a PDF that already has a line to sign on leaves out. Its text, with
  * placeholders, prints under the line where asked to; otherwise it only names the field in the editor.

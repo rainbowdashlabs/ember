@@ -29,7 +29,7 @@ import {useDataTable} from '@/composables/useDataTable'
  * Which stations may send their own mail through the instance's providers, granted and withdrawn for
  * many at once. A single station is set on its own page as well.
  *
- * <p>A grant on an instance without providers carries no mail, so the panel says so instead of
+ * <p>A grant on an instance without providers carries no mail, so the panel shows that instead of
  * leaving the grant to look like it works.
  */
 const props = defineProps<{

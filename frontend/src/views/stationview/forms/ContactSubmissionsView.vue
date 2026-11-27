@@ -36,7 +36,7 @@ const ackInFlight = ref<Set<number>>(new Set())
 
 /**
  * Which contact form these came in through, with the part after its name, so a station running
- * several of them can tell one tab of submissions from another.
+ * several of them can distinguish one tab of submissions from another.
  */
 const pageTitle = computed(() => form.value
     ? t('pages.pages-forms-submissions.titleNamed', {name: form.value.title})

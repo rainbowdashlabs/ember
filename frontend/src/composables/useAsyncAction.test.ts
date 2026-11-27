@@ -110,7 +110,7 @@ describe('useAsyncAction', () => {
     })
 
     /**
-     * A failure comes back described as well as spelled out, so a screen can say what to do about it and
+     * A failure comes back described as well as spelled out, so a screen can show what to do about it and
      * offer a report only where it looks like ours to fix.
      */
     it('describes the failure beside the message', async () => {

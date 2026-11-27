@@ -27,12 +27,12 @@ import java.util.Optional;
  * Comments on a news entry.
  *
  * <p>They are read and written by whoever may read the entry, restrictions included. Only their
- * author changes them; their author or a news manager removes them. Every comment tells the news
+ * author changes them; their author or a news manager removes them. Every comment notifies the news
  * managers of the station besides the author of the answered comment; a comment from a partner
- * station tells the same people but announces no mentions.
+ * station notifies the same people but announces no mentions.
  *
  * <p>An entry the instance published to every station belongs to no station. A comment under it
- * belongs to the station its author wrote from, and whatever it tells stays in that station.
+ * belongs to the station its author wrote from, and whatever it triggers stays in that station.
  */
 @Singleton
 public class NewsCommentTarget implements CommentTarget {

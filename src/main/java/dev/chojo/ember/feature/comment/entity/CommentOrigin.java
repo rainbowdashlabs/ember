@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.comment.entity;
 
 /**
- * Where a comment was written from, which decides whom it tells.
+ * Where a comment was written from, which decides whom it notifies.
  */
 public enum CommentOrigin {
     /** By a member of the station owning the target, or of another station on its own pages. */

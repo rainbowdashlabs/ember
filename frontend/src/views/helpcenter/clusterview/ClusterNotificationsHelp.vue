@@ -25,7 +25,7 @@ const demoApplication: NotificationResponse = {
   acknowledgedAt: null,
 }
 
-/** An inbox holding one application, which reads and clears like the real one and tells nobody. */
+/** An inbox holding one application, which reads and clears like the real one and notifies nobody. */
 const demoInbox: NotificationInboxApi = {
   listUnread: async () => [demoApplication],
   listRecent: async () => [demoApplication],

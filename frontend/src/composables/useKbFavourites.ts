@@ -9,7 +9,7 @@ import type {FavouriteEntry} from '@/api/knowledgeBase'
 import {KbFavouriteTarget, type KbFavourite} from '@/api/generated/schema'
 
 /**
- * How two favourites are told apart: by what they point at, with the partner as part of it for a
+ * How two favourites are distinguished: by what they point at, with the partner as part of it for a
  * partner's entry, since an id is only unique on the station that owns it.
  */
 export function favouriteKey(entry: FavouriteEntry): string {

@@ -17,7 +17,7 @@ package dev.chojo.ember.feature.members.entity;
  * group, which is a different target rather than another kind of member.
  */
 public enum ProfileFieldScope {
-    /** Somebody trying the station out, who is asked what a member is asked unless told otherwise. */
+    /** Somebody trying the station out, who is asked what a member is asked unless set otherwise. */
     TRIAL,
     /** An ordinary member. */
     MEMBER,

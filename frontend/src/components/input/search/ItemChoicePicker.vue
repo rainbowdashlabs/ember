@@ -22,7 +22,7 @@ const model = defineModel<number | null>()
 
 const props = defineProps<{
   items: ItemChoice[]
-  /** The inventories, so a piece can say which one it sits in. */
+  /** The inventories, so a piece can show which one it sits in. */
   inventories: InventoryChoice[]
   placeholder?: string
   disabled?: boolean

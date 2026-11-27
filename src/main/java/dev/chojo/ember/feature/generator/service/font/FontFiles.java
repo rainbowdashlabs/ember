@@ -25,8 +25,8 @@ import java.util.Comparator;
  * Reads what an uploaded font file is, refusing one that is no font Ember can print with.
  *
  * <p>A file is taken as a TrueType font ({@code .ttf}, or an {@code .otf} with TrueType outlines) or an
- * OpenType font with PostScript outlines, told apart by the first four bytes, and parsed in full.
- * Collections, web fonts and anything else are refused, as is a font without the OS/2 table that says
+ * OpenType font with PostScript outlines, distinguished by the first four bytes, and parsed in full.
+ * Collections, web fonts and anything else are refused, as is a font without the OS/2 table that shows
  * what its licence allows.
  *
  * <p>The licence bits of that table ({@code fsType}) are read the way PDFBox reads them: a font marked
@@ -35,7 +35,7 @@ import java.util.Comparator;
  * the first document fails.
  */
 public final class FontFiles {
-    /** The bits of {@code fsType} that say a font may be embedded only where its licence allows. */
+    /** The bits of {@code fsType} that show a font may be embedded only where its licence allows. */
     private static final int USAGE_PERMISSIONS = 0x000F;
 
     /** The name table id of the typographic family, which groups more than four styles. */
@@ -61,7 +61,7 @@ public final class FontFiles {
      * @param outline        how its glyphs are drawn
      * @param internalFamily the family name it carries itself
      * @param subsettable    whether its licence lets a document embed only the glyphs it uses
-     * @param style          the style of its family it says it is
+     * @param style          the style of its family it declares it is
      */
     public record Inspection(FontOutline outline, String internalFamily, boolean subsettable, FontStyle style) {}
 

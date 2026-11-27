@@ -60,7 +60,7 @@ const { loading, failure, reload: loadData } = useAsyncLoader(async () => {
  * Writes the catalogue's own details, then reads it back.
  *
  * <p>Answered for separately: a name the server had already taken, followed by a page that would
- * not refresh, used to say the name had been refused, over a field still showing the new one.
+ * not refresh, used to show that the name had been refused, over a field still showing the new one.
  */
 async function saveCatalog(payload: { name: string; description: string; trainingEnabled: boolean }) {
   failure.value = null

@@ -27,10 +27,10 @@ import java.util.Optional;
  * <p>The five expiry settings are all optional, and what a missing one means is decided in one place:
  * {@link ExpirySettings#of(ProfileFieldConfig)}.
  *
- * @param description   a sentence saying what the question is after, shown under its label. A
+ * @param description   a sentence describing what the question is after, shown under its label. A
  *                       field name has to be short enough for a table column, which leaves no room
- *                       to say what counts as an answer, and the person filling it in is the one
- *                       who needs that said.
+ *                       to spell out what counts as an answer, and the person filling it in is the one
+ *                       who needs to know.
  * @param notifyOnChange whether changes to this field require manager acknowledgement
  * @param overview       whether the field is shown in the member overview table
  * @param options        the list of allowed values for ENUM fields
@@ -157,7 +157,7 @@ public record ProfileFieldConfig(
     }
 
     /**
-     * What this field says about the question it asks, as everything that measures one reads it.
+     * What this field shows about the question it asks, as everything that measures one reads it.
      *
      * @param required whether an answer is expected, which the field carries rather than its config
      */

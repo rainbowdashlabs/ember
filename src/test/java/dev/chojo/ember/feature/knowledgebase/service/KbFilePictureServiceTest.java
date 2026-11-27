@@ -153,7 +153,7 @@ class KbFilePictureServiceTest {
         assertTrue(pictures.read(STATION_ID, 9, "application/octet-stream", 256).isPresent());
     }
 
-    /** Reading the bytes is how the untyped files that really are no pictures are told apart. */
+    /** Reading the bytes is how the untyped files that really are no pictures are distinguished. */
     @Test
     void bytesWithoutATypeThatAreNoPictureGetNone() {
         files.store(STATION_ID, 10, "just some bytes".getBytes(StandardCharsets.UTF_8), "application/octet-stream");

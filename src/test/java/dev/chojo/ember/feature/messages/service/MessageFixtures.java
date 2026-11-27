@@ -38,9 +38,9 @@ import static org.mockito.Mockito.when;
 
 /**
  * The message services on the test database's real repositories, wired the way the application
- * wires them, with one hub of signals shared between them so a test can watch what was told.
+ * wires them, with one hub of signals shared between them so a test can watch what was sent.
  *
- * @param signals       the hub every service tells
+ * @param signals       the hub every service sends to
  * @param conversations the conversation list, opening, details, muting and reading
  * @param groups        groups and their people
  * @param messages      reading and writing messages
@@ -52,7 +52,7 @@ import static org.mockito.Mockito.when;
  * @param stationChats  opening and handling station chats
  * @param moderation    removing messages for a station
  * @param reports       reporting messages and handling the reports
- * @param notifier      a mock that the reports tell the people handling a station's chats through
+ * @param notifier      a mock that the reports reach the people handling a station's chats through
  * @param instance      a mock of the instance settings, with messages turned on until a test turns
  *                      them off
  */

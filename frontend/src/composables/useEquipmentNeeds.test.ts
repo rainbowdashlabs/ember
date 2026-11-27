@@ -21,7 +21,7 @@ vi.mock('@/api', () => ({
     },
 }))
 
-/** A refusal as the server sends it, with whatever it chose to say about it. */
+/** A refusal as the server sends it, with whatever it chose to report about it. */
 function refusal(message?: string) {
     return message ? {response: {data: {message}}} : {response: {status: 403, data: {}}}
 }

@@ -30,7 +30,7 @@ export interface PagedListView<T> {
  * <p>A first page asked for again, because a filter changed, wins over everything still on its way:
  * an older first page and a next page fetched for the old filter are both dropped when they land.
  *
- * <p>Neither call swallows a failure: the screen that owns the list says what a failed load looks
+ * <p>Neither call swallows a failure: the screen that owns the list decides what a failed load looks
  * like, and a list that quietly stopped growing would read as a list that had ended.
  *
  * @param fetchPage asks the server for the page starting at an offset

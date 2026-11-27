@@ -25,8 +25,8 @@ async function makeAppointment(page: Page, headers: Record<string, string>, name
  * When an appointment is, wherever it is read.
  *
  * <p>The list of what is coming up and the page of the single appointment take their times from the
- * same stored moment by two different routes, and a reader who is told one time on the list and
- * another on the page has no way of telling which of them to turn up at.
+ * same stored moment by two different routes, and a reader who is shown one time on the list and
+ * another on the page has no way of knowing which of them to turn up at.
  */
 test.describe('The time of an appointment', () => {
     test('reads the same on the list of what is coming up and on the appointment itself',

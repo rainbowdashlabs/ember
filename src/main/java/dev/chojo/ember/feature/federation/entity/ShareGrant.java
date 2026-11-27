@@ -13,6 +13,6 @@ package dev.chojo.ember.feature.federation.entity;
 public enum ShareGrant {
     /** The gear this row names is on offer. */
     GRANT,
-    /** The gear this row names is held back, whatever a wider row says about it. */
+    /** The gear this row names is held back, whatever a wider row defines for it. */
     WITHHOLD
 }

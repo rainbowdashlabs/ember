@@ -109,7 +109,7 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
    * no-op. They do not: taking a share away answers the same whether or not one was there, and
    * setting a partner's places answers the same whether or not anything changed. So the only things
    * either could ever have swallowed were real: an appointment that has gone, one belonging to
-   * another station, a missing permission, or a fault. Un-sharing an appointment and being told it
+   * another station, a missing permission, or a fault. Un-sharing an appointment and being shown it
    * worked whatever happened is the failure this whole change is about.
    */
   async function save(port: FederationSharePort) {

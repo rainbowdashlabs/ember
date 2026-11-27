@@ -22,7 +22,7 @@ import type {ParticipantCopy} from './documentTiles'
 /**
  * What a participant's copy offers beyond its download: on an appointment without registrations, signing
  * its agreement online, which counts as coming and leads straight to the signing screen; and wherever
- * something was signed that the reader may withdraw, withdrawing it. A withdrawn copy says when.
+ * something was signed that the reader may withdraw, withdrawing it. A withdrawn copy shows when.
  */
 const props = defineProps<{
   eventId: number

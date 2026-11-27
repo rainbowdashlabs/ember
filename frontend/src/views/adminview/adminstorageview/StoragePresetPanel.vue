@@ -27,7 +27,7 @@ import {
  * The tiers an owner keeps and hands to its stations.
  *
  * <p>Writes nothing itself. Which tiers these are and where a change goes is the screen's business, and this
- * panel only says what somebody asked for, so the same table serves the instance and an association.
+ * panel only reports what somebody asked for, so the same table serves the instance and an association.
  */
 const props = defineProps<{
   tiers: QuotaTier[]

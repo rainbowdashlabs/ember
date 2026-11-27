@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
  *
  * <p>Most of them do belong to one: a row named by its id is a row of some station, and answering
  * for it without asking whose it is hands one station another station's data. The architecture test
- * requires every such handler to say which station it means, and this is how the exceptions say
+ * requires every such handler to show which station it means, and this is how the exceptions show
  * they are exceptions: an account of the instance, an address the instance administrator owns, a
  * partner resolved from a signature rather than a session, or a row that belongs to a member
  * wherever they are.

@@ -11,7 +11,7 @@ import {actingStationState} from '@/util/actingStationState'
  * Whether this screen is acting for the association that owns what it shows.
  *
  * <p>An association keeps its gear on the station it owns and edits it through that station's own screens,
- * so its requests are station requests and look like anybody else's. The one thing that tells them apart is
+ * so its requests are station requests and look like anybody else's. The one thing that distinguishes them is
  * that the association being acted for is the one whose station is being acted at.
  *
  * <p>The screens use it to decide what to offer: a station holding an association's jacket may not rename or

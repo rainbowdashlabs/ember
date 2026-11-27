@@ -17,7 +17,7 @@ import static dev.chojo.ember.feature.generator.service.wordform.WordXml.first;
 
 /**
  * Writes example values into the places of a scanned Word form, so LibreOffice draws them in the form's
- * own fonts, the way they would look filled in by hand in Word. A box whose value says yes is ticked.
+ * own fonts, the way they would look filled in by hand in Word. A box whose value means yes is ticked.
  */
 final class FormSampleText {
     /** What a ticked box shows. */

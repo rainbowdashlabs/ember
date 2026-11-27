@@ -37,7 +37,7 @@ import java.util.stream.Stream;
  * A row holds at most three columns, at any depth. A picture is the station logo or an image of the
  * station's media library, and the texts of the header and the footer are short.
  *
- * <p>A signature line stands in the body only, names its signer, has a short text under it and may say
+ * <p>A signature line stands in the body only, names its signer, has a short text under it and may carry
  * what its signer confirms, at most {@link SignatureStatementChecks#MAX_STATEMENT} characters. Two
  * lines may name the same signer as alternatives, for members of different audiences; what is refused
  * here is only a pair that every member with some number of guardians would get together. Whether a

@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>Two things have to hold. It stops at the station's own door, because a subscription is a
  * standing arrangement between one person and this instance and no other station's business. And it
- * says when each feed was last fetched, because that is the whole point: a calendar nothing has ever
+ * shows when each feed was last fetched, because that is the whole point: a calendar nothing has ever
  * pulled looks exactly like one pulled every hour until somebody can see the difference.
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

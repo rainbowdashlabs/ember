@@ -16,7 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * What a text about a fault may say once it leaves the instance for a beacon: the fault, not the
+ * What a text about a fault may contain once it leaves the instance for a beacon: the fault, not the
  * people it happened to.
  *
  * <p>Secrets written as a key and a value ({@code password: ...}, {@code token=...}, {@code code=...})
@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
  * case. Everything else stays as it was written: a path, a number, a status code, which are what make
  * a fault findable again.
  *
- * <p>It catches what can be recognised, not everything a line could say about somebody: a name shorter
+ * <p>It catches what can be recognised, not everything a line could give away about somebody: a name shorter
  * than three letters, a name written together with another word, or the name of somebody this
  * instance holds no account or name change for stays as it was.
  *

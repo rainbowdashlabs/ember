@@ -160,7 +160,7 @@ public class DiscoveryStationCacheRepository {
     }
 
     /**
-     * The peers whose card for the given station says a copy of its logo is kept here.
+     * The peers whose card for the given station shows a copy of its logo is kept here.
      *
      * @param stationUid the station's identifier as the peers sent it
      * @return the peers' public keys

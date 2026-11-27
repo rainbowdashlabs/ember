@@ -70,7 +70,7 @@ describe('the last area somebody was in', () => {
     /**
      * A page opened straight at a station navigates before the session has answered. What it notes
      * has no name yet, and an unnamed note is worthless: it is kept in the page until the session
-     * says who is asking.
+     * shows who is asking.
      */
     it('waits for the session before writing what it noted', () => {
         setItem('station_id', STATION)

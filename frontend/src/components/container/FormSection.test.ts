@@ -16,7 +16,7 @@ function section(props: Record<string, unknown> = {}) {
     })
 }
 
-/** A closed section says what it holds, keeps its content in the page, and opens on a click or when it needs attention. */
+/** A closed section shows what it holds, keeps its content in the page, and opens on a click or when it needs attention. */
 describe('FormSection', () => {
     it('starts closed, says what it holds and keeps its content rendered but hidden', () => {
         const wrapper = section()

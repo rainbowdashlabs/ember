@@ -189,7 +189,7 @@ public class DocumentGeneratorService {
      *
      * @param memberId the member, or null where nobody could be named
      * @param name     their official name, or null where nobody could be named
-     * @param function what they do at the station, or null where nothing is said
+     * @param function what they do at the station, or null where nothing is set
      * @param fixed    whether it is the issuer the template names, rather than one picked for this document
      */
     public record PreviewIssuer(
@@ -278,7 +278,7 @@ public class DocumentGeneratorService {
         /**
          * @param view what of a letter the member sees
          * @return what the signer of each signature field of the member's document confirms, by the name of
-         *         the field, for the fields whose line or box says so
+         *         the field, for the fields whose line or box has one
          */
         public Map<String, String> signatureStatements(MemberView view) {
             return switch (content) {
@@ -422,7 +422,7 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * What the signers of a member's document from a template confirm, as the template says now. The lines
+     * What the signers of a member's document from a template confirm, as the template defines now. The lines
      * and boxes are matched to the member as a document drawn now would be: the blocks they see and the
      * guardians they have.
      *

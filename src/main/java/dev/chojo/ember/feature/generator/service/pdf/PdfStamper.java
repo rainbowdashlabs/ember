@@ -277,7 +277,7 @@ public class PdfStamper {
         /** A line along the bottom of the box, to sign on. */
         record Line() implements Mark {}
 
-        /** Nothing, for a check field that says no. */
+        /** Nothing, for a check field that means no. */
         record Nothing() implements Mark {}
     }
 

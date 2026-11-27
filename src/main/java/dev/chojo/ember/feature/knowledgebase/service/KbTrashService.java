@@ -279,7 +279,7 @@ public class KbTrashService {
      *
      * <p>It also names the pages of the station that put one of those articles on themselves. A page
      * cell holds the article's number in its settings with no foreign key behind it, so a deleted
-     * article turns into a stand-in title on a page nobody thought to look at. Saying so before the
+     * article turns into a stand-in title on a page nobody thought to look at. Warning of it before the
      * delete is the only moment anybody would notice.
      *
      * @param stationId the station

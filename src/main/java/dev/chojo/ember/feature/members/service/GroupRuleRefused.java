@@ -16,7 +16,7 @@ import java.util.List;
  * A change to groups refused because of the members it would break a rule for, naming each of them.
  *
  * <p>A set allows a member in one of its groups and a binding allows only some user types. Where a
- * change would break either for somebody, the screen has to say for whom, so the manager can open
+ * change would break either for somebody, the screen has to show for whom, so the manager can open
  * those members and decide. A sentence alone would leave them searching.
  */
 public class GroupRuleRefused extends RefusalResponse {

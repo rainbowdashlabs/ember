@@ -45,7 +45,7 @@ const selected = ref<Set<number>>(new Set())
 const targetId = ref('')
 /**
  * How many pieces were moved, which stays legible after the list has emptied: the usual way a split
- * ends is the last piece leaving, and the page should still say what just happened.
+ * ends is the last piece leaving, and the page should still show what just happened.
  */
 const moved = ref(0)
 

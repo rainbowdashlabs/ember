@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
- * What a discovery card says about the cluster a station answers to.
+ * What a discovery card shows about the cluster a station answers to.
  */
 class DiscoveryClusterGroupingTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();

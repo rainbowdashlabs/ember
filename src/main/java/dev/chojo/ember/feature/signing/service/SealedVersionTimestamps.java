@@ -36,7 +36,7 @@ import java.util.function.IntSupplier;
  *
  * <p><b>Lifting.</b> Hourly, while timestamps are on, the current versions sealed without a timestamp are
  * given a document timestamp and their validation material ({@link PdfSealer#lift}), oldest first. This runs
- * whatever the archive switch says: the record page of such a version already says the time can be added
+ * whatever the archive switch defines: the record page of such a version already shows the time can be added
  * later, and the first timestamp is what makes the seal provable against the operator at all.
  *
  * <p><b>Renewing</b> ({@link Signing#archiveTimestamps()}, off by default). Daily, the current versions whose

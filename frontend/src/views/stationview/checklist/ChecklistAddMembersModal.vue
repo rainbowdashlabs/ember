@@ -39,7 +39,7 @@ const removedMemberIds = computed(() => new Set(props.removedEntries.map(e => e.
 /**
  * Everybody not on the list yet.
  *
- * <p>Somebody taken off it once is offered again and said to have been, because putting them back is
+ * <p>Somebody taken off it once is offered again and shown to have been, because putting them back is
  * a normal thing to do and doing it blind is not.
  */
 const candidates = computed(() => props.members

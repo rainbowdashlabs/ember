@@ -210,7 +210,7 @@ public class ClusterMemberManagementService {
     /**
      * Everything asked of one person, and what they have answered.
      *
-     * <p>The questions are the ones their station asks merged with the ones the cluster asks, each saying
+     * <p>The questions are the ones their station asks merged with the ones the cluster asks, each showing
      * which of the two it came from, so the screen can lay them out together and still know whose they are.
      *
      * @param clusterId the cluster acting

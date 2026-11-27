@@ -16,7 +16,7 @@ import java.util.List;
  * @param memberId      the member
  * @param identity      the member with what their name is shown with: avatar, colour, tag
  * @param name          their official name, which the document and the signature carry
- * @param userType      what kind of member they are, which tells a trial user apart
+ * @param userType      what kind of member they are, which distinguishes a trial user
  * @param groupIds      the groups they are in
  * @param openFields    how many fields of their documents wait to be signed in front of this witness
  * @param openDocuments the titles of the documents those fields are on, each once, oldest first

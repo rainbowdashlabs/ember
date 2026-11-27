@@ -134,7 +134,7 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
     }
 
     /**
-     * The size a swap asks for unless told otherwise: the one the piece handed in has. Most swaps replace
+     * The size a swap asks for unless set otherwise: the one the piece handed in has. Most swaps replace
      * a worn or broken piece with the same thing, so the reader only touches the size when it changes.
      */
     function sizeOfTheSwappedPiece(): number | null {

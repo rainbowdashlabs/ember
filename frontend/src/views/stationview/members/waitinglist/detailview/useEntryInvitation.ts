@@ -71,7 +71,7 @@ export function useEntryInvitation(
    * Sends the invitation, then fetches the list again.
    *
    * <p>The fetch is caught on its own, because the invitation has reached the person by then. A reader
-   * told that inviting failed invites them again, and somebody who has never heard from this station
+   * shown that inviting failed invites them again, and somebody who has never heard from this station
    * before gets two messages about the same evening.
    */
   const {running, failure: inviteFailure, run: confirm} = useAsyncAction(async () => {

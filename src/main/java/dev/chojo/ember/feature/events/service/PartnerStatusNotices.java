@@ -21,9 +21,9 @@ import org.jspecify.annotations.Nullable;
 import java.util.List;
 
 /**
- * Tells a member of this station, and whoever looks after them, that a partner station decided about
+ * Notifies a member of this station, and whoever looks after them, that a partner station decided about
  * their sign-up for one of its appointments or event groups, with the notice a member of the partner gets.
- * The partner's managers are not told: they did not decide and are not asked to act.
+ * The partner's managers are not notified: they did not decide and are not asked to act.
  */
 @Singleton
 public class PartnerStatusNotices {
@@ -37,7 +37,7 @@ public class PartnerStatusNotices {
     }
 
     /**
-     * Tells a member's household about the status a partner gave their sign-up.
+     * Notifies a member's household about the status a partner gave their sign-up.
      *
      * @param memberId      the member
      * @param name          the appointment or event group, as the partner names it

@@ -48,7 +48,7 @@ export async function itemTags(itemId: number): Promise<InventoryTag[]> {
 }
 
 /**
- * Says which words a thing wears.
+ * Returns which words a thing wears.
  *
  * The call speaks in words rather than identifiers, which is what makes a word picked from the
  * list and a word made up on the spot the same thing, and what lets the picker keep a new word as

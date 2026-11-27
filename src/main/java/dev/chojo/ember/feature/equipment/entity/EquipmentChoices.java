@@ -20,7 +20,7 @@ import java.util.List;
  * inventories and its pieces, each with no more than a picker shows.
  *
  * <p>Whoever plans an appointment chooses from the station's gear without holding the right to read
- * the inventory, so notes, metadata, assignments and containers stay out. A piece says only whether it
+ * the inventory, so notes, metadata, assignments and containers stay out. A piece shows only whether it
  * is at the station or with a member, which is what the count of pieces at hand is taken from.
  *
  * @param inventories every inventory of the station
@@ -101,7 +101,7 @@ public record EquipmentChoices(List<InventoryChoice> inventories, List<ArtChoice
      * @param internalId  the code written on it, or {@code null}
      * @param sizeLabel   its size, or {@code null}
      * @param ownerKind   whose piece it is
-     * @param custody     where it is, without saying with whom
+     * @param custody     where it is, without showing with whom
      */
     public record ItemChoice(
             int id,

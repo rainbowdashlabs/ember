@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.system.service;
 
 /**
- * A seeder for the things that hang on a station: its members, its events, its gear, what it has said.
+ * A seeder for the things that hang on a station: its members, its events, its gear, what it has published.
  *
  * <p>The run hands it the station to work on rather than letting it ask for "the" station, which is the
  * whole difference between a demo carrying one station and a demo carrying two. Everything that belongs to

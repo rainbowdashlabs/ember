@@ -21,7 +21,7 @@ vi.mock('@/api', () => ({
 
 /**
  * Deleting a template once took every sheet made from it, with everybody's attendance. The question
- * asked before it is the last place a reader learns what deleting does, so it has to say that the
+ * asked before it is the last place a reader learns what deleting does, so it has to show that the
  * sheets stay.
  */
 describe('AttendanceConfigView', () => {

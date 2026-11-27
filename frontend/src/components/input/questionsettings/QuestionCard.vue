@@ -39,13 +39,13 @@ defineProps<{
   offers: readonly QuestionSetting[]
   nameLabel: string
   namePlaceholder?: string
-  /** Whether the line saying what the chosen type is for is shown under the type. */
+  /** Whether the line showing what the chosen type is for is shown under the type. */
   describe?: boolean
   groups?: MemberGroup[]
   tags?: UserTag[]
   /** Whom a starting value may name, where the feature offers one for a member field. */
   members?: MemberOption[]
-  /** A line under the starting value, where a feature says when it is used. */
+  /** A line under the starting value, where a feature defines when it is used. */
   defaultHint?: string
 }>()
 

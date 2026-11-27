@@ -81,7 +81,7 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
  * Writes one change, then reads the protocol back.
  *
  * <p>The two are answered for separately. A section the server had already stored, followed by a
- * page that would not refresh, used to say the section had been refused, and a reader told that
+ * page that would not refresh, used to show that the section had been refused, and a reader shown that
  * adds it a second time.
  *
  * <p>The protocol stays on screen while it is read back. Taking it away for the moment of the reload

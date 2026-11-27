@@ -43,16 +43,16 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Tells the people an appointment concerns that it changed, once the change is saved.
+ * Notifies the people an appointment concerns that it changed, once the change is saved.
  *
- * <p>Two things can be told. A start that moved on a date somebody holds a place on is always told to
- * everybody holding a place on the dates the change touches. The change itself is told only where the
+ * <p>Two things can be announced. A start that moved on a date somebody holds a place on is always sent to
+ * everybody holding a place on the dates the change touches. The change itself is sent only where the
  * editor chose to, to everybody the appointment concerns on those dates (see {@link EventAudience}).
  * Somebody in both hears it once: one message naming the new start, the changed parts and the note.
  * Somebody in only one of them gets that one.
  *
  * <p>The dates a change touches are the appointment's dates from today on. A change to an appointment
- * that lies wholly in the past tells nobody.
+ * that lies wholly in the past notifies nobody.
  *
  * <p>Each member is named with the first date they hold a place on from the first touched date on,
  * and linked to it; without a place, with the first touched date.
@@ -110,7 +110,7 @@ public class EventChangeNotifier implements TaskSource {
     }
 
     /**
-     * What a save did to an appointment, as far as the people it concerns are told about it.
+     * What a save did to an appointment, as far as the people it concerns are notified about it.
      *
      * @param before the appointment as it stood, or the one it took over from
      * @param after  the appointment as it now stands
@@ -129,7 +129,7 @@ public class EventChangeNotifier implements TaskSource {
     }
 
     /**
-     * Who would be told what, without telling anybody.
+     * Who would be notified of what, without notifying anybody.
      *
      * @param after  the appointment as it now stands
      * @param effect what the save did
@@ -145,7 +145,7 @@ public class EventChangeNotifier implements TaskSource {
     }
 
     /**
-     * Tells the people an appointment changed in place concerns, once every part of the save landed.
+     * Notifies the people an appointment changed in place concerns, once every part of the save landed.
      *
      * @param before the appointment as it stood
      * @param after  the appointment as it now stands
@@ -156,12 +156,12 @@ public class EventChangeNotifier implements TaskSource {
     }
 
     /**
-     * Tells the people an appointment that took over dates of another one concerns, once every part of
+     * Notifies the people an appointment that took over dates of another one concerns, once every part of
      * the save landed. The move is read against the appointment it took over from.
      *
-     * <p>Told once: the first call tells, a repeated one finds nothing left to tell. Where the editor
-     * never sends it, {@link #scheduledTasks()} tells about a moved start on its own after
-     * {@link #GRACE}, since a moved start is told whatever the editor chose.
+     * <p>Notified once: the first call notifies, a repeated one finds nothing left to notify. Where the editor
+     * never sends it, {@link #scheduledTasks()} notifies about a moved start on its own after
+     * {@link #GRACE}, since a moved start is announced whatever the editor chose.
      *
      * @param event  the appointment that took over
      * @param notice what the editor chose, or null for nothing beyond a moved start
@@ -175,7 +175,7 @@ public class EventChangeNotifier implements TaskSource {
         tell(event, effectOf(before, event, link.get().date()), notice);
     }
 
-    /** Tells about a moved start where the editor sent no notice for an appointment that took over dates. */
+    /** Notifies about a moved start where the editor sent no notice for an appointment that took over dates. */
     private void tellOverdue() {
         for (int id : eventRepository.findChangeNoticesOverdue(GRACE)) {
             try {
@@ -246,7 +246,7 @@ public class EventChangeNotifier implements TaskSource {
                 audiences.told().size());
     }
 
-    /** Tells the partner stations whose members hold a place, which tell those members themselves. */
+    /** Notifies the partner stations whose members hold a place, which notify those members themselves. */
     private void tellPartners(StationEvent after, LocalDate first, ChangeEffect effect, @Nullable ChangeNotice notice) {
         boolean told = tellsChange(effect, notice);
         var parts = EnumSet.noneOf(EventChangePart.class);
@@ -338,7 +338,7 @@ public class EventChangeNotifier implements TaskSource {
     }
 
     /**
-     * What a save did to an appointment that the people it concerns are told.
+     * What a save did to an appointment that the people it concerns are notified.
      *
      * @param firstDate the first date the change touches, or null where none is left from today on
      * @param parts     the parts read from the save itself: the time, the date
@@ -350,10 +350,10 @@ public class EventChangeNotifier implements TaskSource {
             @Nullable String startTime) {}
 
     /**
-     * Who is told what.
+     * Who is notified of what.
      *
-     * @param moved the members told about a moved start, holding a place on a touched date
-     * @param told  the members told about the change, where the editor chose to tell them
+     * @param moved the members notified of a moved start, holding a place on a touched date
+     * @param told  the members notified of the change, where the editor chose to tell them
      */
     public record Audiences(List<Integer> moved, List<Integer> told) {}
 }

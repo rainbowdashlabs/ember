@@ -180,7 +180,7 @@ async function onShareLink(page: StationPage) {
  * Puts a new link in place of the one the page has.
  *
  * <p>A refusal used to be reported as somebody else having replaced it first, whatever had actually
- * happened. Only the server saying the link had moved on means that; a missing right or a dropped
+ * happened. Only the server signalling that the link had moved on means that; a missing right or a dropped
  * connection means something else entirely, and reloading to see the newer link gets nowhere.
  */
 async function onReplaceShareLink() {

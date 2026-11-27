@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {formatDateTime} from '@/util/format'
 
 /**
- * Says that a form continues where the reader stopped, and offers to start over instead.
+ * Shows that a form continues where the reader stopped, and offers to start over instead.
  */
 defineProps<{
   /** When the half-filled form was last kept, as an ISO timestamp. */

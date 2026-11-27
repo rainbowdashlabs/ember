@@ -14,7 +14,7 @@ function marginOf(config: ImageConfig): string {
     return (wrapper.element as HTMLElement).style.margin
 }
 
-/** A picture narrower than its column stands where its alignment says, in the middle where none is set. */
+/** A picture narrower than its column stands where its alignment sets it, in the middle where none is set. */
 describe('CellImagePreview', () => {
     it.each([
         [ImageAlign.LEFT, '0px auto 0px 0px'],

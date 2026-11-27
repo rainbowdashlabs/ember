@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.account.entity;
 
-/** How an account's password stands, as the instance's account list tells them apart and filters by. */
+/** How an account's password stands, as the instance's account list distinguishes and filters by. */
 public enum AccountPasswordState {
     /** The account holds no password at all. */
     NONE,

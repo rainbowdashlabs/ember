@@ -27,7 +27,7 @@ import {offersFieldValue, SHARED_SETTINGS, settingsModelOf, withSettingsModel, t
  * every field has, which is the shared question card, and differ only in what is theirs alone: the
  * organiser's carries an answer, a width, a tie to the attendance sheet and whether it is public; the
  * registrant's may be required, start from a value and keep its answer for the organisers. The mode
- * says which of those this one shows.
+ * shows which of those this one shows.
  *
  * <p>The question is edited in place: every change hands back the whole question, so a question
  * moved to another row brings its form with it.

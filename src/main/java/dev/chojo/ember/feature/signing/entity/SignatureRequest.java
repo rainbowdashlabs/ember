@@ -35,7 +35,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
  * @param closedAt        when it stopped waiting, or null while it is open
  * @param copyAttached    whether the copy each signer gets by mail carries the sealed PDF
  * @param purpose         what the signatures are asked for beyond the document, such as a procedure, or
- *                        null where the document alone says it
+ *                        null where the document alone shows it
  */
 public record SignatureRequest(
         int id,

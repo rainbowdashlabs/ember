@@ -23,11 +23,11 @@ import ExpiryStateBadge from './ExpiryStateBadge.vue'
 const props = defineProps<{
   value: unknown
   fieldType?: string | null
-  /** The field's own settings, which say whether a birth date carries its age behind it. */
+  /** The field's own settings, which define whether a birth date carries its age behind it. */
   config?: FieldSettings | null
   /**
    * Writes a date as the day it is, without what today makes of it: no age behind a birth date and
-   * no state beside an expiry date. For a value from the past, which today says nothing about.
+   * no state beside an expiry date. For a value from the past, which today shows nothing about.
    */
   bare?: boolean
   /** The station's members by id, for the types that name people. */
@@ -50,7 +50,7 @@ const booleanWord = computed(() =>
 /**
  * Whether a birth date is written with the age behind it.
  *
- * <p>On unless the field says otherwise, because every birth date carried it before there was a
+ * <p>On unless the field defines otherwise, because every birth date carried it before there was a
  * choice. A station that also asks the age as a question of its own switches it off here, so one
  * screen does not state an age twice and risk stating it two ways.
  */

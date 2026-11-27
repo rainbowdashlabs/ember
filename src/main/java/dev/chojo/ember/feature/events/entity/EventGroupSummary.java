@@ -19,12 +19,12 @@ import java.time.Instant;
  * @param partCount    how many parts it has
  * @param holding      how many accepted sign-ups hold a place
  * @param queued       how many sign-ups wait on the waiting list
- * @param pending      how many sign-ups wait for a decision; a partner is never told, so it reads 0 there
- * @param firstStart   when its earliest part starts, none without parts or where a partner was not told
- * @param lastEnd      when its latest part ends, none without parts or where a partner was not told
+ * @param pending      how many sign-ups wait for a decision; a partner is never sent it, so it reads 0 there
+ * @param firstStart   when its earliest part starts, none without parts or where a partner was not sent them
+ * @param lastEnd      when its latest part ends, none without parts or where a partner was not sent them
  * @param closesAt     when sign-ups close as the deadline places it now, from the start of the first
  *                     part for a relative one; none for no deadline, no part yet, or a relative one a
- *                     partner was not told the parts of
+ *                     partner was not sent the parts of
  */
 public record EventGroupSummary(
         int id,

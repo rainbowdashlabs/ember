@@ -15,7 +15,7 @@ import java.nio.ByteBuffer;
 /**
  * Reads what an uploaded web version of a font style is, refusing one that is no font.
  *
- * <p>A WOFF2 or WOFF file is told by its signature and taken where its header is complete and names the
+ * <p>A WOFF2 or WOFF file is recognised by its signature and taken where its header is complete and names the
  * length the file has; nothing else of it is parsed, since the browser that loads it reads it. A
  * TrueType or OpenType file is read in full, as an uploaded font is ({@link FontFiles}).
  */

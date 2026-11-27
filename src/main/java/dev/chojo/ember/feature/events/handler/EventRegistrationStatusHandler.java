@@ -20,9 +20,9 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells a member that their registration changed, every time, and the event managers once while
+ * Notifies a member that their registration changed, every time, and the event managers once while
  * they have not read the last word about it. Moving up from the waiting list and being put on it are
- * told to the member only: the managers did it themselves or the list did it on its own, and the
+ * sent to the member only: the managers did it themselves or the list did it on its own, and the
  * registration list shows it.
  */
 @Singleton

@@ -142,7 +142,7 @@ export function memberGearLocation(routes: InventoryRoutes, memberId: number): R
     return routes.member ? {name: routes.member, params: {id: memberId}, hash: '#inventory'} : null
 }
 
-/** Where a click in the inventory screens should land, which is a station's pages unless told otherwise. */
+/** Where a click in the inventory screens should land, which is a station's pages unless set otherwise. */
 export function useInventoryRoutes(): InventoryRoutes {
     return inject(INVENTORY_ROUTES, STATION_INVENTORY_ROUTES)
 }

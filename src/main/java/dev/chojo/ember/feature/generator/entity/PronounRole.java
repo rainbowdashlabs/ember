@@ -33,7 +33,7 @@ public enum PronounRole {
 
     /**
      * How the picker names the role: the question the pronoun answers and its two words, such as
-     * "Wem (ihm / ihr)". The question tells apart the English roles whose words are the same.
+     * "Wem (ihm / ihr)". The question distinguishes the English roles whose words are the same.
      *
      * @param language the language the picker speaks
      * @return the name of the role
@@ -61,7 +61,7 @@ public enum PronounRole {
 
     /**
      * @param words the pronouns of an answer in one language
-     * @return the word they have for this role, the object for a dative the language does not tell apart
+     * @return the word they have for this role, the object for a dative the language does not distinguish
      */
     public String wordIn(PronounSet words) {
         return switch (this) {

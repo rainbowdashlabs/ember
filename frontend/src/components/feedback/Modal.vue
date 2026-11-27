@@ -20,7 +20,7 @@ import {useDialogOverlay} from '@/components/feedback/dialogLayers'
  * The dialog is labelled by the first heading of its content.
  *
  * <p>Which of two open dialogs is in front is decided by the order they were opened in, through
- * the layers in `dialogLayers`, since the order they were mounted in says nothing about it.
+ * the layers in `dialogLayers`, since the order they were mounted in shows nothing about it.
  */
 defineOptions({inheritAttrs: false})
 

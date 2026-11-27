@@ -69,7 +69,7 @@ const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
  */
 const pageTitle = computed(() => board.value?.name || t('pages.board-view.title'))
 
-/** Once the name is the title, the line under it is where the board says what it is for. */
+/** Once the name is the title, the line under it is where the board shows what it is for. */
 const pageSubtitle = computed(() => board.value?.description || t('pages.board-view.subtitle'))
 
 const visibleLanes = computed(() => boardLanes(lanes.value, board.value?.backlogLaneId ?? null))

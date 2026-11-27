@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * When a station is written to.
  *
- * <p>The number this used to be was a length of time, and a length of time only ever says "no more
+ * <p>The number this used to be was a length of time, and a length of time only ever means "no more
  * often than": a station wanting its mail before the working day got it whenever the server had last
  * been restarted. These are the moments themselves, so the cases worth holding are the ones about a
  * day rolling over and about a station that has been quiet.

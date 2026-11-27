@@ -19,7 +19,7 @@ function fromAuthenticator(e: unknown): boolean {
 }
 
 /**
- * A failed confirmation, said in a way the signer can act on.
+ * A failed confirmation, put in a way the signer can act on.
  *
  * <p>A closed passkey prompt, a browser without passkeys and a mistyped code or password are the
  * signer's to retry, never a fault worth reporting, and nothing was signed in any of them. Everything

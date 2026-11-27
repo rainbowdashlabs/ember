@@ -16,7 +16,7 @@ export interface SystemLineParts {
 }
 
 /**
- * The words messages are shown with: names, the names of deleted accounts, what a system line says
+ * The words messages are shown with: names, the names of deleted accounts, what a system line reads
  * and what a conversation is called.
  */
 export function useMessageWords() {
@@ -27,7 +27,7 @@ export function useMessageWords() {
         return person ? personName(person) : t('messages.deletedAccount')
     }
 
-    /** What a system line says, in a sentence. */
+    /** What a system line reads, in a sentence. */
     function systemLine(line: SystemLineParts): string {
         const named = {author: nameOf(line.author), subject: nameOf(line.subject), name: line.text}
         if (line.systemKind === 'RENAMED' && !line.text) return t('messages.system.RENAMED_EMPTY', named)

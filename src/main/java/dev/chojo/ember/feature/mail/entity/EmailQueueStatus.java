@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.mail.entity;
 
 /**
- * Where a queued mail stands in being handed to a provider. Says nothing about what happened after
+ * Where a queued mail stands in being handed to a provider. Shows nothing about what happened after
  * the provider took it; that is {@link MailDeliveryStatus}.
  */
 public enum EmailQueueStatus {

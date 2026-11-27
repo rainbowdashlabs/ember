@@ -116,7 +116,7 @@ function titleOf(subtrees: unknown[]): string | null {
 }
 
 /**
- * Where a page sits, said in the words of the pages above it.
+ * Where a page sits, given in the words of the pages above it.
  *
  * <p>Walked up the address rather than written down: the pages above a page are the ones whose address
  * it continues. A module's overview page is written at `.../overview` and stands for the section rather

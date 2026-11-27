@@ -124,7 +124,7 @@ export interface EventListParams {
  * look at and which page of the answer to hand back.
  *
  * `from` and `to` are ISO dates (yyyy-MM-dd) and are both inclusive. The upcoming list starts at
- * today and the past list ends at yesterday, whatever the window says.
+ * today and the past list ends at yesterday, whatever the window defines.
  */
 export interface OccurrenceParams {
     categoryId?: number
@@ -251,8 +251,8 @@ export const updateEvent = events.update
 export const deleteEvent = events.remove
 
 /**
- * Counts who saving the draft would tell: the people the change would be told to if the editor chose
- * to tell them, and the people holding a place who are told a moved start in any case. Nothing is saved.
+ * Counts who saving the draft would notify: the people the change would be sent to if the editor chose
+ * to tell them, and the people holding a place who are notified of a moved start in any case. Nothing is saved.
  */
 export async function previewChange(eventId: number, draft: EventRequest): Promise<ChangePreview> {
     const res = await client.post<ChangePreview>(`/events/${eventId}/change-notice/preview`, draft)
@@ -260,7 +260,7 @@ export async function previewChange(eventId: number, draft: EventRequest): Promi
 }
 
 /**
- * Tells the people an appointment that took over dates of another one concerns, once every part of it
+ * Notifies the people an appointment that took over dates of another one concerns, once every part of it
  * is saved: a moved start always, and the change where the editor chose to.
  */
 export async function sendChangeNotice(eventId: number, notice: ChangeNotice): Promise<void> {
@@ -298,7 +298,7 @@ export async function restoreEventDate(eventId: number, date: string): Promise<v
 }
 
 /**
- * The dates cancelled one by one of every appointment the reader sees. A whole series cancelled says
+ * The dates cancelled one by one of every appointment the reader sees. A whole series cancelled shows
  * so on the appointment itself.
  */
 export async function listStationCancelledDates(): Promise<CancelledEventDate[]> {
@@ -428,7 +428,7 @@ export async function listRegistrationCounts(): Promise<RegistrationCount[]> {
 }
 
 /**
- * How long a withdrawal is offered back where the server does not say.
+ * How long a withdrawal is offered back where the server does not specify.
  *
  * <p>The server is the authority and answers with its own deadline wherever it can. A partner
  * station's appointment is the exception: the answer travels through two instances and carries no
@@ -471,7 +471,7 @@ export async function changeRegistrationAnswer(id: number, attending: boolean, w
 
 /**
  * Accepts or denies a sign-up. Accepting on a date whose places are all taken is refused unless
- * `overLimit` says it goes beyond the limit on purpose. Accepting somebody on the waiting list moves
+ * `overLimit` marks it as going beyond the limit on purpose. Accepting somebody on the waiting list moves
  * them up by hand.
  */
 export async function updateRegistrationStatus(
@@ -666,7 +666,7 @@ export async function listMyFederatedRegistrations(): Promise<RemoteMemberRegist
  * Signs a member up for a partner station's appointment and answers with what they recorded.
  *
  * <p>The status is theirs to decide: an appointment that asks for no confirmation accepts at once,
- * and showing a pending badge regardless would tell the member something nobody said. Beside it come
+ * and showing a pending badge regardless would show the member something nobody said. Beside it come
  * the documents their appointment asks the member to sign, filed here and signed here. The answers to
  * the appointment's questions travel with the sign-up.
  */
@@ -697,7 +697,7 @@ export async function listFederatedAgreementOffers(stationUid: string, eventId: 
 
 /**
  * Takes on the agreement of a partner station's appointment without registrations for a member, filed and
- * signed here. Signing it says the member will come.
+ * signed here. Signing it means the member will come.
  */
 export async function takeOnFederatedAgreement(stationUid: string, eventId: number, eventDate: string, memberId: string): Promise<PartnerDocumentToSign[]> {
     const res = await client.post<PartnerDocumentToSign[]>(`/federated/${stationUid}/events/${eventId}/agreement`, {eventDate, memberId})
@@ -890,7 +890,7 @@ export function eventAttachmentUrl(eventId: number, attachmentId: number): strin
 /**
  * Where the picture of a file is fetched from, at the width the tile showing it wants.
  *
- * <p>Refused for a file that has none, which is what tells a tile to draw the kind of file instead.
+ * <p>Refused for a file that has none, which is what makes a tile draw the kind of file instead.
  */
 export function eventAttachmentPictureUrl(eventId: number, attachmentId: number, width?: number): string {
     const base = `/events/${eventId}/attachments/${attachmentId}/picture`

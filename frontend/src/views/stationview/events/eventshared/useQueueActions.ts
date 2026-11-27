@@ -29,19 +29,19 @@ export function appointmentStatuses(
  * What whoever decides the sign-ups of a date or an event group does with its places and its waiting
  * list: accepting, moving somebody up, putting sign-ups on the list and changing its order.
  *
- * <p>Accepting on a full date is refused by the server until it is told to go beyond the limit, so
+ * <p>Accepting on a full date is refused by the server until the request allows going beyond the limit, so
  * the question is asked then and the acceptance sent again. Members of the station and partners'
  * members go through the routes of their kind.
  *
  * <p>Every action is answered for apart from the reload after it: an action the server took,
- * followed by a list that would not come back, is said as the list being stale rather than as the
- * action having failed. Accepting and denying say so once they went through, and denying somebody
+ * followed by a list that would not come back, is reported as the list being stale rather than as the
+ * action having failed. Accepting and denying show a message once they went through, and denying somebody
  * who already holds a place asks first, since it takes that place away.
  *
  * @param places   how the places of the date stand, for the question to name
  * @param reload   reads the sign-ups back after an action
  * @param failure  the screen's failure channel
- * @param routes   where the actions go, an appointment date's sign-ups unless said otherwise
+ * @param routes   where the actions go, an appointment date's sign-ups unless set otherwise
  * @param statusOf the status a sign-up has now, by its id and whether it is a partner's
  */
 export function useQueueActions(
@@ -78,7 +78,7 @@ export function useQueueActions(
         resolve?.(denied)
     }
 
-    /** Runs an action and, once it went through, says what happened. */
+    /** Runs an action and, once it went through, reports what happened. */
     async function actSaying(action: () => Promise<unknown>, said: string): Promise<boolean> {
         const done = await act(action)
         if (done) showToast(said, 'success')
@@ -116,7 +116,7 @@ export function useQueueActions(
             routes.decidePartner(id, RegistrationStatus.ACCEPTED, choice === WhenFull.OVER_LIMIT)))
     }
 
-    /** Sends an acceptance and says it went through, unless the question about the limit was turned down. */
+    /** Sends an acceptance and reports that it went through, unless the question about the limit was turned down. */
     async function acceptSending(send: () => Promise<boolean>): Promise<boolean> {
         let sent = false
         const done = await act(async () => {

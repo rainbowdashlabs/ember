@@ -11,7 +11,7 @@ import TestRowActions from './TestRowActions.vue'
 import type {QuizTest} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
-/** A test sheet on a phone, where everything it says stands one line under the next. */
+/** A test sheet on a phone, where everything it shows stands one line under the next. */
 defineProps<{
   test: QuizTest
   canConfigure: boolean

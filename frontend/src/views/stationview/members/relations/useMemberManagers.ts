@@ -67,7 +67,7 @@ export function useMemberManagers(
    * <p>What is read is added to what is already known rather than replacing it, so reading the guardians
    * again after a change keeps the answers of the members in their care.
    *
-   * <p>Said out loud where any of them could not be read, because the panel then shows that person with
+   * <p>Reported where any of them could not be read, because the panel then shows that person with
    * empty fields, and an empty telephone number on a guardian reads as one nobody has given.
    */
   async function loadDetails(people: MemberWithName[]) {
@@ -130,8 +130,8 @@ export function useMemberManagers(
    * Invites somebody and makes them this member's guardian, which is four writes behind one button.
    *
    * <p>The invitation is caught on its own because everything after it depends on an account that now
-   * exists. A reader told only that it failed invites the same person again and is refused for an
-   * address already in use, with nothing said about the half-made guardian sitting in the roll.
+   * exists. A reader shown only that it failed invites the same person again and is refused for an
+   * address already in use, with nothing shown about the half-made guardian sitting in the roll.
    *
    * <p>The same goes for the invited person not turning up in the roll afterwards, which used to end
    * the whole thing without a word: the account had been created and the screen looked as though the

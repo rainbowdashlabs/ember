@@ -20,11 +20,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Tells everybody who was part of a movement that it was called off, except whoever called it off.
+ * Lets everybody who was part of a movement know that it was called off, except whoever called it off.
  *
  * <p>The one who pressed it knows. The others do not, and for them it is the end of something they
  * were waiting on: a member who was promised a replacement, a station that had planned around the
- * piece coming back. The message names the piece and says where it stayed, because a movement called
+ * piece coming back. The message names the piece and shows where it stayed, because a movement called
  * off during the post does not bring anything home.
  */
 @Singleton

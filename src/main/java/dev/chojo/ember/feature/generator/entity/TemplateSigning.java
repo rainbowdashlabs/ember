@@ -9,7 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * How a template's documents are kept and sent once they are signed. A request for signatures copies both
- * when it is made, so a later change of the template never changes what a signer was told.
+ * when it is made, so a later change of the template never changes what a signer was shown.
  *
  * @param retentionMonths how many months the signatures, their evidence and the signed document are kept
  *                        after the member has left or was deleted, or null to keep them only while the member

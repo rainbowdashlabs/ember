@@ -306,7 +306,7 @@ public class MediaLibraryService {
      * Removes the file, its bytes and every uploader row. This is the manager's delete.
      *
      * <p>A file some entry hands out as an attachment is refused rather than deleted, and the
-     * refusal says how many entries would break. The database enforces the same thing a second
+     * refusal shows how many entries would break. The database enforces the same thing a second
      * time through {@code ON DELETE RESTRICT}, which makes an attached file the only sort that
      * survives a bug in the reference registry.
      */

@@ -102,7 +102,7 @@ describe('a refused session', () => {
 })
 
 /**
- * Every change carries the token from the readable cookie, so the server can tell it came from this
+ * Every change carries the token from the readable cookie, so the server can verify it came from this
  * page; a read never needs it, and without a session there is nothing to send.
  *
  * @vitest-environment happy-dom

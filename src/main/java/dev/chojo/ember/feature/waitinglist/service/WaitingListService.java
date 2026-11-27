@@ -275,7 +275,7 @@ public class WaitingListService implements TaskSource {
     /**
      * Rejects a second birth date field on the same list.
      *
-     * <p>One is what makes the age findable without being told where it is. Two would leave the
+     * <p>One is what makes the age findable without being pointed to where it is. Two would leave the
      * list to guess, and the guess would be silent.
      *
      * @param excludedId the field being changed, so it does not clash with itself; 0 when creating
@@ -736,7 +736,7 @@ public class WaitingListService implements TaskSource {
     }
 
     /**
-     * Records what somebody answered to the invitation their entry currently holds, and tells the
+     * Records what somebody answered to the invitation their entry currently holds, and notifies the
      * station.
      *
      * <p>The answer names the invitation round it answers and is refused when that is not the round
@@ -822,7 +822,7 @@ public class WaitingListService implements TaskSource {
                 .orElse(invitation.options());
     }
 
-    /** The picked date in one line, as the station is told it. */
+    /** The picked date in one line, as it is sent to the station. */
     private String pickedSummary(int stationId, WaitingListInvitation.OfferedDate picked) {
         var station = stationRepository.findById(stationId).orElse(null);
         if (station == null) return "";
@@ -842,7 +842,7 @@ public class WaitingListService implements TaskSource {
      *
      * <p>The writes run as one, so a failure halfway cannot leave a member nothing points at.
      *
-     * <p>The family is told, with what the station wrote and the date they said they would come to.
+     * <p>The family is notified, with what the station wrote and the date they said they would come to.
      * The message is kept on the entry as well, so the page behind the entry link shows it to a
      * family on a list that writes no mail.
      *
@@ -947,7 +947,7 @@ public class WaitingListService implements TaskSource {
      * Withdraw an entry (from WAITING, INVITED, or TESTING).
      *
      * <p>The trial member is deleted the way any deleted member is: their documents are released,
-     * what the data tracking says to delete or anonymise goes, and the account goes with them once it
+     * what the data tracking defines to delete or anonymise goes, and the account goes with them once it
      * has no other membership and no role in an association.
      *
      * <p>Guardians the trial took on go the same way, when they are at the station as guardians only
@@ -978,11 +978,11 @@ public class WaitingListService implements TaskSource {
     }
 
     /**
-     * Withdraws an entry on the station's word and tells the family, with what the station wrote.
+     * Withdraws an entry on the station's word and notifies the family, with what the station wrote.
      *
      * <p>The addresses are read before the entry goes, because they go with it, and the mail is sent
      * only once the withdrawal has gone through. A withdrawal the family makes themselves goes through
-     * {@link #withdrawEntry(int)} alone and tells them nothing they do not already know.
+     * {@link #withdrawEntry(int)} alone and notifies them of nothing they do not already know.
      *
      * @param message what the station writes to the family, empty for nothing
      */
@@ -1046,7 +1046,7 @@ public class WaitingListService implements TaskSource {
 
     /**
      * Ends a trial from the family's side: the entry is withdrawn as the station would withdraw it,
-     * and the station is told, since nothing is left on the list for it to find.
+     * and the station is notified, since nothing is left on the list for it to find.
      *
      * @param stationId the station the request is made in, which the entry's list must belong to
      * @param household the member ids the person asking acts for, which must include the trial member
@@ -1101,7 +1101,7 @@ public class WaitingListService implements TaskSource {
     /**
      * The field a list reads a date of birth from, if it has declared one.
      *
-     * <p>Declared by type rather than by name, so nothing has to be told which field holds it and a
+     * <p>Declared by type rather than by name, so nothing has to be pointed to which field holds it and a
      * list that renames the field keeps working.
      */
     public Optional<WaitingListField> birthDateField(int listId) {
@@ -1473,14 +1473,14 @@ public class WaitingListService implements TaskSource {
     }
 
     /**
-     * Tells the station once about every open invitation whose offered dates have all begun without an
+     * Notifies the station once about every open invitation whose offered dates have all begun without an
      * answer. The family is no longer reminded of it then, and the next step is the station's: other
      * dates, or back to waiting. Other dates make it count again.
      *
      * <p>Like the reminders, it stays silent for a list that writes to nobody and for a station whose
      * waiting list is switched off.
      *
-     * <p>The invitation is marked before the station is told, so a run that fails while telling loses
+     * <p>The invitation is marked before the station is notified, so a run that fails while notifying loses
      * that one notice rather than repeating it every day after.
      *
      * @param now the moment that decides which dates have begun

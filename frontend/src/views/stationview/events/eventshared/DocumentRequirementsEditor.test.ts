@@ -22,7 +22,7 @@ function editor(compact: boolean) {
 }
 
 /**
- * Inside the appointment form the documents say what they are for behind an icon, and that they can be
+ * Inside the appointment form the documents show what they are for behind an icon, and that they can be
  * signed in the app where documents are switched on.
  */
 describe('DocumentRequirementsEditor', () => {

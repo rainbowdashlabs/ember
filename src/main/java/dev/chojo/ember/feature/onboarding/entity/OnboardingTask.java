@@ -32,7 +32,7 @@ import java.util.Set;
 public enum OnboardingTask {
     /**
      * A walk past the areas of the station that are on for the reader. It comes first because it
-     * says where the later tasks happen.
+     * shows where the later tasks happen.
      */
     TOUR("member.tour", OnboardingLevel.MEMBER, false),
     /**
@@ -52,7 +52,7 @@ public enum OnboardingTask {
     /**
      * Read rather than derived, because it explains a difference rather than asking for an answer.
      * Deriving it from an answer having been given made the walk end in a sign-up nobody had asked
-     * for, and settled the task for anybody who had once answered anything without ever telling them
+     * for, and settled the task for anybody who had once answered anything without ever showing them
      * what the two kinds of appointment are.
      */
     EVENT_ANSWER("member.eventAnswer", OnboardingLevel.MEMBER, false, StationModule.EVENTS),

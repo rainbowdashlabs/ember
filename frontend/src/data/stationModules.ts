@@ -11,7 +11,7 @@ export interface StationModuleOption {
     /** The i18n key of its name. */
     labelKey: string
     icon: string[]
-    /** The i18n key of the sentence saying what it is for. */
+    /** The i18n key of the sentence describing what it is for. */
     descriptionKey: string
     /** The module this one is a part of, which takes it along when it is switched off. */
     parent?: StationModule

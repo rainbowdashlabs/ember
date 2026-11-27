@@ -11,11 +11,11 @@ import {PublicFormState} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 /**
- * Why a form is not taking answers, said where the fields would have been.
+ * Why a form is not taking answers, shown where the fields would have been.
  *
  * <p>The fields, the consent box and the send button are all absent in this case, so nobody types
  * an answer into something that will refuse it. Before this, every form drew its questions whatever
- * its state and the reader learned it was shut only after pressing send, in a message that told them
+ * its state and the reader learned it was shut only after pressing send, in a message that asked them
  * to try again.
  */
 const props = defineProps<{

@@ -47,7 +47,7 @@ import static org.mockito.Mockito.when;
  * The fairness ranking of an event, and the category it is ranked within.
  *
  * <p>An event does not have to be in a category, and the ranking then covers everything the
- * station has done. The route said so already, by falling back to the event's own category, but
+ * station has done. The route did that already, by falling back to the event's own category, but
  * the fallback stood beside a plain int, which unboxes it: an event in no category answered 500
  * to the screen a manager opens before deciding who gets a place.
  */
@@ -149,7 +149,7 @@ class EventRegistrationStatsRouteTest {
 
     /**
      * The screen may ask about a category other than the event's own, which is how a manager
-     * compares one against another. What is asked for wins over what the event says.
+     * compares one against another. What is asked for wins over what the event defines.
      */
     @Test
     void theCategoryAskedForWinsOverTheEventsOwn() {
