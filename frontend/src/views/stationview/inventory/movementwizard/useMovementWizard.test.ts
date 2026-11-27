@@ -6,10 +6,15 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it, vi} from 'vitest'
 import {MovementPurpose} from '@/api/generated/schema'
+import {inventory} from '@/api'
 import {useMovementWizard, type WizardPrefill} from './useMovementWizard'
 
 vi.mock('@/api', () => ({
-    inventory: {listSizes: vi.fn(async () => []), listInventories: vi.fn(async () => [])},
+    inventory: {
+        listSizes: vi.fn(async () => []),
+        listInventories: vi.fn(async () => []),
+        ownerAbove: vi.fn(async (): Promise<string | null> => null),
+    },
     movements: {resolveFlow: vi.fn(async () => null), createMovement: vi.fn(), acknowledgeStep: vi.fn()},
 }))
 
@@ -50,8 +55,19 @@ describe('useMovementWizard', () => {
         expect(wizard.newSizeId.value).toBe(9)
     })
 
-    it('offers a request whether or not the Träger uses Ember', () => {
+    it('offers no request where no Träger above uses Ember', async () => {
         const wizard = useMovementWizard(() => ({}))
+
+        await wizard.load()
+
+        expect(wizard.purposes.value).not.toContain(MovementPurpose.REQUEST)
+    })
+
+    it('offers a request where the Träger above uses Ember', async () => {
+        vi.mocked(inventory.ownerAbove).mockResolvedValueOnce('Kreisfeuerwehrverband')
+        const wizard = useMovementWizard(() => ({}))
+
+        await wizard.load()
 
         expect(wizard.purposes.value).toContain(MovementPurpose.REQUEST)
     })

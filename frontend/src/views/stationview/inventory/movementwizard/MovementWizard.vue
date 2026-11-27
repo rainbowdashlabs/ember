@@ -63,8 +63,8 @@ const canGoOn = computed(() => {
 watch(model, async open => {
   if (!open) return
   failure.value = null
-  await wizard.load()
   try {
+    await wizard.load()
     await wizard.start()
   } catch (e) {
     failure.value = describeFailure(e, t)

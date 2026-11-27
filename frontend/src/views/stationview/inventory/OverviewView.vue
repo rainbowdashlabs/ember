@@ -12,6 +12,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {
   MovementState,
   StationModule,
+  StationPermission,
   type Inventory,
   type InventorySize,
   type MemberWithName,
@@ -31,7 +32,7 @@ import type { LostItem } from './overviewview/types'
 
 const { t } = useI18n()
 const { activeStation } = useStations()
-const { isModuleEnabled } = useSession()
+const { isModuleEnabled, hasPermission } = useSession()
 
 const lostItems = ref<LostItem[]>([])
 const exchangeList = ref<MovementResponse[]>([])
@@ -40,6 +41,16 @@ const inventoryTypeMap = ref<Map<number, string>>(new Map())
 const inventoryList = ref<Inventory[]>([])
 /** The association above that keeps its gear here, which is who a request would go to. */
 const ownerAbove = ref<string | null>(null)
+/** The station's members, kept for a request noted down for one of them. */
+const memberList = ref<MemberWithName[]>([])
+
+/**
+ * Whether the station can ask its association for a piece: as a request where the association keeps its
+ * gear in Ember, otherwise as a procurement it notes down, which takes the right to order.
+ */
+const canRequest = computed(() => ownerAbove.value !== null
+    || (isModuleEnabled(StationModule.INVENTORY_PROCUREMENT)
+        && hasPermission(StationPermission.INVENTORY_PROCUREMENT)))
 
 const openExchanges = computed(() => exchangeList.value
     .filter(movement => movement.state === MovementState.OPEN)
@@ -75,6 +86,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
   for (const inv of inventories) typeMap.set(inv.id, inv.inventoryType ?? '')
   inventoryTypeMap.value = typeMap
 
+  memberList.value = members
   const memberMap = new Map<number, MemberWithName>()
   for (const m of members) memberMap.set(m.id, m)
 
@@ -120,7 +132,13 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
       <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
-        <RequestFromOwnerPanel :owner-name="ownerAbove" @requested="reload" />
+        <RequestFromOwnerPanel
+            v-if="canRequest"
+            :owner-name="ownerAbove"
+            :inventories="inventoryList"
+            :members="memberList"
+            @requested="reload"
+        />
         <OverviewMovementsSection v-if="openExchanges.length > 0" :movements="openExchanges" />
         <OverviewProcurementSection v-if="openProcurement.length > 0" :entries="openProcurementSorted" :inventory-type-map="inventoryTypeMap" />
         <OverviewLostSection v-if="lostItems.length > 0" :items="lostItemsSorted" />

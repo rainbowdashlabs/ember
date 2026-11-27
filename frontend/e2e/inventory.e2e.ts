@@ -649,6 +649,37 @@ test.describe('Inventory', () => {
     })
 
     /**
+     * A request to an association that does not answer in Ember is noted down as an order of its piece.
+     * Whose piece it is follows the inventory: an external one holds only the association's, so the order
+     * needs no owner and still reads as asked of the association.
+     */
+    test('an order of the association\'s piece reads as asked of the association', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const name = unique('Vom Träger')
+        const created = await page.request.post('/api/v1/inventories', {
+            headers,
+            data: {name, inventoryType: 'EXTERNAL', homogeneous: true, hasSizes: false},
+        })
+        expect(created.ok(), await created.text()).toBeTruthy()
+        const inventoryId = (await created.json()).id as number
+        try {
+            const note = unique('Beim Träger angefragt')
+            const ordered = await page.request.post('/api/v1/procurement', {
+                headers,
+                data: {inventoryId, notes: note},
+            })
+            expect(ordered.ok(), await ordered.text()).toBeTruthy()
+            expect((await ordered.json()).owner, 'an external inventory holds the association\'s piece').toBe('CLUSTER')
+
+            await page.goto('/station/inventory/procurement')
+            const entry = page.getByTestId('procurement-entry').filter({hasText: note})
+            await expect(entry.getByTestId('procurement-from-association')).toBeVisible()
+        } finally {
+            await page.request.delete(`/api/v1/inventories/${inventoryId}`, {headers})
+        }
+    })
+
+    /**
      * A container is where an item lives when nobody is carrying it. The story creates one and
      * finds it in the tree afterwards, which is where anybody looking for it would look.
      */

@@ -5764,7 +5764,9 @@ export default {
             hint: 'Ihr könnt {name} um ein Teil bitten, das ihr nicht habt. Der Träger schickt eines oder '
                 + 'lehnt mit einer Begründung ab; ihr seht beides in den Vorgängen.',
             ask: 'Beim Träger anfragen',
-            ownerFallback: 'den Träger',
+            hintOutside: 'Euer Träger führt sein Material nicht in Ember. Notiert hier, was ihr bei ihm angefragt '
+                + 'habt. Es steht dann in der Beschaffung, und sobald es ankommt, tragt ihr es dort als erledigt ein.',
+            noteDown: 'Anfrage notieren',
         },
         requirements: {
             hint: 'Definiere, welche Inventargegenstände Mitglieder mit einer bestimmten Rolle oder Gruppe besitzen '
@@ -9052,6 +9054,13 @@ export default {
         createTitle: 'Beschaffung erstellen',
         empty: 'Keine Beschaffungsanfragen vorhanden.',
         noOpen: 'Keine offenen Beschaffungen.',
+        owner: 'Wem gehört das Stück',
+        chooseOwner: 'Bitte wählen',
+        ownerStation: 'Der Wache',
+        ownerAssociation: 'Dem Träger',
+        ownerSettledStation: 'Das Stück gehört der Wache.',
+        ownerSettledAssociation: 'Das Stück gehört dem Träger.',
+        fromAssociation: 'Beim Träger angefragt',
         doneSummary: 'Erledigt ({count})',
         deleteConfirm: 'Beschaffungsanfrage wirklich löschen?',
         inventory: 'Ausstattung',

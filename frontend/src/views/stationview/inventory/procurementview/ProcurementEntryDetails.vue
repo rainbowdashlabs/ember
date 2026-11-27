@@ -4,13 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type { ProcurementResponse } from '@/api/generated/schema'
+import {ItemOwner, type ProcurementResponse} from '@/api/generated/schema'
 import { formatDate } from '@/util/format'
 import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 
@@ -22,9 +23,15 @@ const routes = useInventoryRoutes()
  * swap is waiting for leads to that swap, since delivering it names the swap's replacement rather than
  * starting a hand-out of its own.
  */
-defineProps<{
+const props = defineProps<{
   entry: ProcurementResponse
 }>()
+
+/**
+ * Whether a station's order brings the association's piece, which is how a request to the association is
+ * noted down. An association's own orders all bring its own pieces, so its list leaves the mark out.
+ */
+const fromTheAssociation = computed(() => !!routes.member && props.entry.owner === ItemOwner.CLUSTER)
 </script>
 
 <template>
@@ -34,6 +41,9 @@ defineProps<{
       <SizeBadge>{{ entry.sizeLabel || t('common.unisize') }}</SizeBadge>
       <SuccessBadge v-if="entry.fulfilledAt">{{ t('procurement.fulfilled') }}</SuccessBadge>
       <ErrorBadge v-else>{{ t('procurement.open') }}</ErrorBadge>
+      <InfoBadge v-if="fromTheAssociation" data-testid="procurement-from-association">
+        {{ t('procurement.fromAssociation') }}
+      </InfoBadge>
       <InfoBadge v-if="entry.stock.length > 0" data-testid="procurement-in-stock">
         {{ t('procurement.inStock', {n: entry.stock.length}) }}
       </InfoBadge>
