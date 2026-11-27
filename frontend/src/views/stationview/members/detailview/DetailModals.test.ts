@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {shallowMount} from '@vue/test-utils'
+import {flushPromises, shallowMount} from '@vue/test-utils'
 import {afterEach, beforeAll, describe, expect, it} from 'vitest'
 import Modal from '@/components/feedback/Modal.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
 import {followModifierKeys} from '@/util/modifierKeys'
 import DetailModals from './DetailModals.vue'
 
@@ -27,6 +28,7 @@ function modals(canMarkFormer: boolean) {
             memberId: 4,
             memberDisplayNameFn: () => '',
         },
+        global: {renderStubDefaultSlot: true},
     })
 }
 
@@ -73,5 +75,16 @@ describe('DetailModals', () => {
 
         expect(wrapper.emitted('markFormer')).toBeUndefined()
         expect(formerDialogOpen(wrapper)).toBe(true)
+    })
+
+    it('marks the member former when the dialog was opened before the member had loaded', async () => {
+        const wrapper = modals(false)
+
+        ;(wrapper.vm as unknown as Opener).openFormerModal()
+        await wrapper.setProps({canMarkFormer: true, formerBlockReasons: []})
+        wrapper.findComponent(ErrorButton).vm.$emit('click')
+        await flushPromises()
+
+        expect(wrapper.emitted('markFormer')).toHaveLength(1)
     })
 })
