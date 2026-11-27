@@ -6203,6 +6203,11 @@ volumes:
             whatShownText: 'Hier verwaltest du die Gegenstände und Größen innerhalb eines einzelnen Inventars.',
             settingsTitle: 'Einstellungen',
             settingsText: 'Ändere den Namen, den Typ und ob das Inventar einheitlich oder eine Sammlung ist.',
+            iconTitle: 'Symbol und Farbe',
+            iconText: 'Das Symbol steht neben dem Inventar in allen Listen. Ein Klick in das Suchfeld zeigt alle '
+                + 'Symbole nach Gruppen, Tippen grenzt sie ein. Wer ein anderes auswählt, ersetzt das bisherige; '
+                + '„Ohne Symbol“ entfernt es. Darunter wählst du eine Farbe. Arten und Behältertypen bekommen ihr '
+                + 'Symbol auf dieselbe Weise.',
             fieldsTitle: 'Wo ein Feld angelegt wird',
             fieldsText: 'Ein Feld wird dort angelegt, wo das Ding lebt, zu dem es gehört. Felder des ganzen '
                 + 'Inventars stehen auf dieser Seite, Felder einer Art im Fenster der Art, Felder eines einzelnen '
@@ -6265,7 +6270,10 @@ volumes:
                 + 'gelöscht wird nur das Wort, die Gegenstände bleiben.',
             filterTitle: 'Nach einem Wort filtern',
             filterText: 'Trägt dort etwas ein Tag, hat die Gegenstandsliste des Inventars eine Spalte '
-                + '„Tags“. Über ihren Filter lässt sich die Liste auf ein Wort einschränken.',
+                + '„Tags“. Über ihren Filter lässt sich die Liste auf ein Wort einschränken. Die Suche über '
+                + 'der Liste findet Gegenstände auch über ihre Tags und ihre Art, selbst wenn die Spalte '
+                + 'ausgeblendet ist. Auf der Seite eines Gegenstands stehen seine Tags ebenfalls und lassen '
+                + 'sich beim Bearbeiten ändern.',
             sameWordTitle: 'Dasselbe Wort bei mehreren Abteilungen',
             sameWordText: 'Groß- und Kleinschreibung und Leerzeichen am Rand spielen keine Rolle: „Funk“, '
                 + '„funk“ und „ Funk “ sind ein Wort. Jede Abteilung behält ihre eigene Schreibweise in der '
@@ -6433,7 +6441,8 @@ volumes:
             howTo: 'Wie benutze ich diese Seite?',
             howToText: 'Du kannst den Gegenstand bearbeiten, zuweisen oder als verloren melden.',
             metadataTitle: 'Gegenstand-Informationen',
-            metadataText: 'Oben siehst du Name, interne ID, Größe, Status und Besitzer.',
+            metadataText: 'Oben siehst du Name, interne ID, Art, Tags, Größe, Status und Besitzer. Über '
+                + '„Bearbeiten“ änderst du sie, die Tags eingeschlossen.',
             dummyItemName: 'Helm',
             dummyLostItemName: 'Jacke',
             dummyLostSince: 'Verloren seit 01.05.2026',

@@ -10,6 +10,8 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 
 ### Verbesserungen
 
+- **Arten und Tags auf den Inventarseiten.** Die Suche eines Inventars findet Gegenstände über ihre Art und ihre Tags, auch wenn diese Spalten ausgeblendet sind. Freie Gegenstände zum Ausgeben zeigen ihre Art. Die Seite eines Gegenstands zeigt seine Tags, und beim Bearbeiten lassen sie sich ändern.
+- **Symbol eines Inventars wählen.** Das Symbol eines Inventars, einer Art oder eines Behältertyps wird durch Auswahl eines anderen ersetzt, ohne das alte erst zu entfernen. Die Liste zeigt alle Symbole statt nur der ersten. Neue Symbole gibt es für Möbel, Anhänger, Grill, Hüpfburg und andere Dinge für Feste und Veranstaltungen.
 - **Karten zu Terminorten auf Wunsch, mit Navigation.** Ein Ort mit Markierung auf der Seite eines Termins zeigt hinter seiner Adresse einen Kartenknopf, und die Karte öffnet sich erst auf Knopfdruck. Unter der Karte starten Links die Navigation dorthin. Android-Handys bieten dabei ihre eigene Auswahl an Navigations-Apps an. iPhones und Computer bekommen Apple Karten und Google Maps, der Link zu OpenStreetMap bleibt.
 - **Jedes Ortsfeld als Ort im Kalender.** Ein Ortsfeld eines Termins, einer Vorlage oder einer Terminreihe lässt sich als Ort im Kalender markieren. Nur ein Ortsfeld je Formular trägt die Markierung, und die eigene Markierung eines Termins geht der seiner Terminreihe vor.
 - **Treffpunkt in Termindokumenten.** Dokumente für Termine haben einen neuen Platzhalter für den Treffpunkt. Der Platzhalter für den Ort zeigt weiter, wo der Termin stattfindet, so bleiben Fotoerlaubnisse und ähnliche Formulare, wie sie sind.
@@ -24,6 +26,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Einzelne Termine in Kalenderabos standen in UTC.** Im persönlichen und im öffentlichen Abo standen einmalige Termine in UTC, während Serien schon die Zeitzone der Wache trugen. Einmalige Termine stehen jetzt ebenfalls in der Zeitzone der Wache, mit Sommer- und Winterzeit, wie sie an ihrem Datum gilt.
 - **Stunden auf gedruckten Anwesenheitslisten im falschen Zahlenformat.** In manchen Fällen standen die Stunden auf gedruckten Anwesenheitslisten und Berichten bei einer englischsprachigen Wache mit Dezimalkomma oder bei einer deutschsprachigen mit Dezimalpunkt. Die Stunden folgen jetzt der Sprache der Wache, wie schon im Tabellenexport.
 - **Ein Mitglied als ehemalig zu markieren blieb manchmal ohne Wirkung.** In manchen Fällen tat die Bestätigung nichts, wenn der Dialog geöffnet wurde, während die Seite des Mitglieds noch lud. Der Dialog markiert das Mitglied jetzt auch dann.
+- **Die Inventarseite sprang nach oben.** Nach jeder Änderung an einem Gegenstand wurde die ganze Liste neu geladen, und die Stelle darin ging verloren. Die Seite bleibt jetzt beim Aktualisieren, wo sie war.
 
 ## v26.26.4
 

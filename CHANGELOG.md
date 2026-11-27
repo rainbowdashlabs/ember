@@ -10,6 +10,8 @@ People who already have an account on this instance can be invited into a statio
 
 ### Improvements
 
+- **Kinds and tags on the inventory pages.** The search of an inventory finds pieces by their kind and their tags, also while those columns are hidden. Free pieces offered for handing out show their kind. A piece's own page shows its tags, and editing the piece changes them.
+- **Choosing an inventory's picture.** The picture of an inventory, a kind or a container type is changed by picking another one, without removing the old one first. The list shows every picture instead of only the first ones. New pictures cover furniture, trailers, grills, a bouncy castle and other things for festivals and events.
 - **Appointment maps open on request, with navigation.** A pinned place on an appointment's page shows a map button behind its address, and the map opens only when the button is pressed. Below the map, links start navigation there. Android phones offer their own choice of navigation apps. iPhones and computers get Apple Maps and Google Maps, and the OpenStreetMap link stays.
 - **Any place field as the location in the calendar.** A place field of an appointment, a template or an event group can be marked as the location in the calendar. Only one place field per form carries the mark, and an appointment's own mark wins over the one of its event group.
 - **Meeting point in appointment documents.** Documents for appointments have a new placeholder for the meeting point. The location placeholder keeps showing where the appointment takes place, so photo permissions and similar forms stay as they are.
@@ -24,6 +26,7 @@ People who already have an account on this instance can be invited into a statio
 - **Single appointments in calendar subscriptions were written in UTC.** In the personal and the public subscription, one-time appointments were written in UTC, while series already carried the station's timezone. One-time appointments are now written in the station's timezone too, with summer and winter time as the date has them.
 - **Hours on printed attendance sheets had the wrong number format.** In some cases, printed attendance sheets and reports showed hours with a decimal comma for an English station, or with a decimal point for a German one. The hours now follow the station's language, as they already did in the spreadsheet export.
 - **Marking a member as former could do nothing.** In some cases, confirming the dialog had no effect when it was opened while the member's page was still loading. The dialog now marks the member in that case too.
+- **The inventory page jumped back to the top.** After every change to a piece, the whole stock list loaded again and the place in it was lost. The page now stays where it was while it refreshes.
 
 ## v26.26.4
 
