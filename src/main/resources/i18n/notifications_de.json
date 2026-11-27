@@ -146,7 +146,9 @@
     "INVENTORY_LENDING": "Verleih",
     "INVENTORY_PROCUREMENT": "Beschaffung",
     "INVENTORY_SELF_CHECKS": "Ausrüstung selbst prüfen",
-    "INVENTORY_CHECKS": "Inventarprüfungen"
+    "INVENTORY_CHECKS": "Inventarprüfungen",
+    "INVENTORY_MEMBER_CHECKS": "Mitglieder prüfen",
+    "INVENTORY_CONTAINER_CHECKS": "Behälter prüfen"
   },
   "feedTitle": {
     "NEW_NEWS": "Neuigkeit: {title}",

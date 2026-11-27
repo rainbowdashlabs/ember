@@ -224,8 +224,8 @@ export const STATION_NAV: Entry[] = [
             {
                 kind: 'group', key: 'inventory-checks', label: 'sidebar.inventoryCheck', icon: 'clipboard-check', prefix: ['/station/inventory/checks'], visible: both(runs(StationModule.INVENTORY_CHECKS), can(StationPermission.INVENTORY_CHECK)),
                 children: [
-                    {kind: 'page', key: 'inventory-check-member-overview', label: 'sidebar.inventoryCheckMember', icon: 'user-check', to: '/station/inventory/checks/member'},
-                    {kind: 'page', key: 'inventory-check-container-overview', label: 'sidebar.inventoryCheckContainer', icon: 'box-open', to: '/station/inventory/checks/container'},
+                    {kind: 'page', key: 'inventory-check-member-overview', label: 'sidebar.inventoryCheckMember', icon: 'user-check', to: '/station/inventory/checks/member', visible: runs(StationModule.INVENTORY_MEMBER_CHECKS)},
+                    {kind: 'page', key: 'inventory-check-container-overview', label: 'sidebar.inventoryCheckContainer', icon: 'box-open', to: '/station/inventory/checks/container', visible: runs(StationModule.INVENTORY_CONTAINER_CHECKS)},
                 ],
             },
             {
