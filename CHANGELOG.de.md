@@ -6,7 +6,8 @@ Kalenderabos zeigen einzelne Termine in der Zeitzone der Wache.
 
 ### Fehlerbehebungen
 
-- **Einzelne Termine in Kalenderabos standen in UTC.** Die Kalenderdatei des persönlichen und des öffentlichen Abos gab einmalige Termine in GMT an, während Serien schon die Zeitzone der Wache trugen. Einmalige Termine stehen jetzt ebenfalls in der Zeitzone der Wache, mit Sommer- und Winterzeit, wie sie an ihrem Datum gilt.
+- **Einzelne Termine in Kalenderabos standen in UTC.** Im persönlichen und im öffentlichen Abo standen einmalige Termine in UTC, während Serien schon die Zeitzone der Wache trugen. Einmalige Termine stehen jetzt ebenfalls in der Zeitzone der Wache, mit Sommer- und Winterzeit, wie sie an ihrem Datum gilt.
+- **Stunden auf gedruckten Anwesenheitslisten im falschen Zahlenformat.** In manchen Fällen standen die Stunden auf gedruckten Anwesenheitslisten und Berichten bei einer englischsprachigen Wache mit Dezimalkomma oder bei einer deutschsprachigen mit Dezimalpunkt. Die Stunden folgen jetzt der Sprache der Wache, wie schon im Tabellenexport.
 
 ## v26.26.4
 
