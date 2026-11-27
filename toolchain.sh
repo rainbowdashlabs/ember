@@ -153,6 +153,8 @@ Frontend tests
                         unless E2E_PREBUILT_READY=1 says it is already there
   fe-e2e1 <file> [args] One end-to-end spec, e.g. `fe-e2e1 account`
   fe-e2e-group <name>   One of the groups CI runs as a job of its own, e.g. `fe-e2e-group inventory`
+                        Failed stories get one rerun with a single worker; a story that passes
+                        only then is reported as flaky
   fe-e2e-groups         Check that every story is in exactly one group
   fe-e2e-ssr            The JavaScript-disabled project, which is what proves the public routes
                         really are server-rendered
@@ -171,6 +173,8 @@ Backend
                         the javadoc
   be-test               Every test suite, no filter
   be-suite <suite>      One test suite in full, e.g. `be-suite testServices`
+                        Failed test classes get one rerun on a single fork; a class that passes
+                        only then is reported as flaky
   be-dist               Build the runnable distribution into build/install/ember, no tests
   be-test1 <pattern> [suite]
                         One test class, e.g. be-test1 '*PageServiceTest*'. Defaults to the
@@ -459,7 +463,7 @@ case "$cmd" in
         [ -f .output/server/index.mjs ] || NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
         # shellcheck disable=SC2046
         # The patterns come first, because --project takes every argument that follows it.
-        run npx playwright test $(node scripts/e2e-groups.mjs patterns "$group") \
+        run bash "$ROOT/scripts/run-e2e-group.sh" $(node scripts/e2e-groups.mjs patterns "$group") \
             --project chromium --project ssr-no-js "$@"
         ;;
     fe-e2e-groups)   fe; run node scripts/e2e-groups.mjs check ;;
@@ -522,7 +526,7 @@ case "$cmd" in
         ;;
     be-suite)
         [ $# -ge 1 ] || { echo "be-suite needs a suite, e.g. testServices" >&2; exit 2; }
-        cd "$ROOT"; run ./gradlew "$@"
+        cd "$ROOT"; run bash scripts/run-suite.sh "$@"
         ;;
     be-dist)       cd "$ROOT"; run ./gradlew installDist "$@" ;;
     be-test1)
