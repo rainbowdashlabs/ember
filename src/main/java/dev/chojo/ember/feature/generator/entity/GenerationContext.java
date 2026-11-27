@@ -61,14 +61,17 @@ public record GenerationContext(
     /**
      * What a document shows about the appointment it is generated for.
      *
-     * @param name     what the appointment is called
-     * @param start    when it begins
-     * @param end      when it ends
-     * @param location where it takes place, or null where that is not given
+     * @param name         the appointment's name
+     * @param start        when it begins
+     * @param end          when it ends
+     * @param location     the venue, where the appointment takes place, or null where that is not given
+     * @param meetingPoint where people meet, which is the place the calendar shows, or null where no
+     *                     place is given
      */
     public record EventFacts(
             String name,
             Instant start,
             Instant end,
-            @Nullable String location) {}
+            @Nullable String location,
+            @Nullable String meetingPoint) {}
 }
