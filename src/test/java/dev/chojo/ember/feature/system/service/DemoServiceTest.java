@@ -76,8 +76,10 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
+import dev.chojo.ember.feature.inventory.repository.InventorySearchRepository;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
+import dev.chojo.ember.feature.inventory.service.InventorySearchService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
@@ -402,7 +404,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         new EquipmentNeedRepository(),
                         eventRepo,
                         occurrenceCalendar),
-                noOpBus);
+                noOpBus,
+                new InventorySearchService(new InventorySearchRepository(), stationRepo));
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo, privateTags);
 
         var lostAndFoundService =

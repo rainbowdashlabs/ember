@@ -1384,6 +1384,34 @@ class LendingServiceTest extends RepositoryTestBase {
         assertFalse(service.isPictureOffered(asking, UUID.randomUUID().toString()));
     }
 
+    /**
+     * A search reaches an inventory through a kind or a piece on offer, but a piece held back does not
+     * bring its inventory into the answer: the search would otherwise reveal to the partner that it exists.
+     */
+    @Test
+    @Order(609)
+    void aSearchFindsAnInventoryThroughWhatIsOfferedOnly() {
+        var games = inventoryRepo.create(stationA.id(), "LendSvcSearchSchrank", InventoryType.INTERNAL, false);
+        var catan = inventoryRepo.createItem(games.id(), "SR-001", "Siedler von Catan", null, null);
+        var secret = inventoryRepo.createItem(games.id(), "SR-002", "Geheimspiel Zebrafant", null, null);
+        shareService.setInventoryShare(stationA.id(), games.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+        shareService.setItemShare(stationA.id(), secret.id(), ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
+        inventoryRepo.setItemDescription(catan.id(), "Rohstoffe sammeln und handeln");
+        UUID elsewhere = UUID.randomUUID();
+        var asking = new ServingPartner(partnerElsewhere(elsewhere), elsewhere);
+
+        assertTrue(offeredIds(asking, "catan").contains(games.id()), "by a piece's name");
+        assertTrue(offeredIds(asking, "Rohstoff").contains(games.id()), "by a piece's description");
+        assertTrue(offeredIds(asking, "schrank").contains(games.id()), "by part of the inventory's name");
+        assertFalse(offeredIds(asking, "Zebrafant").contains(games.id()), "not by a piece held back");
+    }
+
+    private static Set<Integer> offeredIds(ServingPartner asking, String search) {
+        return service.serveAvailability(asking, search, null, null).entries().stream()
+                .map(RemoteLendingRoutes.RemoteAvailableEntry::inventoryId)
+                .collect(Collectors.toSet());
+    }
+
     /** A partnership of station A with a station on another instance, with lending switched on. */
     private static FederationPartner partnerElsewhere(UUID elsewhere) {
         var keyPair = federationService.generateKeyPair();

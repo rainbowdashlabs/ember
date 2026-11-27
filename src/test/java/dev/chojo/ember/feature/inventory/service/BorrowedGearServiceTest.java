@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.repository.InventorySearchRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.TaskScheduler;
@@ -85,7 +86,8 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
                         new EquipmentNeedRepository(),
                         eventRepo,
                         occurrenceCalendar),
-                new DomainEventBus(Set.of()));
+                new DomainEventBus(Set.of()),
+                new InventorySearchService(new InventorySearchRepository(), stationRepo));
         transport.serve(lending);
 
         owner = stationRepo.create("BorrowedGearOwner");

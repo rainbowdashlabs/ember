@@ -147,6 +147,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryContainerKindReposi
 import dev.chojo.ember.feature.inventory.repository.InventoryContainerRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.repository.InventorySearchRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryTagRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementDocumentRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementItemRepository;
@@ -160,6 +161,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryArtService;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
+import dev.chojo.ember.feature.inventory.service.InventorySearchService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.InventoryTagService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
@@ -1426,7 +1428,8 @@ public abstract class RepositoryTestBase {
                 artRepo,
                 lineTargetService,
                 availability,
-                eventBus);
+                eventBus,
+                new InventorySearchService(new InventorySearchRepository(), stationRepo));
         transport.serve(lending);
         return lending;
     }

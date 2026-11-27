@@ -43,12 +43,14 @@ import dev.chojo.ember.feature.inventory.entity.BorrowedPiece;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventoryMatch;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
+import dev.chojo.ember.feature.inventory.service.InventorySearchService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.inventory.service.LineTargetService;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -69,9 +71,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Business logic for cross-station inventory lending. Internally peer references travel as
@@ -97,6 +101,7 @@ public class LendingService implements FederationServer {
     private final LineTargetService lineTargets;
     private final EquipmentAvailabilityService availability;
     private final DomainEventBus eventBus;
+    private final InventorySearchService searchService;
 
     @Inject
     public LendingService(
@@ -113,7 +118,8 @@ public class LendingService implements FederationServer {
             InventoryArtRepository artRepository,
             LineTargetService lineTargets,
             EquipmentAvailabilityService availability,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            InventorySearchService searchService) {
         this.fanout = fanout;
         this.artRepository = artRepository;
         this.lineTargets = lineTargets;
@@ -128,6 +134,7 @@ public class LendingService implements FederationServer {
         this.borrowedGearService = borrowedGearService;
         this.shareService = shareService;
         this.eventBus = eventBus;
+        this.searchService = searchService;
     }
 
     /**
@@ -1217,7 +1224,8 @@ public class LendingService implements FederationServer {
      * it could only be refused.
      *
      * @param partner  the partnership the question arrived on
-     * @param query    part of an inventory's name to narrow by, or {@code null}
+     * @param query    a search over the names and descriptions of the inventories, their kinds and their
+     *                 pieces, or {@code null}
      * @param dateFrom the first day the gear is wanted, or {@code null}
      * @param dateTo   the last day, or {@code null}
      * @return what is offered
@@ -1277,13 +1285,12 @@ public class LendingService implements FederationServer {
             @Nullable LocalDate dateTo) {
         var lender = lenderAt(lendingStationId);
         var groups = new ArrayList<OfferedGroup>();
+        Map<Integer, InventoryMatch> matches =
+                query == null || query.isBlank() ? null : searchService.match(lendingStationId, query);
         for (var inv : inventoryRepository.findByStation(lendingStationId)) {
             if (onlyInventory != null && inv.id() != onlyInventory) continue;
-            if (query != null && !query.isBlank()) {
-                if (!inv.name().toLowerCase().contains(query.toLowerCase())) {
-                    continue;
-                }
-            }
+            InventoryMatch match = matches == null ? null : matches.get(inv.id());
+            if (matches != null && match == null) continue;
             if (dateFrom != null && isBlocked(lendingStationId, inv.id(), null, dateFrom, dateTo)) {
                 continue;
             }
@@ -1297,6 +1304,7 @@ public class LendingService implements FederationServer {
                     .stream()
                     .filter(item -> dateFrom == null || !isBlocked(lendingStationId, null, item.id(), dateFrom, dateTo))
                     .toList();
+            if (match != null && !matchesAnyOffered(match, offered)) continue;
 
             var perArt = new LinkedHashMap<Integer, Integer>();
             for (var item : offered) {
@@ -1310,6 +1318,19 @@ public class LendingService implements FederationServer {
             }
         }
         return groups;
+    }
+
+    /**
+     * Whether a search reaches the inventory through something actually on offer: the inventory
+     * itself, or a kind or a piece among the offered pieces. A match on a piece held back must not
+     * bring the inventory into the answer, or the search would reveal to the partner that it exists.
+     */
+    private static boolean matchesAnyOffered(InventoryMatch match, List<InventoryItem> offered) {
+        if (match.itself()) return true;
+        var kinds = match.kinds().stream().map(InventoryMatch.Hit::id).collect(Collectors.toSet());
+        var pieces = match.pieces().stream().map(InventoryMatch.Hit::id).collect(Collectors.toSet());
+        return offered.stream()
+                .anyMatch(item -> pieces.contains(item.id()) || (item.artId() != null && kinds.contains(item.artId())));
     }
 
     /**

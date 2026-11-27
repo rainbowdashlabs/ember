@@ -144,4 +144,16 @@ public final class SqlSupport {
                 .map(col -> PLAIN_COLUMN.matcher(col).matches() ? prefix + "." + col : col)
                 .collect(Collectors.joining(", "));
     }
+
+    /**
+     * A {@code LIKE} pattern matching the text anywhere, with the text's own wildcards escaped so a
+     * percent sign or an underscore in it is taken literally. PostgreSQL escapes with a backslash by
+     * default, which is the one used here.
+     *
+     * @param text what is looked for
+     * @return the pattern
+     */
+    public static String containing(String text) {
+        return "%" + text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+    }
 }
