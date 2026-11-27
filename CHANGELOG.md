@@ -2,11 +2,15 @@
 
 ## v26.27.0
 
-People who already have an account on this instance can be invited into a station by their name.
+People who already have an account on this instance can be invited into a station by their name. Calendar subscriptions show single appointments in the station's timezone.
 
 ### New Features
 
 - **Invite people of this instance by name.** The member wizard finds people who already have an account on this instance by their name and asks them to link it, without anybody knowing their address. People who share a station or an association with the inviting manager can be found, everybody else only after turning on "Findable from every station" under Account → Links.
+
+### Fixes
+
+- **Single appointments in calendar subscriptions were written in UTC.** The calendar file of the personal and the public subscription gave one-time appointments in GMT, while series already carried the station's timezone. One-time appointments are now written in the station's timezone too, with summer and winter time as the date has them.
 
 ## v26.26.4
 

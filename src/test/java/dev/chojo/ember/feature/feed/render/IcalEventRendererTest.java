@@ -376,6 +376,44 @@ class IcalEventRendererTest {
         assertTrue(ve.getProperty("EXDATE").orElseThrow().toString().contains("TZID=Europe/Berlin"));
     }
 
+    /**
+     * A one-time appointment is written on the station's clock at the offset its own date has, so a
+     * summer evening and a winter evening both read as six o'clock rather than as the time in UTC.
+     */
+    @Test
+    void aOneOffIsWrittenOnTheStationClockInSummerAndWinter() {
+        var summer = series(30, StationEvent.EventType.ONE_TIME, null, Instant.parse("2026-07-01T16:00:00Z"), null);
+        var winter = series(31, StationEvent.EventType.ONE_TIME, null, Instant.parse("2026-12-01T17:00:00Z"), null);
+
+        var summerEntry =
+                EventRecurrence.entryOf(summer, "Dienst", calendar(List.of())).orElseThrow();
+        var winterEntry =
+                EventRecurrence.entryOf(winter, "Dienst", calendar(List.of())).orElseThrow();
+
+        assertEquals(
+                "DTSTART;TZID=Europe/Berlin:20260701T180000",
+                summerEntry.getProperty("DTSTART").orElseThrow().toString().strip());
+        assertEquals(
+                "DTEND;TZID=Europe/Berlin:20260701T200000",
+                summerEntry.getProperty("DTEND").orElseThrow().toString().strip());
+        assertEquals(
+                "DTSTART;TZID=Europe/Berlin:20261201T180000",
+                winterEntry.getProperty("DTSTART").orElseThrow().toString().strip());
+    }
+
+    /** A station whose clock is a fixed offset keeps its one-time appointments in UTC. */
+    @Test
+    void aOneOffOnAFixedOffsetStaysInUtc() {
+        var event = series(32, StationEvent.EventType.ONE_TIME, null, Instant.parse("2026-07-01T16:00:00Z"), null);
+
+        var entry = EventRecurrence.entryOf(event, "Dienst", new StationCalendar(ZoneOffset.UTC, List.of()))
+                .orElseThrow();
+
+        assertEquals(
+                "DTSTART:20260701T160000Z",
+                entry.getProperty("DTSTART").orElseThrow().toString().strip());
+    }
+
     /** A feed carries the definition of the station's clock its entries are written on. */
     @Test
     void theStationClockHasADefinitionForTheCalendar() {

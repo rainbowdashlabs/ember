@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.util;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,16 +52,18 @@ public final class SizeParser {
     }
 
     /**
-     * Formats a byte count into a human-readable string.
+     * Formats a byte count into a human-readable string. The decimal point is always a dot, whatever
+     * locale the server runs in, so the same size reads the same on every instance.
      *
      * @param bytes the byte count
      * @return human-readable size (e.g. "1.5 GiB", "50 MiB")
      */
     public static String formatBytes(long bytes) {
         if (bytes < 1024) return bytes + " B";
-        if (bytes < 1024L * 1024) return String.format("%.1f KiB", bytes / 1024.0);
-        if (bytes < 1024L * 1024 * 1024) return String.format("%.1f MiB", bytes / (1024.0 * 1024));
-        if (bytes < 1024L * 1024 * 1024 * 1024) return String.format("%.1f GiB", bytes / (1024.0 * 1024 * 1024));
-        return String.format("%.1f TiB", bytes / (1024.0 * 1024 * 1024 * 1024));
+        if (bytes < 1024L * 1024) return String.format(Locale.ROOT, "%.1f KiB", bytes / 1024.0);
+        if (bytes < 1024L * 1024 * 1024) return String.format(Locale.ROOT, "%.1f MiB", bytes / (1024.0 * 1024));
+        if (bytes < 1024L * 1024 * 1024 * 1024)
+            return String.format(Locale.ROOT, "%.1f GiB", bytes / (1024.0 * 1024 * 1024));
+        return String.format(Locale.ROOT, "%.1f TiB", bytes / (1024.0 * 1024 * 1024 * 1024));
     }
 }

@@ -94,18 +94,21 @@ public final class EventRecurrence {
     }
 
     /**
-     * The calendar entry of an appointment.
+     * The calendar entry of an appointment, written on the station's clock so a reader sees the times
+     * the station keeps. A one-time appointment is written at the offset its own date has, which puts
+     * it in summer or winter time as the case may be.
      *
      * @param event    the appointment
      * @param summary  the headline the entry carries
-     * @param calendar the station's calendar, which says where the series starts and what its breaks take out
+     * @param calendar the station's calendar, which names its clock, where a series starts and what its breaks take out
      * @return the entry, empty for a series that falls on no date at all
      */
     public static Optional<VEvent> entryOf(StationEvent event, String summary, StationCalendar calendar) {
         if (!event.isRecurring()) {
+            var zone = calendar.zone();
             var start = event.startTime() != null ? event.startTime() : Instant.now();
             var end = event.endTime() != null ? event.endTime() : start;
-            return Optional.of(new VEvent(start, end, summary));
+            return Optional.of(new VEvent(onClock(start, zone), onClock(end, zone), summary));
         }
         return calendar.ruleOf(event).flatMap(rule -> seriesOf(event, summary, rule, calendar));
     }
@@ -130,7 +133,8 @@ public final class EventRecurrence {
 
     /**
      * A moment as a calendar is to read it: in UTC on a clock that is a fixed offset, and otherwise
-     * as the time of day on the station's clock, which is what a series repeats.
+     * as the time of day on the station's clock, which is what a series repeats and what a reader of
+     * any entry expects to see.
      */
     private static Temporal onClock(Instant moment, ZoneId zone) {
         return zone instanceof ZoneOffset ? moment : moment.atZone(zone);
