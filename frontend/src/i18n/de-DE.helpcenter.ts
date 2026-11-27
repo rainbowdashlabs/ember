@@ -2503,19 +2503,20 @@ volumes:
             rightsRead: 'Die eigenen Dokumente darf jeder lesen, dafür braucht es kein Recht.',
             rightsSelf: 'Zum Hochladen im eigenen Profil braucht es das Recht „Eigene Dokumente hochladen".',
             rightsOthers: 'Für andere hochladen, Dokumente Mitgliedern zuordnen, taggen '
-                + 'und löschen darf, wer „Mitgliederdokumente verwalten" hat. Wer Mitglieder '
-                + 'bearbeiten darf, hat dieses Recht ohnehin.',
+                + 'und löschen darf, wer „Mitgliederdokumente verwalten" hat. „Mitglieder '
+                + 'bearbeiten" allein reicht dafür nicht.',
             rightsOwn: 'Die Ablage hat eigene Rechte, und sie trennen die Papiere der Wache von '
                 + 'denen der Mitglieder: „Dokumente einsehen" und „Dokumente verwalten" gelten für '
                 + 'die Ablage der Wache, „Mitgliederdokumente einsehen" und „Mitgliederdokumente '
                 + 'verwalten" für alles, was einer Person zugeordnet ist. „Dokumente" fasst die '
                 + 'vier zusammen. So lässt sich etwa dem Gerätewart die Ablage öffnen, ohne ihm '
-                + 'die Papiere der Mitglieder zu geben; wer Mitglieder einsehen oder bearbeiten '
-                + 'darf, behält, was er heute schon sieht.',
+                + 'die Papiere der Mitglieder zu geben. Ebenso darf jemand Mitglieder einsehen oder '
+                + 'bearbeiten, ohne ihre Dokumente zu sehen.',
             rightsBound: 'Das Recht folgt dem einzelnen Dokument, nicht der Ablage: Ein Dokument, '
                 + 'das einem Mitglied zugeordnet ist, sieht nur, wer „Mitgliederdokumente '
                 + 'einsehen" hat. Ein Dokument ohne Zuordnung ist die Ablage der Wache und braucht '
-                + 'nur „Dokumente einsehen".',
+                + '„Dokumente einsehen". Wer nur eines der beiden Rechte hat, sieht in der Ablage '
+                + 'nur den Teil, den es öffnet.',
             moduleTitle: 'Wenn die Wache keine Ablage braucht',
             moduleText: 'Die Ablage ist ein Modul. Unter Verwaltung → Module lässt sie sich '
                 + 'abschalten, dann verschwindet die Seite aus der Navigation. Der Datenexport '
@@ -2540,7 +2541,8 @@ volumes:
             unboundTitle: 'Die Ablage der Wache finden',
             unboundText: 'Auf der Seite gibt es den Schalter „Nur ohne Mitglied". Er zeigt genau '
                 + 'die Dokumente, die zu niemandem gehören, also Verträge, Prüfberichte und was '
-                + 'die Wache über sich selbst aufbewahrt.',
+                + 'die Wache über sich selbst aufbewahrt. Den Schalter sieht, wer „Dokumente '
+                + 'einsehen" hat.',
             rightsHidden: 'Ein verborgenes Dokument sieht nur, wer „Mitgliederdokumente einsehen" '
                 + 'hat. Das Mitglied selbst sieht es nicht.',
             previewTitle: 'Vorschau',

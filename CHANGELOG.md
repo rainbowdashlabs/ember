@@ -26,6 +26,8 @@ People who already have an account on this instance can be invited into a statio
 
 - **Calendar subscriptions show the meeting point.** Calendar subscriptions show the marked place as an appointment's location, and otherwise the first place filled in. Existing place fields named meeting point are marked during the update. The venue stays in the description of the entry. Waiting list invitations show the same place.
 - **Requests outside Ember become procurements.** Where the association does not keep its gear in Ember, "Note down request" on the inventory overview records the request as a procurement of the association's piece. It carries the mark "Requested from the association". Requests to the association are offered only where it keeps its gear in Ember. Elsewhere the request chains on the movement chains page are hidden.
+- **Member data and member documents are separate permissions.** "Read members" no longer includes reading member documents. "Edit members" no longer includes managing member documents, generating documents or asking for signatures. During the update, everybody who held a member permission is given the matching document permission, so the two can now be granted separately. "Read member documents" no longer opens the station's own paperwork, which needs "Read documents". Whoever reads only members or member documents therefore sees only documents assigned to a member in the document store.
+- **Inventory checks and movements no longer create items freely.** Running inventory checks or managing movements no longer allows creating the association's items outside those flows. The pieces a check or a movement records itself are still created.
 
 ### Fixes
 
