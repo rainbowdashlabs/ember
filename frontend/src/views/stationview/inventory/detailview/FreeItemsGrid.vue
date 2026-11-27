@@ -8,23 +8,27 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MovementPieceBadge from '@/components/inventory/MovementPieceBadge.vue'
-import type { InventoryItem, InventorySize } from '@/api/generated/schema'
+import type { InventoryArt, InventoryItem, InventorySize } from '@/api/generated/schema'
 
 /**
  * The pieces nobody holds, each offered for handing out.
  *
  * <p>A piece an open movement carries is free on the shelf and spoken for all the same. It names its
- * movement instead of offering a hand-out the movement would refuse.
+ * movement instead of offering a hand-out the movement would refuse. A piece sorted into a kind shows
+ * that kind, so the right one can be picked from a drawer of different things.
  */
 const props = withDefaults(defineProps<{
   items: InventoryItem[]
   sizes: InventorySize[] | undefined
+  /** The kinds of a drawer of different things, empty for every other inventory. */
+  arts?: InventoryArt[]
   containerPathById: Map<number, string>
   /** The movement carrying each piece an open movement carries. */
   movementItemMap?: ReadonlyMap<number, number>
-}>(), {movementItemMap: () => new Map()})
+}>(), {arts: () => [], movementItemMap: () => new Map()})
 
 defineEmits<{
   assign: [itemId: number]
@@ -35,6 +39,11 @@ const { t } = useI18n()
 function sizeName(sizeId: number | null | undefined): string {
   if (!sizeId || !props.sizes) return ''
   return props.sizes.find(s => s.id === sizeId)?.label ?? ''
+}
+
+function artName(artId: number | null | undefined): string {
+  if (!artId) return ''
+  return props.arts.find(art => art.id === artId)?.name ?? ''
 }
 
 function locationLabel(containerId: number | null | undefined): string {
@@ -52,6 +61,7 @@ function locationLabel(containerId: number | null | undefined): string {
           <div class="text-sm font-medium">
             {{ item.name }}
             <SizeBadge v-if="sizeName(item.sizeId)">{{ sizeName(item.sizeId) }}</SizeBadge>
+            <InfoBadge v-if="artName(item.artId)" class="ml-1">{{ artName(item.artId) }}</InfoBadge>
           </div>
           <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
           <div v-if="locationLabel(item.containerId)" class="text-xs text-(--text-muted) flex items-center gap-1 mt-0.5">

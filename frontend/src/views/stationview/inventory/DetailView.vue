@@ -83,6 +83,11 @@ function itemAssignedName(item: InventoryItem): string {
   return member ? memberDisplayName(member) : `#${item.assignedTo}`
 }
 
+function itemArtName(item: InventoryItem): string {
+  if (!item.artId) return ''
+  return arts.value.find(art => art.id === item.artId)?.name ?? ''
+}
+
 const itemTable = useItemTable({
   inventoryId: () => inventoryId.value,
   items: () => items.value,
@@ -91,6 +96,7 @@ const itemTable = useItemTable({
   isMixed: () => detail.value?.inventoryType === InventoryType.MIXED,
   sizeLabel: itemSizeLabel,
   assignedName: itemAssignedName,
+  artName: itemArtName,
 })
 
 /**
@@ -272,11 +278,11 @@ function goEdit() { router.push({ name: routes.edit, params: { id: inventoryId.v
         @edit="goEdit"
       />
 
-      <Spinner v-if="loading" size="lg" />
+      <Spinner v-if="loading && !detail" size="lg" />
       <FailureAlert :failure="failure"/>
 
       <DetailLoadedContent
-        v-if="!loading && detail"
+        v-if="detail"
         :detail="detail"
         :items="items"
         :arts="arts"

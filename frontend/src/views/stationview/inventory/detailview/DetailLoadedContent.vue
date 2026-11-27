@@ -171,6 +171,7 @@ function memberIdentity(memberId: number) {
     v-if="permissions.canEdit"
     :items="freeItems"
     :sizes="detail.sizes"
+    :arts="arts"
     :container-path-by-id="containerPathById"
     :movement-item-map="movementItemMap"
     @assign="$emit('assignFree', $event)"
