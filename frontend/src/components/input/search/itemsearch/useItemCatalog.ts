@@ -7,7 +7,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {ItemChipSource} from '@/components/inventory/ItemChip.vue'
 import {containerPathFor} from '@/util/containerPath'
-import {glyphFor} from '@/util/glyph'
+import {pieceGlyph} from '@/util/glyph'
 import {inventory, inventoryArts, inventoryContainers, movements, stationMembers} from '@/api'
 import {piecesOnOpenMovements} from '@/util/movementPieces'
 import type {
@@ -133,13 +133,7 @@ export function useItemCatalog(wantedSizeId: () => number | null | undefined, wi
     function glyphOf(item: InventoryItem) {
         const art = item.artId != null ? artById.value.get(item.artId) : undefined
         const inv = inventoryById.value.get(item.inventoryId)
-        return glyphFor({
-            artIcon: art?.icon,
-            artColor: art?.color,
-            inventoryIcon: inv?.icon,
-            inventoryColor: inv?.color,
-            homogeneous: inv?.homogeneous,
-        })
+        return pieceGlyph(art, inv)
     }
 
     function hasWantedSize(item: InventoryItem): boolean {

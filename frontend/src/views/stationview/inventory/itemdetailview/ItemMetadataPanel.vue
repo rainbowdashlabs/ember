@@ -10,8 +10,18 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {inventory, inventoryArts, inventoryTags} from '@/api'
-import type {InventoryArt, InventoryItem, InventorySize, InventoryTag, ItemLocationResponse, TagResponse} from '@/api/generated/schema'
+import type {
+  InventoryArt,
+  InventoryDetail,
+  InventoryItem,
+  InventorySize,
+  InventoryTag,
+  ItemLocationResponse,
+  TagResponse,
+} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
+import GearGlyph from '@/components/inventory/GearGlyph.vue'
+import {pieceGlyph} from '@/util/glyph'
 import ItemEditForm from './ItemEditForm.vue'
 import ItemMetadataDisplay from './ItemMetadataDisplay.vue'
 import ItemOwnerField from '../ItemOwnerField.vue'
@@ -41,6 +51,7 @@ const editSizeId = ref('')
 const editArtId = ref<number | null>(null)
 const editArtDraft = ref('')
 const arts = ref<InventoryArt[]>([])
+const owningInventory = ref<InventoryDetail | null>(null)
 const itemTags = ref<InventoryTag[]>([])
 const stationTags = ref<TagResponse[]>([])
 const editTagNames = ref<string[]>([])
@@ -59,7 +70,16 @@ async function loadArts() {
   }
 }
 
-watch(() => props.item.inventoryId, loadArts, {immediate: true})
+/** The inventory the piece lies in, read for its picture. Without it the piece keeps a plain shape. */
+async function loadInventory() {
+  try {
+    owningInventory.value = await inventory.getInventory(props.item.inventoryId)
+  } catch {
+    owningInventory.value = null
+  }
+}
+
+watch(() => props.item.inventoryId, () => Promise.all([loadArts(), loadInventory()]), {immediate: true})
 
 /** The tags this piece carries. A failure shows it without tags rather than without its page. */
 async function loadItemTags() {
@@ -85,7 +105,12 @@ const showArt = computed(() => arts.value.length > 0 || props.item.artId != null
 
 const itemTagNames = computed(() => itemTags.value.map(tag => tag.name))
 
-const artName = computed(() => arts.value.find(art => art.id === props.item.artId)?.name ?? null)
+const art = computed(() => arts.value.find(candidate => candidate.id === props.item.artId) ?? null)
+
+const artName = computed(() => art.value?.name ?? null)
+
+/** The kind's picture where the kind has one, otherwise the inventory's. */
+const glyph = computed(() => pieceGlyph(art.value, owningInventory.value))
 
 function startEdit() {
   editName.value = props.item.name ?? ''
@@ -138,7 +163,10 @@ const assignedMemberIdentity = computed(() => {
 <template>
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between">
-      <SubHeader>{{ props.item.name }}</SubHeader>
+      <div class="flex min-w-0 items-center gap-2">
+        <GearGlyph :glyph="glyph" size="lg"/>
+        <SubHeader>{{ props.item.name }}</SubHeader>
+      </div>
       <SecondaryButton v-if="props.canEditItem && !editing" data-testid="item-edit"
                        :icon="['fas', 'pen']" @click="startEdit">
         {{ t('itemDetail.edit') }}

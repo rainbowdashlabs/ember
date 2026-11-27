@@ -11,6 +11,7 @@ import type {InventoryItem} from '@/api/generated/schema'
 
 const calls = vi.hoisted(() => ({
     updateItem: vi.fn(),
+    getInventory: vi.fn(),
     listArts: vi.fn(),
     itemTags: vi.fn(),
     listTags: vi.fn(),
@@ -18,7 +19,7 @@ const calls = vi.hoisted(() => ({
 }))
 
 vi.mock('@/api', () => ({
-    inventory: {updateItem: calls.updateItem},
+    inventory: {updateItem: calls.updateItem, getInventory: calls.getInventory},
     inventoryArts: {listArts: calls.listArts, ensureArt: vi.fn()},
     inventoryTags: {itemTags: calls.itemTags, listTags: calls.listTags, setItemTags: calls.setItemTags},
 }))
@@ -76,5 +77,18 @@ describe('ItemMetadataPanel tags', () => {
 
         expect(calls.setItemTags).toHaveBeenCalledWith(607, ['Zeltlager', 'Fest'])
         expect(wrapper.text()).toContain('Fest')
+    })
+
+    it('draws the piece with the picture of its kind before that of the inventory', async () => {
+        calls.listArts.mockResolvedValue([{id: 3, name: 'Bierbank', icon: 'ph:park', color: '#15803d'}])
+        calls.getInventory.mockResolvedValue({id: 22, icon: 'tent', color: null, homogeneous: false})
+        calls.itemTags.mockResolvedValue([])
+        const wrapper = mount(ItemMetadataPanel, {
+            props: {item: {...item, artId: 3}, sizes: [], members: [], location: null, canEditItem: false},
+            global: {stubs: {ItemOwnerField: true, 'router-link': true, GearGlyph: true}},
+        })
+        await flushPromises()
+
+        expect(wrapper.findComponent({name: 'GearGlyph'}).props('glyph')).toEqual({icon: 'ph:park', color: '#15803d'})
     })
 })

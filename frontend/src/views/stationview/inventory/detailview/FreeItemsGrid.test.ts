@@ -50,4 +50,21 @@ describe('FreeItemsGrid', () => {
         expect(wrapper.text()).toContain('Winterjacke')
         expect(wrapper.text().match(/Winterjacke/g)).toHaveLength(1)
     })
+
+    it('draws a piece with the picture of its kind before that of the inventory', () => {
+        const art = {id: 3, name: 'Bierbank', icon: 'ph:park', color: null} as InventoryArt
+        const wrapper = mount(FreeItemsGrid, {
+            props: {
+                items: [{...piece(57), artId: 3}, piece(58)],
+                sizes: [],
+                arts: [art],
+                inventoryGlyph: {icon: 'tent', color: null, homogeneous: false},
+                containerPathById: new Map(),
+            },
+            global: {stubs: {'router-link': RouterLink, GearGlyph: true}},
+        })
+
+        const glyphs = wrapper.findAllComponents({name: 'GearGlyph'}).map(glyph => glyph.props('glyph').icon)
+        expect(glyphs).toEqual(['ph:park', 'tent'])
+    })
 })
