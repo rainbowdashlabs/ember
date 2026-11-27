@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class CalendarLocationMigrationTest extends RepositoryTestBase {
     private static final String PATCH = "database/postgresql/1/patch_93.sql";
+    private static final String STATEMENTS = "-- A place question can be the location the calendar shows";
 
     private static Station station;
     private static int withBoth;
@@ -143,10 +144,12 @@ class CalendarLocationMigrationTest extends RepositoryTestBase {
         return sql.replace("ember_schema", schemaName);
     }
 
+    /** The marking of the meeting points alone, without what the same release patch does before it. */
     private static String patch() throws IOException {
         try (var in = Objects.requireNonNull(
                 CalendarLocationMigrationTest.class.getClassLoader().getResourceAsStream(PATCH))) {
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            var patch = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            return patch.substring(patch.indexOf(STATEMENTS));
         }
     }
 
