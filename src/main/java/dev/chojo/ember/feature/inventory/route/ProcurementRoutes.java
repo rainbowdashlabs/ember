@@ -14,6 +14,7 @@ import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.MovementGuards;
@@ -147,7 +148,12 @@ public class ProcurementRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateProcurementRequest.class);
         var procurement = procurementService.create(
-                session.stationId(), request.inventoryId(), request.memberId(), request.sizeId(), request.notes());
+                session.stationId(),
+                request.inventoryId(),
+                request.memberId(),
+                request.sizeId(),
+                request.notes(),
+                request.owner());
         ctx.status(HttpStatus.CREATED).json(toResponse(procurement));
     }
 
@@ -269,7 +275,10 @@ public class ProcurementRoutes implements Routes {
                 procurementService
                         .waitingSwapOf(procurement)
                         .map(ItemMovement::id)
-                        .orElse(null));
+                        .orElse(null),
+                inventory != null
+                        ? procurementService.ownerOf(procurement, inventory.inventoryType())
+                        : procurementService.ownerOf(procurement));
     }
 
     /**
@@ -278,6 +287,8 @@ public class ProcurementRoutes implements Routes {
      *                   settled or when it is for nobody
      * @param movementId the swap waiting for this order to bring its replacement, or {@code null} for an
      *                   order of its own
+     * @param owner      whose piece the order brings: the station's, or the association's, which is how a
+     *                   request to an association outside Ember is noted down
      */
     public record ProcurementResponse(
             int id,
@@ -292,7 +303,8 @@ public class ProcurementRoutes implements Routes {
             Instant requestedAt,
             @Nullable Instant fulfilledAt,
             List<StockPiece> stock,
-            @Nullable Integer movementId) {}
+            @Nullable Integer movementId,
+            ItemOwner owner) {}
 
     /** A piece in storage that could be handed out against an order. */
     public record StockPiece(int id, String name, @Nullable String internalId) {}
@@ -305,10 +317,12 @@ public class ProcurementRoutes implements Routes {
 
     /**
      * @param memberId who it is for, left out for an order a cluster places for its own store
+     * @param owner    whose piece it brings; required for a mixed inventory, otherwise it follows the type
      */
     public record CreateProcurementRequest(
             int inventoryId,
             @Nullable Integer memberId,
             @Nullable Integer sizeId,
-            @Nullable String notes) {}
+            @Nullable String notes,
+            @Nullable ItemOwner owner) {}
 }

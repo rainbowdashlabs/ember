@@ -55,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -74,6 +75,10 @@ class OnboardingServiceTest {
     private static final int STATION = 7;
     private static final int MEMBER = 42;
     private static final int CHILD = 43;
+    private static final int SECOND_CHILD = 44;
+
+    /** A status with nothing in it, so no task is held back when one is marked. */
+    private static final OnboardingStatus NOTHING_HELD_BACK = OnboardingStatus.of(OnboardingLevel.MEMBER, List.of());
 
     private OnboardingTaskRepository markRepository;
     private SetupService setupService;
@@ -299,7 +304,12 @@ class OnboardingServiceTest {
         assertThrows(
                 RefusalResponse.class,
                 () -> service.mark(
-                        OnboardingLevel.MEMBER, "member.notifications", OnboardingTaskState.DONE, MEMBER, 1));
+                        OnboardingLevel.MEMBER,
+                        "member.notifications",
+                        OnboardingTaskState.DONE,
+                        MEMBER,
+                        1,
+                        NOTHING_HELD_BACK));
         verify(markRepository, never()).markForMember(anyInt(), eq("member.notifications"), eq("CONFIRMED"));
     }
 
@@ -316,20 +326,20 @@ class OnboardingServiceTest {
                 stateOf(
                         service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER),
                         "member.profile"));
-        assertDoesNotThrow(
-                () -> service.mark(OnboardingLevel.MEMBER, "member.profile", OnboardingTaskState.DONE, MEMBER, 1));
+        assertDoesNotThrow(() -> service.mark(
+                OnboardingLevel.MEMBER, "member.profile", OnboardingTaskState.DONE, MEMBER, 1, NOTHING_HELD_BACK));
     }
 
     @Test
     void aTaskEmberCannotSeeIsTickedOffByHand() {
-        service.mark(OnboardingLevel.MEMBER, "member.bookmark", OnboardingTaskState.DONE, MEMBER, 1);
+        service.mark(OnboardingLevel.MEMBER, "member.bookmark", OnboardingTaskState.DONE, MEMBER, 1, NOTHING_HELD_BACK);
 
         verify(markRepository).markForMember(MEMBER, "member.bookmark", "CONFIRMED");
     }
 
     @Test
     void takingATaskUpAgainDropsWhatWasSaidAboutIt() {
-        service.mark(OnboardingLevel.MEMBER, "member.profile", OnboardingTaskState.OPEN, MEMBER, 1);
+        service.mark(OnboardingLevel.MEMBER, "member.profile", OnboardingTaskState.OPEN, MEMBER, 1, NOTHING_HELD_BACK);
 
         verify(markRepository).clearForMember(MEMBER, "member.profile");
     }
@@ -337,7 +347,7 @@ class OnboardingServiceTest {
     /** Otherwise the mark on the other station would settle it again the moment the local one is gone. */
     @Test
     void takingACarriedTaskUpAgainDropsItOnEveryStation() {
-        service.mark(OnboardingLevel.MEMBER, "member.absence", OnboardingTaskState.OPEN, MEMBER, 1);
+        service.mark(OnboardingLevel.MEMBER, "member.absence", OnboardingTaskState.OPEN, MEMBER, 1, NOTHING_HELD_BACK);
 
         verify(markRepository).clearForEveryMembershipOf(MEMBER, "member.absence");
         verify(markRepository, never()).clearForMember(anyInt(), eq("member.absence"));
@@ -530,7 +540,13 @@ class OnboardingServiceTest {
     void aStationTaskIsSettledForEverybodyWhoManagesIt() {
         when(memberRepository.findById(MEMBER)).thenReturn(Optional.of(member(MEMBER, StationUserType.MANAGER)));
 
-        service.mark(OnboardingLevel.STATION, "station.memberTypes", OnboardingTaskState.SKIPPED, MEMBER, 1);
+        service.mark(
+                OnboardingLevel.STATION,
+                "station.memberTypes",
+                OnboardingTaskState.SKIPPED,
+                MEMBER,
+                1,
+                NOTHING_HELD_BACK);
 
         verify(markRepository).markForStation(STATION, "station.memberTypes", "SKIPPED", MEMBER);
     }
@@ -552,7 +568,7 @@ class OnboardingServiceTest {
 
     @Test
     void anInstanceTaskIsSettledForEveryAdministrator() {
-        service.mark(OnboardingLevel.INSTANCE, "instance.security", OnboardingTaskState.DONE, 0, 5);
+        service.mark(OnboardingLevel.INSTANCE, "instance.security", OnboardingTaskState.DONE, 0, 5, NOTHING_HELD_BACK);
 
         verify(markRepository).markForInstance("instance.security", "CONFIRMED", 5);
     }
@@ -561,14 +577,173 @@ class OnboardingServiceTest {
     void aTaskNobodyHasHeardOfIsRefused() {
         assertThrows(
                 RefusalResponse.class,
-                () -> service.mark(OnboardingLevel.MEMBER, "member.nonsense", OnboardingTaskState.SKIPPED, MEMBER, 1));
+                () -> service.mark(
+                        OnboardingLevel.MEMBER,
+                        "member.nonsense",
+                        OnboardingTaskState.SKIPPED,
+                        MEMBER,
+                        1,
+                        NOTHING_HELD_BACK));
     }
 
     @Test
     void aTaskOfAnotherLevelIsRefused() {
         assertThrows(
                 RefusalResponse.class,
-                () -> service.mark(OnboardingLevel.MEMBER, "station.groups", OnboardingTaskState.SKIPPED, MEMBER, 1));
+                () -> service.mark(
+                        OnboardingLevel.MEMBER,
+                        "station.groups",
+                        OnboardingTaskState.SKIPPED,
+                        MEMBER,
+                        1,
+                        NOTHING_HELD_BACK));
+    }
+
+    @Test
+    void aNewMemberIsOnlyReadyForTheWalkPastTheAreas() {
+        var status = service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER);
+
+        assertTrue(taskOf(status, "member.tour").ready());
+        assertFalse(taskOf(status, "member.profile").ready());
+        assertFalse(taskOf(status, "member.push").ready());
+        assertFalse(taskOf(status, "member.calendar").ready());
+    }
+
+    @Test
+    void passingATaskOverReadiesWhatWaitsForIt() {
+        when(markRepository.findByMember(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("member.tour", "SKIPPED", Instant.now(), null)));
+
+        var status = service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER);
+
+        assertTrue(taskOf(status, "member.profile").ready());
+        assertTrue(taskOf(status, "member.notifications").ready());
+        assertFalse(taskOf(status, "member.push").ready());
+    }
+
+    @Test
+    void aThrownAwayStepHoldsNothingBack() {
+        when(markRepository.findByMember(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("member.tour", "DISMISSED", Instant.now(), null)));
+
+        var status = service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER);
+
+        assertFalse(keysOf(status).contains("member.tour"));
+        assertTrue(taskOf(status, "member.profile").ready());
+    }
+
+    @Test
+    void aStepSettledOnAnotherStationHoldsNothingBack() {
+        when(markRepository.findByOtherMembershipsOf(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("member.tour", "CONFIRMED", Instant.now(), null)));
+
+        var status = service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER);
+
+        assertTrue(taskOf(status, "member.tour").elsewhere());
+        assertTrue(taskOf(status, "member.profile").ready());
+    }
+
+    @Test
+    void theInstanceIsSetUpOwnAccountFirstAndAStationOnceMailAndLegalTextsAreThere() {
+        var admin = account(1, "admin@example.org");
+
+        var before = service.forInstance(admin);
+        assertTrue(taskOf(before, "instance.ownAccount").ready());
+        assertFalse(taskOf(before, "instance.mail").ready());
+        assertFalse(taskOf(before, "instance.security").ready());
+
+        when(twoFactorRepository.satisfiesTwoFactorMandate(admin.id())).thenReturn(true);
+        var after = service.forInstance(admin);
+
+        assertTrue(taskOf(after, "instance.mail").ready());
+        assertTrue(taskOf(after, "instance.security").ready());
+        assertFalse(taskOf(after, "instance.legal").ready());
+        assertFalse(taskOf(after, "instance.firstStation").ready());
+        assertFalse(taskOf(after, "instance.stationRegistration").ready());
+    }
+
+    @Test
+    void aStepThatIsNotAskedHoldsNothingBack() {
+        when(stationService.findEffectiveDisabledModules(STATION)).thenReturn(EnumSet.of(StationModule.EVENTS));
+        when(markRepository.findByMember(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("member.tour", "CONFIRMED", Instant.now(), null)));
+
+        var status = service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER);
+
+        assertFalse(keysOf(status).contains("member.eventAnswer"));
+        assertTrue(taskOf(status, "member.absence").ready());
+    }
+
+    @Test
+    void aTaskDoneBeforeItsTurnStaysDone() {
+        when(notificationSettingsRepository.findByMember(MEMBER))
+                .thenReturn(List.of(
+                        new NotificationSetting(MEMBER, NotificationType.EVENT_REMINDER, true, false, false, true)));
+
+        var status = service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER);
+
+        assertEquals(OnboardingTaskState.OPEN, stateOf(status, "member.tour"));
+        assertEquals(OnboardingTaskState.DONE, stateOf(status, "member.notifications"));
+        assertTrue(taskOf(status, "member.push").ready());
+    }
+
+    @Test
+    void aGuardianWalksEachChildOnItsOwn() {
+        when(memberRepository.findManaged(MEMBER))
+                .thenReturn(
+                        List.of(member(CHILD, StationUserType.MEMBER), member(SECOND_CHILD, StationUserType.MEMBER)));
+        when(accountRepository.findById(CHILD)).thenReturn(Optional.of(account(CHILD, "child-1@managed.local")));
+        when(accountRepository.findById(SECOND_CHILD))
+                .thenReturn(Optional.of(account(SECOND_CHILD, "child-2@managed.local")));
+        when(markRepository.findByMember(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("guardian.profile:" + CHILD, "CONFIRMED", Instant.now(), null)));
+
+        var status = service.forMember(member(MEMBER, StationUserType.GUARDIAN), StationUserType.GUARDIAN);
+
+        assertTrue(taskWithId(status, "guardian.username:" + CHILD).ready());
+        assertFalse(taskWithId(status, "guardian.username:" + SECOND_CHILD).ready());
+        assertFalse(taskWithId(status, "guardian.login:" + CHILD).ready());
+    }
+
+    @Test
+    void aStationIsSetUpMailFirstAndInvitesOnceMailAndMemberTypesAreSettled() {
+        when(setupService.getStatus(STATION))
+                .thenReturn(new SetupService.SetupStatus(
+                        null, List.of(), List.of(new SetupService.StepState(SetupService.STEP_MAIL, true, true))));
+
+        var before = service.forStation(STATION);
+        assertEquals("station.mail", before.tasks().getFirst().key());
+        assertFalse(taskOf(before, "station.invites").ready());
+        assertFalse(taskOf(before, "station.federation").ready());
+
+        when(markRepository.findByStation(STATION))
+                .thenReturn(List.of(new OnboardingMark("station.memberTypes", "SKIPPED", Instant.now(), MEMBER)));
+
+        assertTrue(taskOf(service.forStation(STATION), "station.invites").ready());
+    }
+
+    @Test
+    void aTaskStillWaitingCanNeitherBeTickedOffNorPassedOver() {
+        var current = service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER);
+
+        assertThrows(
+                RefusalResponse.class,
+                () -> service.mark(
+                        OnboardingLevel.MEMBER, "member.bookmark", OnboardingTaskState.DONE, MEMBER, 1, current));
+        assertThrows(
+                RefusalResponse.class,
+                () -> service.mark(
+                        OnboardingLevel.MEMBER, "member.profile", OnboardingTaskState.SKIPPED, MEMBER, 1, current));
+        assertDoesNotThrow(() ->
+                service.mark(OnboardingLevel.MEMBER, "member.tour", OnboardingTaskState.SKIPPED, MEMBER, 1, current));
+        verify(markRepository, never()).markForMember(anyInt(), eq("member.bookmark"), anyString());
+    }
+
+    private static OnboardingTaskView taskWithId(OnboardingStatus status, String id) {
+        return status.tasks().stream()
+                .filter(task -> task.id().equals(id))
+                .findFirst()
+                .orElseThrow();
     }
 
     private static List<String> keysOf(OnboardingStatus status) {

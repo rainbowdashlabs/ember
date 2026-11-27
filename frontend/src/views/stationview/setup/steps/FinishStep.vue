@@ -67,7 +67,7 @@ async function beginFirstSteps() {
     const ok = await finalizeSetup()
     if (!ok) return
     await router.push('/station/dashboard/overview')
-    await loadFirstSteps('MEMBER')
+    await Promise.all([loadFirstSteps('STATION'), loadFirstSteps('MEMBER')])
     startFirstSteps('MEMBER')
 }
 

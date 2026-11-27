@@ -63,14 +63,15 @@ public class OnboardingRoutes implements Routes {
             path = "/api/v1/onboarding/member/{taskId}",
             methods = HttpMethod.PUT,
             summary = "Tick off, pass over or take up one of this member's tasks",
-            description = "A task that reads its answer from the data cannot be ticked off by hand.",
+            description = "A task that reads its answer from the data cannot be ticked off by hand. A task still "
+                    + "waiting for another can be neither ticked off nor passed over.",
             tags = {"Onboarding"},
             pathParams = @OpenApiParam(name = "taskId", required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MarkRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = OnboardingStatus.class)))
     private void markMemberTask(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        mark(ctx, session.user(), OnboardingLevel.MEMBER);
+        mark(ctx, session.user(), OnboardingLevel.MEMBER, memberTasks(session));
         ctx.json(memberTasks(session));
     }
 
@@ -100,7 +101,7 @@ public class OnboardingRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = OnboardingStatus.class)))
     private void markStationTask(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        mark(ctx, session.user(), OnboardingLevel.STATION);
+        mark(ctx, session.user(), OnboardingLevel.STATION, onboardingService.forStation(session.stationId()));
         ctx.json(onboardingService.forStation(session.stationId()));
     }
 
@@ -127,14 +128,14 @@ public class OnboardingRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = OnboardingStatus.class)))
     private void markInstanceTask(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        mark(ctx, session, OnboardingLevel.INSTANCE);
+        mark(ctx, session, OnboardingLevel.INSTANCE, onboardingService.forInstance(session.account()));
         ctx.json(onboardingService.forInstance(session.account()));
     }
 
-    private void mark(Context ctx, UserSession session, OnboardingLevel level) {
+    private void mark(Context ctx, UserSession session, OnboardingLevel level, OnboardingStatus current) {
         var request = ctx.bodyAsClass(MarkRequest.class);
         int memberId = session.memberOpt().map(StationMember::id).orElse(0);
-        onboardingService.mark(level, ctx.pathParam("taskId"), request.state(), memberId, session.accountId());
+        onboardingService.mark(level, ctx.pathParam("taskId"), request.state(), memberId, session.accountId(), current);
     }
 
     /**

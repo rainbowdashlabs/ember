@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -25,6 +26,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param fulfilledAt when the procurement was fulfilled, or {@code null} if still open
  * @param movementId  the swap waiting for this order to bring its replacement, or {@code null} for an
  *                    order of its own
+ * @param ownerKind   whose piece the order brings, stored for a mixed inventory only; {@code null} where
+ *                    the inventory's type settles it, or for an order placed before the choice existed
  */
 public record Procurement(
         int id,
@@ -35,7 +38,8 @@ public record Procurement(
         String notes,
         Instant requestedAt,
         Instant fulfilledAt,
-        Integer movementId) {
+        Integer movementId,
+        @Nullable ItemOwner ownerKind) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -49,6 +53,11 @@ public record Procurement(
                 row.getString("notes"),
                 row.get("requested_at", INSTANT_TIMESTAMP),
                 row.get("fulfilled_at", INSTANT_TIMESTAMP),
-                row.getObject("movement_id", Integer.class));
+                row.getObject("movement_id", Integer.class),
+                ownerOf(row.getString("owner_kind")));
+    }
+
+    private static @Nullable ItemOwner ownerOf(@Nullable String stored) {
+        return stored == null ? null : ItemOwner.valueOf(stored);
     }
 }

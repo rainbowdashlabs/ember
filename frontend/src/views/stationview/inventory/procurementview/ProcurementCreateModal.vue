@@ -14,7 +14,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ProcurementFields from './ProcurementFields.vue'
-import type { Inventory, InventorySize } from '@/api/generated/schema'
+import {InventoryType, ItemOwner, type Inventory, type InventorySize} from '@/api/generated/schema'
 import type { MemberLike } from '@/components/input/select/memberOption'
 import { inventory, procurement } from '@/api'
 import { useAsyncAction } from '@/composables/useAsyncAction'
@@ -34,9 +34,16 @@ const forSomebody = computed(() => !!routes.member)
 
 const modelValue = defineModel<boolean>({required: true})
 
-defineProps<{
+const props = defineProps<{
   inventories: Inventory[]
   members: MemberLike[]
+  /** Whose piece a new order starts with, where the dialog was opened for one owner in particular. */
+  presetOwner?: ItemOwner
+  /**
+   * Whether a station's order may leave out whom it is for. A request noted down for the association
+   * may be for the store, as a request sent to it may be.
+   */
+  memberOptional?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -47,10 +54,30 @@ const createInventoryId = ref<string>('')
 const createMemberId = ref<string>('')
 const createSizeId = ref<string>('')
 const createNotes = ref('')
+const createOwner = ref<ItemOwner | ''>('')
 const createSuccess = ref(false)
 const availableSizes = ref<InventorySize[]>([])
 
-const canCreate = computed(() => !!createInventoryId.value && (!forSomebody.value || !!createMemberId.value))
+/** Whether the chosen inventory holds both owners' gear, so the order has to be given its owner. */
+const mixed = computed(() => props.inventories
+    .find(candidate => candidate.id === Number(createInventoryId.value))?.inventoryType === InventoryType.MIXED)
+
+/**
+ * An association orders for its own store, so a mixed inventory there brings its own piece without
+ * asking. A station is asked, since a wrong answer records the wrong owner.
+ */
+const asksOwner = computed(() => forSomebody.value)
+
+const canCreate = computed(() => !!createInventoryId.value
+    && (!forSomebody.value || props.memberOptional || !!createMemberId.value)
+    && (!mixed.value || !asksOwner.value || !!createOwner.value))
+
+/** The owner sent with the order: only for a mixed inventory, where the type does not settle it. */
+const sentOwner = computed<ItemOwner | undefined>(() => {
+  if (!mixed.value) return undefined
+  if (!asksOwner.value) return ItemOwner.CLUSTER
+  return createOwner.value || undefined
+})
 
 function close() {
   modelValue.value = false
@@ -61,6 +88,7 @@ function reset() {
   createMemberId.value = ''
   createSizeId.value = ''
   createNotes.value = ''
+  createOwner.value = props.presetOwner ?? ''
   createSuccess.value = false
   availableSizes.value = []
   clearError()
@@ -90,6 +118,7 @@ const {running: createSaving, failure: createFailure, run: submitCreate, clearEr
     memberId: createMemberId.value ? Number(createMemberId.value) : undefined,
     sizeId: createSizeId.value ? Number(createSizeId.value) : undefined,
     notes: createNotes.value || undefined,
+    owner: sentOwner.value,
   })
   createSuccess.value = true
   emit('created')
@@ -122,6 +151,8 @@ watch(
             v-model:inventory-id="createInventoryId"
             v-model:size-id="createSizeId"
             v-model:notes="createNotes"
+            v-model:owner="createOwner"
+            :asks-owner="asksOwner"
             :available-sizes="availableSizes"
             :for-somebody="forSomebody"
             :inventories="inventories"

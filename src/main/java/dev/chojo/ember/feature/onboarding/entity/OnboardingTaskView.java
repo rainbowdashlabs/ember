@@ -23,6 +23,7 @@ import java.time.Instant;
  * @param actorName   who ticked it off or passed it over, on the shared levels only
  * @param changedAt   when that was
  * @param elsewhere   whether it was settled on another station of the instance rather than here
+ * @param ready       whether every task it waits for is settled, so it may be taken up now
  */
 public record OnboardingTaskView(
         String id,
@@ -33,4 +34,12 @@ public record OnboardingTaskView(
         boolean confirmable,
         @Nullable String actorName,
         @Nullable Instant changedAt,
-        boolean elsewhere) {}
+        boolean elsewhere,
+        boolean ready) {
+
+    /** The same task, ready or held back. */
+    public OnboardingTaskView withReady(boolean ready) {
+        return new OnboardingTaskView(
+                id, key, subject, subjectId, state, confirmable, actorName, changedAt, elsewhere, ready);
+    }
+}

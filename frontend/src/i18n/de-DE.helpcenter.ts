@@ -1153,6 +1153,11 @@ volumes:
                 + 'Ember kennenlernen, Profil ausfüllen, Benachrichtigungen einstellen, auf einen Termin antworten. '
                 + 'Der Rundgang „Ember kennenlernen" zeigt dir die Bereiche, die an deiner Wache eingeschaltet '
                 + 'sind und die du öffnen darfst. Die Liste verschwindet, sobald nichts mehr offen ist.',
+            onboardingOrder: 'Die Liste zeigt höchstens drei Aufgaben auf einmal. Verwaltest du die Wache, kommen ihre Aufgaben vor deinen eigenen. '
+                + 'Manche Aufgaben bauen auf anderen auf: Mitglieder lädst du zum Beispiel erst ein, wenn der '
+                + 'Mailversand eingerichtet ist. Eine solche Aufgabe erscheint, sobald die Aufgabe, auf der sie aufbaut, '
+                + 'erledigt oder übersprungen ist. Nimmst du eine übersprungene Aufgabe wieder auf, warten die Aufgaben dahinter '
+                + 'wieder auf sie. Unter der Liste steht, wie viele Aufgaben noch folgen.',
             onboardingGuide: 'Klickst du auf „Los geht’s", zeigt Ember dir Schritt für Schritt, wo du klicken musst. '
                 + 'Die Seite bleibt dabei ganz normal bedienbar, und wenn du zwischendurch woanders hingehst, geht '
                 + 'nichts verloren: Das kleine Symbol unten rechts holt den Hinweis zurück.',
@@ -2699,6 +2704,8 @@ volumes:
             lostItems: 'Verlorene Gegenstände - Ausrüstung, die als verloren gemeldet wurde.',
             openExchanges: 'Offene Tausch-Anfragen - Anfragen von Mitgliedern, die Ausrüstung tauschen möchten.',
             openProcurement: 'Offene Beschaffungen - Ausrüstung, die noch bestellt oder besorgt werden muss.',
+            requestPanel: 'Material anfragen - hier bittest du den Träger um ein Teil. Führt er sein Material in '
+                + 'Ember, geht die Anfrage als Vorgang an ihn. Sonst notierst du sie als Beschaffung.',
             tip: 'Diese Seite ist nur für Inventarverwalter sichtbar.',
         },
         inventoryMy: {
@@ -2771,7 +2778,7 @@ volumes:
             whichApplies: 'Welcher Ablauf gilt',
             groupedText: 'Die Ketten stehen nach Zweck gruppiert untereinander. Zugeklappt zeigt jede Karte nur, aus wie vielen Schritten die Kette besteht; der Pfeil klappt die Zeichnung und die Schritte auf.',
             whichAppliesText: 'Drei Dinge entscheiden das: wofür der Vorgang läuft, wem das Teil gehört, und ob am anderen Ende das Lager der Wache oder ein Mitglied steht. Für jede dieser Kombinationen gibt es genau eine Kette, und welche Kombination eine Kette bedient, steht oben auf ihrer Karte.',
-            ownerText: 'Gehört das Teil dem Träger und führt der Träger sein Lager hier, gelten seine Ketten. Führt er es nicht hier, geht die Wache seine Schritte an seiner Stelle, und im Verlauf steht, dass sie behauptet und nicht bestätigt wurden.',
+            ownerText: 'Gehört das Teil dem Träger und führt der Träger sein Lager hier, gelten seine Ketten. Führt er es nicht hier, geht die Wache seine Schritte an seiner Stelle, und im Verlauf steht, dass sie behauptet und nicht bestätigt wurden. Anfragen an einen solchen Träger gibt es nicht, deshalb fehlen die Ketten für Anfragen dann in der Liste.',
             editing: 'Schritte ändern',
             editingText: 'Ein Schritt lässt sich umbenennen und in allen Angaben ändern, solange gerade kein Vorgang auf dieser Kette unterwegs ist. Ein Schritt, der nicht mehr gebraucht wird, wird stillgelegt statt gelöscht, damit abgeschlossene Vorgänge weiter so lesbar bleiben, wie sie gegangen wurden.',
             orderText: 'Die Reihenfolge lässt sich mit den Pfeilen ändern. Ein vergessener Schritt muss also nicht ans Ende, sondern kann dorthin, wo er hingehört.',
@@ -2798,7 +2805,9 @@ volumes:
             purposeReturn: 'Rückgabe - ein Teil kommt zurück an die Wache oder an den Verband.',
             purposeExchange: 'Tausch - ein Teil geht zurück und ein Ersatz kommt dafür.',
             purposeOrdered: 'Ein Tausch mit „Bestellt“ wartet auf eine Beschaffung, weil im Lager kein passender Ersatz lag.',
-            purposeRequest: 'Anfrage - die Wache bittet den Verband um ein Teil, das sie nicht hat.',
+            purposeRequest: 'Anfrage - die Wache bittet den Verband um ein Teil, das sie nicht hat. Das geht '
+                + 'nur, wenn der Verband sein Material in Ember führt. Sonst notiert die Wache die Anfrage als '
+                + 'Beschaffung.',
             noStatusTitle: 'Kein Status, sondern Schritte',
             noStatusText: 'Ein Vorgang hat keinen Status, den jemand setzt. Er hat einen Ablauf aus Schritten, und '
                 + 'auf einem davon steht er gerade. Jeder Schritt gehört einer Partei: der Wache, dem Mitglied oder '
@@ -2978,10 +2987,21 @@ volumes:
             createMember: 'Wähle das Mitglied, das den Gegenstand braucht.',
             createSize: 'Wähle optional eine Größe.',
             createNotes: 'Füge Notizen hinzu (z.B. „Eilig, alter Helm gerissen").',
+            createOwner: 'In einem gemischten Inventar wählst du, wem das Stück gehört: der Wache oder dem '
+                + 'Träger. In einem internen Inventar gehört es immer der Wache, in einem externen immer dem Träger.',
+            outsideTitle: 'Anfragen bei einem Träger ohne Ember',
+            outsideText: 'Führt der Träger deiner Wache sein Material nicht in Ember, kann er dort weder etwas '
+                + 'schicken noch ablehnen. Eine Anfrage bei ihm notierst du dann über „Anfrage notieren“ in der '
+                + 'Übersicht des Inventars. Angeboten werden dabei nur externe und gemischte Inventare. Die Anfrage '
+                + 'steht als Beschaffung eines Stücks des Trägers in der Liste, mit dem Hinweis „Beim Träger '
+                + 'angefragt“. Ein Mitglied anzugeben ist dabei freiwillig.',
+            outsideFulfilled: 'Kommt das Stück an, markierst du die Beschaffung als erledigt. Ember erfasst es als '
+                + 'Stück des Trägers, das bei deiner Wache liegt.',
             fulfilledTitle: 'Erledigt',
             fulfilledText: 'Ist die Ausrüstung angekommen, markiere die Beschaffung als erledigt. Ember erfasst das '
                 + 'Teil und startet die Ausgabe an das Mitglied: es liegt im Lager und ist vorgemerkt, bis jemand es '
-                + 'übergibt und den Schritt bestätigt. War die Bestellung für das Lager, bleibt das Teil dort.',
+                + 'übergibt und den Schritt bestätigt. War die Bestellung für das Lager, bleibt das Teil dort. Erledigte '
+                + 'Beschaffungen stehen danach eingeklappt unter „Erledigt“ unter den offenen, die neuesten zuerst.',
             fromStockTitle: 'Aus dem Lager ausgeben',
             fromStockText: 'Liegt ein passendes Stück (gleiches Inventar, gleiche Größe) bereits frei im Lager der Wache, '
                 + 'zeigt die Beschaffung an, wie viele es sind. Mit „Aus dem Lager ausgeben" wählst du eines davon aus: '

@@ -38,13 +38,24 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
-const {status, load, start, skip, discard, resume, confirm} = useOnboardingTasks()
+const {
+  status, load, start, skip, discard, resume, confirm, shownOf, hiddenOnPageOf, lastCardOnPage,
+} = useOnboardingTasks()
 
 const tasks = computed(() => status.value[props.level]?.tasks ?? [])
 const open = computed(() => tasks.value.filter(task => task.state === OnboardingTaskState.OPEN))
 const settled = computed(() => tasks.value.filter(task => task.state !== OnboardingTaskState.OPEN))
 const skipped = computed(() => tasks.value.filter(task => task.state === OnboardingTaskState.SKIPPED))
 const shared = computed(() => props.level !== 'MEMBER')
+
+/**
+ * The tasks this card lists. A page shows only a few at once, the station's before the reader's
+ * own, and nothing that still waits for another step; the rest follow as these are settled.
+ */
+const shown = computed(() => shownOf(props.level))
+
+/** How many tasks wait after the shown ones, shown once, on the last card of the page. */
+const hidden = computed(() => (lastCardOnPage(props.level) ? hiddenOnPageOf(props.level) : 0))
 
 /**
  * Whether anything here still asks something of the reader.
@@ -126,7 +137,7 @@ onMounted(() => load(props.level))
     </div>
 
     <ul class="space-y-3">
-      <li v-for="task in open" :key="task.id" :data-testid="`onboarding-task-${task.id}`"
+      <li v-for="task in shown" :key="task.id" :data-testid="`onboarding-task-${task.id}`"
           class="space-y-1 border-t border-(--border) pt-3 first:border-0 first:pt-0">
         <div class="font-medium">{{ title(task) }}</div>
         <MutedText tag="p" size="sm">{{ body(task) }}</MutedText>
@@ -146,6 +157,14 @@ onMounted(() => load(props.level))
         </ButtonRow>
       </li>
     </ul>
+
+    <MutedText v-if="open.length > 0 && shown.length === 0" tag="p" size="sm" data-testid="onboarding-waiting">
+      {{ t('onboarding.card.waitingForOther') }}
+    </MutedText>
+
+    <MutedText v-if="hidden > 0" tag="p" size="sm" data-testid="onboarding-later">
+      {{ hidden === 1 ? t('onboarding.card.laterOne') : t('onboarding.card.later', {count: hidden}) }}
+    </MutedText>
 
     <div v-if="skipped.length > 0" class="space-y-2 border-t border-(--border) pt-3">
       <MutedText tag="p" size="sm">{{ t('onboarding.card.skippedTitle') }}</MutedText>

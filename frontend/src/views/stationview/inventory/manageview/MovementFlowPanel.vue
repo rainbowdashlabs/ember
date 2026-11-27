@@ -15,7 +15,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import {movements} from '@/api'
+import {inventory, movements} from '@/api'
 import {
   MovementPurpose,
   type BindingResponse,
@@ -45,11 +45,27 @@ const PURPOSES: MovementPurpose[] = [
   MovementPurpose.REQUEST,
 ]
 
+/** Whether an association above keeps its gear in Ember, which is the only one a request can go to. */
+const associationInEmber = ref(false)
+
+/**
+ * The purposes this station can start. Without an association in Ember nobody can be asked, so the
+ * request chains are left out rather than kept for movements that cannot start.
+ */
+const purposes = computed(() => PURPOSES
+    .filter(purpose => purpose !== MovementPurpose.REQUEST || associationInEmber.value))
+
 const newName = ref('')
 const newPurpose = ref<MovementPurpose>(MovementPurpose.EXCHANGE)
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  ;[flows.value, bindings.value] = await Promise.all([movements.listFlows(), movements.listBindings()])
+  let owner: string | null
+  ;[flows.value, bindings.value, owner] = await Promise.all([
+    movements.listFlows(),
+    movements.listBindings(),
+    inventory.ownerAbove().catch(() => null),
+  ])
+  associationInEmber.value = owner !== null
 })
 
 /**
@@ -75,7 +91,7 @@ const bindingOf = computed(() => {
  * one thing a reader looking for a chain already knows.
  */
 const groups = computed(() =>
-    PURPOSES
+    purposes.value
         .map(purpose => ({purpose, flows: flows.value.filter(flow => flow.purpose === purpose)}))
         .filter(group => group.flows.length > 0)
 )
@@ -195,7 +211,7 @@ function createFlow() {
         <div class="w-full space-y-1 sm:w-64">
           <FieldLabel>{{ t('flows.purpose') }}</FieldLabel>
           <SelectInput v-model="newPurpose" class="w-full">
-            <option v-for="value in PURPOSES" :key="value" :value="value">
+            <option v-for="value in purposes" :key="value" :value="value">
               {{ t(`movements.purpose.${value}`) }}
             </option>
           </SelectInput>

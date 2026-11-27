@@ -674,13 +674,7 @@ public class InventoryService {
                 .findById(inventoryId)
                 .map(Inventory::inventoryType)
                 .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_FOR_OWNER_CHECK::raise);
-        boolean fits =
-                switch (type) {
-                    case MIXED -> true;
-                    case INTERNAL -> ownerKind == ItemOwner.STATION;
-                    case EXTERNAL -> ownerKind == ItemOwner.CLUSTER;
-                };
-        if (!fits) {
+        if (!type.holds(ownerKind)) {
             throw (ownerKind == ItemOwner.STATION
                             ? InventoryRefusal.INVENTORY_HOLDS_NO_STATION_GEAR
                             : InventoryRefusal.INVENTORY_HOLDS_NO_ASSOCIATION_GEAR)
