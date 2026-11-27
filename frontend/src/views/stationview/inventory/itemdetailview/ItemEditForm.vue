@@ -11,13 +11,15 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ArtPicker from '../ArtPicker.vue'
-import type {InventoryArt, InventorySize} from '@/api/generated/schema'
+import ItemTagPicker from '../ItemTagPicker.vue'
+import type {InventoryArt, InventorySize, TagResponse} from '@/api/generated/schema'
 
 const name = defineModel<string>('name', {required: true})
 const internalId = defineModel<string>('internalId', {required: true})
 const sizeId = defineModel<string>('sizeId', {required: true})
 const artId = defineModel<number | null>('artId', {default: null})
 const artDraft = defineModel<string>('artDraft', {default: ''})
+const tagNames = defineModel<string[]>('tagNames', {default: () => []})
 
 const props = withDefaults(
     defineProps<{
@@ -26,8 +28,10 @@ const props = withDefaults(
       /** The kinds this inventory holds, empty where kinds do not apply. */
       arts?: InventoryArt[]
       showArt?: boolean
+      /** The station's tags, offered to pick from beside the free text. */
+      tags?: TagResponse[]
     }>(),
-    {arts: () => [], showArt: false},
+    {arts: () => [], showArt: false, tags: () => []},
 )
 
 const emit = defineEmits<{
@@ -57,6 +61,11 @@ const {t} = useI18n()
         <option value="">–</option>
         <option v-for="s in props.sizes" :key="s.id" :value="String(s.id)">{{ s.label }}</option>
       </SelectInput>
+    </div>
+    <div class="space-y-1 sm:col-span-3" data-testid="item-tags">
+      <FieldLabel>{{ t('inventory.tag.field') }}</FieldLabel>
+      <ItemTagPicker v-model:names="tagNames" :tags="props.tags"/>
+      <p class="text-xs text-(--text-muted)">{{ t('inventory.tag.fieldHint') }}</p>
     </div>
     <slot/>
   </div>

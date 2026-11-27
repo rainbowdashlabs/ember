@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
 import dev.chojo.ember.feature.inventory.service.InventoryIntakeService;
 import dev.chojo.ember.feature.inventory.service.InventoryLossService;
+import dev.chojo.ember.feature.inventory.service.InventoryPictureService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.inventory.service.MemberGearService;
@@ -122,7 +123,8 @@ class MovementStandingParityTest extends RepositoryTestBase {
                         mock(InventoryIntakeService.class),
                         mock(BorrowedGearService.class),
                         mock(SelfCheckService.class),
-                        gear),
+                        gear,
+                        mock(InventoryPictureService.class)),
                 new InventoryCheckRoutes(
                         inventoryCheckService,
                         inventoryService,

@@ -37,6 +37,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
 import dev.chojo.ember.feature.inventory.service.InventoryIntakeService;
 import dev.chojo.ember.feature.inventory.service.InventoryLossService;
+import dev.chojo.ember.feature.inventory.service.InventoryPictureService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.InventorySwitchRefusedException;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
@@ -86,6 +87,7 @@ public class InventoryRoutes implements Routes {
     private final BorrowedGearService borrowedGearService;
     private final SelfCheckService selfCheckService;
     private final MemberGearService memberGearService;
+    private final InventoryPictureService pictureService;
 
     @Inject
     public InventoryRoutes(
@@ -100,8 +102,10 @@ public class InventoryRoutes implements Routes {
             InventoryIntakeService intakeService,
             BorrowedGearService borrowedGearService,
             SelfCheckService selfCheckService,
-            MemberGearService memberGearService) {
+            MemberGearService memberGearService,
+            InventoryPictureService pictureService) {
         this.memberGearService = memberGearService;
+        this.pictureService = pictureService;
         this.intakeService = intakeService;
         this.borrowedGearService = borrowedGearService;
         this.inventoryService = inventoryService;
@@ -540,7 +544,8 @@ public class InventoryRoutes implements Routes {
                                     inventory.homogeneous(),
                                     sizes,
                                     inventory.icon(),
-                                    inventory.color()));
+                                    inventory.color(),
+                                    inventory.pictureKey()));
                         },
                         () -> {
                             throw InventoryRefusal.INVENTORY_NOT_HERE_ON_READ.raise();
@@ -608,7 +613,9 @@ public class InventoryRoutes implements Routes {
         int id = pathInt(ctx, "id");
         StationSession session = StationSession.from(ctx);
         requireOwnedInventory(id, session);
+        List<String> pictureKeys = pictureService.keysOfInventory(id);
         if (inventoryService.delete(id)) {
+            pictureService.removeFiles(session.stationId(), pictureKeys);
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw InventoryRefusal.INVENTORY_NOT_DELETED.raise();
@@ -1334,6 +1341,20 @@ public class InventoryRoutes implements Routes {
             @Nullable String icon,
             @Nullable String color) {}
 
+    /**
+     * One inventory as its pages show it.
+     *
+     * @param id            the inventory
+     * @param stationId     the station it belongs to
+     * @param name          the inventory's name
+     * @param inventoryType whose gear it holds
+     * @param hasSizes      whether its pieces come in sizes
+     * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
+     * @param sizes         its sizes in their order
+     * @param icon          the FontAwesome name its pieces are drawn with, or {@code null} for none
+     * @param color         the colour of that picture as {@code #rrggbb}, or {@code null} for none
+     * @param pictureKey    the key of its photo, or {@code null} for none; it changes with every new photo
+     */
     public record InventoryDetail(
             int id,
             int stationId,
@@ -1343,7 +1364,8 @@ public class InventoryRoutes implements Routes {
             boolean homogeneous,
             List<InventorySize> sizes,
             @Nullable String icon,
-            @Nullable String color) {}
+            @Nullable String color,
+            @Nullable String pictureKey) {}
 
     /**
      * A refused change of kind, carrying everything that stands in its way.

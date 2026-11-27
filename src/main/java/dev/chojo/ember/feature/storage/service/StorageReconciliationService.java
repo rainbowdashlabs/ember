@@ -43,6 +43,7 @@ public class StorageReconciliationService implements TaskSource {
             StorageCategory.KB_FILES,
             StorageCategory.BOARD_ATTACHMENTS,
             StorageCategory.IMAGE_LOST_AND_FOUND,
+            StorageCategory.IMAGE_INVENTORY,
             StorageCategory.IMAGE_QUIZ_QUESTION,
             StorageCategory.IMAGE_KB_ICON,
             StorageCategory.IMAGE_KB_IMAGE,
@@ -201,6 +202,15 @@ public class StorageReconciliationService implements TaskSource {
                     SELECT id::text AS identity
                       FROM lost_and_found_item
                      WHERE station_id = :station_id;""", stationId, "identity"));
+            case IMAGE_INVENTORY -> Optional.of(queryIdentitySet("""
+                    SELECT picture_key AS identity
+                      FROM inventory
+                     WHERE station_id = :station_id AND picture_key IS NOT NULL
+                    UNION
+                    SELECT a.picture_key AS identity
+                      FROM inventory_art a
+                      JOIN inventory i ON i.id = a.inventory_id
+                     WHERE i.station_id = :station_id AND a.picture_key IS NOT NULL;""", stationId, "identity"));
             case IMAGE_QUIZ_QUESTION -> Optional.of(queryIdentitySet("""
                     SELECT q.id::text AS identity
                       FROM quiz_question q

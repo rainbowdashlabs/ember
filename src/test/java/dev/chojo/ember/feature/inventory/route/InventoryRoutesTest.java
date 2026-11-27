@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
 import dev.chojo.ember.feature.inventory.service.InventoryIntakeService;
 import dev.chojo.ember.feature.inventory.service.InventoryLossService;
+import dev.chojo.ember.feature.inventory.service.InventoryPictureService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.inventory.service.MemberGearService;
@@ -97,7 +98,7 @@ class InventoryRoutesTest {
         when(inventoryService.findItemById(ITEM)).thenReturn(Optional.of(PIECE));
         when(inventoryService.findById(INVENTORY))
                 .thenReturn(Optional.of(new Inventory(
-                        INVENTORY, STATION, "Jacken", InventoryType.INTERNAL, false, false, false, null, null)));
+                        INVENTORY, STATION, "Jacken", InventoryType.INTERNAL, false, false, false, null, null, null)));
         harness = RouteHarness.serving(new InventoryRoutes(
                 inventoryService,
                 mock(InventoryCheckService.class),
@@ -110,7 +111,8 @@ class InventoryRoutesTest {
                 mock(InventoryIntakeService.class),
                 mock(BorrowedGearService.class),
                 mock(SelfCheckService.class),
-                mock(MemberGearService.class)));
+                mock(MemberGearService.class),
+                mock(InventoryPictureService.class)));
     }
 
     private Response put(HttpClient client, String path, String json, StationPermission permission) {
@@ -145,7 +147,7 @@ class InventoryRoutesTest {
     void aLossOfGearOfAnotherStationIsNotReported() {
         when(inventoryService.findById(INVENTORY))
                 .thenReturn(Optional.of(new Inventory(
-                        INVENTORY, 4, "Jacken", InventoryType.INTERNAL, false, false, false, null, null)));
+                        INVENTORY, 4, "Jacken", InventoryType.INTERNAL, false, false, false, null, null, null)));
 
         harness.run((server, client) -> assertEquals(
                 GeneralRefusal.NOT_YOURS_TO_OPEN,

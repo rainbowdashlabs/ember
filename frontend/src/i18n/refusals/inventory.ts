@@ -16,6 +16,10 @@ import {
     TAG_NOT_HERE,
     MEMBER_NOT_HERE,
     TAG_NAME_MISSING,
+    PICTURE_NOT_HERE,
+    UPLOAD_WITHOUT_FILE,
+    UPLOAD_NOT_PROCESSED,
+    KB_PICTURE_KIND_NOT_TAKEN,
 } from './shared'
 
 const ITEM_NEEDS_A_NAME = 'Ein Gegenstand braucht einen Namen, es wurde nichts gespeichert'
@@ -354,4 +358,15 @@ export default {
     'I-290': 'Für diesen Tausch ist schon etwas bestellt',
     'I-291': 'Ein passendes Stück liegt frei im Lager. Gib dieses aus, statt neu zu bestellen',
     'I-292': 'Dieser Tausch wartet auf eine Bestellung. Lösche sie zuerst, um selbst ein Stück auszusuchen',
+    'I-293': INVENTORY_NOT_HERE,
+    'I-294': ITEM_NOT_HERE,
+    'I-295': 'Dieser Gegenstand gehört zu einem anderen Inventar, es wurde kein Tag geändert',
+    'I-296': INVENTORY_NOT_HERE,
+    'I-297': ITEM_KIND_NOT_HERE,
+    'I-298': ITEM_NOT_HERE,
+    'I-299': PICTURE_NOT_HERE,
+    'I-300': UPLOAD_WITHOUT_FILE,
+    'I-301': KB_PICTURE_KIND_NOT_TAKEN,
+    'I-302': 'Dieses Bild ließ sich nicht behalten, es wurde nichts gespeichert',
+    'I-303': UPLOAD_NOT_PROCESSED,
 }

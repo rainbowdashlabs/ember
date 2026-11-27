@@ -20,6 +20,7 @@ import {unique} from './fixtures/unique'
 import {stationDay} from './fixtures/stationDay'
 import {request, type APIRequestContext, type Page} from '@playwright/test'
 import {must} from './fixtures/must'
+import {ONE_PIXEL_PNG} from './fixtures/pictures'
 
 /** What a station reports about a partner. Only the parts a story here reads. */
 interface Partner {
@@ -574,24 +575,8 @@ test.describe('Lending between instances', () => {
         peerAdminApi,
         homeManagerApi,
     }) => {
-        const manager = await stationManagerOf(peerBaseUrl())
-        const created = await peerAdminApi.post('/api/v1/stations', {
-            data: {name: unique('E2E-Leihwache'), managerEmail: manager.email},
-        })
-        expect(created.status()).toBe(201)
-        const {id: lendingStation} = await created.json()
-
-        const lender = await instanceRequestAs(peerBaseUrl(), {email: manager.email, stationId: lendingStation})
+        const {lender, lendingStation} = await pairedLender(peerAdminApi, homeManagerApi)
         try {
-            await proveFreshly(lender)
-            const invited = await lender.post('/api/v1/federation/invite')
-            expect(invited.ok()).toBe(true)
-            const {inviteCode} = await invited.json()
-
-            await proveFreshly(homeManagerApi)
-            const accepted = await homeManagerApi.post('/api/v1/federation/accept', {data: {inviteCode}})
-            expect(accepted.status(), await accepted.text()).toBe(201)
-
             const shelf = unique('Leihregal')
             const inventoryId = await offeredShelf(lender, shelf)
 
@@ -636,7 +621,73 @@ test.describe('Lending between instances', () => {
             await lender.dispose()
         }
     })
+
+    /**
+     * The photo the lending station gives its shelf travels with the offer: the borrowing station
+     * finds its key among what is offered and fetches it through its own instance, which keeps a copy.
+     */
+    test('the photo of a partner\'s gear reaches the lending list through this instance', async ({
+        peerAdminApi,
+        homeManagerApi,
+    }) => {
+        const {lender, lendingStation} = await pairedLender(peerAdminApi, homeManagerApi)
+        try {
+            const shelf = unique('Fotoregal')
+            const inventoryId = await offeredShelf(lender, shelf)
+            const photographed = await lender.put(`/api/v1/inventories/${inventoryId}/picture`, {
+                multipart: {image: {name: 'regal.png', mimeType: 'image/png', buffer: ONE_PIXEL_PNG}},
+            })
+            expect(photographed.ok(), await photographed.text()).toBe(true)
+            const {pictureKey} = await photographed.json()
+
+            const browsed = await homeManagerApi.get('/api/v1/federated/lending/available')
+            expect(browsed.ok(), await browsed.text()).toBe(true)
+            const offers = (await browsed.json()).entries as {inventoryName: string; pictureKey: string | null}[]
+            const offer = must(offers.find(entry => entry.inventoryName === shelf), 'the shelf is offered')
+            expect(offer.pictureKey, 'the offer carries the photo of its shelf').toBe(pictureKey)
+
+            for (let fetch = 0; fetch < 2; fetch++) {
+                const photo = await homeManagerApi.get(
+                    `/api/v1/federated/lending/pictures/${lendingStation}/${pictureKey}?size=64`)
+                expect(photo.ok(), await photo.text()).toBe(true)
+                expect(photo.headers()['content-type']).toMatch(/^image\//)
+            }
+
+            const hidden = await homeManagerApi.get(
+                `/api/v1/federated/lending/pictures/${lendingStation}/${crypto.randomUUID()}`)
+            expect(hidden.status(), 'a photo of gear not on offer is not served').toBe(404)
+        } finally {
+            await lender.dispose()
+        }
+    })
 })
+
+/**
+ * A new station on the second instance that lends to the first instance's manager station, with the
+ * request context of its manager. The caller disposes of the context.
+ */
+async function pairedLender(
+    peerAdminApi: APIRequestContext,
+    homeManagerApi: APIRequestContext,
+): Promise<{lender: APIRequestContext; lendingStation: string}> {
+    const manager = await stationManagerOf(peerBaseUrl())
+    const created = await peerAdminApi.post('/api/v1/stations', {
+        data: {name: unique('E2E-Leihwache'), managerEmail: manager.email},
+    })
+    expect(created.status()).toBe(201)
+    const {id: lendingStation} = await created.json()
+
+    const lender = await instanceRequestAs(peerBaseUrl(), {email: manager.email, stationId: lendingStation})
+    await proveFreshly(lender)
+    const invited = await lender.post('/api/v1/federation/invite')
+    expect(invited.ok()).toBe(true)
+    const {inviteCode} = await invited.json()
+
+    await proveFreshly(homeManagerApi)
+    const accepted = await homeManagerApi.post('/api/v1/federation/accept', {data: {inviteCode}})
+    expect(accepted.status(), await accepted.text()).toBe(201)
+    return {lender, lendingStation}
+}
 
 /** A shelf of the station with one piece on it, offered to every partner. */
 async function offeredShelf(api: APIRequestContext, name: string): Promise<number> {

@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {
-    PhAxe, PhBackpack, PhBaseballCap, PhBinoculars, PhBoot, PhCampfire, PhFireTruck, PhFlashlight,
-    PhGasCan, PhHoodie, PhLadder, PhLifebuoy, PhMapTrifold, PhPants, PhShovel, PhSiren, PhSneaker,
-    PhSock, PhTrafficCone, PhTShirt,
+    PhAxe, PhBackpack, PhBalloon, PhBaseballCap, PhBeerStein, PhBinoculars, PhBoot, PhCampfire,
+    PhCastleTurret, PhCookingPot, PhDesk, PhFireTruck, PhFlashlight, PhGasCan, PhHoodie, PhLadder, PhLifebuoy,
+    PhMapTrifold, PhMicrophone, PhPants, PhPark, PhPopcorn, PhShovel, PhSiren, PhSneaker, PhSock,
+    PhSpeakerHifi, PhTShirt, PhTrafficCone,
 } from '@phosphor-icons/vue'
 
 /**
@@ -27,10 +28,15 @@ import {
 const icons = {
     PhAxe,
     PhBackpack,
+    PhBalloon,
     PhBaseballCap,
+    PhBeerStein,
     PhBinoculars,
     PhBoot,
     PhCampfire,
+    PhCastleTurret,
+    PhCookingPot,
+    PhDesk,
     PhFireTruck,
     PhFlashlight,
     PhGasCan,
@@ -38,13 +44,17 @@ const icons = {
     PhLadder,
     PhLifebuoy,
     PhMapTrifold,
+    PhMicrophone,
     PhPants,
+    PhPark,
+    PhPopcorn,
     PhShovel,
     PhSiren,
     PhSneaker,
     PhSock,
-    PhTrafficCone,
+    PhSpeakerHifi,
     PhTShirt,
+    PhTrafficCone,
 }
 
 export default defineNuxtPlugin((nuxtApp) => {

@@ -13,12 +13,15 @@ import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberInventoryLink from '@/components/inventory/MemberInventoryLink.vue'
 import MovementPieceBadge from '@/components/inventory/MovementPieceBadge.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import {computed} from 'vue'
 import {ItemOwner, type InventoryItem} from '@/api/generated/schema'
 import type {PersonIdentity} from '@/util/personIdentity'
 import {formatDate} from '@/util/format'
 import ItemActions from '../itemstable/ItemActions.vue'
 import type {InventoryItemActionEmits} from '../itemEmits'
 import type {ItemTableApi} from './useItemTable'
+import type {ItemSelection} from './useItemSelection'
 
 /**
  * The pieces of one inventory, in the table every screen of the inventory shows them in.
@@ -26,6 +29,9 @@ import type {ItemTableApi} from './useItemTable'
  * <p>The piece's name leads to its own page and the holder's name to what else they hold. A piece
  * that is lost is dimmed and shows since when; one lent to another station shows to whom, and one an
  * open movement carries shows which movement and leads to it.
+ *
+ * <p>While a selection is active every row carries a box, and the box in the head ticks every row
+ * this part of the table shows, after search and filters.
  */
 const props = withDefaults(defineProps<{
   items: ItemTableApi
@@ -37,8 +43,11 @@ const props = withDefaults(defineProps<{
   movementItemMap?: ReadonlyMap<number, number>
   containerPathById?: Map<number, string>
   memberIdentity: (memberId: number) => PersonIdentity | null | undefined
+  /** The pieces ticked for a change to all of them, when this screen offers that. */
+  selection?: ItemSelection
 }>(), {
   subset: undefined,
+  selection: undefined,
   showActions: false,
   lentItemMap: () => new Map(),
   movementItemMap: () => new Map(),
@@ -54,6 +63,10 @@ function locationOf(item: InventoryItem): string {
   return item.containerId ? props.containerPathById.get(item.containerId) ?? '' : ''
 }
 
+const shownIds = computed(() => (props.subset ?? props.items.table.rows).map(row => row.id))
+
+const selecting = computed(() => props.selection?.active.value === true)
+
 function dimmedWhenLost(item: InventoryItem): string {
   return item.lostAt ? 'opacity-60' : ''
 }
@@ -68,6 +81,23 @@ function dimmedWhenLost(item: InventoryItem): string {
       plain
       test-id="items-table"
   >
+    <template v-if="selecting" #lead-head>
+      <CheckboxInput
+          :aria-label="t('inventory.batch.selectAll')"
+          :indeterminate="selection?.someOf(shownIds)"
+          :model-value="selection?.allOf(shownIds)"
+          data-testid="items-select-all"
+          @update:model-value="selection?.toggleAll(shownIds)"
+      />
+    </template>
+    <template v-if="selecting" #lead="{row}">
+      <CheckboxInput
+          :aria-label="t('inventory.batch.selectOne', {name: row.name})"
+          :model-value="selection?.has(row.id)"
+          data-testid="item-select"
+          @update:model-value="selection?.toggle(row.id)"
+      />
+    </template>
     <template #cell-name="{row}">
       <router-link :to="{name: routes.item, params: {id: row.id}}" class="font-medium hover:text-primary hover:underline">{{ row.name }}</router-link>
       <span v-if="row.lostAt" class="ml-2 text-xs text-error font-normal">{{ t('inventory.edit.lost') }} ({{ formatDate(row.lostAt) }})</span>

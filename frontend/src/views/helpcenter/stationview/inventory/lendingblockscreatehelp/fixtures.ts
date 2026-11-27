@@ -71,6 +71,7 @@ export const availableInventories: Inventory[] = [
     id: 3,
     inventoryType: 'INTERNAL',
     name: 'Stiefel',
+    pictureKey: null,
     stationId: 'hafenstadt',
   },
 ]

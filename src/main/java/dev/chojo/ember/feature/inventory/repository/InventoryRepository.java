@@ -48,7 +48,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class InventoryRepository {
     private static final String INVENTORY_COLUMNS =
-            "id, station_id, name, inventory_type, has_sizes, homogeneous, borrowed, icon, color";
+            "id, station_id, name, inventory_type, has_sizes, homogeneous, borrowed, icon, color, picture_key";
     private static final String INVENTORY_SIZE_COLUMNS = "id, inventory_id, label, position, note";
     private static final String INVENTORY_ITEM_COLUMNS =
             "id, inventory_id, internal_id, name, size_id, art_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, owner_station_id, loan_request_item_id, custody, custody_station_id, custody_partner_station_id, custody_movement_id, container_id";
@@ -226,6 +226,20 @@ public class InventoryRepository {
                         .bind("color", glyph.color()),
                 Inventory.map(),
                 INVENTORY_COLUMNS);
+    }
+
+    /**
+     * Sets the storage key of an inventory's photo.
+     *
+     * @param id         the inventory
+     * @param pictureKey the new key, or {@code null} for no photo
+     * @return whether the inventory was there to change
+     */
+    public boolean setPictureKey(int id, @Nullable String pictureKey) {
+        return query("UPDATE inventory SET picture_key = :picture_key WHERE id = :id;")
+                .single(call().bind("id", id).bind("picture_key", pictureKey))
+                .update()
+                .changed();
     }
 
     /**

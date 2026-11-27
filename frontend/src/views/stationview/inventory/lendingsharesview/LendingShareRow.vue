@@ -10,7 +10,10 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import EditButton from '@/components/button/EditButton.vue'
+import PieceThumb from '@/components/inventory/PieceThumb.vue'
 import type {ShareDetail} from '@/api/generated/schema'
+import {pictureUrl} from '@/api/inventoryPictures'
+import {glyphFor} from '@/util/glyph'
 
 const props = defineProps<{
   detail: ShareDetail
@@ -20,6 +23,14 @@ const props = defineProps<{
 defineEmits<{ edit: [] }>()
 
 const {t} = useI18n()
+
+/** What the shared thing is shown with: its kind's photo or icon, otherwise its inventory's. */
+const pictureSrc = computed(() => props.detail.pictureKey ? pictureUrl(props.detail.pictureKey, 64) : null)
+const glyph = computed(() => glyphFor({
+  icon: props.detail.icon,
+  color: props.detail.color,
+  homogeneous: props.detail.homogeneous,
+}))
 
 const levelLabel = computed(() => {
   if (props.detail.share.itemId != null) return t('lendingShare.levelItem')
@@ -33,6 +44,7 @@ const levelLabel = computed(() => {
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
       <div class="flex flex-col gap-1">
         <div class="flex items-center gap-2 flex-wrap">
+          <PieceThumb :glyph="glyph" :picture-src="pictureSrc"/>
           <span class="font-medium">{{ label }}</span>
           <InfoBadge>{{ levelLabel }}</InfoBadge>
         </div>

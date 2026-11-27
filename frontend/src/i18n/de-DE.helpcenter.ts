@@ -2944,7 +2944,7 @@ volumes:
             coverText: 'Neben jeder Zeile steht, woher die Stücke kommen: eigene, geliehene und angefragte. Eine geliehene Kiste ist an der eigenen Wache eine ganz gewöhnliche Zeile und zählt deshalb mit, sonst würde eine Lücke gemeldet, die vor einer Woche geschlossen wurde.',
             overClaimText: 'Zwei Termine dürfen dasselbe Wochenende mit demselben Anhänger planen. Das wird angezeigt und nennt die beteiligten Termine, statt den zweiten zu verbieten: Planen heißt aufschreiben, und ein Werkzeug, das einen Konflikt nicht aufschreiben lässt, verschiebt ihn nur auf den Samstag.',
             borrowTitle: 'Fehlendes leihen',
-            borrowText: 'Fehlt etwas, führt ein Knopf auf die Seite, auf der sich zusammenstellen lässt, was die Partnerwachen anbieten. Angeboten wird dort nach Art gezählt und nicht nach ganzer Sammlung, damit „vier blaue“ auch vier blaue werden.',
+            borrowText: 'Fehlt etwas, führt ein Knopf auf die Seite, auf der sich zusammenstellen lässt, was die Partnerwachen anbieten. Angeboten wird dort nach Art gezählt und nicht nach ganzer Sammlung, damit „vier blaue“ auch vier blaue werden. Jedes Angebot zeigt das Foto, das die Partnerwache dafür hinterlegt hat, sonst ihr Symbol.',
             sendText: 'Nichts wird zurückgehalten, solange die Liste wächst. Vor dem Senden wird noch einmal gezählt und angezeigt, was sich geändert hat. Die Liste geht als eine Anfrage je Wache hinaus, und der Knopf zeigt, wie viele das sind.',
             tip: 'Die angefragte Wache sieht nur den Namen des Termins und den Zeitraum. Alles andere am Termin bleibt bei euch.',
         },
@@ -3038,7 +3038,7 @@ volumes:
             subtitle: 'Was eure Wache ihren Partnerwachen zur Ausleihe anbietet.',
             whatIs: 'Was ist das Angebot?',
             whatIsText: 'Eine Partnerwache sieht nichts von eurer Ausrüstung, solange ihr sie nicht anbietet. Angeboten wird ein ganzes Inventar, eine Art darin oder ein einzelner Gegenstand, allen Partnerwachen oder nur bestimmten.',
-            whatIsText2: 'Auf dieser Seite steht alles, was ihr gesagt habt: was angeboten ist und was ihr wieder herausgenommen habt.',
+            whatIsText2: 'Auf dieser Seite steht alles, was ihr gesagt habt: was angeboten ist und was ihr wieder herausgenommen habt. Jede Zeile zeigt das Foto des Angebots, sonst sein Symbol, so wie es auch die Partnerwachen sehen.',
             narrowestTitle: 'Der engste Eintrag entscheidet',
             narrowestText: 'Für einen Gegenstand zählt der engste Eintrag, der existiert:',
             narrowestItem: 'Gibt es einen Eintrag für den Gegenstand selbst, gilt dieser.',
@@ -3081,7 +3081,8 @@ volumes:
             subtitle: 'Verfügbare Ausrüstung von Partnerwachen finden und anfragen.',
             whatIs: 'Was kann ich hier tun?',
             whatIsText: 'Hier siehst du die Ausrüstung aller verbundenen Partnerwachen, die diese zum Verleihen anbieten.',
-            whatIsText2: 'Du kannst nach Gegenständen suchen und direkt eine Anfrage stellen.',
+            whatIsText2: 'Du kannst nach Gegenständen suchen und direkt eine Anfrage stellen. Jeder Eintrag zeigt das '
+                + 'Foto, das die Partnerwache dafür hinterlegt hat, sonst ihr Symbol.',
             howTo: 'So stellst du eine Anfrage',
             step1: 'Suche den gewünschten Gegenstand in der Liste.',
             step2: 'Prüfe, ob er im gewünschten Zeitraum verfügbar ist.',
@@ -6171,7 +6172,7 @@ volumes:
             headerText: 'Neben dem Namen stehen die Abzeichen des Inventars: wem es gehört, ob es Größen führt und '
                 + 'ob es einheitlich oder eine Sammlung ist, bei einer Sammlung dazu die Zahl ihrer Arten. Wer das '
                 + 'Inventar bearbeiten darf, kommt über „Inventar bearbeiten“ direkt in dessen Einstellungen und von '
-                + 'dort über „Zum Bestand“ wieder hierher.',
+                + 'dort über „Zum Bestand“ wieder hierher. Hat das Inventar ein Foto, steht es neben dem Namen.',
             statsTitle: 'Statistiken',
             statsText: 'Oben siehst du die Gesamtzahlen: wie viele Gegenstände insgesamt, verfügbar, zugewiesen und verloren sind. Bei Inventaren mit Größen werden die Zahlen auch pro Größe aufgeschlüsselt.',
             barText: 'Unter jeder Größe liegt ein dünner Streifen. Grün ist, was frei im Regal liegt, orange, was '
@@ -6183,7 +6184,7 @@ volumes:
             freeTitle: 'Verfügbare Gegenstände',
             freeText: 'Gegenstände, die keinem Mitglied zugewiesen sind. Du kannst sie direkt einem Mitglied zuweisen. '
                 + 'Ist ein Gegenstand schon für einen laufenden Vorgang vorgesehen, steht statt „Zuweisen“ der Vorgang '
-                + 'an der Karte.',
+                + 'an der Karte. Jede Karte zeigt das Symbol und die Art des Gegenstands.',
             procurementTitle: 'Offene Beschaffungen',
             procurementText: 'Beschaffungsanfragen für dieses Inventar. Du kannst hier auch neue Beschaffungen erstellen.',
             dummyCreateProcurement: 'Beschaffung erstellen',
@@ -6194,6 +6195,14 @@ volumes:
                 + 'mit der Nummer. Das gilt auch, wenn er nur für eine Ausgabe vorgesehen ist und noch im Lager liegt. '
                 + 'Ein Klick darauf öffnet den Vorgang. Im Menü des Gegenstands fehlen dann Zuweisen, Aufheben, '
                 + 'Verloren und Löschen.',
+            batchTitle: 'Viele Gegenstände auf einmal ändern',
+            batchText: 'Über „Auswählen“ unter der Suche bekommt jede Zeile ein Kästchen. Das Kästchen im Kopf einer '
+                + 'Tabelle wählt deren Zeilen, „Alle angezeigten“ alles, was Suche und Filter gerade zeigen. Unten erscheint '
+                + 'dann eine Leiste: Art setzen, Tag hinzufügen, Tag entfernen. Die Änderung gilt für alle ausgewählten '
+                + 'Gegenstände, auch für die, die die Suche gerade ausblendet; die Leiste zeigt, wie viele das sind. '
+                + 'Die Auswahl bleibt nach einer Änderung stehen, so lassen sich Art und Tag nacheinander setzen.',
+            kindBlocksText: 'In einer Sammlung stehen die Gegenstände unter ihrer Art. Jede Art zeigt ihr Foto, sonst '
+                + 'ihr Symbol, und eine Art ohne eigenes Symbol das des Inventars.',
             tip: 'Klicke auf einen Gegenstand, um seinen Verlauf zu sehen.',
         },
         inventoryEdit: {
@@ -6203,6 +6212,16 @@ volumes:
             whatShownText: 'Hier verwaltest du die Gegenstände und Größen innerhalb eines einzelnen Inventars.',
             settingsTitle: 'Einstellungen',
             settingsText: 'Ändere den Namen, den Typ und ob das Inventar einheitlich oder eine Sammlung ist.',
+            pictureTitle: 'Foto',
+            pictureText: 'Ein Foto zeigt, wie das Inventar aussieht: auf der Bestandsseite, bei jedem Gegenstand und in '
+                + 'der Ausleihe, auch bei Partnerwachen. Ein neues Foto ersetzt das alte, „Foto entfernen“ nimmt es '
+                + 'weg. Eine Art bekommt im Fenster der Art ein eigenes Foto und ein eigenes Symbol; ihre Gegenstände '
+                + 'zeigen dann diese statt der des Inventars.',
+            iconTitle: 'Symbol und Farbe',
+            iconText: 'Das Symbol steht neben dem Inventar in allen Listen. Ein Klick in das Suchfeld zeigt alle '
+                + 'Symbole nach Gruppen, Tippen grenzt sie ein. Wer ein anderes auswählt, ersetzt das bisherige; '
+                + '„Ohne Symbol“ entfernt es. Darunter wählst du eine Farbe. Arten und Behältertypen bekommen ihr '
+                + 'Symbol auf dieselbe Weise.',
             fieldsTitle: 'Wo ein Feld angelegt wird',
             fieldsText: 'Ein Feld wird dort angelegt, wo das Ding lebt, zu dem es gehört. Felder des ganzen '
                 + 'Inventars stehen auf dieser Seite, Felder einer Art im Fenster der Art, Felder eines einzelnen '
@@ -6265,7 +6284,10 @@ volumes:
                 + 'gelöscht wird nur das Wort, die Gegenstände bleiben.',
             filterTitle: 'Nach einem Wort filtern',
             filterText: 'Trägt dort etwas ein Tag, hat die Gegenstandsliste des Inventars eine Spalte '
-                + '„Tags“. Über ihren Filter lässt sich die Liste auf ein Wort einschränken.',
+                + '„Tags“. Über ihren Filter lässt sich die Liste auf ein Wort einschränken. Die Suche über '
+                + 'der Liste findet Gegenstände auch über ihre Tags und ihre Art, selbst wenn die Spalte '
+                + 'ausgeblendet ist. Auf der Seite eines Gegenstands stehen seine Tags ebenfalls und lassen '
+                + 'sich beim Bearbeiten ändern.',
             sameWordTitle: 'Dasselbe Wort bei mehreren Abteilungen',
             sameWordText: 'Groß- und Kleinschreibung und Leerzeichen am Rand spielen keine Rolle: „Funk“, '
                 + '„funk“ und „ Funk “ sind ein Wort. Jede Abteilung behält ihre eigene Schreibweise in der '
@@ -6433,7 +6455,9 @@ volumes:
             howTo: 'Wie benutze ich diese Seite?',
             howToText: 'Du kannst den Gegenstand bearbeiten, zuweisen oder als verloren melden.',
             metadataTitle: 'Gegenstand-Informationen',
-            metadataText: 'Oben siehst du Name, interne ID, Größe, Status und Besitzer.',
+            metadataText: 'Oben siehst du Name, interne ID, Art, Tags, Größe, Status und Besitzer. Über '
+                + '„Bearbeiten“ änderst du sie, die Tags eingeschlossen. Symbol und Foto sind die der Art, sonst die '
+                + 'des Inventars.',
             dummyItemName: 'Helm',
             dummyLostItemName: 'Jacke',
             dummyLostSince: 'Verloren seit 01.05.2026',

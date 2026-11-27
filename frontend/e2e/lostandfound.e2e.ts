@@ -11,6 +11,7 @@ import {unique} from './fixtures/unique'
 import {pickMemberByName} from './fixtures/memberMenu'
 import {must} from './fixtures/must'
 import {cast} from './fixtures/cast'
+import {ONE_PIXEL_PNG} from './fixtures/pictures'
 
 /**
  * The lost and found, end to end: reporting a find, giving it a picture, claiming it, taking that
@@ -21,12 +22,6 @@ import {cast} from './fixtures/cast'
  * would each be reading the other's arithmetic.
  */
 test.describe.configure({mode: 'serial'})
-
-/** A real picture, small enough to write out here: a single opaque pixel. */
-const ONE_PIXEL_PNG = Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-    'base64',
-)
 
 const LIST = '/station/lost-and-found'
 

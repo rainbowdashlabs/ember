@@ -18,9 +18,13 @@ import {listSearch} from '@/util/listSearch'
  * The picture an inventory, a kind or a container kind is drawn with.
  *
  * <p>Built on the search picker every other list in the product uses, so the catalogue is searchable
- * and walkable with the keyboard without a second implementation of either. The swatches sit beneath
- * it: a station colouring nine inventories wants them to look like one set rather than nine separate
- * decisions, and the colour field underneath is for the one that means a particular red.
+ * and walkable with the keyboard without a second implementation of either. The search stays open
+ * beside the current picture, so picking another one replaces it in one step, and it lists the whole
+ * catalogue, since a reader scrolls through the pictures as often as they search for one.
+ *
+ * <p>The swatches sit beneath it: a station colouring nine inventories wants them to look like one
+ * set rather than nine separate decisions, and the colour field underneath is for the one that means
+ * a particular red.
  */
 const icon = defineModel<string | null | undefined>('icon')
 const color = defineModel<string | null | undefined>('color')
@@ -51,20 +55,17 @@ const SWATCHES = [
 const custom = ref(false)
 
 const entries = computed(() => [...GEAR_ICONS])
-const searchFn = listSearch(entries, entry => [t(entry.labelKey), entry.name, ...entry.aliases].join(' '))
+const searchFn = listSearch(
+    entries,
+    entry => [t(entry.labelKey), entry.name, ...entry.aliases].join(' '),
+    GEAR_ICONS.length,
+)
 const displayFn = (entry: GearIcon) => t(entry.labelKey)
 const keyFn = (entry: GearIcon) => entry.name
 
 const chosen = computed(() => GEAR_ICONS.find(entry => entry.name === icon.value) ?? null)
 
 const preview = computed(() => glyphFor({icon: icon.value, color: color.value, homogeneous: true}))
-
-const pickerModel = computed({
-  get: () => icon.value ?? null,
-  set: value => {
-    icon.value = value
-  },
-})
 
 function pickIcon(entry: GearIcon) {
   icon.value = entry.name
@@ -79,12 +80,15 @@ function pickColor(value: string | null) {
 <template>
   <div class="space-y-2" data-testid="gear-icon-picker">
     <FieldLabel>{{ t('inventory.iconPicker.label') }}</FieldLabel>
+    <div class="flex items-center gap-2" data-testid="gear-icon-current">
+      <GearGlyph :glyph="preview"/>
+      <span class="flex-1 truncate text-sm">{{ chosen ? t(chosen.labelKey) : (icon || t('inventory.iconPicker.none')) }}</span>
+    </div>
     <EntitySearchPicker
-        v-model="pickerModel"
+        :model-value="null"
         :search-fn="searchFn"
         :display-fn="displayFn"
         :key-fn="keyFn"
-        :selected-display="chosen ? t(chosen.labelKey) : (icon ?? null)"
         :placeholder="t('inventory.iconPicker.placeholder')"
         :empty-label="t('inventory.iconPicker.empty')"
         @pick="pickIcon"
@@ -96,10 +100,7 @@ function pickColor(value: string | null) {
           <span class="truncate font-medium">{{ t(item.labelKey) }}</span>
           <span class="truncate text-xs text-(--text-muted)">{{ t(`inventory.iconPicker.groups.${item.group}`) }}</span>
         </span>
-      </template>
-      <template #picked>
-        <GearGlyph :glyph="preview"/>
-        <span class="flex-1 truncate text-sm">{{ chosen ? t(chosen.labelKey) : icon }}</span>
+        <font-awesome-icon v-if="item.name === icon" :icon="['fas', 'check']" class="shrink-0 text-success"/>
       </template>
     </EntitySearchPicker>
 
