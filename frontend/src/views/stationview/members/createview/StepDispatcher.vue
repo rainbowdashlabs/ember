@@ -13,6 +13,7 @@ import ManagerStep from './ManagerStep.vue'
 import DoneStep from './DoneStep.vue'
 import {
   StationUserType,
+  type CandidateResponse,
   type IssuedOneTimePassword,
   type MemberGroup,
   type MemberWithName,
@@ -35,6 +36,7 @@ const props = defineProps<{
   email: string
   firstName: string
   lastName: string
+  found: CandidateResponse | null
   scopeFields: ProfileField[]
   fieldValues: Map<number, string>
   allGroups: MemberGroup[]
@@ -54,6 +56,7 @@ const emit = defineEmits<{
   'update:email': [value: string]
   'update:firstName': [value: string]
   'update:lastName': [value: string]
+  'update:found': [value: CandidateResponse | null]
   'next-from-identity': []
   'next-from-groups': []
   'set-field-value': [fieldId: number, val: string]
@@ -88,12 +91,14 @@ const submitLabel = () =>
     :email="email"
     :first-name="firstName"
     :last-name="lastName"
+    :found="found"
     @update:can-login="emit('update:canLogin', $event)"
     @update:send-setup-mail="emit('update:sendSetupMail', $event)"
     @update:issue-one-time-password="emit('update:issueOneTimePassword', $event)"
     @update:email="emit('update:email', $event)"
     @update:first-name="emit('update:firstName', $event)"
     @update:last-name="emit('update:lastName', $event)"
+    @update:found="emit('update:found', $event)"
     @back="emit('update:step', 'userType')"
     @next="emit('next-from-identity')"
   />

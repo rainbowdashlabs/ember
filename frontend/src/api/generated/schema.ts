@@ -45936,6 +45936,15 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
                 /** @description Conflict */
                 409: {
                     headers: {
@@ -45947,6 +45956,62 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/invite-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find people of this instance by name to invite into the station */
+        get: {
+            parameters: {
+                query: {
+                    q: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CandidateResponse"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -62104,6 +62169,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/session/preferences/findable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the own account may be found by its name from every station of this instance */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Findable"];
+                    };
+                };
+            };
+        };
+        /** Choose whether the own account may be found by its name from every station of this instance */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FindablePreference"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/session/preferences/sidebar": {
         parameters: {
             query?: never;
@@ -71901,6 +72024,17 @@ export interface components {
         CancelRequest: {
             reason?: string | null;
         };
+        CandidateResponse: {
+            /** Format: uuid */
+            accountUid: string;
+            alreadyAsked: boolean;
+            alreadyHere: boolean;
+            because: components["schemas"]["FindableBecause"];
+            declinedLately: boolean;
+            firstName: string;
+            lastName: string;
+            through: string | null;
+        };
         CanEditResponse: {
             canEdit: boolean;
         };
@@ -74923,6 +75057,14 @@ export interface components {
         };
         /** @enum {string} */
         FilterTableType: "MEMBERS" | "EVENTS" | "INVENTORY" | "ATTENDANCE" | "NEWS" | "FORMS" | "QUIZ";
+        Findable: {
+            findable: boolean;
+        };
+        /** @enum {string} */
+        FindableBecause: "SHARED_STATION" | "SHARED_ASSOCIATION" | "OPTED_IN";
+        FindablePreference: {
+            findable?: boolean | null;
+        };
         FirstStationRequest: {
             name?: string;
         };
@@ -76111,6 +76253,8 @@ export interface components {
             userType?: string;
         };
         InviteRequest: {
+            /** Format: uuid */
+            accountUid?: string | null;
             email?: string;
             firstName?: string;
             lastName?: string;
@@ -76672,7 +76816,7 @@ export interface components {
             name?: string;
         };
         /** @enum {string} */
-        LinkOrigin: "IMPORT" | "INVITE" | "ASSOCIATION_INVITE";
+        LinkOrigin: "IMPORT" | "INVITE" | "NAME_INVITE" | "ASSOCIATION_INVITE";
         LinkPrompt: {
             associationName: string | null;
             createdAt: components["schemas"]["Instant"];
@@ -83971,6 +84115,7 @@ export type CancellationNotice = components['schemas']['CancellationNotice'];
 export type CancelledEventDate = components['schemas']['CancelledEventDate'];
 export type CancelMovementRequest = components['schemas']['CancelMovementRequest'];
 export type CancelRequest = components['schemas']['CancelRequest'];
+export type CandidateResponse = components['schemas']['CandidateResponse'];
 export type CanEditResponse = components['schemas']['CanEditResponse'];
 export type CapabilityRequest = components['schemas']['CapabilityRequest'];
 export type CapabilityType = components['schemas']['CapabilityType'];
@@ -84391,6 +84536,9 @@ export type FillInResponse = components['schemas']['FillInResponse'];
 export type FillInTheBlank = components['schemas']['FillInTheBlank'];
 export type FillInTheBlankView = components['schemas']['FillInTheBlankView'];
 export type FilterTableType = components['schemas']['FilterTableType'];
+export type Findable = components['schemas']['Findable'];
+export type FindableBecause = components['schemas']['FindableBecause'];
+export type FindablePreference = components['schemas']['FindablePreference'];
 export type FirstStationRequest = components['schemas']['FirstStationRequest'];
 export type FirstStationStatus = components['schemas']['FirstStationStatus'];
 export type FlowPreview = components['schemas']['FlowPreview'];
@@ -86086,6 +86234,12 @@ export const FilterTableType = {
     QUIZ: "QUIZ",
 } as const;
 
+export const FindableBecause = {
+    OPTED_IN: "OPTED_IN",
+    SHARED_ASSOCIATION: "SHARED_ASSOCIATION",
+    SHARED_STATION: "SHARED_STATION",
+} as const;
+
 export const FontOrigin = {
     ASSOCIATION: "ASSOCIATION",
     BUILT_IN: "BUILT_IN",
@@ -86291,6 +86445,7 @@ export const LinkOrigin = {
     ASSOCIATION_INVITE: "ASSOCIATION_INVITE",
     IMPORT: "IMPORT",
     INVITE: "INVITE",
+    NAME_INVITE: "NAME_INVITE",
 } as const;
 
 export const LinkStatus = {

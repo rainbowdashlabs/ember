@@ -20,7 +20,7 @@ networks:
 # per checkout and reaches them over the compose network alone. What the two copies share is written
 # once here, and each of them adds only what separates it.
 x-rustfs: &rustfs
-  image: rustfs/rustfs:1.0.4
+  image: mirror.gcr.io/rustfs/rustfs:1.0.4
   environment:
     RUSTFS_ACCESS_KEY: emberadmin
     RUSTFS_SECRET_KEY: emberadmin
@@ -28,7 +28,7 @@ x-rustfs: &rustfs
     RUSTFS_CONSOLE_ADDRESS: ":9001"
 
 x-rustfs-init: &rustfs-init
-  image: public.ecr.aws/aws-cli/aws-cli:2.39.1
+  image: mirror.gcr.io/amazon/aws-cli:2.39.1
   entrypoint: ["/bin/sh", "-c"]
   # Credentials go in the command, not in `environment`: both services using this anchor bring an
   # `environment` of their own, and a YAML merge replaces that key whole rather than adding to it.
@@ -48,11 +48,11 @@ x-rustfs-init: &rustfs-init
 # The two images pinned by digest can be named by a variable instead. CI loads them from a cached archive,
 # which keeps the image but not its digest, and points the variables at the tags it saved them under.
 x-sftp: &sftp
-  image: ${EMBER_SFTP_IMAGE:-atmoz/sftp:latest@sha256:0960390462a4441dbb63698d7c185b76a41ffcee7b78ff4adf275f3e66f9c475}
+  image: ${EMBER_SFTP_IMAGE:-mirror.gcr.io/atmoz/sftp:latest@sha256:0960390462a4441dbb63698d7c185b76a41ffcee7b78ff4adf275f3e66f9c475}
   command: "ember:ember:1001::upload"
 
 x-smb: &smb
-  image: ${EMBER_SMB_IMAGE:-dperson/samba:latest@sha256:66088b78a19810dd1457a8f39340e95e663c728083efa5fe7dc0d40b2478e869}
+  image: ${EMBER_SMB_IMAGE:-mirror.gcr.io/dperson/samba:latest@sha256:66088b78a19810dd1457a8f39340e95e663c728083efa5fe7dc0d40b2478e869}
   environment:
     USERID: "1000"
     GROUPID: "1000"
@@ -64,7 +64,7 @@ x-smb: &smb
 
 services:
   postgres:
-    image: public.ecr.aws/docker/library/postgres:18-alpine
+    image: mirror.gcr.io/library/postgres:18-alpine
     command: ["postgres", "-c", "max_locks_per_transaction=1024"]
     container_name: ember_dev_db
     environment:
@@ -99,7 +99,7 @@ services:
   # path and exports both before it calls compose; the defaults below are the ports the stack has
   # always used, so a single checkout, or CI, sees no change at all.
   postgres-e2e:
-    image: public.ecr.aws/docker/library/postgres:18-alpine
+    image: mirror.gcr.io/library/postgres:18-alpine
     # The reset before the stories empties every table of both instances in one transaction, and a
     # transaction takes a lock per table it touches. The default room for those is sixty-four, which the
     # schema outgrew: the reset answered 500 and postgres said it was out of shared memory, which reads
@@ -471,7 +471,7 @@ services:
   #   docker compose -f docker/compose.dev.yaml --profile transfer down -v
 
   ember_target_db:
-    image: public.ecr.aws/docker/library/postgres:18-alpine
+    image: mirror.gcr.io/library/postgres:18-alpine
     container_name: ember_dev_target_db
     environment:
       POSTGRES_DB: ember

@@ -2,11 +2,16 @@
 
 ## v26.27.0
 
-Calendar subscriptions show single appointments in the station's timezone.
+People who already have an account on this instance can be invited into a station by their name. Calendar subscriptions show single appointments in the station's timezone.
+
+### New Features
+
+- **Invite people of this instance by name.** The member wizard finds people who already have an account on this instance by their name and asks them to link it, without anybody knowing their address. People who share a station or an association with the inviting manager can be found, everybody else only after turning on "Findable from every station" under Account → Links.
 
 ### Fixes
 
-- **Single appointments in calendar subscriptions were written in UTC.** The calendar file of the personal and the public subscription gave one-time appointments in GMT, while series already carried the station's timezone. One-time appointments are now written in the station's timezone too, with summer and winter time as the date has them.
+- **Single appointments in calendar subscriptions were written in UTC.** In the personal and the public subscription, one-time appointments were written in UTC, while series already carried the station's timezone. One-time appointments are now written in the station's timezone too, with summer and winter time as the date has them.
+- **Hours on printed attendance sheets had the wrong number format.** In some cases, printed attendance sheets and reports showed hours with a decimal comma for an English station, or with a decimal point for a German one. The hours now follow the station's language, as they already did in the spreadsheet export.
 
 ## v26.26.4
 

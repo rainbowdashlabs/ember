@@ -218,7 +218,9 @@ public class AttendanceExportService {
         data.put("startTime", formatDateTime(session.startTime(), zone));
         data.put("endTime", formatDateTime(session.endTime(), zone));
         Integer countedMinutes = session.countedMinutes();
-        data.put("countedHours", countedMinutes != null ? String.format("%.1f", countedMinutes / 60.0) : "");
+        data.put(
+                "countedHours",
+                countedMinutes != null ? AttendanceReportService.hoursIn(countedMinutes / 60.0, language) : "");
 
         var values = new LinkedHashMap<Integer, String>();
         for (var sessionField : sessionFields) {

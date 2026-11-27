@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {useId} from 'vue'
+import {useId, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -16,6 +16,8 @@ import OneTimePasswordChoice from './OneTimePasswordChoice.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import InvitePersonSearch from './InvitePersonSearch.vue'
+import type {CandidateResponse} from '@/api/generated/schema'
 
 const {t} = useI18n()
 const canLoginLabelId = useId()
@@ -26,6 +28,14 @@ const email = defineModel<string>('email', {required: true})
 const canLogin = defineModel<boolean>('canLogin', {required: true})
 const sendSetupMail = defineModel<boolean>('sendSetupMail', {required: true})
 const issueOneTimePassword = defineModel<boolean>('issueOneTimePassword', {required: true})
+/** Somebody of this instance found by name, who is asked to link their account instead of being typed in. */
+const found = defineModel<CandidateResponse | null>('found', {required: true})
+
+watch(found, person => {
+  if (!person) return
+  firstName.value = person.firstName
+  lastName.value = person.lastName
+})
 
 defineProps<{
   /** Whether a one-time password is offered in place of the setup mail, which no mail server here sends. */
@@ -42,40 +52,44 @@ const emit = defineEmits<{
   <NeutralContainer class="space-y-4">
     <SectionHeader>{{ t('membersCreate.stepIdentity') }}</SectionHeader>
 
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div class="space-y-1">
-        <FieldLabel>{{ t('membersCreate.firstName') }} <span
-            class="text-error">*</span></FieldLabel>
-        <TextInput v-model="firstName" :placeholder="t('membersCreate.firstNamePlaceholder')"/>
+    <InvitePersonSearch v-model:found="found"/>
+
+    <template v-if="!found">
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="space-y-1">
+          <FieldLabel>{{ t('membersCreate.firstName') }} <span
+              class="text-error">*</span></FieldLabel>
+          <TextInput v-model="firstName" :placeholder="t('membersCreate.firstNamePlaceholder')"/>
+        </div>
+        <div class="space-y-1">
+          <FieldLabel>{{ t('membersCreate.lastName') }} <span
+              class="text-error">*</span></FieldLabel>
+          <TextInput v-model="lastName" :placeholder="t('membersCreate.lastNamePlaceholder')"/>
+        </div>
       </div>
-      <div class="space-y-1">
-        <FieldLabel>{{ t('membersCreate.lastName') }} <span
-            class="text-error">*</span></FieldLabel>
-        <TextInput v-model="lastName" :placeholder="t('membersCreate.lastNamePlaceholder')"/>
+
+      <div class="flex items-center justify-between">
+        <div>
+          <span :id="canLoginLabelId" class="text-sm font-medium">{{ t('membersCreate.canLogin') }}</span>
+          <p class="text-xs text-(--text-muted)">{{ t('membersCreate.canLoginHint') }}</p>
+        </div>
+        <ToggleInput v-model="canLogin" :aria-labelledby="canLoginLabelId"/>
       </div>
-    </div>
 
-    <div class="flex items-center justify-between">
-      <div>
-        <span :id="canLoginLabelId" class="text-sm font-medium">{{ t('membersCreate.canLogin') }}</span>
-        <p class="text-xs text-(--text-muted)">{{ t('membersCreate.canLoginHint') }}</p>
+      <div v-if="canLogin" class="space-y-1">
+        <FieldLabel>{{ t('membersCreate.email') }} <span class="text-error">*</span></FieldLabel>
+        <TextInput v-model="email" :placeholder="t('membersCreate.emailPlaceholder')"/>
+        <p class="text-xs text-(--text-muted)">{{ t('membersCreate.emailHint') }}</p>
       </div>
-      <ToggleInput v-model="canLogin" :aria-labelledby="canLoginLabelId"/>
-    </div>
 
-    <div v-if="canLogin" class="space-y-1">
-      <FieldLabel>{{ t('membersCreate.email') }} <span class="text-error">*</span></FieldLabel>
-      <TextInput v-model="email" :placeholder="t('membersCreate.emailPlaceholder')"/>
-      <p class="text-xs text-(--text-muted)">{{ t('membersCreate.emailHint') }}</p>
-    </div>
+      <SetupMailChoice v-model="sendSetupMail" :has-address="canLogin"/>
 
-    <SetupMailChoice v-model="sendSetupMail" :has-address="canLogin"/>
-
-    <OneTimePasswordChoice v-if="offerOneTimePassword && canLogin" v-model="issueOneTimePassword"/>
+      <OneTimePasswordChoice v-if="offerOneTimePassword && canLogin" v-model="issueOneTimePassword"/>
+    </template>
 
     <ButtonRow pair align="between">
       <SecondaryButton @click="emit('back')">{{ t('membersCreate.back') }}</SecondaryButton>
-      <PrimaryButton :disabled="!firstName || !lastName || (canLogin && !email)" @click="emit('next')">
+      <PrimaryButton :disabled="!found && (!firstName || !lastName || (canLogin && !email))" @click="emit('next')">
         {{ t('membersCreate.next') }}
       </PrimaryButton>
     </ButtonRow>

@@ -10,6 +10,8 @@ import type {
     ActiveSession,
     ConsentChangesResponse,
     ConsentStatusResponse,
+    Findable,
+    FindablePreference,
     CrossStationDashboard,
     DocumentResponse,
     LegalVersionsResponse,
@@ -31,6 +33,18 @@ export async function getSessionInfo(): Promise<SessionInfo> {
 export async function setSidebarMode(sidebar: SidebarMode): Promise<void> {
     const request: SidebarPreference = {sidebar}
     await client.put('/session/preferences/sidebar', request)
+}
+
+/** Whether the own account can be found by its name from every station of this instance. */
+export async function getFindable(): Promise<boolean> {
+    const res = await client.get<Findable>('/session/preferences/findable')
+    return res.data.findable
+}
+
+/** Chooses whether the own account can be found by its name from every station of this instance. */
+export async function setFindable(findable: boolean): Promise<void> {
+    const request: FindablePreference = {findable}
+    await client.put('/session/preferences/findable', request)
 }
 
 export async function getStations(): Promise<StationMembership[]> {
