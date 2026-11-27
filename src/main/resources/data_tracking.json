@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:613b9d0916f6a99d2f84723a098149af0197bdb79de8e5881430bfad9bd41ac1",
-  "generatedAt": "2026-11-27T18:23:15Z",
+  "schemaHash": "sha256:200928d95226612d3e7ab170de2b9cdfe7a22c73eb05cbebeabe04b9cc0dcc47",
+  "generatedAt": "2026-11-27T23:16:13Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -17510,7 +17510,7 @@
     "inventory": {
       "feature": "inventory",
       "scope": "STATION",
-      "tableHash": "sha256:3ec6c00bdae0cbc8247c00ab0f74bf5337c445924e79f2cf83ffc65b372aded6",
+      "tableHash": "sha256:3e9e13f638d5365406cc41ecff6917da45f123b29c605f39309e92927c10ab24",
       "columns": [
         {
           "name": "id",
@@ -17581,6 +17581,13 @@
           "nullable": true,
           "verified": true,
           "description": "Storage key of the inventory's picture in the inventory pictures category, or NULL for none. Every upload gets a new key, so a cached old picture is never served for a new one."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What partner stations read about the inventory before they borrow from it, in Markdown; empty when nobody wrote one."
         }
       ],
       "foreignKeys": [
@@ -17608,7 +17615,7 @@
       "description": "An inventory collection within a station (e.g. uniforms, tools)."
     },
     "inventory_art": {
-      "tableHash": "sha256:9402ee7f60d9525f4753d61118f2ae0ac4dd78ebf300ee637dff570eaaf9eb71",
+      "tableHash": "sha256:bc29b368711d1c21a1edc72f495fa06d6ca88b629cfa357a971455b6f05f27f7",
       "columns": [
         {
           "name": "id",
@@ -17672,6 +17679,13 @@
           "nullable": true,
           "verified": true,
           "description": "Storage key of the kind's picture in the inventory pictures category, or NULL for none. A piece of the kind shows this picture before its inventory's. Every upload gets a new key."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What partner stations read about the kind, in Markdown; empty when nobody wrote one. The note stays internal."
         }
       ],
       "foreignKeys": [
@@ -18342,7 +18356,7 @@
     "inventory_item": {
       "feature": "inventory",
       "scope": "STATION",
-      "tableHash": "sha256:4243eb623a6765d93651ad0a92b69186ee64f1c6cd7f8265e305d35bfe06f6ad",
+      "tableHash": "sha256:cb1943731fd47d9230d5c053e2944726a842b51806cd3c022902ab568051d6eb",
       "columns": [
         {
           "name": "id",
@@ -18490,6 +18504,20 @@
           "nullable": true,
           "verified": true,
           "description": "The partner station that owns the item, by the uid it carries on every installation. Set exactly for PARTNER_STATION, whether the owner runs on this installation or on another one, and kept when the owner or the borrower moves to another installation."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What partner stations read about this one piece, in Markdown; empty when nobody wrote one."
+        },
+        {
+          "name": "picture_key",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Storage key of the piece's own photo, shown before its kind's and its inventory's; null for none."
         }
       ],
       "foreignKeys": [

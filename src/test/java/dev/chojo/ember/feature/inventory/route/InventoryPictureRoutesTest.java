@@ -8,9 +8,11 @@ package dev.chojo.ember.feature.inventory.route;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
@@ -44,6 +46,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
+import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.header;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
@@ -90,7 +93,7 @@ class InventoryPictureRoutesTest extends RepositoryTestBase {
         var api = mock(Api.class);
         when(api.maxImageSizeBytes()).thenReturn(LIMIT);
         harness = RouteHarness.serving(
-                        new InventoryPictureRoutes(pictures, api),
+                        new InventoryPictureRoutes(pictures, inventoryService, api),
                         new InventoryArtRoutes(artService, inventoryService, pictures),
                         new InventoryRoutes(
                                 inventoryService,
@@ -184,6 +187,142 @@ class InventoryPictureRoutesTest extends RepositoryTestBase {
         assertEquals(204, delete(path).code());
         assertNull(artRepo.findById(kind.id()).orElseThrow().pictureKey());
         assertFalse(Files.exists(filesOf(key)));
+    }
+
+    /** A piece gets a photo of its own, shows it, loses it again, and takes it along when it is deleted. */
+    @Test
+    void aPieceGetsItsOwnPhotoAndTakesItAlong() {
+        var piece = inventoryRepo.createItem(inventoryId, "H-7", "Hüpfburg Pirat", null, null);
+        String path = "/inventory-items/%d/picture".formatted(piece.id());
+
+        assertEquals(
+                403,
+                put(path, reader(), "image", "image/png", MediaLayoutFixtures.samplePng())
+                        .code());
+        String first = json(putPicture(path)).get("pictureKey").asString();
+        assertEquals(
+                first,
+                inventoryRepo.findItemPresentation(piece.id()).orElseThrow().pictureKey());
+        assertEquals(204, delete(path).code());
+        assertNull(inventoryRepo.findItemPresentation(piece.id()).orElseThrow().pictureKey());
+        assertFalse(Files.exists(filesOf(first)));
+
+        String second = json(putPicture(path)).get("pictureKey").asString();
+        assertEquals(204, delete("/inventory-items/%d".formatted(piece.id())).code());
+        assertFalse(Files.exists(filesOf(second)), "the photo goes with the piece");
+    }
+
+    /** Descriptions are set on the inventory, a kind and a piece; an editor may, a reader may not. */
+    @Test
+    void descriptionsAreSetForInventoryKindAndPiece() {
+        var kind = artRepo.create(inventoryId, "Groß", "", 0);
+        var piece = inventoryRepo.createItem(inventoryId, "H-8", "Hüpfburg Drache", null, null);
+        String text = "{\"description\":\"  **Aufbau** zu zweit  \"}";
+
+        var inventory = harness.request(client ->
+                client.put(PREFIX + "/inventories/%d/description".formatted(inventoryId), body(text), editor()));
+        assertEquals("**Aufbau** zu zweit", json(inventory).get("description").asString());
+        var art = harness.request(client -> client.put(
+                PREFIX + "/inventories/%d/arts/%d/description".formatted(inventoryId, kind.id()),
+                body(text),
+                editor()));
+        assertEquals("**Aufbau** zu zweit", json(art).get("description").asString());
+        var item = harness.request(client ->
+                client.put(PREFIX + "/inventory-items/%d/description".formatted(piece.id()), body(text), editor()));
+        assertEquals("**Aufbau** zu zweit", json(item).get("description").asString());
+        var read = harness.request(
+                client -> client.get(PREFIX + "/inventory-items/%d/presentation".formatted(piece.id()), reader()));
+        assertEquals("**Aufbau** zu zweit", json(read).get("description").asString());
+
+        var forbidden = harness.request(client ->
+                client.put(PREFIX + "/inventories/%d/description".formatted(inventoryId), body(text), reader()));
+        assertEquals(403, forbidden.code());
+        String tooLong = "{\"description\":\"" + "x".repeat(DescriptionRequest.MAX_LENGTH + 1) + "\"}";
+        assertEquals(
+                InventoryRefusal.DESCRIPTION_TOO_LONG,
+                refusalOf(harness.request(client -> client.put(
+                        PREFIX + "/inventories/%d/description".formatted(inventoryId), body(tooLong), editor()))));
+    }
+
+    /**
+     * Another station's piece, kind or inventory looks gone on every new route, a kind of another
+     * inventory is refused, a reader may change nothing, and the association's piece keeps the
+     * association's text and photo.
+     */
+    @Test
+    void theNewRoutesGuardWhatIsNotTheirs() {
+        var strangerInventory = inventoryRepo
+                .create(elsewhere.id(), "Fremdes", InventoryType.INTERNAL, false)
+                .id();
+        var strangerArt = artRepo.create(strangerInventory, "Fremd", "", 0);
+        var strangerPiece = inventoryRepo.createItem(strangerInventory, "F-1", "Fremdgerät", null, null);
+        var ownArt = artRepo.create(inventoryId, "Eigen", "", 0);
+        var ownPiece = inventoryRepo.createItem(inventoryId, "E-1", "Eigengerät", null, null);
+        var association = clusterService.create("Kreisverband Burgen " + UUID.randomUUID(), null);
+        var external = inventoryRepo
+                .create(station.id(), "Burgen des Kreises", InventoryType.EXTERNAL, false)
+                .id();
+        var associations =
+                inventoryRepo.createItem(external, "K-1", "Kreisburg", null, null, ItemOwner.CLUSTER, association.id());
+        String text = "{\"description\":\"Text\"}";
+
+        assertEquals(
+                404,
+                putJson("/inventories/%d/description".formatted(strangerInventory), text, editor())
+                        .code());
+        assertEquals(
+                404,
+                putJson(
+                                "/inventories/%d/arts/%d/description".formatted(strangerInventory, strangerArt.id()),
+                                text,
+                                editor())
+                        .code());
+        assertEquals(
+                InventoryRefusal.ITEM_KIND_NOT_IN_INVENTORY,
+                refusalOf(putJson(
+                        "/inventories/%d/arts/%d/description".formatted(inventoryId, strangerArt.id()),
+                        text,
+                        editor())));
+        assertEquals(
+                404,
+                putJson("/inventory-items/%d/description".formatted(strangerPiece.id()), text, editor())
+                        .code());
+        assertEquals(
+                404,
+                harness.request(client -> client.get(
+                                PREFIX + "/inventory-items/%d/presentation".formatted(strangerPiece.id()), reader()))
+                        .code());
+        assertEquals(
+                404,
+                putPicture("/inventory-items/%d/picture".formatted(strangerPiece.id()))
+                        .code());
+        assertEquals(
+                404,
+                delete("/inventory-items/%d/picture".formatted(strangerPiece.id()))
+                        .code());
+
+        assertEquals(
+                403,
+                putJson("/inventory-items/%d/description".formatted(ownPiece.id()), text, reader())
+                        .code());
+        assertEquals(
+                403,
+                putJson("/inventories/%d/arts/%d/description".formatted(inventoryId, ownArt.id()), text, reader())
+                        .code());
+
+        assertEquals(
+                InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE,
+                refusalOf(putJson("/inventory-items/%d/description".formatted(associations.id()), text, editor())));
+        assertEquals(
+                InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE,
+                refusalOf(putPicture("/inventory-items/%d/picture".formatted(associations.id()))));
+        assertEquals(
+                InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE,
+                refusalOf(delete("/inventory-items/%d/picture".formatted(associations.id()))));
+    }
+
+    private Response putJson(String path, String json, Consumer<Request.Builder> who) {
+        return harness.request(client -> client.put(PREFIX + path, body(json), who));
     }
 
     @Test

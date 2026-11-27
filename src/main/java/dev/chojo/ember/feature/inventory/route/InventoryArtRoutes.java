@@ -67,6 +67,10 @@ public class InventoryArtRoutes implements Routes {
         routes.post(prefix + "/inventories/{inventoryId}/arts", this::createArt, StationPermission.INVENTORY_EDIT);
         routes.put(
                 prefix + "/inventories/{inventoryId}/arts/{artId}", this::updateArt, StationPermission.INVENTORY_EDIT);
+        routes.put(
+                prefix + "/inventories/{inventoryId}/arts/{artId}/description",
+                this::describeArt,
+                StationPermission.INVENTORY_EDIT);
         routes.delete(
                 prefix + "/inventories/{inventoryId}/arts/{artId}", this::deleteArt, StationPermission.INVENTORY_EDIT);
         routes.get(prefix + "/inventories/{inventoryId}/art-stock", this::artStock, StationPermission.INVENTORY_READ);
@@ -153,6 +157,32 @@ public class InventoryArtRoutes implements Routes {
                 .ifPresentOrElse(ctx::json, () -> {
                     throw InventoryRefusal.ITEM_KIND_NOT_CHANGED.raise();
                 });
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventories/{inventoryId}/arts/{artId}/description",
+            methods = HttpMethod.PUT,
+            summary = "Set what partner stations read about a kind of thing",
+            tags = {"Inventory"},
+            pathParams = {
+                @OpenApiParam(name = "inventoryId", type = Integer.class, required = true),
+                @OpenApiParam(name = "artId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DescriptionRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryArt.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void describeArt(Context ctx) {
+        int inventoryId = pathInt(ctx, "inventoryId");
+        int artId = pathInt(ctx, "artId");
+        ownedInventory(inventoryId, StationSession.from(ctx));
+        verifyArtInInventory(inventoryId, artId);
+        String text = ctx.bodyAsClass(DescriptionRequest.class).text();
+        artService.describe(artId, text).ifPresentOrElse(ctx::json, () -> {
+            throw InventoryRefusal.ITEM_KIND_NOT_CHANGED.raise();
+        });
     }
 
     @OpenApi(

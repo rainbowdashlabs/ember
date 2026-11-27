@@ -9,6 +9,7 @@ import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.ItemPresentation;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.media.entity.MediaContent;
@@ -110,6 +111,42 @@ public class InventoryPictureService {
     }
 
     /**
+     * Keeps a new photo for a single piece, replacing the one it had of its own.
+     *
+     * @param stationId the station the piece has to belong to
+     * @param itemId    the piece
+     * @param data      the picture as sent
+     * @param maxBytes  the most the picture may weigh
+     * @return the key the photo is now kept under
+     * @throws IOException when the picture cannot be read or written
+     */
+    public String storeForItem(int stationId, int itemId, byte[] data, int maxBytes) throws IOException {
+        InventoryItem item = requireItem(stationId, itemId);
+        String previous = ownKeyOf(item.id());
+        String key = storeNew(stationId, data, maxBytes);
+        inventoryRepository.setItemPictureKey(itemId, key);
+        removeFiles(stationId, previous);
+        log.info("Stored photo of piece {} at station {} ({} bytes)", itemId, stationId, data.length);
+        return key;
+    }
+
+    /**
+     * Takes a piece's own photo away, so it shows its kind's or its inventory's again. A piece without
+     * one of its own is left as it is.
+     *
+     * @param stationId the station the piece has to belong to
+     * @param itemId    the piece
+     */
+    public void removeFromItem(int stationId, int itemId) {
+        requireItem(stationId, itemId);
+        String previous = ownKeyOf(itemId);
+        if (previous == null) return;
+        inventoryRepository.setItemPictureKey(itemId, null);
+        removeFiles(stationId, previous);
+        log.info("Removed photo of piece {} at station {}", itemId, stationId);
+    }
+
+    /**
      * Takes an inventory's photo away. An inventory without one is left as it is.
      *
      * @param stationId   the station the inventory has to belong to
@@ -164,7 +201,8 @@ public class InventoryPictureService {
     }
 
     /**
-     * The photo a piece is shown with: its kind's where the kind has one, otherwise its inventory's.
+     * The photo a piece is shown with: its own where it has one, otherwise its kind's, otherwise its
+     * inventory's.
      *
      * @param stationId the station the piece has to belong to
      * @param itemId    the piece
@@ -195,16 +233,13 @@ public class InventoryPictureService {
      *
      * @param stationId the station the piece has to belong to
      * @param itemId    the piece
-     * @return the key, or {@code null} where neither the kind nor the inventory has a photo
+     * @return the key, or {@code null} where neither the piece, its kind nor its inventory has a photo
      */
     public @Nullable String pictureKeyOfItem(int stationId, int itemId) {
-        InventoryItem item = inventoryRepository
-                .findItemById(itemId)
-                .orElseThrow(InventoryRefusal.INVENTORY_PICTURE_ITEM_NOT_HERE::raise);
-        Inventory inventory = inventoryRepository
-                .findById(item.inventoryId())
-                .filter(found -> found.stationId() == stationId)
-                .orElseThrow(InventoryRefusal.INVENTORY_PICTURE_ITEM_NOT_HERE::raise);
+        InventoryItem item = requireItem(stationId, itemId);
+        String own = ownKeyOf(itemId);
+        if (own != null) return own;
+        Inventory inventory = inventoryRepository.findById(item.inventoryId()).orElseThrow();
         Integer artId = item.artId();
         String artKey = artId == null
                 ? null
@@ -213,8 +248,8 @@ public class InventoryPictureService {
     }
 
     /**
-     * The keys of every photo an inventory holds, its own and those of its kinds, read before the
-     * inventory is deleted so their files can follow it.
+     * The keys of every photo an inventory holds, its own and those of its kinds and pieces, read
+     * before the inventory is deleted so their files can follow it.
      *
      * @param inventoryId the inventory
      * @return the keys, empty where nothing has a photo
@@ -226,7 +261,19 @@ public class InventoryPictureService {
                 .map(InventoryArt::pictureKey)
                 .filter(Objects::nonNull)
                 .forEach(keys::add);
+        keys.addAll(inventoryRepository.itemPictureKeys(inventoryId));
         return keys;
+    }
+
+    /**
+     * The key of a piece's own photo, read before the piece is deleted so its file can follow it.
+     *
+     * @param itemId the piece
+     * @return the key, or nothing where the piece has no photo of its own
+     */
+    public List<String> keysOfItem(int itemId) {
+        String own = ownKeyOf(itemId);
+        return own == null ? List.of() : List.of(own);
     }
 
     /**
@@ -273,6 +320,24 @@ public class InventoryPictureService {
                 .findById(inventoryId)
                 .filter(inventory -> inventory.stationId() == stationId)
                 .orElseThrow(InventoryRefusal.INVENTORY_PICTURE_INVENTORY_NOT_HERE::raise);
+    }
+
+    private InventoryItem requireItem(int stationId, int itemId) {
+        InventoryItem item = inventoryRepository
+                .findItemById(itemId)
+                .orElseThrow(InventoryRefusal.INVENTORY_PICTURE_ITEM_NOT_HERE::raise);
+        inventoryRepository
+                .findById(item.inventoryId())
+                .filter(found -> found.stationId() == stationId)
+                .orElseThrow(InventoryRefusal.INVENTORY_PICTURE_ITEM_NOT_HERE::raise);
+        return item;
+    }
+
+    private @Nullable String ownKeyOf(int itemId) {
+        return inventoryRepository
+                .findItemPresentation(itemId)
+                .map(ItemPresentation::pictureKey)
+                .orElse(null);
     }
 
     private InventoryArt requireArt(int stationId, int inventoryId, int artId) {

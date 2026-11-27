@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.storage.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.transfer.ActiveImports;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
@@ -105,6 +106,31 @@ class StorageReconciliationServiceTest extends RepositoryTestBase {
             assertFalse(
                     storageService.exists(scope, StorageCategory.MEDIA_FILES, orphanHash + "/orig.txt"),
                     "orphan hash file must be deleted by reconciliation");
+        } finally {
+            stationRepo.delete(station.id());
+        }
+    }
+
+    /** A piece's own photo is a live file like an inventory's or a kind's; a photo nobody carries goes. */
+    @Test
+    void aPiecesOwnPhotoSurvivesTheReconciliation() {
+        var station = stationRepo.create("Orphan Cleanup IMAGE_INVENTORY");
+        try {
+            var scope = new StorageScope.Station(station.id(), station.uid());
+            int inventoryId = inventoryRepo
+                    .create(station.id(), "Spiele", InventoryType.INTERNAL, false)
+                    .id();
+            var piece = inventoryRepo.createItem(inventoryId, "SP-1", "Siedler", null, null);
+            inventoryRepo.setItemPictureKey(piece.id(), "live-piece");
+            storageService.store(
+                    scope, StorageCategory.IMAGE_INVENTORY, "live-piece/orig.png", "alive".getBytes(), "image/png");
+            storageService.store(
+                    scope, StorageCategory.IMAGE_INVENTORY, "dead-piece/orig.png", "dead".getBytes(), "image/png");
+
+            reconciliation.reconcileStation(station.id());
+
+            assertTrue(storageService.exists(scope, StorageCategory.IMAGE_INVENTORY, "live-piece/orig.png"));
+            assertFalse(storageService.exists(scope, StorageCategory.IMAGE_INVENTORY, "dead-piece/orig.png"));
         } finally {
             stationRepo.delete(station.id());
         }

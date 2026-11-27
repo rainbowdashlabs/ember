@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.ItemPresentation;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
 import dev.chojo.ember.feature.inventory.entity.VisibleRequirement;
@@ -510,6 +511,60 @@ public class InventoryService {
      */
     public Optional<InventoryItem> findItemById(int id) {
         return inventoryRepository.findItemById(id);
+    }
+
+    /**
+     * Sets what partner stations read about an inventory.
+     *
+     * @param id          the inventory
+     * @param description the text in Markdown, empty for none
+     * @return the inventory as it now stands, or empty when it was not there to change
+     */
+    public Optional<Inventory> describe(int id, String description) {
+        if (!inventoryRepository.setDescription(id, description)) return Optional.empty();
+        return inventoryRepository.findById(id);
+    }
+
+    /**
+     * A single piece's own text and photo.
+     *
+     * @param itemId the piece
+     * @return them, or empty where the piece is not there
+     */
+    public Optional<ItemPresentation> findItemPresentation(int itemId) {
+        return inventoryRepository.findItemPresentation(itemId);
+    }
+
+    /**
+     * Refuses to change how a piece presents itself to partner stations where the caller does not own
+     * it: a piece borrowed from a partner, or the association's piece where the caller does not act for
+     * the association. Its text and photo are the owner's to give.
+     *
+     * @param itemId          the piece
+     * @param actingClusterId the association the caller acts for, or {@code null}
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when somebody else owns the piece
+     */
+    public void requirePresentable(int itemId, @Nullable Integer actingClusterId) {
+        requireOwned(
+                itemId,
+                InventoryRefusal.INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_DESCRIBE,
+                InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE,
+                actingClusterId);
+    }
+
+    /**
+     * Sets what partner stations read about a single piece the caller owns.
+     *
+     * @param itemId          the piece
+     * @param description     the text in Markdown, empty for none
+     * @param actingClusterId the association the caller acts for, or {@code null}
+     * @return the piece's text and photo as they now stand, or empty when it was not there to change
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when somebody else owns the piece
+     */
+    public Optional<ItemPresentation> describeItem(int itemId, String description, @Nullable Integer actingClusterId) {
+        requirePresentable(itemId, actingClusterId);
+        if (!inventoryRepository.setItemDescription(itemId, description)) return Optional.empty();
+        return inventoryRepository.findItemPresentation(itemId);
     }
 
     public Optional<InventoryItem> findByInternalId(int stationId, String internalId) {

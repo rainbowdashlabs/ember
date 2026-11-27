@@ -37,6 +37,8 @@ const props = defineProps<{
   members: MemberLike[]
   location: ItemLocationResponse | null
   canEditItem: boolean
+  /** The piece's own photo, shown before its kind's and its inventory's, or null where it has none. */
+  ownPictureKey?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -114,9 +116,9 @@ const artName = computed(() => art.value?.name ?? null)
 /** The kind's picture where the kind has one, otherwise the inventory's. */
 const glyph = computed(() => pieceGlyph(art.value, owningInventory.value))
 
-/** The photo the piece is shown with, by the same order: the kind's, otherwise the inventory's. */
+/** The photo the piece is shown with: its own, otherwise the kind's, otherwise the inventory's. */
 const pictureSrc = computed(() => {
-  const key = art.value?.pictureKey ?? owningInventory.value?.pictureKey
+  const key = props.ownPictureKey ?? art.value?.pictureKey ?? owningInventory.value?.pictureKey
   return key ? itemPictureUrl(props.item.id, key, 512) : null
 })
 

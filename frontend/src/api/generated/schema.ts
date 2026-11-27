@@ -37491,6 +37491,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventories/{id}/description": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set what partner stations read about an inventory */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DescriptionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Inventory"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventories/{inventoryId}/art-items/{artId}": {
         parameters: {
             query?: never;
@@ -37778,6 +37838,67 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventories/{inventoryId}/arts/{artId}/description": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set what partner stations read about a kind of thing */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    artId: number;
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DescriptionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InventoryArt"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -40149,6 +40270,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory-items/{id}/description": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set what partner stations read about a single piece */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DescriptionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ItemPresentation"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory-items/{id}/fields": {
         parameters: {
             query?: never;
@@ -40547,6 +40728,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory-items/{id}/presentation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A single piece's own text and photo for partner stations */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ItemPresentation"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory-items/{itemId}/picture": {
         parameters: {
             query?: never;
@@ -40554,7 +40782,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The photo a piece is shown with: its kind's, otherwise its inventory's */
+        /** The photo a piece is shown with: its own, otherwise its kind's, otherwise its inventory's */
         get: {
             parameters: {
                 query?: {
@@ -40586,9 +40814,82 @@ export interface paths {
                 };
             };
         };
-        put?: never;
+        /** Give a single piece a photo of its own */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    itemId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": string;
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PictureResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         post?: never;
-        delete?: never;
+        /** Take a piece's own photo away, so it shows its kind's or its inventory's again */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    itemId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -74129,6 +74430,9 @@ export interface components {
         DependencyRequest: {
             dependencies?: components["schemas"]["DependencyEntry"][] | null;
         };
+        DescriptionRequest: {
+            description?: string | null;
+        };
         DevErrorReport: {
             context?: string | null;
             message?: string | null;
@@ -76727,6 +77031,7 @@ export interface components {
         Inventory: {
             borrowed: boolean;
             color: string | null;
+            description: string;
             hasSizes: boolean;
             homogeneous: boolean;
             icon: string | null;
@@ -76740,6 +77045,7 @@ export interface components {
         };
         InventoryArt: {
             color: string | null;
+            description: string;
             icon: string | null;
             /** Format: int32 */
             id: number;
@@ -76837,6 +77143,7 @@ export interface components {
         };
         InventoryDetail: {
             color: string | null;
+            description: string;
             hasSizes: boolean;
             homogeneous: boolean;
             icon: string | null;
@@ -77181,6 +77488,12 @@ export interface components {
         };
         /** @enum {string} */
         ItemOwner: "STATION" | "CLUSTER" | "PARTNER_STATION";
+        ItemPresentation: {
+            description: string;
+            /** Format: int32 */
+            itemId: number;
+            pictureKey: string | null;
+        };
         ItemRequest: {
             /** Format: int32 */
             artId?: number | null;
@@ -85132,6 +85445,7 @@ export type DenyNameChangeRequest = components['schemas']['DenyNameChangeRequest
 export type DenyRequest = components['schemas']['DenyRequest'];
 export type DependencyEntry = components['schemas']['DependencyEntry'];
 export type DependencyRequest = components['schemas']['DependencyRequest'];
+export type DescriptionRequest = components['schemas']['DescriptionRequest'];
 export type DevErrorReport = components['schemas']['DevErrorReport'];
 export type DeviceCodeRequest = components['schemas']['DeviceCodeRequest'];
 export type DeviceEnrollBeginRequest = components['schemas']['DeviceEnrollBeginRequest'];
@@ -85538,6 +85852,7 @@ export type ItemLocationResponse = components['schemas']['ItemLocationResponse']
 export type ItemNameCount = components['schemas']['ItemNameCount'];
 export type ItemNumberValue = components['schemas']['ItemNumberValue'];
 export type ItemOwner = components['schemas']['ItemOwner'];
+export type ItemPresentation = components['schemas']['ItemPresentation'];
 export type ItemRequest = components['schemas']['ItemRequest'];
 export type ItemTagsBatchRequest = components['schemas']['ItemTagsBatchRequest'];
 export type ItemTagsRequest = components['schemas']['ItemTagsRequest'];

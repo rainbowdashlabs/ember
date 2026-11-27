@@ -30,7 +30,7 @@ COMMENT ON COLUMN ember_schema.account_link_request.origin IS
 COMMENT ON CONSTRAINT account_link_request_owner ON ember_schema.account_link_request IS
     'A request belongs to exactly one asker: a station member (station and member set, origin IMPORT, INVITE or NAME_INVITE) or an association role (association, role and address set, origin ASSOCIATION_INVITE).';
 
--- An inventory and a kind can carry a picture; a piece shows its kind's picture, otherwise its inventory's.
+-- An inventory and a kind can carry a picture; a piece shows its own, otherwise its kind's, otherwise its inventory's.
 
 ALTER TABLE ember_schema.inventory
     ADD COLUMN picture_key TEXT;
@@ -108,6 +108,24 @@ COMMENT ON COLUMN ember_schema.user_feed_hidden_category.category_id IS 'Referen
 INSERT INTO ember_schema.station_permission (name)
 VALUES ('EVENT_CALENDAR_FEEDS')
 ON CONFLICT (name) DO NOTHING;
+
+-- Partner stations read a description of what they borrow: of an inventory, of each kind, and of a
+-- single piece where every piece is a different thing. A piece can also carry a photo of its own.
+
+ALTER TABLE ember_schema.inventory
+    ADD COLUMN description TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE ember_schema.inventory_art
+    ADD COLUMN description TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE ember_schema.inventory_item
+    ADD COLUMN description TEXT NOT NULL DEFAULT '',
+    ADD COLUMN picture_key TEXT NULL;
+
+COMMENT ON COLUMN ember_schema.inventory.description IS 'What partner stations read about the inventory before they borrow from it, in Markdown; empty when nobody wrote one.';
+COMMENT ON COLUMN ember_schema.inventory_art.description IS 'What partner stations read about the kind, in Markdown; empty when nobody wrote one. The note stays internal.';
+COMMENT ON COLUMN ember_schema.inventory_item.description IS 'What partner stations read about this one piece, in Markdown; empty when nobody wrote one.';
+COMMENT ON COLUMN ember_schema.inventory_item.picture_key IS 'Storage key of the piece''s own photo, shown before its kind''s and its inventory''s; null for none.';
 
 -- Reading and editing members no longer bring member documents along. Whoever held a member permission
 -- that reached them is given the document permission of their own, so nothing changes until a station

@@ -83,3 +83,9 @@ export async function mergeIntoArt(
     const res = await client.post<TidyResult>(`/inventories/${inventoryId}/art-merges`, {artId, itemIds})
     return res.data
 }
+
+/** Sets what partner stations read about a kind, in Markdown; an empty text clears it. */
+export async function describeArt(inventoryId: number, artId: number, description: string): Promise<InventoryArt> {
+    const res = await client.put<InventoryArt>(`/inventories/${inventoryId}/arts/${artId}/description`, {description})
+    return res.data
+}

@@ -419,7 +419,7 @@ class NotificationFeedRendererTest {
     void procurementEnrichmentAddsInventoryType() {
         when(inventoryService.findById(99))
                 .thenReturn(Optional.of(new Inventory(
-                        99, 1, "Schlauch 25m", InventoryType.INTERNAL, false, true, false, null, null, null)));
+                        99, 1, "Schlauch 25m", InventoryType.INTERNAL, false, true, false, null, null, null, "")));
         var n = notification(
                 70,
                 NotificationType.PROCUREMENT_REQUESTED,

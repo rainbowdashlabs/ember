@@ -184,6 +184,16 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> inventoryService.updateItem(itemId, "HK-neu", "Anderer Helm", null, null, null));
         assertEquals(InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE, described.refusal());
+        var presented = assertThrows(
+                RefusalResponse.class, () -> inventoryService.describeItem(itemId, "Neue Beschreibung", null));
+        assertEquals(InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE, presented.refusal());
+        assertEquals(
+                "Neue Beschreibung",
+                inventoryService
+                        .describeItem(itemId, "Neue Beschreibung", cluster.id())
+                        .orElseThrow()
+                        .description(),
+                "the association itself may describe its piece");
         assertThrows(RefusalResponse.class, () -> inventoryService.deleteItem(itemId, null));
 
         var own = inventoryRepo.create(station.id(), "Eigenes", InventoryType.INTERNAL, false);

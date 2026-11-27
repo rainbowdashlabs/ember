@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.ItemPresentation;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlockerKind;
@@ -48,7 +49,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class InventoryRepository {
     private static final String INVENTORY_COLUMNS =
-            "id, station_id, name, inventory_type, has_sizes, homogeneous, borrowed, icon, color, picture_key";
+            "id, station_id, name, inventory_type, has_sizes, homogeneous, borrowed, icon, color, picture_key, description";
     private static final String INVENTORY_SIZE_COLUMNS = "id, inventory_id, label, position, note";
     private static final String INVENTORY_ITEM_COLUMNS =
             "id, inventory_id, internal_id, name, size_id, art_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, owner_station_id, loan_request_item_id, custody, custody_station_id, custody_partner_station_id, custody_movement_id, container_id";
@@ -240,6 +241,89 @@ public class InventoryRepository {
                 .single(call().bind("id", id).bind("picture_key", pictureKey))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Sets what partner stations read about an inventory.
+     *
+     * @param id          the inventory
+     * @param description the text in Markdown, empty for none
+     * @return whether the inventory was there to change
+     */
+    public boolean setDescription(int id, String description) {
+        return query("UPDATE inventory SET description = :description WHERE id = :id;")
+                .single(call().bind("id", id).bind("description", description))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Sets what partner stations read about a single piece.
+     *
+     * @param itemId      the piece
+     * @param description the text in Markdown, empty for none
+     * @return whether the piece was there to change
+     */
+    public boolean setItemDescription(int itemId, String description) {
+        return query("UPDATE inventory_item SET description = :description WHERE id = :id;")
+                .single(call().bind("id", itemId).bind("description", description))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Sets the storage key of a piece's own photo.
+     *
+     * @param itemId     the piece
+     * @param pictureKey the new key, or {@code null} for no photo of its own
+     * @return whether the piece was there to change
+     */
+    public boolean setItemPictureKey(int itemId, @Nullable String pictureKey) {
+        return query("UPDATE inventory_item SET picture_key = :picture_key WHERE id = :id;")
+                .single(call().bind("id", itemId).bind("picture_key", pictureKey))
+                .update()
+                .changed();
+    }
+
+    /**
+     * A piece's own text and photo.
+     *
+     * @param itemId the piece
+     * @return them, or nothing where the piece is not there
+     */
+    public Optional<ItemPresentation> findItemPresentation(int itemId) {
+        return query("SELECT id, description, picture_key FROM inventory_item WHERE id = :id;")
+                .single(call().bind("id", itemId))
+                .map(ItemPresentation.map())
+                .first();
+    }
+
+    /**
+     * The own text and photo of every piece of an inventory, for the screens that list them together.
+     *
+     * @param inventoryId the inventory
+     * @return one entry per piece
+     */
+    public List<ItemPresentation> findItemPresentations(int inventoryId) {
+        return query("SELECT id, description, picture_key FROM inventory_item WHERE inventory_id = :inventory_id;")
+                .single(call().bind("inventory_id", inventoryId))
+                .map(ItemPresentation.map())
+                .all();
+    }
+
+    /**
+     * The keys of the photos pieces of an inventory carry of their own.
+     *
+     * @param inventoryId the inventory
+     * @return the keys, empty where no piece has one
+     */
+    public List<String> itemPictureKeys(int inventoryId) {
+        return query("""
+                SELECT picture_key FROM inventory_item
+                WHERE inventory_id = :inventory_id AND picture_key IS NOT NULL;""")
+                .single(call().bind("inventory_id", inventoryId))
+                .map(row -> row.getString("picture_key"))
+                .all();
     }
 
     /**

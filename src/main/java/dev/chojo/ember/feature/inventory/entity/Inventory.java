@@ -27,6 +27,8 @@ import org.jspecify.annotations.Nullable;
  * @param color         the colour that picture is drawn in as {@code #rrggbb}, or {@code null} for
  *                      the muted neutral
  * @param pictureKey    the storage key of the inventory's photo, or {@code null} for none
+ * @param description   what partner stations read about it before they borrow, in Markdown, empty
+ *                      when nobody wrote one
  */
 public record Inventory(
         int id,
@@ -38,7 +40,8 @@ public record Inventory(
         boolean borrowed,
         @Nullable String icon,
         @Nullable String color,
-        @Nullable String pictureKey) {
+        @Nullable String pictureKey,
+        String description) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -53,6 +56,7 @@ public record Inventory(
                 row.getBoolean("borrowed"),
                 row.getString("icon"),
                 row.getString("color"),
-                row.getString("picture_key"));
+                row.getString("picture_key"),
+                row.getString("description"));
     }
 }

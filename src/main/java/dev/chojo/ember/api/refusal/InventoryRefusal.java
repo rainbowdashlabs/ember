@@ -1190,7 +1190,11 @@ public enum InventoryRefusal implements Refusal {
     MOVEMENT_REQUEST_WITHOUT_ASSOCIATION(
             322,
             HttpStatus.CONFLICT,
-            "The association above this station does not use Ember, so note the request down as a procurement");
+            "The association above this station does not use Ember, so note the request down as a procurement"),
+
+    /** A description for partner stations longer than any product text needs to be. */
+    DESCRIPTION_TOO_LONG(
+            323, HttpStatus.BAD_REQUEST, "This description is too long, so keep it under twenty thousand characters");
 
     private final Definition definition;
 

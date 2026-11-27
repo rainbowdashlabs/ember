@@ -36,6 +36,16 @@ export async function uploadArtPicture(inventoryId: number, artId: number, file:
     return answer.pictureKey
 }
 
+export async function uploadItemPicture(itemId: number, file: File): Promise<string> {
+    const answer = await uploadFile<PictureResponse>(
+        `/inventory-items/${itemId}/picture`, {image: await prepareImageUpload(file)}, 'put')
+    return answer.pictureKey
+}
+
+export async function removeItemPicture(itemId: number): Promise<void> {
+    await client.delete(`/inventory-items/${itemId}/picture`)
+}
+
 export async function removeArtPicture(inventoryId: number, artId: number): Promise<void> {
     await client.delete(`/inventories/${inventoryId}/arts/${artId}/picture`)
 }
@@ -49,8 +59,8 @@ export function artPictureUrl(inventoryId: number, artId: number, pictureKey: st
 }
 
 /**
- * The photo a piece is shown with. The key is the one the page resolved itself, the kind's before the
- * inventory's, which is what keeps the address changing whenever that photo does.
+ * The photo a piece is shown with. The key is the one the page resolved itself, the piece's own before
+ * the kind's before the inventory's, which is what keeps the address changing whenever that photo does.
  */
 export function itemPictureUrl(itemId: number, pictureKey: string, size?: number): string {
     return withKey(`/inventory-items/${itemId}/picture`, pictureKey, size)

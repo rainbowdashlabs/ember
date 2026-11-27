@@ -133,7 +133,7 @@ public enum StorageCategory {
             MimeLists.IMAGES,
             false,
             Optional.empty()),
-    /** The photos of inventories and of their kinds, kept under a key their row carries. */
+    /** The photos of inventories, of their kinds and of single pieces, kept under a key their row carries. */
     IMAGE_INVENTORY(
             "images/inventory",
             StorageScope.Kind.STATION,

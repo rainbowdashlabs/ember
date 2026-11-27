@@ -5708,6 +5708,16 @@ export default {
             remove: 'Foto entfernen',
             inventoryHint: 'Das Foto erscheint auf der Bestandsseite, bei jedem Gegenstand und in der Ausleihe. Eine Art mit eigenem Foto zeigt stattdessen ihres.',
             artHint: 'Gegenstände dieser Art zeigen dieses Foto statt des Fotos ihres Inventars.',
+            itemHint: 'Dieser Gegenstand zeigt sein eigenes Foto statt des Fotos seiner Art oder seines Inventars.',
+        },
+        description: {
+            label: 'Beschreibung für Partnerwachen',
+            hint: 'Partnerwachen lesen diesen Text in der Ausleihe. Markdown ist möglich, etwa **fett** oder Listen mit „-“.',
+            artHint: 'Partnerwachen lesen diesen Text bei dieser Art. Die Notiz oben bleibt intern.',
+            placeholder: 'Was ist es, was gehört dazu, worauf ist zu achten?',
+            preview: 'Vorschau',
+            itemTitle: 'Für die Ausleihe',
+            itemIntro: 'Text und Foto dieses einzelnen Gegenstands, wie Partnerwachen sie in der Ausleihe sehen.',
         },
         batch: {
             start: 'Auswählen',
