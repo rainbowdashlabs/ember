@@ -171,6 +171,8 @@ Backend
                         the javadoc
   be-test               Every test suite, no filter
   be-suite <suite>      One test suite in full, e.g. `be-suite testServices`
+                        Failed test classes get one rerun on a single fork; a class that passes
+                        only then is reported as flaky
   be-dist               Build the runnable distribution into build/install/ember, no tests
   be-test1 <pattern> [suite]
                         One test class, e.g. be-test1 '*PageServiceTest*'. Defaults to the
@@ -522,7 +524,7 @@ case "$cmd" in
         ;;
     be-suite)
         [ $# -ge 1 ] || { echo "be-suite needs a suite, e.g. testServices" >&2; exit 2; }
-        cd "$ROOT"; run ./gradlew "$@"
+        cd "$ROOT"; run bash scripts/run-suite.sh "$@"
         ;;
     be-dist)       cd "$ROOT"; run ./gradlew installDist "$@" ;;
     be-test1)
