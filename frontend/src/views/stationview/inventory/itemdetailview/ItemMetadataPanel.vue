@@ -9,8 +9,8 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import {inventory, inventoryArts} from '@/api'
-import type {InventoryArt, InventoryItem, InventorySize, ItemLocationResponse} from '@/api/generated/schema'
+import {inventory, inventoryArts, inventoryTags} from '@/api'
+import type {InventoryArt, InventoryItem, InventorySize, InventoryTag, ItemLocationResponse, TagResponse} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import ItemEditForm from './ItemEditForm.vue'
 import ItemMetadataDisplay from './ItemMetadataDisplay.vue'
@@ -41,6 +41,9 @@ const editSizeId = ref('')
 const editArtId = ref<number | null>(null)
 const editArtDraft = ref('')
 const arts = ref<InventoryArt[]>([])
+const itemTags = ref<InventoryTag[]>([])
+const stationTags = ref<TagResponse[]>([])
+const editTagNames = ref<string[]>([])
 const ownerChoice = useItemOwnerChoice(() => props.item)
 const {owner: editOwner, offered: ownerOffered, atRest: ownerAtRest} = ownerChoice
 
@@ -58,7 +61,29 @@ async function loadArts() {
 
 watch(() => props.item.inventoryId, loadArts, {immediate: true})
 
+/** The tags this piece carries. A failure shows it without tags rather than without its page. */
+async function loadItemTags() {
+  try {
+    itemTags.value = await inventoryTags.itemTags(props.item.id)
+  } catch {
+    itemTags.value = []
+  }
+}
+
+watch(() => props.item.id, loadItemTags, {immediate: true})
+
+/** The station's tags to pick from, fetched when editing starts since only the form offers them. */
+async function loadStationTags() {
+  try {
+    stationTags.value = await inventoryTags.listTags()
+  } catch {
+    stationTags.value = []
+  }
+}
+
 const showArt = computed(() => arts.value.length > 0 || props.item.artId != null)
+
+const itemTagNames = computed(() => itemTags.value.map(tag => tag.name))
 
 const artName = computed(() => arts.value.find(art => art.id === props.item.artId)?.name ?? null)
 
@@ -68,15 +93,17 @@ function startEdit() {
   editSizeId.value = props.item.sizeId != null ? String(props.item.sizeId) : ''
   editArtId.value = props.item.artId ?? null
   editArtDraft.value = ''
+  editTagNames.value = [...itemTagNames.value]
   ownerChoice.reset()
+  void loadStationTags()
   editing.value = true
 }
 
 /**
  * Writes the piece's description back.
  *
- * <p>A kind typed into the picker reaches the server only now, together with the piece it was typed for. A
- * changed owner is handed over after the description is saved.
+ * <p>A kind typed into the picker reaches the server only now, together with the piece it was typed for. The
+ * tags are written after the description, and a changed owner is handed over last.
  */
 async function saveEdit() {
   try {
@@ -90,6 +117,7 @@ async function saveEdit() {
       artId: showArt.value ? resolvedArt : props.item.artId ?? null,
       metadata: parseItemMetadata(props.item.metadata),
     })
+    itemTags.value = await inventoryTags.setItemTags(props.item.id, editTagNames.value)
     const reowned = await ownerChoice.apply()
     editing.value = false
     if (editArtDraft.value) await loadArts()
@@ -124,6 +152,8 @@ const assignedMemberIdentity = computed(() => {
       v-model:size-id="editSizeId"
       v-model:art-id="editArtId"
       v-model:art-draft="editArtDraft"
+      v-model:tag-names="editTagNames"
+      :tags="stationTags"
       :sizes="props.sizes"
       :arts="arts"
       :show-art="showArt"
@@ -138,6 +168,7 @@ const assignedMemberIdentity = computed(() => {
       :item="props.item"
       :sizes="props.sizes"
       :art-name="artName"
+      :tag-names="itemTagNames"
       :location="props.location"
       :assigned-member-identity="assignedMemberIdentity"
     />
