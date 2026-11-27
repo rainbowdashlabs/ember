@@ -47,12 +47,7 @@ const emit = defineEmits<{
   exchangeStarted: []
 }>()
 
-const {
-  show: showFormerModal,
-  target: formerTarget,
-  request: requestMarkFormer,
-  confirm: confirmMarkFormer,
-} = useConfirmAction<true>({
+const {show: showFormerModal, target: formerTarget, request: requestMarkFormer, confirm: confirmMarkFormer} = useConfirmAction<true>({
   onConfirm: async () => { emit('markFormer') },
 })
 
@@ -72,11 +67,11 @@ const reassignUserTypes = computed(() => userTypesOf(reassignTargets.value))
 
 /**
  * Asks before marking the member former, which shift skips. A member who cannot be marked yet gets
- * the dialog either way, since it is what names the reasons.
+ * the dialog either way, since it shows the reasons.
  *
- * <p>The dialog holds its target in both cases. The button is there before the member has loaded,
- * and a dialog opened in that moment turns into the question once they arrive, so its confirm has
- * to have something to act on.
+ * <p>The dialog can open before the member's details have loaded, when nothing is known to stand in
+ * the way yet. It holds its request from the start, so the confirm button it shows once they arrive
+ * marks the member rather than doing nothing.
  */
 function openFormerModal() {
   if (props.canMarkFormer) {
