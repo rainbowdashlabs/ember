@@ -22,6 +22,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Mitglieder- und Behälterprüfung getrennt schaltbar.** Inventarprüfungen haben auf der Modulseite zwei eigene Teile: die Ausrüstung eines Mitglieds prüfen und einen Behälter prüfen. Eine Wache kann einen behalten und den anderen abschalten. Die Selbstprüfung ist jetzt ein Teil der Mitgliederprüfung, weil eine geprüfte Selbstprüfung als Mitgliederprüfung festgehalten wird. Wer Inventarprüfungen oder die Mitgliederprüfung abschaltet, schaltet damit auch die Selbstprüfung ab.
 - **Eigenes Kalenderabo nach Kategorien.** Das eigene Kalenderabo kann unter Profil → Einstellungen Kategorien weglassen. Termine, zu denen das Mitglied oder jemand in seiner Obhut angemeldet ist, bleiben darin.
 - **Berechtigungsauswahl zeigt, was worin enthalten ist.** Ein aufgeklappter Bereich der Berechtigungsauswahl zeigt seine Berechtigungen als Baum, jede eingerückt unter der Berechtigung, die sie enthält. Ist eine Berechtigung in mehreren enthalten, erscheint sie einmal, mit einer Zeile zu den anderen.
+- **Wachen nebeneinander in mehreren Tabs.** Jeder Tab im Browser bleibt bei der Wache und dem Verband, die er zeigt, so lassen sich zwei Wachen nebeneinander öffnen. Die Adresse einer Wachenseite enthält ihre Wache, daher öffnet ein kopierter Link oder ein Link in einem neuen Tab dieselbe Wache.
 
 ### Änderungen
 
@@ -37,6 +38,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Stunden auf gedruckten Anwesenheitslisten im falschen Zahlenformat.** In manchen Fällen standen die Stunden auf gedruckten Anwesenheitslisten und Berichten bei einer englischsprachigen Wache mit Dezimalkomma oder bei einer deutschsprachigen mit Dezimalpunkt. Die Stunden folgen jetzt der Sprache der Wache, wie schon im Tabellenexport.
 - **Die Inventarseite sprang nach oben.** Nach jeder Änderung an einem Gegenstand wurde die ganze Liste neu geladen, und die Stelle darin ging verloren. Die Seite bleibt jetzt beim Aktualisieren, wo sie war.
 - **Beschaffungen in externen Inventaren brachten Stücke der Wache.** Wurde eine Beschaffung in einem Inventar, das nur Material des Trägers enthält, als erledigt markiert, entstand ein Stück im Besitz der Wache. Das Stück gehört jetzt dem Träger und bleibt bei der Wache.
+- **Ein Tab konnte in der Wache eines anderen Tabs arbeiten.** Waren zwei Tabs in verschiedenen Wachen offen, lud oder speicherte der ältere Tab in manchen Fällen Daten in der Wache, die im anderen Tab zuletzt gewählt wurde, obwohl er noch seine eigene zeigte. Jeder Tab behält jetzt seine eigene Wache.
 
 ## v26.26.4
 

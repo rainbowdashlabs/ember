@@ -505,7 +505,7 @@ export default {
                 conceptStation: 'Wache (Station)',
                 conceptStationText: 'Eine Wache ist deine Jugendfeuerwehr oder Gruppe. Jede Wache hat eigene Mitglieder, Einstellungen und Daten.',
                 conceptAccount: 'Konto (Account)',
-                conceptAccountText: 'Dein persönliches Benutzerkonto mit E-Mail und Passwort. Ein Konto kann Mitglied in mehreren Wachen sein.',
+                conceptAccountText: 'Dein persönliches Benutzerkonto mit E-Mail und Passwort. Ein Konto kann Mitglied in mehreren Wachen sein. Jeder Tab im Browser bleibt in der Wache, die er gerade zeigt. So lassen sich zwei Wachen nebeneinander öffnen. Die Adresse einer Seite enthält ihre Wache, ein kopierter Link öffnet also dieselbe Wache.',
                 conceptMember: 'Mitglied (Member)',
                 conceptMemberText: 'Deine Mitgliedschaft in einer bestimmten Wache. Hier werden deine Rollen, Gruppen und Profildaten gespeichert.',
                 conceptGroup: 'Gruppe (Group)',
@@ -5237,7 +5237,7 @@ volumes:
             membershipTitle: 'Verband und Wache sind getrennt',
             membershipText: 'Deine Rechte im Verband haben nichts mit deinen Rechten in einer Wache zu tun. Wer den Verband verwaltet, ist damit noch lange nicht in jeder Wache angemeldet, und umgekehrt.',
             switchTitle: 'Zwischen Verbänden wechseln',
-            switchText: 'Gehörst du zu mehreren Verbänden, wählst du unten in der Seitenleiste aus, für welchen du gerade arbeitest. Die Seite lädt danach neu, damit alles zum gewählten Verband passt.',
+            switchText: 'Gehörst du zu mehreren Verbänden, wählst du unten in der Seitenleiste aus, für welchen du gerade arbeitest. Die Seite lädt danach neu, damit alles zum gewählten Verband passt. Jeder Tab im Browser bleibt bei seinem Verband, ein Wechsel in einem Tab ändert die anderen nicht.',
             tip: 'Über die Schaltfläche unten in der Seitenleiste kommst du jederzeit zurück in deine Wache.',
         },
         clusterSettings: {

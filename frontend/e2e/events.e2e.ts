@@ -642,7 +642,7 @@ test.describe('Events', () => {
 
         await managerPage.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
 
-        await managerPage.waitForURL(/\/station\/events$/)
+        await managerPage.waitForURL(/\/station\/events(\?[^#]*)?$/)
         await managerPage.getByText(event).first().click()
         await managerPage.waitForURL(/\/station\/events\/(\d+)/)
         const id = managerPage.url().match(/events\/(\d+)/)?.[1]

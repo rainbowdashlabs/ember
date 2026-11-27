@@ -10,7 +10,8 @@ import {markOpened} from '~/api/notifications'
 import {FIRST_STATION_PATH} from '~/util/signInLanding'
 import {getDemoStatus} from '~/api/demo'
 import {hasSessionCookie} from '~/api/sessionCookie'
-import {getItem, removeItem} from '~/api/storage'
+import {forgetTabPlaces, tabClusterId, tabStationId} from '~/util/tabPlace'
+import {isInArea} from '~/util/placeInAddress'
 import {useConsentGuard} from '~/composables/useConsentGuard'
 import {useSession} from '~/composables/useSession'
 import {useCluster} from '~/composables/useCluster'
@@ -46,8 +47,7 @@ const IDLE_EXEMPT: ReadonlySet<string> = new Set(['/station/requirements', '/rec
 async function switchAccount(email: string): Promise<void> {
     const status = await getDemoStatus()
     if (!status.demo && !status.dev) return
-    removeItem('station_id')
-    removeItem('cluster_id')
+    forgetTabPlaces()
     forgetLandingMemory()
     await demoLogin(email)
     useSession().clear()
@@ -80,6 +80,78 @@ async function waitsForFirstStation(): Promise<boolean> {
 }
 
 /**
+ * The same address naming the station or cluster of this tab, in place of the one that named none,
+ * so the address bar can always be copied. The navigation has not happened yet, so no history entry
+ * is left behind.
+ */
+function withPlace(to: RouteLocationNormalized, key: 'station' | 'cluster', uid: string) {
+    return navigateTo({path: to.path, query: {...to.query, [key]: uid}, hash: to.hash}, {replace: true})
+}
+
+/**
+ * Loads the address anew. The session, the menus and what the screens hold were answered for the
+ * place the tab was in, and a link to another station or cluster has to start over with the new one,
+ * as a switch through the picker does.
+ */
+function reloadAt(to: RouteLocationNormalized) {
+    return navigateTo(to.fullPath, {external: true})
+}
+
+/**
+ * Settles the cluster of a navigation into the cluster area, or turns it away. A cluster the link
+ * names, where the reader may act for it, becomes the tab's; an address naming none gets the tab's.
+ *
+ * @returns where to go instead, or `undefined` to let the navigation through
+ */
+async function placeCluster(to: RouteLocationNormalized) {
+    const {loaded, load, hasClusters, clusterList, setActiveCluster} = useCluster()
+    if (!loaded.value) await load()
+    if (!hasClusters.value) return navigateTo('/station/dashboard/overview')
+    const queryCluster = typeof to.query.cluster === 'string' ? to.query.cluster : null
+    if (queryCluster && clusterList.value.some(cluster => cluster.uid === queryCluster)) {
+        if (queryCluster === tabClusterId()) return undefined
+        const answeredFor = useSession().sessionClusterId.value
+        setActiveCluster(queryCluster)
+        return answeredFor !== null && answeredFor !== queryCluster ? reloadAt(to) : undefined
+    }
+    const cluster = queryCluster ? null : tabClusterId()
+    return cluster ? withPlace(to, 'cluster', cluster) : undefined
+}
+
+/**
+ * Settles the station of a navigation into the station area. A station the link names becomes the
+ * tab's before anything can redirect and drop it, where the account belongs to it; one it does not
+ * belong to, as in an address copied by somebody else, is dropped. An address naming none gets the
+ * tab's, or the sole station of the account, or goes to the picker or to founding the first station.
+ *
+ * @returns where to go instead, or `undefined` to let the navigation through
+ */
+async function placeStation(to: RouteLocationNormalized) {
+    const queryStation = typeof to.query.station === 'string' ? to.query.station : null
+    if (queryStation) {
+        if (queryStation === tabStationId()) return undefined
+        const stations = useStations()
+        if (!stations.loaded.value) await stations.load()
+        if (!stations.stationList.value.some(station => station.stationId === queryStation)) {
+            const {station: _foreign, ...query} = to.query
+            return navigateTo({path: to.path, query, hash: to.hash}, {replace: true})
+        }
+        const answeredFor = useSession().sessionStationId.value
+        stations.setActiveStation(queryStation)
+        return answeredFor !== null && answeredFor !== queryStation ? reloadAt(to) : undefined
+    }
+    let station = tabStationId()
+    if (!station) {
+        if (await waitsForFirstStation()) return navigateTo(FIRST_STATION_PATH)
+        const stations = useStations()
+        station = await stations.soleStationId()
+        if (!station) return navigateTo({path: '/cross-station', query: {redirect: to.fullPath}})
+        stations.setActiveStation(station)
+    }
+    return withPlace(to, 'station', station)
+}
+
+/**
  * Gates every navigation, in an order that matters.
  *
  * <p>An address that matches no page is let through untouched, since there is nothing to protect and
@@ -90,9 +162,12 @@ async function waitsForFirstStation(): Promise<boolean> {
  * otherwise open on an emptiness that reads as a page they are meant to be on, and a {@code ?cluster=}
  * link from an association's mail switches to that association where the reader may act for it. A
  * {@code ?read=} link from a mail or a feed marks its notification read and is followed without the
- * marker, once the reader is signed in, so the login redirect carries it along. A {@code ?station=}
- * link hands its station over before anything can redirect and drop it, and the idle check runs only
- * once a station is known, since the requirements page is station-scoped. The activity stamp is
+ * marker, once the reader is signed in, so the login redirect carries it along. Every address of
+ * the station area names its station as {@code ?station=}, and every address of the cluster area its
+ * cluster as {@code ?cluster=}: one that names none gets the tab's own. One that names another than
+ * the tab's moves the tab there before anything can redirect and drop it, and loads the page anew
+ * where the session was answered for the place the tab was in. The idle check runs only once a
+ * station is known, since the requirements page is station-scoped. The activity stamp is
  * written only when the navigation is let through, so a redirect never spends the idle window.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
@@ -131,27 +206,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
         if (!isAdmin()) return navigateTo('/station/dashboard/overview')
     }
 
-    if (to.path === '/cluster' || to.path.startsWith('/cluster/')) {
-        const {loaded: clustersLoaded, load: loadClusters, hasClusters, clusterList, setActiveCluster} = useCluster()
-        if (!clustersLoaded.value) await loadClusters()
-        if (!hasClusters.value) return navigateTo('/station/dashboard/overview')
-        const queryCluster = typeof to.query.cluster === 'string' ? to.query.cluster : null
-        if (queryCluster && clusterList.value.some(cluster => cluster.uid === queryCluster)) {
-            setActiveCluster(queryCluster)
-        }
+    if (isInArea(to.path, '/cluster')) {
+        const placed = await placeCluster(to)
+        if (placed !== undefined) return placed
     }
 
-    if (to.path === '/station' || to.path.startsWith('/station/')) {
-        const queryStation = typeof to.query.station === 'string' ? to.query.station : null
-        if (queryStation && queryStation !== getItem('station_id')) {
-            useStations().setActiveStation(queryStation)
-        } else if (!queryStation && !getItem('station_id')) {
-            if (await waitsForFirstStation()) return navigateTo(FIRST_STATION_PATH)
-            const stations = useStations()
-            const sole = await stations.soleStationId()
-            if (!sole) return navigateTo({path: '/cross-station', query: {redirect: to.fullPath}})
-            stations.setActiveStation(sole)
-        }
+    if (isInArea(to.path, '/station')) {
+        const placed = await placeStation(to)
+        if (placed !== undefined) return placed
     }
 
     if (to.path === '/cross-station' && await waitsForFirstStation()) {
@@ -160,7 +222,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     rememberVisitedArea(to.path)
 
-    if (!getItem('station_id')) return
+    if (!tabStationId()) return
 
     const lastActivity = localStorage.getItem('ember_last_activity')
     const now = Date.now()

@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {isStorageDenied, removeItem} from './storage'
+import {forgetTabPlaces} from '@/util/tabPlace'
+import {isStorageDenied} from './storage'
 import type {
     ChangePasswordRequest,
     EmailChangeResponse,
@@ -69,8 +70,7 @@ export async function demoLogin(email: string): Promise<LoginResponse> {
 /** Ends the session the cookie names; the server clears the cookie with its answer. */
 export async function logout(): Promise<MessageResponse> {
     const res = await client.post<MessageResponse>('/auth/logout')
-    removeItem('station_id')
-    removeItem('cluster_id')
+    forgetTabPlaces()
     return res.data
 }
 

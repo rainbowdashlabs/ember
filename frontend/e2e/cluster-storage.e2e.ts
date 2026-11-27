@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Page} from '@playwright/test'
-import {test, expect, apiHeaders} from './fixtures/auth'
+import {test, expect, apiHeaders, actForCluster} from './fixtures/auth'
 import {ownCluster, type OwnCluster} from './fixtures/cluster'
 
 const MIB = 1024 * 1024
@@ -28,7 +28,7 @@ test.describe('Cluster storage', () => {
      */
     async function storageScreen(page: Page, own: OwnCluster) {
         await page.goto('/cluster/storage')
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+        await actForCluster(page, own.uid)
         await page.goto('/cluster/storage')
         await expect(page.getByTestId('app-shell')).toBeVisible()
     }

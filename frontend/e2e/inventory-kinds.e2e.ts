@@ -103,11 +103,11 @@ test.describe('The two kinds of inventory', () => {
             await expect(page.getByTestId('inventory-detail-edit')).toBeVisible()
             await page.getByTestId('inventory-detail-edit').click()
 
-            await expect(page).toHaveURL(new RegExp(`/station/inventory/edit/${collection.id}$`))
+            await expect(page).toHaveURL(new RegExp(`/station/inventory/edit/${collection.id}(\\?[^#]*)?$`))
 
             await page.getByTestId('inventory-edit-back').click()
             await expect(page, 'and back on the inventory it came from')
-                .toHaveURL(new RegExp(`/station/inventory/detail/${collection.id}$`))
+                .toHaveURL(new RegExp(`/station/inventory/detail/${collection.id}(\\?[^#]*)?$`))
         })
 
     /** Somebody who may read the stock but not change the inventory is not offered the way in. */
@@ -192,6 +192,6 @@ test.describe('The two kinds of inventory', () => {
 
         const collection = await theSeededCollection(page)
         await hit.click()
-        await expect(page).toHaveURL(new RegExp(`/station/inventory/detail/${collection.id}$`))
+        await expect(page).toHaveURL(new RegExp(`/station/inventory/detail/${collection.id}(\\?[^#]*)?$`))
     })
 })

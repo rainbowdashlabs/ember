@@ -6,6 +6,7 @@
 import {MADE_BY_A_STORY} from './fixtures/cluster'
 import {
     test, expect, enterCluster, clustersOf, theSeededCluster, apiHeaders, demoAccounts, pageAsThrowaway,
+    actForCluster,
 } from './fixtures/auth'
 import {activeSidebarGroup, allSections, sidebarEntry} from './fixtures/sidebar'
 import {must} from './fixtures/must'
@@ -49,7 +50,7 @@ test.describe('Cluster', () => {
         await expect(page.getByRole('button', {name: 'Verband'}).first()).toBeVisible()
 
         await page.getByRole('button', {name: 'Verband'}).first().click()
-        await page.waitForURL(/\/cluster$/)
+        await page.waitForURL(/\/cluster(\?[^#]*)?$/)
 
         await expect(page.getByText(cluster.name).first()).toBeVisible()
     })
@@ -90,7 +91,7 @@ test.describe('Cluster', () => {
     test('the cluster space is refused without membership', async ({memberPage: page}) => {
         await page.goto('/cluster')
 
-        await expect(page).not.toHaveURL(/\/cluster$/)
+        await expect(page).not.toHaveURL(/\/cluster(\?[^#]*)?$/)
     })
 
     /**
@@ -168,13 +169,13 @@ test.describe('Cluster', () => {
         expect(mine.length).toBeGreaterThan(1)
         expect(mine.map(cluster => cluster.name)).toContain(name)
 
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), second.uid)
+        await actForCluster(page, second.uid)
         await page.goto('/cluster/stations')
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByText('Jugendfeuerwehr Nordstadt')).toHaveCount(0)
 
         const first = await theSeededCluster(page)
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), first.uid)
+        await actForCluster(page, first.uid)
         await page.goto('/cluster/stations')
         await expect(page.getByText('Jugendfeuerwehr Nordstadt')).toBeVisible()
     })
@@ -199,7 +200,7 @@ test.describe('Cluster', () => {
         await page.getByRole('button', {name: 'Alles erlauben'}).click()
         await page.getByText(`${clusterOnly!.firstName} ${clusterOnly!.lastName}`).first().click()
 
-        await page.waitForURL(/\/cluster$/)
+        await page.waitForURL(/\/cluster(\?[^#]*)?$/)
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
         const cluster = must((await clustersOf(page))[0], 'a cluster this account acts for')
@@ -267,7 +268,7 @@ test.describe('Cluster', () => {
         }
 
         await sidebarEntry(page, 'Wiki').click()
-        await expect(page).toHaveURL(/\/cluster\/knowledge$/)
+        await expect(page).toHaveURL(/\/cluster\/knowledge(\?[^#]*)?$/)
         await expect(activeSidebarGroup(page)).toHaveText(/Wiki/)
     })
 })

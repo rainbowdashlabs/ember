@@ -22,6 +22,7 @@ People who already have an account on this instance can be invited into a statio
 - **Member and container checks switch apart.** Inventory checks have two parts of their own on the module page: checking a member's gear and checking a container. A station can keep one and switch the other off. Self-checks are now a part of member checks, since a reviewed self-check is recorded as a member check. Switching off inventory checks or member checks also switches off self-checks.
 - **Personal calendar subscription by category.** The personal calendar subscription can leave out chosen categories under Profile → Settings. Appointments the member or someone in their care is signed up for stay in it.
 - **Permission picker shows what includes what.** An opened area of the permission picker shows its permissions as a tree, each one indented below the permission that includes it. A permission included by several others appears once, with a line naming the others.
+- **Stations side by side in several tabs.** Each browser tab keeps the station and the association it shows, so two stations can be open next to each other. The address of a station page includes its station, so a copied link or a link opened in a new tab opens the same station.
 
 ### Changes
 
@@ -37,6 +38,7 @@ People who already have an account on this instance can be invited into a statio
 - **Hours on printed attendance sheets had the wrong number format.** In some cases, printed attendance sheets and reports showed hours with a decimal comma for an English station, or with a decimal point for a German one. The hours now follow the station's language, as they already did in the spreadsheet export.
 - **The inventory page jumped back to the top.** After every change to a piece, the whole stock list loaded again and the place in it was lost. The page now stays where it was while it refreshes.
 - **External inventory procurements brought station-owned pieces.** Marking a procurement fulfilled in an inventory that holds only the association's gear created a piece owned by the station. The piece now belongs to the association and stays at the station.
+- **A tab could work in the station chosen in another tab.** With two tabs open in different stations, the older tab in some cases loaded or saved data in the station chosen last in the other tab, while it still showed its own. Each tab now keeps its own station.
 
 ## v26.26.4
 

@@ -302,8 +302,28 @@ export async function apiHeaders(page: Page): Promise<Record<string, string>> {
 
     const csrf = await csrfOf(page.context())
     if (!csrf) throw new Error('The page holds no session to ask the backend with')
-    const station = await page.evaluate(() => window.localStorage.getItem('station_id'))
+    const station = await stationOf(page)
     return sessionHeaders({csrf}, station ?? undefined)
+}
+
+/**
+ * The station the page's tab works in. A tab keeps its own once it has used one, and the shared value
+ * only says where a new tab starts.
+ */
+export async function stationOf(page: Page): Promise<string | null> {
+    return page.evaluate(() =>
+        window.sessionStorage.getItem('tab_station_id') ?? window.localStorage.getItem('station_id'))
+}
+
+/**
+ * Moves the page's tab to a cluster the way the switcher does: the tab's own value and the one a new
+ * tab starts with. Takes effect with the next page load.
+ */
+export async function actForCluster(page: Page, clusterUid: string): Promise<void> {
+    await page.evaluate(uid => {
+        window.sessionStorage.setItem('tab_cluster_id', uid)
+        window.localStorage.setItem('cluster_id', uid)
+    }, clusterUid)
 }
 
 /**
@@ -418,7 +438,7 @@ export async function clusterHeaders(page: Page, cluster: Cluster): Promise<Reco
  */
 export async function enterCluster(page: Page): Promise<Cluster> {
     const cluster = await theSeededCluster(page)
-    await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), cluster.uid)
+    await actForCluster(page, cluster.uid)
     return cluster
 }
 

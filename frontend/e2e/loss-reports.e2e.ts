@@ -176,7 +176,7 @@ test.describe('Losing a piece of the association gear', () => {
 
         await clusterView.goto(`/cluster/inventory/movement/${waiting.movementId}`)
         await expect(clusterView, 'the association opens the movement rather than being sent elsewhere')
-            .toHaveURL(new RegExp(`/cluster/inventory/movement/${waiting.movementId}$`))
+            .toHaveURL(new RegExp(`/cluster/inventory/movement/${waiting.movementId}(\\?[^#]*)?$`))
         await expect(clusterView.getByTestId('loss-report')).toBeVisible({timeout: 15000})
         await expect(clusterView.getByTestId('loss-report-manager-note')).toContainText(managerNote)
         await expect(clusterView.getByTestId('loss-report-member-note')).toContainText('Aus der Tasche gefallen')

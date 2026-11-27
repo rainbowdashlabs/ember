@@ -47,6 +47,8 @@ const NECESSITY: Record<string, StorageNecessityName> = {
     ember_last_activity: StorageNecessity.REQUIRED,
     station_id: StorageNecessity.REQUIRED,
     cluster_id: StorageNecessity.REQUIRED,
+    tab_station_id: StorageNecessity.REQUIRED,
+    tab_cluster_id: StorageNecessity.REQUIRED,
     instance_theme: StorageNecessity.FUNCTIONAL,
     instance_feel: StorageNecessity.FUNCTIONAL,
     theme_name: StorageNecessity.COMFORT,
@@ -215,10 +217,45 @@ export function removeItem(key: string): void {
     }
 }
 
+/**
+ * Stores a value for this tab only, where it is allowed. The tab's session storage is not shared with
+ * other tabs and is gone when the tab is closed. A browser that blocks site data keeps nothing.
+ */
+export function setTabItem(key: string, value: string): void {
+    if (!isClient) return
+    try {
+        if (isStorageAllowed(key)) sessionStorage.setItem(key, value)
+    } catch {
+        return
+    }
+}
+
+/** Reads a value stored for this tab, or `null` where nothing is stored or the browser blocks site data. */
+export function getTabItem(key: string): string | null {
+    if (!isClient) return null
+    try {
+        return sessionStorage.getItem(key)
+    } catch {
+        return null
+    }
+}
+
+/** Removes a value stored for this tab, doing nothing where the browser blocks site data. */
+export function removeTabItem(key: string): void {
+    if (!isClient) return
+    try {
+        sessionStorage.removeItem(key)
+    } catch {
+        return
+    }
+}
+
 export function clearStoredData(): void {
     if (!isClient) return
     localStorage.removeItem('station_id')
     localStorage.removeItem('cluster_id')
+    removeTabItem('tab_station_id')
+    removeTabItem('tab_cluster_id')
     localStorage.removeItem(CONSENT_VERSION_KEY)
     localStorage.removeItem(PRIVACY_VERSION_KEY)
     localStorage.removeItem(TOS_VERSION_KEY)
