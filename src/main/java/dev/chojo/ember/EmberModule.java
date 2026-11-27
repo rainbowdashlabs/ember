@@ -238,6 +238,7 @@ import dev.chojo.ember.feature.inventory.route.InventoryArtRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryContainerRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryFieldDefinitionRoutes;
+import dev.chojo.ember.feature.inventory.route.InventoryPictureRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryTagRoutes;
 import dev.chojo.ember.feature.inventory.route.ItemOwnerRoutes;
@@ -673,6 +674,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(InventoryContainerRoutes.class);
         routesBinder.addBinding().to(InventoryFieldDefinitionRoutes.class);
         routesBinder.addBinding().to(InventoryArtRoutes.class);
+        routesBinder.addBinding().to(InventoryPictureRoutes.class);
         routesBinder.addBinding().to(InventoryTagRoutes.class);
         routesBinder.addBinding().to(FederatedInventoryTagRoutes.class);
         routesBinder.addBinding().to(RemoteInventoryTagRoutes.class);

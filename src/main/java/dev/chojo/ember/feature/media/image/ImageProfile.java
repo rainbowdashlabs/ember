@@ -52,6 +52,7 @@ public enum ImageProfile {
                 Optional.of(ICON_SET);
             case MEDIA_IMAGES,
                     IMAGE_LOST_AND_FOUND,
+                    IMAGE_INVENTORY,
                     IMAGE_QUIZ_QUESTION,
                     IMAGE_KB_IMAGE,
                     IMAGE_KB_FILE_PICTURE,

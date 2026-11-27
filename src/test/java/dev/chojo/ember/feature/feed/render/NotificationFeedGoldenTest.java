@@ -258,8 +258,8 @@ class NotificationFeedGoldenTest {
                         new StorageUsage(7, StorageCategory.BOARD_ATTACHMENTS, 0, 0, CREATED)));
         when(inventoryService.findById(anyInt())).thenReturn(Optional.empty());
         when(inventoryService.findById(99))
-                .thenReturn(Optional.of(
-                        new Inventory(99, 1, "Schlauch 25m", InventoryType.INTERNAL, false, true, false, null, null)));
+                .thenReturn(Optional.of(new Inventory(
+                        99, 1, "Schlauch 25m", InventoryType.INTERNAL, false, true, false, null, null, null)));
         when(boardTicketService.findById(anyInt())).thenReturn(Optional.empty());
         when(boardTicketService.findById(123))
                 .thenReturn(Optional.of(new BoardTicket(

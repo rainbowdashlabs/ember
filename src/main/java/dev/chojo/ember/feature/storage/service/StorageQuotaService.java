@@ -414,8 +414,12 @@ public class StorageQuotaService {
         return switch (category) {
             case KB_FILES -> quota.kb().bytes();
             case BOARD_ATTACHMENTS -> quota.board().bytes();
-            case IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE, IMAGE_LOGO_FRAGMENT ->
-                quota.images().bytes();
+            case IMAGE_LOST_AND_FOUND,
+                    IMAGE_INVENTORY,
+                    IMAGE_QUIZ_QUESTION,
+                    IMAGE_KB_ICON,
+                    IMAGE_KB_IMAGE,
+                    IMAGE_LOGO_FRAGMENT -> quota.images().bytes();
             case MEDIA_FILES, MEDIA_IMAGES -> quota.pages().bytes();
             case MEMBER_DOCUMENTS,
                     MOVEMENT_DOCUMENTS,

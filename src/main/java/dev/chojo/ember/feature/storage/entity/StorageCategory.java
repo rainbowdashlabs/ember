@@ -133,6 +133,15 @@ public enum StorageCategory {
             MimeLists.IMAGES,
             false,
             Optional.empty()),
+    /** The photos of inventories and of their kinds, named by a key their row carries. */
+    IMAGE_INVENTORY(
+            "images/inventory",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.ENFORCED,
+            MimeLists.IMAGES,
+            false,
+            Optional.empty()),
     IMAGE_LOGO_FRAGMENT(
             "images/logo-fragments",
             StorageScope.Kind.INSTANCE,

@@ -30,6 +30,20 @@ COMMENT ON COLUMN ember_schema.account_link_request.origin IS
 COMMENT ON CONSTRAINT account_link_request_owner ON ember_schema.account_link_request IS
     'A request belongs to exactly one asker: a station member (station and member set, origin IMPORT, INVITE or NAME_INVITE) or an association role (association, role and address set, origin ASSOCIATION_INVITE).';
 
+-- An inventory and a kind can carry a picture; a piece shows its kind's picture, otherwise its inventory's.
+
+ALTER TABLE ember_schema.inventory
+    ADD COLUMN picture_key TEXT;
+
+ALTER TABLE ember_schema.inventory_art
+    ADD COLUMN picture_key TEXT;
+
+COMMENT ON COLUMN ember_schema.inventory.picture_key
+    IS 'Storage key of the inventory''s picture in the inventory pictures category, or NULL for none. Every upload gets a new key, so a cached old picture is never served for a new one.';
+
+COMMENT ON COLUMN ember_schema.inventory_art.picture_key
+    IS 'Storage key of the kind''s picture in the inventory pictures category, or NULL for none. A piece of the kind shows this picture before its inventory''s. Every upload gets a new key.';
+
 -- A place question can be the location the calendar shows for its appointment. Where a station kept the
 -- meeting point the templates offer, that place question becomes the calendar's location, unless another
 -- place of the same form already is. Only the first such question of a form is marked.

@@ -30,7 +30,8 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class InventoryArtRepository {
 
-    private static final String ART_COLUMNS = "id, inventory_id, name, note, position, merge_key, icon, color";
+    private static final String ART_COLUMNS =
+            "id, inventory_id, name, note, position, merge_key, icon, color, picture_key";
 
     /**
      * Finds a kind by its identifier.
@@ -132,6 +133,20 @@ public class InventoryArtRepository {
                         .bind("color", glyph.color()),
                 InventoryArt.map(),
                 ART_COLUMNS);
+    }
+
+    /**
+     * Sets the storage key of a kind's photo.
+     *
+     * @param id         the kind
+     * @param pictureKey the new key, or {@code null} for no photo
+     * @return whether the kind was there to change
+     */
+    public boolean setPictureKey(int id, @Nullable String pictureKey) {
+        return query("UPDATE inventory_art SET picture_key = :picture_key WHERE id = :id;")
+                .single(call().bind("id", id).bind("picture_key", pictureKey))
+                .update()
+                .changed();
     }
 
     /**

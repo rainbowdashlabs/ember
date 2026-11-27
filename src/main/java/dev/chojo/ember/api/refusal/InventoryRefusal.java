@@ -1149,7 +1149,32 @@ public enum InventoryRefusal implements Refusal {
 
     /** A piece named for tagging at once that lies in another inventory. Nothing is tagged. */
     INVENTORY_TAG_BATCH_ITEM_IN_ANOTHER_INVENTORY(
-            295, HttpStatus.BAD_REQUEST, "That piece of gear belongs to another inventory, so no tag was changed");
+            295, HttpStatus.BAD_REQUEST, "That piece of gear belongs to another inventory, so no tag was changed"),
+
+    /** The inventory whose photo was asked for or sent, gone or at another station. */
+    INVENTORY_PICTURE_INVENTORY_NOT_HERE(296, HttpStatus.NOT_FOUND, Sentences.INVENTORY_NOT_HERE),
+
+    /** The kind whose photo was asked for or sent, gone or in another inventory. */
+    INVENTORY_PICTURE_KIND_NOT_HERE(297, HttpStatus.NOT_FOUND, Sentences.ITEM_KIND_NOT_HERE),
+
+    /** The piece whose photo was asked for, gone or at another station. */
+    INVENTORY_PICTURE_ITEM_NOT_HERE(298, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
+
+    /** A photo asked for where neither the kind nor the inventory has one. */
+    INVENTORY_PICTURE_NOT_HERE(299, HttpStatus.NOT_FOUND, Sentences.PICTURE_NOT_HERE),
+
+    /** A photo sent for an inventory or a kind with no file in it. */
+    INVENTORY_PICTURE_FILE_MISSING(300, HttpStatus.BAD_REQUEST, Sentences.UPLOAD_MISSING_FILE),
+
+    /** A photo sent for an inventory or a kind in a format that is not taken. */
+    INVENTORY_PICTURE_KIND_NOT_TAKEN(301, HttpStatus.BAD_REQUEST, Sentences.KB_PICTURE_KIND_NOT_TAKEN),
+
+    /** A photo for an inventory or a kind that the store would not keep. */
+    INVENTORY_PICTURE_NOT_TAKEN(
+            302, HttpStatus.BAD_REQUEST, "That picture was not one that could be kept, so nothing was saved"),
+
+    /** A photo for an inventory or a kind that could not be written to the store. */
+    INVENTORY_PICTURE_NOT_PROCESSED(303, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.UPLOAD_NOT_PROCESSED);
 
     private final Definition definition;
 

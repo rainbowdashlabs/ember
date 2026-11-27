@@ -37452,6 +37452,129 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventories/{inventoryId}/arts/{artId}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The photo of a kind */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    artId: number;
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Give a kind a new photo, shown on its pieces before the inventory's */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    artId: number;
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": string;
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PictureResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Take a kind's photo away */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    artId: number;
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventories/{inventoryId}/fields": {
         parameters: {
             query?: never;
@@ -37913,6 +38036,126 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventories/{inventoryId}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The photo of an inventory */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Give an inventory a new photo */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": string;
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PictureResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Take an inventory's photo away */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -39966,6 +40209,53 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory-items/{itemId}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The photo a piece is shown with: its kind's, otherwise its inventory's */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    itemId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -75996,6 +76286,7 @@ export interface components {
             id: number;
             inventoryType: components["schemas"]["InventoryType"];
             name: string;
+            pictureKey: string | null;
             /** Format: uuid */
             stationId: string;
         };
@@ -76009,6 +76300,7 @@ export interface components {
             mergeKey: string;
             name: string;
             note: string;
+            pictureKey: string | null;
             /** Format: int32 */
             position: number;
         };
@@ -76104,6 +76396,7 @@ export interface components {
             id: number;
             inventoryType: components["schemas"]["InventoryType"];
             name: string;
+            pictureKey: string | null;
             sizes: components["schemas"]["InventorySize"][];
             /** Format: uuid */
             stationId: string;
@@ -79001,6 +79294,9 @@ export interface components {
             slug: string;
             title: string;
             updatedAt: components["schemas"]["Instant"];
+        };
+        PictureResponse: {
+            pictureKey: string;
         };
         PlaceAnswer: {
             place: components["schemas"]["StationPlace"] | null;
@@ -82556,7 +82852,7 @@ export interface components {
         /** @enum {string} */
         StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
         /** @enum {string} */
-        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_SIGNATURE" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "IMAGE_DOCUMENT_TEMPLATE_PICTURE" | "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
+        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_SIGNATURE" | "IMAGE_LOST_AND_FOUND" | "IMAGE_INVENTORY" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "IMAGE_DOCUMENT_TEMPLATE_PICTURE" | "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
         StorageQuotaPreset: {
             /** Format: int64 */
             board: number;
@@ -85151,6 +85447,7 @@ export type PermissionNode = components['schemas']['PermissionNode'];
 export type PermissionsByMember = components['schemas']['PermissionsByMember'];
 export type PickerEvent = components['schemas']['PickerEvent'];
 export type PickerPage = components['schemas']['PickerPage'];
+export type PictureResponse = components['schemas']['PictureResponse'];
 export type PlaceAnswer = components['schemas']['PlaceAnswer'];
 export type PlaceDraft = components['schemas']['PlaceDraft'];
 export type Placeholder = components['schemas']['Placeholder'];
@@ -87510,6 +87807,7 @@ export const StorageCategory = {
     IMAGE_AVATAR: "IMAGE_AVATAR",
     IMAGE_DISCOVERY_LOGO: "IMAGE_DISCOVERY_LOGO",
     IMAGE_DOCUMENT_TEMPLATE_PICTURE: "IMAGE_DOCUMENT_TEMPLATE_PICTURE",
+    IMAGE_INVENTORY: "IMAGE_INVENTORY",
     IMAGE_KB_FILE_PICTURE: "IMAGE_KB_FILE_PICTURE",
     IMAGE_KB_ICON: "IMAGE_KB_ICON",
     IMAGE_KB_IMAGE: "IMAGE_KB_IMAGE",

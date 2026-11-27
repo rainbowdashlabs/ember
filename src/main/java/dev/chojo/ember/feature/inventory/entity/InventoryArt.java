@@ -35,6 +35,8 @@ import java.util.Locale;
  *                    fall back to the inventory
  * @param color       the colour that picture is drawn in as {@code #rrggbb}, or {@code null} to fall
  *                    back to the inventory
+ * @param pictureKey  the storage key of the kind's photo, shown before the inventory's, or
+ *                    {@code null} for none
  */
 public record InventoryArt(
         int id,
@@ -44,7 +46,8 @@ public record InventoryArt(
         int position,
         String mergeKey,
         @Nullable String icon,
-        @Nullable String color) {
+        @Nullable String color,
+        @Nullable String pictureKey) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -58,7 +61,8 @@ public record InventoryArt(
                 row.getInt("position"),
                 row.getString("merge_key"),
                 row.getString("icon"),
-                row.getString("color"));
+                row.getString("color"),
+                row.getString("picture_key"));
     }
 
     /**
