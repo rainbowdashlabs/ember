@@ -2,7 +2,7 @@
 
 ## v26.27.0
 
-People who already have an account on this instance can be invited into a station by their name. Inventories and their kinds can carry a photo, which partner stations also see when they borrow. Maps on an appointment offer links to navigate to the place. Calendar subscriptions show the meeting point as an appointment's location, in the station's timezone.
+People who already have an account on this instance can be invited into a station by their name. Inventories and their kinds can carry a photo, which partner stations also see when they borrow. Maps on an appointment offer links to navigate to the place. First steps arrive three at a time, in the order they build on each other.
 
 ### New Features
 
@@ -16,6 +16,7 @@ People who already have an account on this instance can be invited into a statio
 - **Appointment maps open on request, with navigation.** A pinned place on an appointment's page shows a map button behind its address, and the map opens only when the button is pressed. Below the map, links start navigation there. Android phones offer their own choice of navigation apps. iPhones and computers get Apple Maps and Google Maps, and the OpenStreetMap link stays.
 - **Any place field as the location in the calendar.** A place field of an appointment, a template or an event group can be marked as the location in the calendar. Only one place field per form carries the mark, and an appointment's own mark wins over the one of its event group.
 - **Meeting point in appointment documents.** Documents for appointments have a new placeholder for the meeting point. The location placeholder keeps showing where the appointment takes place, so photo permissions and similar forms stay as they are.
+- **First steps come three at a time.** The dashboard shows at most three first steps at once, with the station's setup before a person's own. A step that builds on another, such as inviting members after setting up mail, appears once that one is done or skipped.
 
 ### Changes
 

@@ -1153,6 +1153,11 @@ volumes:
                 + 'Ember kennenlernen, Profil ausfüllen, Benachrichtigungen einstellen, auf einen Termin antworten. '
                 + 'Der Rundgang „Ember kennenlernen" zeigt dir die Bereiche, die an deiner Wache eingeschaltet '
                 + 'sind und die du öffnen darfst. Die Liste verschwindet, sobald nichts mehr offen ist.',
+            onboardingOrder: 'Die Liste zeigt höchstens drei Aufgaben auf einmal. Verwaltest du die Wache, kommen ihre Aufgaben vor deinen eigenen. '
+                + 'Manche Aufgaben bauen auf anderen auf: Mitglieder lädst du zum Beispiel erst ein, wenn der '
+                + 'Mailversand eingerichtet ist. Eine solche Aufgabe erscheint, sobald die Aufgabe, auf der sie aufbaut, '
+                + 'erledigt oder übersprungen ist. Nimmst du eine übersprungene Aufgabe wieder auf, warten die Aufgaben dahinter '
+                + 'wieder auf sie. Unter der Liste steht, wie viele Aufgaben noch folgen.',
             onboardingGuide: 'Klickst du auf „Los geht’s", zeigt Ember dir Schritt für Schritt, wo du klicken musst. '
                 + 'Die Seite bleibt dabei ganz normal bedienbar, und wenn du zwischendurch woanders hingehst, geht '
                 + 'nichts verloren: Das kleine Symbol unten rechts holt den Hinweis zurück.',
