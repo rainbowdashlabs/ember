@@ -1235,7 +1235,7 @@ public class LendingService implements FederationServer {
                         group.inventory().id(),
                         group.inventory().name(),
                         group.artId(),
-                        group.art() == null ? null : group.art().name(),
+                        group.artName(),
                         group.count(),
                         group.pictureKey(),
                         group.icon(),
@@ -1322,6 +1322,11 @@ public class LendingService implements FederationServer {
             @Nullable Integer artId,
             @Nullable InventoryArt art,
             int count) {
+        @Nullable
+        String artName() {
+            return art == null ? null : art.name();
+        }
+
         @Nullable
         String pictureKey() {
             return firstNamed(art == null ? null : art.pictureKey(), inventory.pictureKey());

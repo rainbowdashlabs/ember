@@ -205,12 +205,10 @@ public class InventoryPictureService {
                 .findById(item.inventoryId())
                 .filter(found -> found.stationId() == stationId)
                 .orElseThrow(InventoryRefusal.INVENTORY_PICTURE_ITEM_NOT_HERE::raise);
-        String artKey = item.artId() == null
+        Integer artId = item.artId();
+        String artKey = artId == null
                 ? null
-                : artRepository
-                        .findById(item.artId())
-                        .map(InventoryArt::pictureKey)
-                        .orElse(null);
+                : artRepository.findById(artId).map(InventoryArt::pictureKey).orElse(null);
         return artKey != null ? artKey : inventory.pictureKey();
     }
 
