@@ -26,6 +26,8 @@ import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
+import dev.chojo.ember.feature.feed.entity.StationFeedLevel;
+import dev.chojo.ember.feature.feed.service.StationCalendarFeedService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -66,6 +68,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
     private final EventRegistrationFieldService registrationFieldService;
     private final EventRegistrationService registrationService;
     private final DemoClock clock;
+    private final StationCalendarFeedService calendarFeeds;
 
     @Inject
     public DemoEventSeeder(
@@ -78,7 +81,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
             EventRestrictionService restrictionService,
             EventRegistrationFieldService registrationFieldService,
             EventRegistrationService registrationService,
-            DemoClock clock) {
+            DemoClock clock,
+            StationCalendarFeedService calendarFeeds) {
         this.categoryRepository = categoryRepository;
         this.registrationRepository = registrationRepository;
         this.eventFieldRepository = eventFieldRepository;
@@ -89,6 +93,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         this.registrationFieldService = registrationFieldService;
         this.registrationService = registrationService;
         this.clock = clock;
+        this.calendarFeeds = calendarFeeds;
     }
 
     @Override
@@ -107,6 +112,12 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 members.anfaenger(),
                 members.fortgeschritten()));
         seedTemplates(station.stationId());
+        calendarFeeds.create(
+                station.stationId(),
+                "Bildschirm Fahrzeughalle",
+                StationFeedLevel.MEMBERS,
+                List.of(),
+                station.adminMember().id());
     }
 
     /**
