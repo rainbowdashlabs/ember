@@ -15,6 +15,7 @@ import {useStations} from '@/composables/useStations'
 import {useCluster} from '@/composables/useCluster'
 import MutedText from '@/components/typography/MutedText.vue'
 import ClusterChoiceList from './stationselectview/ClusterChoiceList.vue'
+import {withoutPlace} from '@/util/placeInAddress'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -24,7 +25,7 @@ const {clusterList, loaded: clustersLoaded, load: loadClusters, setActiveCluster
 function selectStation(stationId: string) {
   setActiveStation(stationId)
   const redirect = route.query.redirect as string | undefined
-  window.location.href = redirect || '/station/dashboard/overview'
+  window.location.href = redirect ? withoutPlace(redirect) : '/station/dashboard/overview'
 }
 
 function selectCluster(clusterUid: string) {

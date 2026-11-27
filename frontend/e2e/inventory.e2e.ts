@@ -802,7 +802,7 @@ test.describe('Inventory', () => {
         await page.getByTestId('intake-number-0').fill(`A-${stamp}`)
         await page.getByTestId('intake-save').click()
 
-        await page.waitForURL(new RegExp(`/station/inventory/detail/${inventoryId}$`))
+        await page.waitForURL(new RegExp(`/station/inventory/detail/${inventoryId}(\\?[^#]*)?$`))
 
         const written = await page.request.get(`/api/v1/inventories/${inventoryId}/items`, {headers})
             .then(r => r.json())
@@ -831,7 +831,7 @@ test.describe('Inventory', () => {
         await page.getByTestId('intake-asked-0').check()
         await page.getByTestId('intake-save').click()
 
-        await page.waitForURL(new RegExp(`/station/inventory/detail/${inventoryId}$`))
+        await page.waitForURL(new RegExp(`/station/inventory/detail/${inventoryId}(\\?[^#]*)?$`))
 
         const written = await page.request.get(`/api/v1/inventories/${inventoryId}/items`, {headers})
             .then(r => r.json())

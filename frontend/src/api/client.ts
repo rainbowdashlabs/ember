@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import axios, {type AxiosError, type InternalAxiosRequestConfig} from 'axios'
-import {getItem, removeItem} from './storage'
+import {forgetTabPlaces, tabClusterId, tabStationId} from '@/util/tabPlace'
 import {CSRF_HEADER, csrfToken} from './sessionCookie'
 import {showToast} from '@/util/toast'
 import {reportApiError} from '@/util/devErrorReporter'
@@ -138,11 +138,11 @@ function applyAuthHeaders(config: InternalAxiosRequestConfig) {
     if (csrf && UNSAFE_METHODS.has((config.method ?? 'get').toLowerCase())) {
         config.headers[CSRF_HEADER] = csrf
     }
-    const stationId = getActingStation() ?? getItem('station_id')
+    const stationId = getActingStation() ?? tabStationId()
     if (stationId) {
         config.headers['X-Station-Id'] = stationId
     }
-    const clusterId = getItem('cluster_id')
+    const clusterId = tabClusterId()
     if (clusterId) {
         config.headers['X-Cluster-Id'] = clusterId
     }
@@ -209,8 +209,7 @@ client.interceptors.response.use(
                     ))
             }
             if (config?._carriedSession && signedOut(body)) {
-                removeItem('station_id')
-                removeItem('cluster_id')
+                forgetTabPlaces()
                 const currentPath = window.location.pathname
                 if (!isPublicRoute(currentPath)) {
                     const fullPath = currentPath + window.location.search

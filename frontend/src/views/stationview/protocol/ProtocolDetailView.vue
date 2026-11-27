@@ -19,7 +19,7 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol } from '@/api'
 import { describeFailure } from '@/util/failure'
-import { getItem } from '@/api/storage'
+import { tabStationId } from '@/util/tabPlace'
 import { StationPermission, type TestProtocol, type TestProtocolSection, type TestProtocolItem } from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
 import DragList from '@/components/input/DragList.vue'
@@ -43,7 +43,7 @@ const { hasPermission, loaded } = useSession()
 
 const isFederated = computed(() => {
   if (!proto.value) return false
-  const currentStationId = getItem('station_id')
+  const currentStationId = tabStationId()
   return currentStationId != null && String(proto.value.stationId) !== currentStationId
 })
 

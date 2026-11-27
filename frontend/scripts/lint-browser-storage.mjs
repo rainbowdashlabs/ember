@@ -7,8 +7,11 @@
  * published disclosure wrong. This linter is what stops that: every key the frontend reads or writes
  * must be declared, and every declared key must still be used.
  *
- * Keys are collected from `localStorage.getItem/setItem/removeItem` and from the wrapper in
- * `api/storage`, which is the only other way the application reaches local storage.
+ * Keys are collected from `localStorage` and `sessionStorage` (`getItem/setItem/removeItem`) and from
+ * the wrapper in `api/storage`, which is the only other way the application reaches either. A key the
+ * wrapper's tab functions (`getTabItem/setTabItem/removeTabItem`) or `sessionStorage` reach must be
+ * declared with kind `SESSION_STORAGE`, every other key without it, so the disclosure names the right
+ * storage.
  *
  * The cookies the server sets are catalogued too, as entries of kind `COOKIE`. The page writes none
  * of them, so they are held against the wrapper's `COOKIE_NECESSITY` map rather than against usage.
@@ -31,8 +34,12 @@ const CAT_UNDECLARED = 'undeclared'
 const CAT_NECESSITY = 'necessity'
 const CAT_STALE = 'stale'
 const CAT_DYNAMIC = 'dynamic'
+const CAT_KIND = 'kind'
 
 const STORAGE_METHODS = 'getItem|setItem|removeItem'
+const TAB_METHODS = 'getTabItem|setTabItem|removeTabItem'
+const LOCAL_KIND = 'LOCAL_STORAGE'
+const SESSION_KIND = 'SESSION_STORAGE'
 const STORAGE_MODULE = /from\s+['"][~@]\/api\/storage['"]/
 /** Identifiers that are the wrapper's own parameters rather than a key. */
 const PARAMETER_NAMES = new Set(['key'])
@@ -51,28 +58,29 @@ function constantsIn(content) {
 }
 
 /**
- * Returns every storage key the given file reads or writes, plus the arguments that could not
- * be resolved to a literal.
+ * Returns every storage key the given file reads or writes with the kind of storage it reaches, plus
+ * the arguments that could not be resolved to a literal.
  */
 function keysIn(file, content) {
     const constants = constantsIn(content)
     const usesWrapper = STORAGE_MODULE.test(content)
-    const keys = new Set()
+    const keys = new Map()
     const dynamic = []
 
     const qualified = new RegExp(`(\\w+)\\??\\.(?:${STORAGE_METHODS})\\(\\s*([^,)]+)`, 'g')
-    const bare = new RegExp(`(^|[^.\\w])(?:${STORAGE_METHODS})\\(\\s*([^,)]+)`, 'g')
+    const bare = new RegExp(`(^|[^.\\w])(${STORAGE_METHODS}|${TAB_METHODS})\\(\\s*([^,)]+)`, 'g')
+    const tabMethod = new RegExp(`^(?:${TAB_METHODS})$`)
 
-    const record = argument => {
+    const record = (argument, kind) => {
         const literal = argument.trim().match(/^'([^']*)'$/)
         if (literal) {
-            keys.add(literal[1])
+            keys.set(literal[1], kind)
             return
         }
         const identifier = argument.trim()
         if (PARAMETER_NAMES.has(identifier)) return
         if (constants.has(identifier)) {
-            keys.add(constants.get(identifier))
+            keys.set(constants.get(identifier), kind)
             return
         }
         dynamic.push(identifier)
@@ -80,12 +88,12 @@ function keysIn(file, content) {
 
     let match
     while ((match = qualified.exec(content)) !== null) {
-        if (match[1] !== 'localStorage') continue
-        record(match[2])
+        if (match[1] === 'localStorage') record(match[2], LOCAL_KIND)
+        else if (match[1] === 'sessionStorage') record(match[2], SESSION_KIND)
     }
     if (usesWrapper) {
         while ((match = bare.exec(content)) !== null) {
-            record(match[2])
+            record(match[3], tabMethod.test(match[2]) ? SESSION_KIND : LOCAL_KIND)
         }
     }
 
@@ -97,6 +105,7 @@ const storedEntries = (catalog.entries ?? []).filter(entry => entry.kind !== 'CO
 const cookieEntries = (catalog.entries ?? []).filter(entry => entry.kind === 'COOKIE')
 const declared = new Set(storedEntries.map(entry => entry.key))
 const declaredNecessity = new Map(storedEntries.map(entry => [entry.key, entry.necessity]))
+const declaredKind = new Map(storedEntries.map(entry => [entry.key, entry.kind ?? LOCAL_KIND]))
 
 /**
  * Reads a necessity map out of the storage wrapper: `NECESSITY` decides at runtime whether a value
@@ -171,8 +180,13 @@ for (const file of [...walk(SRC, '.ts'), ...walk(SRC, '.vue')]) {
     if (file.endsWith('.test.ts')) continue
     const content = readFileSync(file, 'utf-8')
     const {keys, dynamic} = keysIn(file, content)
-    for (const key of keys) {
+    for (const [key, kind] of keys) {
         if (!used.has(key)) used.set(key, file)
+        const expected = declaredKind.get(key)
+        if (expected !== undefined && expected !== kind) {
+            error(file, 0, `storage key '${key}' is used in ${kind} here and declared as ${expected} in `
+                + `${CATALOG_LABEL} - the disclosure would name the wrong storage`, CAT_KIND)
+        }
     }
     for (const identifier of dynamic) {
         warn(
@@ -189,7 +203,7 @@ for (const [key, file] of used) {
         error(
             file,
             0,
-            `local storage key '${key}' is not declared in ${CATALOG_LABEL} - the published storage `
+            `storage key '${key}' is not declared in ${CATALOG_LABEL} - the published storage `
             + 'disclosure would not mention it',
             CAT_UNDECLARED,
         )
@@ -201,7 +215,7 @@ for (const key of declared) {
         warn(
             CATALOG_LABEL,
             0,
-            `declared local storage key '${key}' is no longer used by the frontend`,
+            `declared storage key '${key}' is no longer used by the frontend`,
             CAT_STALE,
         )
     }

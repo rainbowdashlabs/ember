@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect} from './fixtures/auth'
+import {test, expect, actForCluster} from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
 
 /**
@@ -35,7 +35,7 @@ test.describe('Cluster knowledge', () => {
             expect(written.ok(), `the association wrote an article (${await written.text()})`).toBeTruthy()
 
             await page.goto('/cluster/knowledge')
-            await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+            await actForCluster(page, own.uid)
             await page.goto('/cluster/knowledge')
 
             const toggle = page.getByRole('switch')
@@ -193,7 +193,7 @@ test.describe('Cluster knowledge', () => {
             }
 
             await page.goto('/cluster/knowledge')
-            await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+            await actForCluster(page, own.uid)
             await page.goto('/cluster/knowledge')
 
             const aimedTile = page.getByTestId('kb-item').filter({hasText: aimed})

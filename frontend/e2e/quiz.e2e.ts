@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {below} from './fixtures/address'
 import type {Page} from '@playwright/test'
 import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
@@ -169,7 +170,7 @@ test.describe('Quiz', () => {
 
         const catalogue = await createCatalogue(page)
         await openCatalogue(page, catalogue)
-        await page.goto(`${page.url()}/import`)
+        await page.goto(below(page.url(), 'import'))
 
         await page.setInputFiles('input[type="file"]', {
             name: 'fragen.csv',

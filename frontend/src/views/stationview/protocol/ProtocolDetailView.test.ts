@@ -30,8 +30,8 @@ vi.mock('@/composables/useSession', () => ({
     useSession: () => ({hasPermission: () => true, loaded: ref(true)}),
 }))
 
-vi.mock('@/api/storage', () => ({
-    getItem: () => '00000000-0000-0000-0000-000000000001',
+vi.mock('@/util/tabPlace', () => ({
+    tabStationId: () => '00000000-0000-0000-0000-000000000001',
 }))
 
 function protocolWith(sectionNames: string[]) {

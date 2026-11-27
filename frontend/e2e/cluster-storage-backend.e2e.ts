@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Page} from '@playwright/test'
-import {test, expect, apiHeaders} from './fixtures/auth'
+import {test, expect, apiHeaders, actForCluster} from './fixtures/auth'
 import {ownCluster, stationUnder, type OwnCluster} from './fixtures/cluster'
 import {
     historyRow,
@@ -52,7 +52,7 @@ test.describe('Cluster storage backend', () => {
      */
     async function storageBackendScreen(page: Page, own: OwnCluster) {
         await page.goto('/cluster/storage/backend')
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+        await actForCluster(page, own.uid)
         await page.goto('/cluster/storage/backend')
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByTestId('storage-backend-where')).toBeVisible()

@@ -5,7 +5,7 @@
  */
 import {computed} from 'vue'
 import {session} from '@/api'
-import {getItem} from '@/api/storage'
+import {tabClusterId, tabStationId} from '@/util/tabPlace'
 import {usePermissions} from '@/composables/usePermissions'
 import {actingStationState} from '@/util/actingStationState'
 import {claimVisitedArea} from '@/util/landingMemoryState'
@@ -33,8 +33,8 @@ export function useSession() {
 
     async function load() {
         const seq = ++loadSeq.value
-        const requestedStation = getItem('station_id')
-        const requestedCluster = getItem('cluster_id')
+        const requestedStation = tabStationId()
+        const requestedCluster = tabClusterId()
         for (let attempt = 1; ; attempt++) {
             try {
                 const info = await session.getSessionInfo()

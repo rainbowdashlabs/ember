@@ -482,7 +482,7 @@ test.describe('Lost and found', () => {
 
                 await memberPage.goto('/station/dashboard/overview')
                 await memberPage.getByText(followed).first().click()
-                await expect(memberPage).toHaveURL(new RegExp(`${LIST}$`))
+                await expect(memberPage).toHaveURL(new RegExp(`${LIST}(\\?[^#]*)?$`))
                 await expect(card(memberPage, followed)).toBeVisible()
 
                 await card(memberPage, claimedItem)

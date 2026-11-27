@@ -3,7 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeededCluster} from './fixtures/auth'
+import {
+    test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeededCluster, actForCluster,
+} from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
 import {must} from './fixtures/must'
 import {demoSignIn, sessionHeaders} from './fixtures/session'
@@ -124,7 +126,7 @@ test.describe('Cluster member screens', () => {
             await acceptLinkRequest(browser, email, `${own.name} Zweite`)
 
             await page.goto('/cluster/members')
-            await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+            await actForCluster(page, own.uid)
             await page.goto('/cluster/members')
             await expect(page.getByTestId('app-shell')).toBeVisible()
 
@@ -250,7 +252,7 @@ test.describe('Cluster member screens', () => {
         await expect(row).toBeVisible({timeout: 15000})
         await row.getByRole('link', {name: 'Details'}).click()
 
-        await expect(page).toHaveURL(/\/cluster\/members\/\d+$/)
+        await expect(page).toHaveURL(/\/cluster\/members\/\d+(\?[^#]*)?$/)
         await expect(page.getByRole('heading', {name: 'Angaben', exact: true})).toBeVisible({timeout: 15000})
         await page.context().close()
     })
@@ -266,7 +268,7 @@ test.describe('Cluster member screens', () => {
         const page = await clusterPage(browser, request, account)
 
         await page.goto('/cluster/members/manage')
-        await expect(page).toHaveURL(/\/cluster\/members$/)
+        await expect(page).toHaveURL(/\/cluster\/members(\?[^#]*)?$/)
 
         await page.context().close()
     })
@@ -349,7 +351,7 @@ test.describe('Cluster member screens', () => {
         const row = page.getByTestId('member-row').first()
         await expect(row).toBeVisible({timeout: 15000})
         await row.getByRole('link', {name: 'Details'}).click()
-        await expect(page).toHaveURL(/\/cluster\/members\/\d+$/)
+        await expect(page).toHaveURL(/\/cluster\/members\/\d+(\?[^#]*)?$/)
 
         const panel = page.getByTestId('cluster-member-documents')
         await expect(panel).toBeVisible({timeout: 15000})

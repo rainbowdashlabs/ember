@@ -4,10 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {beforeEach, describe, expect, it} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {
-    StorageNecessity, acceptStorage, denyStorage, getGrantedScopes, getItem, isStorageAllowed,
-    setGrantedScopes, setItem,
+    StorageNecessity, acceptStorage, clearStoredData, denyStorage, getGrantedScopes, getItem, getTabItem,
+    isStorageAllowed, removeTabItem, setGrantedScopes, setItem, setTabItem,
 } from './storage'
 
 describe('storage consent', () => {
@@ -80,5 +80,50 @@ describe('storage consent', () => {
         acceptStorage(undefined, [StorageNecessity.FUNCTIONAL, StorageNecessity.COMFORT])
         setItem('something_undeclared', 'x')
         expect(getItem('something_undeclared')).toBeNull()
+    })
+})
+
+/** The values one tab keeps for itself, in that tab's session storage. */
+describe('tab storage', () => {
+    beforeEach(() => {
+        localStorage.clear()
+        sessionStorage.clear()
+    })
+
+    afterEach(() => vi.restoreAllMocks())
+
+    it('keeps a declared tab value in the session storage only', () => {
+        setTabItem('tab_station_id', 'abc')
+
+        expect(getTabItem('tab_station_id')).toBe('abc')
+        expect(sessionStorage.getItem('tab_station_id')).toBe('abc')
+        expect(localStorage.getItem('tab_station_id')).toBeNull()
+    })
+
+    it('writes no undeclared key', () => {
+        setTabItem('not_declared', 'abc')
+
+        expect(getTabItem('not_declared')).toBeNull()
+    })
+
+    it('is emptied with the stored data', () => {
+        setTabItem('tab_station_id', 'abc')
+        setTabItem('tab_cluster_id', 'def')
+
+        clearStoredData()
+
+        expect(getTabItem('tab_station_id')).toBeNull()
+        expect(getTabItem('tab_cluster_id')).toBeNull()
+    })
+
+    /** A browser that blocks site data throws on any access to its storage. */
+    it('keeps nothing and fails nothing where the browser blocks site data', () => {
+        vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
+            throw new DOMException('blocked', 'SecurityError')
+        })
+
+        expect(() => setTabItem('tab_station_id', 'abc')).not.toThrow()
+        expect(getTabItem('tab_station_id')).toBeNull()
+        expect(() => removeTabItem('tab_station_id')).not.toThrow()
     })
 })

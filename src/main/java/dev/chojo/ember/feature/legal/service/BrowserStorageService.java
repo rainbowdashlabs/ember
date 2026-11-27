@@ -95,7 +95,7 @@ public class BrowserStorageService {
             out.append(wording.description().get(locale)).append("\n\n");
             for (var entry : group.getValue()) {
                 out.append("- **`").append(entry.key()).append("`** ");
-                if (entry.kind() == BrowserStorageEntry.Kind.COOKIE) {
+                if (entry.kind() != BrowserStorageEntry.Kind.LOCAL_STORAGE) {
                     out.append("(")
                             .append(text.kind().get(entry.kind()).get(locale))
                             .append(") ");
