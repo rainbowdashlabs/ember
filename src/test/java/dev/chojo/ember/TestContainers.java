@@ -37,13 +37,12 @@ public final class TestContainers {
      * ship, so a test never passes against a server no installation has. Renovate updates it
      * together with those.
      *
-     * <p>It is pulled from the copy of Docker's official images that AWS serves, not from Docker Hub,
-     * whose limit on pulls the many jobs of one build ran into. The image is the same, so it stands in
-     * for {@code postgres} wherever Testcontainers asks for that.
+     * <p>It is pulled through Google's mirror of Docker Hub, which carries no pull limit for the many
+     * jobs of one build. The image is the same, so it stands in for {@code postgres} wherever
+     * Testcontainers asks for that.
      */
-    public static final DockerImageName POSTGRES_IMAGE = DockerImageName.parse(
-                    "public.ecr.aws/docker/library/postgres:18-alpine")
-            .asCompatibleSubstituteFor("postgres");
+    public static final DockerImageName POSTGRES_IMAGE =
+            DockerImageName.parse("mirror.gcr.io/library/postgres:18-alpine").asCompatibleSubstituteFor("postgres");
 
     private static final Path LOCK_FILE =
             Path.of(System.getProperty("java.io.tmpdir"), "ember-testcontainer-start.lock");

@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/node:26-alpine AS build
+FROM mirror.gcr.io/library/node:26-alpine AS build
 
 WORKDIR /build
 
@@ -7,7 +7,7 @@ RUN npm ci
 COPY frontend/ .
 RUN NODE_OPTIONS='--max-old-space-size=8192' npx nuxi build
 
-FROM public.ecr.aws/docker/library/node:26-alpine
+FROM mirror.gcr.io/library/node:26-alpine
 
 WORKDIR /app
 COPY --from=build /build/.output ./
