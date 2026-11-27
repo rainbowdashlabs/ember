@@ -162,8 +162,8 @@ class MemberNeutralTemplatesTest extends GeneratorTestBase {
                 row(
                         signature(SignatureRole.PARTICIPANT, "Teilnehmende Person"),
                         signature(SignatureRole.GUARDIAN_1, "Erziehungsberechtigte Person")));
-        var event =
-                new GenerationContext.EventFacts("Zeltlager am See", START, START.plus(Duration.ofHours(6)), "Am See");
+        var event = new GenerationContext.EventFacts(
+                "Zeltlager am See", START, START.plus(Duration.ofHours(6)), "Am See", "Am See");
 
         var drawn = wiring.generator()
                 .drawForAppointment(agreement, wiring.station().id(), event);

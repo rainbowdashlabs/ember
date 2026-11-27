@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -283,6 +284,10 @@ public class BatchEventService {
         var fields = Objects.requireNonNullElse(request.inlineFields(), List.<BatchFieldEntry>of());
         if (fields.stream().anyMatch(field -> !FieldTypes.APPOINTMENT.contains(field.fieldType()))) {
             throw EventRefusal.BATCH_FIELD_TYPE_NOT_OFFERED.raise();
+        }
+        if (EventQuestionSettings.claimMoreThanOneCalendarLocation(
+                fields.stream().map(BatchFieldEntry::config).toList())) {
+            throw EventRefusal.BATCH_TWO_CALENDAR_LOCATIONS.raise();
         }
         return fields;
     }

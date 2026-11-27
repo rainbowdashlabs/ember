@@ -1171,11 +1171,12 @@ public class EventRoutes implements Routes {
 
         /** The field as every appointment of the batch asks it; what is left out reads as a plain line. */
         BatchFieldEntry toEntry() {
+            var type = Objects.requireNonNullElse(fieldType, FieldType.TEXT);
             return new BatchFieldEntry(
                     name,
-                    Objects.requireNonNullElse(fieldType, FieldType.TEXT),
+                    type,
                     Objects.requireNonNullElse(config, EventQuestionSettings.empty())
-                            .organisers(),
+                            .organisers(type),
                     Boolean.TRUE.equals(overview),
                     attendanceFieldId);
         }

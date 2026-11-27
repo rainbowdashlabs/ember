@@ -582,6 +582,7 @@ public class PlaceholderResolver {
                 case ASSOCIATION_ADDRESS -> place.associationAddress();
                 case EVENT_NAME -> event(GenerationContext.EventFacts::name);
                 case EVENT_LOCATION -> event(GenerationContext.EventFacts::location);
+                case EVENT_MEETING_POINT -> event(GenerationContext.EventFacts::meetingPoint);
                 case ISSUER_FULL_NAME -> issuer().map(names::official).orElse(null);
                 case ISSUER_FUNCTION -> context.issuer().function();
                 case GENERATED_BY -> {

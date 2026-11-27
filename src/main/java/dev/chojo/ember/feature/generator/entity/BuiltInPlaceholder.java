@@ -58,6 +58,11 @@ public enum BuiltInPlaceholder {
     EVENT_START("event.start", PlaceholderCategory.APPOINTMENT, "Beginn des Termins", "Appointment start"),
     EVENT_END("event.end", PlaceholderCategory.APPOINTMENT, "Ende des Termins", "Appointment end"),
     EVENT_LOCATION("event.location", PlaceholderCategory.APPOINTMENT, "Ort des Termins", "Appointment location"),
+    EVENT_MEETING_POINT(
+            "event.meetingPoint",
+            PlaceholderCategory.APPOINTMENT,
+            "Treffpunkt des Termins",
+            "Appointment meeting point"),
     ISSUER_FULL_NAME("issuer.fullName", PlaceholderCategory.ISSUER, "Name", "Name"),
     ISSUER_FUNCTION("issuer.function", PlaceholderCategory.ISSUER, "Funktion", "Function"),
     TODAY("today", PlaceholderCategory.DOCUMENT, "Heutiges Datum", "Today's date"),

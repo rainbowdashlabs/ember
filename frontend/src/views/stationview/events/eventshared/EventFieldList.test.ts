@@ -114,6 +114,34 @@ describe('EventFieldList', () => {
             ['Treffpunkt', 'LOCATION'],
             ['Thema', 'TEXT'],
         ])
+        expect(handedBack.map(field => field.config?.calendarLocation)).toEqual([false, true, false])
+    })
+
+    it('adds a meeting point as an ordinary place where another place is already the calendar\'s', async () => {
+        const marked: EventFieldEntry = {name: 'Sammelplatz', fieldType: 'LOCATION', config: {...plain, calendarLocation: true},
+            value: '', overview: true, attendanceFieldId: null}
+        const list = await mountSuspended(EventFieldList, {props: {fields: [marked]}})
+
+        await list.findAll('button').find(candidate => candidate.text() === '+ Treffpunkt')!.trigger('click')
+
+        const handedBack = list.emitted('update:fields')?.at(-1)?.[0] as EventFieldEntry[]
+        expect(handedBack.map(field => field.config?.calendarLocation)).toEqual([true, false])
+    })
+
+    it('takes the calendar location from the other place when one is ticked', async () => {
+        const fields: EventFieldEntry[] = [
+            {name: 'Ort', fieldType: 'LOCATION', config: {...plain, calendarLocation: true}, value: '', overview: true, attendanceFieldId: null},
+            {name: 'Treffpunkt', fieldType: 'LOCATION', config: plain, value: '', overview: true, attendanceFieldId: null},
+            {name: 'Thema', fieldType: 'TEXT', config: plain, value: '', overview: true, attendanceFieldId: null},
+        ]
+        const list = await mountSuspended(EventFieldList, {props: {fields}})
+
+        const toggles = list.findAll('[data-testid="question-calendar-location"]')
+        expect(toggles).toHaveLength(2)
+        await toggles[1]!.trigger('click')
+
+        const handedBack = list.emitted('update:fields')?.at(-1)?.[0] as EventFieldEntry[]
+        expect(handedBack.map(field => field.config?.calendarLocation)).toEqual([false, true, false])
     })
 
     it('offers a quick field the attendance sheet also has only once, as the sheet\'s', async () => {

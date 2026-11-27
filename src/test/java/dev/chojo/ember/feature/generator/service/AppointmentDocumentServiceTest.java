@@ -207,6 +207,86 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         assertTrue(changed.outdated(), "the template changed since the copy was generated");
     }
 
+    /**
+     * A photo permission is bound to where the appointment happens: the location stays the venue,
+     * while the meeting point is a placeholder of its own.
+     */
+    @Test
+    void theLocationIsTheVenueAndTheMeetingPointHasItsOwnPlaceholder() {
+        var places = event("Sommerfest");
+        eventFieldRepo.create(
+                places.id(),
+                "Ort",
+                FieldType.LOCATION,
+                EventQuestionSettings.empty(),
+                "Festwiese",
+                0,
+                false,
+                null,
+                false);
+        eventFieldRepo.create(
+                places.id(),
+                "Treffpunkt",
+                FieldType.LOCATION,
+                EventQuestionSettings.parse("{\"calendarLocation\":true}"),
+                "Gerätehaus",
+                1,
+                false,
+                null,
+                false);
+        eventRegistrationRepo.create(places.id(), max.id(), DAY);
+        int permission =
+                forAppointments("Fotoerlaubnis", "Fotos auf {{event.location}}, Treffen am {{event.meetingPoint}}.");
+        requirements.setForEvent(wiring.owner(), places.id(), List.of(permission));
+
+        var generated = appointments.generate(as(max), places, DAY, permission, max.id());
+
+        String text = wiring.textOf(generated.documentId());
+        assertTrue(text.contains("Fotos auf Festwiese, Treffen am Gerätehaus."), text);
+    }
+
+    /** With one place answered, both placeholders print it, whichever of the two it is. */
+    @Test
+    void aSinglePlaceFillsBothPlaceholders() {
+        var onlyVenue = event("Grillabend");
+        eventFieldRepo.create(
+                onlyVenue.id(),
+                "Ort",
+                FieldType.LOCATION,
+                EventQuestionSettings.empty(),
+                "Festwiese",
+                0,
+                false,
+                null,
+                false);
+        var onlyMeeting = event("Wanderung");
+        eventFieldRepo.create(
+                onlyMeeting.id(),
+                "Treffpunkt",
+                FieldType.LOCATION,
+                EventQuestionSettings.parse("{\"calendarLocation\":true}"),
+                "Gerätehaus",
+                0,
+                false,
+                null,
+                false);
+        int permission = forAppointments("Ortsangabe", "Ort {{event.location}}, Treffen {{event.meetingPoint}}.");
+        for (var appointment : List.of(onlyVenue, onlyMeeting)) {
+            eventRegistrationRepo.create(appointment.id(), max.id(), DAY);
+            requirements.setForEvent(wiring.owner(), appointment.id(), List.of(permission));
+        }
+
+        var venueText = wiring.textOf(appointments
+                .generate(as(max), onlyVenue, DAY, permission, max.id())
+                .documentId());
+        var meetingText = wiring.textOf(appointments
+                .generate(as(max), onlyMeeting, DAY, permission, max.id())
+                .documentId());
+
+        assertTrue(venueText.contains("Ort Festwiese, Treffen Festwiese."), venueText);
+        assertTrue(meetingText.contains("Ort Gerätehaus, Treffen Gerätehaus."), meetingText);
+    }
+
     @Test
     void aParticipantGetsTheirOwnCopy() {
         int form = forAppointments("Teilnahme", "{{member.fullName}} am {{event.start}}");

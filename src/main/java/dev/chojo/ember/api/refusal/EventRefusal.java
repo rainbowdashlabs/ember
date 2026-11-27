@@ -926,7 +926,27 @@ public enum EventRefusal implements Refusal {
 
     /** A partner confirming one of its own members for an event group where the host did not let it. */
     PARTNER_DOES_NOT_CONFIRM_ITS_OWN_FOR_EVENT_GROUP(
-            241, HttpStatus.FORBIDDEN, "This station decides the sign-ups for this event group");
+            241, HttpStatus.FORBIDDEN, "This station decides the sign-ups for this event group"),
+
+    /** Fields of an appointment where more than one place is the location the calendar shows. */
+    APPOINTMENT_TWO_CALENDAR_LOCATIONS(
+            242, HttpStatus.BAD_REQUEST, "Only one place can be the location in the calendar, so nothing was saved"),
+
+    /** Fields of an appointment template where more than one place is the location the calendar shows. */
+    TEMPLATE_TWO_CALENDAR_LOCATIONS(
+            243,
+            HttpStatus.BAD_REQUEST,
+            "Only one place can be the location in the calendar, so the template was not saved"),
+
+    /** Fields of an event group where more than one place is the location the calendar shows. */
+    EVENT_GROUP_TWO_CALENDAR_LOCATIONS(
+            244,
+            HttpStatus.BAD_REQUEST,
+            "Only one place can be the location in the calendar, so the event group was not saved"),
+
+    /** Fields of appointments created together where more than one place is the location the calendar shows. */
+    BATCH_TWO_CALENDAR_LOCATIONS(
+            245, HttpStatus.BAD_REQUEST, "Only one place can be the location in the calendar, so none was created");
 
     private final Definition definition;
 

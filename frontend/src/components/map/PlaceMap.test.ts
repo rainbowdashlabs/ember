@@ -65,6 +65,29 @@ describe('PlaceMap', () => {
         expect(wrapper.find('a').exists()).toBe(true)
     })
 
+    it('offers Apple Maps, Google Maps and OpenStreetMap at a desk', async () => {
+        const wrapper = await placeMap()
+
+        expect(wrapper.find('[data-testid="place-map-apple"]').attributes('href')).toContain('daddr=52.1,10.6')
+        expect(wrapper.find('[data-testid="place-map-google"]').attributes('href')).toContain('destination=52.1,10.6')
+        expect(wrapper.find('[data-testid="place-map-navigate"]').exists()).toBe(false)
+        expect(wrapper.text()).toContain('places.openInOsm')
+    })
+
+    it('hands an Android phone one link that lets it choose the app', async () => {
+        const agent = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (Linux; Android 14) Mobile')
+        try {
+            const wrapper = await placeMap()
+
+            const navigate = wrapper.find('[data-testid="place-map-navigate"]')
+            expect(navigate.attributes('href')).toBe('geo:52.1,10.6?q=52.1,10.6(Ger%C3%A4tehaus)')
+            expect(navigate.attributes('target')).toBeUndefined()
+            expect(wrapper.find('[data-testid="place-map-apple"]').exists()).toBe(false)
+        } finally {
+            agent.mockRestore()
+        }
+    })
+
     it('can be dragged with a mouse', async () => {
         leaflet.browser.mobile = false
         await placeMap()

@@ -33,7 +33,7 @@ function field(over: Partial<AppointmentField>): AppointmentField {
         name: '',
         fieldType: 'TEXT',
         value: '',
-        config: {perDate: false, selfRegistration: false, required: false, managersOnly: false},
+        config: {perDate: false, selfRegistration: false, required: false, managersOnly: false, calendarLocation: false},
         position: 0,
         overview: true,
         isPublic: false,

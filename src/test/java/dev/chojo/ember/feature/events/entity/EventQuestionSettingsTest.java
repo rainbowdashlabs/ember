@@ -38,7 +38,7 @@ class EventQuestionSettingsTest {
         assertEquals(
                 "Fuer das T-Shirt.",
                 EventQuestionSettings.parse(settings.registrants().toJson()).description());
-        assertNull(settings.organisers().description());
+        assertNull(settings.organisers(FieldType.TEXT).description());
         assertNull(EventQuestionSettings.parse("{\"description\":\"   \"}").description());
     }
 

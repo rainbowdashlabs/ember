@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.OccurrenceWindows;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.service.EmailService;
-import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
@@ -31,6 +30,7 @@ import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * What an invitation to come and look carries, and writing it to whoever can be written to: the
@@ -278,13 +278,10 @@ public class WaitlistInvitationMessage {
                 + format.format(LocalTime.from(event.endTime().atZone(zone)));
     }
 
+    /** Where to come: the place the calendar shows, else the station's own address. */
     private String location(StationEvent event, Station station, LocalDate date) {
-        return eventFieldRepository.findShownOn(event.id(), date).stream()
-                .filter(field -> field.fieldType() == FieldType.LOCATION)
-                .map(AppointmentField::value)
-                .filter(value -> value != null && !value.isBlank())
-                .map(String::trim)
-                .findFirst()
+        return Optional.ofNullable(
+                        AppointmentField.calendarLocation(eventFieldRepository.findShownOn(event.id(), date)))
                 .orElseGet(() -> postalAddress(station));
     }
 

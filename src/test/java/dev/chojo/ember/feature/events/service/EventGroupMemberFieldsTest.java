@@ -287,6 +287,31 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
         assertEquals(1, placesOn(part));
     }
 
+    /** An event group with two places that both claim to be the calendar's location is refused. */
+    @Test
+    void twoCalendarLocationsAreRefused() {
+        var meetingPoint = EventQuestionSettings.parse("{\"calendarLocation\":true}");
+        var fields = List.of(
+                new EventFieldDraft(null, "Ort", FieldType.LOCATION, meetingPoint, "A", false, null, false),
+                new EventFieldDraft(null, "Treffpunkt", FieldType.LOCATION, meetingPoint, "B", false, null, false));
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_TWO_CALENDAR_LOCATIONS,
+                () -> groups.create(
+                        station.id(),
+                        new EventGroupDetails(
+                                "Zeltlager",
+                                null,
+                                null,
+                                RegistrationDeadline.fixed(Instant.now().plus(Duration.ofDays(5))),
+                                false,
+                                null),
+                        List.of(new EventGroupSetDraft(null, "Tage", 1)),
+                        RestrictionAudience.empty(),
+                        RestrictionAudience.empty(),
+                        new EventGroupContent(null, fields)));
+    }
+
     @Test
     void theDailyPassReachesTheAppointmentsOfAGroupWithAMemberField() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
