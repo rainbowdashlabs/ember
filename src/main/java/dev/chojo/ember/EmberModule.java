@@ -282,6 +282,7 @@ import dev.chojo.ember.feature.members.handler.AudienceDisplayHandler;
 import dev.chojo.ember.feature.members.handler.AudienceRuleHandler;
 import dev.chojo.ember.feature.members.handler.MemberDisplayChangedHandler;
 import dev.chojo.ember.feature.members.handler.MembersAddedToGroupHandler;
+import dev.chojo.ember.feature.members.route.InviteCandidateRoutes;
 import dev.chojo.ember.feature.members.route.ManagedMemberRoutes;
 import dev.chojo.ember.feature.members.route.MemberCardRoutes;
 import dev.chojo.ember.feature.members.route.MemberGroupRoutes;
@@ -557,6 +558,7 @@ public class EmberModule extends AbstractModule {
         Multibinder<Routes> routesBinder = Multibinder.newSetBinder(binder(), Routes.class);
         routesBinder.addBinding().to(AuthRoutes.class);
         routesBinder.addBinding().to(MemberRoutes.class);
+        routesBinder.addBinding().to(InviteCandidateRoutes.class);
         routesBinder.addBinding().to(NameChangeRoutes.class);
         routesBinder.addBinding().to(AccountLinkRoutes.class);
         routesBinder.addBinding().to(MemberLinkRoutes.class);

@@ -301,4 +301,11 @@ export default {
     'M-263': 'Jeder Block einer Regel braucht mindestens eine Bedingung, es wurde nichts gespeichert',
     'M-264': 'Eine Gruppe, die Berechtigungen vergibt, kann ihre Mitglieder nicht aus Antworten nehmen, die die '
         + 'Mitglieder selbst geben. Dafür taugen nur Felder der Wache, die für Mitglieder schreibgeschützt sind',
+    'M-265': 'Für die Suche nach einer Person wird ein Wort ihres Namens mit mindestens drei Buchstaben gebraucht',
+    'M-266': TOO_MANY_ATTEMPTS,
+    'M-267': 'Diese Person lässt sich von hier aus nicht finden, es wurde niemand eingeladen',
+    'M-268': 'Diese Person gehört schon zu dieser Wache, eventuell als ehemaliges Mitglied',
+    'M-269': 'Diese Person wurde schon gefragt und hat noch nicht geantwortet',
+    'M-270': 'Diese Person hat vor Kurzem abgelehnt und wird deshalb noch nicht wieder gefragt',
+    'M-271': 'Diese Person wurde heute schon von hier eingeladen',
 }

@@ -36833,6 +36833,16 @@
               }
             }
           },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
           "409" : {
             "description" : "Conflict",
             "content" : {
@@ -36853,6 +36863,55 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/members/invite-candidates" : {
+      "get" : {
+        "summary" : "Find people of this instance by name to invite into the station",
+        "tags" : [ "Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CandidateResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
       }
     },
     "/api/v1/members/onboard-again" : {
@@ -48422,6 +48481,42 @@
         }
       }
     },
+    "/api/v1/session/preferences/findable" : {
+      "get" : {
+        "summary" : "Whether the own account may be found by its name from every station of this instance",
+        "tags" : [ "Session" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Findable"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Choose whether the own account may be found by its name from every station of this instance",
+        "tags" : [ "Session" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FindablePreference"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/session/preferences/sidebar" : {
       "put" : {
         "summary" : "Choose how the sidebar of the own account lists its sections",
@@ -58963,6 +59058,37 @@
         },
         "required" : [ "eventId", "cancellation" ]
       },
+      "CandidateResponse" : {
+        "type" : "object",
+        "properties" : {
+          "accountUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "because" : {
+            "$ref" : "#/components/schemas/FindableBecause"
+          },
+          "through" : {
+            "type" : [ "string", "null" ]
+          },
+          "alreadyHere" : {
+            "type" : "boolean"
+          },
+          "alreadyAsked" : {
+            "type" : "boolean"
+          },
+          "declinedLately" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "accountUid", "firstName", "lastName", "because", "through", "alreadyHere", "alreadyAsked", "declinedLately" ]
+      },
       "CapabilityRequest" : {
         "type" : "object",
         "properties" : {
@@ -67925,6 +68051,27 @@
         "type" : "string",
         "enum" : [ "MEMBERS", "EVENTS", "INVENTORY", "ATTENDANCE", "NEWS", "FORMS", "QUIZ" ]
       },
+      "Findable" : {
+        "type" : "object",
+        "properties" : {
+          "findable" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "findable" ]
+      },
+      "FindableBecause" : {
+        "type" : "string",
+        "enum" : [ "SHARED_STATION", "SHARED_ASSOCIATION", "OPTED_IN" ]
+      },
+      "FindablePreference" : {
+        "type" : "object",
+        "properties" : {
+          "findable" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
+      },
       "FirstStationRequest" : {
         "type" : "object",
         "properties" : {
@@ -71356,6 +71503,10 @@
           },
           "sendSetupMail" : {
             "type" : "boolean"
+          },
+          "accountUid" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
           }
         }
       },
@@ -72848,7 +72999,7 @@
       },
       "LinkOrigin" : {
         "type" : "string",
-        "enum" : [ "IMPORT", "INVITE", "ASSOCIATION_INVITE" ]
+        "enum" : [ "IMPORT", "INVITE", "NAME_INVITE", "ASSOCIATION_INVITE" ]
       },
       "LinkPrompt" : {
         "type" : "object",

@@ -41,6 +41,16 @@ describe('LinkRequestCard', () => {
     expect(card.text()).toContain(deDE.accountLinks.fromImport)
   })
 
+  it('says the station found the reader by name, and who did', () => {
+    const card = mount(LinkRequestCard, {props: {prompt: prompt({origin: 'NAME_INVITE'}), busy: false}})
+    const anonymous = mount(LinkRequestCard, {
+      props: {prompt: prompt({origin: 'NAME_INVITE', invitedBy: null}), busy: false},
+    })
+
+    expect(card.text()).toContain('Jonas Becker hat dich über deinen Namen gefunden.')
+    expect(anonymous.text()).toContain(deDE.accountLinks.foundByName)
+  })
+
   it('names the association and the role it offers', () => {
     const card = mount(LinkRequestCard, {
       props: {

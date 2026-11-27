@@ -13,17 +13,20 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.BodyRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.entity.IssuedOneTimePassword;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.OneTimePasswordService;
 import dev.chojo.ember.feature.account.service.SetupMail;
+import dev.chojo.ember.feature.members.service.InviteCandidateService;
 import dev.chojo.ember.feature.members.service.MemberAccountService;
 import dev.chojo.ember.feature.members.service.MemberAccountService.UpdateAccountRequest;
 import dev.chojo.ember.feature.members.service.MemberAccountService.UpdateAccountResponse;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionException;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionedMember;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -38,6 +41,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.UUID;
+
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
@@ -51,6 +56,7 @@ public class MemberRoutes implements Routes {
     private final StationMemberInviteService inviteService;
     private final PasskeyEnrollmentService enrollmentService;
     private final OneTimePasswordService oneTimePasswords;
+    private final InviteCandidateService candidates;
 
     @Inject
     public MemberRoutes(
@@ -58,12 +64,14 @@ public class MemberRoutes implements Routes {
             MemberAccountService memberAccounts,
             StationMemberInviteService inviteService,
             PasskeyEnrollmentService enrollmentService,
-            OneTimePasswordService oneTimePasswords) {
+            OneTimePasswordService oneTimePasswords,
+            InviteCandidateService candidates) {
         this.authService = authService;
         this.memberAccounts = memberAccounts;
         this.inviteService = inviteService;
         this.enrollmentService = enrollmentService;
         this.oneTimePasswords = oneTimePasswords;
+        this.candidates = candidates;
     }
 
     private static boolean isBlank(String s) {
@@ -235,21 +243,28 @@ public class MemberRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Invite a new user to a station",
             description =
-                    "Provisions a pre-verified account and station membership immediately and sends a password setup email. An email that already belongs to an account creates the member without it and asks the account's owner to link it; the member waits until they accept. Leaving the email out creates a member with no address of their own, who is reached through their guardians.",
+                    "Provisions a pre-verified account and station membership immediately and sends a password setup email. An email that already belongs to an account creates the member without it and asks the account's owner to link it; the member waits until they accept. Leaving the email out creates a member with no address of their own, who is reached through their guardians. Naming an account found through the invite-candidates search asks its owner to link it the same way, and takes no address beside it; it is refused where the caller cannot find that account, where it is here or asked already, where it declined the station in the last 30 days, and a second time within a day.",
             tags = {"Members"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InviteRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberInviteResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void invite(Context ctx) {
         var request = ctx.bodyAsClass(InviteRequest.class);
+        StationSession session = StationSession.from(ctx);
+        UUID accountUid = request.accountUid();
+        if (accountUid != null) {
+            if (!isBlank(request.email())) throw BodyRefusal.BODY_DOES_NOT_MATCH.raise();
+            respondInvited(ctx, inviteFound(session, accountUid));
+            return;
+        }
         if (isBlank(request.firstName()) || isBlank(request.lastName())) {
             throw MemberRefusal.INVITE_NAME_MISSING.raise();
         }
 
-        StationSession session = StationSession.from(ctx);
         try {
             var provisioned = inviteService.provision(
                     session.stationId(),
@@ -260,17 +275,31 @@ public class MemberRoutes implements Routes {
                     null,
                     SetupMail.of(request.sendSetupMail()),
                     session.member().id());
-            ctx.status(HttpStatus.CREATED)
-                    .json(new MemberInviteResponse(
-                            provisioned.memberId(),
-                            provisioned.accountId(),
-                            provisioned.email(),
-                            provisioned.firstName(),
-                            provisioned.lastName(),
-                            provisioned.linkPending()));
+            respondInvited(ctx, provisioned);
         } catch (ProvisionException ignored) {
             throw MemberRefusal.MEMBER_NOT_PROVISIONED.raise();
         }
+    }
+
+    /**
+     * Invites somebody the manager found by name, checking again that the manager may find them, since the
+     * uid in the request could name anybody.
+     */
+    private ProvisionedMember inviteFound(StationSession session, UUID accountUid) {
+        var candidate = candidates.invitable(session, accountUid);
+        return inviteService.inviteFound(
+                session.stationId(), candidate, session.member().id());
+    }
+
+    private static void respondInvited(Context ctx, ProvisionedMember provisioned) {
+        ctx.status(HttpStatus.CREATED)
+                .json(new MemberInviteResponse(
+                        provisioned.memberId(),
+                        provisioned.accountId(),
+                        provisioned.email(),
+                        provisioned.firstName(),
+                        provisioned.lastName(),
+                        provisioned.linkPending()));
     }
 
     @OpenApi(
@@ -305,10 +334,20 @@ public class MemberRoutes implements Routes {
     }
 
     /**
+     * @param email         the address to invite, or empty for somebody without one
+     * @param firstName     their first name, not needed where an account is named
+     * @param lastName      their last name, not needed where an account is named
      * @param sendSetupMail whether the setup mail leaves with the account. Absent means it does,
      *                      which is what inviting somebody has always done.
+     * @param accountUid    an account the manager found by name; when given, the names are ignored, an
+     *                      address with it is refused, and the account's owner is asked to link it
      */
-    public record InviteRequest(String email, String firstName, String lastName, Boolean sendSetupMail) {}
+    public record InviteRequest(
+            String email,
+            String firstName,
+            String lastName,
+            Boolean sendSetupMail,
+            @Nullable UUID accountUid) {}
 
     public record ResetPasswordRequest(Integer accountId, Boolean forceChange) {}
 

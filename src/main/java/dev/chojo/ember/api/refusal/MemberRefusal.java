@@ -961,7 +961,35 @@ public enum MemberRefusal implements Refusal {
     RULE_PERMISSIONS_FROM_OWN_ANSWER(
             264,
             HttpStatus.CONFLICT,
-            "A group that grants permissions cannot take its members from answers the members give themselves");
+            "A group that grants permissions cannot take its members from answers the members give themselves"),
+
+    /** A search for people to invite by name that is too short to narrow anything down. */
+    INVITE_SEARCH_TOO_SHORT(
+            265,
+            HttpStatus.BAD_REQUEST,
+            "A search for somebody to invite needs a word of at least three letters of their name"),
+
+    /** More searches for people to invite by name than one account may make in a while. */
+    INVITE_SEARCHING_TOO_OFTEN(266, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** An invitation naming an account the inviting manager cannot find by name, or none at all. */
+    INVITE_ACCOUNT_NOT_FINDABLE(
+            267, HttpStatus.NOT_FOUND, "That person cannot be found from here, so nobody was invited"),
+
+    /** An invitation naming an account that is a member of the station already. */
+    INVITE_ACCOUNT_ALREADY_HERE(
+            268, HttpStatus.CONFLICT, "That person belongs to this station already, perhaps as a former member"),
+
+    /** An invitation naming an account the station already waits on to answer a link request. */
+    INVITE_ACCOUNT_ALREADY_ASKED(
+            269, HttpStatus.CONFLICT, "That person has been asked already and has not answered yet"),
+
+    /** An invitation naming an account that declined a link request of the station in the last 30 days. */
+    INVITE_ACCOUNT_DECLINED_LATELY(
+            270, HttpStatus.CONFLICT, "That person declined lately, so they are not asked again yet"),
+
+    /** A second invitation by name of the same account into the station within a day. */
+    INVITE_ACCOUNT_INVITED_LATELY(271, HttpStatus.TOO_MANY_REQUESTS, "That person was invited from here today already");
 
     private final Definition definition;
 

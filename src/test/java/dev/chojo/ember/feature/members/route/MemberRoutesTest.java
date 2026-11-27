@@ -9,6 +9,7 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -17,17 +18,23 @@ import dev.chojo.ember.feature.account.entity.IssuedOneTimePassword;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AuthService.EmailChangeResult;
 import dev.chojo.ember.feature.account.service.OneTimePasswordService;
+import dev.chojo.ember.feature.members.entity.FindableBecause;
+import dev.chojo.ember.feature.members.entity.InviteCandidate;
+import dev.chojo.ember.feature.members.service.InviteCandidateService;
 import dev.chojo.ember.feature.members.service.MemberAccountService;
 import dev.chojo.ember.feature.members.service.MemberAccountService.UpdateAccountRequest;
 import dev.chojo.ember.feature.members.service.MemberAccountService.UpdateAccountResponse;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionedMember;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService.IssuedCode;
 import io.javalin.router.JavalinDefaultRoutingApi;
+import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.body;
@@ -39,6 +46,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,11 +56,14 @@ import static org.mockito.Mockito.when;
  */
 class MemberRoutesTest {
     private static final int TARGET = 42;
+    private static final UUID FOUND = UUID.fromString("00000000-0000-0000-0000-000000000077");
 
     private AuthService auth;
     private MemberAccountService memberAccounts;
     private PasskeyEnrollmentService enrollment;
     private OneTimePasswordService oneTimePasswords;
+    private StationMemberInviteService invites;
+    private InviteCandidateService candidates;
     private RouteHarness harness;
     private UserSession manager;
 
@@ -66,8 +77,10 @@ class MemberRoutesTest {
         memberAccounts = mock(MemberAccountService.class);
         enrollment = mock(PasskeyEnrollmentService.class);
         oneTimePasswords = mock(OneTimePasswordService.class);
-        harness = RouteHarness.serving(new MemberRoutes(
-                auth, memberAccounts, mock(StationMemberInviteService.class), enrollment, oneTimePasswords));
+        invites = mock(StationMemberInviteService.class);
+        candidates = mock(InviteCandidateService.class);
+        harness = RouteHarness.serving(
+                new MemberRoutes(auth, memberAccounts, invites, enrollment, oneTimePasswords, candidates));
         manager = TestSessions.member(3, StationPermission.MEMBER_EDIT, StationPermission.LOGIN);
     }
 
@@ -151,7 +164,7 @@ class MemberRoutesTest {
     void theOneTimePasswordAsksForAFreshSecondFactor() {
         var router = mock(JavalinDefaultRoutingApi.class);
 
-        new MemberRoutes(auth, memberAccounts, mock(StationMemberInviteService.class), enrollment, oneTimePasswords)
+        new MemberRoutes(auth, memberAccounts, invites, enrollment, oneTimePasswords, candidates)
                 .register(router, PREFIX);
 
         verify(router)
@@ -182,5 +195,50 @@ class MemberRoutesTest {
 
         verify(memberAccounts).requireStationAccount(TARGET, 3);
         verify(enrollment).revokeCode(TARGET);
+    }
+
+    private static InviteCandidate found() {
+        return new InviteCandidate(
+                77, FOUND, "Anna", "Schmidt", FindableBecause.SHARED_STATION, "Nord", false, false, false);
+    }
+
+    private Response inviteFound(String body) {
+        return harness.request(client -> client.post(PREFIX + "/members/invite", body(body), harness.as(manager)));
+    }
+
+    @Test
+    void somebodyFoundByNameIsAskedToLinkAndNothingOfTheirAccountComesBack() {
+        when(candidates.invitable(any(), eq(FOUND))).thenReturn(found());
+        when(invites.inviteFound(3, found(), TestSessions.MEMBER_ID))
+                .thenReturn(new ProvisionedMember(
+                        90, null, null, "Anna", "Schmidt", StationUserType.MEMBER, false, true, true));
+
+        var response = inviteFound("{\"accountUid\": \"" + FOUND + "\"}");
+
+        assertEquals(201, response.code());
+        var answer = json(response);
+        assertTrue(answer.get("linkPending").asBoolean());
+        assertTrue(answer.get("email").isNull(), "the manager never learns the address");
+        assertTrue(answer.get("id").isNull(), "nor the account");
+        verify(invites).inviteFound(3, found(), TestSessions.MEMBER_ID);
+    }
+
+    @Test
+    void aRefusedInvitationByNameInvitesNobody() {
+        when(candidates.invitable(any(), eq(FOUND))).thenThrow(MemberRefusal.INVITE_ACCOUNT_NOT_FINDABLE.raise());
+
+        var response = inviteFound("{\"accountUid\": \"" + FOUND + "\"}");
+
+        assertEquals(MemberRefusal.INVITE_ACCOUNT_NOT_FINDABLE, refusalOf(response));
+        verify(invites, never()).inviteFound(anyInt(), any(), anyInt());
+    }
+
+    @Test
+    void anAccountAndAnAddressTogetherAreRefused() {
+        var response = inviteFound("{\"accountUid\": \"" + FOUND + "\", \"email\": \"a@b.de\"}");
+
+        assertEquals(400, response.code());
+        verify(candidates, never()).invitable(any(), any());
+        verify(invites, never()).inviteFound(anyInt(), any(), anyInt());
     }
 }
