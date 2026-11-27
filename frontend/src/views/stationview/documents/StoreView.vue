@@ -45,6 +45,7 @@ const {hasPermission} = usePermissions()
 
 const canEdit = computed(() => hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
 const readsMembers = computed(() => hasPermission(StationPermission.DOCUMENT_READ_MEMBER))
+const readsStationDocuments = computed(() => hasPermission(StationPermission.DOCUMENT_READ))
 
 const documents = ref<MemberDocumentResponse[]>([])
 const total = ref(0)
@@ -268,6 +269,7 @@ async function selectAll() {
           :can-upload="canEdit"
           :can-generate="canEdit"
           :reads-members="readsMembers"
+          :reads-station-documents="readsStationDocuments"
           @search-input="onSearch"
           @upload="showUpload = true"
           @generate="showGenerate = true"

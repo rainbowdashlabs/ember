@@ -64,6 +64,12 @@ describe('STATION_NAV', () => {
             ])
         })
 
+        it('opens the store to whoever reads member documents alone', () => {
+            expect(documentPages([StationPermission.DOCUMENT_READ_MEMBER])).toEqual([
+                '/station/documents', '/station/documents/self-service', '/station/documents/store', '/station/documents/generated',
+            ])
+        })
+
         it('shows templates and fonts to whoever writes templates', () => {
             expect(documentPages([StationPermission.DOCUMENT_TEMPLATE_EDIT])).toEqual([
                 '/station/documents', '/station/documents/self-service', '/station/documents/templates', '/station/documents/fonts',

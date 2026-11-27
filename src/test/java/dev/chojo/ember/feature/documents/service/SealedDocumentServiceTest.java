@@ -147,7 +147,7 @@ class SealedDocumentServiceTest extends RepositoryTestBase {
 
         assertTrue(document.hasThumbnail());
         assertTrue(documents.thumbnail(document, 256, DocumentDoor.STATION).isPresent());
-        var filter = new DocumentFilter(List.of(), "Vereinbarung", true, false, false);
+        var filter = new DocumentFilter(List.of(), "Vereinbarung", true, false, false, false);
         assertTrue(
                 memberDocumentRepo
                         .findByStation(station.id(), filter, documents.searchConfigOf(station.id()), 100, 0)
@@ -258,7 +258,7 @@ class SealedDocumentServiceTest extends RepositoryTestBase {
 
         assertTrue(memberDocumentRepo.findById(plain.id()).isPresent(), "a choice holding a sealed one removes none");
         assertTrue(memberDocumentRepo.findById(sealedDocument.id()).isPresent());
-        var removable = catalog.ids(station.id(), new DocumentFilter(List.of(member), null, true, false, false));
+        var removable = catalog.ids(station.id(), new DocumentFilter(List.of(member), null, true, false, false, false));
         assertEquals(List.of(plain.id()), removable);
     }
 

@@ -138,7 +138,8 @@ class DocumentRoutesTest {
                             .asInt());
         });
 
-        verify(catalog).page(3, new StoreQuery(new DocumentFilter(List.of(11), "pass", true, false, false), 10, 1));
+        verify(catalog)
+                .page(3, new StoreQuery(new DocumentFilter(List.of(11), "pass", true, false, false, false), 10, 1));
     }
 
     /**
@@ -160,8 +161,25 @@ class DocumentRoutesTest {
                     harness.as(TestSessions.member(3, StationPermission.DOCUMENT_READ)));
         });
 
-        verify(catalog).ids(3, new DocumentFilter(List.of(), null, true, false, true));
-        verify(catalog).page(3, new StoreQuery(new DocumentFilter(List.of(), null, false, true, false), 24, 0));
+        verify(catalog).ids(3, new DocumentFilter(List.of(), null, true, false, false, true));
+        verify(catalog).page(3, new StoreQuery(new DocumentFilter(List.of(), null, false, true, false, false), 24, 0));
+    }
+
+    /**
+     * Reading member documents opens the store on its own, without the permission for the station's
+     * paperwork, and then lists only the documents that name somebody.
+     */
+    @Test
+    void aReaderOfMemberDocumentsAloneSeesOnlyWhatNamesSomebody() {
+        harness.run((server, client) -> {
+            var reader = harness.as(TestSessions.member(3, StationPermission.DOCUMENT_READ_MEMBER));
+            assertEquals(200, client.get(PREFIX + "/documents/tags", reader).code());
+            client.get(PREFIX + "/documents", reader);
+            client.get(PREFIX + "/documents/ids?unbound=true", reader);
+        });
+
+        verify(catalog).page(3, new StoreQuery(new DocumentFilter(List.of(), null, true, false, true, false), 24, 0));
+        verify(catalog).ids(3, new DocumentFilter(List.of(), null, true, true, true, false));
     }
 
     /** A list of members that is not a list of numbers is a named refusal, not a server error. */

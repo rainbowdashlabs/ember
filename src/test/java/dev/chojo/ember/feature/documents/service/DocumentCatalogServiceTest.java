@@ -79,7 +79,7 @@ class DocumentCatalogServiceTest {
     void aMembersDocumentsAndThePageOfTheStoreAreRead() {
         when(documents.findByMember(3, 11, true)).thenReturn(List.of(document));
         when(documentService.searchConfigOf(3)).thenReturn("german");
-        var filter = new DocumentFilter(List.of(11), "pass", true, false, false);
+        var filter = new DocumentFilter(List.of(11), "pass", true, false, false, false);
         when(documents.findByStation(3, filter, "german", 24, 48)).thenReturn(List.of(document));
         when(documents.countByStation(3, filter, "german")).thenReturn(49);
         when(documents.idsByStation(3, filter, "german")).thenReturn(List.of(5));

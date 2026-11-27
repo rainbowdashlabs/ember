@@ -86,8 +86,11 @@ public enum StationPermission implements RouteRole {
 
     /**
      * Allows managing the inventory exchanges.
+     *
+     * <p>Recording a piece that arrives in a movement needs nothing more: the movement's own step
+     * records it. Creating the association's pieces anywhere else is {@link #INVENTORY_CREATE_EXTERNAL}.
      */
-    INVENTORY_MOVEMENTS(StationModule.INVENTORY_MOVEMENTS, INVENTORY_CREATE_EXTERNAL, INVENTORY_READ),
+    INVENTORY_MOVEMENTS(StationModule.INVENTORY_MOVEMENTS, INVENTORY_READ),
 
     /**
      * Allows managing inventory procurements.
@@ -100,8 +103,10 @@ public enum StationPermission implements RouteRole {
      *
      * <p>Belongs to the inventory as a whole rather than to one of its parts, because it serves both kinds
      * of check: switching off the station's checks leaves the review of self-checks to whoever holds it.
+     * The piece a correction puts in place of a wrong one is created by the check itself, so creating
+     * pieces anywhere else is not part of this.
      */
-    INVENTORY_CHECK(StationModule.INVENTORY, INVENTORY_CREATE_EXTERNAL),
+    INVENTORY_CHECK(StationModule.INVENTORY),
 
     /**
      * Allows creating new inventory lending requests and managing outgoing requests.
@@ -211,10 +216,10 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows reading the documents that name a member.
      *
-     * <p>Implies {@link #DOCUMENT_READ}: whoever may read the paperwork of a person may read the
-     * paperwork of the station.
+     * <p>The station's own paperwork is {@link #DOCUMENT_READ} and not part of this. Both open the
+     * store; each lists only what it reaches.
      */
-    DOCUMENT_READ_MEMBER(StationModule.DOCUMENTS, DOCUMENT_READ),
+    DOCUMENT_READ_MEMBER(StationModule.DOCUMENTS),
 
     /**
      * Allows filing documents into the store and editing what is there.

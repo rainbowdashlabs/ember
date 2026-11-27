@@ -201,7 +201,7 @@ export const STATION_NAV: Entry[] = [
             {kind: 'page', key: 'documents-own', label: 'sidebar.ownDocuments', icon: 'file', to: '/station/documents'},
             {kind: 'page', key: 'documents-self-service', label: 'sidebar.documentSelfService', icon: 'file-circle-plus', to: '/station/documents/self-service'},
             {kind: 'page', key: 'documents-witness-signing', label: 'sidebar.witnessSigning', icon: 'signature', to: '/station/signing/witness', visible: can(StationPermission.DOCUMENT_SIGN_OTHERS)},
-            {kind: 'page', key: 'documents-store', label: 'sidebar.documentStore', icon: 'box-archive', to: '/station/documents/store', visible: can(StationPermission.DOCUMENT_READ)},
+            {kind: 'page', key: 'documents-store', label: 'sidebar.documentStore', icon: 'box-archive', to: '/station/documents/store', visible: canAny(StationPermission.DOCUMENT_READ, StationPermission.DOCUMENT_READ_MEMBER)},
             {kind: 'page', key: 'documents-templates', label: 'sidebar.documentTemplates', icon: 'file-signature', to: '/station/documents/templates', visible: can(StationPermission.DOCUMENT_TEMPLATE_EDIT)},
             {kind: 'page', key: 'documents-generated', label: 'sidebar.generatedDocuments', icon: 'clock-rotate-left', to: '/station/documents/generated', visible: can(StationPermission.DOCUMENT_READ_MEMBER)},
             {kind: 'page', key: 'documents-fonts', label: 'sidebar.documentFonts', icon: 'font', to: '/station/documents/fonts', visible: can(StationPermission.DOCUMENT_TEMPLATE_EDIT)},
