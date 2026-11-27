@@ -78,6 +78,19 @@ describe('links of a tab', () => {
             .toBe('/station/dashboard/overview?station=s2')
     })
 
+    it('arrive at the station of the tab when the app navigates', async () => {
+        const router = routerAt(place)
+
+        await router.push('/station/dashboard/overview')
+        expect(router.currentRoute.value.fullPath).toBe('/station/dashboard/overview?station=s1')
+
+        await router.replace({name: 'event', params: {id: '7'}})
+        expect(router.currentRoute.value.fullPath).toBe('/station/events/7?station=s1')
+
+        await router.push('/account')
+        expect(router.currentRoute.value.fullPath).toBe('/account')
+    })
+
     it('follow the place of the tab as it becomes known', () => {
         place.station = null
         const router = routerAt(place)

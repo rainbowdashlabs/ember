@@ -50,13 +50,14 @@ export function withoutPlace(target: string): string {
 }
 
 /**
- * Makes every address the router resolves for a link name the station or cluster of this tab.
+ * Makes every address the router resolves or goes to name the station or cluster of this tab.
  *
  * <p>Links compute their `href` through {@link Router.resolve}, so wrapping it reaches every link on
- * every page without touching one of them, also the link a reader opens in a new tab. Navigation
- * inside the app does not go through it; the route middleware adds the place to those addresses.
- * The getters are read on every resolve, so a link drawn before the tab's place was known follows
- * once it is.
+ * every page without touching one of them, also the link a reader opens in a new tab. A click on a link
+ * and every navigation of the app go through {@link Router.push} or {@link Router.replace}, which are
+ * wrapped the same way, so they arrive with the place already named instead of being redirected to it.
+ * The getters are read on every call, so a link drawn before the tab's place was known follows once it
+ * is.
  *
  * @param router the app's router
  * @param stationId the station of this tab, read when an address is resolved
@@ -68,9 +69,22 @@ export function namePlaceInLinks(
     clusterId: () => string | null,
 ): void {
     const resolve = router.resolve.bind(router)
+    const push = router.push.bind(router)
+    const replace = router.replace.bind(router)
+
+    const placed = (to: RouteLocationRaw): RouteLocationRaw => {
+        const resolved = resolve(to)
+        const query = placeQuery(resolved.path, resolved.query, stationId(), clusterId())
+        if (!query) return to
+        const flags = typeof to === 'object' ? {replace: to.replace, force: to.force, state: to.state} : {}
+        return {...flags, path: resolved.path, query, hash: resolved.hash}
+    }
+
     router.resolve = ((to: RouteLocationRaw, currentLocation?: RouteLocationNormalizedLoaded) => {
         const resolved = resolve(to, currentLocation)
         const query = placeQuery(resolved.path, resolved.query, stationId(), clusterId())
         return query ? resolve({path: resolved.path, query, hash: resolved.hash}, currentLocation) : resolved
     }) as Router['resolve']
+    router.push = (to => push(placed(to))) as Router['push']
+    router.replace = (to => replace(placed(to))) as Router['replace']
 }

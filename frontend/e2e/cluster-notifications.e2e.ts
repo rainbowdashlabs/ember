@@ -75,6 +75,7 @@ test.describe('Cluster notifications', () => {
                 .toBeVisible()
 
             await openSection(page, 'Verband')
+            await page.waitForURL(url => !url.pathname.endsWith('/cluster/applications'))
             await expect(bell(page), 'and opening it read it').toHaveAccessibleName('Benachrichtigungen')
             await page.reload()
             await expect(bell(page), 'which the server remembers').toHaveAccessibleName('Benachrichtigungen')
