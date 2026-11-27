@@ -13,7 +13,7 @@ import {FieldType} from '@/api/generated/schema'
  * An answer as a station reads it.
  *
  * <p>What is settled here is the age behind a birth date: that it is there by default, that a field
- * can say it should not be, and that turning it off leaves the date itself alone. And that a yes
+ * can opt out of it, and that turning it off leaves the date itself alone. And that a yes
  * reads as yes however it was stored, which is what screens that only knew one spelling got wrong.
  */
 describe('QuestionValueDisplay', () => {
@@ -67,7 +67,7 @@ describe('QuestionValueDisplay', () => {
         expect(show(null, FieldType.DATE)).toBe('–')
     })
 
-    /** An expiry date says in words how close it is, so it reads without its colour. */
+    /** An expiry date shows in words how close it is, so it reads without its colour. */
     describe('an expiry date', () => {
         function isoInDays(days: number): string {
             const day = new Date()

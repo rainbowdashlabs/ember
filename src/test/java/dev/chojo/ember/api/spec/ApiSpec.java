@@ -37,7 +37,7 @@ import java.util.stream.Stream;
  * The OpenAPI 3.1 description of the API: every operation the route classes annotate with
  * {@link OpenApi}, and the types they send and read as {@link WireSchemas} describes them.
  *
- * <p>The annotations say which record travels on which route and nothing else is taken from them.
+ * <p>The annotations show which record travels on which route and nothing else is taken from them.
  * Responses are described before request bodies, so a type that is both sent and read is described as
  * it is sent.
  */

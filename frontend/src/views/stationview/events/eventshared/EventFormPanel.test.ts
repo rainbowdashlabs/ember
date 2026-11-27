@@ -148,7 +148,7 @@ describe('EventFormPanel waiting list order', () => {
         expect(wrapper.find('[data-testid="queue-order"]').exists()).toBe(false)
     })
 
-    /** While questions are asked, sign-up cannot be switched off, and the form says why. */
+    /** While questions are asked, sign-up cannot be switched off, and the form shows why. */
     it('holds sign-up on while questions are asked and says why', () => {
         const held = panel('ONE_TIME', {requiresRegistration: true, signUpHeld: true})
         const toggle = held.get('[aria-labelledby$="-registration"]')

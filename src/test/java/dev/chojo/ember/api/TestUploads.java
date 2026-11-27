@@ -123,12 +123,12 @@ public final class TestUploads {
 
     /**
      * The same streamed upload, sent the way a careful client sends a large one: it announces its length and
-     * waits for the server to say go on ({@code Expect: 100-continue}) before sending the body.
+     * waits for the server to signal go on ({@code Expect: 100-continue}) before sending the body.
      *
      * <p>That is what makes a refusal by the announced length readable every time. A server that refuses
      * before reading answers at once and closes the connection; a client still busy sending the body may
      * see the connection drop before it reads the answer, and fail without one. A client that waits sends
-     * nothing until told to, so it is reading when the answer comes.
+     * nothing until signalled to, so it is reading when the answer comes.
      *
      * @param address  where the upload goes
      * @param fileName the name it is uploaded under

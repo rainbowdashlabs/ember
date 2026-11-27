@@ -86,7 +86,7 @@ public final class TestNotices {
     }
 
     /**
-     * The notices of signing, writing real notifications and queueing real mail, telling the given bus.
+     * The notices of signing, writing real notifications and queueing real mail, notifying the given bus.
      *
      * @param notifier the notifier to write with
      * @param queue    the email queue

@@ -107,7 +107,7 @@ class BeaconReportServiceTest {
     /**
      * A sender reporting to somebody else, which is what these stories are about.
      *
-     * <p>An instance that is its own beacon never reaches the network at all, so it is told here
+     * <p>An instance that is its own beacon never reaches the network at all, so it is reported here
      * that it is not one: what it does instead is settled where that decision lives.
      */
     private BeaconReportService serviceThatForwards(boolean forwardReports) {
@@ -159,7 +159,7 @@ class BeaconReportServiceTest {
      * The query string is dropped before anything leaves.
      *
      * <p>A query carries what somebody searched for and sometimes who they looked at, none of which
-     * says which page went wrong. The screen already sends the path alone, so this is the guarantee
+     * shows which page went wrong. The screen already sends the path alone, so this is the guarantee
      * rather than the hope: what leaves the instance is decided here, not in the browser.
      */
     @Test
@@ -172,8 +172,8 @@ class BeaconReportServiceTest {
      * What the screen was, which is what makes a sentence about it worth reading.
      *
      * <p>"Der Knopf tut nichts" names no defect on its own. The browser it happened in, how large
-     * the window was and what the reader was allowed to do are what tell a fault everybody meets
-     * from one only a guardian on a phone meets, and none of it says who they were.
+     * the window was and what the reader was allowed to do are what distinguish a fault everybody meets
+     * from one only a guardian on a phone meets, and none of it shows who they were.
      */
     @Test
     void theScreenTravelsWithTheReportAndThePersonDoesNot() {
@@ -200,7 +200,7 @@ class BeaconReportServiceTest {
     /**
      * A warning without an exception is nothing but its words.
      *
-     * <p>No class, no stacktrace, so no frames: a beacon was told a logger name, a level and a count.
+     * <p>No class, no stacktrace, so no frames: a beacon was given a logger name, a level and a count.
      * One class logs several different failures, so they arrived as one row that named none of them.
      */
     @Test

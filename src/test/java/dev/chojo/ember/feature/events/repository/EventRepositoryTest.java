@@ -512,7 +512,7 @@ class EventRepositoryTest extends RepositoryTestBase {
 
     /**
      * A date with sign-ups waiting is offered with the close its passed deadline was handled for, so the
-     * caller can tell a handled close from one that moved since, and a fixed deadline handled for the
+     * caller can distinguish a handled close from one that moved since, and a fixed deadline handled for the
      * instant it still has is not offered at all. The record is per date and the latest close replaces
      * the earlier one.
      */

@@ -14,7 +14,7 @@ import {openFormSection} from './fixtures/formSection'
  * branching on which device they run as, so the same story holds on the phone and on the desktop.
  */
 
-/** Whether this browser says it points with something as precise as a mouse. */
+/** Whether this browser reports it points with something as precise as a mouse. */
 async function hasMouse(page: Page): Promise<boolean> {
     return page.evaluate(() => window.matchMedia('(pointer: fine)').matches)
 }

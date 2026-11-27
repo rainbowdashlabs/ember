@@ -232,7 +232,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         memberGroupRepo.delete(group.id());
     }
 
-    /** A sheet whose hours are whatever its times say, which is every sheet but the counted ones. */
+    /** A sheet whose hours are whatever its times show, which is every sheet but the counted ones. */
     private AttendanceSession openSheet(int templateId, Instant start, Instant end, Integer eventId, String title) {
         return service.createSession(templateId, start, end, eventId, title, null);
     }
@@ -336,7 +336,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(service.findEntryById(-1).isEmpty());
     }
 
-    /** What an entry says is what was last written on it, whichever way it is written. */
+    /** What an entry shows is what was last written on it, whichever way it is written. */
     @Test
     @Order(32)
     void updateEntryStatus() {
@@ -817,7 +817,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     /**
      * Only the template's groups put anybody on a sheet.
      *
-     * <p>Whom the event was open to says nothing about who is expected at the appointment: the sheet
+     * <p>Whom the event was open to shows nothing about who is expected at the appointment: the sheet
      * is the template's, and somebody outside its groups stays off it however the event was addressed.
      */
     @Test
@@ -1034,7 +1034,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     /**
      * Somebody who accepted is put on the sheet with their row still open: accepting beforehand is
-     * not having been there, and the check is what says whether they came.
+     * not having been there, and the check is what shows whether they came.
      */
     @Test
     @Order(55)
@@ -2125,7 +2125,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null);
     }
 
-    /** The registration service as the application wires it, telling open sheets about every answer. */
+    /** The registration service as the application wires it, notifying open sheets of every answer. */
     private static EventRegistrationService answering() {
         return new EventRegistrationService(
                 eventRegistrationRepo,
@@ -2144,7 +2144,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 .status();
     }
 
-    /** An answer given for another day of a repeating occasion has nothing to say about this sheet. */
+    /** An answer given for another day of a repeating occasion has no bearing on this sheet. */
     @Test
     @Order(65)
     void answersAreReadForTheDayTheSheetIsAbout() {
@@ -2234,7 +2234,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A sheet told whom to expect enters them instead of the template's own groups, and adds the two
+     * A sheet given whom to expect enters them instead of the template's own groups, and adds the two
      * answers up rather than crossing them.
      *
      * <p>The station kept a template with no groups on it purely to open an empty sheet. Saying who
@@ -2319,7 +2319,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         memberGroupRepo.delete(group.id());
     }
 
-    /** Told nothing, a sheet still expects exactly whom its template expects. */
+    /** Given nothing, a sheet still expects exactly whom its template expects. */
     @Test
     @Order(62)
     void anEmptyAudienceLeavesTheTemplateToDecide() {
@@ -2379,7 +2379,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     /**
      * A template's user types add up with its groups the way a sheet's do: the members of its groups
-     * and everybody of its types, whether the sheet was told nothing or was not told anything at all.
+     * and everybody of its types, whether the sheet was given nothing or was not given anything at all.
      */
     @Test
     @Order(64)

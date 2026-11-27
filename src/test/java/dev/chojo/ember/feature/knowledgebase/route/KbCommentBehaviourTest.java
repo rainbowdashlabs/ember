@@ -53,7 +53,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * What a comment on a knowledge base file does today, pinned over the real routes, comment service
- * and storage: who reads, writes, changes and removes it, how it is listed and whom it tells.
+ * and storage: who reads, writes, changes and removes it, how it is listed and whom it notifies.
  */
 class KbCommentBehaviourTest extends RepositoryTestBase {
     private static final DomainEventBus BUS = mock(DomainEventBus.class);

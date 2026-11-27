@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
  * The key an outside tool presents when it reports something to Ember.
  *
  * <p>Two properties carry the whole design. Nobody is ever asked to invent a key - it exists the
- * first time it is wanted. And a key says who the caller speaks for: the instance's own key answers
+ * first time it is wanted. And a key defines who the caller speaks for: the instance's own key answers
  * for everything, a station's only for that station.
  */
 class WebhookKeyServiceTest extends RepositoryTestBase {

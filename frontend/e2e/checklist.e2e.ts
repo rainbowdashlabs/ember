@@ -13,7 +13,7 @@ import {unique} from './fixtures/unique'
 test.describe('Checklists', () => {
     /**
      * A checklist is a grid of people against things to tick, and ticking is the whole of using
-     * one. The mark has to survive a reload, which is what says it reached the server.
+     * one. The mark has to survive a reload, which is what shows it reached the server.
      */
     test('a tick on a checklist is kept', async ({managerPage: page}) => {
         await page.goto('/station/checklist')

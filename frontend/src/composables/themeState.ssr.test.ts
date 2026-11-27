@@ -12,7 +12,7 @@ import {usePride} from './usePride'
 import {useTheme} from './useTheme'
 import {useThemePaint} from './useThemePaint'
 
-/** A page that changes shared state while it sets up when told to, and draws what it then holds. */
+/** A page that changes shared state while it sets up when asked to, and draws what it then holds. */
 function page(write: () => void, read: () => string) {
     return defineComponent({
         props: {writes: {type: Boolean, default: false}},

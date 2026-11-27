@@ -29,7 +29,7 @@ public record OwnerScene(Owner.Association association, Owner.Station station, S
     /**
      * A new association, a station in it and a member there.
      *
-     * @param label what the rows are named after, so a failing test's leftovers say whose they are
+     * @param label what the rows are named after, so a failing test's leftovers show whose they are
      * @return the scene
      */
     public static OwnerScene association(String label) {

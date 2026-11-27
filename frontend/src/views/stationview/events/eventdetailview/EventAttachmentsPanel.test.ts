@@ -150,7 +150,7 @@ describe('EventAttachmentsPanel', () => {
     })
 
     /**
-     * A question that could not be asked is not an answer of "nothing". Told apart, because an
+     * A question that could not be asked is not an answer of "nothing". Kept apart, because an
      * event that hands over a form and a panel that failed to ask look the same otherwise.
      */
     it('says the files could not be asked for rather than that there are none', async () => {

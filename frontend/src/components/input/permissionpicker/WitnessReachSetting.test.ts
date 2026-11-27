@@ -29,7 +29,7 @@ async function open() {
 }
 
 /**
- * The station's audience for its witnesses, under the permission: read when opened, said in one line,
+ * The station's audience for its witnesses, under the permission: read when opened, shown in one line,
  * editable and saved only for whoever manages members.
  */
 describe('WitnessReachSetting', () => {

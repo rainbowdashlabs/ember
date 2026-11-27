@@ -9,7 +9,7 @@ import Alert from './Alert.vue'
 import FailureAlert from './FailureAlert.vue'
 
 /**
- * What a screen reader is told a banner is: an error interrupts, anything else waits its turn.
+ * What a screen reader announces a banner as: an error interrupts, anything else waits its turn.
  *
  * @vitest-environment happy-dom
  */

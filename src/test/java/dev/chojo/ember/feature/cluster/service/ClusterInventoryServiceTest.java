@@ -300,8 +300,8 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
 
     /**
      * The association's gear walks the association's chains, wherever it is and whoever raised the
-     * movement. Until the gear said which body owned it, nothing ever reached this: a station
-     * recording a piece as somebody else's could not say whose, so every such piece looked like one
+     * movement. Until the gear showed which body owned it, nothing ever reached this: a station
+     * recording a piece as somebody else's could not show whose, so every such piece looked like one
      * belonging to a body outside Ember and the association's settings screen governed nothing.
      */
     @Test

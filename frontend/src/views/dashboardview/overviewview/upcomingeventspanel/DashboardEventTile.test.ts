@@ -29,7 +29,7 @@ function tileFor(event: Partial<EventSummary>, openCount: number, registrationCl
     })
 }
 
-/** Declining is offered while somebody still owes an answer and the date still takes one, as the server says. */
+/** Declining is offered while somebody still owes an answer and the date still takes one, as the server reports. */
 describe('DashboardEventTile', () => {
     it('offers to decline an appointment that has to be signed up for while registration is open', async () => {
         const tile = await tileFor({requiresRegistration: true}, 1, FUTURE)

@@ -511,7 +511,7 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
 
     /**
      * A field the editor may not read is neither offered nor accepted, on saving and on trying a rule: the
-     * preview would otherwise say who answered it.
+     * preview would otherwise show who answered it.
      */
     @Test
     void aFieldTheEditorMayNotReadIsNotThere() {

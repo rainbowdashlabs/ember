@@ -619,7 +619,7 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
      *
      * <p>Every status change remembers what it wrote over, a manager's deny among them. Without a
      * word on which of them may go back, the undo would hand the denied member their own place
-     * again: the row is theirs, so nothing else standing between them and it would say no.
+     * again: the row is theirs, so nothing else standing between them and it would refuse.
      */
     @Test
     void onlyAWithdrawalGoesBack() {

@@ -76,7 +76,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Copying templates: everything a template says goes into the copy, a PDF template's PDF as a stored
+ * Copying templates: everything a template holds goes into the copy, a PDF template's PDF as a stored
  * file of its own, nothing of what the template did; a station copies its own and its association's
  * templates, an association its own. And when each template was last used, per station.
  */

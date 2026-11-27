@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/** A partner that did not answer is named in the feature's words; anything it did say is passed on. */
+/** A partner that did not answer is named in the feature's words; anything it did send is passed on. */
 class PartnerCallsTest {
 
     /** An answer is handed back, silence becomes the feature's refusal, and the partner's own refusal stays. */

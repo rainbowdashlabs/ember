@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * What a queue export is called, which is whatever it turned out to hold.
  *
- * <p>A fixed word said less than the sheet itself does: a reader with three of them in a folder could
+ * <p>A fixed word showed less than the sheet itself does: a reader with three of them in a folder could
  * not tell which was the exchanges and which was the issues without opening all three.
  */
 class MovementExportFileNameTest {

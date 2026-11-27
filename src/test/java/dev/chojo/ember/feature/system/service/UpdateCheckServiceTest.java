@@ -149,8 +149,8 @@ class UpdateCheckServiceTest {
     }
 
     /**
-     * The comparison is the whole feature: get it wrong and every instance is either told to update
-     * forever or never told at all.
+     * The comparison is the whole feature: get it wrong and every instance is either prompted to update
+     * forever or never prompted at all.
      */
     @Test
     void aHigherNumberAnywhereInTheVersionIsNewer() {
@@ -161,7 +161,7 @@ class UpdateCheckServiceTest {
 
     /**
      * The same version is not an update, and neither is an older one. An instance running something
-     * newer than the newest release, which is what a developer build is, is not told to downgrade.
+     * newer than the newest release, which is what a developer build is, is not prompted to downgrade.
      */
     @Test
     void theSameOrAnOlderVersionIsNoUpdate() {
@@ -193,7 +193,7 @@ class UpdateCheckServiceTest {
 
     /**
      * A release named in some other scheme is never announced. Reading a word as a number would
-     * make the answer arbitrary, and announcing an update nobody can install is worse than saying
+     * make the answer arbitrary, and announcing an update nobody can install is worse than staying silent
      * nothing.
      */
     @Test

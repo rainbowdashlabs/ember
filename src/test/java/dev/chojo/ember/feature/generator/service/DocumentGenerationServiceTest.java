@@ -1351,7 +1351,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         refused(DocumentRefusal.DOCUMENT_SELF_SERVICE_NOT_YOURS, () -> selfService.offers(as(stranger), lena.id()));
     }
 
-    /** The wait is counted from the last self service document of that member, and says when it ends. */
+    /** The wait is counted from the last self service document of that member, and shows when it ends. */
     @Test
     void theCooldownRefusesUntilItsDay() {
         int templateId = certificate("Wartezeit");

@@ -44,7 +44,7 @@ afterEach(() => {
 /**
  * A calendar date and an instant look interchangeable and are not. Handed a bare calendar date,
  * an endpoint expecting an instant refuses the whole request, so the due date a person typed never
- * arrives and nothing on the screen says so. These two carry the value across that seam.
+ * arrives and nothing on the screen shows that. These two carry the value across that seam.
  */
 describe('a calendar date and an instant', () => {
     it('turns what a date field holds into a full instant', () => {
@@ -245,7 +245,7 @@ describe('a moment on the day a sheet runs on', () => {
  * A public page is written twice, once by the server and once again by the browser, and neither
  * machine stands where the reader does. Written on whichever clock happened to run, an article
  * updated late in the evening carried one date into the page a crawler reads and another into the
- * page the reader sees a moment later, and the browser said so in as many words.
+ * page the reader sees a moment later, and the browser reported it in as many words.
  */
 describe('a date on a page written where no reader can be asked', () => {
     const lateOnTheTwentyFourth = '2026-09-24T21:21:00Z'

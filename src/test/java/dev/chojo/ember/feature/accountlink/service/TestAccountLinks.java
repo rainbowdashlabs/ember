@@ -31,7 +31,7 @@ import static org.mockito.Mockito.mock;
 
 /**
  * Link requests against the real tables, for the tests of the features that ask for them. Nothing is
- * mailed: the mail service is a mock that says the installation sends no mail.
+ * mailed: the mail service is a mock that reports the installation sends no mail.
  */
 public final class TestAccountLinks {
     /** The pepper the test token hasher uses. */
@@ -69,7 +69,7 @@ public final class TestAccountLinks {
     }
 
     /**
-     * @return the person's answers to associations over the real tables, telling the given notifier
+     * @return the person's answers to associations over the real tables, reporting to the given notifier
      */
     public static AssociationLinkAnswers associationAnswers(
             AccountRepository accounts, ClusterRepository clusters, TwoFactorRepository twoFactor, Notifier notifier) {

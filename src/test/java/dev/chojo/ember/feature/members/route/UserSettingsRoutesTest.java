@@ -54,7 +54,7 @@ class UserSettingsRoutesTest {
     }
 
     /**
-     * A member is told every provider their mail may go through, in the order they are tried, the
+     * A member is shown every provider their mail may go through, in the order they are tried, the
      * instance's included, each with the name and privacy notice its owner gave it.
      */
     @Test

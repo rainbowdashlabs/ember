@@ -171,7 +171,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     /**
      * A new invitation counts as mailed now, which is where its weekly reminders count from; other
-     * dates start that count again and forget that the station was told the dates had run out, and
+     * dates start that count again and forget that the station was notified that the dates had run out, and
      * taking the invitation back forgets both.
      */
     @Test

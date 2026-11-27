@@ -33,7 +33,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * A station's public blog over HTTP: each page asks whether the station keeps one open, and says in
+ * A station's public blog over HTTP: each page asks whether the station keeps one open, and shows in
  * its own words when it does not.
  */
 class PublicBlogRoutesTest {

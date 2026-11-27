@@ -60,7 +60,7 @@ public final class TestFonts {
     }
 
     /**
-     * A copy of a font whose licence bits say something else, written into its OS/2 table.
+     * A copy of a font whose licence bits hold something else, written into its OS/2 table.
      *
      * @param font   a TrueType or OpenType font
      * @param fsType the licence bits
@@ -71,7 +71,7 @@ public final class TestFonts {
     }
 
     /**
-     * A copy of a font whose style bits say something else, written into its OS/2 table.
+     * A copy of a font whose style bits hold something else, written into its OS/2 table.
      *
      * @param font        a TrueType or OpenType font
      * @param fsSelection the style bits, {@code 0x01} for italic and {@code 0x20} for bold
@@ -83,10 +83,10 @@ public final class TestFonts {
 
     /**
      * A stand-in for a web font: the signature of its format and a header that names the length of the
-     * file, followed by a marker that tells two of them apart. Nothing reads further than that.
+     * file, followed by a marker that distinguishes two of them. Nothing reads further than that.
      *
      * @param signature {@code wOF2} or {@code wOFF}
-     * @param marker    what tells it apart
+     * @param marker    what distinguishes it
      * @return the file
      */
     public static byte[] webFont(String signature, String marker) {

@@ -51,7 +51,7 @@ import static org.mockito.Mockito.when;
  * carries across exactly as the network would, status code and all.
  *
  * <p>The addresses are literal public IPs on purpose. {@link RemoteUrlValidator} runs for real here,
- * so a name would mean a DNS lookup in every run; an address says the same thing and says it
+ * so a name would mean a DNS lookup in every run; an address gives the same result and gives it
  * offline, and a private one still gets refused the way a typed code pointing inwards would be.
  */
 class FederationEnrollmentServiceTest extends RepositoryTestBase {

@@ -11,7 +11,7 @@ import {canCoverAutomatically, coversForPasswords, coversForPersonalData, pageMa
  * The covers that are drawn for somebody rather than by them.
  *
  * <p>What matters most here is when they are *not* offered. A picture of a whole screen carries the
- * browser's own furniture, and there is no way from a page to tell how much of it: boxes calculated
+ * browser's own furniture, and there is no way from a page to know how much of it: boxes calculated
  * against it land beside what they were meant to cover, and a cover that misses gives the comfort of
  * one without the effect.
  */

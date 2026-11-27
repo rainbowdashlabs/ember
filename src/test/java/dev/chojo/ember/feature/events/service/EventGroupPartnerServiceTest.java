@@ -679,7 +679,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
 
     /**
      * A partner handed the decision gets its members' sign-ups waiting for it, and whoever runs the event
-     * group neither accepts, turns down nor queues them; the host page says whose decision they are.
+     * group neither accepts, turns down nor queues them; the host page shows whose decision they are.
      */
     @Test
     void aPartnerThatDecidesKeepsItsSignUpsToItself() {
@@ -799,7 +799,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
 
     /**
      * A partner confirms its own members only where it was handed the decision, and the station holding
-     * the event group tells it so; the event group page there shows what it was given only then.
+     * the event group lets it know; the event group page there shows what it was given only then.
      */
     @Test
     void aPartnerConfirmsItsOwnOnlyWhereItDecides() {
@@ -934,8 +934,8 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Accepting, turning down and putting a partner's member on the waiting list are told to the partner,
-     * which tells the member's household; reordering the list is not told.
+     * Accepting, turning down and putting a partner's member on the waiting list are sent to the partner,
+     * which notifies the member's household; reordering the list is not sent.
      */
     @Test
     void theHolderTellsThePartnerAboutItsDecisions() {
@@ -978,7 +978,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
 
     /**
      * A notice older than the one taken in, a repeat, or one about a member this station did not sign up
-     * changes nothing and tells nobody.
+     * changes nothing and notifies nobody.
      */
     @Test
     void aLateRepeatedOrUnknownGroupNoticeIsIgnored() {
@@ -1001,7 +1001,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A withdrawal keeps what the partner last said, so a notice older than that is still ignored once the
+     * A withdrawal keeps what the partner last sent, so a notice older than that is still ignored once the
      * member signs up again.
      */
     @Test
@@ -1034,7 +1034,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                                 eventGroup.id(), "Jugendflamme 1", member, status, null, false, at));
     }
 
-    /** A partner confirming one of its own tells the member's household where they stand now. */
+    /** A partner confirming one of its own notifies the member's household where they stand now. */
     @Test
     void confirmingOnesOwnSignUpIsToldToTheHousehold() {
         partners.arrangePartnerPlaces(holder.id(), eventGroup.id(), partnerOfHolder, null, true);

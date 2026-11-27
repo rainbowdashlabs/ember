@@ -95,12 +95,12 @@ test.describe('Cluster member screens', () => {
      *
      * The note was drawn unconditionally, so narrowing to one station left every row repeating the same
      * word. And the search returns one row per membership, so somebody at two stations of the
-     * association was two rows that never said they were the same person.
+     * association was two rows that never showed they were the same person.
      *
      * Taking somebody on whose address already has an account only asks that account to be linked, so
      * the person accepts the second station's request before both rows are the same person.
      *
-     * The narrowing is retried until the screen says so rather than until the box holds the value: the
+     * The narrowing is retried until the screen shows that rather than until the box holds the value: the
      * page is server rendered, and a change fired before Vue is listening sets the box and nothing else.
      * Each attempt goes back through "every station" first, because picking a value the box already
      * holds fires nothing at all and the retry would then be no retry.
@@ -192,7 +192,7 @@ test.describe('Cluster member screens', () => {
      *
      * The roster refused every address without an account behind it, so the one body that cannot walk
      * up to a person and hand them a login was the association. It asks the address first, as it always
-     * did, and nothing beyond it until the server has said nobody has that address.
+     * did, and nothing beyond it until the server has reported nobody has that address.
      */
     test('the association takes on somebody with no account yet', async ({browser, request}) => {
         const account = await clusterAccountWith(request, 'CLUSTER_ADMINISTRATOR')

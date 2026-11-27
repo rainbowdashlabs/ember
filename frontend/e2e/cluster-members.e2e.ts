@@ -38,7 +38,7 @@ test.describe('Cluster members and fields', () => {
     /**
      * CLS-23 - The cluster searches members across all its stations.
      *
-     * Two stations in one list, each entry saying where it comes from. The demo puts members under two
+     * Two stations in one list, each entry showing where it comes from. The demo puts members under two
      * different member stations for exactly this. Every station the cluster reaches is offered to narrow
      * by, asserted as options because an option is in the page without being on it.
      */
@@ -132,7 +132,7 @@ test.describe('Cluster members and fields', () => {
      *
      * One form of two origins. What the cluster asks and what the station asks are answered side by side,
      * each marked with who asked, and both survive being read back. The answer is read off the inputs:
-     * the form sets it as a property, so an attribute selector would only see what the markup said.
+     * the form sets it as a property, so an attribute selector would only see what the markup showed.
      */
     test('a member is edited from the cluster', async ({adminPage: page}) => {
         const cluster = await enterCluster(page)

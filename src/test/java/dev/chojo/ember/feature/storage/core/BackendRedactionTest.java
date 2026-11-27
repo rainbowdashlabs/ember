@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * One redaction for the screens and the history, for the stored rows and the instance's configuration file
- * alike: the destination as it is, the credentials as a fingerprint that tells a rotation apart.
+ * alike: the destination as it is, the credentials as a fingerprint that distinguishes a rotation.
  */
 class BackendRedactionTest {
     private final CredentialCipher cipher =

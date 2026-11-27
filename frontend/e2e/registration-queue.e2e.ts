@@ -195,7 +195,7 @@ test.describe('Nachrückliste', () => {
     /**
      * Refusing a sign-up that already holds a place gives that place away, so the page asks first.
      * Turning the question down leaves the place where it was; saying yes refuses the sign-up and a
-     * message says so.
+     * message shows that.
      */
     test('refusing a confirmed sign-up asks first', async ({managerPage: page}) => {
         const appointment = await limitedAppointment(page, 3)

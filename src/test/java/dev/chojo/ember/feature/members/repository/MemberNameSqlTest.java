@@ -95,7 +95,7 @@ class MemberNameSqlTest extends RepositoryTestBase {
     }
 
     /**
-     * The three fallbacks differ only in what they say about nobody at all, which is the whole
+     * The three fallbacks differ only in what they show about nobody at all, which is the whole
      * reason there are three of them.
      */
     @Test
@@ -145,7 +145,7 @@ class MemberNameSqlTest extends RepositoryTestBase {
     }
 
     /**
-     * A list of people says who somebody is and what they are called at once.
+     * A list of people shows who somebody is and what they are called at once.
      *
      * <p>Asserted against the roster the member screen actually reads rather than against the
      * fragment, because every form can be built correctly and the list still ask for the wrong one.

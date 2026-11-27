@@ -10,7 +10,7 @@ import AudienceStep from './AudienceStep.vue'
 import type {MemberGroup, TemplateDetail} from '@/api/generated/schema'
 
 /**
- * The step that says whom a sheet nobody kept a template for expects.
+ * The step that shows whom a sheet nobody kept a template for expects.
  *
  * <p>The two answers add up, and a sheet still has to borrow its questions from somewhere, so the
  * step cannot be walked past having answered neither.

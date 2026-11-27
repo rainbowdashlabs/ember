@@ -17,7 +17,7 @@ function preview(overrides: Partial<ChangePreview> = {}): ChangePreview {
 
 /**
  * The dialog that asks, on saving an appointment, which dates the change applies to and whether the
- * people it concerns are told.
+ * people it concerns are notified.
  */
 describe('EventSaveDialog', () => {
     function dialog(props: Partial<{

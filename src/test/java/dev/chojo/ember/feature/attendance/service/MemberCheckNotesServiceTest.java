@@ -58,7 +58,7 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
 
     /**
      * A found item somebody claimed is named to whoever keeps the lost and found, and not to anybody
-     * else. Taking an attendance says nothing about being allowed to know what a member lost.
+     * else. Taking an attendance implies nothing about being allowed to know what a member lost.
      */
     @Test
     void aClaimedFindIsNamedOnlyToWhoeverKeepsTheLostAndFound() {
@@ -93,7 +93,7 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
 
     /**
      * A birthday is answered from the station's own birth date field, and only where that field is
-     * one the reader may see. A station that keeps it to managers tells nobody else.
+     * one the reader may see. A station that keeps it to managers notifies nobody else.
      */
     @Test
     void aBirthdayFollowsTheScopeOfTheFieldItLivesIn() {
@@ -115,7 +115,7 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A swap that has not finished is named to whoever may read the inventory, saying where it
+     * A swap that has not finished is named to whoever may read the inventory, showing where it
      * stands and what it does next, and to nobody else.
      *
      * <p>A swap just announced is waiting on the member, so the next move is not the handover. That
@@ -199,7 +199,7 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
     /**
      * The note names the piece the step is about and the size written on it, which is what somebody
      * standing at a shelf reads off it. The inventory it came out of is not that: a station with four
-     * inventories of jackets says "Einsatzjacke" four times and names none of them.
+     * inventories of jackets shows "Einsatzjacke" four times and names none of them.
      */
     @Test
     void theNoteNamesThePieceAndTheSizeWrittenOnIt() {
@@ -224,7 +224,7 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A piece out of an inventory that keeps no sizes carries none, and the note says nothing rather
+     * A piece out of an inventory that keeps no sizes carries none, and the note shows nothing rather
      * than an empty badge.
      */
     @Test

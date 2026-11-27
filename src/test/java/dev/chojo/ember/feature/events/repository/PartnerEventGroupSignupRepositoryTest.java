@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What a station remembers of its members' sign-ups to a partner station's event groups: that it signed
- * them up, the status the holder last told it, and the instant that status was decided, which survives a
+ * them up, the status the holder last sent it, and the instant that status was decided, which survives a
  * withdrawal so a late notice cannot apply to a fresh sign-up.
  */
 class PartnerEventGroupSignupRepositoryTest extends RepositoryTestBase {

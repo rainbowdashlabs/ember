@@ -230,7 +230,7 @@ class CommentServiceTest extends RepositoryTestBase {
         assertNull(created.parentCommentId());
     }
 
-    /** Whoever the question names by name is told by the mention, and not a second time as manager. */
+    /** Whoever the question names by name is notified by the mention, and not a second time as manager. */
     @Test
     void aManagerMentionedInANewThreadIsToldOnlyByTheMention() {
         write(alice, "Alice", null, "Frage an " + mention(station, bob, "Bob"));
@@ -471,8 +471,8 @@ class CommentServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A target may name people besides the thread to tell about every comment, and a target owned
-     * by no station still takes comments, which then tell within the station they were written
+     * A target may name people besides the thread to notify of every comment, and a target owned
+     * by no station still takes comments, which then notify within the station they were written
      * from.
      */
     @Test

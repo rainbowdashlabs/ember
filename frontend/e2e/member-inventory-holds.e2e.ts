@@ -7,7 +7,7 @@ import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 
 /**
- * A list of gear says what is there, and nothing else.
+ * A list of gear shows what is there, and nothing else.
  *
  * <p>For a member that means in their hands: a piece handed in for an exchange leaves their inventory
  * at that moment and a replacement joins it when it is handed over. For a station it means in the
@@ -139,7 +139,7 @@ test.describe('A list of gear shows what is there', () => {
         })
 
     /**
-     * ITM-45 - A piece they are still holding stays listed and says what is running on it, in the
+     * ITM-45 - A piece they are still holding stays listed and shows what is running on it, in the
      * words the movement list uses: the step that happened and whose turn it is, never the step
      * being waited on.
      */
@@ -278,7 +278,7 @@ test.describe('A list of gear shows what is there', () => {
     })
 })
 
-/** What the check says about one inventory for one member, read by opening the check on them. */
+/** What the check shows about one inventory for one member, read by opening the check on them. */
 async function requirementFor(page: Page, headers: Record<string, string>, memberId: number, inventoryId: number) {
     const answer = await page.request.post(`/api/v1/inventory-checks/${memberId}/start`, {headers})
     expect(answer.ok(), `the check opens (${await answer.text()})`).toBeTruthy()

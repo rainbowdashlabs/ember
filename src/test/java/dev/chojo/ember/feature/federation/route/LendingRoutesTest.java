@@ -44,7 +44,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * The lending screens over HTTP: who may see and act on a request is the view service's to say,
+ * The lending screens over HTTP: who may see and act on a request is the view service's to decide,
  * and every answer is the request as it describes it.
  */
 class LendingRoutesTest {

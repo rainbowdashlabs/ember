@@ -217,7 +217,7 @@ class PasskeyServiceTest extends RepositoryTestBase {
 
     /**
      * Answered against the second ceremony's challenge but spent at the first: the library's verification
-     * is what says no.
+     * is what refuses.
      */
     @Test
     void creationRefusesACeremonyOverTheWrongChallenge() {

@@ -323,7 +323,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The story this whole holding-back exists for: the record says 128, the member holds a 134 and
+     * The story this whole holding-back exists for: the record shows 128, the member holds a 134 and
      * says so, and asks for a swap in the same breath.
      *
      * <p>Raised at once, the swap would go out against the piece the correction is about to take off

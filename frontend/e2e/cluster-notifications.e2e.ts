@@ -9,7 +9,7 @@ import {ownCluster, type OwnCluster} from './fixtures/cluster'
 import {openSection, sidebar} from './fixtures/sidebar'
 
 /**
- * What an association is told, under the bell in its own menu.
+ * What an association is notified of, under the bell in its own menu.
  *
  * The association's notices used to be written and never shown: the station's inbox reads the station's feed,
  * and nothing read the association's. A station asking to join is the notice every association gets first, so

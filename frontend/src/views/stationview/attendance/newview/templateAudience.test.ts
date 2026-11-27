@@ -9,7 +9,7 @@ import {sameAudience, templateAudience} from './templateAudience'
 import type {TemplateDetail} from '@/api/generated/schema'
 
 /**
- * Whom a template enters, and whether a sheet was told exactly that. A sheet told exactly its
+ * Whom a template enters, and whether a sheet was given exactly that. A sheet given exactly its
  * template's audience is started without one of its own, so it keeps following the template.
  */
 const template: TemplateDetail = {

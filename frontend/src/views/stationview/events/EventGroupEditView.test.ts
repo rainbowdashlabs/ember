@@ -148,7 +148,7 @@ describe('EventGroupEditView started from an appointment', () => {
   })
 })
 
-/** A minimum the server lowered after a part left its set reaches the form, which says so. */
+/** A minimum the server lowered after a part left its set reaches the form, which shows it. */
 describe('EventGroupEditView after a part changed', () => {
   const group = {id: 7, details: {name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null,
     requiresConfirmation: false, color: null}}
@@ -205,7 +205,7 @@ describe('EventGroupEditView after a part changed', () => {
     expect(toast).toHaveBeenCalledOnce()
   })
 
-  /** A minimum the server raised because a part became required reaches the form, which says so. */
+  /** A minimum the server raised because a part became required reaches the form, which shows it. */
   it('takes a minimum raised by a required part into the form and says so', async () => {
     api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(1, 3))
     const wrapper = mountEditor()
@@ -220,7 +220,7 @@ describe('EventGroupEditView after a part changed', () => {
     expect(toast).toHaveBeenCalledWith(expect.stringContaining('2 statt 1'))
   })
 
-  /** A maximum the server raised because a part became required reaches the form, which says so. */
+  /** A maximum the server raised because a part became required reaches the form, which shows it. */
   it('takes a raised maximum into the form and says so', async () => {
     api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(1, 3, 1))
     const wrapper = mountEditor()

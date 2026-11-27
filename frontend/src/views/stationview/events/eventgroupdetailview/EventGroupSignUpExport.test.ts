@@ -16,7 +16,7 @@ const presentFile = vi.hoisted(() => vi.fn())
 vi.mock('@/api', () => ({eventGroups: {exportSignUps}}))
 vi.mock('@/util/documentFile', () => ({presentFile}))
 
-/** The sign-ups leave in the format and separator chosen, and a file that could not be made says so. */
+/** The sign-ups leave in the format and separator chosen, and a file that could not be made is reported. */
 describe('EventGroupSignUpExport', () => {
     beforeEach(() => {
         exportSignUps.mockReset()

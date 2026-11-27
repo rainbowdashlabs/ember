@@ -61,7 +61,7 @@ async function mounted() {
 
 /**
  * Working through the problem log: the list follows its filters and only the latest answer counts, every
- * change is followed by a quiet reload and a fresh count, and whatever fails is said.
+ * change is followed by a quiet reload and a fresh count, and whatever fails is shown.
  */
 describe('useProblemList', () => {
     beforeEach(() => {

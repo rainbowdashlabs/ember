@@ -92,7 +92,7 @@ class NotifierTest extends RepositoryTestBase {
 
     /**
      * For every member and every permission, the notifier reaches a member exactly when the
-     * resolver that answers for one member says they hold it.
+     * resolver that answers for one member shows they hold it.
      */
     @Test
     void holdersAreWhoTheResolverSaysHoldsThePermission() {

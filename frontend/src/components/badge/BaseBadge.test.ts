@@ -21,7 +21,7 @@ async function mountBadge() {
 /**
  * A badge asks the browser what it painted and picks letters that can be read on it. The paint is
  * stubbed here because no stylesheet is loaded in a test, and stubbing it is also the only way to
- * say "the theme changed" in the terms the badge sees it.
+ * express "the theme changed" in the terms the badge sees it.
  */
 describe('BaseBadge', () => {
     beforeEach(() => {

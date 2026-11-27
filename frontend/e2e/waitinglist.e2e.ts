@@ -40,7 +40,7 @@ test.describe('Waiting lists', () => {
 
     /**
      * The public list is how somebody who is not in the station yet gets in touch. The story fills
-     * it in as a stranger - no session at all - and is told what happens next, which is the address
+     * it in as a stranger - no session at all - and sees what happens next, which is the address
      * being confirmed by mail.
      *
      * It takes the list that asks for nothing beyond a name and an address. The other two insist on
@@ -132,7 +132,7 @@ test.describe('Waiting lists', () => {
     })
 
     /**
-     * One is what makes the age findable without being told where it is; two would be a guess. The
+     * One is what makes the age findable without being shown where it is; two would be a guess. The
      * first is the story's own, so the second runs into a field nobody else can take away.
      */
     test('a list takes only one date of birth field', async ({managerPage: page}) => {

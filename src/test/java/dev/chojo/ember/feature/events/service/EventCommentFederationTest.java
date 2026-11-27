@@ -122,7 +122,7 @@ class EventCommentFederationTest extends EventFederationTestBase {
     }
 
     /**
-     * A partner's reply to a member here, mentioning that member, tells nobody here; its removal
+     * A partner's reply to a member here, mentioning that member, notifies nobody here; its removal
      * still withdraws what was written about it.
      */
     @Test

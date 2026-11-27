@@ -33,7 +33,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Where a published discovery card tells a reader to find the station's public page.
+ * Where a published discovery card sends a reader to find the station's public page.
  */
 class DiscoveryStationCardAddressTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();

@@ -127,7 +127,7 @@ class DocumentServiceTest extends RepositoryTestBase {
                         .toList());
     }
 
-    /** A text file says something, and what it says is what somebody searches for later. */
+    /** A text file holds something, and what it holds is what somebody searches for later. */
     @Test
     @Order(2)
     void whatATextFileSaysIsSearchableAfterwards() {

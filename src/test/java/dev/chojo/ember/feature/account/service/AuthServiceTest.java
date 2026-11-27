@@ -499,8 +499,8 @@ class AuthServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A link that ran out and a link that never existed need different words, so the two are told
-     * apart rather than both answered with "invalid". Only then can the page say what happened and
+     * A link that ran out and a link that never existed need different words, so the two are kept
+     * apart rather than both answered with "invalid". Only then can the page show what happened and
      * who can put it right.
      */
     @Test
@@ -1214,7 +1214,7 @@ class AuthServiceTest extends RepositoryTestBase {
 
     /**
      * On a demo instance it signs the account in without a password, and an address nobody holds is refused
-     * the way a wrong password is rather than by saying the address is unknown.
+     * the way a wrong password is rather than by showing the address is unknown.
      */
     @Test
     @Order(87)
@@ -1438,7 +1438,7 @@ class AuthServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The approval says the account holder is present. It does not say the account is in a state to
+     * The approval shows the account holder is present. It does not show the account is in a state to
      * be used, so the refusals every other sign-in makes are made here too.
      */
     @Test
@@ -1752,7 +1752,7 @@ class AuthServiceTest extends RepositoryTestBase {
     /**
      * The same instance, seen for the length of one story as one that has no way of sending.
      *
-     * <p>The policy is asked rather than the configuration, so a test says which of the two worlds it
+     * <p>The policy is asked rather than the configuration, so a test shows which of the two worlds it
      * is in by answering that question and putting the answer back afterwards.
      */
     private void withoutAMailServer(Runnable story) {

@@ -13,7 +13,7 @@ import {expect, type Locator, type Page} from '@playwright/test'
  * open-type-press is how the selectors drifted apart the last time.
  *
  * <p>`scope` is the page where only one menu is on it, and the panel or the modal around it where
- * there is more than one. Scoping tells two triggers apart. The open panel is drawn at the end of
+ * there is more than one. Scoping distinguishes two triggers. The open panel is drawn at the end of
  * the page, outside every container, so it is looked for on the whole page: only one is ever open.
  */
 function trigger(scope: Page | Locator): Locator {

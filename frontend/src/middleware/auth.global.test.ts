@@ -165,7 +165,7 @@ describe('auth route guard', () => {
      *
      * <p>Every gate below reads an unknown address as a page somebody may not see, so an anonymous
      * visitor mistyping one was sent to the login screen carrying the bad address as their redirect.
-     * The page that exists to explain a wrong address never got to say anything.
+     * The page that exists to explain a wrong address never got to show anything.
      */
     it('sends a browser without a session cookie to the login, with the way back', async () => {
         state.carriesSession = false

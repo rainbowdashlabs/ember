@@ -124,7 +124,7 @@ class BeaconRepositoriesTest extends RepositoryTestBase {
         assertEquals(9, fault.occurrences());
     }
 
-    /** A fault can be marked seen and told which version put it right. */
+    /** A fault can be marked seen and given the version that put it right. */
     @Test
     void aFaultCanBeResolved() {
         String fingerprint = "fp-" + UUID.randomUUID();

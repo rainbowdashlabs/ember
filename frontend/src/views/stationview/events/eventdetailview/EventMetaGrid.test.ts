@@ -40,7 +40,7 @@ async function buttonsFor(field: AppointmentField): Promise<string[]> {
 }
 
 /**
- * The self-registration buttons follow what the server says about this reader, so a member is never
+ * The self-registration buttons follow what the server reports about this reader, so a member is never
  * offered a question they would then be refused.
  */
 describe('EventMetaGrid self-registration', () => {

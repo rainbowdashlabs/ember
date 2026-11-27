@@ -216,7 +216,7 @@ class MailImportCycleTest extends RepositoryTestBase {
                 Instant.now().minusSeconds(3600));
     }
 
-    /** The same mailbox, told to file nothing that is not signed by the domain it comes from. */
+    /** The same mailbox, set to file nothing that is not signed by the domain it comes from. */
     private MailMailbox askingForASignature() {
         mailboxRepository.update(
                 mailbox.id(),
@@ -663,7 +663,7 @@ class MailImportCycleTest extends RepositoryTestBase {
     }
 
     /**
-     * Somebody has to be told. The error is on the mailbox either way, but nobody goes looking at a page
+     * Somebody has to be notified. The error is on the mailbox either way, but nobody goes looking at a page
      * for an import that silently stopped a month ago.
      */
     @Test
@@ -816,7 +816,7 @@ class MailImportCycleTest extends RepositoryTestBase {
      * cycle after it too, until the mailbox was suspended over a message that is not even there anymore.
      *
      * <p>The last message is the one removed, for the reason {@link MailboxReaderTest} gives: the test
-     * server renumbers the others at once, where a real one waits until it has told the session.
+     * server renumbers the others at once, where a real one waits until it has informed the session.
      */
     @Test
     void aMessageAnotherClientRemovesMidCycleIsSkippedAndTheRestAreImported() throws Exception {

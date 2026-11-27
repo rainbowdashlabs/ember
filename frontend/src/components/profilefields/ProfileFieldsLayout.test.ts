@@ -54,7 +54,7 @@ describe('ProfileFieldsLayout', () => {
         expect(view.text()).toContain('berechnet')
     })
 
-    /** The member sees their own date running out before any reminder tells them. */
+    /** The member sees their own date running out before any reminder notifies them. */
     it('marks an expiry date that has passed beside its label', () => {
         const firstAid = question(20, 'Erste Hilfe gültig bis', FieldType.EXPIRY_DATE)
         const view = mount(ProfileFieldsLayout, {

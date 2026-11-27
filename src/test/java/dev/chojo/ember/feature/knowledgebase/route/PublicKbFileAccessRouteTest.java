@@ -57,7 +57,7 @@ import static org.mockito.Mockito.when;
  *
  * <p>A picture is the file, a rendering is the file, and a reader outside the station holds no
  * session to be judged by, so the only thing between a file and the open web is what the station
- * published. One rule says so, and these tests hold every route to it rather than to its own copy.
+ * published. One rule defines it, and these tests hold every route to it rather than to its own copy.
  */
 class PublicKbFileAccessRouteTest {
     private static final int STATION_ID = 4;
@@ -184,9 +184,9 @@ class PublicKbFileAccessRouteTest {
     /**
      * Which refusal an endpoint answered a stranger with, having checked it is a {@code 404}.
      *
-     * <p>Returned rather than asserted here so each case can also say <em>which</em> refusal it
+     * <p>Returned rather than asserted here so each case can also assert <em>which</em> refusal it
      * expects. That is the part worth pinning: the three ways a file can be out of reach all have
-     * to answer with one code, or the code itself tells a stranger which of the three it was.
+     * to answer with one code, or the code itself shows a stranger which of the three it was.
      *
      * @param rendering the rendering to ask for
      * @return the refusal it answered with
@@ -278,7 +278,7 @@ class PublicKbFileAccessRouteTest {
 
     /**
      * A published file of a kind no picture can be made of falls back to the icon of its kind, which
-     * is what the 404 tells the tile to draw.
+     * is what the 404 signals to the tile to draw.
      */
     @Test
     void aPublishedFileWithoutAPictureShowsNothing() {

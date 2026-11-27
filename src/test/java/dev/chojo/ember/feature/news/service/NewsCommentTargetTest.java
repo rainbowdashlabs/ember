@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What a comment on a news entry differs in from the other kinds: whose it is, who moderates it and
- * whom it tells.
+ * whom it notifies.
  */
 class NewsCommentTargetTest extends RepositoryTestBase {
     private static NewsCommentTarget target;

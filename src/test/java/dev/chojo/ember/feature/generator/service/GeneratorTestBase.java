@@ -204,7 +204,7 @@ public abstract class GeneratorTestBase extends RepositoryTestBase {
     }
 
     /**
-     * The signing services for the documents of one wired station, telling what happens to requests on the
+     * The signing services for the documents of one wired station, reporting what happens to requests on the
      * given bus.
      *
      * @param wiring      the station's documents

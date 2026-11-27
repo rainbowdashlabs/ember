@@ -50,7 +50,7 @@ test.describe('Setup assistant', () => {
         await expect(page.getByRole('button', {name: /Weiter|Speichern/})).toHaveCount(0)
     })
 
-    /** A station still being set up stays in the assistant, and it says which step of how many. */
+    /** A station still being set up stays in the assistant, and it shows which step of how many. */
     test('an unfinished station opens on the assistant', async ({browser, request}) => {
         const page = await setupStationPage(browser, request)
 

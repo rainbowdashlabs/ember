@@ -53,7 +53,7 @@ class KbTrashPurgerTest {
     }
 
     /**
-     * The window is an operator's to set, and it is read as a sane number whatever the file says: a
+     * The window is an operator's to set, and it is read as a sane number whatever the file holds: a
      * trash that keeps nothing is not a trash, and one that keeps forever is not one either.
      */
     @Test

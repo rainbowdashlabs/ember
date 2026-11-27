@@ -136,7 +136,7 @@ test.describe('Station modules', () => {
     /**
      * An appointment's equipment reads the inventory. A station that has switched the inventory off
      * has nothing to read there, and the tab would only ever answer with a refusal, which the screen
-     * has no way of telling apart from an appointment that needs nothing.
+     * has no way of distinguishing from an appointment that needs nothing.
      */
     test('an appointment keeps its equipment tab only while the inventory is on',
         async ({partnerManagerPage: page}) => {

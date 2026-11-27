@@ -61,7 +61,7 @@ import static org.mockito.Mockito.mock;
  * registers every route there is. What the application keeps under {@code data/} goes to a temporary
  * directory beside that configuration, so building it writes nothing into the working directory.
  *
- * <p>The router cannot say which method answers a route, because it holds a method reference and
+ * <p>The router cannot show which method answers a route, because it holds a method reference and
  * a method reference does not name its target. Each route group is therefore built a second time
  * with test doubles for everything it depends on, its routes are registered again, and each of them
  * is asked a question with a request that refuses to answer anything. The method the refusal

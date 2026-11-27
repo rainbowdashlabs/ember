@@ -37,7 +37,7 @@ test.describe('Groups', () => {
     /**
      * A set is made on the groups page and two groups are put into it; a member joins one of them and
      * then moves to the other from their own page, where the set is one choice. Becoming a team member
-     * afterwards takes them out of a group bound to members, after the page has said so.
+     * afterwards takes them out of a group bound to members, after the page has shown it.
      *
      * <p>Everybody and everything is the story's own: the seeded groups are shared with every other
      * story, and one of them changing a binding would break this one.

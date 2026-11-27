@@ -146,7 +146,7 @@ class NotificationDataTest {
         }
     }
 
-    /** An expiry reminder keeps the sentence it names, and leaves out what it does not say. */
+    /** An expiry reminder keeps the sentence it names, and leaves out what it does not carry. */
     @Test
     void anExpiryReminderSurvivesTheRoundTripWithItsVariant() {
         var params = new NotificationParams.ExpiryReminder(

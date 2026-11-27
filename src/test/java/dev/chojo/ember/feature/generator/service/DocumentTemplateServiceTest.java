@@ -71,7 +71,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Writing, changing and archiving templates, and every refusal of what a template may not say.
+ * Writing, changing and archiving templates, and every refusal of what a template may not contain.
  */
 class DocumentTemplateServiceTest extends RepositoryTestBase {
     private static final String PICTURE = "a".repeat(64);

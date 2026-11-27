@@ -207,7 +207,7 @@ class NewsServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Notifying is asked for rather than assumed, and when it is asked for every station is told:
+     * Notifying is asked for rather than assumed, and when it is asked for every station is notified:
      * the entry is one row, but a notification is addressed to somebody.
      */
     @Test

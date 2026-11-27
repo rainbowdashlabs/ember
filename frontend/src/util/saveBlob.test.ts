@@ -143,7 +143,7 @@ describe('saveBlob', () => {
 
         /**
          * The download link is no answer inside another app's browser, so a caller has to be able
-         * to tell the reader rather than leave them pressing a button that does nothing and says
+         * to inform the reader rather than leave them pressing a button that does nothing and shows
          * nothing.
          */
         it('says the file could not be saved when neither route works', async () => {
@@ -319,7 +319,7 @@ describe('saveBlob', () => {
 
     /**
      * A phone browser of its own saves what the link hands it, in its window and in an installed
-     * app alike. Reported as a failure regardless, it told a reader that a file they had just been
+     * app alike. Reported as a failure regardless, it showed a reader that a file they had just been
      * offered to save could not be saved.
      */
     it('counts the download link as done in a phone browser that will not share files', async () => {

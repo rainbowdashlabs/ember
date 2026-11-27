@@ -30,7 +30,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
- * The writers that change who belongs to a station's people say so, so the station's chats follow.
+ * The writers that change who belongs to a station's people signal it, so the station's chats follow.
  * Each test watches the bus one writer publishes on.
  */
 class StationAudienceEventsTest extends RepositoryTestBase {

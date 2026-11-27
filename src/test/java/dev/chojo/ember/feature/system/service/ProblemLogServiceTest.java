@@ -41,7 +41,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Working through the problem log: faults and refusals are resolved apart, a problem that is gone is
- * said to be, and the sweep keeps to the configured retention.
+ * marked as such, and the sweep keeps to the configured retention.
  */
 class ProblemLogServiceTest {
     private final ProblemLogRepository repository = mock(ProblemLogRepository.class);

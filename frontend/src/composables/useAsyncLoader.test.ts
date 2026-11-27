@@ -21,7 +21,7 @@ function deferred<T>() {
     return {promise, resolve, reject}
 }
 
-/** A loader that asks for one answer per run and keeps what the latest run was told. */
+/** A loader that asks for one answer per run and keeps what the latest run was given. */
 function filteredLoader() {
     const gates: ReturnType<typeof deferred<string>>[] = []
     const shown = ref('')

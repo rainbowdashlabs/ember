@@ -147,7 +147,7 @@ class OnboardingServiceTest {
         assertTrue(tasks.contains("member.quiz"));
     }
 
-    /** The walk past the station's areas says where everything else happens, so it comes first. */
+    /** The walk past the station's areas shows where everything else happens, so it comes first. */
     @Test
     void theWalkPastTheAreasComesFirstAndIsKnownOnEveryStation() {
         when(markRepository.findByOtherMembershipsOf(MEMBER))
@@ -372,7 +372,7 @@ class OnboardingServiceTest {
         assertTrue(keysOf(status).contains("member.profile"));
     }
 
-    /** What a guardian set up for a child on one station says nothing about a child on another. */
+    /** What a guardian set up for a child on one station implies nothing about a child on another. */
     @Test
     void aGuardiansTasksForAChildAreNotTakenFromAnotherStation() {
         when(memberRepository.findManaged(MEMBER)).thenReturn(List.of(member(CHILD, StationUserType.MEMBER)));

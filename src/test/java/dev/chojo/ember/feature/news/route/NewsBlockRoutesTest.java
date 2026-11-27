@@ -41,7 +41,7 @@ import static org.mockito.Mockito.mock;
  * A news block reads the entry it names, its picker searches for one, and an article saves one, over
  * HTTP. On a public page only what the public blog shows; in a news or wiki article every entry every
  * member may read, internal ones included. Everything else is the same 404 when drawn and a named
- * refusal when saved, and says nothing about a draft or an entry kept to part of the station.
+ * refusal when saved, and shows nothing about a draft or an entry kept to part of the station.
  */
 class NewsBlockRoutesTest extends BlockReferenceTestBase {
     private static Station blogless;

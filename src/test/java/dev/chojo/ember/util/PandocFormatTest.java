@@ -39,7 +39,7 @@ class PandocFormatTest {
         assertEquals(Optional.of("epub"), PandocConverter.formatOf(fixture("/pandoc/sample.epub"), null, null));
     }
 
-    /** A file is what its bytes say, whatever it was named or declared as. */
+    /** A file is what its bytes show, whatever it was named or declared as. */
     @Test
     void aRenamedFileIsKnownByItsContent() throws IOException {
         assertEquals(

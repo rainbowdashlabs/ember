@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * What a station may keep, and on whose word.
  *
- * <p>Four parties can have a say and they are consulted in one order: the cluster's grant, the cluster's
+ * <p>Four parties can weigh in and they are consulted in one order: the cluster's grant, the cluster's
  * defaults, the instance's own number for that station, and the instance configuration. The order is the
  * whole subject here, because every number a station is shown comes out of it.
  */

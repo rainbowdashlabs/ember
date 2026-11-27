@@ -13,7 +13,7 @@ import type {APIRequestContext} from '@playwright/test'
  * shown. What only two instances can show is the part that broke in the wild, which is the picture
  * making the journey: it is a delivery of its own, sent before the report that names it, and the
  * report does not go at all where the picture did not arrive. A story on one instance would have
- * said nothing about any of that.
+ * shown nothing about any of that.
  */
 
 /** A small red PNG, so a real picture is attached rather than a string pretending to be one. */

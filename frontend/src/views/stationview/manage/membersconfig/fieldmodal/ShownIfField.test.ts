@@ -13,7 +13,7 @@ function question(id: number, name: string, fieldType: string, fieldSetId: numbe
 }
 
 /**
- * The picker says what lets the dependent question in, so a choice is not taken for a yes/no question.
+ * The picker shows what lets the dependent question in, so a choice is not taken for a yes/no question.
  */
 describe('ShownIfField', () => {
     it('names a yes/no question with its yes and a choice with any answer, and leaves out the one edited', async () => {

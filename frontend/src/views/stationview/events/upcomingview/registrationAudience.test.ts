@@ -84,7 +84,7 @@ describe('registrationAudienceNote', () => {
     })
 })
 
-/** A kept appointment says whom it is kept for, also where the same people may answer it. */
+/** A kept appointment shows whom it is kept for, also where the same people may answer it. */
 describe('viewAudienceNote', () => {
     it('names whom a kept appointment is for, even where the same people answer it', () => {
         expect(viewAudienceNote(restrictions({groupIds: [1]}, {groupIds: [1]}), 7, groups, tags, t))

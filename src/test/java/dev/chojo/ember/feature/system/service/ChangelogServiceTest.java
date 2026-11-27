@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>Read against the files that ship rather than against a fixture, because what this has to be
  * right about is the real thing: the shape somebody actually writes the entries in, and the version
- * this build says it is.
+ * this build reports itself to be.
  */
 class ChangelogServiceTest {
 
@@ -65,7 +65,7 @@ class ChangelogServiceTest {
 
     /**
      * A version the file does not name is absent rather than empty. A development build has no
-     * section of its own, and an announcement with nothing in it says less than nothing.
+     * section of its own, and an announcement with nothing in it is worse than nothing.
      */
     @Test
     void aVersionTheChangelogDoesNotNameIsAbsent() {
@@ -196,7 +196,7 @@ class ChangelogServiceTest {
         assertNotNull(ChangelogService.readResource("changelog/de.md"));
     }
 
-    /** Half an entry says nothing about when a version was released, so it says nothing at all. */
+    /** Half an entry carries nothing about when a version was released, so it yields nothing at all. */
     @Test
     void aTagWithNoDateIsPassedOver() {
         var service = withTags("""

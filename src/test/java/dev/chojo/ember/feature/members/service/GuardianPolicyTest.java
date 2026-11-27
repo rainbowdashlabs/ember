@@ -92,7 +92,7 @@ class GuardianPolicyTest extends RepositoryTestBase {
         assertFalse(policy.mayActFor(sessionOf(stranger), ward.id()));
     }
 
-    /** Being somebody's guardian says nothing about the wards of another guardian. */
+    /** Being somebody's guardian implies nothing about the wards of another guardian. */
     @Test
     void aGuardianDoesNotActForTheWardOfAnother() {
         assertFalse(policy.mayActFor(sessionOf(guardian, StationPermission.MEMBER_GUARDIAN), otherWard.id()));

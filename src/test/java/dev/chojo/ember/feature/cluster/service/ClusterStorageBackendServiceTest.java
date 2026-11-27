@@ -321,7 +321,7 @@ class ClusterStorageBackendServiceTest extends RepositoryTestBase {
     /**
      * Everything the association does to its storage is in its history: the storage it set, what it decided,
      * the moves it made and the ones refused, the join and the release, and giving the storage up. A move
-     * its checks refuse never started, so the history does not say it did.
+     * its checks refuse never started, so the history does not show it did.
      */
     @Test
     void everyActOfTheAssociationIsInItsHistory() {

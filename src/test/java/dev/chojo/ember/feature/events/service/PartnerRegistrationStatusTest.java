@@ -43,8 +43,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
- * Station A tells station B, on the same instance, when it decides about one of B's members on a date of a
- * shared appointment, and B tells the member's household; B's own confirmation is told the same way.
+ * Station A notifies station B, on the same instance, when it decides about one of B's members on a date of a
+ * shared appointment, and B notifies the member's household; B's own confirmation is passed on the same way.
  */
 class PartnerRegistrationStatusTest extends EventFederationTestBase {
     private final PartnerSigningRepository signups = new PartnerSigningRepository();
@@ -114,7 +114,7 @@ class PartnerRegistrationStatusTest extends EventFederationTestBase {
         return signups.knownStatus(member.id(), stationA.uid(), event.id(), day).orElseThrow();
     }
 
-    /** Accepting and then turning down a partner's member is told to the partner, which tells the household. */
+    /** Accepting and then turning down a partner's member is sent to the partner, which notifies the household. */
     @Test
     void aDecisionReachesTheMembersHousehold() {
         int registration = signUp(first);
@@ -131,8 +131,8 @@ class PartnerRegistrationStatusTest extends EventFederationTestBase {
     }
 
     /**
-     * Putting a partner's member on the waiting list is told with the place in line; reordering the list
-     * is not told; moving up into a place that fell free is told as such.
+     * Putting a partner's member on the waiting list is sent with the place in line; reordering the list
+     * is not sent; moving up into a place that fell free is sent as such.
      */
     @Test
     void theWaitingListIsToldButNotItsOrder() {
@@ -157,7 +157,7 @@ class PartnerRegistrationStatusTest extends EventFederationTestBase {
 
     /**
      * A notice older than the one taken in, a repeat, or one about a member this station did not sign up
-     * changes nothing and tells nobody.
+     * changes nothing and notifies nobody.
      */
     @Test
     void aLateRepeatedOrUnknownNoticeIsIgnored() {
@@ -178,7 +178,7 @@ class PartnerRegistrationStatusTest extends EventFederationTestBase {
     }
 
     /**
-     * A withdrawal keeps what the partner last said, so a notice older than that is still ignored once the
+     * A withdrawal keeps what the partner last sent, so a notice older than that is still ignored once the
      * member signs up again; meanwhile a withdrawn member is not believed at all.
      */
     @Test
@@ -212,7 +212,7 @@ class PartnerRegistrationStatusTest extends EventFederationTestBase {
                         new RemoteRegistrationStatus(event.id(), event.name(), member, day, status, null, false, at));
     }
 
-    /** A partner confirming one of its own tells the member's household where they stand now. */
+    /** A partner confirming one of its own notifies the member's household where they stand now. */
     @Test
     void confirmingOnesOwnIsToldToTheHousehold() {
         givePlaces(event.id(), serving, 1, true);

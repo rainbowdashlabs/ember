@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 /**
  * Whether a property of a wire type is marked nullable.
  *
- * <p>A reference is non-null unless its declaration says otherwise with {@link Nullable}. For a record
+ * <p>A reference is non-null unless its declaration shows otherwise with {@link Nullable}. For a record
  * that is the component; for any other type it is the getter, the field or the constructor parameter
  * the property is read or written through.
  */

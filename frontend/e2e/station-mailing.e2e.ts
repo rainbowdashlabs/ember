@@ -125,7 +125,7 @@ test.describe('Station mail providers', () => {
 
     /**
      * The queue was recorded from the start and could not be read. What matters is that the page
-     * says where the post stands, and which provider it is standing at.
+     * shows where the post stands, and which provider it is standing at.
      */
     test('the state of the queue is on the page', async ({managerPage: page}) => {
         await page.goto(MAILING)

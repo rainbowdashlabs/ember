@@ -42,7 +42,7 @@ function cell(overrides: Partial<RosterMember> = {}) {
   })
 }
 
-/** The badge beside a name in the member list that says a required profile question is still open. */
+/** The badge beside a name in the member list that shows a required profile question is still open. */
 describe('MemberNameCell', () => {
   it('marks a member whose profile leaves a required question open', () => {
     const badge = cell({profileComplete: false}).find('[data-testid="member-incomplete"]')

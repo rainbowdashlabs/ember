@@ -22,7 +22,7 @@ test.describe('Forms', () => {
 
     /**
      * A form exists to be answered. The member opens one they are offered, fills it in and sends
-     * it. Sending leaves them on a screen that says the answer went through, with the form's own
+     * it. Sending leaves them on a screen that shows the answer went through, with the form's own
      * words where it has any, and from there they go back to the list.
      */
     test('a member fills in a form and sends it', async ({memberPage: page}) => {
@@ -125,7 +125,7 @@ test.describe('Forms with pages', () => {
     })
 
     /**
-     * A required question on the page the reader is on stops them going on, and says so at the
+     * A required question on the page the reader is on stops them going on, and shows that at the
      * question rather than somewhere above the form.
      */
     test('a required question is marked before the page can be left', async ({managerPage: page}) => {

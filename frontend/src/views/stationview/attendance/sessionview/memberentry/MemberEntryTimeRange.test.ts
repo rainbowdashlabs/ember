@@ -24,7 +24,7 @@ const SESSION_END = '2026-03-17T21:00:00.000Z'
 
 /**
  * When somebody came and went. On a sheet over one day a time is enough; on one that runs over a
- * weekend the same three characters name two different moments, and the field has to say which.
+ * weekend the same three characters name two different moments, and the field has to show which.
  */
 describe('MemberEntryTimeRange', () => {
     it('asks for a time alone on a sheet that runs for one day', () => {

@@ -37,7 +37,7 @@ test.describe('Cluster discovery', () => {
      * CLS-46 - A cluster with nothing public does not appear.
      *
      * A cluster made for this story has one station and it is hidden, so the directory has nothing of it
-     * to gather and must not name it anyway. A new station is listed until it says otherwise, so the
+     * to gather and must not name it anyway. A new station is listed until it is set otherwise, so the
      * person who runs it hides it the way its settings do.
      */
     test('a cluster with nothing public does not appear', async ({page, adminPage, browser, request}) => {

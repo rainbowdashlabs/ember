@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * What an attendance report is called once it reaches a reader.
  *
  * <p>The old name was the same for every export, so a second one landed beside the first as a copy
- * with a number after it and neither said what it held. A name now says what it is, whose it is and
+ * with a number after it and neither showed what it held. A name now shows what it is, whose it is and
  * when it covers.
  */
 class AttendanceReportFileNameTest {

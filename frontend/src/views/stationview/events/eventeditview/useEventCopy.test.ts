@@ -19,7 +19,7 @@ const api = vi.hoisted(() => ({
 
 vi.mock('@/api', () => ({events: api}))
 
-/** A file of the original, its own unless a test says it comes from the event group. */
+/** A file of the original, its own unless a test marks it as from the event group. */
 function file(id: number, fromEventGroup = false): EventAttachment {
     return {fileId: id, id, fromEventGroup} as EventAttachment
 }

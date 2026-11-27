@@ -10,7 +10,7 @@ import {cast} from './fixtures/cast'
 /**
  * Gear walking between parties, as a chain of steps somebody acknowledges.
  *
- * A movement is not a status that jumps: every step is one a person actually saw, it says who it belongs
+ * A movement is not a status that jumps: every step is one a person actually saw, it shows who it belongs
  * to, and the record keeps the words it was walked under. These stories walk the chains a station's own
  * gear takes, and the one an owner outside Ember leaves a gap in.
  */
@@ -152,7 +152,7 @@ test.describe('Item movements', () => {
     /**
      * ITM-16 - An exchange with an owner outside Ember shows its gap.
      *
-     * The station walks the owner's steps because nobody else can, and the record says asserted rather
+     * The station walks the owner's steps because nobody else can, and the record shows asserted rather
      * than confirmed so the difference survives being read later. The words are the behaviour here.
      */
     test('a station standing in for an absent owner is recorded as asserting', async ({managerPage: page}) => {
@@ -306,9 +306,9 @@ test.describe('Item movements', () => {
     })
 
     /**
-     * ITM-20 - A step nobody answers can be forced, and says so afterwards.
+     * ITM-20 - A step nobody answers can be forced, and shows that afterwards.
      *
-     * Forcing needs a note, because the record has to say who decided it and why, and the step reads as
+     * Forcing needs a note, because the record has to show who decided it and why, and the step reads as
      * forced for good rather than quietly becoming a confirmation. The chain's second step is the
      * member's, since forcing is for somebody else's unanswered step; a station's own is simply pressed.
      */
@@ -363,7 +363,7 @@ test.describe('Item movements', () => {
     /**
      * ITM-21 - A finished movement keeps the words it was walked under.
      *
-     * Renaming a step changes what the next movement says, never what a finished one said. The record is
+     * Renaming a step changes what the next movement shows, never what a finished one showed. The record is
      * of what happened, not of what the flow is called today. A chain asks and then confirms, so the step
      * being renamed needs a receipt behind it before the chain is usable at all.
      */

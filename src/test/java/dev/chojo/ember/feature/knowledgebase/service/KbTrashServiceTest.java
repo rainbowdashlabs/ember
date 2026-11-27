@@ -195,7 +195,7 @@ class KbTrashServiceTest extends RepositoryTestBase {
     /**
      * The one case a restore cannot honour literally. Putting the article back where it was would
      * leave it alive inside a folder nobody can open, which is worse than losing it: it would be
-     * unreachable and still counted. The top level is always reachable, and the answer says so.
+     * unreachable and still counted. The top level is always reachable, and the answer shows that.
      */
     @Test
     void anArticleWhoseFolderIsAlsoInTheTrashComesBackAtTheTopLevel() {
@@ -265,7 +265,7 @@ class KbTrashServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * What is in the trash is still on disk, so it still counts, and the view says how much of the
+     * What is in the trash is still on disk, so it still counts, and the view shows how much of the
      * station's storage emptying it would give back.
      */
     @Test
@@ -317,7 +317,7 @@ class KbTrashServiceTest extends RepositoryTestBase {
     /**
      * The surprise this warning exists to take away. A page names an article by number in its
      * settings and no foreign key follows it, so deleting the article leaves a stand-in title on a
-     * page nobody thought to look at. A published page gets said more plainly than a draft.
+     * page nobody thought to look at. A published page gets spelled out more plainly than a draft.
      */
     @Test
     void aDeleteNamesThePagesThatCarryTheArticle() {

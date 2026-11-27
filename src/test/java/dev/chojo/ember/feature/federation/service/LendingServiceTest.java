@@ -378,7 +378,7 @@ class LendingServiceTest extends RepositoryTestBase {
 
     /**
      * A partner reads the messages of a request it is a party to and no other. Without the check,
-     * one partner reads what this station said to another.
+     * one partner reads what this station sent to another.
      */
     @Test
     @Order(51)
@@ -789,7 +789,7 @@ class LendingServiceTest extends RepositoryTestBase {
 
     /**
      * A station holding the body's jacket is not its owner and may not pass it on. The manual path
-     * is the one a person drives, so it says no out loud.
+     * is the one a person drives, so it refuses out loud.
      */
     @Test
     @Order(300)
@@ -1118,7 +1118,7 @@ class LendingServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Gear nobody has said anything about is not on offer, and the answer says so rather than
+     * Gear nobody has said anything about is not on offer, and the answer shows that rather than
      * reading as a fault to whoever is looking at an empty screen.
      */
     @Test
@@ -1175,7 +1175,7 @@ class LendingServiceTest extends RepositoryTestBase {
 
     /**
      * A share the station has since withdrawn does not reach back into a request that was already
-     * approved: the partner was told yes and has planned around it.
+     * approved: the partner was given a yes and has planned around it.
      */
     @Test
     @Order(403)

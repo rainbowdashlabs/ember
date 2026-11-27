@@ -9,7 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
-/** Steps ticked by hand, for tests that build them without saying they ask for no document. */
+/** Steps ticked by hand, for tests that build them without specifying they ask for no document. */
 public final class ProcedureSteps {
     private ProcedureSteps() {}
 

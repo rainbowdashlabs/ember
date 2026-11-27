@@ -129,7 +129,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
 
     /**
      * The list the members screen is drawn from copes with an account that has no address: it shows
-     * an empty one rather than failing, and says plainly that nobody can be written to about them.
+     * an empty one rather than failing, and shows plainly that nobody can be written to about them.
      */
     @Test
     void the_member_list_copes_with_somebody_who_has_no_address() {

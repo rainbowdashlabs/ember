@@ -43,7 +43,7 @@ class NotificationScheduleRepositoryTest extends RepositoryTestBase {
         cluster = clusterRepo.create("ScheduleCluster", "for the schedule", station.id());
     }
 
-    /** A station that has asked for nothing says so, rather than saying it asked for no times. */
+    /** A station that has asked for nothing shows that, rather than showing it asked for no times. */
     @Test
     void aStationThatHasAskedForNothingHasNothing() {
         var schedule = stationGroup();

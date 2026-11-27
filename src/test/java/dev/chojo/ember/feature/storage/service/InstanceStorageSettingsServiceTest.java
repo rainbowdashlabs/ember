@@ -321,7 +321,7 @@ class InstanceStorageSettingsServiceTest {
         assertEquals("", sftp.privateKey());
     }
 
-    /** The operator is told what a station is told; the reason is in the instance log. */
+    /** The operator sees what a station sees; the reason is in the instance log. */
     @Test
     void storageNotSavedYetIsProbedWithoutWritingAnythingOrSayingWhy() {
         var backend = mock(StorageBackend.class);

@@ -14,7 +14,7 @@ async function form(saveLabel?: string) {
     })
 }
 
-/** A save that does more than save says so on its button. */
+/** A save that does more than save shows that on its button. */
 describe('GroupFormModal', () => {
     it('says what the save does where it takes members out', async () => {
         const modal = await form('Speichern und aus der Gruppe nehmen (2)')

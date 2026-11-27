@@ -12,7 +12,7 @@ import {stationDay} from './fixtures/stationDay'
  *
  * <p>The stories are about who sees what rather than about the drawing. A question the station asks
  * only of its team belongs on the sheet for whoever keeps the register and must be absent, not blank,
- * for everybody else, because a column of blanks about named people says that something was withheld
+ * for everybody else, because a column of blanks about named people implies that something was withheld
  * about those people in particular.
  */
 

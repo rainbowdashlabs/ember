@@ -10,7 +10,7 @@ import {intervalLabel, taskColumns} from './taskColumns'
 
 const t = (key: string, named?: Record<string, unknown>) => named ? `${key}:${String(named.n)}` : key
 
-/** How often a task runs reads in the largest unit that fits, and a one-shot task says so. */
+/** How often a task runs reads in the largest unit that fits, and a one-shot task shows that. */
 describe('intervalLabel', () => {
     it('picks the largest unit that divides the period evenly', () => {
         expect(intervalLabel(21_600, t)).toBe('adminTasks.everyHours:6')

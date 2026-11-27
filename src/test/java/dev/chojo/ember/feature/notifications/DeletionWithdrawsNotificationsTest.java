@@ -171,7 +171,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
     /**
      * A notification written before comments had an address of their own names only the page it
      * hangs under. Nothing withdraws it, because no match narrow enough to spare its neighbours can
-     * tell it apart from them, and the page it opens is still there.
+     * distinguish it from them, and the page it opens is still there.
      */
     @Test
     void deletingACommentLeavesTheNotificationsWrittenBeforeItHadAnAddress() {

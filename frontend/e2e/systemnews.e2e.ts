@@ -13,7 +13,7 @@ const PNG = Buffer.from(
 )
 
 /**
- * What the instance says to every station at once.
+ * What the instance sends to every station at once.
  *
  * <p>A system entry is one row belonging to no station. That is the whole difference, and it is
  * what these stories check: written once in the administration, read in a station's own news list

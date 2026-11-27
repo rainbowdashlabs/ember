@@ -81,8 +81,8 @@ class MemberImportAnswersTest extends RepositoryTestBase {
      *
      * @param stored   what the profile holds for the question afterwards, empty where nothing was
      *                 written
-     * @param warnings what the import said about the row
-     * @param previewWarnings what the preview of the same file said about it
+     * @param warnings what the import reported about the row
+     * @param previewWarnings what the preview of the same file reported about it
      */
     private record Imported(Optional<String> stored, List<String> warnings, List<String> previewWarnings) {}
 

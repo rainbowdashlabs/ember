@@ -68,7 +68,7 @@ async function askSomebody(browser: Browser, request: APIRequestContext, manager
     throw new Error('every member of the station already holds an unfinished self-check')
 }
 
-/** Says everything the screen asks, and answers with how many things that was. */
+/** Answers everything the screen asks, and returns how many things that was. */
 async function answerEverything(member: Page): Promise<number> {
     await expect(member.getByTestId('self-check-submit')).toBeVisible()
     const held = member.locator('[data-testid^="self-check-answer-"][data-testid$="-HAVE_IT"]')
@@ -83,7 +83,7 @@ async function answerEverything(member: Page): Promise<number> {
 /**
  * Presses the button that takes one answer and waits for the answer to the press.
  *
- * <p>Waiting for the call rather than only for the screen is what tells a refused call apart from a
+ * <p>Waiting for the call rather than only for the screen is what distinguishes a refused call from a
  * button that did nothing: the two look the same from outside and are entirely different problems.
  * The row itself is not asserted on here, because taking the last outstanding answer of a task that
  * also holds a refused one sends the whole task back and clears what was taken, so the row it was
@@ -411,7 +411,7 @@ test.describe('Self-check', () => {
     })
 
     /**
-     * SFC-5: a swap asked for because the piece is broken says so and keeps the size it already is.
+     * SFC-5: a swap asked for because the piece is broken shows that and keeps the size it already is.
      */
     test('a broken piece raises a swap that says so and keeps its size', async ({browser, request, managerPage}) => {
         const {page: memberPage, taskId} = await askSomebody(browser, request, managerPage)

@@ -14,7 +14,7 @@ import {openFormSection} from './fixtures/formSection'
  *
  * The planner navigates by click handler rather than by link, so its entries carry a test id - that
  * is the only way a story can pick one out without asserting on the shape of a calendar grid. The
- * entry also says whether its event takes registrations, because an event that does not has no
+ * entry also shows whether its event takes registrations, because an event that does not has no
  * registration tab and would make these stories wait for something that is correctly absent.
  */
 /**
@@ -425,7 +425,7 @@ test.describe('Events', () => {
         })
 
     /**
-     * A place on one date of a repeating appointment says nothing about the next one.
+     * A place on one date of a repeating appointment shows nothing about the next one.
      *
      * <p>The registrations tab reads every date the appointment ever had, and it used to take the
      * first row it found as the member's answer on whichever date was open.
@@ -521,8 +521,8 @@ test.describe('Events', () => {
         })
 
     /**
-     * A question added to an appointment somebody has already signed up for. They are told, the
-     * sheet says beside their answer that one is wanted, and they give it from the appointment's own
+     * A question added to an appointment somebody has already signed up for. They are notified, the
+     * sheet shows beside their answer that one is wanted, and they give it from the appointment's own
      * page after the deadline has passed: the question is younger than the deadline, so closing
      * registration cannot be what stops them answering it.
      */
@@ -661,7 +661,7 @@ test.describe('Events', () => {
     })
 
     /**
-     * A course over a few dates is a repeating appointment that stops. Before it could be said, a
+     * A course over a few dates is a repeating appointment that stops. Before it could be expressed, a
      * series ran for ever and had to be deleted by hand on the day it ended.
      */
     test('a repeating appointment is given an end', async ({managerPage: page}) => {
@@ -791,7 +791,7 @@ test.describe('Events', () => {
     /**
      * The planner reads by date, with every category mixed into one list and each row wearing its
      * own. It used to be sorted into a block per category, which is why a category is on a row at
-     * all: without the badge the reader would have lost what the headings used to say.
+     * all: without the badge the reader would have lost what the headings used to show.
      */
     test('the planner reads by date and every row wears its category', async ({managerPage: page}) => {
         await page.goto('/station/events')

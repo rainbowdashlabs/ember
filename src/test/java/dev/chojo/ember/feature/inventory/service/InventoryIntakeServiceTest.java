@@ -91,7 +91,7 @@ class InventoryIntakeServiceTest extends RepositoryTestBase {
 
     /**
      * Gear nobody ever wrote a number on, in an inventory that keeps no sizes and no fields of its
-     * own. There is nothing to fill in, so the line has to say outright that it is a piece.
+     * own. There is nothing to fill in, so the line has to show outright that it is a piece.
      */
     @Test
     void aLineAskedForIsWrittenDownWithNothingOnIt() {

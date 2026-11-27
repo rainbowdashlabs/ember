@@ -167,7 +167,7 @@ test.describe('News', () => {
      * saved. An author who knows they are writing a long piece should not have to write it plain,
      * save it, and convert it: whether an entry happens to exist yet is not a reason to withhold
      * the editor. The story switches before saving and reads the entry back, where the text has to
-     * have survived a switch the server was told about only afterwards.
+     * have survived a switch the server was notified of only afterwards.
      */
     test('an article is switched to the page editor before it is saved', async ({managerPage: page}) => {
         const article = unique('Langbericht')
@@ -259,7 +259,7 @@ test.describe('News', () => {
             await expect(managerPage.getByText(words)).toHaveCount(0)
         })
 
-    /** A comment its author changed says so, the same as under an appointment or a wiki article. */
+    /** A comment its author changed shows that, the same as under an appointment or a wiki article. */
     test('a changed comment is marked as edited', async ({managerPage}) => {
         const headers = await apiHeaders(managerPage)
         const newsId = await articleByApi(managerPage, unique('Geändert'))

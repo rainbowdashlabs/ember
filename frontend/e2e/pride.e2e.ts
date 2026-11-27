@@ -10,7 +10,7 @@ import {test, expect, apiHeaders, freshStepUpProof} from './fixtures/auth'
  *
  * <p>It is worth a story of its own because it broke in a way nothing else would catch: whether it is
  * forced on is known only once the browser has asked, so a server-rendered page always renders it off,
- * and Vue keeps whatever the server said for any class that disagrees at hydration. The flag was
+ * and Vue keeps whatever the server rendered for any class that disagrees at hydration. The flag was
  * therefore correct inside the application, which is rendered in the browser, and dead on every page
  * that is rendered by the server: the landing page, the login page, the public station pages.
  *

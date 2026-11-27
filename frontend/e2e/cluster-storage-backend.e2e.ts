@@ -28,7 +28,7 @@ import {
  * reading at that moment.
  */
 test.describe('Cluster storage backend', () => {
-    /** Saves the association's storage and says what it is for, which is two acts and not one. */
+    /** Saves the association's storage and sets what it is for, which is two acts and not one. */
     async function pointAt(page: Page, own: OwnCluster, reach: string, locked = false) {
         const saved = await page.request.post('/api/v1/cluster/storage/backend/apply',
             {headers: own.headers, data: sftpTarget()})
@@ -289,7 +289,7 @@ test.describe('Cluster storage backend', () => {
      *
      * Three things happen on the screen and each is listed: a decision refused because there is no storage
      * to decide about yet, the storage set up, and a test of it. The refusal is in the list too, since a
-     * history that keeps only what worked cannot say why somebody's change did not stick.
+     * history that keeps only what worked cannot show why somebody's change did not stick.
      */
     test('the association storage screen lists what was changed, tested and refused',
         async ({adminPage: page, browser, request}) => {
