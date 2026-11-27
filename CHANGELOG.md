@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.27.0
+
+Calendar subscriptions show single appointments in the station's timezone.
+
+### Fixes
+
+- **Single appointments in calendar subscriptions were written in UTC.** The calendar file of the personal and the public subscription gave one-time appointments in GMT, while series already carried the station's timezone. One-time appointments are now written in the station's timezone too, with summer and winter time as the date has them.
+
 ## v26.26.4
 
 People who already belong to another station of the same instance can be taken in through the member import.
