@@ -200,6 +200,7 @@ import dev.chojo.ember.feature.federation.transport.RoutingFederationTransport;
 import dev.chojo.ember.feature.feed.render.FeedDetailsContributor;
 import dev.chojo.ember.feature.feed.route.FeedMetricsRoutes;
 import dev.chojo.ember.feature.feed.route.FeedTokenRoutes;
+import dev.chojo.ember.feature.feed.route.StationCalendarFeedRoutes;
 import dev.chojo.ember.feature.feed.route.StationFeedUseRoutes;
 import dev.chojo.ember.feature.feed.route.UserFeedRoutes;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
@@ -757,6 +758,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(StationFeedUseRoutes.class);
         routesBinder.addBinding().to(OnboardingRoutes.class);
         routesBinder.addBinding().to(UserFeedRoutes.class);
+        routesBinder.addBinding().to(StationCalendarFeedRoutes.class);
         routesBinder.addBinding().to(FeedMetricsRoutes.class);
         routesBinder.addBinding().to(EventCommentRoutes.class);
         routesBinder.addBinding().to(NoteRoutes.class);

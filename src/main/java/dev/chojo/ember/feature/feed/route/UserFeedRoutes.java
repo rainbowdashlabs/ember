@@ -8,11 +8,9 @@ package dev.chojo.ember.feature.feed.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
-import dev.chojo.ember.feature.feed.FeedFingerprint;
 import dev.chojo.ember.feature.feed.FeedRateLimiter;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.feed.service.PersonalFeedService;
-import dev.chojo.ember.feature.feed.service.PersonalFeedService.Feed;
 import dev.chojo.ember.feature.feed.service.PersonalFeedService.FeedFormat;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import io.javalin.http.Context;
@@ -43,18 +41,6 @@ public class UserFeedRoutes implements Routes {
         this.metricsService = metricsService;
     }
 
-    /**
-     * Applies the cross-cutting privacy headers used by every public feed endpoint:
-     * {@code Referrer-Policy: no-referrer} so the feed token never leaks via {@code Referer}
-     * to embedded image hosts or reader proxies, and {@code X-Robots-Tag: noindex} so leaked
-     * URLs cannot be picked up by search engines. Safe to call before any conditional 304 or
-     * 429 short-circuit so the headers stick on every response status.
-     */
-    private static void applyPrivacyHeaders(Context ctx) {
-        ctx.header("Referrer-Policy", "no-referrer");
-        ctx.header("X-Robots-Tag", "noindex");
-    }
-
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/feed/{token}/events.ics", this::icalFeed);
@@ -63,51 +49,8 @@ public class UserFeedRoutes implements Routes {
         routes.get(prefix + "/public/feed/{token}/lost-and-found/{id}/image", this::lostAndFoundImage);
     }
 
-    /**
-     * Records a finished feed render to the metrics service. Called from a {@code finally} so
-     * 429, 304 and 500 paths all get accounted for.
-     */
-    private void recordMetric(Context ctx, String type, long startNanos, int entries) {
-        long durationMs = (System.nanoTime() - startNanos) / 1_000_000L;
-        metricsService.recordRender(type, ctx.status().getCode(), durationMs, entries, ctx.header("User-Agent"));
-    }
-
-    /**
-     * Enforces the per-token rate limit. On excess emits a {@code 429} with {@code Retry-After}
-     * and returns {@code true} so the caller can short-circuit. The image endpoint is
-     * intentionally exempt, see {@link FeedRateLimiter}.
-     */
-    private boolean rateLimit(Context ctx) {
-        return rateLimiter
-                .tryAcquire(ctx.pathParam("token"))
-                .map(retryAfter -> {
-                    ctx.status(429);
-                    ctx.header("Retry-After", String.valueOf(retryAfter));
-                    return true;
-                })
-                .orElse(false);
-    }
-
     private StationMember resolveToken(Context ctx) {
         return feeds.member(ctx.pathParam("token"));
-    }
-
-    /**
-     * Answers a conditional request from the fingerprint, or renders the feed and writes it.
-     *
-     * @return how many entries were written
-     */
-    private static int serve(Context ctx, Feed feed, String contentType) {
-        if (FeedFingerprint.handleConditional(ctx, feed.fingerprint())) return 0;
-        var rendered = feed.render().get();
-        ctx.contentType(contentType);
-        ctx.header("Cache-Control", "public, max-age=3600");
-        ctx.result(rendered.body());
-        return rendered.entries();
-    }
-
-    private static boolean flag(Context ctx, String name) {
-        return !"0".equals(ctx.queryParam(name));
     }
 
     @OpenApi(
@@ -125,15 +68,16 @@ public class UserFeedRoutes implements Routes {
             })
     @StationFree(TOKEN_NAMES_THE_MEMBER)
     private void icalFeed(Context ctx) {
-        applyPrivacyHeaders(ctx);
+        FeedResponses.applyPrivacyHeaders(ctx);
         long start = System.nanoTime();
         int entryCount = 0;
         try {
             var member = resolveToken(ctx);
-            if (rateLimit(ctx)) return;
-            entryCount = serve(ctx, feeds.calendar(member, flag(ctx, "verbose")), "text/calendar; charset=utf-8");
+            if (FeedResponses.rateLimited(ctx, rateLimiter)) return;
+            entryCount = FeedResponses.serve(
+                    ctx, feeds.calendar(member, FeedResponses.flag(ctx, "verbose")), "text/calendar; charset=utf-8");
         } finally {
-            recordMetric(ctx, "ics", start, entryCount);
+            FeedResponses.recordMetric(ctx, metricsService, "ics", start, entryCount);
         }
     }
 
@@ -153,7 +97,7 @@ public class UserFeedRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void lostAndFoundImage(Context ctx) {
-        applyPrivacyHeaders(ctx);
+        FeedResponses.applyPrivacyHeaders(ctx);
         var member = resolveToken(ctx);
         int itemId = ctx.pathParamAsClass("id", Integer.class).get();
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
@@ -200,17 +144,21 @@ public class UserFeedRoutes implements Routes {
     }
 
     private void notificationFeed(Context ctx, FeedFormat format, String metricType, String contentType) {
-        applyPrivacyHeaders(ctx);
+        FeedResponses.applyPrivacyHeaders(ctx);
         long start = System.nanoTime();
         int entryCount = 0;
         try {
             var member = resolveToken(ctx);
-            if (rateLimit(ctx)) return;
+            if (FeedResponses.rateLimited(ctx, rateLimiter)) return;
             var feed = feeds.notifications(
-                    member, ctx.pathParam("token"), format, flag(ctx, "verbose"), flag(ctx, "images"));
-            entryCount = serve(ctx, feed, contentType);
+                    member,
+                    ctx.pathParam("token"),
+                    format,
+                    FeedResponses.flag(ctx, "verbose"),
+                    FeedResponses.flag(ctx, "images"));
+            entryCount = FeedResponses.serve(ctx, feed, contentType);
         } finally {
-            recordMetric(ctx, metricType, start, entryCount);
+            FeedResponses.recordMetric(ctx, metricsService, metricType, start, entryCount);
         }
     }
 }

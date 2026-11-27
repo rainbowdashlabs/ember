@@ -14415,6 +14415,220 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/calendar-feeds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the station's calendar feeds */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalendarFeedResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a station calendar feed */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CalendarFeedRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalendarFeedResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calendar-feeds/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a station calendar feed */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CalendarFeedRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalendarFeedResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete a station calendar feed */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calendar-feeds/{id}/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give a station calendar feed a new address */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalendarFeedResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/checklist": {
         parameters: {
             query?: never;
@@ -57992,6 +58206,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/station-feed/{token}/events.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a station calendar feed */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description iCal calendar. Cache-Control: public, max-age=3600 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/calendar": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/station/{stationUid}/blog": {
         parameters: {
             query?: never;
@@ -72446,6 +72707,21 @@ export interface components {
             /** Format: int64 */
             tiles: number;
         };
+        CalendarFeedRequest: {
+            hiddenCategories?: number[] | null;
+            level?: components["schemas"]["StationFeedLevel"] | null;
+            name?: string | null;
+        };
+        CalendarFeedResponse: {
+            createdAt: string;
+            hiddenCategories: number[];
+            /** Format: int32 */
+            id: number;
+            level: components["schemas"]["StationFeedLevel"];
+            name: string;
+            polledAt: string | null;
+            token: string;
+        };
         CalloutConfig: {
             title?: string;
             variant?: components["schemas"]["CalloutVariant"];
@@ -82586,6 +82862,8 @@ export interface components {
             /** Format: uuid */
             stationUid: string;
         };
+        /** @enum {string} */
+        StationFeedLevel: "PUBLIC" | "MEMBERS" | "ALL";
         StationFile: {
             contentHash: string;
             defaultAltText: string | null;
@@ -84576,6 +84854,8 @@ export type BulkSetRequest = components['schemas']['BulkSetRequest'];
 export type BulkSetResponse = components['schemas']['BulkSetResponse'];
 export type BulkTagsRequest = components['schemas']['BulkTagsRequest'];
 export type CacheStats = components['schemas']['CacheStats'];
+export type CalendarFeedRequest = components['schemas']['CalendarFeedRequest'];
+export type CalendarFeedResponse = components['schemas']['CalendarFeedResponse'];
 export type CalloutConfig = components['schemas']['CalloutConfig'];
 export type CalloutVariant = components['schemas']['CalloutVariant'];
 export type CancellationCause = components['schemas']['CancellationCause'];
@@ -85984,6 +86264,7 @@ export type StationDetail = components['schemas']['StationDetail'];
 export type StationDigest = components['schemas']['StationDigest'];
 export type StationEvent = components['schemas']['StationEvent'];
 export type StationFailedMails = components['schemas']['StationFailedMails'];
+export type StationFeedLevel = components['schemas']['StationFeedLevel'];
 export type StationFile = components['schemas']['StationFile'];
 export type StationFileFolder = components['schemas']['StationFileFolder'];
 export type StationFileTag = components['schemas']['StationFileTag'];
@@ -87692,6 +87973,12 @@ export const SmtpEncryption = {
 export const StationDigest = {
     ALL: "ALL",
     MENTIONS: "MENTIONS",
+} as const;
+
+export const StationFeedLevel = {
+    ALL: "ALL",
+    MEMBERS: "MEMBERS",
+    PUBLIC: "PUBLIC",
 } as const;
 
 export const StationModule = {

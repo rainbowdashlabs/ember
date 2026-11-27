@@ -272,6 +272,70 @@ class IcalEventRendererTest {
         assertTrue(description.contains("/station/events/10"));
     }
 
+    /** A shared calendar carries the appointment and its link, but nobody's sign-up and no names. */
+    @Test
+    void aStationFeedLeavesOutSignUpStateAndNames() {
+        var event = registrationRequiredEvent(12, Instant.now().plusSeconds(86_400));
+        var leader = new AppointmentField(
+                3,
+                12,
+                "Leitung",
+                FieldType.MEMBER,
+                EventQuestionSettings.parse("{}"),
+                "Mara Muster",
+                0,
+                false,
+                null,
+                false);
+        var topic = new AppointmentField(
+                4, 12, "Thema", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Übung", 1, false, null, false);
+        when(eventFieldService.findByEvent(eq(12), any())).thenReturn(List.of(leader, topic));
+        var shared = IcalEventRenderer.Context.withoutMember(
+                station,
+                "de",
+                "https://ember.example.com",
+                true,
+                Map.of(),
+                calendar(List.of()),
+                IcalEventRenderer.Reader.STATION);
+
+        var ve = renderer.render(event, shared).getFirst();
+        String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
+
+        assertTrue(description.contains("Thema: Übung"));
+        assertTrue(description.contains("registrationRequired"));
+        assertFalse(description.contains("Mara Muster"), "a member field names a person");
+        assertFalse(description.contains("label.status"), "a shared calendar has no own sign-up");
+        assertTrue(description.contains("/station/events/12"));
+        assertTrue(ve.getProperty("URL").isPresent());
+    }
+
+    /** The public calendar carries name, text and category, and nothing that leads into the application. */
+    @Test
+    void thePublicCalendarCarriesNoLinkAndNoFields() {
+        var event = simpleEvent(13);
+        var place = new AppointmentField(
+                5,
+                13,
+                "Ort",
+                FieldType.LOCATION,
+                EventQuestionSettings.parse("{}"),
+                "Marktplatz 1",
+                0,
+                true,
+                null,
+                true);
+        when(eventFieldService.findByEvent(eq(13), any())).thenReturn(List.of(place));
+        var open = IcalEventRenderer.Context.withoutMember(
+                station, "de", "", false, Map.of(), calendar(List.of()), IcalEventRenderer.Reader.PUBLIC);
+
+        var ve = renderer.render(event, open).getFirst();
+
+        assertTrue(ve.getProperty("URL").isEmpty());
+        assertTrue(ve.getProperty("LOCATION").isEmpty());
+        assertEquals(event.name(), ve.getProperty("SUMMARY").orElseThrow().getValue());
+    }
+
     /**
      * With a venue and a meeting point, the calendar shows the meeting point and lists the venue in
      * the description under its own name, so neither place is lost.

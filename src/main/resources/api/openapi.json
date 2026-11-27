@@ -11344,6 +11344,193 @@
         } ]
       }
     },
+    "/api/v1/calendar-feeds" : {
+      "post" : {
+        "summary" : "Create a station calendar feed",
+        "tags" : [ "Station Calendar Feeds" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CalendarFeedResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CalendarFeedRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the station's calendar feeds",
+        "tags" : [ "Station Calendar Feeds" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CalendarFeedResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/calendar-feeds/{id}" : {
+      "put" : {
+        "summary" : "Change a station calendar feed",
+        "tags" : [ "Station Calendar Feeds" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CalendarFeedResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CalendarFeedRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Delete a station calendar feed",
+        "tags" : [ "Station Calendar Feeds" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/calendar-feeds/{id}/regenerate" : {
+      "post" : {
+        "summary" : "Give a station calendar feed a new address",
+        "tags" : [ "Station Calendar Feeds" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CalendarFeedResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/checklist" : {
       "post" : {
         "summary" : "Create a checklist with columns and materialise the member set",
@@ -45836,6 +46023,42 @@
         }
       }
     },
+    "/api/v1/public/station-feed/{token}/events.ics" : {
+      "get" : {
+        "summary" : "Get a station calendar feed",
+        "tags" : [ "Station Calendar Feeds" ],
+        "responses" : {
+          "200" : {
+            "description" : "iCal calendar. Cache-Control: public, max-age=3600",
+            "content" : {
+              "text/calendar" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "token",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/public/station/{stationUid}/blog" : {
       "get" : {
         "responses" : {
@@ -59418,6 +59641,60 @@
           }
         },
         "required" : [ "bytes", "tiles", "maxBytes" ]
+      },
+      "CalendarFeedRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "level" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationFeedLevel"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "hiddenCategories" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
+      "CalendarFeedResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "level" : {
+            "$ref" : "#/components/schemas/StationFeedLevel"
+          },
+          "token" : {
+            "type" : "string"
+          },
+          "hiddenCategories" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "createdAt" : {
+            "type" : "string"
+          },
+          "polledAt" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "name", "level", "token", "hiddenCategories", "createdAt", "polledAt" ]
       },
       "CalloutConfig" : {
         "type" : "object",
@@ -89239,6 +89516,10 @@
           }
         },
         "required" : [ "stationUid", "stationName", "count", "oldest", "newest", "causes" ]
+      },
+      "StationFeedLevel" : {
+        "type" : "string",
+        "enum" : [ "PUBLIC", "MEMBERS", "ALL" ]
       },
       "StationFile" : {
         "type" : "object",
