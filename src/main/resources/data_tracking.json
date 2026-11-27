@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:6c2e5e4cf7998b9edc70af26e95304d71891ef8597acddfe29601f740a41eccd",
-  "generatedAt": "2026-11-27T16:18:49Z",
+  "schemaHash": "sha256:613b9d0916f6a99d2f84723a098149af0197bdb79de8e5881430bfad9bd41ac1",
+  "generatedAt": "2026-11-27T18:23:15Z",
   "tables": {
     "account": {
       "feature": "account",

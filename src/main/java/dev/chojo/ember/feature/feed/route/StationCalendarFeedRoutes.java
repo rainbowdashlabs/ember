@@ -30,6 +30,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -241,6 +242,7 @@ public class StationCalendarFeedRoutes implements Routes {
             String createdAt,
             @Nullable String polledAt) {
         static CalendarFeedResponse of(StationCalendarFeed feed) {
+            Instant polledAt = feed.polledAt();
             return new CalendarFeedResponse(
                     feed.id(),
                     feed.name(),
@@ -248,7 +250,7 @@ public class StationCalendarFeedRoutes implements Routes {
                     feed.token(),
                     feed.hiddenCategoryIds(),
                     feed.createdAt().toString(),
-                    feed.polledAt() == null ? null : feed.polledAt().toString());
+                    polledAt == null ? null : polledAt.toString());
         }
     }
 }
