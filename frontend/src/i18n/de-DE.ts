@@ -4444,6 +4444,7 @@ export default {
         grantedBy: 'Durch „{name}" gewährt',
         grantedByUserType: 'Durch den Mitgliedstyp gewährt',
         grantedByGroup: 'Durch Gruppe „{name}" gewährt',
+        alsoIncludedIn: 'Auch enthalten in: {names}',
         lockedByUserType: 'Pflicht des Mitgliedstyps',
         LOGIN: {
             label: 'Login',

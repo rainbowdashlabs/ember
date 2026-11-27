@@ -48,6 +48,7 @@ const {
   toggleExpand,
   isExpanded,
   flattenDescendants,
+  alsoIncludedInLabel,
   countEnabledDescendants,
   countTotalDescendants,
 } = usePermissionTree(
@@ -121,8 +122,9 @@ const {
           <div
               v-for="item in flattenDescendants(node)"
               :key="item.name"
-              class="flex items-center gap-3 px-3 py-2 pl-10 transition-colors"
+              class="flex items-center gap-3 px-3 py-2 transition-colors"
               :class="isDisabled(item.name) ? 'opacity-60 bg-bg-light-accent/10 dark:bg-bg-dark-accent/10' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40'"
+              :style="{paddingLeft: `${2.5 + item.depth * 1.75}rem`}"
           >
             <ToggleInput
                 :model-value="isEffectivelyEnabled(item.name)"
@@ -130,8 +132,11 @@ const {
                 @update:model-value="item.node.children.length > 0 ? toggle(item.name, item.node) : toggleLeaf(item.name)"
             />
             <div class="min-w-0">
-              <div class="text-sm" :class="item.node.children.length > 0 ? 'font-medium' : ''">{{ t(`permissions.${item.name}.label`) }}</div>
+              <div class="text-sm">{{ t(`permissions.${item.name}.label`) }}</div>
               <div class="text-xs text-(--text-muted) leading-tight">{{ t(`permissions.${item.name}.desc`) }}</div>
+              <div v-if="item.alsoIncludedIn.length > 0" class="text-[10px] text-(--text-muted) mt-0.5">
+                {{ t('permissions.alsoIncludedIn', { names: alsoIncludedInLabel(item) }) }}
+              </div>
               <div v-if="isLocked(item.name)" class="text-[10px] text-primary italic mt-0.5">
                 {{ lockedLabel(item.name) }}
               </div>
