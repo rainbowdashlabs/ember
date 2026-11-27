@@ -2986,7 +2986,8 @@ volumes:
             fulfilledTitle: 'Erledigt',
             fulfilledText: 'Ist die Ausrüstung angekommen, markiere die Beschaffung als erledigt. Ember erfasst das '
                 + 'Teil und startet die Ausgabe an das Mitglied: es liegt im Lager und ist vorgemerkt, bis jemand es '
-                + 'übergibt und den Schritt bestätigt. War die Bestellung für das Lager, bleibt das Teil dort.',
+                + 'übergibt und den Schritt bestätigt. War die Bestellung für das Lager, bleibt das Teil dort. Erledigte '
+                + 'Beschaffungen stehen danach eingeklappt unter „Erledigt“ unter den offenen, die neuesten zuerst.',
             fromStockTitle: 'Aus dem Lager ausgeben',
             fromStockText: 'Liegt ein passendes Stück (gleiches Inventar, gleiche Größe) bereits frei im Lager der Wache, '
                 + 'zeigt die Beschaffung an, wie viele es sind. Mit „Aus dem Lager ausgeben" wählst du eines davon aus: '

@@ -9051,6 +9051,8 @@ export default {
         create: 'Neue Beschaffung',
         createTitle: 'Beschaffung erstellen',
         empty: 'Keine Beschaffungsanfragen vorhanden.',
+        noOpen: 'Keine offenen Beschaffungen.',
+        doneSummary: 'Erledigt ({count})',
         deleteConfirm: 'Beschaffungsanfrage wirklich löschen?',
         inventory: 'Ausstattung',
         selectInventory: 'Ausstattung auswählen',

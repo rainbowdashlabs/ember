@@ -624,6 +624,17 @@ test.describe('Inventory', () => {
             const orders = await page.request.get('/api/v1/procurement', {headers}).then(r => r.json())
             expect(orders.find((entry: {id: number}) => entry.id === orderId)?.fulfilledAt, 'the order is delivered')
                 .toBeTruthy()
+
+            await page.reload()
+            const fulfilled = page.getByTestId('procurement-done').getByTestId('procurement-entry')
+                .filter({hasText: `Zuweisung ${piece.code}`})
+            await expect(page.getByTestId('procurement-done'), 'fulfilled orders start folded')
+                .not.toHaveAttribute('open')
+            await expect(fulfilled, 'the delivered order is among them').toHaveCount(1)
+            await expect(fulfilled, 'and folded away below the open ones').toBeHidden()
+            await page.getByTestId('procurement-done').locator('summary').click()
+            await expect(fulfilled).toBeVisible()
+            await expect(page.getByTestId('procurement-open').getByText(`Zuweisung ${piece.code}`)).toHaveCount(0)
         })
 
     /**

@@ -15,8 +15,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import FulfilledSample from './procurementhelp/FulfilledSample.vue'
 
 const {t} = useI18n()
 </script>
@@ -66,22 +66,7 @@ const {t} = useI18n()
         </div>
       </NeutralContainer>
 
-      <NeutralContainer>
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-medium">{{ t('helpCenter.sample.equipment.jackets') }}</span>
-              <span class="text-sm text-(--text-muted)">(M)</span>
-              <SuccessBadge>{{ t('procurement.fulfilled') }}</SuccessBadge>
-            </div>
-            <div class="text-sm text-(--text-muted)">{{ t('helpCenter.sample.people.erikaMusterfrau') }}, 01.05.2026</div>
-            <div class="text-xs text-(--text-muted)">{{ t('procurement.fulfilledAt') }}: 08.05.2026</div>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <DeleteButton />
-          </div>
-        </div>
-      </NeutralContainer>
+      <FulfilledSample/>
     </div>
 
     <HelpSection :title="t('helpCenter.inventoryProcurement.fulfilledTitle')">

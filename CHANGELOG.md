@@ -17,6 +17,7 @@ People who already have an account on this instance can be invited into a statio
 - **Any place field as the location in the calendar.** A place field of an appointment, a template or an event group can be marked as the location in the calendar. Only one place field per form carries the mark, and an appointment's own mark wins over the one of its event group.
 - **Meeting point in appointment documents.** Documents for appointments have a new placeholder for the meeting point. The location placeholder keeps showing where the appointment takes place, so photo permissions and similar forms stay as they are.
 - **First steps come three at a time.** The dashboard shows at most three first steps at once, with the station's setup before a person's own. A step that builds on another, such as inviting members after setting up mail, appears once that one is done or skipped.
+- **Fulfilled procurements are folded away.** The procurement page lists open procurements first. Fulfilled ones sit below in a folded section, most recent first.
 
 ### Changes
 

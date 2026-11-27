@@ -17,6 +17,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Jedes Ortsfeld als Ort im Kalender.** Ein Ortsfeld eines Termins, einer Vorlage oder einer Terminreihe lässt sich als Ort im Kalender markieren. Nur ein Ortsfeld je Formular trägt die Markierung, und die eigene Markierung eines Termins geht der seiner Terminreihe vor.
 - **Treffpunkt in Termindokumenten.** Dokumente für Termine haben einen neuen Platzhalter für den Treffpunkt. Der Platzhalter für den Ort zeigt weiter, wo der Termin stattfindet, so bleiben Fotoerlaubnisse und ähnliche Formulare, wie sie sind.
 - **Erste Schritte kommen zu dritt.** Die Startseite zeigt höchstens drei erste Schritte gleichzeitig, die Einrichtung der Wache vor den eigenen. Ein Schritt, der auf einem anderen aufbaut, erscheint erst, wenn dieser erledigt oder übersprungen ist, etwa das Einladen von Mitgliedern nach dem Mailversand.
+- **Erledigte Beschaffungen sind eingeklappt.** Die Beschaffungsseite zeigt zuerst die offenen Beschaffungen. Erledigte stehen darunter in einem eingeklappten Bereich, die neuesten zuerst.
 
 ### Änderungen
 
