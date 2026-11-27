@@ -23,7 +23,7 @@ async function panelFor(floorMinutes: number) {
     return wrapper.get('[data-testid="notification-schedule-operator"]').text()
 }
 
-/** Leaving the times to the instance says what the instance does, rather than only that it decides. */
+/** Leaving the times to the instance shows what the instance does, rather than only that it decides. */
 describe('NotificationSchedulePanel', () => {
     it('names the instance interval in hours or minutes', async () => {
         expect(await panelFor(60)).toContain('einmal pro Stunde')

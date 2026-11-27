@@ -13,7 +13,7 @@ import type {Glyph} from '@/util/glyph'
  * What is known about one piece when it is named in a list.
  *
  * <p>One shape for every call site, so a row of a picker, the chip a filled-in form shows and a row
- * of the movement queue say the same things in the same order.
+ * of the movement queue show the same things in the same order.
  *
  * @property glyph         the picture it is drawn with
  * @property name          what the piece is called

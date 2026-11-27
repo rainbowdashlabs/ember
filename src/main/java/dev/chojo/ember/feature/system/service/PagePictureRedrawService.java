@@ -24,7 +24,7 @@ import java.util.Optional;
  * would keep looking as coarse as it was drawn then.
  *
  * <p>The resolution the pictures were last drawn at is kept, and a start that finds another one draws
- * them again. An instance that has never recorded one draws them once, since it cannot tell at which
+ * them again. An instance that has never recorded one draws them once, since it cannot know at which
  * resolution its pictures were drawn. The resolution is recorded only once everything went through,
  * so a pass that fails halfway is tried again on the next start. Template pictures need none of this:
  * their key names the resolution, so a coarser one is replaced the next time it is asked for.

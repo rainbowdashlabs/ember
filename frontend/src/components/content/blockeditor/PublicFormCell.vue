@@ -64,8 +64,8 @@ watch(() => [props.stationUid, props.formPublicUid], load)
 
 /**
  * Whether the form is genuinely not answerable from this page, as opposed to merely not having
- * arrived. Only the server saying it is gone means the former: a dropped connection left the reader
- * being told the form was unreachable here, which sends them away from one that is still open.
+ * arrived. Only the server answering that it is gone means the former: a dropped connection left the reader
+ * seeing that the form was unreachable here, which sends them away from one that is still open.
  */
 const unreachable = computed(() => !loadFailure.value || loadFailure.value.kind === FailureKind.GONE)
 </script>

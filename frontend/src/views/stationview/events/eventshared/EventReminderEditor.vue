@@ -17,7 +17,7 @@ import MutedText from '@/components/typography/MutedText.vue'
  * The reminders of an appointment, as days before it.
  *
  * <p>In its compact form, inside the appointment form, it is only the reminders and the button to add
- * one, with what a reminder does said under the button: no heading and no line saying there are none.
+ * one, with what a reminder does, shown under the button: no heading and no line showing that there are none.
  */
 const model = defineModel<number[]>({ required: true })
 

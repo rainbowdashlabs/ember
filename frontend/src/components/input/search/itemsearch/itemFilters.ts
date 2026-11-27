@@ -45,8 +45,8 @@ export interface ItemFilterContext {
 /**
  * Whose gear a piece is, read off the piece rather than off its inventory.
  *
- * <p>A mixed inventory holds both, so the inventory cannot answer for its pieces; each piece says for
- * itself. A piece that says nothing is the station's, which is what an inventory of the station's own
+ * <p>A mixed inventory holds both, so the inventory cannot answer for its pieces; each piece decides for
+ * itself. A piece that shows nothing is the station's, which is what an inventory of the station's own
  * gear writes.
  */
 function ownedByTheSameParty(item: InventoryItem, criteria: ItemFilterCriteria): boolean {
@@ -60,7 +60,7 @@ function ownedByTheSameParty(item: InventoryItem, criteria: ItemFilterCriteria):
 /**
  * Whether the piece sits on the same sort of shelf as the movement is about.
  *
- * <p>A shelf that holds both sorts fits either way round, and where the wanted sort is not said the
+ * <p>A shelf that holds both sorts fits either way round, and where the wanted sort is not given the
  * shelf is nobody's business.
  */
 function onTheSameKindOfShelf(item: InventoryItem, criteria: ItemFilterCriteria, context: ItemFilterContext): boolean {

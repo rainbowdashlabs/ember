@@ -29,7 +29,7 @@ vi.mock('@/composables/useInventoryRoutes', () => ({
 }))
 
 /**
- * Where the sharing card stands, and where it says nothing.
+ * Where the sharing card stands, and where it shows nothing.
  *
  * <p>Gear a station does not own cannot be lent by it, so an offer written on such gear could never
  * be filled. The card is left off those screens rather than shown and refused on save.

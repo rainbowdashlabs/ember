@@ -15,7 +15,7 @@ import MutedText from '@/components/typography/MutedText.vue'
  *
  * Charts were previously wrapped by hand at every call site, which is how the panels drifted apart
  * in padding and in what they showed when there was nothing to plot. A panel with no data keeps its
- * frame and says so rather than collapsing, so a grid of charts does not reflow around the gap.
+ * frame and shows that rather than collapsing, so a grid of charts does not reflow around the gap.
  */
 withDefaults(defineProps<{
   option: EChartsCoreOption

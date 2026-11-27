@@ -20,10 +20,10 @@ import jakarta.inject.Singleton;
 import java.util.Map;
 
 /**
- * Tells a station that its cluster is sending it something.
+ * Lets a station know that its cluster is sending it something.
  *
  * <p>Separate from the movement's own traffic on purpose: the station is not being asked to
- * acknowledge anything yet, it is being told that a parcel is on its way. The step it will have to
+ * acknowledge anything yet, it only learns that a parcel is on its way. The step it will have to
  * answer announces itself later, through the movement.
  */
 @Singleton

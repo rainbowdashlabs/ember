@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
  * name and describe itself without the member typing it out, and so the link becomes findable by
  * more than its URL.
  *
- * <p>Every lookup is best-effort: an unreachable page, a slow one, or one that says nothing about
+ * <p>Every lookup is best-effort: an unreachable page, a slow one, or one that shows nothing about
  * itself yields empty metadata rather than failing the entry being created.
  *
  * <p>The address comes from whoever creates the entry and part of the answer is stored where they

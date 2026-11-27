@@ -92,7 +92,7 @@ function pickedPosition(answer: WaitingListAnswer): number | null {
   return Number(pickedDate.value)
 }
 
-/** What the page says about an answer already given, naming the picked date when there is one. */
+/** What the page shows about an answer already given, naming the picked date when there is one. */
 const answerGivenText = computed(() => {
   const given = status.value?.answer
   if (!given) return ''

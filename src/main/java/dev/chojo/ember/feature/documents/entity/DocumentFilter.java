@@ -13,7 +13,7 @@ import java.util.List;
  * What a reader narrowed the station's store to.
  *
  * @param memberIds     only documents bound to one of these members, or empty for all of them
- * @param search        words to look for in the title and in what the documents say, or null
+ * @param search        words to look for in the title and in what the documents contain, or null
  * @param includeHidden whether the ones kept from their own members are listed too
  * @param unboundOnly   only the documents that name nobody, which are the station's own paperwork
  * @param departedOnly  only the documents about people who have all left: archived members, or members

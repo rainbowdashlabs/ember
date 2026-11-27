@@ -229,7 +229,7 @@ test.describe('Passkeys', () => {
      * is the safety valve that opens it again.
      *
      * <p>The switch is only offered to somebody the way back in can be mailed to. The refused password
-     * gets the same words as any refused sign-in, so the refusal tells nobody that the account exists;
+     * gets the same words as any refused sign-in, so the refusal shows nobody that the account exists;
      * it is tried from a sessionless context, since a demo login would replace the account's session.
      */
     test('switching the password off refuses it, removing the last passkey opens it again', async ({browser, request}) => {

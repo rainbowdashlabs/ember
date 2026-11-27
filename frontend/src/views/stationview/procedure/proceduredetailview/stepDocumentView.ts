@@ -15,7 +15,7 @@ export interface StepDocumentView {
     href: string | null
     /** Where the reader has it signed in front of them, or signs it themselves, or nothing. */
     signHref: string | null
-    /** What the sign link says: signing in front of a witness, or signing oneself. */
+    /** What the sign link shows: signing in front of a witness, or signing oneself. */
     signLabel: string
     /** Whether the reader may ask for the document again. */
     canAskAgain: boolean

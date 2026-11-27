@@ -12,17 +12,17 @@ import {openProblemReport} from '@/util/problemReportState'
 import type {Failure} from '@/util/failure'
 
 /**
- * Something that went wrong, said in a way the reader can act on.
+ * Something that went wrong, shown in a way the reader can act on.
  *
  * <p>Three parts, and the third is the one that was missing everywhere: what happened, what to do about
  * it, and, where it looks like a fault in Ember rather than something the reader or their station can put
- * right, the offer to report it. A reader who is told to report something and handed the way to do it in
+ * right, the offer to report it. A reader who is asked to report something and handed the way to do it in
  * the same breath actually reports it.
  *
  * <p>Takes either a described {@link Failure} or a bare message. Where only a message is given, a report
- * is offered exactly when that message is the generic one: a screen that could say nothing better than
+ * is offered exactly when that message is the generic one: a screen that could show nothing better than
  * "that did not work" is itself evidence that something unexpected happened, whereas a screen quoting the
- * server's own sentence about a mistyped field has already told the reader what to do, and inviting a bug
+ * server's own sentence about a mistyped field has already shown the reader what to do, and inviting a bug
  * report there only buries the real ones.
  */
 const props = defineProps<{

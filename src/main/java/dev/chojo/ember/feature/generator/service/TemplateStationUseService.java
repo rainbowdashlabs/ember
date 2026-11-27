@@ -70,7 +70,7 @@ public class TemplateStationUseService {
      * @param selfService    whether the station offers it to its members for self service
      * @param audience       who of the station's members may generate it for themselves
      * @param issuerId       the member of the station who issues its documents there, or null for nobody
-     * @param issuerFunction what the issuer does at the station, or null where nothing is said
+     * @param issuerFunction what the issuer does at the station, or null where nothing is set
      */
     public record TemplateUseResponse(
             int templateId,
@@ -90,7 +90,7 @@ public class TemplateStationUseService {
      * @param selfService    whether its members generate it for themselves, where the association offers it
      * @param audience       who of its members may, everybody where left out
      * @param issuerId       the member of the station who issues its documents there, or null for nobody
-     * @param issuerFunction what the issuer does at the station, or null where nothing is said
+     * @param issuerFunction what the issuer does at the station, or null where nothing is set
      */
     public record TemplateUseRequest(
             boolean selfService,

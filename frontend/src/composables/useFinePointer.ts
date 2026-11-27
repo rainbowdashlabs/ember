@@ -15,7 +15,7 @@ import {useHydrated} from '@/composables/useHydrated'
  * rather than the width of the window, because a tablet is wide and still has no mouse.
  *
  * <p>It reads false on the server and while the browser takes up the page the server sent (see
- * {@link useHydrated}), so whatever is offered only for a mouse appears once the browser has said
+ * {@link useHydrated}), so whatever is offered only for a mouse appears once the browser has reported
  * there is one.
  */
 export function useFinePointer() {

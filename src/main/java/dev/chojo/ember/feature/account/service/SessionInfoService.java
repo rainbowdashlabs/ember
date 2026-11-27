@@ -272,7 +272,7 @@ public class SessionInfoService {
      *                          Invitations, setup links and password resets all leave through the
      *                          instance rather than through a station's own provider, so the answer is
      *                          the same everywhere and a screen offering to send one can ask it here.
-     *                          It says nothing about whether a particular person can be reached, which
+     *                          It shows nothing about whether a particular person can be reached, which
      *                          is a question about addresses and is answered per member
      * @param messagesEnabled   whether messages are on for this instance. An administrator can turn
      *                          them off for everybody, and every screen leading to them then hides

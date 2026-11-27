@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.storage.entity;
 
 /**
- * Where a resolved quota came from, so a screen can say "inherited" without guessing.
+ * Where a resolved quota came from, so a screen can show "inherited" without guessing.
  *
  * <p>The order below is the order they are consulted in.
  */

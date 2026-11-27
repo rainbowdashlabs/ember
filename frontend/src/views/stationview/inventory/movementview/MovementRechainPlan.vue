@@ -13,7 +13,7 @@ import type {RechainPlan} from '@/api/generated/schema'
 /**
  * The two chains, the step the movement stands on, and the step it is to land on.
  *
- * <p>Both chains are named because the words of a step say nothing on their own: a step called
+ * <p>Both chains are named because the words of a step show nothing on their own: a step called
  * "An den Träger geschickt" reads the same whichever chain it was written for.
  */
 const {t} = useI18n()

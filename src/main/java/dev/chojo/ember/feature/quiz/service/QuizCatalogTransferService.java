@@ -328,7 +328,7 @@ public class QuizCatalogTransferService {
     /**
      * Builds the key a category travels under from its name, so a file stays readable to whoever
      * opens it. Accents are folded away and anything that is not a letter or a digit becomes a
-     * hyphen; two categories whose names reduce to the same key are told apart by a number.
+     * hyphen; two categories whose names reduce to the same key are distinguished by a number.
      */
     private static String uniqueKey(String name, Set<String> taken) {
         String folded = Normalizer.normalize(name.replace("ß", "ss"), Normalizer.Form.NFD)

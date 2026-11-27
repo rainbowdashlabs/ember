@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 /**
- * What a reader is told about a date that is off: which one, who called it off, why and when.
+ * What a reader sees about a date that is off: which one, who called it off, why and when.
  *
  * <p>Who the manager was stays out of it. A list or a calendar has no use for the member id, and
  * the reason is what the reader needs.

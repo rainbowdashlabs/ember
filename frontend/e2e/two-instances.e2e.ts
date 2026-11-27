@@ -21,7 +21,7 @@ import {stationDay} from './fixtures/stationDay'
 import {request, type APIRequestContext, type Page} from '@playwright/test'
 import {must} from './fixtures/must'
 
-/** What a station says about a partner. Only the parts a story here reads. */
+/** What a station reports about a partner. Only the parts a story here reads. */
 interface Partner {
     id: number
     status: string
@@ -41,7 +41,7 @@ async function partnersOf(api: APIRequestContext): Promise<Partner[]> {
  *
  * Asked for by identity rather than by name: both instances are seeded from the same list, so a
  * station of the second is called exactly what a station of the first is called, and only the
- * identity tells the two apart.
+ * identity distinguishes the two.
  */
 async function partnerWith(api: APIRequestContext, stationUid: string): Promise<Partner> {
     const matching = (await partnersOf(api)).filter(partner => partner.partnerStationId === stationUid)
@@ -53,7 +53,7 @@ async function partnerWith(api: APIRequestContext, stationUid: string): Promise<
  * Two installations of the application, not two stations of one.
  *
  * Everything federation does happens between instances, so a suite with one instance can only ever
- * tell the story of a station talking to a station beside it in the same database. These stories are
+ * cover the case of a station talking to a station beside it in the same database. These stories are
  * the ground the federation stories stand on: that the second instance is genuinely a second one,
  * that each of them can call the other over the network, and that two of their stations pair up
  * over it.
@@ -67,7 +67,7 @@ test.describe('Two instances', () => {
      * where the rows live. A station that exists on one and not on the other does prove it.
      *
      * The first instance's own stations are counted as well, so that the missing one means what it
-     * says: an instance answering with nothing at all would pass the same assertion for the wrong
+     * appears to: an instance answering with nothing at all would pass the same assertion for the wrong
      * reason.
      */
     test('a station made on the second instance is unknown to the first', async ({
@@ -97,7 +97,7 @@ test.describe('Two instances', () => {
      *
      * The probe is the cheapest call one instance makes to another: an administrator names an
      * address, the server fetches that address itself and reports what answered. That the answer
-     * carries the far instance's identity and not the near one's is what says a real network hop
+     * carries the far instance's identity and not the near one's is what shows a real network hop
      * happened, and the address it goes to is the one a container can resolve - the port on the
      * host, which is how the stories reach both, is the caller itself as far as a container is
      * concerned.
@@ -134,7 +134,7 @@ test.describe('Two instances', () => {
     })
 
     /**
-     * Two stations on two instances become partners from an invite code, and both sides say so.
+     * Two stations on two instances become partners from an invite code, and both sides show that.
      *
      * This is the whole point of a second instance. A code names the station and the address it
      * lives at; the station entering it calls that address, the issuing side redeems the token and
@@ -147,7 +147,7 @@ test.describe('Two instances', () => {
      * The inviting station is made for the story rather than taken from the seed. Both instances are
      * seeded from the same list and derive a station's identity from its name, so the seeded
      * stations of one are the seeded stations of the other by identity, and a station handed such a
-     * code is told it is being invited to federate with itself. Its manager is a seeded account
+     * code sees that it is being invited to federate with itself. Its manager is a seeded account
      * handed the fresh station, because the federation routes ask for a fresh proof and a manager
      * made mid-story holds nothing to prove itself with: no password until its setup mail, no
      * second factor ever.
@@ -242,7 +242,7 @@ test.describe('Two instances', () => {
     /**
      * A file of an event travels from the instance that owns it to the instance that reads it.
      *
-     * <p>This is the story a single instance cannot tell. Between two stations of one database the
+     * <p>This is the story a single instance cannot cover. Between two stations of one database the
      * owning station's answer is a method call; here it crosses the wire, where the channel carries
      * text and the bytes have to survive being written as text and read back. The reading side is
      * handed exactly what the owning side decided: the open file with its bytes intact, and a
@@ -356,7 +356,7 @@ test.describe('Two instances', () => {
      * A station hands a partner a number of places and lets them fill it.
      *
      * <p>Who decides is the thing this proves. The holder keeps the places and the counting, so the
-     * partner asks and is told yes until the number runs out. Nobody at the holder is asked about each
+     * partner asks and is answered yes until the number runs out. Nobody at the holder is asked about each
      * person: that was the point of handing it over.
      */
     test('a station hands a partner places and the partner fills them', async ({
@@ -455,7 +455,7 @@ async function asThePage(page: Page): Promise<APIRequestContext> {
     })
 }
 
-/** Whether the signed-in member of this context was told something of the given kind. */
+/** Whether the signed-in member of this context was notified of something of the given kind. */
 async function wasTold(api: APIRequestContext, type: string): Promise<boolean> {
     const response = await api.get('/api/v1/notifications')
     expect(response.ok(), await response.text()).toBe(true)
@@ -466,7 +466,7 @@ async function wasTold(api: APIRequestContext, type: string): Promise<boolean> {
  * Asking a station of another instance to federate, the way a station of the same instance is asked.
  *
  * <p>The request goes from the first instance to the second, where the asked station's managers are
- * told and answer. The answer cannot be pushed back here: the second instance knows the first only
+ * notified and answer. The answer cannot be pushed back here: the second instance knows the first only
  * by the address the browser uses, which no container can reach. The first instance asks for it
  * instead when its federation page lists what it sent, which is the same way a real instance learns
  * an answer whose push did not arrive.

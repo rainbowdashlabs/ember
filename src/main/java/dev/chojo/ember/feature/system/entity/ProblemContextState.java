@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.system.entity;
 
-/** What the log holds around an occurrence of a problem, which decides what the page says. */
+/** What the log holds around an occurrence of a problem, which decides what the page shows. */
 public enum ProblemContextState {
     /** Lines were found and are listed. */
     LINES,

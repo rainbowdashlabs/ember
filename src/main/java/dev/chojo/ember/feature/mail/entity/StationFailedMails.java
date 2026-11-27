@@ -11,7 +11,7 @@ import java.util.UUID;
 
 /**
  * The mails of one station that did not arrive and that the instance's administrator has not taken
- * note of yet, counted rather than listed: whom they were for and what they said is the station's
+ * note of yet, counted rather than listed: whom they were for and what they contained is the station's
  * business, and the station sees them in full on its own mail page.
  *
  * <p>The causes are the categories only, never the text a provider sent back, since that text often

@@ -107,7 +107,7 @@ public class NewsFederationRepository {
      * Only published news articles are returned.
      *
      * <p>An entry that not every member of the owning station may read is never among them, whatever
-     * the share says, the same way an event that not everybody may know about is never handed over.
+     * the share defines, the same way an event that not everybody may know about is never handed over.
      * Deciding it here rather than at each caller also settles the order the two settings were made
      * in: restricting an entry that was already shared withdraws it, and an entry that starts
      * restricted only reaches a partner once somebody deliberately lifts the restriction.

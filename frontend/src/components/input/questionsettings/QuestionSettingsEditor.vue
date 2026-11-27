@@ -20,7 +20,7 @@ import type {QuestionSetting, QuestionSettingsModel} from './questionSettings'
  * The settings of a field, whatever feature it belongs to, as far as they are shared.
  *
  * <p>Seven settings screens each wrote the answers of a choice, the starting value, the bounds of a
- * number and the group a member field is narrowed to in their own way. Here a feature says which of
+ * number and the group a member field is narrowed to in their own way. Here a feature defines which of
  * these it offers and gets them drawn the one way, for the types they mean something for. What only
  * the feature has, such as a lane, a unit or a width, stays on the feature's own screen beside this.
  */
@@ -34,7 +34,7 @@ const props = defineProps<{
   tags?: UserTag[]
   /** Whom a starting value may name, where the feature offers one for a member field. */
   members?: MemberOption[]
-  /** A line under the starting value, where a feature says when it is used. */
+  /** A line under the starting value, where a feature defines when it is used. */
   defaultHint?: string
 }>()
 

@@ -38,7 +38,7 @@ async function sheet(entryId: number, canEdit = true) {
     return wrapper
 }
 
-/** What a present person's row says about the time around the appointment, and how it is taken back. */
+/** What a present person's row shows about the time around the appointment, and how it is taken back. */
 describe('ExtraTimeNote', () => {
     beforeEach(() => {
         listExtraTime.mockReset()

@@ -16,15 +16,15 @@ import io.javalin.http.HttpStatus;
 public enum MailRefusal implements Refusal {
     /**
      * A delivery report from a mail provider whose key opens nothing, or whose signature does not
-     * match what it carries. One code deliberately: two would tell whoever is trying the addresses
+     * match what it carries. One code deliberately: two would show whoever is trying the addresses
      * which of the two they got right.
      */
     MAIL_REPORT_NOT_TAKEN(1, HttpStatus.NOT_FOUND, "Nothing here takes that report"),
 
     /**
      * A failed mail named on the instance's routes that is not one of the instance's own failed
-     * mails: a station's mail, one that arrived, or none at all. The three are not told apart, so
-     * the routes say nothing about a station's post.
+     * mails: a station's mail, one that arrived, or none at all. The three are not distinguished, so
+     * the routes reveal nothing about a station's post.
      */
     FAILED_MAIL_NOT_HERE(2, HttpStatus.NOT_FOUND, "There is no failed mail of the instance by that number"),
 
@@ -44,7 +44,7 @@ public enum MailRefusal implements Refusal {
     /** Taking note of a station's failed mails for a station that does not exist. */
     STATION_NOT_HERE_FOR_FAILED_MAILS(5, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
 
-    /** Taking note of a station's failed mails without saying up to when. */
+    /** Taking note of a station's failed mails without indicating up to when. */
     FAILED_MAILS_UP_TO_MISSING(
             6, HttpStatus.BAD_REQUEST, "Taking note needs the latest failure seen, so nothing was taken note of");
 

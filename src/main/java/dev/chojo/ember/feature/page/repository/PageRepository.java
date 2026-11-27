@@ -273,7 +273,7 @@ public class PageRepository {
      * Replaces a page's link, but only where it still holds the one the caller was shown.
      *
      * <p>Two administrators looking at the same page would otherwise take it in turns to end each
-     * other's link without either being told. The one whose statement changes nothing is the one who
+     * other's link without either noticing. The one whose statement changes nothing is the one who
      * has to look again.
      *
      * @param id          the page
@@ -354,7 +354,7 @@ public class PageRepository {
      *
      * <p>A page cell names an article by number in its settings and no foreign key follows it, so
      * deleting the article leaves the cell falling back to its stand-in title without anybody being
-     * told. This is the one question that turns that into something a delete dialog can say first.
+     * warned. This is the one question that turns that into something a delete dialog can show first.
      *
      * <p>The number is compared as it is written rather than cast, because the settings of a cell
      * are free-form and one that never held a number would fail the cast rather than not match.

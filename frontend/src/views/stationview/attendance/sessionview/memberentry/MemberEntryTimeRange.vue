@@ -15,7 +15,7 @@ import {formatTime, instantToLocalInput} from '@/util/format'
  * When somebody came and went, against the times the sheet itself runs to.
  *
  * <p>Nearly everybody was there from the start to the end, and writing that down once per member is
- * work that says nothing. An entry that carries no time of its own therefore shows the session's,
+ * work that adds nothing. An entry that carries no time of its own therefore shows the session's,
  * faintly, as the answer already assumed. Nothing is stored for it: the field only reports a change,
  * so a time that is left alone stays absent on the server and a time that is corrected is the
  * deviation worth keeping.

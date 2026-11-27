@@ -56,7 +56,7 @@ import static org.mockito.Mockito.verify;
  * and its association's), and the association writing through its member screen.
  *
  * <p>Pinned before the two were folded into one pipeline, on what is stored, what the change history
- * records and who is told.
+ * records and who is notified.
  */
 class ProfileAnswerPathsTest extends RepositoryTestBase {
     private OwnerScene scene;

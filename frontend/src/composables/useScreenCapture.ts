@@ -61,7 +61,7 @@ const SETTLE = 700
  * almost always the one the report is being written on.
  *
  * <p>Nothing is narrowed by this. Whoever is asked can still pick any window or screen they like:
- * the prompt is the browser's and says what is being shared, which is what keeps this honest.
+ * the prompt is the browser's and shows what is being shared, which is what keeps this honest.
  */
 const WHAT_TO_SHARE: DisplayMediaStreamOptions = {
     video: {displaySurface: 'browser'},
@@ -73,7 +73,7 @@ const WHAT_TO_SHARE: DisplayMediaStreamOptions = {
  * Takes one picture of whatever the person chooses to share, and stops sharing at once.
  *
  * <p>The browser asks them which window or tab, and that prompt is what makes this honest: the
- * browser says what is being shared, not this code. The track is stopped the moment a frame is
+ * browser shows what is being shared, not this code. The track is stopped the moment a frame is
  * held, so nothing goes on watching after the one picture.
  *
  * <p>Nothing here waits on an animation frame. A browser stops running those while the page is
@@ -81,7 +81,7 @@ const WHAT_TO_SHARE: DisplayMediaStreamOptions = {
  * the page is hidden for exactly as long as the person spends choosing. Waiting for a frame that
  * way is waiting for something that has been switched off, which is why the picture never arrived:
  * the wait never ended, the prompt was answered, and nothing happened. What is waited for instead
- * is the video saying it has data, and never for longer than {@link FRAME_WAIT}.
+ * is the video reporting it has data, and never for longer than {@link FRAME_WAIT}.
  */
 export async function captureScreen(): Promise<Capture> {
     if (!canCaptureScreen()) return {picture: null, refused: false}
@@ -115,7 +115,7 @@ export async function captureScreen(): Promise<Capture> {
 /**
  * Whether the person said no, rather than something failing.
  *
- * <p>Turning a prompt down is an answer and not a fault, so it is told apart here and reported
+ * <p>Turning a prompt down is an answer and not a fault, so it is distinguished here and reported
  * nowhere: a report that somebody declined to share their screen is noise in the error log of every
  * instance that has this switched on.
  */
@@ -127,7 +127,7 @@ function isRefusal(error: unknown): boolean {
 /**
  * Starts the video and swallows whatever the attempt rejects with.
  *
- * <p>A play that is interrupted rejects with a media abort, which says nothing anybody can act on
+ * <p>A play that is interrupted rejects with a media abort, which shows nothing anybody can act on
  * and must not escape: left alone it reaches the global handler and is filed as a fault in the
  * product. Whether a frame actually arrived is answered by looking at the video, not by this.
  */

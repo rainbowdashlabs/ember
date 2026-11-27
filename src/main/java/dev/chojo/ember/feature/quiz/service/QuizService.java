@@ -49,7 +49,7 @@ public class QuizService {
 
     /**
      * Creates a catalog the station wrote itself, which is why it carries no provenance: where a
-     * catalog came from is something only an import or a copy from a partner can say.
+     * catalog came from is something only an import or a copy from a partner can know.
      */
     public QuizCatalog createCatalog(int stationId, String name, String description, boolean trainingEnabled) {
         return catalogService.createCatalog(stationId, name, description, trainingEnabled, CatalogMetadata.none());

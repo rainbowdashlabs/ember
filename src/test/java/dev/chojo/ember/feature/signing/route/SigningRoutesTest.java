@@ -828,7 +828,7 @@ class SigningRoutesTest extends RepositoryTestBase {
     }
 
     /**
-     * The witness's list says what waits on each person: the fields of their documents the witness may
+     * The witness's list shows what waits on each person: the fields of their documents the witness may
      * collect, counted, with the document they are on, and the same number the person's offers show. The
      * issuer's field waits on nobody there, a field any guardian may sign of a member in the witness's own
      * care is not theirs to collect, a person with nothing open lists none, and a field signed in front of

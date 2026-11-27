@@ -18,7 +18,7 @@ defineProps<{
   name: string
   type: string
   withSizes?: boolean
-  /** What the card says the inventory is offered as, where it can be offered at all. */
+  /** What the card shows the inventory is offered as, where it can be offered at all. */
   shareState?: string
 }>()
 </script>

@@ -205,7 +205,7 @@ public class EventGroupViewService {
     /**
      * Turns standings into what a response shows, reading the answers of all of them at once. Answers
      * kept for organisers are left out unless the reader runs events or the answers are about them or
-     * somebody they look after. Whether a required answer is still owed is told either way.
+     * somebody they look after. Whether a required answer is still owed is shown either way.
      */
     private List<EventGroupSignUp> signUpsOf(
             StationSession session,

@@ -24,7 +24,7 @@ const UNDELIVERED: readonly string[] = [
 ]
 
 /**
- * Waiting and unable to go anywhere. Worth saying outright: a queue that is merely busy looks the
+ * Waiting and unable to go anywhere. Worth showing outright: a queue that is merely busy looks the
  * same as one that will never move, and only one of them needs somebody to act.
  */
 export function isStuck(mail: MailRecord): boolean {
@@ -44,7 +44,7 @@ const QUEUE_LABEL_KEYS: Record<string, string> = {
     [EmailQueueStatus.FAILED]: 'mailDashboard.failed',
 }
 
-/** The moment that says most about a mail: when it was handed over, or else when it was written. */
+/** The moment that shows most about a mail: when it was handed over, or else when it was written. */
 function momentOf(mail: MailRecord): string {
     return mail.sentAt ?? mail.createdAt
 }
@@ -53,7 +53,7 @@ function momentOf(mail: MailRecord): string {
  * The columns of a list of mails.
  *
  * <p>A provider accepting a message and a message arriving are two different things, so both show:
- * the queue status says whether Ember got rid of it, the delivery status says what the provider
+ * the queue status shows whether Ember got rid of it, the delivery status shows what the provider
  * reported afterwards. The reason a provider gave is worth more than either.
  */
 export function mailRecordColumns(t: (key: string) => string): TableColumn<MailRecord>[] {

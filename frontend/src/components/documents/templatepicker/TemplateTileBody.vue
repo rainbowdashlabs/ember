@@ -13,7 +13,7 @@ import TemplateBadges from './TemplateBadges.vue'
 
 /**
  * What a template tile shows: the first page drawn without a member, from its top where a document
- * says what it is, then its name, its badges, its version and when it was last used.
+ * shows what it is, then its name, its badges, its version and when it was last used.
  */
 defineProps<{
   template: DocumentTemplateSummary

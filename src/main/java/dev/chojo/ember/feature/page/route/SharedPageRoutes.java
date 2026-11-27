@@ -41,7 +41,7 @@ import org.jspecify.annotations.Nullable;
  * meant to.
  *
  * <p>The answer carries the station's name, picture and colours as well as the page, so the wrapper
- * around it can be drawn without a second call, and it says whether the page also has an ordinary
+ * around it can be drawn without a second call, and it shows whether the page also has an ordinary
  * address, so a page opened to the public since the link was sent can send the reader on to it.
  */
 @Singleton
@@ -143,7 +143,7 @@ public class SharedPageRoutes implements Routes {
      * <p>The timezone is what a date on the page is written on. The page is rendered once by the
      * server and once again by the browser, and neither machine stands where the reader does, so a
      * date put on whichever clock wrote it comes out differently in the two copies. The station's own
-     * clock is the one both can be told to use.
+     * clock is the one both can be made to use.
      */
     public record SharedBrand(
             String stationUid,

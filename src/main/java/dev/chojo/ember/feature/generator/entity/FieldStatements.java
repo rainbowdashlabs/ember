@@ -8,11 +8,11 @@ package dev.chojo.ember.feature.generator.entity;
 import java.util.Map;
 
 /**
- * What the signers of a member's document confirm, as its template says.
+ * What the signers of a member's document confirm, as its template defines.
  *
  * @param language the language the document is written in, which the default statements are worded in
  * @param byField  the statement by the name of the signature field, for the fields whose line or box
- *                 says one; every other field keeps the default statement of its signer
+ *                 has one; every other field keeps the default statement of its signer
  */
 public record FieldStatements(DocumentLanguage language, Map<String, String> byField) {
 

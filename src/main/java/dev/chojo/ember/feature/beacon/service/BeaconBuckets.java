@@ -30,8 +30,8 @@ public final class BeaconBuckets {
     /**
      * Buckets for the counts that have no published precedent: accounts, stations and inventory.
      *
-     * <p>Wider as they grow, because the difference between six and seven says something about a
-     * small station and the difference between six hundred and seven hundred says nothing about a
+     * <p>Wider as they grow, because the difference between six and seven means something about a
+     * small station and the difference between six hundred and seven hundred means nothing about a
      * large one.
      */
     public static String size(int actual) {

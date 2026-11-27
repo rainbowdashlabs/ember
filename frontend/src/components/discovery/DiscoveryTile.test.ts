@@ -16,7 +16,7 @@ import {createDiscoveryEntry, createRemoteDiscoveryEntry, invitingPage} from '@/
  * @vitest-environment happy-dom
  *
  * <p>Both are drawn by the same rules: the same chips, links and buttons for the same flags, and only the
- * host line under the name tells them apart.
+ * host line under the name distinguishes them.
  */
 describe('DiscoveryTile', () => {
     const offers: Partial<DiscoveryEntry> = {

@@ -181,7 +181,7 @@ public class RestrictionService {
      * The current members of a station who may open an entity: those its restrictions take in, plus
      * the members holding the manager permission of the entity type, who bypass restrictions.
      *
-     * <p>Each member is decided by the rule the access check itself applies, so nobody is told about
+     * <p>Each member is decided by the rule the access check itself applies, so nobody is notified about
      * an entity they cannot open. Knowledge base items follow the knowledge base's own walk down the
      * folder tree; everything else goes through the {@code check_restriction} database function.
      *

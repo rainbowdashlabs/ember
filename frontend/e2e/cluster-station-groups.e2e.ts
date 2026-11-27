@@ -167,7 +167,7 @@ test.describe('Cluster station groups', () => {
      *
      * A question asked of everybody already reaches the stations in every group, so one of the same name
      * pointed at a group would put two boxes of one name on one profile. The refusal is the interesting
-     * half of targeting: nothing in the database says these two collide until you work out what each
+     * half of targeting: nothing in the database shows these two collide until you work out what each
      * one reaches.
      */
     test('a second question of one name may not reach a station the first already does', async ({adminPage: page, browser, request}) => {
@@ -193,7 +193,7 @@ test.describe('Cluster station groups', () => {
     /**
      * CLS-93 - A group with questions keyed to it cannot be deleted.
      *
-     * Cascading would delete the questions and every answer to them without saying so. The refusal names
+     * Cascading would delete the questions and every answer to them without warning. The refusal names
      * how many are in the way, and pointing them somewhere else lets the delete through.
      */
     test('a group questions are asked of cannot be removed until they are pointed elsewhere', async ({adminPage: page, browser, request}) => {

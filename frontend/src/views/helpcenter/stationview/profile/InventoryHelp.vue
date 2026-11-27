@@ -58,7 +58,7 @@ const dummyHelm = dummyPiece({
   sizeName: 'M', sizeId: 2, internalId: 'HLM-2024-012',
 })
 /**
- * A piece with something running on it says the last step that happened, in the chain's own words,
+ * A piece with something running on it shows the last step that happened, in the chain's own words,
  * and whose turn it is now.
  */
 const dummyJackeOnItsWay = dummyPiece({

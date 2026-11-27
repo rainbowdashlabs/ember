@@ -19,7 +19,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 
 /**
- * Tells a cluster member that what they may do has changed.
+ * Notifies a cluster member that what they may do has changed.
  *
  * <p>Only they hear. Whether somebody else's standing moved is nobody's business but the people who decided
  * it, and they already know.

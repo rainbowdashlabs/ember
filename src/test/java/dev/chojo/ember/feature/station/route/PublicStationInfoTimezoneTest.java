@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
  *
  * <p>Those pages are rendered once by the server and once again by the browser, and neither machine
  * stands where the reader does, so a date written on whichever clock ran came out differently in the
- * two copies. The station's own clock is the one both can be told to use, and it only reaches them
+ * two copies. The station's own clock is the one both can be set to use, and it only reaches them
  * if the card carries it.
  */
 class PublicStationInfoTimezoneTest {
@@ -104,7 +104,7 @@ class PublicStationInfoTimezoneTest {
     }
 
     /**
-     * A station that never said where it stands falls back to the clock its exports already fall back
+     * A station that never set where it stands falls back to the clock its exports already fall back
      * to, spelled the way a browser reads it: Java writes that offset as {@code Z}, and no browser's
      * date formatter knows that spelling.
      */

@@ -22,7 +22,7 @@ interface EligibleMember {
 
 /**
  * The agreement a partner station's appointment without registrations offers on its page. Signing it, for
- * oneself or a member in one's care, says they will come: the document is filed in their documents and signed
+ * oneself or a member in one's care, means they will come: the document is filed in their documents and signed
  * here, and the sealed copy goes to the partner station.
  */
 const selectedMemberUid = defineModel<string>('selectedMemberUid', {required: true})

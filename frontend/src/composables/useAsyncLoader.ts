@@ -39,7 +39,7 @@ export type IsCurrentLoad = () => boolean
  * <p>A failure comes back two ways, as it does from {@link useAsyncAction}. `error` is the one line
  * it always was, so every existing caller keeps working. `failure` is the same thing described:
  * what sort of failure it was, what the reader should do about it, and whether it looks like a
- * fault in Ember worth reporting. Render that with `FailureAlert` and the reader is told all three.
+ * fault in Ember worth reporting. Render that with `FailureAlert` and the reader sees all three.
  *
  * <p>A loader that runs on mount starts out loading, so the render before the mount already shows
  * the wait rather than an empty screen that fills a moment later.

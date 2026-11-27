@@ -24,7 +24,7 @@ export function canHaveGuardians(userType: string): boolean {
  *
  * <p>Guardians, team members and managers all can be put in charge of a member, so their side of
  * the link is the members in their care. Anybody who already has members in their care is on that
- * side too, whatever their type says.
+ * side too, whatever their type shows.
  *
  * @param managedCount how many members are in their care, where that is known
  */

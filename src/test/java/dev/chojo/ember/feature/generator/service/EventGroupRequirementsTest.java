@@ -43,7 +43,7 @@ import static org.mockito.Mockito.verify;
 
 /**
  * An event group asks every part for its documents: a part lists the event group's first and its own
- * after them, cannot take one of the event group's off, and a change to the event group's list is told
+ * after them, cannot take one of the event group's off, and a change to the event group's list is reported
  * for every part.
  */
 class EventGroupRequirementsTest extends GeneratorTestBase {

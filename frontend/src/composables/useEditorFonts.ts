@@ -85,7 +85,7 @@ function canRegister(): boolean {
  * longer reaches is shown as the default font it prints in. Each family is registered with the browser's
  * `FontFace` API under a name of this editor's own, which nothing outside it names, and a stylesheet
  * scoped to elements carrying {@link EditorFonts.scope} sets the text in it: the page's font where an
- * area says so ({@link useEditorFontArea}), words in the family they are set in. A style the family lacks
+ * area sets it ({@link useEditorFontArea}), words in the family they are set in. A style the family lacks
  * is drawn from its regular file, as a document draws it.
  *
  * <p>A family whose files cannot be loaded (one Typst carries inside itself, a default font without web

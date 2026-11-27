@@ -51,7 +51,7 @@ public class RemoteSigningRoutes implements Routes {
             RemoteAgreement.class);
 
     /**
-     * A member's home installation telling the station holding a shared appointment where a document it asks
+     * A member's home installation reporting to the station holding a shared appointment where a document it asks
      * the member to sign stands there: taken on, or signed with the sealed copy. Answered by
      * {@code PartnerAgreements}.
      */
@@ -62,7 +62,7 @@ public class RemoteSigningRoutes implements Routes {
             Void.class);
 
     /**
-     * The station holding a shared appointment telling a partner that the documents it asks for changed: the
+     * The station holding a shared appointment notifying a partner that the documents it asks for changed: the
      * partner asks its members registered on dates still ahead for the documents added, lets the open requests
      * of those taken off go, and answers with what it let go. Answered by {@code PartnerSignatures}.
      */

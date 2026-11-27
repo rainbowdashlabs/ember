@@ -153,7 +153,7 @@ public class DemoAccountService {
      * Everything an account may do for any cluster it belongs to, flattened.
      *
      * <p>Flattened because the stories that read this pick an actor by what they are allowed to do, and the
-     * demo has one cluster: telling them which cluster each right came from would be a distinction with
+     * demo has one cluster: showing them which cluster each right came from would be a distinction with
      * nothing behind it. An account in no cluster answers with nothing, which is the same answer the picker
      * gives.
      */
@@ -181,8 +181,8 @@ public class DemoAccountService {
      * @param tags                  the names of the tags it carries
      * @param profileComplete       whether its profile is fully filled in
      * @param instanceAdministrator whether the account administers the instance itself. Station
-     *                              permissions say nothing about that, so a caller looking for
-     *                              someone who may reach the admin area has no other way to tell.
+     *                              permissions carry nothing about that, so a caller looking for
+     *                              someone who may reach the admin area has no other way to find out.
      * @param clusterPermissions    everything it may do for any association, expanded
      */
     public record DemoAccount(

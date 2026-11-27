@@ -9,10 +9,10 @@ import AppIcon from '@/components/display/AppIcon.vue'
 import BareButton from '@/components/button/BareButton.vue'
 
 /**
- * A part of a long form that can be folded away, with a line saying what it holds while it is closed.
+ * A part of a long form that can be folded away, with a line showing what it holds while it is closed.
  *
  * <p>The essentials of a form stand open; everything else is a section like this, closed until it is
- * needed, so the form reads at a glance and still tells what is set. Its content stays rendered while
+ * needed, so the form reads at a glance and still shows what is set. Its content stays rendered while
  * it is closed, only hidden, so what it holds keeps its state and is saved with the rest.
  *
  * <p>A section opens by itself as soon as it asks for attention, such as a field in it that has to be

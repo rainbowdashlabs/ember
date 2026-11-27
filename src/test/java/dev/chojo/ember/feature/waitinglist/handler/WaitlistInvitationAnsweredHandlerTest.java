@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verify;
 
 /**
  * An answer that only appears on a screen somebody has to visit is not an answer the station
- * receives, so whoever looks after the lists is told.
+ * receives, so whoever looks after the lists is notified.
  */
 class WaitlistInvitationAnsweredHandlerTest {
 

@@ -31,7 +31,7 @@ import {buildItemMetadata} from '@/views/stationview/inventory/detailview/itemMe
  *
  * <p>Not a movement and not an exchange: the piece named here is already in the member's hands, and
  * this only writes down that it is. What becomes of the piece coming off the record follows from who
- * owns it, so it is said rather than asked.
+ * owns it, so it is shown rather than asked.
  *
  * <p>The size of the piece already on the record is not offered, here or anywhere on the check. Gear
  * is assumed to be described correctly, so a wrong size means the wrong piece, and the wrong piece is
@@ -82,7 +82,7 @@ const needsSize = computed(() => Boolean(props.req?.hasSizes) && (props.req?.siz
 
 const ready = computed(() => (source.value === 'STOCK' ? pickedItemId.value !== '' : !needsSize.value || sizeId.value !== ''))
 
-/** Where the piece coming off the record goes, which nobody is asked and everybody should be told. */
+/** Where the piece coming off the record goes, which nobody is asked and everybody should be shown. */
 const oldPieceFate = computed(() => {
   const old = props.item
   if (!old) return ''

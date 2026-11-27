@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>The kinds are few on purpose. A detail is a name or a value somebody typed, a count (in a unit
  * where the sentence does not name one), or the room left in a pool against its size; a refusal that
- * needs to say more than that says it in its sentence.
+ * has more to convey than that puts it in its sentence.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "kind")
 @JsonSubTypes({
@@ -108,7 +108,7 @@ public sealed interface RefusalDetail {
      * How many of something stand in the way, or where a limit stands.
      *
      * @param count the number
-     * @param unit  what is counted, or {@code null} where the sentence already says what
+     * @param unit  what is counted, or {@code null} where the sentence already shows what
      */
     record CountDetail(long count, @Nullable CountUnit unit) implements RefusalDetail {
         @Override
@@ -144,7 +144,7 @@ public sealed interface RefusalDetail {
         }
     }
 
-    /** What a count is counted in, where the refusal's sentence does not say. */
+    /** What a count is counted in, where the refusal's sentence does not show. */
     enum CountUnit {
         /** Calendar days. */
         DAYS("%d days"),

@@ -7,7 +7,7 @@ import client from './client'
 import {uploadFile} from './upload'
 import type {DocumentPage, MemberDocumentResponse} from '@/api/generated/schema'
 
-/** What is said about a document while it is put in. */
+/** What is given about a document while it is put in. */
 export interface DocumentUpload {
     file: File
     title: string
@@ -18,7 +18,7 @@ export interface DocumentUpload {
     memberIds?: number[]
 }
 
-/** The fields an upload is made of, skipping what was not said. */
+/** The fields an upload is made of, skipping what was not given. */
 function fieldsOf(upload: DocumentUpload): Record<string, string | File | undefined> {
     return {
         file: upload.file,

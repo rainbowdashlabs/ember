@@ -22,7 +22,7 @@ import jakarta.inject.Singleton;
 
 /**
  * The list of documents a station generated from templates. Reading it needs the right to read the
- * documents of members, since it says who has which document.
+ * documents of members, since it shows who has which document.
  */
 @Singleton
 public class GenerationLogRoutes implements Routes {

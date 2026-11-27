@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * The settings of a cell arrive as an object and are bound once the content type says which record
+ * The settings of a cell arrive as an object and are bound once the content type shows which record
  * they are. Reading them from the tree rather than from JSON text is what keeps the request and the
  * cell in step.
  */

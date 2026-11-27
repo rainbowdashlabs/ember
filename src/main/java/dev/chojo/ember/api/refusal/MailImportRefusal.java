@@ -16,7 +16,7 @@ import io.javalin.http.HttpStatus;
 public enum MailImportRefusal implements Refusal {
     /**
      * A mailbox that is gone, or belongs to another station. One code deliberately: the lookup and
-     * the station check right behind it answer alike, because telling them apart would say that the
+     * the station check right behind it answer alike, because distinguishing them would reveal that the
      * mailbox is at a station the reader may not see.
      */
     MAILBOX_NOT_HERE(2, HttpStatus.NOT_FOUND, Sentences.MAILBOX_NOT_HERE),
@@ -24,7 +24,7 @@ public enum MailImportRefusal implements Refusal {
     /**
      * A rule that is gone, or hangs off a mailbox of another station. One code deliberately, for the
      * same reason the mailbox has one: the lookup and the station check behind it answer alike, and
-     * telling them apart would say that the rule is at a station the reader may not see.
+     * distinguishing them would reveal that the rule is at a station the reader may not see.
      */
     MAILBOX_RULE_NOT_HERE(3, HttpStatus.NOT_FOUND, Sentences.MAILBOX_RULE_NOT_HERE),
 

@@ -30,7 +30,7 @@ import type {S3Form, SftpForm, SmbForm} from '@/util/storageBackendForm'
  * `localRoot` when LOCAL means a writable directory - it then renders the root path
  * field, otherwise LOCAL only shows the caller's `form.localHint` text.
  *
- * `types` says which destinations this caller offers. An association has no instance default to fall back
+ * `types` defines which destinations this caller offers. An association has no instance default to fall back
  * to and no association above it, and a station only sees the association's storage when there is one, so
  * the list is the caller's rather than a constant. The storage already saved is tested from the summary
  * card; this form tests what is typed into it.

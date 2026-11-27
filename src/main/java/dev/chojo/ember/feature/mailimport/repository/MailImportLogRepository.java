@@ -22,10 +22,10 @@ import static dev.chojo.ember.util.sql.SqlSupport.count;
 /**
  * What was looked at and what became of it, and the two keys that stop anything being done twice.
  *
- * <p>The two keys answer two different questions and neither replaces the other. The content hash says
+ * <p>The two keys answer two different questions and neither replaces the other. The content hash shows
  * these same bytes are already here, whatever message carried them, which is what catches a forward: a
  * forwarded mail gets a new identifier, so a key needing both would let it through. The message
- * identifier says this message has been dealt with whatever came of it, which is what survives a
+ * identifier shows this message has been dealt with whatever came of it, which is what survives a
  * connection dropping after the import but before the flags were written.
  *
  * <p>Both outlive the readable half of the log. Pruning clears the subject and the reason after a year
@@ -166,7 +166,7 @@ public class MailImportLogRepository {
      * How many documents this station has been sent that nobody has bound to a member yet.
      *
      * <p>Filing under nobody is the ordinary outcome, so this is not an error count. It is what the
-     * digest tells whoever may read documents, because the thing nobody notices is a store quietly
+     * digest shows whoever may read documents, because the thing nobody notices is a store quietly
      * filling with paperwork waiting to be sorted.
      */
     public int countUnboundSince(int stationId, Instant since) {

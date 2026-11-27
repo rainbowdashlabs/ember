@@ -26,7 +26,7 @@ import java.util.List;
  * @param restrictionMode how the parts of the self service audience combine
  * @param language        the language its documents are written in
  * @param issuerId        the member of the station who issues its documents, or null for nobody
- * @param issuerFunction  what the issuer does at the station, or null where nothing is said
+ * @param issuerFunction  what the issuer does at the station, or null where nothing is set
  * @param content         the letter, or the fields laid over the PDF
  * @param signing         how its documents are kept and sent once they are signed
  * @param questions       what it asks the person generating a document, in the order it asks

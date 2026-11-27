@@ -111,7 +111,7 @@ async function applyTemplate(templateId: number) {
   await requirements.takeFrom({kind: 'event-templates', id: templateId})
 }
 
-/** Says which of a template's files could not be attached because the library no longer holds them. */
+/** Reports which of a template's files could not be attached because the library no longer holds them. */
 function reportGoneFiles(gone: string[]) {
   if (gone.length > 0) showToast(t('eventGroups.fromTemplateFilesGone', {files: gone.join(', ')}), 'error')
 }
@@ -190,7 +190,7 @@ function dropStartingAppointment() {
 /**
  * Reads the event group again after a part changed, touching nothing the form holds unsaved, except a
  * set minimum that now asks for more parts than the set holds and is not the one the set keeps while it
- * fills up: the form takes the server's, or the part count where that is lower, and says so, or the next
+ * fills up: the form takes the server's, or the part count where that is lower, and reports it, or the next
  * save would be refused. A minimum the server raised to the parts a set requires is taken the same way.
  */
 async function refreshParts() {
@@ -216,7 +216,7 @@ async function refreshParts() {
 
 /**
  * Takes a maximum the server raised because a part of the set became required, the same way a raised
- * minimum is taken, and says so. A maximum the form already holds at least as high is left alone.
+ * minimum is taken, and reports it. A maximum the form already holds at least as high is left alone.
  */
 function takeRaisedMaximum(set: EventGroupSet, before: number | null) {
   const row = sets.value.find(candidate => candidate.id === set.id)

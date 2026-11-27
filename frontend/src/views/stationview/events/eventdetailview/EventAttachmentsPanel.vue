@@ -39,10 +39,10 @@ const attachments = ref<EventAttachment[]>([])
 const failure = ref<Failure | null>(null)
 
 /**
- * Reads the files, and says in the reader's terms where it could not.
+ * Reads the files, and shows in the reader's terms where it could not.
  *
- * <p>The sentence names these files rather than repeating whatever the server said, because a GET
- * that fails says nothing a reader can use. What to do about it, and whether it is worth reporting,
+ * <p>The sentence names these files rather than repeating whatever the server reported, because a GET
+ * that fails shows nothing a reader can use. What to do about it, and whether it is worth reporting,
  * still come from the failure itself.
  */
 async function load() {

@@ -14,7 +14,7 @@ import java.util.stream.Stream;
  * The pronouns one answer of a gender field stands for in one language, by the role they play in a
  * sentence: "er / ihn / ihm / sein", "she / her / her / her".
  *
- * <p>A language that does not tell two roles apart leaves the second empty, and it takes the word of the
+ * <p>A language that does not distinguish two roles leaves the second empty, and it takes the word of the
  * other: English has no dative of its own, so its dative is the object.
  *
  * @param subject    the one doing something: er, she
@@ -51,7 +51,7 @@ public record PronounSet(
         return word(object);
     }
 
-    /** The dative, the object where the language does not tell them apart. */
+    /** The dative, the object where the language does not distinguish them. */
     public String dativeWord() {
         String dative = word(this.dative);
         return dative.isEmpty() ? objectWord() : dative;

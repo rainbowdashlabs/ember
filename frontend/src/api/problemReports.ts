@@ -53,7 +53,7 @@ export async function submitReport(
 
 /**
  * The reader's own words first, because that is what an operator reads to understand the report, and
- * what the screen and the server said underneath it.
+ * what the screen and the server reported underneath it.
  */
 function composeMessage(description: string, about?: ReportAbout): string {
     if (!about) return description

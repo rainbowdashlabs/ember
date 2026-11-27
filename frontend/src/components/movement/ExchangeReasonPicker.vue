@@ -28,7 +28,7 @@ import {
  * Why a piece is swapped and which size comes back, asked the same way wherever a swap is started.
  *
  * <p>Too small, too large and broken are buttons, because they are what nearly every swap is, and each
- * sets the wanted size: one up, one down, the same. Anything else is said in words. A note can follow a
+ * sets the wanted size: one up, one down, the same. Anything else is given in words. A note can follow a
  * button too. The size the piece has now stands next to the wanted one, with how the two relate, so the
  * reader sees the step at a glance and corrects the guess where it is wrong.
  *
@@ -39,7 +39,7 @@ const props = defineProps<{
   /** The sizes the inventory keeps, smallest first. */
   sizes: InventorySize[]
   currentSizeId?: number | null
-  /** Prefixes the test ids, so two screens can tell their pickers apart. */
+  /** Prefixes the test ids, so two screens can distinguish their pickers. */
   testId?: string
 }>()
 

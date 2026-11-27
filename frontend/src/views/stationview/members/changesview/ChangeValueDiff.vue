@@ -13,7 +13,7 @@ import type {ProfileFieldChange} from '@/api/generated/schema'
  * itself is read on the profile, so a date reads as a date rather than as it is stored.
  *
  * <p>A date is written bare, as the day it is: the age behind a birth date and the state beside an
- * expiry date are today's, and next to a value from the past they would say something the change
+ * expiry date are today's, and next to a value from the past they would claim something the change
  * never did.
  */
 defineProps<{

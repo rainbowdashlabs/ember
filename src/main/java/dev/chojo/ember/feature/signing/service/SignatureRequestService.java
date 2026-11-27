@@ -68,7 +68,7 @@ import java.util.function.Supplier;
  * for, by the appointment or by a manager on a copy generated for it, one document of a date never stands
  * asked twice for the same participant.
  *
- * <p>Everybody a new request asks is told so ({@link SignatureNotices}), and the requests for fields that
+ * <p>Everybody a new request asks is notified ({@link SignatureNotices}), and the requests for fields that
  * were withdrawn are taken back.
  */
 @Singleton
@@ -242,9 +242,9 @@ public class SignatureRequestService {
     /**
      * Asks for the signatures of a participant's copy of a document an appointment asks for, generated as
      * they registered. Nobody in particular asks: the appointment does, so the request names nobody who
-     * asked and nobody is told who signed. The caller has made sure the copy is the participant's for an
+     * asked and nobody is notified who signed. The caller has made sure the copy is the participant's for an
      * appointment they take part in, so no right to change member documents is asked for. Where the signed
-     * scan of the copy already waits for a manager, nobody is told yet: the fields are asked for once the
+     * scan of the copy already waits for a manager, nobody is notified yet: the fields are asked for once the
      * scan is turned down.
      *
      * @param generationId the generation log entry of the copy
@@ -290,7 +290,7 @@ public class SignatureRequestService {
      * <p>Unlike {@link #withdraw}, the closing is not announced. The procedure withdraws because the step
      * holding the document is deleted, or is about to ask a different member, and the event bus answers in
      * this very call: a request that closes with some fields signed would stand as agreed and tick that
-     * step, tell its party and ask for the steps it unlocks, of a procedure that is going away or no longer
+     * step, notify its party and ask for the steps it unlocks, of a procedure that is going away or no longer
      * about that member.
      *
      * @param generationId the generation log entry of the document
@@ -319,7 +319,7 @@ public class SignatureRequestService {
     }
 
     /**
-     * Tells everybody a request asks, for a request that was made quietly to be signed in person and turned
+     * Notifies everybody a request asks, for a request that was made quietly to be signed in person and turned
      * out to hold nothing the person in front of the witness signs.
      *
      * @param request the request
@@ -330,7 +330,7 @@ public class SignatureRequestService {
 
     /**
      * Asks for the signatures of a document generated for a member, to have them signed in front of the
-     * reader right away. Nobody is told, as with {@link #requestForWitness}: the person is there, and a
+     * reader right away. Nobody is notified, as with {@link #requestForWitness}: the person is there, and a
      * field they leave open waits among their open signatures as any other.
      *
      * @param session      the witness, who has to be allowed to change the document
@@ -345,7 +345,7 @@ public class SignatureRequestService {
 
     /**
      * Asks for the signatures of a document a witness generated on the spot for the person in front of
-     * them, who signs it right away. Nobody is told: the person is there, and a field they leave open waits
+     * them, who signs it right away. Nobody is notified: the person is there, and a field they leave open waits
      * among their open signatures as any other. The witness asked, so the request names them; the caller has
      * made sure they may collect signatures from the person.
      *
@@ -413,7 +413,7 @@ public class SignatureRequestService {
      * template words, else the default of the signer in the document's language. Nobody here asks, so the
      * request names nobody who asked. The caller has made sure the member takes part.
      *
-     * @param ask       the document, its member and what the partner said about it
+     * @param ask       the document, its member and what the partner reported about it
      * @param alongside what the caller writes about the request in the same transaction
      * @return the request
      */

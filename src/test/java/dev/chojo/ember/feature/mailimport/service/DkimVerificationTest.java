@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Whether a message really comes from the domain it says it does.
+ * Whether a message really comes from the domain it claims.
  *
  * <p>The story worth telling twice is the one in the middle: a signature that verifies perfectly and is
  * refused anyway, because the domain that signed it is not the domain the address claims. Anybody can
@@ -77,7 +77,7 @@ class DkimVerificationTest {
                 .isEmpty());
     }
 
-    /** The other direction never counts: a signature by one machine says nothing about the house. */
+    /** The other direction never counts: a signature by one machine shows nothing about the house. */
     @Test
     void theDomainSigningACornerOfAHouseDoesNotSpeakForTheWholeHouse() throws Exception {
         byte[] signed = SignedMail.signedBy("versand.musterstadt.de", message(SENDER));

@@ -29,7 +29,7 @@ const props = defineProps<{
   /** Read-only render of what the reader will see. */
   preview?: boolean
   /**
-   * What is being written, so its draft can be told from another's.
+   * What is being written, so its draft can be distinguished from another's.
    *
    * <p>Left out where a draft would make no sense, a preview for one. Whoever opens the editor
    * names the thing: a page, a news entry, an article.
@@ -44,7 +44,7 @@ const emit = defineEmits<{
 const {draft, forget, restore} = useContentDraft(() => props.draftKey, rows, () => props.preview === true)
 
 /**
- * Lets whoever owns the saving say when a draft has served its purpose.
+ * Lets whoever owns the saving decide when a draft has served its purpose.
  *
  * <p>Only the caller knows that the real save went through, and a draft kept past that is a rescue
  * offered for work that is no longer in danger.

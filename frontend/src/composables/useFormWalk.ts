@@ -20,7 +20,7 @@ export interface WalkQuestion extends PathQuestion {
  *
  * <p>Back goes to the page the reader actually came from, which with pages that skip ahead is not
  * always the page above. Answers stay for every page visited and are only sent at the end; the
- * required questions of a page are checked when it is left, so nobody is told on page four that page
+ * required questions of a page are checked when it is left, so nobody sees on page four that page
  * one was incomplete.
  *
  * <p>Progress measures against the longest path still possible, since how many pages are left
@@ -119,7 +119,7 @@ export function useFormWalk<P extends PathPage, Q extends WalkQuestion>(
      * the server refused is shown: on its page, at its question.
      *
      * @param walked the pages visited, the page to show last
-     * @param marked what to say at each question, by question id
+     * @param marked what to show at each question, by question id
      */
     function showAt(walked: string[], marked: Record<number, string>) {
         const target = walked[walked.length - 1]

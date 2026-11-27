@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Secrets kept in a text column: sealed with a marker, opened again with the same key only, and told
+ * Secrets kept in a text column: sealed with a marker, opened again with the same key only, and distinguished
  * apart from a plaintext value written before encryption existed.
  */
 class CredentialCipherSealTest {

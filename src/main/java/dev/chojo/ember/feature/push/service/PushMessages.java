@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * What a queued push says, written when it goes out rather than when it was queued, so it is in the
+ * What a queued push carries, written when it goes out rather than when it was queued, so it is in the
  * language and with the text that hold at that moment.
  */
 @Singleton
@@ -60,7 +60,7 @@ public class PushMessages {
      *
      * @param readerAccountId the account whose device it goes to: a test is written in its language, a
      *     message push for it
-     * @return the push, empty when what it was about is gone and there is nothing left to say
+     * @return the push, empty when what it was about is gone and there is nothing left to send
      */
     public Optional<PushMessage> render(PushOutboxRepository.Due due, int readerAccountId) {
         if (due.kind() == PushKind.TEST) {

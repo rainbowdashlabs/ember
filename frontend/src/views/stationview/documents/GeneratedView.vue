@@ -27,9 +27,9 @@ import {generatedColumns} from './generatedview/generatedColumns'
 /**
  * Every document the station generated from a template: who has which document, from which template
  * and which version of it, and who generated it when. A template change never rewrites a document, so
- * the version says which wording a member holds.
+ * the version shows which wording a member holds.
  *
- * <p>Each row says how the signatures asked for on the document stand. A row opens on click: before anybody
+ * <p>Each row shows how the signatures asked for on the document stand. A row opens on click: before anybody
  * was asked, who the document asks to sign and what they confirm, with the button that asks them; after,
  * each field with its signer and the act that signed it, where a manager settles what no signing act will
  * and asks anew on a corrected document. A withdrawn request opens on asking again.

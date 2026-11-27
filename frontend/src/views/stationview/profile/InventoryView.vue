@@ -263,7 +263,7 @@ const lostSuccess = ref('')
  * Reporting a piece of gear missing, for the reader themselves or for somebody they act for.
  *
  * <p>The station decides whether a note is expected. Asking it before the form opens is what lets the
- * modal say so, rather than accepting the report and then refusing it.
+ * modal show it, rather than accepting the report and then refusing it.
  */
 async function openLost(item: MyInventoryItem) {
   lostItem.value = item

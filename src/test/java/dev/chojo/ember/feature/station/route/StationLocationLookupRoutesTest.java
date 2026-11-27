@@ -45,7 +45,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Looking the station's address up over HTTP: who may, what the answer says, and how a switched-off,
+ * Looking the station's address up over HTTP: who may, what the answer shows, and how a switched-off,
  * failing or overused address search is refused.
  */
 class StationLocationLookupRoutesTest {

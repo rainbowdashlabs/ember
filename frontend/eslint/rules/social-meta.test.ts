@@ -120,7 +120,7 @@ useHead(computed(() => ({title: headTitle.value, meta: socialMeta({title: headTi
 
 /**
  * A head filled in after the page has been sent is a head nothing outside the browser ever reads,
- * so the tags being present says nothing about their being worth anything.
+ * so the tags being present shows nothing about their being worth anything.
  */
 describe('a head that arrives too late', () => {
     it('reports one read straight out of a loader that runs on mount', () => {

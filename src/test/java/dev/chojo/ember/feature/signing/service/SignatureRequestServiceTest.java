@@ -1343,7 +1343,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
 
     /**
      * The database itself refuses to let the retention sweep delete a sealed document that is bound to a
-     * member still at the station, whatever the requests on it say.
+     * member still at the station, whatever the requests on it hold.
      */
     @Test
     void theDatabaseKeepsASealedDocumentBoundToACurrentMember() throws IOException {
@@ -1789,7 +1789,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 .collect(Collectors.toSet());
     }
 
-    /** What the manager was told about the documents of one member, newest first. */
+    /** What the manager was notified of the documents of one member, newest first. */
     private static List<NotificationParams> signedNotices(StationMember member) {
         return unread(manager, NotificationType.DOCUMENT_SIGNED).stream()
                 .filter(notification -> {

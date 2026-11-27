@@ -101,7 +101,7 @@ class SubjectMemberMatchTest {
     }
 
     /**
-     * Not an ambiguity: the subject says all of one name and only part of the other, so it does say which
+     * Not an ambiguity: the subject spells all of one name and only part of the other, so it does show which
      * of the two it means. Both directions of that are worth holding, because a station with both members
      * has to be able to file for either of them.
      */

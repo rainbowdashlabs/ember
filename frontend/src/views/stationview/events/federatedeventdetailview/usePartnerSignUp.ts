@@ -12,7 +12,7 @@ import type {EventRegistrationField, EventRegistrationFieldValue} from '@/api/ge
  * <p>Without questions the sign-up goes out at once. With questions the member is held while the form
  * is open, and the sign-up goes out with the answers once it is confirmed; closing the form sends
  * nothing. A sign-up that is refused keeps the form open with the answers given, so they can be
- * corrected; `register` rejects to say so.
+ * corrected; `register` rejects to signal this.
  */
 export function usePartnerSignUp(
     questions: Ref<EventRegistrationField[]>,

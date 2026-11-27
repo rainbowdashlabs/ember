@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  * The folder and file tree of a station's knowledge base: creating entries of every kind, reading
  * and moving them around, and the cross-references that sit on top.
  *
- * <p>What an entry <em>says</em> lives in {@link KbContentService}, who may see it in
+ * <p>What an entry <em>holds</em> lives in {@link KbContentService}, who may see it in
  * {@link KbAccessService}, a member's favourites in {@link KbFavouriteService}, and the concerns
  * specific to one kind of upload in
  * {@link KbPresentationService} and {@link KbLinkMetadataService}. Creating a file is the point
@@ -343,7 +343,7 @@ public class KnowledgeBaseService {
 
     /**
      * Creates an entry pointing at an external page. A name or description left blank is filled in
-     * from what the page says about itself.
+     * from what the page shows about itself.
      *
      * @param stationId   the station the file belongs to
      * @param folderId    the folder to create it in, or {@code null} for the tree root

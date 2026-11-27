@@ -13,7 +13,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * What a feed entry says about a ticket: its key, its board and what changed, and from the ticket
+ * What a feed entry shows about a ticket: its key, its board and what changed, and from the ticket
  * itself its title, who has it and how urgent it is.
  */
 @Singleton

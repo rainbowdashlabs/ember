@@ -151,7 +151,7 @@ export async function listSignUps(eventGroupId: number): Promise<EventGroupSignU
 
 /**
  * Accepts or turns down a sign-up and every part chosen with it. Accepting where the people or a chosen
- * part is full is refused unless `overLimit` says it goes beyond the limit on purpose; accepting a
+ * part is full is refused unless `overLimit` marks it as going beyond the limit on purpose; accepting a
  * sign-up on the waiting list moves it up by hand.
  */
 export async function decide(

@@ -35,7 +35,7 @@ const editable = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_A
 
 const busy = ref(false)
 const showAdd = ref(false)
-/** True once the server has said the address in the dialog has no account behind it. */
+/** True once the server has reported that the address in the dialog has no account behind it. */
 const needsName = ref(false)
 const selectedId = ref<number | null>(null)
 
@@ -47,7 +47,7 @@ const {config: members, loading, failure, runWith} = useConfigPanel<ClusterMembe
 const selected = computed(() => members.value.find(m => m.id === selectedId.value) ?? null)
 
 /**
- * Takes somebody on, asking for a name only when the server says the address has no account.
+ * Takes somebody on, asking for a name only when the server reports the address has no account.
  *
  * <p>Two attempts rather than a lookup first: the association learns that nobody has that address by
  * trying to add them, which is what it was doing anyway, and no endpoint exists that would answer the

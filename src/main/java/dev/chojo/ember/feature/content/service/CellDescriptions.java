@@ -21,15 +21,15 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * What a picture is called, where the cell showing it has not said.
+ * What a picture is called, where the cell showing it has not set one.
  *
  * <p>A file is described once, where it lives: its alt text for whoever cannot see it, and the line
- * that goes under it. A cell that says nothing about either should show what the file says rather
+ * that goes under it. A cell that holds nothing about either should show what the file holds rather
  * than nothing at all, which is how a picture ended up on a public page with no alt text even though
  * somebody had written one.
  *
- * <p>A cell that does say something keeps saying it. The same picture means different things in
- * different places, and the nearer word wins. Blank counts as unsaid: a field somebody opened and
+ * <p>A cell that does hold something keeps it. The same picture means different things in
+ * different places, and the nearer word wins. Blank counts as unset: a field somebody opened and
  * left empty means they had nothing to add, not that the picture should go unnamed.
  *
  * <p>Every reader of blocks goes through this, pages, wiki articles and news alike, and so does every

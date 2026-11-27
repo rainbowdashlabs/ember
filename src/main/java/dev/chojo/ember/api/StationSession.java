@@ -84,7 +84,7 @@ public record StationSession(UserSession user, int stationId, UUID stationUid, S
     }
 
     /**
-     * The station this request acts for, as the owner a shared core is told about.
+     * The station this request acts for, as the owner handed to a shared core.
      *
      * @return the station named by the session, never one named by the request body
      */

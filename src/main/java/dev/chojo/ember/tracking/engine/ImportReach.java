@@ -75,7 +75,7 @@ public final class ImportReach {
 
     /**
      * Whether a row a lookup found may be named by the import, for what {@link #condition(String)} cannot
-     * say in the lookup itself.
+     * express in the lookup itself.
      *
      * @param table     the table the row is in
      * @param id        the row's id

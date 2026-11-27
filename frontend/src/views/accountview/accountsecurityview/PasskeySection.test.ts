@@ -71,7 +71,7 @@ describe('PasskeySection', () => {
         expect(wrapper.findComponent({name: 'ConfirmDeleteModal'}).props('modelValue')).toBe(false)
     })
 
-    /** The last passkey of an account without a password stays, and the alert says what to do first. */
+    /** The last passkey of an account without a password stays, and the alert shows what to do first. */
     it('names the refusal of the last way into the account', async () => {
         removePasskey.mockRejectedValue({response: {status: 409, data: {code: 'PK-031'}}})
         const wrapper = await section()

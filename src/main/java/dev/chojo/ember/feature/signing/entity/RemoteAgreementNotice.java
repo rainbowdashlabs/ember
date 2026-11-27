@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * What a member's home installation tells the station holding a shared appointment about a document that
+ * What a member's home installation reports to the station holding a shared appointment about a document that
  * appointment asks the member to sign on a date. It travels signed with the home station's federation key,
  * like every federation request, and a sealed copy in it is checked against the home installation's
  * pinned signing authorities before it is taken.
@@ -22,7 +22,7 @@ import java.util.UUID;
  * @param templateId      the document, by the id of its template at the station holding the appointment
  * @param templateVersion the version of the template the copy was drawn from
  * @param contentSha256   SHA-256 of the copy that was handed out and signed
- * @param kind            what the notice says
+ * @param kind            what the notice reports
  * @param sealedPdf       the sealed PDF, Base64 encoded, for {@link AgreementNoticeKind#SIGNED} and
  *                        {@link AgreementNoticeKind#WITHDRAWN}; null for {@link AgreementNoticeKind#ASKED}
  * @param fields          where each signature field stands at home

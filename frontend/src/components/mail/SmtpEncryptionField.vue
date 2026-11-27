@@ -15,7 +15,7 @@ import {usualSmtpPort} from '@/util/mailProviders'
 /**
  * How the connection to a mail server is secured.
  *
- * Unencrypted is offered for a relay on the same internal network that cannot do better, and says
+ * Unencrypted is offered for a relay on the same internal network that cannot do better, and shows
  * plainly what it costs: the login and every mail cross the network readable.
  */
 const encryption = defineModel<SmtpEncryption>({required: true})

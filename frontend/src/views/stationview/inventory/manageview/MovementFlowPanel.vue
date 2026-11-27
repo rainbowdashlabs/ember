@@ -71,7 +71,7 @@ const bindingOf = computed(() => {
 /**
  * The chains under the purpose they serve.
  *
- * <p>One long run of cards says nothing about which of them belong together, and the purpose is the
+ * <p>One long run of cards shows nothing about which of them belong together, and the purpose is the
  * one thing a reader looking for a chain already knows.
  */
 const groups = computed(() =>
@@ -128,7 +128,7 @@ async function addStep(flowId: number, step: StepRequest): Promise<FlowResponse>
  * A change that is not about one chain, which leaves only writing a new one.
  *
  * <p>The writing and the reading back afterwards are caught apart. The chain exists once the first is
- * through, and a reader told the writing failed writes a second one with the same name.
+ * through, and a reader shown that the writing failed writes a second one with the same name.
  */
 async function run(action: () => Promise<unknown>) {
   busy.value = true

@@ -87,7 +87,7 @@ class GuardianDocumentAccessTest extends RepositoryTestBase {
         assertTrue(ownAndManaged(guardianId).contains(guardianId), "and so are they");
     }
 
-    /** Answering for one member says nothing about anybody else's paperwork. */
+    /** Answering for one member implies nothing about anybody else's paperwork. */
     @Test
     void aGuardianReachesNobodyElse() {
         assertFalse(ownAndManaged(guardianId).contains(strangerId));

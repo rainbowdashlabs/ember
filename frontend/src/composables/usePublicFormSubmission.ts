@@ -219,8 +219,8 @@ export function usePublicFormSubmission(
    *
    * <p>Every failure here used to read as the form not existing, which is the one sentence that sends a
    * reader away for good. Somebody whose connection dropped, or who arrived while the server was down,
-   * has a form that is still there and a link that still works, and telling them otherwise costs them
-   * the answer. Only the server actually saying it is gone produces that sentence now.
+   * has a form that is still there and a link that still works, and showing them otherwise costs them
+   * the answer. Only the server actually reporting it is gone produces that sentence now.
    */
   function describeLoadFailure(described: Failure): Failure {
     if (described.kind !== FailureKind.GONE) return described
@@ -286,9 +286,9 @@ export function usePublicFormSubmission(
   /**
    * Which of the three refusals this page words itself, if any.
    *
-   * <p>An answer already given is told by its code rather than by its status alone, because legal
+   * <p>An answer already given is recognised by its code rather than by its status alone, because legal
    * documents that changed while the form stood open answer with the same status, and that reader has
-   * answered nothing yet: they have to reload and agree again, which the server's own sentence says.
+   * answered nothing yet: they have to reload and agree again, which the server's own sentence explains.
    */
   function knownRefusal(failure: Failure): string | null {
     if (failure.status === 409 && failure.code === FORM_ALREADY_ANSWERED) return 'alreadyAnswered'

@@ -44,9 +44,9 @@ export interface StorageBackendApi {
 
 /** A change that moves or drops files, waiting for the reader to confirm it. */
 export interface PendingStorageChange {
-    /** What the confirmation says will happen. */
+    /** What the confirmation shows will happen. */
     body: string
-    /** The change, answering with what to tell the reader once it went through. */
+    /** The change, answering with what to show the reader once it went through. */
     act: () => Promise<string>
 }
 

@@ -103,13 +103,13 @@ public final class QuestionValues {
     }
 
     /**
-     * What was actually said, which is nothing in more spellings than one.
+     * What was actually answered, which is nothing in more spellings than one.
      *
      * <p>The features that keep their answers as JSON write an unanswered question as the literal
      * {@code null} or as an empty string in quotes, and both mean the same as an empty box.
      *
      * @param stored the answer as the feature holds it
-     * @return the answer as plain text, empty where nothing was said
+     * @return the answer as plain text, empty where nothing was answered
      */
     public static String said(@Nullable String stored) {
         String text = text(stored);
@@ -124,7 +124,7 @@ public final class QuestionValues {
      * defaults to. All of them read the same.
      *
      * @param stored the column's document, or null where there is no row
-     * @return the answer as plain text, empty where nothing was said; several members read as
+     * @return the answer as plain text, empty where nothing was answered; several members read as
      *     {@code [1,2]}
      */
     public static String read(@Nullable JsonNode stored) {
@@ -143,7 +143,7 @@ public final class QuestionValues {
      * document is read as one, anything else is already the answer.
      *
      * @param stored the column as it stands, or null
-     * @return the answer as plain text, empty where nothing was said
+     * @return the answer as plain text, empty where nothing was answered
      */
     public static String read(@Nullable String stored) {
         if (stored == null) return "";

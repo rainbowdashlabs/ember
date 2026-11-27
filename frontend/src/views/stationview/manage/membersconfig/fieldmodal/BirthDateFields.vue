@@ -12,7 +12,7 @@ import SettingToggle from './SettingToggle.vue'
  *
  * <p>It is written with the age behind it, which is the number a reader is usually after. A station
  * that also asks the age as a question of its own has it twice then, and the two can read
- * differently where the one is taken today and the other at the end of the year, so the date says
+ * differently where the one is taken today and the other at the end of the year, so the date shows
  * it on its own or leaves it to the question.
  */
 const showAge = defineModel<boolean>('showAge', {required: true})

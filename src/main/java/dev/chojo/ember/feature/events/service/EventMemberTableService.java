@@ -29,7 +29,7 @@ import java.util.Set;
  * Names the people an appointment's table is about, and hands them to the table.
  *
  * <p>One of the two ways of naming people. Everything about drawing the table itself is the same
- * wherever it is drawn, which is the point: this says who, and nothing about what may be shown.
+ * wherever it is drawn, which is the point: this shows who, and nothing about what may be shown.
  *
  * <p>Except for one thing that only an appointment has. A question can be kept for whoever runs the
  * appointment, never asked of the member and never shown to the room, and a table naming that

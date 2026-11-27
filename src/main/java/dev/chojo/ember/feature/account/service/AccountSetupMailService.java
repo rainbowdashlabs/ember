@@ -25,7 +25,7 @@ import jakarta.inject.Singleton;
  * resend, an instance administrator is not bound by which station may reach the account.
  *
  * <p>On an instance that cannot send at all, asking for the confirmation marks the address confirmed
- * instead of sending anything, the same as when the account asks itself; the answer says so.
+ * instead of sending anything, the same as when the account asks itself; the answer shows this.
  */
 @Singleton
 public class AccountSetupMailService {

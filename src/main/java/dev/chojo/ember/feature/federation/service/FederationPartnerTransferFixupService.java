@@ -52,7 +52,7 @@ public class FederationPartnerTransferFixupService {
 
     private static final Logger log = LoggerFactory.getLogger(FederationPartnerTransferFixupService.class);
 
-    /** The waits before each further attempt to tell a remote partner where a moved station runs now. */
+    /** The waits before each further attempt to notify a remote partner where a moved station runs now. */
     static final List<Duration> ANNOUNCE_RETRIES =
             List.of(Duration.ofMinutes(1), Duration.ofMinutes(15), Duration.ofHours(2), Duration.ofHours(12));
 
@@ -194,7 +194,7 @@ public class FederationPartnerTransferFixupService {
      * the moved station's identity; receivers verify the signature, look up the partnership by
      * the moved station's UID, and update their stored host.
      *
-     * <p>A partner that could not be told is asked again later, after each of
+     * <p>A partner that could not be notified is asked again later, after each of
      * {@link #ANNOUNCE_RETRIES} in turn, as long as the partnership still stands. Until it hears, it
      * keeps calling the copy the station left at its old address, which refuses it with the new one.
      */

@@ -17,7 +17,7 @@ export type HandOutMode = 'NOW' | 'PLANNED'
 /**
  * The choice every screen that hands a piece to a member offers.
  *
- * <p>Over the counter there is nothing to follow: the piece changes hands and the record says so.
+ * <p>Over the counter there is nothing to follow: the piece changes hands and the record shows that.
  * Planned is the other case, where somebody decides today what a member gets and the handing over
  * happens later, so there has to be something open to look at in the meantime.
  *
@@ -27,7 +27,7 @@ export type HandOutMode = 'NOW' | 'PLANNED'
  * <p>A planned hand-out is a movement, so a station that switched its movements off is offered no
  * choice: the piece goes over the counter, whatever the screen asked for as its default.
  *
- * <p>What each option does is said behind a hint beside it rather than under the pair.
+ * <p>What each option does is shown behind a hint beside it rather than under the pair.
  */
 const mode = defineModel<HandOutMode>({default: 'NOW'})
 

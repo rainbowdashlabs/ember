@@ -16,7 +16,7 @@ import type {MovementResponse} from '@/api/generated/schema'
  * A piece an open movement is bringing the member, standing among the pieces of its inventory.
  *
  * <p>It names the piece where the movement already names one, and the inventory and the size where it
- * names only those. The step it waits for says how far it has come, and the card leads to the movement.
+ * names only those. The step it waits for shows how far it has come, and the card leads to the movement.
  */
 const props = defineProps<{
   movement: MovementResponse
@@ -29,7 +29,7 @@ const title = computed(() => props.movement.incomingItemName
     || props.movement.inventoryName
     || t(`movements.purpose.${props.movement.purpose}`))
 
-/** The size asked for, which only says something while no piece is named yet. */
+/** The size asked for, which only means something while no piece is named yet. */
 const wantedSize = computed(() => props.movement.incomingItemName
     ? null
     : props.movement.newSizeName ?? props.movement.oldSizeName)

@@ -121,7 +121,7 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
         assertEquals(EventDateRestored.class, restored.eventType());
     }
 
-    /** A date called off tells whoever holds a place on it and their guardian, and nobody on another date. */
+    /** A date called off notifies whoever holds a place on it and their guardian, and nobody on another date. */
     @Test
     void aCancelledDateTellsOnlyThatDatesHousehold() {
         cancelled.handle(new EventCancelled(
@@ -154,7 +154,7 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
                         .variant());
     }
 
-    /** A whole series tells everybody on a date still to come, and nobody whose date is behind them. */
+    /** A whole series notifies everybody on a date still to come, and nobody whose date is behind them. */
     @Test
     void aCancelledSeriesTellsEveryPlaceStillToCome() {
         cancelled.handle(EventCancelled.series(station.id(), eventId, "Cancel Handler Event", "Aufgelöst"));
@@ -180,7 +180,7 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
         }
     }
 
-    /** A date brought back tells whoever kept their place on it, and their guardian. */
+    /** A date brought back notifies whoever kept their place on it, and their guardian. */
     @Test
     void aRestoredDateTellsThatDatesHousehold() {
         restored.handle(new EventDateRestored(station.id(), eventId, "Cancel Handler Event", date));

@@ -204,7 +204,7 @@ public class EventCancellationRoutes implements Routes {
     /**
      * Why an appointment or one of its dates is called off.
      *
-     * @param reason what the members are told, or null to tell them nothing more
+     * @param reason what the members are sent, or null to send them nothing more
      */
     public record CancelRequest(@Nullable String reason) {}
 }

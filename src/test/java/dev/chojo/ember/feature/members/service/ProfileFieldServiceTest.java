@@ -244,7 +244,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
 
     /**
      * A required number turned into an age asks for something nobody can type, so it stops being
-     * required, on the definition and on the form, even where its audience still says it is.
+     * required, on the definition and on the form, even where its audience still marks it so.
      */
     @Test
     @Order(23)
@@ -677,7 +677,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A selection left on its blank entry is an answer that says nothing, and it reaches the column
+     * A selection left on its blank entry is an answer that holds nothing, and it reaches the column
      * as a document null rather than as an empty column. Read back it is the four letters
      * {@code null}, which is neither empty nor the empty string, so a profile could be called
      * complete on the strength of an answer nobody gave.
@@ -787,10 +787,10 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A manager is asked what a manager is assigned, and a team question only where it says so.
+     * A manager is asked what a manager is assigned, and a team question only where it asks for it.
      *
      * <p>Managers used to be handed the team's scope as well as their own, which is how the same
-     * question reached them twice. A station that wants both now says so on the question itself.
+     * question reached them twice. A station that wants both now asks for both on the question itself.
      */
     @Test
     @Order(23)
@@ -900,7 +900,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
      * A question put to a group counts against the members of that group.
      *
      * <p>It used to be thrown away here, so somebody in the instructors' group could be missing an
-     * answer the instructors are required to give and still be told their profile was complete. The
+     * answer the instructors are required to give and still be shown a complete profile. The
      * gap reached neither the task list nor the reminder on the dashboard.
      */
     @Test
@@ -1151,7 +1151,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * An expiry date keeps what it was told about warning and reminding, read the way the API reads
+     * An expiry date keeps what it was given about warning and reminding, read the way the API reads
      * a request, which refuses anything the record does not name.
      */
     @Test
@@ -1352,7 +1352,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
      * Opening a form and saving it is not a change to every question on it.
      *
      * <p>A question nobody has answered is stored as absent, and one answered with an empty box as
-     * an empty string. They are different strings and the same thing, so saying nothing twice was
+     * an empty string. They are different strings and the same thing, so giving no answer in both forms was
      * recorded as a change and put in front of somebody to confirm.
      */
     @Test

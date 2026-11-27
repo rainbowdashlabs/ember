@@ -22,8 +22,8 @@ export function useEventEditData(selectedTemplateId: () => string, answeredField
    * The fields of the attendance sheet this appointment is taken on, and of no other.
    *
    * <p>What a question of the appointment may be tied to. Every sheet of the station used to be
-   * offered at once, with nothing to tell two identically named fields of two different sheets
-   * apart, so a question could be tied to a field of a sheet the appointment does not use. Such a
+   * offered at once, with nothing to distinguish two identically named fields of two different sheets,
+   * so a question could be tied to a field of a sheet the appointment does not use. Such a
    * tie writes its answer into a sheet nobody opens, where it is never seen again.
    */
   const sheetFields = computed(() => {
@@ -37,7 +37,7 @@ export function useEventEditData(selectedTemplateId: () => string, answeredField
    *
    * <p>A question of the appointment can be tied to one of these, and then it is the question that
    * fills it in. Asking for that same field again below, under a heading about prefilling, offered
-   * two answers to one field: whichever was set last won, and neither said so. A field answered by a
+   * two answers to one field: whichever was set last won, and nothing indicated it. A field answered by a
    * question is not shown here at all.
    */
   const currentTemplateFields = computed(() => {

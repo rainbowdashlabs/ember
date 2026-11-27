@@ -184,8 +184,8 @@ const {isOpen: showQuickAssignModal, open: openQuickAssign} = useModalTarget<nul
  * Creates a piece and hands it straight to somebody, which is two writes behind one button.
  *
  * <p>They are caught apart because the halfway state is one the server cannot describe: it is asked to
- * assign a piece and knows nothing of the one that was just created for it. A reader told only that the
- * assignment failed would try again and create a second piece, so the screen says the piece exists and
+ * assign a piece and knows nothing of the one that was just created for it. A reader shown only that the
+ * assignment failed would try again and create a second piece, so the screen shows that the piece exists and
  * is standing free, which is the part only the screen knows.
  */
 async function submitQuickAssign() {

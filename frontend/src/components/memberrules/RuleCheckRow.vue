@@ -33,7 +33,7 @@ import {
 /**
  * One check of a rule as a row of pickers: what it looks at, which field, group or tag, how it compares, what
  * with, and from which day where it counts from one. A field that is gone is named as such, since such a
- * check makes the whole rule match nobody. A check that is not complete yet says so. A reader who may not read
+ * check makes the whole rule match nobody. A check that is not complete yet shows that. A reader who may not read
  * members sees a check on member data only as such, since the fields it reads are not theirs to list.
  */
 const props = defineProps<{

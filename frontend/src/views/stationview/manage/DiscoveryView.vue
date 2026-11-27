@@ -44,7 +44,7 @@ const {loading, failure, reload: loadAll} = useAsyncLoader(async () => {
  *
  * <p>The read is answered for separately: a request that went out and a list that then failed to
  * refresh used to report a request that did not, and the reader asks the same station twice. A named
- * refusal keeps its own sentence, since it says what to do next, such as asking for an invite code.
+ * refusal keeps its own sentence, since it shows what to do next, such as asking for an invite code.
  */
 async function handleConnect(station: DiscoveryEntry) {
   try {

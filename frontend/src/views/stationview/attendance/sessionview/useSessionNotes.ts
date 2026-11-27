@@ -66,7 +66,7 @@ export function useSessionNotes(sessionId: Ref<number>, failure: Ref<Failure | n
     /**
      * Moving a movement on is acknowledging the step it stands on, which is the same thing the page
      * about one movement does. The piece set aside travels with it, because the step that hands one
-     * over refuses to run without being told which piece it is: the movement already knows, and asking
+     * over refuses to run without being given which piece it is: the movement already knows, and asking
      * whoever is ticking off names to pick it out of a list would be asking a question that has been
      * answered.
      */

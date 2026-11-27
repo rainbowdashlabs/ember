@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 /**
- * The settings of a board field arrive as an object and are bound once the field type says which
+ * The settings of a board field arrive as an object and are bound once the field type shows which
  * record they are. Reading them from the tree rather than from JSON text is what keeps the request
  * and the field in step.
  */

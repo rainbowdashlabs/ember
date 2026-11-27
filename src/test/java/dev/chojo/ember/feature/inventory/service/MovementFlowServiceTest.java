@@ -79,7 +79,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                 "a retired flow is still listed, because movements walked it");
     }
 
-    /** A refusal names the rule in the way, so the reader is told in their own words. */
+    /** A refusal names the rule in the way, so the reader reads it in their own words. */
     private static void refusedWith(FlowProblem.Code code, Executable call) {
         assertEquals(
                 code, assertThrows(FlowRefusedException.class, call).problem().code());
@@ -310,7 +310,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A combination nothing covers says so rather than guessing at a chain that means something else.
+     * A combination nothing covers shows as much rather than guessing at a chain that means something else.
      * Issuing the station's own gear onto the station's own shelf is not a movement between parties,
      * so no preset covers it and none should be invented.
      */
@@ -400,7 +400,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                 "and a plan for writing it again is refused in the same breath");
     }
 
-    /** A chain nothing covers says so rather than being written from a preset that means something else. */
+    /** A chain nothing covers shows as much rather than being written from a preset that means something else. */
     @Test
     void aChainWithNoPresetBehindItIsNotWrittenAgain() {
         MovementFlow mine = freshFlow(MovementPurpose.ISSUE);
@@ -424,7 +424,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
 
     /**
      * A movement standing on a step the rewrite takes away is carried onto the step that means what
-     * its own meant, and its log says where it came from.
+     * its own meant, and its log shows where it came from.
      */
     @Test
     void aMovementOnTheChainIsCarriedOntoTheStepThatMeansTheSame() {
@@ -505,8 +505,8 @@ class MovementFlowServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A step the preset says twice is a question, not a guess: the plan leaves the landing empty and
-     * a restore that was told nothing refuses rather than picking one of the two.
+     * A step the preset defines twice is a question, not a guess: the plan leaves the landing empty and
+     * a restore that was given nothing refuses rather than picking one of the two.
      */
     @Test
     void aStepThePresetSaysTwiceIsAskedRatherThanGuessed() {
@@ -545,7 +545,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
         }
     }
 
-    /** Nothing to ask about, nothing to say: a chain the preset answers for is written again as it is. */
+    /** Nothing to ask about, nothing to settle: a chain the preset answers for is written again as it is. */
     @Test
     void aRestoreNobodyHasToBeAskedAboutIsToldNothing() {
         Carrier carrier = carrierStation();

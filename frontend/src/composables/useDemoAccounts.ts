@@ -24,7 +24,7 @@ export interface RoleGroup {
 /**
  * A station to pick on the demo login, with how many people it has to offer.
  *
- * The count is what tells the demo's two full stations apart from the handful of spares beside them,
+ * The count is what distinguishes the demo's two full stations from the handful of spares beside them,
  * which a row of equal-looking names never did.
  */
 export interface StationChoice {

@@ -23,7 +23,7 @@ import type {BeaconStatus} from '@/api/generated/schema'
  * What this instance sends, and whether it takes anything in.
  *
  * <p>The master switch is kept apart from the three beneath it, because turning reporting off should
- * be one action rather than three, and because the three beneath say nothing at all while it is off.
+ * be one action rather than three, and because the three beneath show nothing at all while it is off.
  */
 const props = defineProps<{status: BeaconStatus}>()
 

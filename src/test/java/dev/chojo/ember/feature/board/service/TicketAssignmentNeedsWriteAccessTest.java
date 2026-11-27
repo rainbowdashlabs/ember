@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * A ticket is handed only to somebody who may write on its board.
  *
  * <p>The board carries an edit restriction naming one group, which is what makes the three cases
- * tell each other apart: somebody in the group, somebody who is not, and somebody who administers
+ * stay distinct: somebody in the group, somebody who is not, and somebody who administers
  * every board and was never put in the group. The last is the one a rule written too strictly
  * turns away.
  */
@@ -215,7 +215,7 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
     }
 
     /**
-     * Where a board says nothing about who may write, whoever may read it may write on it, and the
+     * Where a board defines nothing about who may write, whoever may read it may write on it, and the
      * list follows that fallback rather than answering with nobody.
      */
     @Test

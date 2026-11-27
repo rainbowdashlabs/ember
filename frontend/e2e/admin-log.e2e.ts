@@ -8,7 +8,7 @@ import {test, expect} from './fixtures/auth'
 /**
  * Reading the instance log from inside the application.
  *
- * The stories hold two things in place. That the page says plainly when nothing is being stored,
+ * The stories hold two things in place. That the page shows plainly when nothing is being stored,
  * because an empty log and a switched-off log look identical and only one of them is a problem. And
  * that the log is the instance administration's alone: it names people the way any log does.
  */
@@ -26,7 +26,7 @@ test.describe('Application log', () => {
     })
 
     /**
-     * An empty log and a log nobody is writing look the same. Saying which is the difference between
+     * An empty log and a log nobody is writing look the same. Showing which is the difference between
      * a quiet instance and a setting somebody forgot.
      */
     test('a log that is not being stored says so rather than looking empty', async ({adminPage: page}) => {

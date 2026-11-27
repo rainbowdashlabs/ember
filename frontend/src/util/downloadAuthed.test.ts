@@ -41,7 +41,7 @@ describe('downloadAuthed', () => {
         expect(presented).toHaveBeenCalledWith(blob, 'handout.pdf', undefined)
     })
 
-    /** The bytes of a download carry no type of their own, so the response has to say what it sent. */
+    /** The bytes of a download carry no type of their own, so the response has to declare what it sent. */
     it('takes the type from the response rather than from the bytes', async () => {
         answers(new Blob(['%PDF']), {'content-type': 'application/pdf;charset=utf-8'})
 

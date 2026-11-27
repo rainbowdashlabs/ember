@@ -100,7 +100,7 @@ export default {
     'E-064': 'Der erste und der letzte Tag der Liste müssen beide ein Datum sein',
     'E-065': 'Ein Termin braucht einen Namen',
     'E-066': 'Ein Termin braucht eine Anfangs- und eine Endzeit',
-    'E-067': 'Ein Termin muss sagen, ob er einmal stattfindet oder wiederkehrt',
+    'E-067': 'Bei einem Termin muss feststehen, ob er einmal stattfindet oder wiederkehrt',
     'E-068': 'Mehrere Termine auf einmal anzulegen braucht mindestens einen davon',
     'E-069': 'Die Terminliste ließ sich nicht in ein Blatt umwandeln. Ein erneuter Versuch kann klappen',
     'E-070': 'Ein Termin, der nur für einen Teil der Wache gedacht ist, '

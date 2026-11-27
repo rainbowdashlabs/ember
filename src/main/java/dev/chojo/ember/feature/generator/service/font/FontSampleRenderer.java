@@ -24,7 +24,7 @@ import java.util.Map;
  *
  * <p>The glyphs are black on a transparent background, so a screen can show the picture on a light
  * background as it is and invert it on a dark one. The family names and the text reach Typst as data,
- * never as markup, since a family name is whatever an uploaded file says it is.
+ * never as markup, since a family name is whatever an uploaded file declares it is.
  */
 @Singleton
 public class FontSampleRenderer {

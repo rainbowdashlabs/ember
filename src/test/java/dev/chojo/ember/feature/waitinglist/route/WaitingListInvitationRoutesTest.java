@@ -172,7 +172,7 @@ class WaitingListInvitationRoutesTest {
     }
 
     /**
-     * An open invitation whose dates have all begun says that no date is left, so the page stops
+     * An open invitation whose dates have all begun shows that no date is left, so the page stops
      * asking for one. Once answered it shows every date again, because the answer names one of them,
      * and an invitation that never named a date is not "no date left": coming is still the answer.
      */

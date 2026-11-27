@@ -34,7 +34,7 @@ import type {OurPartnerPlaces} from '../eventshared/ourPartnerPlaces'
  * they chose, and the buttons to sign up, change the parts or withdraw.
  *
  * <p>A full event group still takes sign-ups: they wait on the waiting list, which the button then
- * says, and whoever waits sees their place in line and can leave it. Once no part is left, a wait
+ * shows, and whoever waits sees their place in line and can leave it. Once no part is left, a wait
  * nobody moved up from reads as no place.
  *
  * <p>On a partner's event group that handed this station the choosing, the places given stand above
@@ -44,7 +44,7 @@ const props = defineProps<{
   detail: EventGroupDetail
   /** Called after a sign-up changed, so the page reloads what it shows. */
   onChanged?: () => void | Promise<void>
-  /** Where sign-ups go; an event group of this station unless a partner's event group page says otherwise. */
+  /** Where sign-ups go; an event group of this station unless a partner's event group page sets another. */
   port?: EventGroupSignUpPort
   /** What a partner holding the event group gave this station, where this is a partner's event group. */
   ourPlaces?: OurPartnerPlaces

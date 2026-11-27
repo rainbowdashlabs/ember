@@ -51,7 +51,7 @@ import static org.mockito.Mockito.verify;
 /**
  * The comments on an event group over the real routes, service and storage: who reads, writes,
  * changes and removes them, that a comment is reached only through its own event group, and whom a
- * comment tells.
+ * comment notifies.
  */
 class EventGroupCommentRoutesTest extends RepositoryTestBase {
     private static final DomainEventBus BUS = mock(DomainEventBus.class);
@@ -293,7 +293,7 @@ class EventGroupCommentRoutesTest extends RepositoryTestBase {
         assertEquals(author.id(), created.getFirst().parentAuthorId());
     }
 
-    /** A new thread tells the appointment managers and opens on the event group's page. */
+    /** A new thread notifies the appointment managers and opens on the event group's page. */
     @Test
     void aTopLevelCommentTellsTheManagersAndTheMentioned() {
         var mentioned = stationMemberRepo.findById(other.id()).orElseThrow();

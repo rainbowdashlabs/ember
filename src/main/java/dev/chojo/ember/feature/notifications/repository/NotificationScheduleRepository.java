@@ -112,7 +112,7 @@ public class NotificationScheduleRepository {
      *
      * <p>A failure to read it is left to travel rather than answered with no times: a station that
      * asked for two would otherwise be read as having asked for none, and be written to on the
-     * operator's number without anybody being told why.
+     * operator's number without anybody learning why.
      */
     private static List<LocalTime> timesOf(Array array) throws SQLException {
         if (array == null) return List.of();

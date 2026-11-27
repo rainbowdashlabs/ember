@@ -39,7 +39,7 @@ import type {
  * the template itself is six sections that have nothing to do with any of those. What the view adds
  * of its own, such as the documents to bring, stands in the slot above the save button. As in the
  * appointment form, the name, the defaults and the sign-up stand open, and who may sign up, the
- * reminders, the fields and the questions are folded sections that say what they hold.
+ * reminders, the fields and the questions are folded sections that show what they hold.
  */
 defineProps<{
   categories: EventCategory[]

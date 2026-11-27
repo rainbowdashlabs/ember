@@ -18,7 +18,7 @@ import type { MemberWithName } from '@/api/generated/schema'
  *
  * <p>The two ends are the same link and are shown the same way: the guardians looking after this
  * member, and the members this one looks after. Which of the two appears follows from the kind of
- * member, because asking a child who they look after says nothing and neither does asking a
+ * member, because asking a child who they look after yields nothing and neither does asking a
  * guardian who looks after them.
  */
 const props = defineProps<{

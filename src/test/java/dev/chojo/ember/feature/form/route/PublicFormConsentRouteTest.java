@@ -41,7 +41,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * An answer to a public form, sent against legal documents that changed while the form stood open,
- * is a conflict with what the reader agreed to and carries its own code. The public form page tells
+ * is a conflict with what the reader agreed to and carries its own code. The public form page keeps
  * a second answer apart from it by that code, since both answer with the same status.
  */
 class PublicFormConsentRouteTest extends RepositoryTestBase {

@@ -20,7 +20,7 @@ vi.mock('@/api', () => api)
 
 /**
  * The starting values of the attendance fields, for an event and for an event template. Which
- * owner they belong to is the port's to say; the rows the server sends back carry an id in a field
+ * owner they belong to is the port's to decide; the rows the server sends back carry an id in a field
  * named for an event, and nothing here reads it.
  */
 describe('useEventFieldDefaults', () => {

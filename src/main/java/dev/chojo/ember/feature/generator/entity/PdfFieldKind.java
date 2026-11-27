@@ -11,7 +11,7 @@ package dev.chojo.ember.feature.generator.entity;
 public enum PdfFieldKind {
     /** Writes a text with placeholders into its box. */
     TEXT,
-    /** Draws a cross into its box where its value says yes. */
+    /** Draws a cross into its box where its value means yes. */
     CHECK,
     /** Becomes an empty signature field for one signer. */
     SIGNATURE,

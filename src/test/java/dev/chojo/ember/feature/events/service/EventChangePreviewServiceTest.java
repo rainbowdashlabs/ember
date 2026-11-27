@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-/** What the save dialog is told before anything is saved. */
+/** What the save dialog is shown before anything is saved. */
 class EventChangePreviewServiceTest extends RepositoryTestBase {
 
     private static Station station;

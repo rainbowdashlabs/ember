@@ -97,7 +97,7 @@ function markTimesDirty() { timesDirty.value = true }
  * Writes the opening and closing times, then reads the test back.
  *
  * <p>The two are answered for separately: times the server had already taken, followed by a page
- * that would not refresh, used to say the times had been refused.
+ * that would not refresh, used to show that the times had been refused.
  */
 async function saveTimes() {
   if (!test.value) return
@@ -151,7 +151,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
  *
  * <p>The two halves are the lifecycle's to keep apart, so a test that was opened and a page that
  * then failed to refresh does not read as a test that would not open. What this used to do was
- * worse than either: the refusal was caught and dropped, and a test that stayed shut said nothing.
+ * worse than either: the refusal was caught and dropped, and a test that stayed shut showed nothing.
  */
 const confirmAction = useConfirmAction<PendingConfirm>({
   onConfirm: async pending => { await pending.action() },

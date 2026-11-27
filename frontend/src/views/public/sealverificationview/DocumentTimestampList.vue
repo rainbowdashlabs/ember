@@ -13,7 +13,7 @@ import TimestampDetails from './TimestampDetails.vue'
 
 /**
  * Timestamps on the file as a whole rather than inside a seal, which a seal gets when it is brought up
- * to date later. They prove the file existed at their time, and say nothing about who made it.
+ * to date later. They prove the file existed at their time, and show nothing about who made it.
  */
 defineProps<{
   timestamps: DocumentTimestampCheck[]

@@ -16,7 +16,7 @@ import type {AttendanceTemplate, DatedEvent, EventCategory, AppointmentField, Ev
  * One of the dashboard's lists, with the button that asks the server for the next page of it.
  *
  * <p>The section is absent while it holds nothing rather than showing a heading over emptiness. The
- * page says once that there is nothing here, and says it for both lists together.
+ * page shows once that there is nothing here, and shows it for both lists together.
  */
 const props = defineProps<{
   title: string

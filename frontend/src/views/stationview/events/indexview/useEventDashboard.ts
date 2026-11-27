@@ -106,8 +106,8 @@ export function useEventDashboard() {
     /**
      * Fetches both lists again after a filter, a search or the tab changed.
      *
-     * <p>It says what could not be read and that the rows on screen are now out of date, because
-     * they are still drawn: a reader who is not told reads them as the answer to the filter they
+     * <p>It shows what could not be read and that the rows on screen are now out of date, because
+     * they are still drawn: a reader who sees no hint reads them as the answer to the filter they
      * just set.
      */
     async function refilter() {

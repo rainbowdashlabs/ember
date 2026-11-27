@@ -19,8 +19,8 @@ import type {Failure} from '@/util/failure'
 
 /**
  * The end of the wizard. Where the new member was given a one-time password it opens at once, and
- * stays at hand for as long as this step is on the screen; a refused one says why. Where the address
- * already belonged to an account, the member waits for that person to agree, which is said here.
+ * stays at hand for as long as this step is on the screen; a refused one shows why. Where the address
+ * already belonged to an account, the member waits for that person to agree, which is shown here.
  */
 const props = defineProps<{
   oneTimePassword: IssuedOneTimePassword | null

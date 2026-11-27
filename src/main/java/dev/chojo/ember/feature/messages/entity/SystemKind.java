@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.messages.entity;
 
-/** What a quiet system line in a group or a station chat says happened. */
+/** What a quiet system line in a group or a station chat shows happened. */
 public enum SystemKind {
     /** The author added the subject to the group. */
     ADDED,

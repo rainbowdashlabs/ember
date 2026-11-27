@@ -193,7 +193,7 @@ class KbLinkMetadataServiceTest {
 
     /**
      * A public page that redirects into private space would pass a check made only at the start,
-     * so every hop goes through the gateway again and the walk stops where it says no.
+     * so every hop goes through the gateway again and the walk stops where it refuses.
      */
     @Test
     void aRedirectIntoPrivateSpaceIsNotFollowed() throws Exception {

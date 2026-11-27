@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.signing.entity;
 import java.util.List;
 
 /**
- * What the station holding a shared appointment tells a partner station when the documents the appointment
+ * What the station holding a shared appointment notifies a partner station when the documents the appointment
  * asks for changed. It travels signed with the organiser's federation key, like every federation request.
  *
  * <p>Documents added travel without a list: the partner fetches the documents of each date again, the same way

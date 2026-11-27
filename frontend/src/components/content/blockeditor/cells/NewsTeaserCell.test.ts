@@ -47,7 +47,7 @@ async function shown(newsUid: string | null, audience?: BlockAudience) {
 /**
  * A news block shows the entry it names as the entry is now, looked up for the readers of its
  * content: on a public page from the public blog, in a news or wiki article for the station's
- * members. It calls the entry unavailable only when the lookup says there is none here.
+ * members. It calls the entry unavailable only when the lookup reports there is none here.
  */
 describe('NewsTeaserCell', () => {
     beforeEach(() => {

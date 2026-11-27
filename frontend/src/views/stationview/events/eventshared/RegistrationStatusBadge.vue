@@ -18,7 +18,7 @@ import {RegistrationStatus} from '@/api/generated/schema'
  *
  * <p>The same words wherever an answer is shown: the appointment list, its detail page and the
  * dashboard. Written once so a place that shows the answer cannot invent another word for it. A
- * sign-up on the waiting list says its place in line, and once the date is over that it did not get
+ * sign-up on the waiting list shows its place in line, and once the date is over that it did not get
  * a place.
  */
 const props = defineProps<{

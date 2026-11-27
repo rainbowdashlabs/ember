@@ -93,7 +93,7 @@ public class SelfCheckService {
      *
      * <p>A member already holding a task they have not finished is passed over rather than asked
      * twice: handing the whole group a task is one act, and one member who was asked last week is no
-     * reason for the other eleven to go unasked. The answer says who was actually asked.
+     * reason for the other eleven to go unasked. The answer shows who was actually asked.
      *
      * @param stationId   the station handing them out
      * @param memberIds   the members to ask
@@ -127,10 +127,10 @@ public class SelfCheckService {
     }
 
     /**
-     * Tells the member their gear is being asked about, and every guardian who answers for them.
+     * Lets the member know their gear is being asked about, and every guardian who answers for them.
      *
      * <p>A child with no address of their own is reached through their guardian, so a task that only
-     * told the child would sit unanswered.
+     * notified the child would sit unanswered.
      */
     private void announce(SelfCheck task, int handedOutBy) {
         var params = new NotificationParams.SelfCheckAssigned(
@@ -145,7 +145,7 @@ public class SelfCheckService {
     }
 
     /**
-     * Tells whoever holds the check permission that a submission is waiting to be read.
+     * Lets whoever holds the check permission know that a submission is waiting to be read.
      */
     private void announceSubmission(SelfCheck task, int submittedBy) {
         var params = new NotificationParams.SelfCheckSubmitted(nameOf(task.memberId()), nameOf(submittedBy));
@@ -224,7 +224,7 @@ public class SelfCheckService {
      * @param answers   what they said
      * @return the answers as they now stand
      * @throws RefusalResponse when the task no longer takes answers, or an answer is about gear that
-     *                         is not the member's or says something that cannot be said about that
+     *                         is not the member's or holds something that cannot be said about that
      *                         piece
      */
     public List<SelfCheckRow> answer(
@@ -479,7 +479,7 @@ public class SelfCheckService {
      * <p>A held-back report rests on one statement: that the record has the wrong size on it. Saying
      * something else about the same piece withdraws that statement, and a report resting on a
      * withdrawn statement has nothing left to wait for. The member is the one withdrawing it and is
-     * looking at the line while they do, so the line saying so is the whole telling.
+     * looking at the line while they do, so the line showing it is the whole notification.
      */
     private void dropWhatNoLongerHasAnythingToWaitFor(SelfCheckRow row) {
         if (row.answer() == SelfCheckAnswer.WRONG_RECORD) return;
@@ -517,7 +517,7 @@ public class SelfCheckService {
     /**
      * The number a member read off a piece nobody wrote down, kept as they typed it apart from the
      * spaces around it. It is never looked up here: what it matched is a finding for whoever reviews
-     * the submission, and answering it back to the member would tell them about gear that is not
+     * the submission, and answering it back to the member would show them gear that is not
      * theirs.
      */
     private static @Nullable String typedIdentifier(SelfCheckAnswerInput input) {
@@ -536,7 +536,7 @@ public class SelfCheckService {
      * <p>Two answers take one, and both for the same reason: they are the answers where the member
      * knows something about a piece that the record does not. On an empty place it is the size of a
      * piece nobody wrote down; on a piece it is the size the record got wrong. Every other answer
-     * agrees with the record or says nothing about it, and a size beside one of those would be a
+     * agrees with the record or shows nothing about it, and a size beside one of those would be a
      * value with nowhere to go.
      *
      * <p>It is offered and never demanded: a member who cannot find a label is still telling the

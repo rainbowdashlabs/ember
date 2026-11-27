@@ -174,7 +174,7 @@ test.describe('The two kinds of inventory', () => {
                 'the call sign hangs on a kind and is edited there').toHaveCount(0)
         })
 
-    /** An inventory is reached by typing part of its name, and the palette says which kind it is. */
+    /** An inventory is reached by typing part of its name, and the palette shows which kind it is. */
     test('the quick search finds an inventory and names its kind', async ({managerPage: page}) => {
         await page.goto('/station/dashboard/overview')
         await expect(page.getByTestId('app-shell')).toBeVisible()

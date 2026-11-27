@@ -18,7 +18,7 @@ import {formatDate} from '@/util/format'
 
 /**
  * One request to the reader's account: a station asking to link it to one of its members, or an
- * association asking it to take a role. Says who asks, for what, how they came to ask, and until when
+ * association asking it to take a role. Shows who asks, for what, how they came to ask, and until when
  * it waits. Accepting gives the asker the account; declining leaves nothing behind.
  */
 const props = defineProps<{

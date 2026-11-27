@@ -21,7 +21,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 /**
  * The residue and the retiring. The list holds password owners with no exercised passkey; all
  * three answers to it are a person's decisions about somebody they know. The bulk action acts
- * only on the accounts a passkey already proved, ends no sessions, and says how many it passed
+ * only on the accounts a passkey already proved, ends no sessions, and reports how many it passed
  * over rather than pretending it covered everything.
  */
 const {t} = useI18n()

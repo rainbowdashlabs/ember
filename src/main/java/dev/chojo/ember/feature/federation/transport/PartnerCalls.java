@@ -15,7 +15,7 @@ import java.util.function.Supplier;
  * Names a partner that did not answer in the words of the feature that asked it.
  *
  * <p>A partner on another instance answers every refusal with silence, so what reaches the reader is
- * the sentence this station has for it; a partner on this instance says what it refused, and that is
+ * the sentence this station has for it; a partner on this instance reports what it refused, and that is
  * passed on as it is.
  */
 public final class PartnerCalls {

@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
  *   <li>an account that also belongs to another station, current or former, or holds a role in an
  *       association, is the person's to manage themselves.</li>
  * </ul>
- * Each reason has its own refusal, so the screen can say why.
+ * Each reason has its own refusal, so the screen can show why.
  */
 @Singleton
 public class AccountReach {

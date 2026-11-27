@@ -156,7 +156,7 @@ async function onLocated(lat: number, lng: number) {
 }
 
 /**
- * The browser refusing to say where the reader is, which is theirs to sort out and never a bug here.
+ * The browser refusing to report where the reader is, which is theirs to sort out and never a bug here.
  */
 function onGeolocateError(message: string) {
   localError.value = message

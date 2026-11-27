@@ -11,7 +11,7 @@ import java.time.Instant;
 
 /**
  * One signature field of a document signed at a member's home installation, as the home reports it with a
- * sealed copy. Who signed is on the copy's record page; the field only says where it stands.
+ * sealed copy. Who signed is on the copy's record page; the field only shows where it stands.
  *
  * @param name      the name of the field in the document: participant, guardian1 or anyGuardian
  * @param state     where it stands at home

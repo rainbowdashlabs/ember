@@ -541,7 +541,7 @@ public class FormRoutes implements Routes {
      * Refuses a form that is not sent by link at all, in the same words wherever it is asked.
      *
      * <p>Reading and replacing used to disagree: reading answered a null link, which is also what a
-     * form that simply has none yet answers, so a caller could not tell "this form never has one"
+     * form that simply has none yet answers, so a caller could not distinguish "this form never has one"
      * from "this one has not been given one yet". The second is the case the button offering to make
      * the first link stands on.
      *
@@ -770,7 +770,7 @@ public class FormRoutes implements Routes {
 
     /**
      * Answers with what the member gave to the form, or with an empty detail when they have not
-     * answered it yet, so the screen can tell a first answer from a correction.
+     * answered it yet, so the screen can distinguish a first answer from a correction.
      */
     private void respondWithAnswerOf(Context ctx, int formId, int memberId) {
         ctx.json(formService
@@ -1228,9 +1228,9 @@ public class FormRoutes implements Routes {
      * @param startAt          optional start time for accepting responses
      * @param endAt            optional end time for accepting responses
      * @param purpose          what the form is for, which is fixed once it is made
-     * @param completionMessage what the reader is told once the form is sent, or nothing for the general thanks
+     * @param completionMessage what the reader is shown once the form is sent, or nothing for the general thanks
      * @param completionLink   where the reader may go on to after sending, or nothing
-     * @param completionLinkLabel what that link says, or nothing for the address itself
+     * @param completionLinkLabel what that link shows, or nothing for the address itself
      */
     public record FormRequest(
             String title,

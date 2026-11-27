@@ -302,7 +302,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
 
     /**
      * A folder for named stations holding an article for a different one is a contradiction, so it is
-     * refused. Narrowing the article to nobody stands, because it says less than the folder, not more.
+     * refused. Narrowing the article to nobody stands, because it allows less than the folder, not more.
      */
     @Test
     @Order(3)
@@ -368,7 +368,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Saying who an entry is for replaces what it said before, and the old share goes only once the new
+     * Setting who an entry is for replaces what it set before, and the old share goes only once the new
      * one exists: a refusal in between would leave the entry shared with nobody and nobody the wiser.
      */
     @Test

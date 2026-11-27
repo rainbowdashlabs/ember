@@ -9,7 +9,7 @@ package dev.chojo.ember.feature.inventory.entity;
  * What putting the record right would do with the piece that comes off it.
  *
  * <p>Three different things follow from who owns that piece, and one of them ends it. The reviewer
- * is told which before they take the row, because a correction that quietly deletes a row of the
+ * is shown which before they take the row, because a correction that quietly deletes a row of the
  * inventory is not something to discover afterwards.
  */
 public enum SelfCheckRecordRemoval {
@@ -28,7 +28,7 @@ public enum SelfCheckRecordRemoval {
     RETURNED_TO_OWNER,
     /**
      * The piece ends. Its owner has no store on this instance, so there is nowhere to send it and
-     * nobody who could ever tidy the row up, and the correction says it was never there.
+     * nobody who could ever tidy the row up, and the correction records that it was never there.
      */
     DELETED
 }

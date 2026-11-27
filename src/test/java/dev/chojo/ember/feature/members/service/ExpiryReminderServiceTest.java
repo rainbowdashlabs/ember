@@ -128,7 +128,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
         profileFieldRepo.setValue(member.id(), field.id(), StringNode.valueOf(day));
     }
 
-    /** Every notification sent, as who got it and what it said. */
+    /** Every notification sent, as who got it and what it carried. */
     private record Sent(Collection<Integer> to, NotificationData data) {
         NotificationParams.ExpiryReminder params() {
             return (NotificationParams.ExpiryReminder) data.params();

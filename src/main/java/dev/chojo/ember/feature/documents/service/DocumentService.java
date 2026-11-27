@@ -103,7 +103,7 @@ public class DocumentService {
      * and a document given no title is called after its file.
      *
      * @param stationId the station it belongs to
-     * @param filing    what was said about it
+     * @param filing    what is known about it
      * @param file      the uploaded file, or null where the request carried none
      * @param door      who files it, which decides the words of a refusal
      * @return the document as filed
@@ -344,7 +344,7 @@ public class DocumentService {
     }
 
     /**
-     * Records what the document says, so it can be searched for rather than scrolled to. A file
+     * Records what the document contains, so it can be searched for rather than scrolled to. A file
      * nothing can be read out of is still findable by its title.
      */
     private void index(int documentId, int stationId, String title, String mimeType, byte[] data) {
@@ -362,7 +362,7 @@ public class DocumentService {
     }
 
     /**
-     * Records what a document says from text read out of it before, such as on the installation its
+     * Records what a document contains from text read out of it before, such as on the installation its
      * station moved from, without reading its file again. The index is built in the language of the
      * station it is at now.
      *
@@ -475,7 +475,7 @@ public class DocumentService {
 
     /**
      * Makes the picture a tile shows: the image itself, or the first page of a document that has
-     * pages. Anything else has no picture, and the tile says what it is instead.
+     * pages. Anything else has no picture, and the tile shows what it is instead.
      *
      * @return whether a picture was made
      */
@@ -515,7 +515,7 @@ public class DocumentService {
     }
 
     /**
-     * The key a sealed file is kept under: its SHA-256 alone, not the document's id, so the key says
+     * The key a sealed file is kept under: its SHA-256 alone, not the document's id, so the key shows
      * what the bytes are and stays right wherever the rows that name it are carried.
      */
     private static String sealedKey(String sha256) {
@@ -536,7 +536,7 @@ public class DocumentService {
     }
 
     /**
-     * What is said about a document as it is filed.
+     * What is known about a document as it is filed.
      *
      * @param memberIds     the members it concerns, or none for the station's own paperwork
      * @param title         what it is to be called, or null to call it after its file

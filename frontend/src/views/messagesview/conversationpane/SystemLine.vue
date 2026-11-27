@@ -10,7 +10,7 @@ import type {ConversationMessageResponse} from '@/api/generated/schema'
 import {useMessageWords} from '@/composables/useMessageWords'
 import {formatTime} from '@/util/format'
 
-/** A quiet line in a group saying who joined, left, was removed, renamed it or took it over. */
+/** A quiet line in a group showing who joined, left, was removed, renamed it or took it over. */
 defineProps<{
   message: ConversationMessageResponse
 }>()

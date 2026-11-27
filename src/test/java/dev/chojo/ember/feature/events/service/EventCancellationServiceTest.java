@@ -209,7 +209,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         assertRefused(EventRefusal.DATE_ALREADY_CANCELLED, () -> service.cancelDate(event, firstDate(), null, null));
     }
 
-    /** A date brought back takes place again, and whoever kept their place is told. */
+    /** A date brought back takes place again, and whoever kept their place is notified. */
     @Test
     void aRestoredDateTakesPlaceAgainAndTellsItsMembers() {
         weekly();
@@ -238,7 +238,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         assertRefused(EventRefusal.DATE_TO_RESTORE_IN_THE_PAST, () -> service.restoreDate(event, past));
     }
 
-    /** A series called off as a whole tells every place still to come and stays off for good. */
+    /** A series called off as a whole notifies every place still to come and stays off for good. */
     @Test
     void aSeriesCancelStillWorksAndIsFinal() {
         weekly();
@@ -286,7 +286,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         verify(notifications, never()).notify(any(), eq(NotificationType.EVENT_DATE_DROPPED), any(), any());
     }
 
-    /** A date called off stays on the lists and says why, and the dates beside it say nothing. */
+    /** A date called off stays on the lists and shows why, and the dates beside it show nothing. */
     @Test
     void aCancelledDateStaysOnTheListsAndSaysWhy() {
         weekly();
@@ -313,7 +313,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         assertFalse(row.event().seriesCancelled());
     }
 
-    /** The station's calendar is told the dates off of the appointments the reader sees, and no others. */
+    /** The station's calendar is given the dates off of the appointments the reader sees, and no others. */
     @Test
     void theCancelledDatesAreListedForTheAppointmentsSeen() {
         weekly();
@@ -326,7 +326,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         assertTrue(service.findCancelledDates(station.id(), List.of()).isEmpty());
     }
 
-    /** Every date of a series called off as a whole says so, with the reason given for the series. */
+    /** Every date of a series called off as a whole shows that, with the reason given for the series. */
     @Test
     void everyDateOfACancelledSeriesSaysSo() {
         weekly();

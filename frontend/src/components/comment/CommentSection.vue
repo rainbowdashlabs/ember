@@ -77,7 +77,7 @@ const specialMentions = computed<SpecialMention[]>(() => {
  *
  * <p>They shared an attempt, so a comment that really was posted, followed by a thread that failed to
  * come back, read as a comment that had not been posted. The reader wrote it again and the thread
- * then held it twice. A thread that is merely out of date says so and asks for nothing.
+ * then held it twice. A thread that is merely out of date shows that and asks for nothing.
  */
 async function act(change: () => Promise<unknown>) {
   failure.value = null

@@ -64,7 +64,7 @@ public record InventoryFieldDefinition(
                 .orElseThrow(() -> new IllegalStateException("Every inventory field holds a value: " + fieldType));
     }
 
-    /** What this field says about the question it asks, out of the settings typed per kind. */
+    /** What this field defines about the question it asks, out of the settings typed per kind. */
     private QuestionSettings settings() {
         if (config instanceof FieldConfig.EnumConfig(List<FieldConfig.EnumConfig.EnumOption> options)) {
             return QuestionSettings.none()

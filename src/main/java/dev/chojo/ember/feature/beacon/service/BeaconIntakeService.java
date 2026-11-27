@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
  * this feature could have been abused.
  *
  * <p><b>Identity is computed, never claimed.</b> An instance identifier is
- * {@code sha256(publicKey)[0..16]}, so the key that signed a report already says who sent it. Reading
+ * {@code sha256(publicKey)[0..16]}, so the key that signed a report already shows who sent it. Reading
  * an identifier out of the body and trusting the first key to claim it would let anybody squat a
  * victim's identifier before that victim ever reported, and with keys that are never rotated the
  * victim would have no way back.
@@ -81,7 +81,7 @@ public class BeaconIntakeService {
      * Establishes who sent a signed delivery and that it has not been sent before.
      *
      * @param publicKey the raw Ed25519 key the signature was verified against
-     * @param envelope  what the delivery says about itself
+     * @param envelope  what the delivery shows about itself
      * @return the identifier computed from the key
      */
     public String accept(byte[] publicKey, BeaconPayloads.Envelope envelope, String ownUrl) {

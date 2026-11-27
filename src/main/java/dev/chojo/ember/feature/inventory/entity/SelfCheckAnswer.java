@@ -14,7 +14,7 @@ package dev.chojo.ember.feature.inventory.entity;
  */
 public enum SelfCheckAnswer {
     /**
-     * The ordinary answer about a piece the station says they hold.
+     * The ordinary answer about a piece the station shows they hold.
      */
     HAVE_IT,
     /**
@@ -32,7 +32,7 @@ public enum SelfCheckAnswer {
      *
      * <p>Where the gear comes in sizes, the member may say which size that is, and the screen offers
      * it as the size of the piece rather than behind this answer: somebody looking at a shirt
-     * recorded as 128 while holding a 134 changes the number, and that is what says the record is
+     * recorded as 128 while holding a 134 changes the number, and that is what shows the record is
      * wrong. Choosing an answer first and then saying the thing they came to say is a detour past
      * the only fact they have.
      *

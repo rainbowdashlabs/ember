@@ -24,7 +24,7 @@ import java.util.Optional;
  *
  * <p>Both are the same kind of question asked by somebody else, so both measure an answer the same
  * way and keep it in the same shape: yes or no as a boolean, a number as a number, everything else as
- * a string, and nothing at all where nothing was said. An association's answers used to be kept as
+ * a string, and nothing at all where nothing was answered. An association's answers used to be kept as
  * whatever arrived, unmeasured.
  *
  * <p>Only what a save changes is measured. The profile screens send every answer back on each save,
@@ -38,10 +38,10 @@ public final class ProfileAnswers {
     private ProfileAnswers() {}
 
     /**
-     * What an answer says, as plain text, from the JSON document the profile screens send.
+     * What an answer shows, as plain text, from the JSON document the profile screens send.
      *
      * @param sent the answer as a JSON document, or null
-     * @return the answer as plain text, empty where nothing was said
+     * @return the answer as plain text, empty where nothing was answered
      * @throws RefusalResponse where it is not a JSON document
      */
     public static String said(@Nullable String sent) {
@@ -49,7 +49,7 @@ public final class ProfileAnswers {
     }
 
     /**
-     * Whether an answer says what is already stored, however each of the two is written.
+     * Whether an answer shows what is already stored, however each of the two is written.
      *
      * @param stored the stored answer as its JSON text, or null where there is none
      * @param said   the new answer as plain text
@@ -109,8 +109,8 @@ public final class ProfileAnswers {
      * Whether a recorded answer amounts to nothing having been given.
      *
      * <p>A question nobody has answered is recorded as the absent value, and one answered with an empty
-     * box as an empty string. They are different strings and the same thing: nothing was said either
-     * time. Told apart, they made a change out of somebody opening a form and saving it, and somebody
+     * box as an empty string. They are different strings and the same thing: nothing was answered either
+     * time. Kept apart, they made a change out of somebody opening a form and saving it, and somebody
      * else was asked to confirm it.
      *
      * @param recorded the answer as the change history records it

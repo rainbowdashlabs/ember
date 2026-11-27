@@ -16,7 +16,7 @@ import dev.chojo.ember.api.auth.StationPermission;
  * a member with this permission bypasses restrictions entirely.
  * <p>
  * An entity may carry more than one list, which is why the mode column is named here rather than
- * assumed: an event says separately who may see it and who may register for it, and each answer
+ * assumed: an event defines separately who may see it and who may register for it, and each answer
  * combines its parts on its own terms.
  */
 public enum RestrictionType {
@@ -104,7 +104,10 @@ public enum RestrictionType {
             "restriction_mode",
             StationPermission.ATTENDANCE_EDIT,
             false),
-    /** The managing party of a procedure: who sees its public steps, ticks the steps marked for them and is told. */
+    /**
+     * The managing party of a procedure: who sees its public steps, ticks the steps marked for them and is
+     * notified.
+     */
     PROCEDURE(
             "procedure_restriction",
             "procedure_id",
@@ -130,7 +133,7 @@ public enum RestrictionType {
     /**
      * Whom a station chat is for. It guards nothing itself: the chat's members follow it, and the
      * members' rows are what lets somebody read the chat. Its audience is kept to those who handle
-     * the station's chats, since it says who talks with whom.
+     * the station's chats, since it shows who talks with whom.
      */
     STATION_CHAT(
             "conversation_restriction",

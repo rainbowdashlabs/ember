@@ -167,10 +167,10 @@ public class DiscoveryHttpClient {
          */
         record Fetched(byte[] data, PictureTags tags) implements PictureFetch {}
 
-        /** The peer says the copy kept here is still the picture it publishes. */
+        /** The peer confirms the copy kept here is still the picture it publishes. */
         record Unchanged() implements PictureFetch {}
 
-        /** The peer says it publishes no picture there. */
+        /** The peer reports it publishes no picture there. */
         record Absent() implements PictureFetch {}
 
         /** Nothing usable came back: no answer, a refused address, an error, a redirect or too many bytes. */
@@ -178,13 +178,13 @@ public class DiscoveryHttpClient {
     }
 
     /**
-     * Reaches for something a peer publishes, and says what stopped it when nothing came back.
+     * Reaches for something a peer publishes, and reports what stopped it when nothing came back.
      *
      * <p>{@link #get} answers {@code null} for a name that does not resolve, a certificate that
      * will not verify, a port nothing is listening on, a host that timed out and a host that
      * answered with something else entirely. Those are five different problems with five different
-     * fixes, and an operator told only that the peer "did not respond" cannot tell a mistyped
-     * hostname from a firewall. This tells them which.
+     * fixes, and an operator shown only that the peer "did not respond" cannot distinguish a mistyped
+     * hostname from a firewall. This shows them which.
      *
      * <p>What comes back is written for an operator and never carries anything of Ember's: the
      * address is the one they typed, and any words taken from the failure itself pass
@@ -193,7 +193,7 @@ public class DiscoveryHttpClient {
      * @param baseUrl      the peer's base URL, as the operator wrote it
      * @param path         the path to ask for
      * @param responseType what the answer is read as
-     * @return what the peer said, or a sentence saying why it said nothing
+     * @return what the peer answered, or a sentence explaining why it answered nothing
      */
     public <T> Probe<T> probe(String baseUrl, String path, Class<T> responseType) {
         URI uri;
@@ -296,7 +296,7 @@ public class DiscoveryHttpClient {
     /**
      * Sends a POST that carries no signature. Returns true on 2xx, false otherwise.
      *
-     * <p>For a body whose only promise is that it does not say who sent it. A signature would put
+     * <p>For a body whose only promise is that it does not show who sent it. A signature would put
      * this instance's identity beside it and break that promise, however anonymous the body itself.
      *
      * @param baseUrl peer base URL (without {@code /api/v1})
@@ -336,11 +336,11 @@ public class DiscoveryHttpClient {
      * to by instances it has never heard of, so the key travels with the delivery. Without it every
      * delivery is refused as unsigned, which is what this method exists to stop happening again.
      *
-     * <p>Answers what the beacon said rather than whether it was happy, because a refusal is worth
+     * <p>Answers what the beacon answered rather than whether it was happy, because a refusal is worth
      * naming in a log: a boolean that is false for a closed port, a wrong address and a rejected
      * signature alike is what made this invisible in the first place. The answer it gives back
      * carries the beacon's own words, since a beacon refuses with 403 for three different reasons
-     * and the number alone does not tell them apart.
+     * and the number alone does not distinguish them.
      *
      * @return what the beacon answered, or empty where it could not be reached
      */
@@ -359,7 +359,7 @@ public class DiscoveryHttpClient {
      * What a beacon answered a delivery with.
      *
      * @param status what it answered
-     * @param body   what it said, which is how one 403 is told from another
+     * @param body   what it answered, which is how one 403 is distinguished from another
      */
     public record Answer(int status, String body) {
         public boolean accepted() {

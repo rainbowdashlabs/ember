@@ -33,7 +33,7 @@ export function provideNewsRoutes(routes: NewsRoutes): void {
     provide(NEWS_ROUTES, routes)
 }
 
-/** Where a click in the news screens should land, which is a station's pages unless told otherwise. */
+/** Where a click in the news screens should land, which is a station's pages unless set otherwise. */
 export function useNewsRoutes(): NewsRoutes {
     return inject(NEWS_ROUTES, STATION_NEWS_ROUTES)
 }

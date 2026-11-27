@@ -15,12 +15,12 @@ const INTERVAL_MAX = 30000
 export interface BackingOffPoll {
     start: () => void
     stop: () => void
-    /** Whether the server has asked this client to slow down, so a screen can say why it waits. */
+    /** Whether the server has asked this client to slow down, so a screen can show why it waits. */
     throttled: Readonly<Ref<boolean>>
 }
 
 /**
- * A wait that asks again until it is told to stop, and slows down when it is asked to.
+ * A wait that asks again until it is stopped, and slows down when it is asked to.
  *
  * <p>Both halves of the device handshake wait like this, and both used to swallow a refusal for
  * asking too often and keep asking at the same rate. That is what made the limit impossible to

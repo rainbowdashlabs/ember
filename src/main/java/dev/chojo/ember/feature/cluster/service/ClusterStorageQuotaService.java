@@ -315,8 +315,8 @@ public class ClusterStorageQuotaService {
      * The whole picture: the pool, what has been promised out of it, and every station with what it was
      * granted, what that resolves to and what it is actually using.
      *
-     * <p>Granted and resolved side by side because they answer different questions. Granted says what this
-     * cluster decided; resolved says what the station may keep, which may come from the cluster's defaults or
+     * <p>Granted and resolved side by side because they answer different questions. Granted shows what this
+     * cluster decided; resolved shows what the station may keep, which may come from the cluster's defaults or
      * from the instance behind them.
      *
      * @param clusterId the cluster

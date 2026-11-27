@@ -19,7 +19,7 @@ const props = defineProps<{
   step: MovementStepResponse
   /** Whether the movement is still walking, which decides if anything ahead is still to come. */
   open: boolean
-  /** The owning party by name, so a step of theirs says who rather than what role. */
+  /** The owning party by name, so a step of theirs shows who rather than what role. */
   ownerLabel?: string
 }>()
 

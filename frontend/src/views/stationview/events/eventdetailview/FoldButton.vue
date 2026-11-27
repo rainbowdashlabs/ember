@@ -8,7 +8,7 @@ import BareButton from '@/components/button/BareButton.vue'
 import AppIcon from '@/components/display/AppIcon.vue'
 
 /**
- * The header of a part of the page that folds: its label beside a chevron that says whether the part is
+ * The header of a part of the page that folds: its label beside a chevron that shows whether the part is
  * open. Pressing anywhere on it opens or closes the part.
  */
 const open = defineModel<boolean>({required: true})

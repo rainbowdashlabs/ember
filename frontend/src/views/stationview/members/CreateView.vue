@@ -206,9 +206,9 @@ let accountMade = false
  * Creates the member from everything the wizard collected, which is one button and several writes.
  *
  * <p>The account comes first, and once it is there the rest, the kind, the answers, the groups and the
- * guardians, is added to a person who already exists. A reader told plainly that creating failed starts
+ * guardians, is added to a person who already exists. A reader shown plainly that creating failed starts
  * the wizard again and is refused for an address that is now taken, with a half-filled member left in
- * the roll and nothing said about it. Where the account is in, the screen says so and sends them to the
+ * the roll and nothing shown about it. Where the account is in, the screen shows that and sends them to the
  * member's own page to finish it.
  */
 const {running: saving, failure: createFailure, run: createAccount, clearError: clearCreateError} = useAsyncAction(async () => {

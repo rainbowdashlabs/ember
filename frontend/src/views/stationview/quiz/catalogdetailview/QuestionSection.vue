@@ -32,7 +32,7 @@ const props = defineProps<{
   readonly?: boolean
 }>()
 
-/** The open notes on one question, so each card carries only what was said about it. */
+/** The open notes on one question, so each card carries only what was written about it. */
 function reportsFor(questionId: number): QuizQuestionReport[] {
   return props.reports.filter(report => report.questionId === questionId)
 }

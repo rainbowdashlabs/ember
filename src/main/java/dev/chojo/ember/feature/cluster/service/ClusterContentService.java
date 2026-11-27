@@ -115,7 +115,7 @@ public class ClusterContentService {
      * Creates a knowledge folder on the cluster's own station.
      *
      * <p>Sharing it with the cluster's stations happens where every write to that station is shared, so
-     * nothing about it is said here.
+     * nothing about it is done here.
      *
      * @param clusterId   the cluster
      * @param parentId    the folder to create it in, or {@code null} for the top

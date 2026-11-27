@@ -25,8 +25,8 @@ import java.util.function.BooleanSupplier;
  * Calls a whole event group off.
  *
  * <p>Every part still to come is called off with it, the way a single date is, so lists, the
- * calendar, attendance and reminders know. The people signed up are told once, for the event group; the
- * parts tell nobody on their own. Parts that already took place or were called off before are left
+ * calendar, attendance and reminders know. The people signed up are notified once, for the event group; the
+ * parts notify nobody on their own. Parts that already took place or were called off before are left
  * as they are. Calling an event group off is final: it cannot be taken back, and none of its parts comes
  * back on its own.
  */
@@ -65,7 +65,7 @@ public class EventGroupCancellationService {
      *
      * @param stationId    the station asking
      * @param eventGroupId the event group
-     * @param reason       why, as told to the people signed up, or null
+     * @param reason       why, as shown to the people signed up, or null
      * @param cancelledBy  the member calling it off, or null
      */
     public void cancel(int stationId, int eventGroupId, @Nullable String reason, @Nullable Integer cancelledBy) {
@@ -76,7 +76,7 @@ public class EventGroupCancellationService {
 
     /**
      * Calls an event group off because too few sign-ups were accepted in time. The people signed up
-     * are told so, worded in their own language, and no reason is stored.
+     * are notified, worded in their own language, and no reason is stored.
      *
      * <p>Whether it is still short is asked again under the event group's lock, so a minimum taken off or a
      * sign-up accepted since the check read it keeps the event group.

@@ -11,7 +11,7 @@ import {RegistrationStatus, type EnrichedFederationRegistration, type Registrati
  * The people holding a place on one date, ready to be handed to anything that works from a list
  * of members.
  *
- * <p>Everything a caller has to say about the set is here, including what it could not hold: a count
+ * <p>Everything a caller needs to know about the set is here, including what it could not hold: a count
  * that quietly leaves people out is worse than no count at all.
  */
 export interface SignupMemberSet {

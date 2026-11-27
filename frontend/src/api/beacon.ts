@@ -56,7 +56,7 @@ export async function previewReportPayload(id: number): Promise<ReportPayload> {
 /**
  * Passes one problem report on now, with what an operator decided about its picture.
  *
- * <p>Whatever the automatic switch says: the switch governs what leaves on its own, and this is an
+ * <p>Whatever the automatic switch is set to: the switch governs what leaves on its own, and this is an
  * operator deciding about the report in front of them. A report and its picture travel together or the
  * picture does not travel: there is no sending it afterwards, which is why that is decided here and only
  * here.

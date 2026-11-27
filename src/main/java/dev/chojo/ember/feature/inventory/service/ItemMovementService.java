@@ -91,7 +91,7 @@ public class ItemMovementService {
     }
 
     /**
-     * Tells the rest of the application about a movement once what it reports has been written. Outside
+     * Lets the rest of the application know about a movement once what it reports has been written. Outside
      * a transaction that is at once; inside one, after the commit, so a refused call-off that rolls back
      * never announces a way back that does not exist.
      *
@@ -132,8 +132,8 @@ public class ItemMovementService {
      * why the check lives here rather than on the route.
      *
      * <p>The two rights are separate because a step can be answered by the party it belongs to or
-     * merely covered by somebody standing in for them, and the record has to be able to tell those
-     * apart. Nobody signs in on the owner's side yet, so {@code ownerRights} is false everywhere
+     * merely covered by somebody standing in for them, and the record has to be able to distinguish those
+     * two. Nobody signs in on the owner's side yet, so {@code ownerRights} is false everywhere
      * today and the station covers every owner step.
      *
      * @param memberId      the member acting
@@ -155,8 +155,8 @@ public class ItemMovementService {
          * The member to write into the record, which may be nobody.
          *
          * <p>Somebody acting for a cluster need not be at any station, and the log names a station's
-         * member. The entry still says what was acknowledged, when, and whether it was confirmed or
-         * asserted; what it cannot say is which of the station's people did it, because none of them did.
+         * member. The entry still shows what was acknowledged, when, and whether it was confirmed or
+         * asserted; what it cannot show is which of the station's people did it, because none of them did.
          *
          * @return the member id, or {@code null} when the actor belongs to no station
          */
@@ -213,7 +213,7 @@ public class ItemMovementService {
     }
 
     /**
-     * Starts a movement, saying whether it is a report that the outgoing item is gone.
+     * Starts a movement, marking whether it is a report that the outgoing item is gone.
      *
      * @param lostReport whether the item being replaced is missing rather than coming back
      * @see #create(int, MovementPurpose, Integer, String, Integer, Integer, Integer, Integer, String, Actor, Integer)
@@ -262,7 +262,7 @@ public class ItemMovementService {
      *
      * @param stationId  the station asking
      * @param memberId   the member holding the gear
-     * @param memberName their name, for what the member is told
+     * @param memberName their name, for what the member is shown
      * @param actor      who is asking
      * @return the movements that were started, one per piece
      */
@@ -403,7 +403,7 @@ public class ItemMovementService {
     /**
      * Puts a movement where somebody says it should have been, without pretending anybody walked it there.
      *
-     * <p>Silent by design. Nothing is published, so nobody is told that a record was tidied up: a member
+     * <p>Silent by design. Nothing is published, so nobody is notified that a record was tidied up: a member
      * who did nothing wrong should not be sent a notice because an administrator corrected a row. The log
      * carries the correction instead, marked as such, with the person and the reason, so the history stays
      * honest without anybody being disturbed.
@@ -562,7 +562,7 @@ public class ItemMovementService {
     /**
      * Refuses a piece that another open movement is already about, on either of its ends.
      *
-     * <p>A piece can only be in one place, and every chain says where it is by moving it. Two chains on
+     * <p>A piece can only be in one place, and every chain records where it is by moving it. Two chains on
      * one piece therefore read each other's work: a step walked on one shifts custody, and the other
      * reports itself further along without anybody having touched it. Both ends are checked, because a
      * piece can be spoken for in two ways: it is on its way somewhere, or it has been promised to
@@ -636,10 +636,10 @@ public class ItemMovementService {
     }
 
     /**
-     * Tells a station that gear is coming, when the cluster above it is what started the movement.
+     * Lets a station know that gear is coming, when the cluster above it is what started the movement.
      *
      * <p>Only an issue is announced this way. A return or an exchange is something the station is part of
-     * already, and would be told twice.
+     * already, and would be notified twice.
      *
      * @param purpose        what the movement is for
      * @param ownerKind      who owns the gear
@@ -764,7 +764,7 @@ public class ItemMovementService {
 
     /**
      * Acknowledges a step on behalf of a party that could have answered and has not. The note is
-     * mandatory and the log says the step was forced for good, because an unresponsive counterparty
+     * mandatory and the log records that the step was forced for good, because an unresponsive counterparty
      * must not be able to freeze an item in the post forever.
      *
      * @throws RefusalResponse when the note is missing, or when the step is the station's own and
@@ -893,7 +893,7 @@ public class ItemMovementService {
      * <p>Called wherever a movement arrives on a step: after a step is walked, after a correction and after it
      * is moved onto another chain or a chain written again. The confirmation is written in the member's name
      * and marked as automatic. Nothing is announced for it, so the member is never asked to confirm a step that
-     * has already confirmed itself; whoever is told about the step before it is told where the movement stands
+     * has already confirmed itself; whoever hears about the step before it learns where the movement stands
      * now.
      *
      * @param movementId the movement
@@ -987,7 +987,7 @@ public class ItemMovementService {
      * may plan its way back: a hand-out to the member naming that very piece, on the chain the station
      * binds for such hand-outs. Closing and starting the way back are one transaction: where the way
      * back is refused, for want of a chain or for any other reason, the movement stays as it was, and
-     * nobody is told about either until both have been written.
+     * nobody is notified about either until both have been written.
      *
      * <p>Whoever is at the wheel may call it off, and so may a member who is still holding the piece
      * the movement is about. Somebody who asks for a bigger jacket and finds the next morning that it
@@ -1057,7 +1057,7 @@ public class ItemMovementService {
     /**
      * Whether the step a movement stands on is the station handing its piece to the member.
      *
-     * <p>Which is what says somebody at a counter is about to give it to them, as opposed to a piece
+     * <p>Which is what shows that somebody at a counter is about to give it to them, as opposed to a piece
      * moving between a shelf and the post with nothing for either of them to do.
      *
      * <p>The step has to be the station's own. The step after a hand-over is usually the member saying
@@ -1085,7 +1085,7 @@ public class ItemMovementService {
      * it is theirs to answer and nobody at the sheet may press it.
      *
      * <p>Read at the step rather than at the movement: a piece can sit on a member while the chain
-     * waits on somebody else entirely, and that wait is nothing to say to the member holding it.
+     * waits on somebody else entirely, and that wait is nothing to report to the member holding it.
      *
      * @param movement the movement
      * @return whether whoever has the member in front of them has something to do about it
@@ -1163,7 +1163,7 @@ public class ItemMovementService {
      * Starts the hand-out that brings the piece of a called-off movement back to its member.
      *
      * <p>The piece is named as the arriving one, so it is promised to the member from the start and walks
-     * from wherever it is now to the station and on to them. Nothing says the member holds it before
+     * from wherever it is now to the station and on to them. Nothing shows the member holding it before
      * the step that hands it over.
      *
      * @param cancelled the movement just called off
@@ -1221,7 +1221,7 @@ public class ItemMovementService {
      * pointing at a movement that no longer existed. Closing keeps the record. Nothing is put back on the
      * member, who holds nothing any more; whatever is in the post settles with its owner, and a promised
      * piece is free again. Each one is announced as called off, so the station team learns that it ended,
-     * with the reason and nobody named as having done it. The leaving member is not among those told: they
+     * with the reason and nobody named as having done it. The leaving member is not among those notified: they
      * are leaving, or being erased.
      *
      * @param memberId the member leaving
@@ -1519,7 +1519,7 @@ public class ItemMovementService {
      *
      * <p>An owner's step is the owner's. The station covers it only where the owner cannot answer at all,
      * which is when the gear belongs to a body that does not run here: then the station stands in and the
-     * record says it asserted rather than confirmed. When the owner is a cluster on this instance it can
+     * record shows it asserted rather than confirmed. When the owner is a cluster on this instance it can
      * answer for itself, and the station waiting is the whole point of the step.
      *
      * @param movement the movement
@@ -1547,7 +1547,7 @@ public class ItemMovementService {
      * receipt into a claim.
      *
      * <p>A member who will not answer does not freeze the chain: the step can be forced, with a note,
-     * and the record then says forced rather than confirmed.
+     * and the record then shows forced rather than confirmed.
      */
     private boolean opensTheChain(MovementFlowStep step) {
         return flowService.findActiveSteps(step.flowId()).stream()
@@ -1596,7 +1596,7 @@ public class ItemMovementService {
      * <p>Two things have to hold, and leaving either out strands the movement. A body that does not run
      * on this instance has nobody to press its steps, which has always been true. A body that runs here
      * but keeps no gear here has nobody either: it has no store, no queue and no reason to look. In both
-     * cases the station stands in and the record says asserted. Answering with the cluster whenever one
+     * cases the station stands in and the record shows asserted. Answering with the cluster whenever one
      * merely exists locks the station out of a step that will then never be pressed by anybody.
      *
      * @param movement the movement
@@ -1661,7 +1661,7 @@ public class ItemMovementService {
      *
      * <p>A movement keeps the chain it was given when it set out, which is right while that answer
      * was right. Where it was not, the movement walks steps written for somebody else's gear and
-     * there is otherwise no way back short of forcing it through or calling it off. This says what
+     * there is otherwise no way back short of forcing it through or calling it off. This shows what
      * moving it over would come to, without moving anything.
      *
      * @param movementId the movement
@@ -1698,7 +1698,7 @@ public class ItemMovementService {
     }
 
     /**
-     * Moves a movement onto the chain it belongs on, standing where it is told to stand.
+     * Moves a movement onto the chain it belongs on, standing where the caller sets it to stand.
      *
      * <p>The step is named rather than worked out, for the same reason a chain put back asks: the
      * step a movement stood on and the steps of another chain do not line up on their own, and a
@@ -1796,7 +1796,7 @@ public class ItemMovementService {
 
     /**
      * The one step of a chain that means what the step a movement stands on meant, if exactly one
-     * does. Same piece and same place afterwards, which is the whole of what a step says about where
+     * does. Same piece and same place afterwards, which is the whole of what a step records about where
      * a movement stands.
      */
     private static OptionalInt sameMeaning(MovementFlowStep standing, List<MovementFlowStep> steps) {
@@ -1813,7 +1813,7 @@ public class ItemMovementService {
      * One step of the chain a movement would be moved onto.
      *
      * @param index        where it stands, counted from the front, which is what a landing names
-     * @param label        what it says
+     * @param label        what it shows
      * @param actor        whose turn it is on it
      * @param subject      which of the two pieces it is about
      * @param custodyAfter where that piece is once it has been walked

@@ -14,11 +14,11 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells whoever's turn it is next that a step has been acknowledged.
+ * Lets whoever's turn it is next know that a step has been acknowledged.
  *
  * <p>The message goes to that party and to nobody else, so its arrival is itself the signal that
  * something is waiting. When the chain has ended there is no next party, and the member it concerned
- * is told instead, because the last thing they saw was their gear going away.
+ * is notified instead, because the last thing they saw was their gear going away.
  */
 @Singleton
 public class MovementAdvancedHandler implements DomainEventHandler<MovementAdvanced> {

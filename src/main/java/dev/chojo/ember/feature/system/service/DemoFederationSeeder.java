@@ -149,7 +149,7 @@ public class DemoFederationSeeder implements DemoSeeder {
     }
 
     /**
-     * Writes a demo comment, telling whoever a comment written there tells.
+     * Writes a demo comment, notifying whoever a comment written there notifies.
      */
     private void seedComment(CommentEntityType type, int targetId, CommentWriter writer, NewComment comment) {
         commentService.target(type, targetId).ifPresent(target -> commentService.createOn(target, writer, comment));

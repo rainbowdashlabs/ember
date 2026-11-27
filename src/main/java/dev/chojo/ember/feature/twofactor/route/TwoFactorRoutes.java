@@ -520,7 +520,7 @@ public class TwoFactorRoutes implements Routes {
         answerSession(ctx, session);
     }
 
-    /** Puts the session the second factor earned into the cookie; the body only says how long it lasts. */
+    /** Puts the session the second factor earned into the cookie; the body only shows how long it lasts. */
     private void answerSession(Context ctx, LoginResult session) {
         sessionCookies.issue(ctx, session);
         ctx.json(new LoginResultResponse(

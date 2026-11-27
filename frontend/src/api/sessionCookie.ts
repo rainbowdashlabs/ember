@@ -34,7 +34,7 @@ export function csrfToken(): string | null {
     return null
 }
 
-/** Whether this browser carries a session. Whether the session is still good only the server says. */
+/** Whether this browser carries a session. Whether the session is still good only the server knows. */
 export function hasSessionCookie(): boolean {
     return csrfToken() !== null
 }

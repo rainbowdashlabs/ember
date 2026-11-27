@@ -11,8 +11,8 @@
  * ticket, a file or a member. Naming the part it came from is what separates a dozen open tabs, and
  * it is what a bookmark and a history entry carry too.
  *
- * <p>Every address that matches is named, closest first, so a section inside an area says both: an
- * association's appointment reads "Termine" and then "Verband", which is what tells it apart from
+ * <p>Every address that matches is named, closest first, so a section inside an area shows both: an
+ * association's appointment reads "Termine" and then "Verband", which is what distinguishes it from
  * the station's own appointment page drawn by the very same view. An address not listed here has no
  * part to name and is left with its own title alone, which is right for the pages that stand
  * outside the product's sections.
@@ -79,7 +79,7 @@ export function pageModuleKeys(path: string): string[] {
 /**
  * A page's title with the parts it belongs to after it, which is what the browser tab reads.
  *
- * <p>A part is left off where the page's own title already says it, because "Boards - Boards" says
+ * <p>A part is left off where the page's own title already shows it, because "Boards - Boards" shows
  * nothing twice, and the whole thing is left off where there is no title yet, because a tab reading
  * only the section name during a load is worse than one that waits.
  */

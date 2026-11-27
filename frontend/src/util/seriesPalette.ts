@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /**
- * The colours that tell the series of a chart apart, eight at most, in a fixed order.
+ * The colours that distinguish the series of a chart, eight at most, in a fixed order.
  *
  * <p>Checked for colour-blind separation and lightness against the app's own surfaces, the light
  * set against the light background and the dark set against the dark one. The dark set is the same
@@ -21,7 +21,7 @@ const DARK = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', 
 const NEUTRAL_LIGHT = '#8a8a8a'
 const NEUTRAL_DARK = '#9a9a9a'
 
-/** How many series can be told apart by colour. */
+/** How many series can be distinguished by colour. */
 export const SERIES_LIMIT = LIGHT.length
 
 /**

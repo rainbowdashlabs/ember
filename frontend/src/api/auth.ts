@@ -44,7 +44,7 @@ export async function confirmEmailChange(data: TokenRequest): Promise<EmailChang
 
 /**
  * Whether a sign-in answer is a finished session rather than a step still owed. The session itself
- * arrived as a cookie the page cannot read; the answer only says that it did.
+ * arrived as a cookie the page cannot read; the answer only shows that it did.
  */
 export function startedSession(res: LoginResponse): boolean {
     return !!res.expiresAt && !res.passwordChangeRequired && !res.addressRequired && !res.twoFactorRequired

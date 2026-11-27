@@ -451,7 +451,7 @@ public class ClusterRepository {
     }
 
     /**
-     * How many denials are keyed to one group, so a refused delete can say what is in the way.
+     * How many denials are keyed to one group, so a refused delete can show what is in the way.
      *
      * @param stationGroupId the group
      * @return the number of modules denied through it
@@ -523,7 +523,7 @@ public class ClusterRepository {
     }
 
     /**
-     * Says whether the cluster keeps its gear here.
+     * Returns whether the cluster keeps its gear here.
      *
      * <p>Switching it off does not touch anything already recorded. What it changes is what happens next: a
      * movement created afterwards falls through to the station's own flow, because there is nobody at the

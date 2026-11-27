@@ -51,7 +51,7 @@ class ProblemLogFlusherTest {
         return event("dev.chojo.ember.Some", Level.WARN, message, null, "worker-1");
     }
 
-    /** A repository that keeps what it is given, refuses everything once told to, or refuses one message. */
+    /** A repository that keeps what it is given, refuses everything once set to, or refuses one message. */
     private static final class Recording extends ProblemLogRepository {
         final List<ProblemRecord> written = new ArrayList<>();
         boolean refusing;

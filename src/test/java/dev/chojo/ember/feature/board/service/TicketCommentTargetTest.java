@@ -37,7 +37,7 @@ import static org.mockito.Mockito.mock;
 
 /**
  * What the comments on a board ticket ask of the board: where the ticket is, who may read, write
- * and moderate them and whom a new one tells.
+ * and moderate them and whom a new one notifies.
  */
 class TicketCommentTargetTest extends RepositoryTestBase {
     private static Station station;

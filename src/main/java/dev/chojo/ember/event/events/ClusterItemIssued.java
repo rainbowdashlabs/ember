@@ -11,7 +11,7 @@ import dev.chojo.ember.event.DomainEvent;
  * The cluster is sending gear to one of its stations.
  *
  * <p>Its own notification rather than the movement's, because the station is not being asked to
- * answer a step yet: it is being told that something is coming, which is a different sentence and
+ * answer a step yet: it is being notified that something is coming, which is a different sentence and
  * arrives before anybody has to do anything.
  *
  * @param stationId   the station it is going to

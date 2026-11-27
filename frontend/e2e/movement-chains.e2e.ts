@@ -332,7 +332,7 @@ test.describe('Movement chains', () => {
     /**
      * ITM-38 - A step is renamed and moved.
      *
-     * Order is the whole of what a chain says. A step used to go to the end and stay there, so putting
+     * Order is the whole of what a chain defines. A step used to go to the end and stay there, so putting
      * a forgotten one in the middle meant writing everything after it again.
      */
     test('a step is renamed and put in another place', async ({managerPage: page}) => {
@@ -371,7 +371,7 @@ test.describe('Movement chains', () => {
     /**
      * ITM-39 - A chain that cannot be walked is refused.
      *
-     * The editor says what is missing while somebody writes a chain, and binding one that would stop
+     * The editor shows what is missing while somebody writes a chain, and binding one that would stop
      * halfway is refused outright rather than found out by the person holding the gear.
      */
     test('a chain that would strand the gear cannot be put to use', async ({managerPage: page}) => {

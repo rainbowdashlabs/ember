@@ -168,7 +168,7 @@ public class EventAttachmentRoutes implements Routes {
      *
      * <p>A picture is the file in miniature, so it is refused wherever the file itself would be: the
      * same two questions, asked the same way, and not the weaker one that lets a reader see the list.
-     * A file with no picture answers nothing, and the tile says what kind of file it is instead.
+     * A file with no picture answers nothing, and the tile shows what kind of file it is instead.
      */
     @OpenApi(
             path = "/api/v1/events/{id}/attachments/{attachmentId}/picture",
@@ -309,7 +309,7 @@ public class EventAttachmentRoutes implements Routes {
     /**
      * @param fileId   the file in the station library
      * @param label    what a reader sees instead of the file name, or null to use the file name
-     * @param internal whether the file is kept back from the room, false where nothing is said
+     * @param internal whether the file is kept back from the room, false where nothing is set
      */
     public record AttachmentRequest(
             Integer fileId,

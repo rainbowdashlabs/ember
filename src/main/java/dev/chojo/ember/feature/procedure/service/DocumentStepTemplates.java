@@ -24,7 +24,7 @@ public interface DocumentStepTemplates {
     boolean suitable(int stationId, int templateId);
 
     /**
-     * Whether a document template is meant for a member, as its audience says, which every document
+     * Whether a document template is meant for a member, as its audience defines, which every document
      * generated for them has to be.
      *
      * @param stationId  the station

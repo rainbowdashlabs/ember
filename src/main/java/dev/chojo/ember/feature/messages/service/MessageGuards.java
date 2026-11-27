@@ -153,8 +153,8 @@ public class MessageGuards {
 
     /**
      * Refuses a message to a direct conversation whose other side cannot take it: the account is
-     * gone, has no messages any more, or blocked the writer. The refusal does not say which, so a
-     * blocked writer is not told. A group or station chat takes every message; blocking there only
+     * gone, has no messages any more, or blocked the writer. The refusal does not show which, so a
+     * blocked writer is not notified. A group or station chat takes every message; blocking there only
      * hides.
      *
      * @param participation the writer in the conversation

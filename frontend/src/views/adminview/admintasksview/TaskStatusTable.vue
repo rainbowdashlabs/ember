@@ -12,7 +12,7 @@ import type {TaskStatus} from '@/api/generated/schema'
 import type {DataTableApi} from '@/composables/useDataTable'
 import TaskOutcomeBadge from './TaskOutcomeBadge.vue'
 
-/** The background tasks, each with how its last run went and what the last failure said. */
+/** The background tasks, each with how its last run went and what the last failure showed. */
 defineProps<{
   table: DataTableApi<TaskStatus>
 }>()

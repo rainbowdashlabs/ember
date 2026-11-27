@@ -18,7 +18,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells whoever administers a station that a newer release exists.
+ * Notifies whoever administers a station that a newer release exists.
  *
  * <p>Guarded rather than public: what version an instance runs is worth knowing to somebody looking
  * for an instance still running a version with a hole in it, so it is not answered to anonymous

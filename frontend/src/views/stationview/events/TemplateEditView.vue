@@ -115,7 +115,7 @@ const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 watch(sheetFields, sheet => fieldDefaults.keepOnly(sheet.map(field => field.id)))
 
 /**
- * What the template was called when the editor opened, which is what the head of the page says
+ * What the template was called when the editor opened, which is what the head of the page shows
  * while it is being changed. The field itself is not read, so the tab does not rewrite itself on
  * every keystroke.
  */

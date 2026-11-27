@@ -50,7 +50,7 @@ export function sessionState(): Readonly<Ref<DeepReadonly<SessionState>>> {
 export function sessionWriter() {
     const state = heldSession()
     return {
-        /** Keeps what the server said about the session, or that it said nothing. */
+        /** Keeps what the server answered about the session, or that it answered nothing. */
         setInfo(info: SessionInfo | null): void {
             state.value.info = info
         },

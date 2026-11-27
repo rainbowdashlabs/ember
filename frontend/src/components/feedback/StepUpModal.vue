@@ -56,7 +56,7 @@ const offersBackup = computed(() => proofs.value.includes('BACKUP_CODE'))
 const offersSecurityKey = computed(() => proofs.value.includes('SECURITY_KEY') && webauthnSupported)
 
 /**
- * Offered only where the server said another live session could answer, which is what keeps the
+ * Offered only where the server signalled that another live session could answer, which is what keeps the
  * dialog from showing a way out that nobody could take, and only where the refusal named a category:
  * that is what the other device is shown, and the only thing its answer buys.
  */
@@ -123,7 +123,7 @@ const {running: webauthnRunning, failure: webauthnFailure, run: runWebAuthn, cle
 const loading = computed(() => submitting.value || passkeyRunning.value || webauthnRunning.value)
 /**
  * Whichever way of proving who you are last went wrong. Only one is ever tried at a time, so the
- * three cannot collide; the one that failed is the one that has something to say.
+ * three cannot collide; the one that failed is the one that has something to show.
  */
 const failure = computed<Failure | null>(() => {
   const described = submitFailure.value ?? passkeyFailure.value ?? webauthnFailure.value

@@ -18,7 +18,7 @@ import FederationStatsSection from './FederationStatsSection.vue'
 /**
  * The sections of the statistics page that follow the chosen window: usage, people, growth,
  * attendance and federation, below the field that chooses it. The figures stay on screen while a
- * new window loads; the spinner beside the field says that one is on its way.
+ * new window loads; the spinner beside the field signals that one is on its way.
  */
 defineProps<{
   stats: AdminStatistics

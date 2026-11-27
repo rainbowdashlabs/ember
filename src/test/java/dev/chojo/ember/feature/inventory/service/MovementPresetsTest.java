@@ -63,7 +63,7 @@ class MovementPresetsTest extends RepositoryTestBase {
 
     private record Combination(MovementPurpose purpose, ItemOwner ownerKind, MovementParty party) {}
 
-    /** A refusal names the rule in the way, so the reader is told in their own words. */
+    /** A refusal names the rule in the way, so the reader reads it in their own words. */
     private static void refusedWith(FlowProblem.Code code, Executable call, String why) {
         assertEquals(
                 code,
@@ -158,7 +158,7 @@ class MovementPresetsTest extends RepositoryTestBase {
         }
     }
 
-    /** A chain that receives something has to say which piece arrived, or it stops on that step. */
+    /** A chain that receives something has to define which piece arrived, or it stops on that step. */
     @Test
     void everyChainThatReceivesNamesTheArrivingPiece() {
         for (Combination combination : COMBINATIONS) {
@@ -181,7 +181,7 @@ class MovementPresetsTest extends RepositoryTestBase {
     /**
      * The replacement leaves the shelf before it reaches the member, and is named as it does.
      *
-     * <p>Without that step nothing in the chain said the arriving piece had moved at all: it was at
+     * <p>Without that step nothing in the chain showed the arriving piece had moved at all: it was at
      * the station at one step and on the member at the next, with nobody having handed it over.
      */
     @Test
@@ -336,7 +336,7 @@ class MovementPresetsTest extends RepositoryTestBase {
                 "an exchange has a piece going as well as one coming");
     }
 
-    /** Order is the whole of what a chain says, so it can be changed without rewriting the steps. */
+    /** Order is the whole of what a chain defines, so it can be changed without rewriting the steps. */
     @Test
     void stepsArePutInAnotherOrder() {
         var flow = movementFlowService.createFlow(
@@ -358,7 +358,7 @@ class MovementPresetsTest extends RepositoryTestBase {
                 "naming an order means naming every step");
     }
 
-    /** Which piece arrived is said once, and the second step trying to say it is refused as it is written. */
+    /** Which piece arrived is defined once, and a second step trying to define it is refused as it is written. */
     @Test
     void aSecondStepNamingTheArrivingPieceIsRefused() {
         var flow = movementFlowService.createFlow(
@@ -391,7 +391,7 @@ class MovementPresetsTest extends RepositoryTestBase {
                 "one step left is not a chain anybody can walk");
     }
 
-    /** While a chain is being written it says what is still missing, rather than only refusing later. */
+    /** While a chain is being written it shows what is still missing, rather than only refusing later. */
     @Test
     void aChainUnderConstructionSaysWhatIsMissing() {
         var flow = movementFlowService.createFlow(

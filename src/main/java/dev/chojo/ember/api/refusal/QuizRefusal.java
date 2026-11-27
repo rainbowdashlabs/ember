@@ -93,7 +93,7 @@ public enum QuizRefusal implements Refusal {
     /** A public teaser link naming a station that is not here. */
     PUBLIC_QUIZ_STATION_NOT_HERE(23, HttpStatus.NOT_FOUND, Sentences.PUBLIC_QUIZ_STATION_NOT_REACHED),
 
-    /** A public teaser asking for a question without saying which catalogs to draw it from. */
+    /** A public teaser asking for a question without indicating which catalogs to draw it from. */
     PUBLIC_QUIZ_CATALOGS_NOT_NAMED(24, HttpStatus.BAD_REQUEST, Sentences.PUBLIC_QUIZ_CATALOGS_NOT_NAMED),
 
     /** A public teaser naming catalogs that come to nothing once read. */
@@ -117,7 +117,7 @@ public enum QuizRefusal implements Refusal {
     /** A sheet sent to be read into questions with nothing in it. */
     QUIZ_SHEET_EMPTY(32, HttpStatus.BAD_REQUEST, "The sheet arrived empty, so nothing was read from it"),
 
-    /** A sheet sent to be read into questions without saying which column holds what. */
+    /** A sheet sent to be read into questions without indicating which column holds what. */
     QUIZ_SHEET_COLUMNS_NOT_MAPPED(
             33, HttpStatus.BAD_REQUEST, "Say which column holds what, so nothing was read from it"),
 
@@ -130,7 +130,7 @@ public enum QuizRefusal implements Refusal {
     /** A question written down without a title. */
     QUIZ_QUESTION_NEEDS_A_TITLE(36, HttpStatus.BAD_REQUEST, "A question needs a title, so nothing was saved"),
 
-    /** A question written down without saying what kind of question it is. */
+    /** A question written down without indicating what kind of question it is. */
     QUIZ_QUESTION_NEEDS_A_KIND(37, HttpStatus.BAD_REQUEST, "A question needs a kind, so nothing was saved"),
 
     /** A question that went before the change to it could be written. */
@@ -168,7 +168,7 @@ public enum QuizRefusal implements Refusal {
     /** An answer on a paper that is gone, reached for by somebody marking it. */
     QUIZ_ANSWER_NOT_HERE(49, HttpStatus.NOT_FOUND, "That answer is not here any more"),
 
-    /** A mark given for an answer without saying how many points it is worth. */
+    /** A mark given for an answer without indicating how many points it is worth. */
     QUIZ_GRADE_NEEDS_POINTS(50, HttpStatus.BAD_REQUEST, "Give the points for this answer, so no mark was saved"),
 
     /** A paper that went between its marks being written and being read back, with the marks in. */
@@ -188,7 +188,7 @@ public enum QuizRefusal implements Refusal {
     QUIZ_TEST_RUNNING_CANNOT_REDRAW(
             56, HttpStatus.BAD_REQUEST, "This test is running, so its questions cannot be drawn again"),
 
-    /** A test opened for somebody without saying who. */
+    /** A test opened for somebody without indicating who. */
     QUIZ_TEST_ACCESS_NEEDS_A_MEMBER(
             57, HttpStatus.BAD_REQUEST, "Name the member to open this test for, so nothing was saved"),
 
@@ -229,7 +229,7 @@ public enum QuizRefusal implements Refusal {
     /** A provider that could not be reached at all while generating. */
     AI_GENERATION_FAILED(66, HttpStatus.BAD_REQUEST, "Nothing could be generated this time. Trying again may work"),
 
-    /** Questions asked to be generated without saying what to generate. */
+    /** Questions asked to be generated without indicating what to generate. */
     AI_GENERATION_NEEDS_ENTRIES(
             67, HttpStatus.BAD_REQUEST, "Say what to generate and how much, so nothing was generated"),
 
@@ -239,7 +239,7 @@ public enum QuizRefusal implements Refusal {
 
     /**
      * A catalog asked for by a paired instance that is not here, belongs to a third station or is
-     * not among the ones shared with the asker. One code deliberately: telling the three apart
+     * not among the ones shared with the asker. One code deliberately: distinguishing the three
      * would let a partner count its way through a question bank it was never given.
      */
     REMOTE_QUIZ_CATALOG_NOT_SHARED(69, HttpStatus.NOT_FOUND, "No catalog here is shared with you under that number"),

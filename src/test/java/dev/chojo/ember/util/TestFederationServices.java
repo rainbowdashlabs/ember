@@ -16,7 +16,7 @@ import java.util.Set;
 
 /**
  * Builds a {@link FederationService} for tests that work with partnerships and do not listen for what it
- * tells about requests to federate: its events go to a bus nobody listens on.
+ * reports about requests to federate: its events go to a bus nobody listens on.
  */
 public final class TestFederationServices {
     private TestFederationServices() {}

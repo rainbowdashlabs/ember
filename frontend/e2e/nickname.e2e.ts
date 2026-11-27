@@ -49,7 +49,7 @@ test.describe('A name to be called by', () => {
     })
 
     /**
-     * A member list says who somebody is as well as what they are called, because it is the one
+     * A member list shows who somebody is as well as what they are called, because it is the one
      * screen that has to do both jobs at once.
      */
     test('a member list says who somebody is and what they are called', async ({managerPage: page}) => {

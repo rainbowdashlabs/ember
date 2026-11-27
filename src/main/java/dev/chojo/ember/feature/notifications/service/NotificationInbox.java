@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * What is waiting for somebody, and marking it read.
  *
- * <p>One set of methods for both kinds of recipient: the recipient says whose feed is meant, so a
+ * <p>One set of methods for both kinds of recipient: the recipient shows whose feed is meant, so a
  * route for station members and one for cluster members ask the same questions the same way.
  *
  * <p>A station member's feed leaves out what the station's switched-off modules hide; marking everything
@@ -95,7 +95,7 @@ public class NotificationInbox {
     }
 
     /**
-     * The newest notification of a station member, for telling whether their personal feed changed.
+     * The newest notification of a station member, for detecting whether their personal feed changed.
      *
      * @param memberId the station member
      * @return the stamp, with id 0 where they have none

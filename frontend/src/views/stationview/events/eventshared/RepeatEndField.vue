@@ -15,8 +15,8 @@ import MutedText from '@/components/typography/MutedText.vue'
 /**
  * When a repeating appointment stops repeating.
  *
- * <p>A last day and a number of times are two ways of saying the same thing, so the choice sets one
- * and clears the other. A course of eight appointments is said as eight, a summer of Saturday duties as
+ * <p>A last day and a number of times are two ways of expressing the same thing, so the choice sets one
+ * and clears the other. A course of eight appointments is given as eight, a summer of Saturday duties as
  * the day it ends, and until one of them was possible both had to be deleted by hand on the day.
  */
 const until = defineModel<string>('until', {required: true})

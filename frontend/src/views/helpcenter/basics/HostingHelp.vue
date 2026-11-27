@@ -16,7 +16,7 @@ import HelpFeatureItem from '@/components/helpcenter/HelpFeatureItem.vue'
 
 const {t} = useI18n()
 
-/** The address this help page is being read at, so the command says where it fetches from. */
+/** The address this help page is being read at, so the command shows where it fetches from. */
 const origin = computed(() => (import.meta.client ? window.location.origin : 'https://ember-panel.de'))
 
 /** The installer command, which is shell rather than text and reads the same in every language. */

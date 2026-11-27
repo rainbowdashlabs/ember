@@ -20,7 +20,7 @@ export function parseItemMetadata(raw: InventoryItemMetadata | null | undefined)
  * One editor value as the field value of its type, or null where there is nothing to keep.
  *
  * <p>The editors hand back what their inputs hold, which for a number can still be the text that
- * was typed. The value is turned into what the field's type stores, so the payload says what the
+ * was typed. The value is turned into what the field's type stores, so the payload holds what the
  * backend reads rather than whatever the input happened to produce.
  */
 export function fieldValueOf(type: FieldType, value: unknown): FieldValue | null {

@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
-/** A form can say something of its own once it is sent, with a link that is safe to put before anybody. */
+/** A form can show something of its own once it is sent, with a link that is safe to put before anybody. */
 class FormCompletionTest extends RepositoryTestBase {
     private static FormService service;
     private static Station station;

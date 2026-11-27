@@ -15,7 +15,7 @@ import java.util.List;
  *
  * <p>It carries the things themselves rather than how many there were. A warning somebody clicks past
  * leaves exactly the orphans a refusal exists to prevent, only with the blame moved; and a refusal
- * that says nothing more than "three requirements are in the way" sends the reader hunting for them.
+ * that shows nothing more than "three requirements are in the way" sends the reader hunting for them.
  */
 public class InventorySwitchRefusedException extends RuntimeException {
     private final transient List<SwitchBlocker> blockers;

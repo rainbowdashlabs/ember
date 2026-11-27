@@ -134,7 +134,7 @@ public class PartnerAuthorityRepository {
      * @param sha256     the authority's certificate hash
      * @param list       the list, DER encoded, checked against the authority
      * @param thisUpdate when the list was issued
-     * @param nextUpdate when it says the next one is due
+     * @param nextUpdate when the next one is due, as the list gives it
      * @return true when the list was taken
      */
     public boolean takeRevocationList(

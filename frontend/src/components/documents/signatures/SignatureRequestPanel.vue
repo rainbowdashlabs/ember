@@ -37,7 +37,7 @@ import SignatureFieldRow from './SignatureFieldRow.vue'
  */
 const props = defineProps<{
   requestUid: string
-  /** Told after every change, so the list the request was opened from can show it. */
+  /** Called after every change, so the list the request was opened from can show it. */
   onChanged?: () => void
 }>()
 
@@ -62,7 +62,7 @@ watch(shownUid, uid => {
 
 const open = computed(() => request.value?.state === RequestState.OPEN)
 
-/** Runs one action on the request, shows what it answers and tells the list. */
+/** Runs one action on the request, shows what it answers and notifies the list. */
 const acting = useAsyncAction(async (change: () => Promise<ManagedRequestResponse>, done: string) => {
   const changed = await change()
   request.value = changed

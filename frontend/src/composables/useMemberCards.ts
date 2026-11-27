@@ -68,7 +68,7 @@ export function hideMemberCards(): void {
     provide(MEMBER_CARDS_SHOWN, false)
 }
 
-/** Whether names below may open a member card, which they do unless a screen above said otherwise. */
+/** Whether names below may open a member card, which they do unless a screen above sets otherwise. */
 export function useMemberCardsShown(): boolean {
     return inject(MEMBER_CARDS_SHOWN, true)
 }

@@ -181,15 +181,15 @@ function validate(): string | null {
   return null
 }
 
-/** Whether an inventory was written along the way, which changes what a later failure has to say. */
+/** Whether an inventory was written along the way, which changes what a later failure has to show. */
 let inventoryMade = false
 
 /**
  * Writes the piece down, and the inventory to put it in where the reader asked for a new one.
  *
- * <p>Where the inventory was created first and something after it failed, a reader told plainly that
+ * <p>Where the inventory was created first and something after it failed, a reader shown plainly that
  * it did not work presses the button again and ends up with two inventories of the same name. The
- * screen says so instead, because the server answering the second call knows nothing of the first.
+ * screen shows that instead, because the server answering the second call knows nothing of the first.
  */
 const {running: submitting, failure: submitFailure, run: runSubmit} = useAsyncAction(async () => {
   inventoryMade = false

@@ -98,7 +98,7 @@ class MemberEligibilityCheckTest {
                 .isEmpty());
     }
 
-    /** What the kind refuses is said first: a word is not a member, whoever is in the group. */
+    /** What the kind refuses is reported first: a word is not a member, whoever is in the group. */
     @Test
     void theKindIsCheckedBeforeTheNarrowing() {
         var question =

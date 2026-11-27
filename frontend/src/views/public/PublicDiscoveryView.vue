@@ -45,7 +45,7 @@ const {sessionInfo, loaded} = useSession()
 /**
  * The list for the reader. The server render knows nobody, so it lists the stations as a stranger sees
  * them; somebody signed in is listed again from the browser, which names the station they act for, so
- * each tile says whether they may ask it and whether it is their own.
+ * each tile shows whether they may ask it and whether it is their own.
  */
 async function reload() {
   if (sessionInfo.value) {

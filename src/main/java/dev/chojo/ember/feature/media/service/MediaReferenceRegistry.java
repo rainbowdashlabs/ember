@@ -177,7 +177,7 @@ public class MediaReferenceRegistry {
     /**
      * How many news entries, events and event templates hand this file out. An attachment is the one kind of
      * reference that is stated rather than inferred, and the database refuses to let a delete
-     * break it, so this is what lets the delete say what it is about to break before it fails.
+     * break it, so this is what lets the delete show what it is about to break before it fails.
      */
     public int handedOutBy(int fileId) {
         return query("""

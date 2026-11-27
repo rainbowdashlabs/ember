@@ -12,7 +12,7 @@ import dev.chojo.ember.feature.question.FieldType;
  *
  * <p>The cells themselves are words, already cut and formatted for the reader, and a screen guessing
  * their kind back from the words got it wrong as soon as a question happened to look like a date. The
- * table says it instead, once, where the column is known.
+ * table carries it instead, once, where the column is known.
  *
  * <p>A date and a birth date are written as days of the form {@code dd.MM.yyyy}; a boolean as the
  * word the station reads it by; a number as digits. Everything else is text as it was answered.

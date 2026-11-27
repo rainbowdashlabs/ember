@@ -39,7 +39,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * The sign-up deadline tells the managers about whoever waits for a decision, never about whoever waits
+ * The sign-up deadline notifies the managers about whoever waits for a decision, never about whoever waits
  * for a place, and decides nothing for either.
  */
 class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
@@ -112,7 +112,7 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
 
     /**
      * A relative deadline closes each date of a series on its own: the date whose deadline passed is
-     * told about once, the next date waits for its own deadline, and every sign-up stays waiting.
+     * notified about once, the next date waits for its own deadline, and every sign-up stays waiting.
      */
     @Test
     void aSeriesIsToldAboutEachDateWhoseRelativeDeadlinePassedOnce() {
@@ -180,7 +180,7 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
         }
     }
 
-    /** A date called off closes nothing: its passed deadline is not told about while it stays off. */
+    /** A date called off closes nothing: its passed deadline is not notified about while it stays off. */
     @Test
     void aCalledOffDateIsNotToldAbout() {
         var zone = occurrenceCalendar.zoneOf(station.id());
@@ -206,8 +206,8 @@ class WaitingThroughTheDeadlineTest extends RepositoryTestBase {
     }
 
     /**
-     * A notice counts for the close it was about: an unchanged deadline is told about once, one moved
-     * to another instant that has passed as well is told about again, without anything arming it.
+     * A notice counts for the close it was about: an unchanged deadline is notified about once, one moved
+     * to another instant that has passed as well is notified about again, without anything arming it.
      */
     @Test
     void aMovedDeadlineOfAOneTimeAppointmentIsToldAboutAgain() {

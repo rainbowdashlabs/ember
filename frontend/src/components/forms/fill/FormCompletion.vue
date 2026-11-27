@@ -9,10 +9,10 @@ import {useI18n} from 'vue-i18n'
 import AppIcon from '@/components/display/AppIcon.vue'
 
 /**
- * What a form says once it is sent: its own message where it has one, and the general thanks where
+ * What a form shows once it is sent: its own message where it has one, and the general thanks where
  * it has none, with the link it offers to go on to.
  *
- * <p>Every place a form is filled in shows this, so a form set up with "see you on Saturday" says
+ * <p>Every place a form is filled in shows this, so a form set up with "see you on Saturday" shows
  * it on the internal screen, on its own page and in a public page alike.
  */
 const props = defineProps<{

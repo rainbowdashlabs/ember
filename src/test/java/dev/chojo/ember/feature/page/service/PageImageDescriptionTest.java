@@ -38,8 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * What a picture on a page is called.
  *
- * <p>A file is described once, where it lives. A tile showing it should say what the file says
- * unless it has something of its own to say, or a picture reaches a public page with no alt text at
+ * <p>A file is described once, where it lives. A tile showing it should carry the file's description
+ * unless it has something of its own to add, or a picture reaches a public page with no alt text at
  * all even though somebody had written one.
  */
 class PageImageDescriptionTest extends RepositoryTestBase {

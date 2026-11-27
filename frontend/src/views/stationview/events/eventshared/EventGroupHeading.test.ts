@@ -18,7 +18,7 @@ const part = {
   firstStart: '2026-12-12T08:00:00Z', lastEnd: '2026-12-20T15:00:00Z',
 }
 
-/** The heading says which event group an appointment belongs to, which part it is and when the group runs. */
+/** The heading shows which event group an appointment belongs to, which part it is and when the group runs. */
 describe('EventGroupHeading', () => {
   it('names the event group, the part and the days it runs over', () => {
     const text = mount(EventGroupHeading, {props: {eventGroup: part}}).text()

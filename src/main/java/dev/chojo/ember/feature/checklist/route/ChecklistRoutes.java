@@ -532,7 +532,7 @@ public class ChecklistRoutes implements Routes {
     }
 
     /**
-     * What the list follows, so the screen can say it. Absent means the list follows its filter, or
+     * What the list follows, so the screen can show it. Absent means the list follows its filter, or
      * the appointment it used to follow has been deleted and it now follows nothing.
      */
     private @Nullable SourceOccurrenceResponse toSourceResponse(Checklist checklist) {
@@ -683,7 +683,7 @@ public class ChecklistRoutes implements Routes {
      *
      * @param eventId   the appointment
      * @param eventDate the one date whose sign-ups it follows
-     * @param eventName the appointment's name, so the header can say it without a second request
+     * @param eventName the appointment's name, so the header can show it without a second request
      */
     public record SourceOccurrenceResponse(
             Integer eventId, LocalDate eventDate, @Nullable String eventName) {}

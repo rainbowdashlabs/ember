@@ -20,7 +20,7 @@ import type {
  * What is behind a station's files, on whose word, and what is still the station's to change.
  *
  * A station under an association may be standing on the association's storage and may have been put there
- * by somebody else, so the answer says who decided rather than only what was decided.
+ * by somebody else, so the answer shows who decided rather than only what was decided.
  */
 export async function getStationBackend(): Promise<BackendOverrideResponse> {
     const {data} = await client.get<BackendOverrideResponse>('/station/storage/backend')

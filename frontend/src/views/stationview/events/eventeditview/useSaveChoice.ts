@@ -24,8 +24,8 @@ export interface SaveChoice {
 
 /**
  * Holds the save dialog of an appointment that already exists: which dates the change applies to,
- * whether the people it concerns are told, the note, and the counts the server previews for that
- * choice. The counts are asked again whenever the dates change, since they decide who is told.
+ * whether the people it concerns are notified, the note, and the counts the server previews for that
+ * choice. The counts are asked again whenever the dates change, since they decide who is notified.
  *
  * @param eventId       the appointment being edited
  * @param payload       the appointment as the editor would save it
@@ -49,7 +49,7 @@ export function useSaveChoice(
     const scope = computed<EditScope>(() =>
         kind.value === EditScopeKind.ALL ? {kind: EditScopeKind.ALL} : {kind: kind.value, date: date.value})
 
-    /** Opens the dialog on the date the editor came from, or the next one, and telling nobody. */
+    /** Opens the dialog on the date the editor came from, or the next one, and notifying nobody. */
     function start(initialDate: string | null) {
         kind.value = EditScopeKind.ALL
         date.value = initialDate && initialDate >= todayIsoDate() ? initialDate : ''
@@ -76,7 +76,7 @@ export function useSaveChoice(
 
     watch([open, kind, date], refresh)
 
-    /** Whether there is anything to tell about beyond a moved start. */
+    /** Whether there is anything to announce beyond a moved start. */
     const canTell = computed(() => changedParts().length > 0 || preview.value?.startMoves === true)
 
     const choice = computed<SaveChoice>(() => ({

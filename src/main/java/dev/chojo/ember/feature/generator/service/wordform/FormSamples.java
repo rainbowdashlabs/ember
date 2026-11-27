@@ -17,7 +17,7 @@ import java.util.Map;
  * text. A place keeps what the form holds in it already, a box is ticked and a list shows its first entry.
  */
 final class FormSamples {
-    /** What a ticked box says. */
+    /** What a ticked box holds. */
     static final String YES = "Ja";
 
     private static final String DAY = "30.09.2026";

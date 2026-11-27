@@ -163,7 +163,7 @@ public class AttendanceReportService {
      * monthly tables have always done this; the overall one used to list every member of the chosen
      * groups, so the same report contradicted itself on the same page and a reader scrolled past
      * empty rows to find the people who had actually been there. Preview and printout are built from
-     * these same rows, so both say the same thing.
+     * these same rows, so both show the same thing.
      */
     public ReportData buildReport(
             int stationId,
@@ -428,7 +428,7 @@ public class AttendanceReportService {
      * disagree: a member left out of one is left out of all of them. The per-session detail below the
      * summary is deliberately not here, because what this is for is the total against a name. The
      * preparation and follow-up counted into that total stand beside it in minutes, so a reader can
-     * tell the time spent at appointments from the time spent around them.
+     * distinguish the time spent at appointments from the time spent around them.
      */
     public Optional<ExportedDocument> exportReportCsv(
             int stationId,
@@ -487,7 +487,7 @@ public class AttendanceReportService {
      *
      * <p>Reads {@code Anwesenheit - Jugend - Januar 2026.pdf}: what it is, whose it is, and when it
      * covers. The filter goes in only where it names one thing, because a report covering several
-     * groups is about all of them and a name carrying only the first would say something the document
+     * groups is about all of them and a name carrying only the first would claim something the document
      * does not.
      */
     static String reportFileName(String period, Instant from, ZoneId zone, String locale, String filterLabel) {
@@ -502,10 +502,10 @@ public class AttendanceReportService {
     /**
      * What one entry adds to the hours, rounded the way the report was asked for.
      *
-     * <p>How long the presence is worth is the sheet's to say: a sheet with a number of its own
+     * <p>How long the presence is worth is the sheet's to decide: a sheet with a number of its own
      * counts a whole presence as that number and a part of one as its share, and a sheet without
      * counts the clock. Preparation and follow-up come on top in full, also on a sheet with a number
-     * of its own, since that number says what the appointment is worth and not the work around it.
+     * of its own, since that number shows what the appointment is worth and not the work around it.
      * The rounding comes last, over the whole duty, so the printed number is the one that was added
      * up.
      */
@@ -528,9 +528,9 @@ public class AttendanceReportService {
     /**
      * One sheet as the report template reads it.
      *
-     * <p>A sheet that runs into another day says so: its own line carries the second date, and every
+     * <p>A sheet that runs into another day shows it: its own line carries the second date, and every
      * arrival and departure under it carries the day it happened on, since a time on its own would
-     * be two different moments at once. A sheet counted by hand says that too, so that a reader
+     * be two different moments at once. A sheet counted by hand shows that too, so that a reader
      * adding the column up can see why it does not follow the times printed beside it.
      */
     private Map<String, Object> sessionToMap(SessionData s, String language) {
@@ -604,7 +604,7 @@ public class AttendanceReportService {
 
     /**
      * The preparation and follow-up one present person is credited with on one sheet: nothing where
-     * the sheet says they did not do it, otherwise what the sheet's rules give them.
+     * the sheet shows they did not do it, otherwise what the sheet's rules give them.
      */
     private static ExtraTime extraTimeOf(
             AttendanceEntry entry, List<TimeRule> rules, Map<Integer, RestrictionMember> members) {
@@ -690,9 +690,9 @@ public class AttendanceReportService {
     /**
      * A member's attendance entry within a specific session.
      *
-     * <p>The two moments carry their day, because a sheet that runs over a weekend cannot say when
+     * <p>The two moments carry their day, because a sheet that runs over a weekend cannot show when
      * somebody arrived with a time alone. Preparation and follow-up are not in the moments: they are
-     * counted into the hours and named beside them, so the times still say when somebody was there.
+     * counted into the hours and named beside them, so the times still show when somebody was there.
      *
      * @param hours              the hours counted, preparation and follow-up included
      * @param preparationMinutes the preparation counted into them

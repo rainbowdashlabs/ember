@@ -5,11 +5,11 @@
  */
 
 /**
- * The thing a story went looking for, or a failure that says what was missing.
+ * The thing a story went looking for, or a failure that shows what was missing.
  *
  * <p>Most of these searches are a `find` over what the instance answered, and a story that carries
  * on without checking fails several lines later on a property of nothing, naming the property rather
- * than the search. This says which search came back empty, and is what lets the suite be
+ * than the search. This shows which search came back empty, and is what lets the suite be
  * type-checked at all: a seeded row a story is sure of is still a row the types know might be
  * missing.
  *

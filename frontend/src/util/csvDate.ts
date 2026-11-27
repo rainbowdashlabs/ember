@@ -92,7 +92,7 @@ export function parseCsvDate(
  * The order a column of days is written in, worked out from all of its values.
  *
  * <p>Each order is tried on every value, and the first to read all of them is taken. A day never
- * passes 31 and a month never passes 12, so one value such as `03-16-60` is enough to tell month first
+ * passes 31 and a month never passes 12, so one value such as `03-16-60` is enough to distinguish month first
  * from day first. Where several orders read everything, day first wins, then month first, then year
  * first. Where none reads everything, the one reading the most is taken, and `auto` where none reads
  * anything.

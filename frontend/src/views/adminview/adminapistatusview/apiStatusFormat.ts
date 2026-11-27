@@ -13,7 +13,7 @@ export function formatPercent(rate: number): string {
     return (rate * 100).toFixed(1) + '%'
 }
 
-/** The colour an HTTP method is written in, so reads and writes tell apart at a glance. */
+/** The colour an HTTP method is written in, so reads and writes are distinguished at a glance. */
 export function methodColor(method: string): string {
     switch (method) {
         case 'GET': return 'text-green-600'

@@ -40,21 +40,21 @@ import java.util.TreeSet;
 import java.util.concurrent.Executor;
 
 /**
- * Tells the partner stations of a shared appointment that the documents it asks for changed, at the station
+ * Notifies the partner stations of a shared appointment that the documents it asks for changed, at the station
  * holding the appointment, so each partner asks its members already registered for a document added and lets
  * the open requests of one taken off go ({@link PartnerSignatures} at the partner).
  *
- * <p>Told are the partners with a member holding a place on a date still ahead, today and later in this
+ * <p>Notified are the partners with a member holding a place on a date still ahead, today and later in this
  * station's zone, and those that took a document of such a date on. Every change for a partner is gathered
  * until it took the notice: the documents taken off, without those added back since. The notice is a
  * federation request signed with this station's federation key, and names the partner's members holding a
  * place on a date still ahead as they stand when it is sent. Where the partner let a request go, the record that
  * it took the document on is forgotten here; what came back signed stays.
  *
- * <p>The notice is sent at once, outside the change that caused it. A partner that cannot be reached is told
+ * <p>The notice is sent at once, outside the change that caused it. A partner that cannot be reached is notified
  * again by a sweep, later after every failure in a row like the signed copies that travel the other way
  * ({@link PartnerDeliveries}), and given up after {@link PartnerDeliveries#MAX_ATTEMPTS} failures until the
- * next change. A partner the appointment is no longer shared with is not told.
+ * next change. A partner the appointment is no longer shared with is not notified.
  */
 @Singleton
 public class PartnerRequirementNotices implements TaskSource {
@@ -124,14 +124,14 @@ public class PartnerRequirementNotices implements TaskSource {
     }
 
     /**
-     * Notes a change of an appointment's documents for every partner concerned and tells them in the
+     * Notes a change of an appointment's documents for every partner concerned and notifies them in the
      * background.
      *
      * @param stationId the station holding the appointment
      * @param eventId   the appointment
      * @param added     the templates it asks for now and did not before
      * @param removed   the templates it asked for before and no longer does
-     * @return how many partners are to be told
+     * @return how many partners are to be notified
      */
     public int changed(int stationId, int eventId, Collection<Integer> added, Collection<Integer> removed) {
         var concerned = concernedPartners(eventId, today(stationId));
@@ -142,7 +142,7 @@ public class PartnerRequirementNotices implements TaskSource {
     }
 
     /**
-     * Tells what is due and has not reached its partner yet.
+     * Sends what is due and has not reached its partner yet.
      *
      * @return how many notices reached their partner
      */
@@ -155,7 +155,7 @@ public class PartnerRequirementNotices implements TaskSource {
     }
 
     /**
-     * Tells the partner of a change, and forgets the records of documents it let go.
+     * Notifies the partner of a change, and forgets the records of documents it let go.
      *
      * @return whether the partner took it
      */

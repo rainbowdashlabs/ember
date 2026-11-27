@@ -15,7 +15,7 @@ import {test, expect, apiHeaders} from './fixtures/auth'
  * because nothing else about the two stations differs on purpose.
  *
  * Each of them reads the same thing at both stations rather than asserting a number at one. A story that
- * only ever looked at the station inside an association could never say what the feature does without
+ * only ever looked at the station inside an association could never show what the feature does without
  * one, which is the half the demo could not show before.
  */
 
@@ -99,8 +99,8 @@ test.describe('A station inside an association and one outside it', () => {
     })
 
     /**
-     * The screen that says which association a station belongs to is the same screen either way, and it
-     * is the one place the difference is stated rather than implied: one of the two is told it belongs
+     * The screen that shows which association a station belongs to is the same screen either way, and it
+     * is the one place the difference is stated rather than implied: one of the two sees that it belongs
      * and cannot leave, the other is offered the way in.
      */
     test('one station is told it belongs and the other is offered the way in', async ({

@@ -120,7 +120,7 @@ export function usePermissions() {
 
     /**
      * Whether the station has a module or a part of one. A part is off whenever its module is, which the
-     * server already says by listing it too; asking the parent as well keeps that true for any list.
+     * server already reflects by listing it too; asking the parent as well keeps that true for any list.
      */
     function isModuleEnabled(module: StationModule): boolean {
         const disabled = session.value.info?.disabledModules ?? []

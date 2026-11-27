@@ -17,7 +17,7 @@ import {useEventGroupDetails} from './useEventGroupDetails'
 /**
  * The colour that marks the parts of an event group. Without a colour of its own the picker shows the
  * one its id picks, and choosing that one keeps it as its own. A new event group has no id yet, so its
- * picker stays neutral and its hint says that the palette colour is picked once it is saved.
+ * picker stays neutral and its hint shows that the palette colour is picked once it is saved.
  */
 const props = defineProps<{
   /** The event group being edited, or null for a new one; picks the colour shown while none is set. */

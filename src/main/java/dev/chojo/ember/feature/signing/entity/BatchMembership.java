@@ -14,7 +14,7 @@ import java.util.UUID;
  *
  * <p>Each act of a batch keeps the whole list: its own item and every other one, each by its request, its
  * field and its digest. The other items are named by their digest only, never by what they bound, so the
- * evidence of one document says nothing about the content, the statements or the values of another; its
+ * evidence of one document reveals nothing about the content, the statements or the values of another; its
  * own item is recomputed from the act itself, which is what ties the act into the challenge.
  *
  * @param uid      the batch

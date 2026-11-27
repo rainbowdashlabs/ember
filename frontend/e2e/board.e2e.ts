@@ -129,7 +129,7 @@ test.describe('Boards', () => {
     })
 
     /**
-     * A ticket nobody owns is a ticket nobody does. Assigning it is one click on the line that says
+     * A ticket nobody owns is a ticket nobody does. Assigning it is one click on the line that shows
      * so, and the name it then carries is what the board shows on the card.
      *
      * The save is awaited before the reload, which would otherwise tear the request down before it

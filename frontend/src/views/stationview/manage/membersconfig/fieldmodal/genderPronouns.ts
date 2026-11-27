@@ -30,7 +30,7 @@ export const ROLE_WORD: Readonly<Record<PronounRole, keyof PronounSet>> = {
 /**
  * What the server offers for the pronouns of a gender field.
  *
- * @property languages the languages a document is written in, each with the roles it tells apart
+ * @property languages the languages a document is written in, each with the roles it distinguishes
  * @property presets   the two predefined answers and their pronouns in every language
  */
 export interface PronounOffer {

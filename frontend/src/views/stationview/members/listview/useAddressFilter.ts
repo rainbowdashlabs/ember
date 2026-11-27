@@ -27,7 +27,7 @@ export function addressFilterOf(query: Record<string, unknown>): AddressFilter |
 }
 
 /**
- * Opens the member list filtered the way its address says, once the people and their questions have
+ * Opens the member list filtered the way its address asks, once the people and their questions have
  * first loaded: all members, the named column shown, and its filter holding the named states.
  *
  * <p>This is where member management's reminder about expiry dates leads, so that one press shows

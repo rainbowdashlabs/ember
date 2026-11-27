@@ -45,8 +45,8 @@ export async function presentDocument(blob: Blob, filename: string, mimeType = b
 /**
  * The file this device could neither show nor save, waiting to be reported once.
  *
- * <p>Held here rather than said here, because what to say is a sentence in a language and this knows
- * nothing about either. The host beside the toasts reads it, tells the reader and clears it.
+ * <p>Held here rather than shown here, because what to show is a sentence in a language and this knows
+ * nothing about either. The host beside the toasts reads it, informs the reader and clears it.
  */
 export function getUnsavedDocument() {
     return readonly(unsaved)

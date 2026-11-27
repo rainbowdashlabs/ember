@@ -15,7 +15,7 @@ import WithdrawAgreementModal from './WithdrawAgreementModal.vue'
 
 /**
  * The agreements signed on a sealed document that the reader signed or acts for: one the reader may still
- * withdraw offers that, and a withdrawn one says when and by whom. Nothing shows for anybody else, and
+ * withdraw offers that, and a withdrawn one shows when and by whom. Nothing shows for anybody else, and
  * nothing where the agreements cannot be read, since the document itself stands either way.
  */
 const props = defineProps<{

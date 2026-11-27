@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * A request to federate arrives without any session: the route hands the body to the service and
- * answers what it says, the asked station's name or the refusal under its own code.
+ * answers what it returns, the asked station's name or the refusal under its own code.
  */
 class PairRequestRoutesTest {
     private static final String REQUEST = """

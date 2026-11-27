@@ -9,7 +9,7 @@ import type {PersonIdentity} from '@/util/personIdentity'
 
 /**
  * Whether a person belongs to another station than the one the reader is at, which is what a
- * station badge beside their name says and what keeps their card from being asked of this station.
+ * station badge beside their name shows and what keeps their card from being asked of this station.
  *
  * @param identity the person, read on every evaluation
  */

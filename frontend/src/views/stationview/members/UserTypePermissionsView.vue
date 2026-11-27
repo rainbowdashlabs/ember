@@ -59,7 +59,7 @@ async function selectType(userType: string) {
  * Writes the ticked rights back for a whole member kind.
  *
  * <p>The picker keeps the new ticks whatever the answer is, so a refusal here is invisible unless it
- * is said: granting a right nobody at this station holds is the ordinary way it is refused, and the
+ * is shown: granting a right nobody at this station holds is the ordinary way it is refused, and the
  * server names which right that was.
  */
 async function syncPermissions(newIds: Set<number>) {

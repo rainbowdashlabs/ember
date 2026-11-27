@@ -16,7 +16,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * The rows and cells of one piece of authored content.
  *
  * <p>A container knows which station it belongs to and nothing else: a page, a news entry and a
- * knowledge-base article each own one, and the container cannot tell which of them it is. That is
+ * knowledge-base article each own one, and the container does not know which of them it is. That is
  * the whole point of it. Blocks used to hang off a page, which is why the page editor could only
  * ever build a page.
  *

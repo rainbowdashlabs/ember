@@ -34,7 +34,7 @@ export function matchesWords(text: string, query: string): boolean {
  * replaced.
  *
  * <p>The search is a new one whenever the list changes. A list is often still loading when somebody
- * starts typing, and a picker that searched the empty list once would go on saying there is nothing
+ * starts typing, and a picker that searched the empty list once would go on showing there is nothing
  * to find after the rows have arrived; handed a new search, the picker asks again.
  *
  * @param entries    the rows to search

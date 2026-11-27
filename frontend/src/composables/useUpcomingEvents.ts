@@ -139,8 +139,8 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   /**
    * Fetches the dates again after a filter or a search changed.
    *
-   * <p>It names what could not be read rather than saying nothing happened, and it says that what
-   * is on screen is now out of date: the old dates are still drawn, and a reader who is not told so
+   * <p>It names what could not be read rather than showing nothing happened, and it shows that what
+   * is on screen is now out of date: the old dates are still drawn, and a reader who is not shown so
    * reads them as the answer to the filter they just set.
    */
   async function reloadOccurrences() {

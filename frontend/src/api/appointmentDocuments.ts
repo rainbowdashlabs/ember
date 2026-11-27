@@ -132,7 +132,7 @@ export async function confirmScan(eventId: number, submissionId: number): Promis
     return res.data
 }
 
-/** Turns a scan handed in down; the participant and their guardians are told the reason. */
+/** Turns a scan handed in down; the participant and their guardians get the reason. */
 export async function rejectScan(eventId: number, submissionId: number, reason: string): Promise<PaperSubmission> {
     const res = await client.post<PaperSubmission>(`/events/${eventId}/document-scans/${submissionId}/reject`, {reason})
     return res.data

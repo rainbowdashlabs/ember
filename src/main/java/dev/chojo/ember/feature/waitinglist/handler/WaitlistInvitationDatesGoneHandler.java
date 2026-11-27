@@ -19,7 +19,7 @@ import jakarta.inject.Singleton;
 
 import java.util.Map;
 
-/** Tells whoever looks after the waiting lists that an open invitation has no date left. */
+/** Notifies whoever looks after the waiting lists that an open invitation has no date left. */
 @Singleton
 public class WaitlistInvitationDatesGoneHandler implements DomainEventHandler<WaitlistInvitationDatesGone> {
     private final Notifier notifier;

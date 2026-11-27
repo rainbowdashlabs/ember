@@ -103,7 +103,7 @@ export function useMemberListConfig(port: MemberListPort) {
 
     /**
      * Every member's answers as cells, read once per load rather than on every sort and filter. A
-     * question not put to a member has no entry at all, which tells it apart from one left open.
+     * question not put to a member has no entry at all, which distinguishes it from one left open.
      */
     const answerCells = computed(() => new Map(members.value.map(member => {
         const role = roleOf(memberRolesMap.value.get(member.id) ?? [])
@@ -175,7 +175,7 @@ export function useMemberListConfig(port: MemberListPort) {
      * Hands the export to whoever can make it.
      *
      * <p>A spreadsheet and a sheet are both drawn on the server from one set of columns, so the two
-     * cannot say different things about the same people. The list of values stays here: it is
+     * cannot show different things about the same people. The list of values stays here: it is
      * something to paste rather than a document, and it never leaves the browser.
      */
     async function performExport(format: ExportFormatName = 'csv', separator: ExportSeparator = 'semicolon') {

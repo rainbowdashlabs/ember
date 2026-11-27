@@ -31,7 +31,7 @@ public sealed interface NotificationParams {
      * Which of a type's sentences these parameters are worded by, or {@code null} for its one
      * sentence.
      *
-     * <p>A type whose notifications say different things, such as a date that runs out tomorrow and
+     * <p>A type whose notifications show different things, such as a date that runs out tomorrow and
      * one that ran out last week, names the sentence here, and it is looked up beside the type's own
      * before the plural of either is chosen.
      */
@@ -76,7 +76,7 @@ public sealed interface NotificationParams {
 
     record CommentMention(String entityTitle, String author, String preview) implements NotificationParams {}
 
-    /** A new question on an appointment, told to whoever runs the station's appointments. */
+    /** A new question on an appointment, sent to whoever runs the station's appointments. */
     record EventComment(String eventName, String author, String preview) implements NotificationParams {}
 
     record NewEvent(String title, String eventDescription) implements NotificationParams {}
@@ -126,7 +126,7 @@ public sealed interface NotificationParams {
 
     /**
      * A movement has moved on. The step label is the flow's own words rather than a fixed status,
-     * because the chain a station walks is its own to name, and the next actor says whose turn it
+     * because the chain a station walks is its own to name, and the next actor shows whose turn it
      * is now: this notification is only ever sent to that party, so its presence is the signal.
      */
     record MovementMoved(
@@ -172,7 +172,7 @@ public sealed interface NotificationParams {
     record ClusterItemLost(String itemName, String stationName) implements NotificationParams {}
 
     /**
-     * Says only that something moved. Naming the permission would mean listing a set that may have changed in
+     * Signals only that something moved. Naming the permission would mean listing a set that may have changed in
      * four ways at once, and the screen it links to shows the answer anyway.
      */
     record ClusterMemberRoleChanged(String clusterName) implements NotificationParams {}
@@ -241,7 +241,7 @@ public sealed interface NotificationParams {
      * An appointment somebody holds a place on was called off, one date of it or the whole series.
      *
      * <p>A date called off by the check for too few registrations carries no reason: the sentence
-     * for its cause says why, in the reader's own language.
+     * for its cause shows why, in the reader's own language.
      *
      * @param eventName the appointment
      * @param reason    the reason a manager gave, or null
@@ -485,7 +485,7 @@ public sealed interface NotificationParams {
     /**
      * A mailbox that has failed often enough to be taken out of the rotation.
      *
-     * <p>Worth telling somebody about rather than leaving on the page: an import that stopped a month ago
+     * <p>Worth notifying somebody about rather than leaving on the page: an import that stopped a month ago
      * is not something anybody goes looking for.
      */
     record MailboxSuspended(String mailbox, String reason) implements NotificationParams {}
@@ -559,8 +559,8 @@ public sealed interface NotificationParams {
     record SignatureRequested(String documentTitle, String memberName) implements NotificationParams {}
 
     /**
-     * A field of a document was signed, told to whoever asked for the signatures. The text names the member
-     * the document is about only where somebody else signed, since "Lea signed it for Lea" says nothing.
+     * A field of a document was signed, sent to whoever asked for the signatures. The text names the member
+     * the document is about only where somebody else signed, since "Lea signed it for Lea" shows nothing.
      *
      * @param documentTitle the document's title
      * @param signerName    the official name of whoever signed
@@ -592,7 +592,7 @@ public sealed interface NotificationParams {
             implements NotificationParams {}
 
     /**
-     * A signed agreement was withdrawn, told to whoever runs the appointment that asked for it, or to whoever
+     * A signed agreement was withdrawn, sent to whoever runs the appointment that asked for it, or to whoever
      * asked for the signatures.
      *
      * @param documentTitle   the document's title
@@ -603,7 +603,7 @@ public sealed interface NotificationParams {
             implements NotificationParams {}
 
     /**
-     * A partner station reported a signed agreement of one of its members withdrawn there, told to whoever
+     * A partner station reported a signed agreement of one of its members withdrawn there, sent to whoever
      * runs the appointment that asked for it. Who withdrew it stays with the partner; the member is named only
      * where the partner shares their name.
      *

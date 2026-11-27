@@ -18,12 +18,12 @@ import type {Audience} from '@/composables/useFieldsConfig'
 /**
  * One audience the question is put to.
  *
- * <p>Width and whether an answer is expected are the question's unless this audience says otherwise,
+ * <p>Width and whether an answer is expected are the question's unless this audience overrides them,
  * so both are offered as a choice with the question's own answer standing first and named for what it
  * is. Picking it writes nothing down, which is what lets the question's answer keep changing under it.
  *
  * <p>Who may write the answer works the same way: the question carries the default and this row may
- * say otherwise for its own audience, which is how a team writes a date the members only read.
+ * differ for its own audience, which is how a team writes a date the members only read.
  */
 const props = defineProps<{
   field: EditableField

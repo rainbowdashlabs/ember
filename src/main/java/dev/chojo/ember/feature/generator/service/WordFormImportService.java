@@ -59,7 +59,7 @@ import java.util.function.UnaryOperator;
  * For every other font the form sets text in, the person importing chooses the family it is drawn in and
  * the size, in percent of the form's, and the weight before the form is converted; nothing is replaced
  * unasked. A built-in family is offered first where one stands in for the font ({@link FontStandIns}),
- * marked where it has the same measure, such as Carlito for Calibri. A font whose name says light, such as
+ * marked where it has the same measure, such as Carlito for Calibri. A font whose name indicates light, such as
  * Frutiger 45 Light, is drawn in the light cut of the family chosen unless another weight is asked for.
  * Every replacement is reported. A field prints
  * in the family its place is drawn in where that family can print on a PDF, otherwise in the default font.
@@ -131,7 +131,7 @@ public class WordFormImportService {
      * @param defaultFamily the family a missing one is drawn in where the default font is chosen
      * @param embedded      the missing families the form carries font files for, which draw its preview in
      *                      its own fonts without a file handed in
-     * @param light         the missing families whose names say they are a light cut, such as Frutiger 45 Light
+     * @param light         the missing families whose names indicate they are a light cut, such as Frutiger 45 Light
      * @param lightCuts     the families that can be drawn in a light weight
      */
     public record MissingFonts(
@@ -155,7 +155,7 @@ public class WordFormImportService {
      *
      * @param family the family to draw in, empty or null for the default font
      * @param size   the size to draw in, in percent of the form's, null for the form's own size
-     * @param weight the weight to draw in, null for the one the name of the missing family says
+     * @param weight the weight to draw in, null for the one the name of the missing family indicates
      */
     public record ChosenFont(
             @Nullable String family,
@@ -521,7 +521,7 @@ public class WordFormImportService {
     /**
      * A family in the weight asked for: its light cut for {@link FontWeight#LIGHT}, refused where it has none;
      * the family itself for {@link FontWeight#REGULAR}; and where none is asked, the light cut where the name
-     * of the missing family says light and the family ships one. Bold text of a light cut is drawn in the
+     * of the missing family indicates light and the family ships one. Bold text of a light cut is drawn in the
      * family itself, whose bold face is a real one.
      */
     private static Replacement weighted(String missing, FontFamily family, @Nullable FontWeight weight, int size) {

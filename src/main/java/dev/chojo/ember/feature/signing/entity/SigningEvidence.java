@@ -17,7 +17,7 @@ import java.util.Set;
  * <p>Only a passkey or security key binds the proof to the document: its signature covers a challenge
  * computed from the content hash and everything else the act names. An authenticator app code or a
  * password proves that the account holder was present at that moment, and nothing ties it to this
- * document beyond Ember's own record; those kinds say so in their name.
+ * document beyond Ember's own record; those kinds show it in their name.
  */
 public sealed interface SigningEvidence
         permits SigningEvidence.WebAuthnBound, SigningEvidence.TotpUnbound, SigningEvidence.PasswordUnbound {
@@ -38,8 +38,8 @@ public sealed interface SigningEvidence
      * have the user-verified flag set, and the signature must verify over the authenticator data followed
      * by the SHA-256 of the client data, under the credential's public key.
      *
-     * <p>The key stamp says whether that public key is the one the credential was registered with: its
-     * token is an RFC 3161 timestamp over the SHA-256 of {@code credentialPublicKeyCose}, and its kind says
+     * <p>The key stamp shows whether that public key is the one the credential was registered with: its
+     * token is an RFC 3161 timestamp over the SHA-256 of {@code credentialPublicKeyCose}, and its kind shows
      * whether it was taken at the registration, later by the retry, or at the first signing act that
      * reached a timestamp service. A key stamped only at or after an act proves less about who registered
      * it than one stamped at the registration.

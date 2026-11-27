@@ -202,8 +202,8 @@ public class SelfCheckReviewService {
      *
      * <p>Held back rather than sent at once because the record was wrong when they asked: the piece
      * they named is the one this correction has just taken off them, and the size on it is the one
-     * they told the station not to believe. Now that the record says what they hold, the report can
-     * say it too, and it goes out against the piece the correction produced and the size that piece
+     * they told the station not to believe. Now that the record shows what they hold, the report can
+     * show it too, and it goes out against the piece the correction produced and the size that piece
      * actually carries.
      *
      * <p>Claimed before it is raised, the way the check on a finished task is: whoever wins the claim
@@ -300,7 +300,7 @@ public class SelfCheckReviewService {
      *
      * <p>A piece a partner owns is never marked missing here. The loss on borrowed gear belongs on
      * the lending request it came in on, which is why the walk skips it too, and the answer a member
-     * may give about such a piece says only that they have not got it.
+     * may give about such a piece shows only that they have not got it.
      */
     private void apply(SelfCheckRow row, SelfCheckSettlement settlement, int reviewerId) {
         Integer itemId = row.itemId();
@@ -361,7 +361,7 @@ public class SelfCheckReviewService {
      * The lines the check carries, one per answer that was taken.
      *
      * <p>An answer whose piece has gone since leaves no line: there is nothing left to record a
-     * result against, and the row itself keeps saying what the member said.
+     * result against, and the row itself keeps showing what the member said.
      */
     private static List<CheckItemRequest> resultsOf(List<SelfCheckRow> rows) {
         List<CheckItemRequest> results = new ArrayList<>();
@@ -575,7 +575,7 @@ public class SelfCheckReviewService {
 
     /**
      * The station's own submission, refused alike whether it is gone or another station's, so the
-     * answer does not say that it exists elsewhere.
+     * answer does not show that it exists elsewhere.
      */
     private SelfCheck require(int taskId, int stationId) {
         return repository

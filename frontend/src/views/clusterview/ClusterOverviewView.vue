@@ -35,7 +35,7 @@ const hierarchy = ref<PermissionNode[]>([])
  *
  * Only the rights nothing else they hold already carries: somebody trusted with the whole of member
  * management reads as holding that, not as holding it and the four smaller rights it is made of. The two
- * that only say "you are here" are left out for the same reason, since they are true of everybody who can
+ * that only signal "you are here" are left out for the same reason, since they are true of everybody who can
  * read this page at all.
  */
 const permissions = computed(() =>

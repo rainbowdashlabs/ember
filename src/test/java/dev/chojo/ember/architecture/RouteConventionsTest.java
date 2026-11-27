@@ -51,8 +51,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Conventions every route is held to, checked against the router the application builds and against
  * the compiled route classes rather than against their source text.
  *
- * <p>The router says what is registered, in which order, with which roles, and which method answers
- * each route; see {@link RegisteredRoutes} for how that last part is found. The compiled classes say
+ * <p>The router shows what is registered, in which order, with which roles, and which method answers
+ * each route; see {@link RegisteredRoutes} for how that last part is found. The compiled classes show
  * what a handler calls. Neither depends on how a registration happens to be formatted or which local
  * variable a prefix was kept in, which is what the text-based checks before these could not help
  * depending on.
@@ -63,7 +63,7 @@ class RouteConventionsTest {
     private static final String GDPR_EXPORT = RouteHarness.PREFIX + "/session/gdpr-export";
 
     /**
-     * The members a handler touches that say which station a row belongs to: the session's station,
+     * The members a handler touches that show which station a row belongs to: the session's station,
      * one of the ownership helpers, the read check a comment's target makes for the comment service,
      * a station resolved from the address, the partner whose station scopes a {@code /remote}
      * lookup, the account and member the row is scoped to, the cluster a cluster route answers for,
@@ -175,7 +175,7 @@ class RouteConventionsTest {
     /**
      * A handler nothing points at answers nothing.
      *
-     * <p>Java says nothing about it: the method compiles, the class compiles, the tests that never
+     * <p>Java reports nothing about it: the method compiles, the class compiles, the tests that never
      * call the endpoint pass, and the feature is simply absent at runtime. It is an easy mistake to
      * make while moving registrations around, and an expensive one to find, because the first
      * report is a 404 from something that plainly exists in the source. A route class that is never
@@ -206,7 +206,7 @@ class RouteConventionsTest {
     }
 
     /**
-     * Every handler that takes an id from the address has to say which station it belongs to.
+     * Every handler that takes an id from the address has to show which station it belongs to.
      *
      * <p>The gating model refuses a caller without the permission a route declares, and stops
      * there. It never asks whether the row the caller named is one of theirs, so a handler that
@@ -214,14 +214,14 @@ class RouteConventionsTest {
      * the station that owns the row. Nine features got that wrong independently, which is one
      * missing control repeated nine times rather than nine mistakes.
      *
-     * <p>Saying it can be done in any of the ways the codebase already uses: reading
+     * <p>Showing it can be done in any of the ways the codebase already uses: reading
      * {@code session.stationId()}, handing {@code session.owner()} to a shared core that looks the row up
      * by its owner, calling a {@code RouteSupport.requireOwned*} helper or
      * {@code EventVisibility.requireVisibleEvent}, which checks the station before the audience, going
      * through a {@code *Guards} class, or resolving the federation partner whose station scopes a
      * {@code /remote} lookup. A handler that does none of them, directly or through a method of its
      * own class or of a {@code *RouteSupport} helper it calls, is either a hole or an endpoint that
-     * genuinely belongs to no station, and the second kind says so with {@link StationFree}. An
+     * genuinely belongs to no station, and the second kind marks that with {@link StationFree}. An
      * instance-admin route answers for the instance rather than for a station, which is the whole of
      * its scope.
      *
@@ -275,7 +275,7 @@ class RouteConventionsTest {
     }
 
     /**
-     * A module among a route's roles says where the route belongs and grants nothing, so it never stands
+     * A module among a route's roles shows where the route belongs and grants nothing, so it never stands
      * without a station permission: alone it would let in anybody signed in.
      */
     @Test
@@ -477,7 +477,7 @@ class RouteConventionsTest {
 
     /**
      * Whether every value the path takes is a station's address, so that the row the caller named
-     * is the station itself and resolving it is the whole of saying which station is meant.
+     * is the station itself and resolving it is the whole of showing which station is meant.
      */
     private static boolean addressesAStationItself(Route route) {
         return PATH_PARAMETER.matcher(route.path()).results().allMatch(parameter -> STATION_PARAMETER
@@ -501,7 +501,7 @@ class RouteConventionsTest {
     }
 
     /**
-     * Whether a handler, or a method of its own class or of a route helper it reaches, says which
+     * Whether a handler, or a method of its own class or of a route helper it reaches, shows which
      * station the addressed row belongs to.
      *
      * <p>Methods of the class are followed rather than named, because the codebase reaches its checks

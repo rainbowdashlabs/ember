@@ -121,7 +121,7 @@ export function useEventGroupTemplate() {
      * Attaches the noted files to the event group just created, in the template's order and with its
      * labels. A file leaves the list once it is attached, so a save tried again does not attach it twice.
      * A file the library no longer holds is left out rather than holding up the save, and its name is
-     * given back so the page can say so.
+     * given back so the page can report it.
      *
      * @return the names of the files left out because they are gone
      */

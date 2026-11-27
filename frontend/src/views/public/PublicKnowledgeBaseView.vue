@@ -55,7 +55,7 @@ const apiBase = apiUrl('')
  * Fetched while the server renders rather than after mounting, folder by folder.
  *
  * <p>The station's name is what this page is called after, and the folder standing open is what the
- * rest of it says. Both arrived once the browser had taken over, so a crawler read a wiki with no
+ * rest of it shows. Both arrived once the browser had taken over, so a crawler read a wiki with no
  * name and a link to a folder unfurled as the station's own card. The folder in the address is
  * watched, which is what turns the page when a reader walks into one.
  */

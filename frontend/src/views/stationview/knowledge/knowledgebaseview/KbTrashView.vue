@@ -36,7 +36,7 @@ import {formatDateTime} from '@/util/format'
  *
  * The size in the header is not decoration. What waits here is still on disk and still counts
  * against the station's room, and a station that has just cleared up and still cannot upload
- * deserves to be told why rather than left guessing.
+ * deserves to be shown why rather than left guessing.
  */
 const emit = defineEmits<{
     back: []

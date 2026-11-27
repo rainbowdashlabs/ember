@@ -12,7 +12,7 @@ import type {GroupEntry, TagEntry} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 
 /**
- * Whom a run generates for: the members chosen in the member list, said as a count, or an audience of
+ * Whom a run generates for: the members chosen in the member list, shown as a count, or an audience of
  * user types, groups and tags whose current members the run takes in. An audience naming nothing takes
  * in every current member.
  */

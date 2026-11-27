@@ -14,7 +14,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells whoever's turn it is that a movement has started, which is usually the station but is
+ * Lets whoever's turn it is know that a movement has started, which is usually the station but is
  * whichever party the flow's second step belongs to.
  */
 @Singleton

@@ -5,11 +5,11 @@
  */
 <script lang="ts" setup>
 /**
- * A small label that says something about what it sits on and opens the place where that is changed.
+ * A small label that shows something about what it sits on and opens the place where that is changed.
  *
  * <p>Looks like a badge and behaves like a button: a setting tucked behind a menu shows here once it
- * differs from its default, and clicking it leads back to where it is set. A badge alone would say
- * the setting is there without saying where to change it.
+ * differs from its default, and clicking it leads back to where it is set. A badge alone would show
+ * the setting is there without showing where to change it.
  */
 defineEmits<{
   click: [event: MouseEvent]

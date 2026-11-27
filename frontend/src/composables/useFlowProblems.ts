@@ -13,7 +13,7 @@ import {describeFailure, type Failure} from '@/util/failure'
  *
  * <p>The backend names the rule that is broken and leaves the sentence to whoever shows it, which is
  * the only way the same fault reads in the reader's language. A chain carrying a fault and a change
- * refused for one say the same thing, so they are worded in the same place.
+ * refused for one read the same, so they are worded in the same place.
  */
 export function useFlowProblems() {
     const {t, te} = useI18n()
@@ -41,7 +41,7 @@ export function useFlowProblems() {
     }
 
     /**
-     * The same refusal, described, for the places with room to say what to do about it.
+     * The same refusal, described, for the places with room to show what to do about it.
      *
      * <p>Where the backend named a rule, that sentence wins and the failure supplies everything around
      * it: what sort of failure this was and what to do next. It is marked as nothing to report, because

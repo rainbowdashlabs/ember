@@ -12,7 +12,7 @@ import dev.chojo.ocular.override.OverwritePrefix;
 /**
  * What the operator, rather than a station, decides about reading mail for documents.
  *
- * <p>A station says which mailboxes it watches and how often. Three things are not theirs to say,
+ * <p>A station sets which mailboxes it watches and how often. Three things are not theirs to set,
  * because they are about the instance and about the providers it talks to rather than about one
  * station's paperwork.
  */

@@ -12,7 +12,7 @@ import java.util.Set;
 /**
  * Who saves profile answers, which decides which locks they pass.
  *
- * <p>A question can be locked twice. Its own lock says only the member management writes the answer,
+ * <p>A question can be locked twice. Its own lock means only that the member management writes the answer,
  * and the station's member management passes it the way the association's does. An association's
  * question can also be kept from the station altogether, a lock only the association passes.
  *

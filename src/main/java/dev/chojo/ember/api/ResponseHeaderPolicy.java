@@ -74,7 +74,7 @@ public class ResponseHeaderPolicy {
      * doing nothing about another site, which the same-origin rule already stops.
      *
      * <p>A route that has already asked for something stricter keeps its own referrer policy: the
-     * user feed says {@code no-referrer} so its token cannot travel in a {@code Referer}. Strict
+     * user feed sets {@code no-referrer} so its token cannot travel in a {@code Referer}. Strict
      * transport security is sent only over HTTPS, and never by a development instance, which is
      * served over plain HTTP and would pin a browser to a scheme it cannot answer.
      *

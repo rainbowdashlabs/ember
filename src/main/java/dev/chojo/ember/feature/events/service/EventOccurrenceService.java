@@ -56,7 +56,7 @@ public class EventOccurrenceService {
     }
 
     /**
-     * Appointments as a plain list shows them, each part of an event group saying which event group it belongs
+     * Appointments as a plain list shows them, each part of an event group showing which event group it belongs
      * to.
      *
      * @param stationId the station
@@ -72,7 +72,7 @@ public class EventOccurrenceService {
                 .toList();
     }
 
-    /** The occurrences as listed, each part of an event group saying which event group it belongs to. */
+    /** The occurrences as listed, each part of an event group showing which event group it belongs to. */
     private List<UpcomingEventOccurrence> withEventGroups(int stationId, List<UpcomingEventOccurrence> occurrences) {
         if (occurrences.isEmpty()) return occurrences;
         var parts = eventGroupRepository.findPartSummaries(stationId);
@@ -283,7 +283,7 @@ public class EventOccurrenceService {
     }
 
     /**
-     * Everything falling on one date, in the order the list shows a day's appointments, each saying
+     * Everything falling on one date, in the order the list shows a day's appointments, each showing
      * whether it is off on that date.
      */
     private static List<UpcomingEventOccurrence> onDate(

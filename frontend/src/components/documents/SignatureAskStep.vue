@@ -31,15 +31,15 @@ import {witnessSigningHref} from './signatures/witnessSigning'
  * document was asked to be signed before, it shows how each field stands instead.
  *
  * <p>Right after generating, a document without a field to sign needs no step, so it ends at once where
- * asked to; from the list it says so.
+ * asked to; from the list it shows that.
  *
  * <p>Whoever may collect signatures in person can instead have the document signed right away: that asks
- * without telling anybody and opens the first field on the witness page, which leads on to the others.
+ * without notifying anybody and opens the first field on the witness page, which leads on to the others.
  */
 const props = withDefaults(defineProps<{
   /** The document's entry in the generation log. */
   generationId: number
-  /** Whether a document without a field to sign ends the step at once rather than saying so. */
+  /** Whether a document without a field to sign ends the step at once rather than showing that. */
   skipWhenNone?: boolean
 }>(), {
   skipWhenNone: false,

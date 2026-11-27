@@ -208,7 +208,7 @@ public class LendingService implements FederationServer {
      * @param owningUid the station asked for the gear
      * @param eventId   the appointment the request was collected for, or {@code null}
      * @param eventDate the date of that appointment, or {@code null}
-     * @param occasion  what to tell the owning station the request is for
+     * @param occasion  what to show the owning station the request is for
      * @param lines     what is asked for
      */
     public LendingRequest createRequest(
@@ -467,7 +467,7 @@ public class LendingService implements FederationServer {
     /**
      * Sets one piece of gear aside for a lending request, by hand.
      *
-     * <p>This is the path a person drives, so it says no out loud. The automatic path cannot, and
+     * <p>This is the path a person drives, so it refuses out loud. The automatic path cannot, and
      * quietly passes over what it may not lend instead.
      *
      * @param requestItemId  the line of the request being filled
@@ -597,7 +597,7 @@ public class LendingService implements FederationServer {
      * Hands the gear over, which is where a borrowed piece becomes a thing at the borrower.
      *
      * <p>Two rows come out of one radio and they are different sentences. The owner's row is the
-     * truth about the thing and now says which partner has it; the borrower's row is the truth about
+     * truth about the thing and now shows which partner has it; the borrower's row is the truth about
      * where it is this fortnight, and it goes away again when the gear does.
      *
      * @param requestId the lending request
@@ -656,7 +656,7 @@ public class LendingService implements FederationServer {
     }
 
     /**
-     * Moves a request on as one of its two stations, and tells the other one.
+     * Moves a request on as one of its two stations, and notifies the other one.
      *
      * <p>The change is made here, with its consequences for the gear, the station's own note in the
      * thread and the notice to the other station's managers, and then handed to the other station.
@@ -666,7 +666,7 @@ public class LendingService implements FederationServer {
      * @param requestId     the request
      * @param stationId     the station moving it on
      * @param status        where it moves to
-     * @param systemMessage what the station's thread says about it
+     * @param systemMessage what the station's thread shows about it
      * @param reason        why, where it was declined, or {@code null}
      * @return {@code true} when the request moved
      */
@@ -741,7 +741,7 @@ public class LendingService implements FederationServer {
     }
 
     /**
-     * Hands the pieces set aside over to the borrowing station, line by line. The owner's rows say
+     * Hands the pieces set aside over to the borrowing station, line by line. The owner's rows show
      * which partner has them; a borrower on this instance gets its copies written here, and one on
      * another instance writes them itself from the pieces listed in the answer.
      *
@@ -848,7 +848,7 @@ public class LendingService implements FederationServer {
     /**
      * Word from the partner station that it wrote on a request, passed on to this station's managers.
      *
-     * <p>A partner on this instance has told them itself when it wrote the message, so only word
+     * <p>A partner on this instance has notified them itself when it wrote the message, so only word
      * from another instance is passed on.
      *
      * @param partner the partnership the word arrived on
@@ -868,7 +868,7 @@ public class LendingService implements FederationServer {
      *
      * <p>Being a partner of this station is not the same as being a party to one of its lending
      * negotiations. Without asking whose request it is, one partner would read what this station
-     * said to another: what was asked for, what was refused, and when.
+     * sent to another: what was asked for, what was refused, and when.
      *
      * @param partner the partnership the request arrived on
      * @param uid     the request's identity between the two stations
@@ -951,9 +951,9 @@ public class LendingService implements FederationServer {
     /**
      * Finds available inventory across all active federation partners, with parallel fetching.
      *
-     * <p>An empty answer says which of two situations it is, and no more than that. Listing the
+     * <p>An empty answer shows which of two situations it is, and no more than that. Listing the
      * inventories that were held back would be the more helpful search and the wrong product: it
-     * would tell another station what you own and which of it you are deliberately keeping.
+     * would reveal to another station what you own and which of it you are deliberately keeping.
      */
     public AvailableInventoryResult findAvailableInventory(
             int stationId, @Nullable String query, @Nullable LocalDate dateFrom, LocalDate dateTo) {
@@ -1033,7 +1033,7 @@ public class LendingService implements FederationServer {
      * <p><b>This filters, it never throws.</b> The status change is already committed by the time it
      * runs and there is nothing holding the two together, so a refusal here would turn one piece the
      * station may not lend into a rejected call on an approval that has already happened, with the
-     * partner never told. A line that cannot be filled is left empty for somebody to fill by hand.
+     * partner never notified. A line that cannot be filled is left empty for somebody to fill by hand.
      *
      * <p>What may be filled in is the owning station's own gear, whichever way the line names it: the
      * requesting side chooses both the inventory and, where it wants one piece in particular, the
@@ -1095,7 +1095,7 @@ public class LendingService implements FederationServer {
     /**
      * Whether one named piece is still there to be promised over a window.
      *
-     * <p>Ownership says a station may lend a piece; it does not say the piece is here. Gear already at
+     * <p>Ownership means a station may lend a piece; it does not mean the piece is here. Gear already at
      * a partner, in the post or set aside for another date is owned all the same, and promising it
      * a second time is how one radio is lent twice.
      *
@@ -1324,7 +1324,7 @@ public class LendingService implements FederationServer {
             List<AvailableInventoryEntry> entries, @Nullable EmptyReason emptyReason) {}
 
     /**
-     * The two situations an empty browse answer can mean. It says nothing finer on purpose: which
+     * The two situations an empty browse answer can mean. It shows nothing finer on purpose: which
      * inventories a station holds back is its own business, and naming them would defeat the point
      * of holding them back.
      */

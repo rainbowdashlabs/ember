@@ -12,10 +12,10 @@ import MutedText from '@/components/typography/MutedText.vue'
 import type {SelfCheckRaisedView} from '@/api/generated/schema'
 
 /**
- * What the member set going beside their answers, in the two groups a reviewer has to tell apart.
+ * What the member set going beside their answers, in the two groups a reviewer has to distinguish.
  *
  * <p>The first went out on its own and asks nothing of the reviewer. The second has not gone
- * anywhere: it hangs on an answer saying the record has the wrong size, so putting that record right
+ * anywhere: it hangs on an answer flagging the record's size as wrong, so putting that record right
  * is what sends it, and sending the answer back is what drops it. A reviewer who cannot see which
  * group a report is in cannot know that their next click posts a loss.
  */

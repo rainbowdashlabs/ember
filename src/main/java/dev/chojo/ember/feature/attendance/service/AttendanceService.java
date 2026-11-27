@@ -78,7 +78,7 @@ public class AttendanceService {
     /** The most sheets one page of the past sheets may hold, however many were asked for. */
     public static final int MAX_SESSION_PAGE = 100;
 
-    /** How long a sheet runs where nothing and nobody says otherwise. */
+    /** How long a sheet runs where nothing and nobody decides otherwise. */
     private static final Duration DEFAULT_SESSION_LENGTH = Duration.ofHours(2);
     /** The longest span a sheet may cover, which is longer than any camp and shorter than a typo. */
     private static final Duration MAX_SESSION_LENGTH = Duration.ofDays(31);
@@ -409,8 +409,8 @@ public class AttendanceService {
     /**
      * The sheet an appointment already has on the day a new one would run.
      *
-     * <p>A repeating appointment is one row that comes round again and again, so its sheets are told
-     * apart by their day: asked for the appointment alone, the first date's sheet came back for
+     * <p>A repeating appointment is one row that comes round again and again, so its sheets are distinguished
+     * by their day: asked for the appointment alone, the first date's sheet came back for
      * every date after it.
      */
     private Optional<AttendanceSession> sheetOfDay(int eventId, Instant start, ZoneId zone) {
@@ -583,7 +583,7 @@ public class AttendanceService {
      * @param sessionId        the sheet being filled
      * @param eventId          the appointment it was made from
      * @param date             the date the sheet covers, which is the date whose answers it takes
-     * @param keepWhatIsFilled leaves a field that already says something alone, which is what filling
+     * @param keepWhatIsFilled leaves a field that already holds something alone, which is what filling
      *                         an open sheet in wants: what stands on it was written by somebody
      *                         looking at the occurrence itself, and the appointment must not undo that
      */
@@ -620,7 +620,7 @@ public class AttendanceService {
 
     /**
      * Writes one answer onto a sheet in the one shape its field type is kept in, and clears the
-     * field where the answer says nothing.
+     * field where the answer is empty.
      *
      * @param sessionId the sheet
      * @param field     the field answered
@@ -646,11 +646,11 @@ public class AttendanceService {
     }
 
     /**
-     * Whom a new sheet expects: what it was told, or its template's user types and groups when it was
-     * told nothing.
+     * Whom a new sheet expects: what it was set up with, or its template's user types and groups when it was
+     * given nothing.
      *
      * <p>The sheet and its template are the only things that decide who belongs on it. An event the
-     * sheet was made from asks its own question of its own people, and whom it was open to says
+     * sheet was made from asks its own question of its own people, and whom it was open to shows
      * nothing about who is expected at the appointment itself.
      */
     private Set<Integer> expectedFor(int templateId, SessionAudience audience) {
@@ -669,12 +669,12 @@ public class AttendanceService {
     }
 
     /**
-     * Writes down whom a new sheet was told to expect, so that filling it in later, showing it and
+     * Writes down whom a new sheet was set up to expect, so that filling it in later, showing it and
      * printing it go by the same people. Only groups of the sheet's own station are kept, the same
      * ones {@link #chosenMembers} reads.
      *
      * @param session  the new sheet
-     * @param audience what it was told, null or naming nobody where its template decides
+     * @param audience what it was set up with, null or naming nobody where its template decides
      */
     private void keepAudience(AttendanceSession session, SessionAudience audience) {
         if (audience == null || audience.namesNobody()) return;
@@ -689,9 +689,9 @@ public class AttendanceService {
     }
 
     /**
-     * Whom a sheet was told to expect. The two answers add up and name nobody twice, groups first so
+     * Whom a sheet was set up to expect. The two answers add up and name nobody twice, groups first so
      * that the entries read like a template's. A group of another station is dropped rather than
-     * refused, since a sheet is not the place to say what another station keeps.
+     * refused, since a sheet is not the place to show what another station keeps.
      *
      * @param stationId the station the sheet belongs to, which bounds both answers
      * @param audience  the types and groups chosen for the sheet, or those of its template
@@ -909,7 +909,7 @@ public class AttendanceService {
     }
 
     /**
-     * Writes what a sheet says in its own fields.
+     * Writes what a sheet holds in its own fields.
      *
      * <p>What is written is measured against the question it answers, including the group a member
      * field is narrowed to, and what is left blank is not: a sheet is filled in through the
@@ -1086,7 +1086,7 @@ public class AttendanceService {
         return attendanceRepository.findEntries(sessionId);
     }
 
-    /** Sets what an entry says about somebody. */
+    /** Sets what an entry records about somebody. */
     public boolean updateEntryStatus(int entryId, AttendanceEntry.AttendanceStatus status) {
         requireSessionOpenForEntry(entryId);
         if (attendanceRepository.updateEntryStatus(entryId, status)) {
@@ -1116,7 +1116,7 @@ public class AttendanceService {
      * - Members with active absence who already have PRESENT status → updated to ABSENT
      * - Members from autoAttend fields → added as PRESENT at the end
      *
-     * <p>Only the sheet's audience puts anybody on it, so whom the event was open to has no say here
+     * <p>Only the sheet's audience puts anybody on it, so whom the event was open to has no influence here
      * at all.
      */
     public List<AttendanceEntry> syncFromEvent(int sessionId) {
@@ -1163,7 +1163,7 @@ public class AttendanceService {
      * given then only reached the sheet once somebody filled it in by hand. Only a row nobody has
      * decided yet is written, so a mark taken on the sheet outlives a later answer, and a sheet that
      * is closed is left as it was closed. A row the appointment declined is not opened again by a
-     * later yes, because nothing on the row tells that decline apart from one marked by hand.
+     * later yes, because nothing on the row distinguishes that decline from one marked by hand.
      *
      * @param eventId   the appointment answered
      * @param eventDate the date the answer is for
@@ -1179,7 +1179,7 @@ public class AttendanceService {
     /**
      * Marks everybody named in a field that attends by itself as present.
      *
-     * <p>A field marked that way says that whoever stands in it was there: the leader of the
+     * <p>A field marked that way shows that whoever stands in it was there: the leader of the
      * appointment, the people on the equipment, whoever the sheet names in that way. Somebody
      * already on the sheet is moved to present rather than entered a second time.
      *

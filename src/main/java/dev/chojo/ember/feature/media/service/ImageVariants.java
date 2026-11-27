@@ -86,7 +86,7 @@ public class ImageVariants {
     /**
      * Whether a library file of this kind can be given a picture at all.
      *
-     * <p>Asked by whoever serves the picture as well, so that a caller is told there is none rather
+     * <p>Asked by whoever serves the picture as well, so that a caller learns there is none rather
      * than being handed the file itself under the name of a thumbnail. An SVG is an image a browser
      * draws, but also a document that can carry script, so it has none.
      *

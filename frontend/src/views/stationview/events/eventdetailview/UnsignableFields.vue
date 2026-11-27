@@ -22,7 +22,7 @@ import type {ParticipantCopy} from './documentTiles'
 /**
  * The open fields of a participant's copy that nobody can sign, such as a guardian place nobody holds, for
  * a manager of the registrations. Whoever may change member documents confirms one as signed on paper or
- * waives it, asked once more before it is done, since a settled field stays settled. Anybody else is told
+ * waives it, asked once more before it is done, since a settled field stays settled. Anybody else sees
  * who can.
  */
 const props = defineProps<{

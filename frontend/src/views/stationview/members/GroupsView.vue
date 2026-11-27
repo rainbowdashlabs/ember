@@ -145,7 +145,7 @@ function createGroup() {
 }
 
 /**
- * Opens a group's form and fetches its members, so the form can say who would not fit the types as
+ * Opens a group's form and fetches its members, so the form can show who would not fit the types as
  * they are ticked. They are always fetched, because the selected group's list may still be loading
  * or belong to the group selected before. Without them the server's refusal still names the misfits.
  */

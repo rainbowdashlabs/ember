@@ -10,7 +10,7 @@ package dev.chojo.ember.feature.inventory.entity;
  *
  * @param itemId          the piece it is about, or {@code null} where it is about an empty place
  * @param inventoryId     the inventory the empty place belongs to, ignored on an answer about a
- *                        piece because the piece already says which inventory it sits in
+ *                        piece because the piece already shows which inventory it sits in
  * @param slot            which empty place in that inventory, counted from zero
  * @param answer          what the member said
  * @param note            what they wrote beside it, which may be blank

@@ -25,16 +25,16 @@ import {asRequired} from './useDocumentRequirements'
  * until it is taken off, but cannot be chosen anew.
  *
  * <p>It shows wherever the station uses documents, also while no template is marked for appointments
- * yet: then it says so and leads to the templates, rather than leaving no trace of the feature.
+ * yet: then it shows that and leads to the templates, rather than leaving no trace of the feature.
  */
 const chosen = defineModel<RequiredTemplate[]>({required: true})
 
 const props = defineProps<{
   /** How many templates for appointments the station offers. */
   offeredCount: number
-  /** What the documents are for, where the owner is not an appointment: an event group says so in its own words. */
+  /** What the documents are for, where the owner is not an appointment: an event group supplies its own words. */
   hint?: string
-  /** The explanation behind a hint icon by the heading, saying that the documents can be signed in the app. */
+  /** The explanation behind a hint icon by the heading, showing that the documents can be signed in the app. */
   compact?: boolean
 }>()
 

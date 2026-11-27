@@ -39,8 +39,8 @@ function hasAnyFinePointer(): boolean {
  *
  * <p>A browser of its own saves what it is handed, on a phone as much as at a desk, and so does the
  * window of an installed app. What does not is the browser an app embeds in itself: the file is
- * neither saved nor refused, and a reader pressing the button has to be told. Told anywhere else it
- * would be a lie told over a file that had just been saved.
+ * neither saved nor refused, and a reader pressing the button has to be informed. Reported anywhere else it
+ * would be a falsehood shown over a file that had just been saved.
  */
 export function isEmbeddedBrowser(): boolean {
     return /GSA\/|FBAN|FBAV|Instagram|Line\/|; wv\)/.test(navigator.userAgent)

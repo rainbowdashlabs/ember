@@ -44,7 +44,7 @@ public class BeaconIntakeRepository {
     }
 
     /**
-     * Records that an instance has been heard from, and what it says about itself.
+     * Records that an instance has been heard from, and what it reports about itself.
      *
      * <p>The contact is written on every report rather than only on the first, so an operator who
      * clears it in their configuration clears it here too.

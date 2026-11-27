@@ -59,7 +59,7 @@ export function normaliseScannedPayload(raw: string): string {
     return v.trim().toLocaleUpperCase('en-US')
 }
 
-/** Whether the browser's own detector reads any of the formats. A detector that cannot say counts as no. */
+/** Whether the browser's own detector reads any of the formats. A detector that cannot report its formats counts as no. */
 async function nativeReadsAny(ctor: BarcodeDetectorCtor, formats: BarcodeFormat[]): Promise<boolean> {
     try {
         const supported = await ctor.getSupportedFormats()

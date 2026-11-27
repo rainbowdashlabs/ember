@@ -24,7 +24,7 @@ import {describeFailure, FailureKind, type Failure} from '@/util/failure'
  *
  * <p>Which address that is follows from how far the form reaches. A publicly reachable form is
  * opened at its own address, and that is what is offered: it has a link as well, but handing out a
- * link for a form anybody can already reach would say the link protects something when it protects
+ * link for a form anybody can already reach would suggest the link protects something when it protects
  * nothing, and replacing it would withdraw nothing.
  *
  * <p>A form that answers at its link alone is offered that link, with a way to replace it. Asking
@@ -35,7 +35,7 @@ const props = defineProps<{
   form: Form
   /**
    * Whether the form around this is still being written. The link is real from the moment it is
-   * made, but what it opens is the form as it was last saved, which is worth saying where somebody
+   * made, but what it opens is the form as it was last saved, which is worth pointing out where somebody
    * is in the middle of changing it.
    */
   unsaved?: boolean
@@ -81,8 +81,8 @@ const {loading, failure, reload: load} = useAsyncLoader(async (isCurrent) => {
  *
  * <p>A refused replacement used to be reported as somebody else having replaced it first, whatever
  * had actually happened. That is one of several: the right to do it can be missing, the connection
- * can drop, the server can fall over. Only the server saying the link had moved on meant what the
- * reader was told, and acting on the other three by reloading and trying again got them nowhere.
+ * can drop, the server can fall over. Only the server reporting the link had moved on meant what the
+ * reader saw, and acting on the other three by reloading and trying again got them nowhere.
  */
 async function make(current: string | null) {
   busy.value = true

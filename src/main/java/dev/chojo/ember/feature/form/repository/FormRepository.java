@@ -321,7 +321,7 @@ public class FormRepository {
 
     /**
      * Replaces the link, but only where the form still carries the one the caller was shown, so two
-     * administrators cannot take it in turns to end each other's without being told.
+     * administrators cannot take it in turns to end each other's without being warned.
      *
      * @param id          the form
      * @param expected    the link the caller last saw
@@ -340,12 +340,12 @@ public class FormRepository {
     }
 
     /**
-     * Sets what a form tells the reader once it is sent.
+     * Sets what a form shows the reader once it is sent.
      *
      * @param id      the form
-     * @param message what the reader is told, or {@code null} for the general thanks
+     * @param message what the reader is shown, or {@code null} for the general thanks
      * @param link    an address offered to go on to, or {@code null}
-     * @param label   what the link says, or {@code null} for the address itself
+     * @param label   what the link shows, or {@code null} for the address itself
      */
     public void updateCompletion(int id, @Nullable String message, @Nullable String link, @Nullable String label) {
         query("""
@@ -734,7 +734,7 @@ public class FormRepository {
     }
 
     /**
-     * Records the pages a response went through, which the results read to tell a question nobody
+     * Records the pages a response went through, which the results read to distinguish a question nobody
      * reached from one nobody answered.
      *
      * @param responseId the response

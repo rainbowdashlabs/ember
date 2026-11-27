@@ -66,25 +66,25 @@ import java.util.stream.Collectors;
  * byte for byte, and its signatures are asked for like those of any document here: the member, or the
  * guardians, with this station's second factors, evidence and seal. What each signer confirms is what the
  * partner's template words, else their default statement in the document's language; the signed document is
- * kept as long as the partner's template says. The partner is told the document was taken on, and every sealed
- * state goes back to it ({@link PartnerDeliveries}).
+ * kept as long as the partner's template defines. The partner is notified that the document was taken on, and
+ * every sealed state goes back to it ({@link PartnerDeliveries}).
  *
  * <p>A partner's appointment without registrations offers its documents on its page here instead: the reader
  * signs for themselves or a member in their care, the document is taken on the same way, and the partner counts
  * the signature as "I will come".
  *
  * <p><b>Documents changed later.</b> When the partner adds a document to the appointment or takes one off, it
- * says so in a notice signed with its federation key, naming its members registered from here on dates still
+ * reports this in a notice signed with its federation key, naming its members registered from here on dates still
  * ahead. The documents of each such date are fetched again and every one of those members is asked for those
  * they do not stand asked for or signed yet, the same way as at registration, so nobody is asked twice. The
- * requests still open for a document taken off, on dates still ahead, are let go, and the partner is told
+ * requests still open for a document taken off, on dates still ahead, are let go, and the partner is notified
  * which. Dates before today in this station's zone stay as they are. The partner's word on who is registered
  * is taken only for members this station signed up for that date itself, which it notes on every sign-up and
  * forgets on every withdrawal: a partner cannot put a document in front of a member who never went near its
  * appointment.
  *
  * <p>Nothing here holds the registration up. A partner that hands out nothing, cannot be reached, or hands out
- * a file that is not what it says, and a station that keeps no documents, leave the member registered without
+ * a file that is not what it claims to be, and a station that keeps no documents, leave the member registered without
  * a document to sign; the partner then counts the document as missing for them, and its organisers can confirm
  * a signed paper copy instead.
  *
@@ -268,7 +268,7 @@ public class PartnerSignatures implements PartnerAppointmentSignatures, Federati
      *
      * @param partner the partnership the notice arrived on
      * @param eventId the appointment, by its id at the partner
-     * @param change  what the partner says changed
+     * @param change  what the partner reports as changed
      * @return the requests let go, for the partner
      */
     RemoteRequirementChangeAnswer changed(ServingPartner partner, int eventId, RemoteRequirementChange change) {

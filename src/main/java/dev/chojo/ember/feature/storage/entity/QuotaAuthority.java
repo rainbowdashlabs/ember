@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.storage.entity;
 
 /**
- * Who pays for the storage a station writes to, and therefore who has a say in how much of it there is.
+ * Who pays for the storage a station writes to, and therefore who has influence on how much of it there is.
  *
  * <p>This is not the same question as whose numbers apply. A station under a cluster is always governed by
  * what its cluster granted, whoever pays. What the payer decides is what stands behind that: the instance's
@@ -20,7 +20,7 @@ public enum QuotaAuthority {
     NOBODY,
     /**
      * The cluster, which brings the storage its stations write to. What it granted is the whole of the limit,
-     * and a dimension it said nothing about is unbounded.
+     * and a dimension it set nothing for is unbounded.
      */
     CLUSTER,
     /**

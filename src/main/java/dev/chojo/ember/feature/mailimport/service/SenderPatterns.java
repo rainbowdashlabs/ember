@@ -31,7 +31,7 @@ public final class SenderPatterns {
      * Whether any of these patterns accepts this sender.
      *
      * <p>An empty list accepts nobody. The empty case has to fail closed: the natural reading of an
-     * empty filter is "everything", and here that would be an open door left open by saying nothing.
+     * empty filter is "everything", and here that would be an open door left open by listing nothing.
      *
      * @param patterns the rule's patterns, in any order
      * @param sender   the address the mail came from, already reduced to the bare address, or null

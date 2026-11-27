@@ -20,8 +20,8 @@ import FormImportReport from './FormImportReport.vue'
  * Makes a PDF template from a Word form. The form's fields become the fields of the template: filled
  * from the member's data where their label is recognised, asked of the person generating everywhere
  * else. Where the form names fonts the owner has not got, a replacement and its size are chosen for each
- * before the form is converted, compared against the original on a preview. Converting takes a few seconds, so the button says so while it runs; afterwards a
- * report says what was recognised and leads into the editor.
+ * before the form is converted, compared against the original on a preview. Converting takes a few seconds, so the button shows that while it runs; afterwards a
+ * report shows what was recognised and leads into the editor.
  */
 const props = defineProps<{
   screens: TemplateScreens

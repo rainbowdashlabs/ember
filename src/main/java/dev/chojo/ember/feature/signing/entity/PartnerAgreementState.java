@@ -11,13 +11,13 @@ package dev.chojo.ember.feature.signing.entity;
  */
 public enum PartnerAgreementState {
     /**
-     * The partner never said it takes the document on: its installation cannot sign, or signing failed there.
+     * The partner never confirmed it takes the document on: its installation cannot sign, or signing failed there.
      * The member is registered all the same; a signed paper copy can be confirmed here.
      */
     MISSING,
     /** The partner took the document on and asks for it to be signed there. */
     ASKED,
-    /** A sealed copy came back from the partner; whether every field is settled is said beside it. */
+    /** A sealed copy came back from the partner; whether every field is settled is shown beside it. */
     SIGNED,
     /** A manager here confirmed a signed paper copy, and no sealed copy came back. */
     PAPER_CONFIRMED,

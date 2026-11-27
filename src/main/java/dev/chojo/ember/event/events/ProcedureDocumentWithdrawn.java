@@ -17,7 +17,7 @@ import java.util.List;
  * @param procedureName its name
  * @param itemId        the step
  * @param itemTitle     the step's title
- * @param toldMemberIds who is told: whoever resolved the procedure, where it was resolved
+ * @param toldMemberIds who is notified: whoever resolved the procedure, where it was resolved
  * @param withdrawnBy   the member who withdrew it
  */
 public record ProcedureDocumentWithdrawn(

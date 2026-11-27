@@ -31,14 +31,14 @@ import {
  *       contended and no other story's files are carried anywhere,
  *   <li>never the instance default: swapping that moves every station there is and holds a read-only flag
  *       while it does, which would fail the other three workers outright,
- *   <li>assert on the bytes: a screen saying "on your own storage" says exactly the same thing after a
+ *   <li>assert on the bytes: a screen showing "on your own storage" shows exactly the same thing after a
  *       migration that copied nothing.
  * </ul>
  */
 test.describe('Station storage backend', () => {
     /**
      * The whole act: a file goes up, the station points itself at the SFTP service, and the file is still
-     * the file afterwards. The counts are what say the bytes actually travelled.
+     * the file afterwards. The counts are what show the bytes actually travelled.
      */
     test('a station moves its files to storage of its own', async ({adminPage, browser, request}) => {
         const own = await ownCluster(adminPage, browser, request, 'Speicher')
@@ -154,7 +154,7 @@ test.describe('Station storage backend', () => {
     /**
      * All three variants answer, through the connection test rather than through three applies: what
      * differs between them is the credentials and the probe, and three moves would treble the runtime to
-     * say the same thing once.
+     * show the same thing once.
      */
     test('all three kinds of storage answer', async ({adminPage, browser, request}) => {
         const own = await ownCluster(adminPage, browser, request, 'Varianten')

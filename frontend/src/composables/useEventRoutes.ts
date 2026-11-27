@@ -42,7 +42,7 @@ export function provideEventRoutes(routes: EventRoutes): void {
     provide(EVENT_ROUTES, routes)
 }
 
-/** Where a click in the events screens should land, which is a station's pages unless told otherwise. */
+/** Where a click in the events screens should land, which is a station's pages unless set otherwise. */
 export function useEventRoutes(): EventRoutes {
     return inject(EVENT_ROUTES, STATION_EVENT_ROUTES)
 }

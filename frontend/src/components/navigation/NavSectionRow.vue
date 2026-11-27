@@ -23,7 +23,7 @@ const emit = defineEmits<{
   (e: 'open'): void
 }>()
 
-/** Lets the router take a plain click and tells the sidebar, and leaves every other click to the browser. */
+/** Lets the router take a plain click and notifies the sidebar, and leaves every other click to the browser. */
 function follow(event: MouseEvent, navigate: (event?: MouseEvent) => unknown) {
   void navigate(event)
   if (event.defaultPrevented) emit('open')

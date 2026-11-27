@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * The body of the {@code 401} a route answers when it wants a fresh proof before it acts.
  *
- * @param error    always {@value #ERROR}, which is how a client tells this refusal from a session that ended
+ * @param error    always {@value #ERROR}, which is how a client distinguishes this refusal from a session that ended
  * @param category what the proof is demanded for
  * @param proofs   what this account can give right now, sorted by name, so the dialog offers exactly those
  */

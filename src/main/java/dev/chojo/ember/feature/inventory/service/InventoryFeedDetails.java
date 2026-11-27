@@ -14,7 +14,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * What a feed entry says about an inventory: the movement or procurement the notification is about,
+ * What a feed entry shows about an inventory: the movement or procurement the notification is about,
  * and from the inventory itself whose it is.
  */
 @Singleton

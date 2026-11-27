@@ -84,7 +84,7 @@ public class KbMoveService {
      * Moves a folder, with everything under it, into another folder of the same station.
      *
      * <p>Moving asks for full rights on the folder rather than the right to write in it: a move
-     * changes who is responsible for an entry, not what it says, and the folder it lands in decides
+     * changes who is responsible for an entry, not what it contains, and the folder it lands in decides
      * who reads it from then on.
      *
      * @param access         the caller's memberships and station rights
@@ -143,7 +143,7 @@ public class KbMoveService {
     }
 
     /**
-     * What a move would change about who reads an entry, both sides of it, so the dialog can say so
+     * What a move would change about who reads an entry, both sides of it, so the dialog can show it
      * before anything happens rather than leave the reader to find out.
      *
      * @param stationId      the station the entry belongs to

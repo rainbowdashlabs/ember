@@ -34,7 +34,7 @@ const IMPORTED = {
 
 const PREVIEW = new Blob(['%PDF'], {type: 'application/pdf'})
 
-/** What the server says of a form's fonts, where Open Sans ships a light cut and nothing is embedded. */
+/** What the server reports of a form's fonts, where Open Sans ships a light cut and nothing is embedded. */
 function missingFonts(fonts: Partial<MissingFonts> & Pick<MissingFonts, 'missing'>): MissingFonts {
     return {
         suggested: {},

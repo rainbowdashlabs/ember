@@ -80,7 +80,7 @@ public class PaperSubmissionRoutes implements Routes {
     }
 
     /**
-     * Why a scan is turned down, which the participant is told.
+     * Why a scan is turned down, which the participant is shown.
      *
      * @param reason the reason
      */

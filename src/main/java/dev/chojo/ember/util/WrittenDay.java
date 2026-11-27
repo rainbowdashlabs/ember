@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
  *
  * <p>The frontend reads appointment files with the same orders and rules, so a file reads alike
  * wherever it is imported. The separator does not matter, as long as both of a day are the same. Day
- * and month take one or two digits, the year two or four, and {@link TwoDigitYears} says which century
+ * and month take one or two digits, the year two or four, and {@link TwoDigitYears} decides which century
  * a two-digit year falls in. A year in front takes two digits only above 31, since {@code 04.12.26}
  * would otherwise read as a day in 2004 as readily as the 4th of December.
  */
@@ -81,7 +81,7 @@ public final class WrittenDay {
      * The order a column of days is written in, worked out from all of its values.
      *
      * <p>Each order is tried on every value, and the first to read all of them is taken. A day never
-     * passes 31 and a month never passes 12, so one value such as {@code 03-16-60} is enough to tell
+     * passes 31 and a month never passes 12, so one value such as {@code 03-16-60} is enough to distinguish
      * month first from day first. Where several orders read everything, day first wins, then month
      * first, then year first. Where none reads everything, the one reading the most is taken.
      *

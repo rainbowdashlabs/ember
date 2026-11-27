@@ -98,7 +98,7 @@ import static org.mockito.Mockito.mock;
  * the EU DSS validator. Every baseline level the sealer reaches validates at that level; a changed byte in
  * the content, a page added after the seal, a page covered and evidence replaced by a later revision all
  * fail; two signers leave two valid versions, the later superseding the earlier; an outage of every
- * timestamp service falls back to a seal without a timestamp and the record says so; the record and the copy
+ * timestamp service falls back to a seal without a timestamp and the record shows that; the record and the copy
  * with it, built on download, validate and stay PDF/A-3b; and a document with signature pictures drawn into
  * its fields stays PDF/A-3b ({@link PdfA3b}).
  *
@@ -486,7 +486,7 @@ class SignedDocumentMatrixTest extends RepositoryTestBase {
 
     /**
      * A file a later revision changed is no longer the one the station sealed: the check reports the change,
-     * which a reader is shown as modified after sealing whatever the validator's indication says, and the
+     * which a reader is shown as modified after sealing whatever the validator's indication shows, and the
      * installation does not hold the file.
      */
     private static void assertFailsAsModified(byte[] changed) {
@@ -539,7 +539,7 @@ class SignedDocumentMatrixTest extends RepositoryTestBase {
         }
     }
 
-    /** Paints the last page white by an incremental update, the way an editor covers what a page says. */
+    /** Paints the last page white by an incremental update, the way an editor covers what a page shows. */
     private static byte[] withLastPageCoveredIncrementally(byte[] sealed) throws IOException {
         try (var pdf = Loader.loadPDF(sealed);
                 var out = new ByteArrayOutputStream()) {

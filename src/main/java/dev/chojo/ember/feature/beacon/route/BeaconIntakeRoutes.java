@@ -29,7 +29,7 @@ import java.util.Base64;
  * The door a beacon opens to other instances.
  *
  * <p>Everything here is public by design: a beacon anybody may report to is the point, and the key a
- * report is signed with says who sent it rather than whether they were allowed to. What keeps that
+ * report is signed with shows who sent it rather than whether they were allowed to. What keeps that
  * from being an open drain is the order the checks run in.
  *
  * <p>The rate limit is keyed on the caller's address and applied <em>before</em> a signature is

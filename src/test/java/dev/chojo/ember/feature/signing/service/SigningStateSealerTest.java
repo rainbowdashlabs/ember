@@ -109,7 +109,7 @@ import static org.mockito.Mockito.when;
 /**
  * Sealing a request's state into its member document after an act, against the database, real station keys,
  * the record page rendered by Typst and DSS: each state is a fresh sealed version built from the file the
- * document was filed with, a later act supersedes the version before and both stay filed, the record says
+ * document was filed with, a later act supersedes the version before and both stay filed, the record shows
  * where its times come from, a state that moved on while it was sealed is dropped for the newer one, an
  * act whose sealing failed stays recorded until a later run seals it, a request whose sealing keeps failing
  * is swept after the others, and two sealings racing on one request file one version. No timestamp service
@@ -673,8 +673,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
     /**
      * Withdrawing a signed agreement seals the withdrawal into a version of its own after the one that carries
      * the signature: both versions validate in DSS, the earlier one still shows the signature alone, the new
-     * record page and its attachment say who withdrew it, when and why, the open field is withdrawn, the
-     * request is revoked, and whoever asked for the signatures is told.
+     * record page and its attachment show who withdrew it, when and why, the open field is withdrawn, the
+     * request is revoked, and whoever asked for the signatures is notified.
      */
     @Test
     void aWithdrawalIsSealedIntoAVersionOfItsOwnThatValidates() throws IOException {
@@ -728,7 +728,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
 
     /**
      * A withdrawal whose sealing failed stays recorded and is sealed by the sweep once its grace is over, and
-     * the reader's view of the document says who may still withdraw what.
+     * the reader's view of the document shows who may still withdraw what.
      */
     @Test
     void aWithdrawalWhoseSealFailedIsSealedByTheSweep() throws IOException {

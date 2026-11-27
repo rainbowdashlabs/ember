@@ -14,7 +14,7 @@ import { blankOption } from '@/util/formOptions'
  *
  * <p>The rows are the shared option editor's. What this adds is the key: moving a row or changing
  * its words keeps the key it has, and a row added gets a new one. That is what lets a question with
- * answers be reordered and reworded without the answers changing what they say.
+ * answers be reordered and reworded without the answers changing what they mean.
  */
 const options = defineModel<Option[]>({ required: true })
 

@@ -396,7 +396,7 @@ public class StorageQuotaService {
         return new ResolvedQuota(instanceDefault, QuotaOrigin.INSTANCE_DEFAULT);
     }
 
-    /** What a station nobody has said anything about may keep, which is what the instance configuration says. */
+    /** What a station nobody has said anything about may keep, which is what the instance configuration defines. */
     private StationQuotas instanceDefaults(int stationId) {
         return new StationQuotas(
                 stationId,

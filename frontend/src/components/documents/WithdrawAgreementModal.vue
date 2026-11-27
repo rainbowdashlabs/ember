@@ -20,7 +20,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
  * Withdraws a signed agreement, with an optional reason. What was signed stays as evidence; the withdrawal
- * is sealed into the document, and whoever runs the appointment or asked for the signatures is told.
+ * is sealed into the document, and whoever runs the appointment or asked for the signatures is notified.
  */
 const open = defineModel<boolean>({required: true})
 

@@ -218,7 +218,7 @@ function parentOf(token: string): string | null {
 }
 
 /**
- * Flips one tree row and returns the minimal token list saying the same thing.
+ * Flips one tree row and returns the minimal token list meaning the same thing.
  *
  * <p>Checking a row stores that row's own token and drops whatever it contains; where that
  * completes a parent's children, the children fold into the parent, so a fully ticked year is one

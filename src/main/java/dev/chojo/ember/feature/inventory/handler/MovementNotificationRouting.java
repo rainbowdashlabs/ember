@@ -40,7 +40,7 @@ final class MovementNotificationRouting {
      * @param memberId       the member the gear belongs to, or {@code null}
      * @param nextActor      who acts next, or {@code null} once the chain has ended
      * @param ownerClusterId the cluster owning the gear, or {@code null}
-     * @return the audience to tell
+     * @return the audience to notify
      */
     static Audience nextParty(
             int stationId,
@@ -66,7 +66,7 @@ final class MovementNotificationRouting {
     }
 
     /**
-     * Tells the next party, once while unread. Station members are led to the movement and the actor is
+     * Notifies the next party, once while unread. Station members are led to the movement and the actor is
      * left out; cluster members are led to the cluster's movements.
      */
     static void tell(

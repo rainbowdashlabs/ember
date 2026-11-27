@@ -131,7 +131,7 @@ export async function deviceRequest(identifier: string): Promise<DeviceRequestRe
  *
  * <p>The account is named here rather than at the approval, so a code raised for one person cannot
  * be answered by another. An address that belongs to nobody is answered exactly like one that does,
- * so the screen says nothing about who has an account here.
+ * so the screen shows nothing about who has an account here.
  */
 export async function signInRequest(identifier: string): Promise<DeviceRequestResponse> {
     const res = await client.post<DeviceRequestResponse>(

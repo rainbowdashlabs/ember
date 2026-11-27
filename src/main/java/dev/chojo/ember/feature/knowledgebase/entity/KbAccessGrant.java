@@ -51,7 +51,7 @@ public record KbAccessGrant(
     }
 
     /**
-     * Tells whether this grant names the given member, through any of its subject shapes.
+     * Returns whether this grant names the given member, through any of its subject shapes.
      */
     public boolean matches(
             int memberId, @Nullable StationUserType memberUserType, List<Integer> groupIds, List<Integer> tagIds) {

@@ -18,7 +18,7 @@ public enum StorageRefusal implements Refusal {
      * A station's files that could not be carried to the storage it asked for.
      *
      * <p>The cause is deliberately kept out of the sentence and left in the log. Carrying files
-     * over opens a connection to an address the request itself names, so saying why it failed
+     * over opens a connection to an address the request itself names, so showing why it failed
      * would answer "is anything listening there" for any address somebody cares to try.
      */
     STATION_STORAGE_MOVE_NOT_DONE(1, HttpStatus.BAD_REQUEST, Sentences.STORAGE_MOVE_NOT_DONE),
@@ -71,7 +71,7 @@ public enum StorageRefusal implements Refusal {
             HttpStatus.BAD_REQUEST,
             "Give either a password or a private key for that storage, and only one of the two"),
 
-    /** The instance storage changed without saying what to change it to. */
+    /** The instance storage changed without indicating what to change it to. */
     INSTANCE_STORAGE_TARGET_MISSING(
             14, HttpStatus.BAD_REQUEST, "Say where the files are to be kept, so nothing was changed"),
 
@@ -79,7 +79,7 @@ public enum StorageRefusal implements Refusal {
      * The instance files that could not be carried to the storage asked for.
      *
      * <p>Redacted for the same reason as {@link #STATION_STORAGE_MOVE_NOT_DONE}: the address is
-     * the caller's own, so a cause would say what answers at it.
+     * the caller's own, so a cause would reveal what answers at it.
      */
     INSTANCE_STORAGE_MOVE_NOT_DONE(15, HttpStatus.BAD_REQUEST, Sentences.STORAGE_MOVE_NOT_DONE),
 
@@ -102,7 +102,7 @@ public enum StorageRefusal implements Refusal {
     /**
      * The storage the files of this station are kept on could not be reached: the connection was
      * lost and could not be had again, or the server did not answer in time. Not a fault of Ember's,
-     * which is why it is a {@code 503} and says to try again rather than hand out a reference.
+     * which is why it is a {@code 503} and asks to try again rather than hand out a reference.
      */
     STORAGE_UNREACHABLE(
             18,
@@ -159,7 +159,7 @@ public enum StorageRefusal implements Refusal {
     /** One file of a moving station asked for with a transfer code that is not good. */
     TRANSFER_TOKEN_NOT_GOOD_ON_FILE(32, HttpStatus.FORBIDDEN, Sentences.TRANSFER_TOKEN_NOT_GOOD),
 
-    /** One file of a moving station asked for without saying which. */
+    /** One file of a moving station asked for without indicating which. */
     TRANSFER_FILE_KEY_MISSING(33, HttpStatus.BAD_REQUEST, "Say which file is wanted"),
 
     /** An account's picture asked for with a transfer code that is not good. */
@@ -168,7 +168,7 @@ public enum StorageRefusal implements Refusal {
     /** An account's picture asked for during a move where the account has none. */
     TRANSFER_AVATAR_NOT_HERE(35, HttpStatus.NOT_FOUND, "That account has no picture to carry over"),
 
-    /** Files of a moving station asked for without saying which kind. */
+    /** Files of a moving station asked for without indicating which kind. */
     TRANSFER_FILE_KIND_MISSING(36, HttpStatus.BAD_REQUEST, "Say which kind of file is wanted"),
 
     /** Files of a moving station asked for by a kind no instance keeps. */

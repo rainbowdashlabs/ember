@@ -64,7 +64,7 @@ import java.util.stream.Stream;
  *
  * <p>A template is never deleted. Documents generated from it name it in the generation log, so one its
  * owner no longer wants is archived: it leaves the lists, generates nothing more, and can be taken back
- * into use. Every change counts its version up, so the log says which state a document came from.
+ * into use. Every change counts its version up, so the log shows which state a document came from.
  *
  * <p>Only the owner writes a template. A station uses the templates of its association in use next to
  * its own and lists them, marked as the association's, but a change to one is refused with words of its
@@ -119,7 +119,7 @@ public class DocumentTemplateService {
     /**
      * The templates of an owner by name. A station's list in use also holds the templates of its
      * association in use, marked as such, each showing whether the station offers it for self service.
-     * Each says when it was last generated from: at the station for a station, at any of its stations for
+     * Each shows when it was last generated from: at the station for a station, at any of its stations for
      * an association.
      *
      * @param owner    the station or the association
@@ -164,7 +164,7 @@ public class DocumentTemplateService {
 
     /**
      * A template of the owner, refusing one that is not theirs. A station asking for a template of its
-     * association is told that only the association changes it.
+     * association is shown that only the association changes it.
      *
      * @param owner      the station or the association
      * @param templateId the template
@@ -206,7 +206,7 @@ public class DocumentTemplateService {
      * Which templates are meant for which current members of a station: the members its documents may be
      * generated for, by a manager, a bulk run, a witness, an appointment or the member themselves.
      *
-     * <p>A station's own template says it in its audience. A template of the association says it per
+     * <p>A station's own template carries it in its audience. A template of the association carries it per
      * station, in the audience the station chose for it; a station that chose nothing takes in everybody.
      * An audience naming nobody takes in every member.
      *
@@ -301,7 +301,7 @@ public class DocumentTemplateService {
     }
 
     /**
-     * What a template is made of: what its letter says, an empty one where none was written, or the PDF
+     * What a template is made of: what its letter contains, an empty one where none was written, or the PDF
      * it fills now with what is laid over it.
      *
      * @param template the template
@@ -567,7 +567,7 @@ public class DocumentTemplateService {
      * @param language        the language its documents are written in
      * @param issuerId        the member of the station who issues its documents, or null where it names
      *                        nobody, for a template of an association, and once that member was deleted
-     * @param issuerFunction  what the issuer does at the station, or null where nothing is said
+     * @param issuerFunction  what the issuer does at the station, or null where nothing is set
      * @param header          the rows across the top of every page of a letter
      * @param footer          the rows across the bottom of every page of a letter
      * @param body            the rows of a letter

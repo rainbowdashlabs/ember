@@ -28,15 +28,15 @@ import {closesAt, MINUTES_PER_DAY, MINUTES_PER_HOUR, noDeadline, sameRule, zoneO
  *
  * <p>A template knows no date and so offers no fixed moment (`allowFixed`).
  *
- * <p>Given the start of the next date, the editor says when that date closes, on the station's clock.
- * On a series a fixed moment closes every date at once, which a hint beside the choice says.
+ * <p>Given the start of the next date, the editor shows when that date closes, on the station's clock.
+ * On a series a fixed moment closes every date at once, which a hint beside the choice shows.
  */
 const rule = defineModel<RegistrationDeadline>({required: true})
 
 const props = withDefaults(defineProps<{
-  /** The station's IANA time zone, which says where midnight is; the reader's own where none is known. */
+  /** The station's IANA time zone, which shows where midnight is; the reader's own where none is known. */
   timeZone?: string | null
-  /** The start of the next date, for the line saying when it closes. */
+  /** The start of the next date, for the line showing when it closes. */
   nextStart?: string | null
   /** Whether the appointment repeats, which a fixed deadline closes all at once. */
   recurring?: boolean
@@ -70,7 +70,7 @@ const lastRelative = ref<RelativeSpan>({
   anchor: rule.value.anchor ?? DeadlineAnchor.MIDNIGHT,
 })
 
-/** The rule this editor handed out last, which tells its own edits apart from a rule replaced from outside. */
+/** The rule this editor handed out last, which distinguishes its own edits from a rule replaced from outside. */
 let editedHere: RegistrationDeadline | null = null
 
 /** Hands out a changed rule as this editor's own edit. */

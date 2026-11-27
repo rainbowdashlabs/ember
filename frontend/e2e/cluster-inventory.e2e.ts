@@ -84,8 +84,8 @@ test.describe('Cluster inventory', () => {
      * CLS-35 - The cluster keeps its gear and knows where every piece is.
      *
      * Owning it and holding it are different questions, and the cluster's list answers both: the piece,
-     * the station it is at, and whoever has it there. The API says the data is right; the screen, which
-     * groups the pieces by station, says somebody can see it.
+     * the station it is at, and whoever has it there. The API returns the right data; the screen, which
+     * groups the pieces by station, shows somebody can see it.
      */
     test('the cluster sees every piece it owns and where each one is', async ({browser, request}) => {
         const page = await clusterGearManagerPage(browser, request)
@@ -141,7 +141,7 @@ test.describe('Cluster inventory', () => {
     /**
      * CLS-37 - A station hands an item back to the cluster.
      *
-     * The station cannot mark the arrival itself; the cluster confirms it, and the record says the owner
+     * The station cannot mark the arrival itself; the cluster confirms it, and the record shows the owner
      * confirmed rather than that somebody stood in for it.
      */
     test('the cluster confirms the arrival the station cannot', async ({browser, request}) => {
@@ -242,7 +242,7 @@ test.describe('Cluster inventory', () => {
     /**
      * CLS-36 - A station hands cluster gear to a member and takes it back.
      *
-     * Where a piece is remains the station's to say, and the cluster watches it change hands without doing
+     * Where a piece is remains the station's to decide, and the cluster watches it change hands without doing
      * anything. Handing somebody a jacket across a table is not a request.
      */
     test('the station hands cluster gear over and back, and the cluster sees it', async ({browser, request}) => {
@@ -289,7 +289,7 @@ test.describe('Cluster inventory', () => {
      * CLS-40 - An owner that does not use Ember is stood in for.
      *
      * The contrast that makes the rest legible: where the owner cannot answer, the station answers for it,
-     * and the record says asserted rather than confirmed so the difference survives.
+     * and the record shows asserted rather than confirmed so the difference survives.
      *
      * The presets carry no owner leg, being what a station falls back to, so the story adds a chain that
      * records it and has the station walk the owner's steps itself.
@@ -415,7 +415,7 @@ test.describe('Cluster inventory', () => {
     /**
      * CLS-42 - A cluster-owned item cannot be changed or passed on at the station.
      *
-     * What it is stays with whoever owns it. Where it is remains the station's to say, which is the other
+     * What it is stays with whoever owns it. Where it is remains the station's to decide, which is the other
      * half of the same idea and is what the custody stories walk.
      *
      * Besides the server's refusals, the screen must never offer the edit at all, since a refusal after

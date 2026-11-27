@@ -13,7 +13,7 @@ import java.util.Set;
  * <p>A report outlives the code that produced it. Somebody writes {@code F-021} down, the ticket
  * sits for a month, the constant that raised it is deleted, and the next refusal written in that
  * area takes the free number: now the report points at a line that has nothing to do with what
- * happened, and nothing anywhere says so. A gap in the numbering costs nothing; a number that means
+ * happened, and nothing anywhere shows it. A gap in the numbering costs nothing; a number that means
  * two different things costs an investigation.
  *
  * <p>So deleting a {@link Refusal} is two edits: the constant goes, and its code is written here.

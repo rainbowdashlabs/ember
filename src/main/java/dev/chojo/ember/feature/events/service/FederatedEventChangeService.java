@@ -43,16 +43,16 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Tells partner stations that a shared appointment their members hold a place on changed, and takes
+ * Lets partner stations know that a shared appointment their members hold a place on changed, and takes
  * in the same word from the partners sharing appointments with this station.
  *
  * <p>The station that runs the appointment does not know a partner's members by name and cannot
- * reach them. It tells their station which of its members are concerned and from which date, and
- * that station tells them and whoever looks after them, the way it tells them anything else. What is
- * told follows the change notice: the change where the editor chose to tell it, otherwise only a
+ * reach them. It lets their station know which of its members are concerned and from which date, and
+ * that station lets them and whoever looks after them know, the way it does for anything else. What is
+ * passed on follows the change notice: the change where the editor chose to tell it, otherwise only a
  * moved start.
  *
- * <p>Only a partner's members holding a place are told. On an appointment without registration, a
+ * <p>Only a partner's members holding a place hear of it. On an appointment without registration, a
  * partner's member who can see it but holds no place hears nothing, since the station running it
  * does not know them.
  */
@@ -109,7 +109,7 @@ public class FederatedEventChangeService implements FederationServer {
     }
 
     /**
-     * Tells the partner stations whose members hold places on dates an appointment handed to another
+     * Notifies the partner stations whose members hold places on dates an appointment handed to another
      * one, so their records of those places name the other appointment from now. Sent whatever the
      * editor chose to tell, because it is bookkeeping rather than news.
      *
@@ -132,7 +132,7 @@ public class FederatedEventChangeService implements FederationServer {
     }
 
     /**
-     * Tells every partner station whose members hold a place on the touched dates that the
+     * Notifies every partner station whose members hold a place on the touched dates that the
      * appointment changed.
      *
      * @param event        the appointment as it now stands
@@ -192,8 +192,8 @@ public class FederatedEventChangeService implements FederationServer {
     }
 
     /**
-     * Tells this station's members a partner named that the partner's appointment changed. Only members
-     * this station signed up there for that date are told: a partner is believed about this station's
+     * Notifies this station's members a partner named that the partner's appointment changed. Only members
+     * this station signed up there for that date are notified: a partner is believed about this station's
      * members only where this station sent them.
      */
     private void received(ServingPartner partner, RemoteEventChange change) {

@@ -55,7 +55,7 @@ async function photoConsentTemplate(manager: Page): Promise<number> {
     return found.id
 }
 
-/** An appointment of the story's own a week ahead, asking for sign-ups and, unless told not to, the photo consent. */
+/** An appointment of the story's own a week ahead, asking for sign-ups and, unless asked not to, the photo consent. */
 async function appointment(manager: Page, withConsent = true): Promise<{eventId: number; date: string}> {
     const headers = await apiHeaders(manager)
     const start = new Date(Date.now() + 8 * DAY)

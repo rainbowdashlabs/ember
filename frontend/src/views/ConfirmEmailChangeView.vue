@@ -15,7 +15,7 @@ import {EmailChangeStatus} from '@/api/generated/schema'
 /**
  * Where the link in a change-of-address mail lands.
  *
- * Both addresses have to confirm, so the first click is not the end of it. The page says which of
+ * Both addresses have to confirm, so the first click is not the end of it. The page shows which of
  * the two happened rather than reporting success either way, because somebody who stops reading
  * after the first mail would otherwise believe the address had already changed.
  */

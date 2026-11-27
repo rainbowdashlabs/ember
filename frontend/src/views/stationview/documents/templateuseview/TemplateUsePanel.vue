@@ -29,7 +29,7 @@ import {STATION_TEMPLATE_SCREENS} from '../templateScreens'
  * The station's choice for one template of its association: for whom of its members the template is
  * meant, whoever generates it, whether they generate it for themselves, and who of its members issues the
  * template's documents at the station. The self service choice only takes effect while the association
- * offers the template for self service, which the panel says where it does not.
+ * offers the template for self service, which the panel shows where it does not.
  */
 const selfService = defineModel<boolean>('selfService', {required: true})
 const audience = defineModel<RestrictionSelection>('audience', {required: true})

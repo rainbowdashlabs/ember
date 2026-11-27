@@ -25,7 +25,7 @@ async function openMailImport(page: Page) {
  * Fills in a mailbox pointing at a host that does not answer.
  *
  * <p>Nothing here needs it to answer: what is being tested is that the mailbox can be set up at all and
- * that the page says what went wrong when it cannot be reached.
+ * that the page shows what went wrong when it cannot be reached.
  */
 async function addMailbox(page: Page, name: string) {
     await page.getByRole('button', {name: 'Postfach hinzufügen'}).click()
@@ -114,7 +114,7 @@ test.describe('Mail import', () => {
         await expect(page.locator('body')).not.toContainText('Verbindung steht')
     })
 
-    /** The log is the feature: it is there before anything has arrived, and says so. */
+    /** The log is the feature: it is there before anything has arrived, and shows that. */
     test('the log is on the page from the start', async ({managerPage: page}) => {
         await openMailImport(page)
 

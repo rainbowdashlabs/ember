@@ -52,7 +52,7 @@ class ProfileCompletenessSqlTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
-    /** What the member list says about the member, and what the single lookup says; they have to agree. */
+    /** What the member list shows about the member, and what the single lookup shows; they have to agree. */
     private boolean complete() {
         boolean listed = stationMemberRepo.findRichMembers(station.id(), false).stream()
                 .filter(row -> row.id() == member.id())

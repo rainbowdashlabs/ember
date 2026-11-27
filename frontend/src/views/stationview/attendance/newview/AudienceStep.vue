@@ -20,14 +20,14 @@ import type {MemberGroup, SessionAudience, StationUserType, TemplateDetail} from
 import {templateAudience} from './templateAudience'
 
 /**
- * The step that says whom a new sheet enters, and whose questions it borrows.
+ * The step that defines whom a new sheet enters, and whose questions it borrows.
  *
  * <p>The two answers add up. Everybody of a chosen type and everybody in a chosen group stands on
  * the sheet, and somebody both of them name stands on it once.
  *
  * <p>Started from a template, the step arrives filled in with that template's user types and groups
  * and may be walked past as it stands, even where the template names nobody. Started without one, it
- * arrives empty and has to be told somebody.
+ * arrives empty and has to be given somebody.
  */
 const props = defineProps<{
   templates: TemplateDetail[]

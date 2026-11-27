@@ -26,7 +26,7 @@ import javax.crypto.spec.SecretKeySpec;
  * takes a fresh 12-byte IV, and every failure, a missing key included, is a {@link CredentialCipherException}.
  *
  * <p>A secret in a text column goes through {@link #seal(String)}, whose {@value #SEALED_PREFIX} prefix
- * tells it from a plaintext value written before encryption existed.
+ * distinguishes it from a plaintext value written before encryption existed.
  */
 @Singleton
 public class CredentialCipher {

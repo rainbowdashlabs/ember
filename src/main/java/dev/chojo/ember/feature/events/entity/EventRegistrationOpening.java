@@ -12,7 +12,7 @@ import java.util.List;
  * nobody.
  *
  * <p>An appointment narrowed for registration is still shown to everybody who may see it, so a reader
- * meets appointments they cannot answer. An empty list says exactly that, which is what lets a screen
+ * meets appointments they cannot answer. An empty list shows exactly that, which is what lets a screen
  * leave out the button instead of offering one the server then refuses.
  *
  * @param eventId   the appointment

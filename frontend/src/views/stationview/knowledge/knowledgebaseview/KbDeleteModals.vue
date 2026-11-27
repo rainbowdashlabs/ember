@@ -13,7 +13,7 @@ import {knowledgeBase} from '@/api'
 import type {DeleteImpact, KbFileSummary, KbFolder} from '@/api/generated/schema'
 
 /**
- * Asking before a delete, and saying what it really costs.
+ * Asking before a delete, and showing what it really costs.
  *
  * A public page can carry a wiki article, and it names the article by number in its settings without
  * anything in the database holding the two together. Deleting the article leaves that page showing a

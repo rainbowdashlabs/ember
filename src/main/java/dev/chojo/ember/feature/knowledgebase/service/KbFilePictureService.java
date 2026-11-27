@@ -113,10 +113,10 @@ public class KbFilePictureService {
      * What a picture is made from: the stored type where it names something, and what the bytes turn
      * out to be where it names nothing.
      *
-     * <p>A phone often uploads without saying what it sends, and the file is stored as a stream of
+     * <p>A phone often uploads without declaring what it sends, and the file is stored as a stream of
      * bytes. The wiki still calls a {@code .jpg} a picture by its name, so its tile asks for one, and
-     * a type that says nothing must not be taken for proof that there is none. A declared type that
-     * says something else, a spreadsheet's, is believed.
+     * a type that shows nothing must not be taken for proof that there is none. A declared type that
+     * shows something else, a spreadsheet's, is believed.
      */
     static @Nullable String pictureType(@Nullable String storedType, byte[] data) {
         if (!isUntyped(storedType)) return storedType;

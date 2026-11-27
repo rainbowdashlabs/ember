@@ -26,7 +26,7 @@ const {t} = useI18n()
  *
  * <p>Two narrowings and one widening against a station. It names no member groups, because a group
  * belongs to one station and an association has no view of those. It may not ask for a date of birth,
- * because the station declares its own and the two would collide. And it alone can say that the
+ * because the station declares its own and the two would collide. And it alone can decide that the
  * station may read an answer without writing it, because it alone has somebody below it.
  */
 const port: FieldsPort = {

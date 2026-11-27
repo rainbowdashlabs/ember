@@ -59,7 +59,7 @@ export function useListInvites(
    * Withdraws one link after asking, unless shift is held, then fetches the rest.
    *
    * <p>Caught apart, because the link stops working the moment the first call goes through. A reader
-   * told otherwise sees it still listed and hunts for why it will not go away.
+   * shown otherwise sees it still listed and hunts for why it will not go away.
    */
   const removal = useConfirmDelete<number>({
     onDelete: async inviteId => {

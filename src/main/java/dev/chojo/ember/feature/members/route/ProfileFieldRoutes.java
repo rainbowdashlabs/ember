@@ -425,7 +425,7 @@ public class ProfileFieldRoutes implements Routes {
      * <p>Only the member, their guardian or somebody allowed to edit members writes them; editing
      * members also unlocks the fields that are read-only to everybody else.
      *
-     * <p>Which answers are written is the service's to say, for the station's questions and the
+     * <p>Which answers are written is the service's to decide, for the station's questions and the
      * association's alike: only questions put to this member, and a locked one only by the member
      * management.
      */
@@ -496,7 +496,7 @@ public class ProfileFieldRoutes implements Routes {
      * Who a field is asked of, and how it is put to them.
      *
      * <p>Exactly one of {@code role} and {@code groupId} is given. Sending both, or neither, is the
-     * caller failing to say who is asked. An override left {@code null} takes the question's own
+     * caller failing to specify who is asked. An override left {@code null} takes the question's own
      * setting.
      */
     public record AssignmentRequest(

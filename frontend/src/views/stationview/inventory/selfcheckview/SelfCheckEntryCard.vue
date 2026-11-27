@@ -35,10 +35,10 @@ import {useSession} from '@/composables/useSession'
  *
  * <p>Two of the answers are not answers at all: saying a piece cannot be found and asking for it to be
  * swapped both take effect the moment they are given, through the screens that already accept them, so
- * they are offered as the acts they are rather than as boxes to tick. Why a swap is asked for is said in
- * its dialog, the way every swap says it.
+ * they are offered as the acts they are rather than as boxes to tick. Why a swap is asked for is given in
+ * its dialog, the way every swap gives it.
  *
- * <p>On one line they do not take effect at once, and the card has to say so rather than look as
+ * <p>On one line they do not take effect at once, and the card has to show that rather than look as
  * though the button did nothing. Where the member is putting the size right, the report waits for
  * the station to take that correction, because the correction does not edit the piece: it writes a
  * new one carrying the size they gave and takes the old one off their name, so a report raised now
@@ -95,7 +95,7 @@ const exchangeRaised = computed(() => exchangeStanding.value === 'RAISED' || exc
 /**
  * An exchange needs an inventory holding one thing in many copies, a piece the station owns, and the
  * station's movements, since an exchange is one. A piece another open movement carries is that
- * movement's to move; the swap the member raised here stays as the disabled button saying so.
+ * movement's to move; the swap the member raised here stays as the disabled button showing that.
  */
 const mayRequestExchange = computed(
   () => piece.value != null && !borrowed(piece.value) && !recordedLost(piece.value) && props.entry.req.homogeneous
@@ -146,15 +146,15 @@ const mayCorrectTheSize = computed(
 const recordedSize = computed(() => (piece.value?.sizeId == null ? '' : String(piece.value.sizeId)))
 
 /**
- * What the size box shows: what the member has said, or what the record says while they have said
+ * What the size box shows: what the member has said, or what the record holds while they have said
  * nothing.
  */
 const shownSize = computed(() => props.draft.sizeId || recordedSize.value)
 
 /**
  * Moving the size away from the recorded one is the member saying the record is wrong, so it is
- * taken as that answer rather than asked for a second time. Putting it back where it was says
- * nothing, and leaves whatever answer they gave standing.
+ * taken as that answer rather than asked for a second time. Putting it back where it was gives
+ * no answer, and leaves whatever answer they gave standing.
  */
 function chooseActualSize(chosen: string) {
   const differs = chosen !== recordedSize.value

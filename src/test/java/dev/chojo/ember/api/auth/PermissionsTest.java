@@ -83,7 +83,7 @@ class PermissionsTest {
     /**
      * Every permission has to answer with all of its children, whoever asks and whenever they ask.
      * The answer used to be gathered into the very set that was handed out, so anybody asking
-     * during that moment was told a manager holds two of their seven rights, and the session built
+     * during that moment saw that a manager holds two of their seven rights, and the session built
      * from it looked exactly like rights that had been taken away.
      */
     @Test
@@ -198,7 +198,7 @@ class PermissionsTest {
      *
      * <p>Creating and the manager role itself were withheld once, on the reasoning that the manager role
      * carries lending. It also carries defining a kind of gear and throwing one away, so the association
-     * could do neither and the screen that says it defines its gear opened with a refusal. Nobody else
+     * could do neither and the screen that shows it defines its gear opened with a refusal. Nobody else
      * stands on this station, so there is nothing here to keep from its owner.
      */
     @Test

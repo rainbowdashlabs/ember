@@ -32,7 +32,7 @@ import java.util.function.Supplier;
  * whoever holds a domain's key signed the message, and an attacker signs with a domain of their own and
  * passes. What is asked here is that the signing domain is the domain the sender address claims, or one
  * the address sits under: the organisational reading, where {@code weber.co.uk} and {@code post.co.uk}
- * would count as one, is not used, because telling a registrable domain from a public suffix needs a
+ * would count as one, is not used, because distinguishing a registrable domain from a public suffix needs a
  * list this instance does not carry.
  *
  * <p>What is verified are the bytes as they arrived. The body hash is exact to the byte, and a message
@@ -114,7 +114,7 @@ public class DkimVerification {
      *
      * <p>A subdomain of the signing domain counts, which is how a house that signs everything with its
      * own name sends from a machine under it. The other direction never does: a signature by
-     * {@code post.musterstadt.de} says nothing about mail from {@code musterstadt.de}.
+     * {@code post.musterstadt.de} shows nothing about mail from {@code musterstadt.de}.
      */
     private static boolean aligns(CharSequence signingDomain, String claimed) {
         if (signingDomain == null) return false;

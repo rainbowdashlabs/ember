@@ -60,7 +60,7 @@ const form = ref<Form | null>(null)
 
 /**
  * Whose results these are, with the part after the name, so the results of two forms open at once
- * are two tabs that say which is which.
+ * are two tabs that show which is which.
  */
 const pageTitle = computed(() => form.value
     ? t('pages.forms-analytics.titleNamed', {name: form.value.title})
@@ -99,7 +99,7 @@ watch(visibleResponses, () => {
  *
  * <p>This was swallowed, so a response whose answers would not load looked exactly like a response
  * somebody had left blank. Reading a survey off an empty card that is only empty because the request
- * failed is worse than being told nothing at all.
+ * failed is worse than being shown nothing at all.
  */
 const {
   loading: loadingResponse,

@@ -109,7 +109,7 @@ class FederationPartnerTransferFixupServiceTest {
     }
 
     /**
-     * A partner that could not be told where the station runs now is asked again later, and only that
+     * A partner that could not be notified where the station runs now is asked again later, and only that
      * partner: the ones that heard are not bothered twice.
      */
     @Test

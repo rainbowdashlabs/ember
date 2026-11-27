@@ -161,9 +161,9 @@ public final class PandocConverter {
 
     /**
      * The Pandoc input format of an uploaded document, decided by what the file is rather than by what
-     * it is called wherever its bytes can tell.
+     * it is called wherever its bytes allow it.
      *
-     * <p>A ZIP archive is an OpenDocument text when its {@code mimetype} entry says so, an EPUB likewise,
+     * <p>A ZIP archive is an OpenDocument text when its {@code mimetype} entry shows that, an EPUB likewise,
      * and a Word document when it holds {@code word/document.xml}. Anything else is decided by its name
      * and then by its declared type: RTF, HTML and LaTeX. The old binary Word format ({@code .doc}) is
      * never answered, whatever the file is called, because Pandoc cannot read it; nor is a ZIP archive

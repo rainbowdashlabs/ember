@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import AppLink from '@/components/navigation/AppLink.vue'
 
-/** Nothing waits for the reader's signature: said plainly, with the way to what else is open. */
+/** Nothing waits for the reader's signature: shown plainly, with the way to what else is open. */
 const {t} = useI18n()
 </script>
 

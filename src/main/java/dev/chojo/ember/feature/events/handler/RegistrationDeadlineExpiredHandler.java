@@ -18,7 +18,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells the event managers that sign-up for an appointment, one date of a series or an event group
+ * Notifies the event managers that sign-up for an appointment, one date of a series or an event group
  * closed with answers still waiting for them.
  */
 @Singleton

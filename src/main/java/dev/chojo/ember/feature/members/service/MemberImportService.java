@@ -436,7 +436,7 @@ public class MemberImportService {
     }
 
     /**
-     * What one row of the file says about one member, read through the reader's mappings.
+     * What one row of the file shows about one member, read through the reader's mappings.
      *
      * <p>A day, whether the join date or the answer to a date question, is read in its target's format
      * and kept as an ISO date. A cell no day reads stays as written, so the date question refuses it
@@ -523,7 +523,7 @@ public class MemberImportService {
     }
 
     /**
-     * Joins the columns mapped onto one target, each split and value-mapped as its mapping says. A
+     * Joins the columns mapped onto one target, each split and value-mapped as its mapping defines. A
      * negative split index counts from the end.
      */
     private String buildMergedValue(Map<String, String> row, List<ColumnMapping> mappingsForTarget) {
@@ -596,7 +596,7 @@ public class MemberImportService {
      * that is theirs alone. An account carrying it counts as here when it is a member of this station or
      * when a member here has asked to link it; an account known only to other stations is somebody new
      * to this one, who is taken in and asked to link. Where it carries none, the name decides, and only within this station:
-     * two people of that name here cannot be told apart by anything in the row, and the same list
+     * two people of that name here cannot be distinguished by anything in the row, and the same list
      * imported twice should leave one of each rather than a second copy of everybody.
      *
      * <p>Trimmed and without regard to case on both sides, so a stray space in a spreadsheet does not
@@ -676,7 +676,7 @@ public class MemberImportService {
     }
 
     /**
-     * Warns about every cell of a row its question will not take, so the preview says it before the
+     * Warns about every cell of a row its question will not take, so the preview shows it before the
      * import leaves it out.
      */
     private static void warnAboutRefusedCells(
@@ -737,7 +737,7 @@ public class MemberImportService {
         return refused ? Optional.empty() : Optional.of(answer);
     }
 
-    /** What a row's warning says about a cell its question does not take. */
+    /** What a row's warning shows about a cell its question does not take. */
     private static String refusedCell(int line, ProfileField field, String cell) {
         return "Zeile " + line + ": \"" + cell.trim() + "\" passt nicht zum Feld " + field.name()
                 + ", nicht übernommen";
@@ -776,7 +776,7 @@ public class MemberImportService {
                 .anyMatch(field -> field.fieldType().kind().orElse(null) == QuestionKind.DATE);
     }
 
-    /** The words a spreadsheet says yes and no with, in both languages a station is likely to use. */
+    /** The words a spreadsheet uses for yes and no, in both languages a station is likely to use. */
     private static String asBoolean(String value) {
         String said = value.toLowerCase();
         if (Set.of("ja", "yes", "true", "wahr", "x", "1").contains(said)) return "true";
@@ -866,7 +866,7 @@ public class MemberImportService {
             this(firstName, lastName, email, group, joinDate, profileFields, contacts, -1, false);
         }
 
-        /** The same row, told where it came from and whether it was struck out. */
+        /** The same row, given where it came from and whether it was struck out. */
         public MemberPreview at(int row, boolean ignored) {
             return new MemberPreview(
                     firstName, lastName, email, group, joinDate, profileFields, contacts, row, ignored);

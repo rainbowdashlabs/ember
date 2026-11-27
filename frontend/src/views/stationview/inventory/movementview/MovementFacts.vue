@@ -12,7 +12,7 @@ import {MovementState, type MovementResponse} from '@/api/generated/schema'
 /**
  * What was written down about a movement: who it is with, what it is out of, and why.
  *
- * <p>The state is only spelled out once it has ended. While it is open, the step it stands on says
+ * <p>The state is only spelled out once it has ended. While it is open, the step it stands on shows
  * where it is far better than the word "offen" does.
  */
 const {t} = useI18n()

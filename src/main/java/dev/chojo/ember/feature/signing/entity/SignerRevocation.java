@@ -13,7 +13,7 @@ import java.time.Instant;
  * Whether a signer's certificate is revoked, read from the current revocation list of the
  * installation's authority that issued it, the list it publishes, never from the network.
  *
- * @param status    what the list says
+ * @param status    what the list shows
  * @param revokedAt from when the list names it revoked; null unless it is revoked. A seal whose
  *                  timestamp lies before this date was made while the key was still good
  * @param reason    why the list names it revoked; null unless it is revoked or when the list gives a

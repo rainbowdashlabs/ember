@@ -27,7 +27,7 @@ import java.util.concurrent.Executor;
  * from the declared contract. Delivery runs in the background and a failed attempt is retried with
  * backoff (1s, 2s, 4s) before it is given up.
  *
- * <p>Partners on this instance read the same database and have nothing to be told, so they are skipped.
+ * <p>Partners on this instance read the same database and have nothing to be notified of, so they are skipped.
  */
 @Singleton
 public class FederationWebhookService {

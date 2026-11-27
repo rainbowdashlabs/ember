@@ -52,7 +52,7 @@ public final class TypstCompiler {
     /**
      * Renders a template, additionally writing {@code resources} next to it. A template reads them
      * with {@code read()} or {@code eval(read(...))}, which is how content too structured for
-     * {@code data.json} - a Typst markup fragment, say - reaches the document.
+     * {@code data.json}, such as a Typst markup fragment, reaches the document.
      */
     public static byte[] compileTemplate(
             Map<String, Object> data, String templateName, @Nullable StationLogo logo, Map<String, String> resources)
@@ -62,7 +62,7 @@ public final class TypstCompiler {
 
     /**
      * The same, additionally writing {@code files} next to the template byte for byte, for what is
-     * not text: a picture the document shows with {@code image()}, say.
+     * not text, such as a picture the document shows with {@code image()}.
      */
     public static byte[] compileTemplate(
             Map<String, Object> data,

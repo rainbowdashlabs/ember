@@ -463,7 +463,7 @@ class IcalEventRendererTest {
 
     /**
      * A date of a series called off on its own reaches the calendar as an override of that date,
-     * marked cancelled and saying why, and the series itself stays as it was.
+     * marked cancelled and showing why, and the series itself stays as it was.
      */
     @Test
     void aCancelledDateOfASeriesIsAnOverrideMarkedCancelled() {

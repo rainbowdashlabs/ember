@@ -63,7 +63,7 @@ function label(occurrence: UpcomingEventOccurrence): string {
   return occurrence.event.name ?? ''
 }
 
-/** The date and the hour, since two occurrences on one day are told apart only by the time. */
+/** The date and the hour, since two occurrences on one day are distinguished only by the time. */
 function subtitle(occurrence: UpcomingEventOccurrence): string {
   const time = formatTime(occurrence.event.startTime)
   return time ? `${formatDate(occurrence.date)} · ${time}` : formatDate(occurrence.date)

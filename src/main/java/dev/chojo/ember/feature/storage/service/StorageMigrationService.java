@@ -61,7 +61,7 @@ public class StorageMigrationService {
      * the move is closed afterwards; the instance default is shared and stays open.
      *
      * <p>A category whose files already lie at the target's destination is neither copied nor deleted: the
-     * target is always built fresh, so only the destination tells that the "source" keys are the very files
+     * target is always built fresh, so only the destination shows that the "source" keys are the very files
      * the station keeps, as when only a password changes.
      *
      * @throws MigrationException on any failure, after the lock was released, so the caller may retry

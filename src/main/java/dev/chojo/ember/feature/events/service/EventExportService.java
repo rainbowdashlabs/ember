@@ -215,7 +215,7 @@ public class EventExportService {
      * One cell of the sheet, written in the station's own language.
      *
      * <p>The language reaches here because the words are values rather than chrome: a station reading
-     * English got an English heading over a column saying Wöchentlich, which is worse than either
+     * English got an English heading over a column showing Wöchentlich, which is worse than either
      * language on its own.
      */
     private String resolveBuiltinValue(StationEvent event, LocalDate date, String key, ZoneId zone, String language) {
@@ -256,10 +256,10 @@ public class EventExportService {
     }
 
     /**
-     * How the chosen days are said in the name.
+     * How the chosen days are written in the name.
      *
      * <p>A whole month or a whole year is called what a reader calls it. Anything else is the two days
-     * themselves, which is the only honest thing to say about a span that is not a period.
+     * themselves, which is the only honest description of a span that is not a period.
      *
      * <p>The last day is accepted both as the last day covered and as the first day after, because a
      * range is written both ways and a name must not depend on which.

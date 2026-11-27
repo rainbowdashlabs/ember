@@ -13,7 +13,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 
 /**
- * The question asked before something is removed for good: a sentence saying what goes, a cancel
+ * The question asked before something is removed for good: a sentence showing what goes, a cancel
  * and a red button that does it. A question that removes nothing, such as one before saving, asks
  * with the primary button instead and names it through `confirmLabel`.
  *
@@ -28,9 +28,9 @@ const modelValue = defineModel<boolean>({required: true})
 
 withDefaults(defineProps<{
   message: string
-  /** The heading above the sentence, left out where the sentence says it all. */
+  /** The heading above the sentence, left out where the sentence shows it all. */
   title?: string
-  /** What the confirming button says. Defaults to "Delete", so a neutral question always names its own. */
+  /** What the confirming button shows. Defaults to "Delete", so a neutral question always names its own. */
   confirmLabel?: string
   /** An icon before the confirming button's label, named the way `AppIcon` takes it. */
   confirmIcon?: string[]

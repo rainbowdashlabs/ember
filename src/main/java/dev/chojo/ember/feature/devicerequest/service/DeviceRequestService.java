@@ -157,7 +157,7 @@ public class DeviceRequestService {
      * Raises a request from a device nobody has identified yet, which is how a passkey enrolment and
      * a sign-in both begin. What the approval will buy is fixed here and never later.
      *
-     * <p>The device says which account it wants, and that decides who may approve it. It is a claim
+     * <p>The device indicates which account it wants, and that decides who may approve it. It is a claim
      * and not a proof: an address is public, so naming one buys nothing on its own. What it buys is
      * that a code raised for one person cannot be approved by another, which is what used to let a
      * code be sent to a crowd for whoever bit to answer with their own account.
@@ -187,7 +187,7 @@ public class DeviceRequestService {
 
     /**
      * The account behind what somebody typed, by address or by username, or empty when it is
-     * neither. Never says which of the two it was, and never says that it found nothing.
+     * neither. Never reveals which of the two it was, and never reveals that it found nothing.
      */
     private Optional<Integer> resolveNamed(String identifier) {
         if (identifier == null || identifier.isBlank()) return Optional.empty();
@@ -341,7 +341,7 @@ public class DeviceRequestService {
      *
      * <p>The request row is a scratchpad that the sweep deletes minutes later, so the audit entry is
      * what outlives it. It is written against the account that was signed in, because that is whose
-     * access is in question, and names the approver so the two can be told apart afterwards.
+     * access is in question, and names the approver so the two can be distinguished afterwards.
      */
     public Optional<LoginResult> claimSignIn(String claimToken, @Nullable String userAgent, @Nullable String location) {
         Optional<DeviceRequest> claimed =
@@ -381,7 +381,7 @@ public class DeviceRequestService {
      *
      * <p>Unlike the other two purposes this one is raised by somebody already known, so the row holds
      * the session it will stamp and the account that session belongs to. The category travels with
-     * it: an approval screen that can only say "confirm something sensitive" is not a thing anybody
+     * it: an approval screen that can only show "confirm something sensitive" is not a thing anybody
      * can judge.
      */
     public CreatedRequest createStepUpRequest(
@@ -458,11 +458,11 @@ public class DeviceRequestService {
     }
 
     /**
-     * Tells the account a device was signed in as them. Best effort: an instance can be run with no
+     * Notifies the account a device was signed in as them. Best effort: an instance can be run with no
      * mail at all, and the audit row above is what an investigation actually reads.
      *
-     * <p>Only where there is somewhere to tell. A managed member's address is synthetic and receives
-     * nothing, and the person who would otherwise be told is the guardian who just approved it and
+     * <p>Only where there is somewhere to notify. A managed member's address is synthetic and receives
+     * nothing, and the person who would otherwise be notified is the guardian who just approved it and
      * already knows.
      */
     private void notifyVouchedSignIn(DeviceRequest request) {
@@ -490,9 +490,9 @@ public class DeviceRequestService {
     public record CreatedRequest(String code, String pollSecret, int matchNumber, Instant expiresAt) {}
 
     /**
-     * How an approval went, which the screen says three different things about.
+     * How an approval went, which the screen shows in three different ways.
      *
-     * <p>A wrong number is told apart from an unknown code on purpose. The reader holding the phone
+     * <p>A wrong number is distinguished from an unknown code on purpose. The reader holding the phone
      * has the code in front of them and needs to know that the numbers were the problem, while
      * somebody fishing for a code learns nothing from it: reaching this answer at all means already
      * holding a code raised for their own account.

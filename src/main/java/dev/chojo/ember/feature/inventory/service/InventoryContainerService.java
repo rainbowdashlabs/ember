@@ -405,7 +405,7 @@ public class InventoryContainerService {
     /**
      * Places an item into a container, or clears its location with a
      * {@code null} container id. Validates that the item and the container
-     * belong to the same station. A container says where in the store an item
+     * belong to the same station. A container shows where in the store an item
      * is rather than who has it, so this leaves the custody alone unless a
      * member was holding the item, in which case putting it on a shelf is
      * handing it back at the same time.

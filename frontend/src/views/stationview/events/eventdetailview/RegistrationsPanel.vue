@@ -112,7 +112,7 @@ function decidable(registration: RegistrationResponse): boolean {
       && registration.status !== RegistrationStatus.WITHDRAWN
 }
 
-/** What to say instead, where a question of the appointment is what puts somebody on the list. */
+/** What to show instead, where a question of the appointment is what puts somebody on the list. */
 function heldByFieldNote(registration: RegistrationResponse): string {
   return registration.fieldName
       ? t('eventsUpcoming.heldByNamedField', {field: registration.fieldName})

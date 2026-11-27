@@ -18,7 +18,7 @@ import {positionOf, WITNESS_STEPS, type WitnessStep} from './witnessFlow'
 
 /**
  * The part of signing in front of a witness the person holds the device for: taking it up, reading and
- * agreeing, drawing, and handing it back. The step is the flow's; each screen only says where to go.
+ * agreeing, drawing, and handing it back. The step is the flow's; each screen only shows where to go.
  */
 const props = defineProps<{
   step: WitnessStep

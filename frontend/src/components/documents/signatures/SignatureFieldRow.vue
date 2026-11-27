@@ -26,7 +26,7 @@ import {witnessSigningHref} from './witnessSigning'
  *
  * <p>A field that still waits offers what no signing act does: confirming a paper signature, waiving it or
  * withdrawing it. Each is asked once more before it is done, since a settled field stays settled. A field
- * nobody can sign says so, because only these actions settle it. A reader who collects signatures in person
+ * nobody can sign shows that, because only these actions settle it. A reader who collects signatures in person
  * may also have a field of the member's side signed in front of them from here.
  */
 const props = defineProps<{

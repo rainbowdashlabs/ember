@@ -452,7 +452,7 @@ public class ProfileFieldRepository {
 
     /**
      * Whether a member has answered everything their profile asks of them, judged as
-     * {@link ProfileCompletenessSql} says.
+     * {@link ProfileCompletenessSql} defines.
      *
      * @param memberId the member whose profile is being judged
      * @return whether nothing required of them is left blank, true for a member that does not exist

@@ -28,7 +28,7 @@ import {useGroupsConfig, type GroupsCapabilities, type GroupsPort} from '@/compo
 const props = defineProps<{
   title: string
   subtitle: string
-  /** What the empty side says before a group is opened. */
+  /** What the empty side shows before a group is opened. */
   selectHint: string
   port: GroupsPort
   capabilities: GroupsCapabilities

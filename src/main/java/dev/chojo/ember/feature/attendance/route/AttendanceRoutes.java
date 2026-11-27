@@ -68,7 +68,7 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
  */
 @Singleton
 public class AttendanceRoutes implements Routes {
-    /** How many past sheets a page holds where the request does not say. */
+    /** How many past sheets a page holds where the request does not specify. */
     private static final int SESSION_PAGE = 25;
 
     private final AttendanceService attendanceService;

@@ -14,7 +14,7 @@ public enum ValidationIndication {
     TOTAL_PASSED,
     /** A signature failed for a reason no later data can change, such as altered content. */
     TOTAL_FAILED,
-    /** The checks could not decide; the sub-indication says what was missing. */
+    /** The checks could not decide; the sub-indication shows what was missing. */
     INDETERMINATE,
     /** A timestamp or a building block passed its checks. */
     PASSED,

@@ -9,7 +9,7 @@ import NumberMatchPicker from './NumberMatchPicker.vue'
 
 /**
  * The step that makes it safe for the code to ride in the QR. What matters is that every choice the
- * server offered is on the screen, in the order it offered them, and that the screen never says
+ * server offered is on the screen, in the order it offered them, and that the screen never shows
  * which one is right: somebody who was sent a picture of a QR has to be unable to answer.
  */
 function mountPicker(choices: number[], busy = false) {

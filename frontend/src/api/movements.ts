@@ -85,7 +85,7 @@ export async function listAtMember(): Promise<MovementResponse[]> {
 /**
  * Puts a movement where somebody says it should have been, by saying where its pieces are.
  *
- * <p>There is no status to write: where a movement stands is read off its pieces, so a correction says
+ * <p>There is no status to write: where a movement stands is read off its pieces, so a correction shows
  * what is true of them and the chain follows.
  */
 export async function correctMovement(id: number, data: CorrectMovementRequest): Promise<MovementDetail> {
@@ -163,7 +163,7 @@ export interface FlowQuery {
  * The chain a movement would walk, asked before anybody starts one.
  *
  * <p>Answers null where no chain serves the combination, which is a case the wizard shows rather than
- * an error: a station that has not written that chain needs telling, not a red banner.
+ * an error: a station that has not written that chain needs a note, not a red banner.
  */
 export async function resolveFlow(query: FlowQuery): Promise<FlowPreview | null> {
     try {
@@ -202,7 +202,7 @@ export async function renameFlow(id: number, data: FlowRequest): Promise<FlowRes
 }
 
 /**
- * Says whether a chain confirms the member's receipt of a piece for them as soon as a movement reaches it.
+ * Returns whether a chain confirms the member's receipt of a piece for them as soon as a movement reaches it.
  * Answers with the chain as it now stands.
  */
 export async function setMemberReceipt(id: number, skipMemberReceipt: boolean): Promise<FlowResponse> {

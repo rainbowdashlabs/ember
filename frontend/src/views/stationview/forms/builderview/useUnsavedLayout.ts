@@ -38,7 +38,7 @@ export function useUnsavedLayout(key: () => string, pages: Ref<PageDraft[]>) {
 
     /**
      * Takes the list as the server holds it, once it is read or saved, and offers a kept list where one
-     * says something else.
+     * holds something else.
      *
      * @param offer whether to offer a kept list, which is only worth doing when the editor opens
      */

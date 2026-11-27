@@ -51,7 +51,7 @@ public class ProfileFieldChangeRepository {
      * The newest change to one answer by one author since the cutoff, which a further change by the same
      * author merges into.
      *
-     * @param origin   who asked the question, which says which column names it
+     * @param origin   who asked the question, which shows which column names it
      * @param fieldId  the question
      * @param memberId whose answer it is
      * @param author   who changed it
@@ -116,7 +116,7 @@ public class ProfileFieldChangeRepository {
      * Records a change to one answer, whoever asked the question.
      *
      * <p>One history for both owners, because a member's profile reads as one story: what changed, when and
-     * by whom, whoever asked the question. Which of the two columns is filled says whose question it was.
+     * by whom, whoever asked the question. Which of the two columns is filled shows whose question it was.
      *
      * @param origin                  who asked the question
      * @param fieldId                 the question

@@ -181,7 +181,7 @@ public record UserSession(
     }
 
     /**
-     * The association this request acts for, as the owner a shared core is told about.
+     * The association this request acts for, as the owner handed to a shared core.
      *
      * <p>Every association route names its own refusal for a request that chose no association, so
      * the route hands it in.
@@ -197,7 +197,7 @@ public record UserSession(
     }
 
     /**
-     * The instance, as the owner a shared core is told about, for a route the instance administration
+     * The instance, as the owner handed to a shared core, for a route the instance administration
      * reaches. The permission check is the route's registration, as for every other route.
      *
      * @return the instance

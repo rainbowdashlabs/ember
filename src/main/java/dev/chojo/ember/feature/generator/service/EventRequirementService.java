@@ -39,14 +39,14 @@ import java.util.Objects;
  * there ({@link MemberNeutralTemplates}). That is asked when the documents of a shared appointment are set,
  * and when an appointment that asks for documents is shared ({@link #requireShareable}).
  *
- * <p>Changing what an appointment asks for is told to the rest of the station ({@link EventRequirementsChanged}),
+ * <p>Changing what an appointment asks for is announced to the rest of the station ({@link EventRequirementsChanged}),
  * so the participants already registered are asked for a document added later, and what is still open on one
  * taken off goes. Changing an appointment template only affects the appointments made from it afterwards, so
- * nobody is told.
+ * nobody is notified.
  *
  * <p>An event group asks every part for its documents, read live: a part shows the event group's documents
  * first and its own after them, and a part's own list never holds one the event group asks for, so a part
- * cannot take one of the event group's off. Changing the event group's list is told for every part, as a
+ * cannot take one of the event group's off. Changing the event group's list is announced for every part, as a
  * change of the part's own list would be.
  */
 @Singleton
@@ -184,7 +184,7 @@ public class EventRequirementService {
     }
 
     /**
-     * Sets what an event group asks every part to bring, and tells the station what each part asks
+     * Sets what an event group asks every part to bring, and announces to the station what each part asks
      * for now that it did not, and the other way round. Where the event group or one of its parts is
      * shared with partners, every document has to be one partners can sign alike.
      *
@@ -216,7 +216,7 @@ public class EventRequirementService {
         return required.stream().map(RequiredTemplate::templateId).toList();
     }
 
-    /** Tells the station which documents the appointment asks for now that it did not, and the other way round. */
+    /** Notifies the station which documents the appointment asks for now that it did not, and the other way round. */
     private void announceChange(Owner.Station owner, int eventId, List<RequiredTemplate> before, List<Integer> now) {
         var previous = before.stream().map(RequiredTemplate::templateId).toList();
         var added = now.stream().filter(id -> !previous.contains(id)).toList();

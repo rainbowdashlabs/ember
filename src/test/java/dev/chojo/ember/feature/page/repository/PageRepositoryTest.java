@@ -228,7 +228,7 @@ class PageRepositoryTest extends RepositoryTestBase {
 
     /**
      * Which pages put a given form on themselves, which is what a poll being closed to its link has
-     * to be able to say before it breaks them.
+     * to be able to determine before it breaks them.
      */
     @Test
     @Order(90)

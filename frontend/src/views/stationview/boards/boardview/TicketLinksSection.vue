@@ -127,10 +127,10 @@ async function addLink(linkedTicketId: number, linkedTicketNumber: number) {
     await api.createLink(linkedTicketId, linkedTicketNumber, linkType.value)
     showAddLink.value = false; linkSearchQuery.value = ''; emit('reload')
 }
-/** What removing a link, a weblink or an attachment ran into, said beside them. */
+/** What removing a link, a weblink or an attachment ran into, shown beside them. */
 const removeFailure = ref<Failure | null>(null)
 
-/** Removes one thing hanging off the ticket, then has the ticket read again, or says why it could not. */
+/** Removes one thing hanging off the ticket, then has the ticket read again, or shows why it could not. */
 async function removeThen(removal: () => Promise<unknown>) {
     removeFailure.value = null
     try {

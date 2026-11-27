@@ -31,7 +31,7 @@ function entry(overrides: Partial<NewsResponse> = {}): NewsResponse {
  *
  * <p>An entry the instance wrote belongs to no station, so every action a station has over its own
  * entries is refused on one: editing it, deleting it and asking who has read it all answer "not
- * found". Offering the buttons anyway is offering three ways to be told no.
+ * found". Offering the buttons anyway is offering three ways to be refused.
  */
 describe('NewsEntryHeader', () => {
     function header(news: NewsResponse, canManage = true) {

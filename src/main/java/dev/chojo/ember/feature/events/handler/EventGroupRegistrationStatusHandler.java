@@ -20,8 +20,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells a member, and whoever runs events, that an event group sign-up changed: once for the event group, not
- * once for every part chosen with it. Moving up from the waiting list and being put on it are told to
+ * Notifies a member, and whoever runs events, that an event group sign-up changed: once for the event group, not
+ * once for every part chosen with it. Moving up from the waiting list and being put on it are sent to
  * the member only.
  */
 @Singleton

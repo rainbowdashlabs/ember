@@ -72,7 +72,7 @@ public sealed interface FormAnswerValue {
     }
 
     /**
-     * Whether this answer says nothing: no option and no text picked, no text written, no star given,
+     * Whether this answer holds nothing: no option and no text picked, no text written, no star given,
      * no date set, nothing ranked or no statement rated.
      *
      * <p>The fill screens send an answer of the right shape for every question, answered or not, so
@@ -114,7 +114,7 @@ public sealed interface FormAnswerValue {
         }
 
         /**
-         * A choice with none of its options left and no "other" text says nothing any more, so it is
+         * A choice with none of its options left and no "other" text holds nothing any more, so it is
          * gone as a whole.
          */
         @Override

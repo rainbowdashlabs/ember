@@ -17,7 +17,7 @@ import type {GroupSeries} from './groupedChart'
 /**
  * Every question's answers compared across the groups the reader split them into.
  *
- * `series` is null when there are more groups than colours to tell them apart; the numbers are then
+ * `series` is null when there are more groups than colours to distinguish them; the numbers are then
  * shown as tables, which is also what the reader gets when they ask for the table view.
  */
 const props = defineProps<{

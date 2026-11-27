@@ -73,7 +73,7 @@ function sizeLabel(req: RequiredInventoryItem, sizeId?: number | null): string {
 /**
  * The size the member says a piece is, which is what everything they raise about it has to carry.
  *
- * <p>Reading the recorded size here is what made a loss and a swap go out saying 128 while the
+ * <p>Reading the recorded size here is what made a loss and a swap go out carrying 128 while the
  * member was in the middle of telling the station it is a 134. Where they have put the size right,
  * that is the size, and where they have not, the record and the member agree anyway.
  */
@@ -205,7 +205,7 @@ async function openExchange(entry: SelfCheckEntry) {
  * What the member asked for about one piece: a swap, raised as the movement it is.
  *
  * <p>It carries the task it was raised in, so whoever reads the submission can see that it happened
- * while the member was answering. Where the same answer also says the record has the wrong size on it,
+ * while the member was answering. Where the same answer also marks the record as having the wrong size,
  * nothing goes out yet: the swap waits for the checker to take that correction first.
  */
 const {

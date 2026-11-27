@@ -211,7 +211,7 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
 
     /**
      * Somebody who left the station has no line, no count and no place in an answer: on paper a bare
-     * number tells nobody who it was. A sheet to sign shows what was recorded only when it is asked to.
+     * number shows nobody who it was. A sheet to sign shows what was recorded only when it is asked to.
      */
     @Test
     void aSheetNamesOnlyWhoIsStillThereAndShowsTheStatusWhenAsked() throws Exception {
@@ -324,7 +324,7 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A station that hides the address still prints it where the export says otherwise, and the other
+     * A station that hides the address still prints it where the export asks for it, and the other
      * way round: the dialog decides the one document, the setting decides the rest.
      */
     @Test

@@ -51,7 +51,7 @@ class AccountOverviewRepositoryTest extends RepositoryTestBase {
 
     /**
      * The register names the query finds, in the order it answers them, after checking that the
-     * count says the same number.
+     * count shows the same number.
      */
     private List<String> names(Query query) {
         var built = query.build();

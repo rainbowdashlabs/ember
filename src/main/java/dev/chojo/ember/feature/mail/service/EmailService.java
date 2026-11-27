@@ -54,7 +54,7 @@ public class EmailService implements TaskSource {
 
     /**
      * The header Brevo passes through from a sent message to every delivery event it reports about
-     * it. Brevo assigns its own message id on the relay and never tells us what it was, so this is
+     * it. Brevo assigns its own message id on the relay and never lets us know what it was, so this is
      * the only thing that ties an event back to the mail it belongs to.
      */
     private static final String BREVO_CORRELATION_HEADER = "X-Mailin-custom";
@@ -148,7 +148,7 @@ public class EmailService implements TaskSource {
 
     /**
      * Builds a {@link MailProvider} from one entry of a list, without persisting anything, sending
-     * under the entry's display name with replies going where the entry says. Returns {@code null}
+     * under the entry's display name with replies going where the entry defines. Returns {@code null}
      * when the entry's provider is {@link MailProviderType#NONE}.
      */
     private static @Nullable MailProvider buildProvider(MailChainEntry entry) {
@@ -528,7 +528,7 @@ public class EmailService implements TaskSource {
      * Sent when a device was signed in because another one vouched for it.
      *
      * <p>Its own mail rather than the passkey one: nothing was created and nothing was left behind,
-     * and telling somebody a credential exists when none does would send them hunting for a passkey
+     * and letting somebody know a credential exists when none does would send them hunting for a passkey
      * to delete that is not there.
      */
     public void sendDeviceSignedInNotice(String email, String name, String device, String place, String locale) {
@@ -542,7 +542,7 @@ public class EmailService implements TaskSource {
 
     /**
      * Sent to whoever mail about a managed member goes to when an enrolment code for their
-     * account was put on a screen. Somebody has to be told, and it cannot be the member: they
+     * account was put on a screen. Somebody has to be notified, and it cannot be the member: they
      * have no mailbox, which is why the code exists.
      */
     public void sendPasskeyCodeIssuedNotice(String email, String memberName, String locale) {
@@ -615,7 +615,7 @@ public class EmailService implements TaskSource {
     }
 
     /**
-     * Tells a member that the guardian who looks after them switched signing in on.
+     * Lets a member know that the guardian who looks after them switched signing in on.
      *
      * <p>Sent only to somebody who already has a password, because an account still waiting to be
      * claimed is sent the setup link instead. The station is named: a member may belong to more than
@@ -651,7 +651,7 @@ public class EmailService implements TaskSource {
     }
 
     /**
-     * Tells a member that the guardian who looks after them took signing in away again. There is
+     * Lets a member know that the guardian who looks after them took signing in away again. There is
      * nothing to act on, so the mail carries no link.
      */
     public void sendManagedLoginRevokedNotice(String email, String name, String stationName, String locale) {
@@ -868,7 +868,7 @@ public class EmailService implements TaskSource {
     }
 
     /**
-     * Tells the family that the trial has begun, with what the station wrote to them and the date
+     * Lets the family know that the trial has begun, with what the station wrote to them and the date
      * they said they would come to.
      *
      * @param appointment the picked date in one line, empty when none was picked
@@ -896,7 +896,7 @@ public class EmailService implements TaskSource {
     }
 
     /**
-     * Tells the family that the station has taken them off the waiting list, with what it wrote to
+     * Lets the family know that the station has taken them off the waiting list, with what it wrote to
      * them. It carries no link: the entry and its page are gone by the time it is read.
      *
      * @param message     what the station wrote, empty when it wrote nothing
@@ -1073,7 +1073,7 @@ public class EmailService implements TaskSource {
      * The first provider of the instance list, or null when the list is empty.
      *
      * <p>Read from the list rather than from the fields a single provider used to live in. Those
-     * fields are empty on an instance that has saved its list, so asking them said no provider was
+     * fields are empty on an instance that has saved its list, so asking them showed no provider was
      * configured while three were, and the queue then never fetched an instance mail at all.
      */
     private @Nullable MailProvider currentGlobalProvider() {
@@ -1163,7 +1163,7 @@ public class EmailService implements TaskSource {
     /**
      * Whether anything in this owner's list could still carry a mail to this address today.
      *
-     * <p>What the overview needs to say that a message is not merely waiting but stuck: every
+     * <p>What the overview needs to show that a message is not merely waiting but stuck: every
      * provider either refused by the receiving domain or out of allowance.
      */
     public boolean canReach(@Nullable Integer stationId, String recipient) {

@@ -48,7 +48,7 @@ import java.util.Properties;
  * <p><b>The structure is read before anything is downloaded.</b> A part whose declared type and size are
  * already out of bounds is never fetched, so a 40 MB video attached to a mail nobody wants does not
  * cross the network to be refused. What survives that is fetched and then sniffed, with the bytes as the
- * authority: a part that lied about its type is caught after the download and refused, and one that told
+ * authority: a part that lied about its type is caught after the download and refused, and one that reported
  * the truth about being enormous is never downloaded at all.
  *
  * <p>The timeouts are load bearing rather than housekeeping. One thread walks every station's mailboxes
@@ -63,7 +63,7 @@ public class MailboxReader implements AutoCloseable {
      * @param fileName     what the file is called in the mail, or null where it is not named
      * @param declaredType what the mail claims it is, which is never trusted for anything but the first cut,
      *                     or null where it claims nothing
-     * @param declaredSize how big the mail claims it is, or -1 where it does not say
+     * @param declaredSize how big the mail claims it is, or -1 where it gives none
      * @param inline       whether it is embedded rather than attached
      * @param data         the bytes, or null where the part was refused before being fetched
      */
@@ -163,7 +163,7 @@ public class MailboxReader implements AutoCloseable {
     /**
      * The folders this account can see, which is what a connection test reports.
      *
-     * <p>A test that only said "connected" would not catch the commonest mistake there is, which is a
+     * <p>A test that only showed "connected" would not catch the commonest mistake there is, which is a
      * folder spelled the way the person says it rather than the way the provider does.
      */
     public List<String> folders() throws MessagingException {
@@ -292,7 +292,7 @@ public class MailboxReader implements AutoCloseable {
      * @param message the message to fetch
      * @return its bytes as the server holds them
      * @throws MessagingException where this server cannot hand a message back unaltered, in which case
-     *                            nothing here can honestly say whether a signature holds
+     *                            nothing here can honestly show whether a signature holds
      */
     public byte[] rawSource(Message message) throws MessagingException, IOException {
         if (!(message instanceof ReadableMime readable)) {
@@ -395,7 +395,7 @@ public class MailboxReader implements AutoCloseable {
 
     /**
      * Closes the folder and the store. A failure to close is ignored, since a folder or store that will not
-     * close cleanly has nothing left to tell.
+     * close cleanly has nothing left to report.
      */
     @Override
     public void close() {

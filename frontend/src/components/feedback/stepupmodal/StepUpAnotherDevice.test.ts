@@ -20,7 +20,7 @@ vi.mock('@/api', () => ({
 /**
  * Confirming a sensitive action on a device the reader already holds. What matters is that the code
  * reaches the screen, that the waiting ends when the other device answers, and that a dead request
- * says so rather than spinning for ever.
+ * shows that rather than spinning for ever.
  */
 function mountPanel() {
     return mount(StepUpAnotherDevice, {

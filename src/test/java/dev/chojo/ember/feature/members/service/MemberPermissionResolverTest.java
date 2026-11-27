@@ -134,7 +134,7 @@ class MemberPermissionResolverTest extends RepositoryTestBase {
                 memberPermissionResolver.resolve(manager.id()).contains(StationPermission.INVENTORY_LENDING_MANAGER));
     }
 
-    /** A module the station's cluster denies grants nothing either, whatever the station says. */
+    /** A module the station's cluster denies grants nothing either, whatever the station allows. */
     @Test
     void a_module_the_cluster_denies_grants_nothing() {
         var manager = memberOfType(StationUserType.MANAGER, "Manager");

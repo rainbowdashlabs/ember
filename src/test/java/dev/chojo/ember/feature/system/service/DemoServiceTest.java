@@ -182,7 +182,7 @@ class DemoServiceTest extends RepositoryTestBase {
     private static DemoService demoService;
 
     /**
-     * Wires the demo service by hand. The two-factor seeder's TOTP service is told it runs on a demo
+     * Wires the demo service by hand. The two-factor seeder's TOTP service is set to run on a demo
      * instance, which is what lets it work without a configured encryption key and the same reason the
      * seeder only ever runs on one.
      */
@@ -920,7 +920,7 @@ class DemoServiceTest extends RepositoryTestBase {
     /**
      * The demo has something to look at for both halves of sending a link.
      *
-     * <p>Seeding without throwing says nothing about whether a link opens anything, and a fixed
+     * <p>Seeding without throwing shows nothing about whether a link opens anything, and a fixed
      * token that nobody fetches is a string in a seeder rather than a demonstration. This opens both
      * the way a stranger would.
      */

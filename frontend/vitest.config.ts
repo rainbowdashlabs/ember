@@ -23,7 +23,7 @@ export default defineVitestConfig({
         /**
          * Booting Nuxt is the `beforeAll` of every file that has not opted out, and on a loaded
          * machine it does not fit in the ten seconds a hook is given by default. What that looked
-         * like was a different handful of suites failing on each run, all of them saying the same
+         * like was a different handful of suites failing on each run, all of them reporting the same
          * thing and all of them passing when run alone.
          */
         hookTimeout: 30_000,

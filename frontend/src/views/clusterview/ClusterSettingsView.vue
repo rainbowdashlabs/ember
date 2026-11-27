@@ -39,11 +39,11 @@ const {loading, failure} = useAsyncLoader(async () => {
 }, {errorMessageKey: 'clusterSettings.loadFailed'})
 
 /**
- * Stores the association's details, then tells the switcher, which shows the name and would
+ * Stores the association's details, then notifies the switcher, which shows the name and would
  * otherwise keep the old one after a rename.
  *
  * <p>The two are answered for separately: a rename that was stored and a switcher that then failed
- * to hear about it used to report a failed save, and a reader told that saves the same name again.
+ * to hear about it used to report a failed save, and a reader shown that saves the same name again.
  */
 async function save() {
   if (!name.value.trim()) return

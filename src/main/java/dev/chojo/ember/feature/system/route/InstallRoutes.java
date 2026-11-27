@@ -100,6 +100,6 @@ public class InstallRoutes implements Routes {
     /** @param options the answers, of which only the ones the installer knows are kept */
     public record InstallPresetRequest(Map<String, String> options) {}
 
-    /** @param validForHours how long the code lasts, so the page can say it */
+    /** @param validForHours how long the code lasts, so the page can show it */
     public record InstallPresetResponse(String code, long validForHours) {}
 }

@@ -5671,7 +5671,7 @@ export default {
         },
         tag: {
             title: 'Tags',
-            intro: 'Ein Tag sagt, wozu ein Gegenstand gehört, und gilt über alle Inventare hinweg. '
+            intro: 'Ein Tag zeigt, wozu ein Gegenstand gehört, und gilt über alle Inventare hinweg. '
                 + 'Die Funkgeräte, die Ladestation und die Antenne tragen so dasselbe Wort, obwohl sie '
                 + 'nicht dasselbe sind.',
             field: 'Tags',
@@ -6334,7 +6334,7 @@ export default {
             WITHHOLD: 'Zurückhalten',
         },
         grantHint: {
-            inventory: 'Angeboten heißt: alles in diesem Inventar, außer wo eine Art oder ein einzelner Gegenstand etwas anderes sagt.',
+            inventory: 'Angeboten heißt: alles in diesem Inventar, außer wo eine Art oder ein einzelner Gegenstand etwas anderes festlegt.',
             art: 'Eine Art schlägt ihr Inventar, in beide Richtungen, und wird ihrerseits von einem einzelnen Gegenstand geschlagen.',
             item: 'Ein Gegenstand schlägt seine Art und sein Inventar, in beide Richtungen.',
         },
@@ -8480,7 +8480,7 @@ export default {
     },
     flows: {
         title: 'Abläufe',
-        intro: 'Ein Ablauf ist eine Kette von Schritten. Jeder Schritt sagt, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach ist.',
+        intro: 'Ein Ablauf ist eine Kette von Schritten. Jeder Schritt legt fest, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach ist.',
         serves: {
             owner: 'Eigentümer',
             purpose: 'Zweck',
@@ -12035,7 +12035,7 @@ export default {
             },
             notIssuedHere: {
                 title: 'Nicht von dieser Installation versiegelt',
-                text: 'Das Siegel stammt nicht von einer Wache dieser Installation. Ob es anderswo gilt, kann diese Seite nicht sagen.',
+                text: 'Das Siegel stammt nicht von einer Wache dieser Installation. Ob es anderswo gilt, lässt sich hier nicht prüfen.',
             },
             invalid: {
                 title: 'Siegel ungültig',
@@ -12070,11 +12070,11 @@ export default {
             held: 'Diese Installation bewahrt genau diese Datei auf.',
             heldSince: 'Diese Installation bewahrt genau diese Datei auf, versiegelt am {date}.',
             level: 'Abgelegt als: {level}.',
-            notHeld: 'Diese Installation bewahrt keine Datei mit genau diesem Inhalt auf. Das sagt nichts über das Siegel, denn eine Kopie kann auch anderswo liegen.',
+            notHeld: 'Diese Installation bewahrt keine Datei mit genau diesem Inhalt auf. Für das Siegel bedeutet das nichts, denn eine Kopie kann auch anderswo liegen.',
         },
         documentTimestamps: {
             title: 'Zeitstempel auf der ganzen Datei',
-            text: 'Sie belegen, dass die Datei zu ihrer Zeit schon so vorlag. Wer sie erstellt hat, sagen sie nicht.',
+            text: 'Sie belegen, dass die Datei zu ihrer Zeit schon so vorlag. Wer sie erstellt hat, zeigen sie nicht.',
         },
         level: {
             BASELINE_B: 'B-B: Siegel ohne Zeitstempel',
@@ -12103,11 +12103,11 @@ export default {
             pinned: 'Hinterlegter Zeitstempeldienst',
         },
         explain: {
-            title: 'Was ein Siegel aussagt',
-            what: 'Ein Siegel ist eine einfache elektronische Signatur der Wache, keine Unterschrift einer Person. Es sagt:',
+            title: 'Was ein Siegel belegt',
+            what: 'Ein Siegel ist eine einfache elektronische Signatur der Wache, keine Unterschrift einer Person. Es belegt:',
             proves1: 'Eine Wache dieser Installation hat das Dokument ausgestellt.',
             proves2: 'Der versiegelte Inhalt wurde seitdem nicht verändert. Trägt das Siegel einen Zeitstempel, belegt er, wann es entstand.',
-            provesNot1: 'Es sagt nicht, dass der Inhalt stimmt oder dass eine bestimmte Person zugestimmt hat.',
+            provesNot1: 'Es belegt nicht, dass der Inhalt stimmt oder dass eine bestimmte Person zugestimmt hat.',
             provesNot2: 'Es ersetzt keine handschriftliche Unterschrift, wo das Gesetz eine verlangt.',
             compare: 'Diese Prüfung läuft auf derselben Installation, die das Siegel ausgestellt hat. Unabhängig davon prüfst du so: Öffne die Einzelheiten und vergleiche den SHA-256-Fingerabdruck unter Ausgestellt von mit dem Fingerabdruck der Zertifizierungsstelle, den die Wache unten auf ihren öffentlichen Seiten zeigt.',
             elsewhere: 'Ein Siegel lässt sich auch ohne diese Seite prüfen, zum Beispiel im Adobe Reader. Der zeigt die Gültigkeit oft als unbekannt an, weil er die Zertifizierungsstelle dieser Installation nicht kennt. Entscheidend ist dann derselbe Fingerabdruck.',
@@ -12870,7 +12870,7 @@ export default {
             guidance: 'Das ist ein Fehler in Ember und nicht deine Schuld. Bitte melde ihn und schreibe kurz dazu, was du gerade getan hast, dann lässt er sich finden.',
         },
         UNKNOWN: {
-            message: 'Etwas hat nicht funktioniert, und Ember kann nicht sagen was.',
+            message: 'Etwas hat nicht funktioniert, der Grund ist nicht bekannt.',
             guidance: 'Versuche es noch einmal. Bleibt es dabei, melde es bitte mit einer kurzen Beschreibung, was du gerade getan hast.',
         },
     },

@@ -24,7 +24,7 @@ public record AttendanceTemplateField(
     /**
      * This field as everything that checks a question reads it.
      *
-     * <p>The row stays what it is; what it means is said once, here, so the same rules measure an
+     * <p>The row stays what it is; what it means is defined once, here, so the same rules measure an
      * answer written on a sheet as measure one given to an appointment.
      */
     public Question question() {

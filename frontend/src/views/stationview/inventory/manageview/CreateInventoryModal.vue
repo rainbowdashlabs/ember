@@ -84,8 +84,8 @@ const failure = computed(() => createFailure.value ?? sizesFailure.value)
  * Creates the inventory, then the sizes it was given.
  *
  * <p>Two writes behind one button, caught apart. Once the first is through the inventory exists, and a
- * reader told plainly that creating failed presses the button again and ends up with two of them. Where
- * the sizes were what failed, the screen says that instead: the inventory is there, and its sizes are
+ * reader shown plainly that creating failed presses the button again and ends up with two of them. Where
+ * the sizes were what failed, the screen shows that instead: the inventory is there, and its sizes are
  * added under its settings.
  */
 async function submit() {

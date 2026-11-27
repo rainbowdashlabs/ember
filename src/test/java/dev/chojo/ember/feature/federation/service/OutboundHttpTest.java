@@ -45,7 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  *
  * <p>The servers run on two loopback addresses. For the pinning tests, {@code 127.0.0.2} stands in
  * for a public address and {@code 127.0.0.1} for a private one, and a name resolves to whichever the
- * test says. The certificate is made for this run with {@code keytool} and trusted by the test's own
+ * test sets. The certificate is made for this run with {@code keytool} and trusted by the test's own
  * TLS context.
  */
 class OutboundHttpTest {

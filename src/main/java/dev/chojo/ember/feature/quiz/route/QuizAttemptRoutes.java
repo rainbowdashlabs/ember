@@ -169,7 +169,7 @@ public class QuizAttemptRoutes implements Routes {
      *
      * <p>A paper that was not still being written is refused rather than answered as though it had
      * been taken. It used to answer with the attempt whatever happened, so somebody whose time had
-     * run out, or whose paper was already in, was told it had gone through and had no reason to
+     * run out, or whose paper was already in, was shown that it had gone through and had no reason to
      * look again.
      */
     @OpenApi(

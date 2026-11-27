@@ -52,7 +52,7 @@ function blank(value: string | undefined): boolean {
 }
 
 /**
- * Whether an answer says nothing: no option and no text picked, no text written, no star given, no
+ * Whether an answer holds nothing: no option and no text picked, no text written, no star given, no
  * date set, nothing ranked or no statement rated. The server reads answers the same way, so what is
  * empty here is what it strips before it checks and stores.
  *

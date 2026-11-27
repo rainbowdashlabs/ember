@@ -23,13 +23,13 @@ public enum ChecklistRefusal implements Refusal {
     /** A checklist renamed to nothing. */
     CHECKLIST_RENAME_NEEDS_A_NAME(3, HttpStatus.BAD_REQUEST, Sentences.CHECKLIST_NEEDS_A_NAME),
 
-    /** A checklist told to follow a filter and an appointment at once. */
+    /** A checklist set to follow a filter and an appointment at once. */
     CHECKLIST_FOLLOWS_ONE_THING(
             4,
             HttpStatus.BAD_REQUEST,
             "A checklist follows either a filter or an appointment, never both, so nothing was changed"),
 
-    /** Columns reordered without saying what the new order is. */
+    /** Columns reordered without indicating what the new order is. */
     CHECKLIST_COLUMN_ORDER_MISSING(
             5, HttpStatus.BAD_REQUEST, "Name the columns in the order they are to stand in, so nothing was changed"),
 
@@ -65,20 +65,20 @@ public enum ChecklistRefusal implements Refusal {
     /** A row of one checklist reached through another. */
     CHECKLIST_ROW_ON_ANOTHER_LIST(14, HttpStatus.FORBIDDEN, "That row belongs to another checklist"),
 
-    /** A checklist told to follow an appointment without saying which day of it. */
+    /** A checklist set to follow an appointment without indicating which day of it. */
     CHECKLIST_OCCURRENCE_DAY_MISSING(
             15,
             HttpStatus.BAD_REQUEST,
             "Name the day of the appointment the checklist is to follow, so nothing was saved"),
 
-    /** An appointment a checklist was told to follow that is gone, or belongs to another station. */
+    /** An appointment a checklist was set to follow that is gone, or belongs to another station. */
     CHECKLIST_APPOINTMENT_NOT_HERE(16, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
 
     /** An appointment the reader may not see at all, named as the one a checklist is to follow. */
     CHECKLIST_APPOINTMENT_NOT_YOURS_TO_FOLLOW(
             17, HttpStatus.FORBIDDEN, "You cannot see that appointment, so a checklist cannot follow it"),
 
-    /** A day a checklist was told to follow that does not read as a date. */
+    /** A day a checklist was set to follow that does not read as a date. */
     CHECKLIST_DAY_NOT_A_DATE(18, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
 
     /** A column of a checklist written down without a label. */

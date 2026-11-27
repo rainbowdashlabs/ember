@@ -17,7 +17,7 @@ import {FORM_FONT_SIZE, type FormFontChoice, formFontSizeTaken, type FormFontWei
  * How one font of a Word form is drawn instead: the family, the weight, and the size in percent of the
  * form's, so a replacement that sets its letters wider can be drawn a little smaller and keep the lines of
  * the form. Light is offered only for a family that ships a light cut; choosing a family without one goes
- * back to regular. A size outside what a form takes says so under the field rather than being corrected
+ * back to regular. A size outside what a form takes is flagged under the field rather than being corrected
  * while it is typed.
  */
 const choice = defineModel<FormFontChoice>({required: true})

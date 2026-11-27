@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.cluster.entity;
 
 /**
- * Tells a station somebody joins from the shell a cluster owns.
+ * Distinguishes a station somebody joins from the shell a cluster owns.
  */
 public enum StationKind {
     /**

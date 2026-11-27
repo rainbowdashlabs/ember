@@ -80,7 +80,7 @@ export function apiErrorCode(e: unknown): string | undefined {
 }
 
 /**
- * How long a refusal asked the caller to wait, in milliseconds, or undefined when it did not say.
+ * How long a refusal asked the caller to wait, in milliseconds, or undefined when it gave none.
  *
  * <p>Only a number the server actually named counts. A caller that gets nothing here decides its
  * own wait, which is what it would have had to do anyway.
@@ -95,8 +95,8 @@ export function retryAfterMillis(e: unknown): number | undefined {
  * Callers pick their own localised fallback.
  *
  * <p>Blank text counts as none. A caller writes what it gets straight into its error panel, and a
- * panel holding an empty string renders as nothing at all: the screen would then say a request
- * failed by showing the reader absolutely nothing.
+ * panel holding an empty string renders as nothing at all: the screen would then report a request
+ * as failed by showing the reader absolutely nothing.
  */
 export function apiErrorMessage(e: unknown): string | undefined {
     const data = apiErrorBody(e)

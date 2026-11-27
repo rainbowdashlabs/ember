@@ -14,7 +14,7 @@ import type {FieldType} from '@/api/generated/schema'
  * The select a field's type is chosen in, whatever feature the field belongs to.
  *
  * <p>Seven screens each wrote this again with their own list and their own words for the same types,
- * so a line of text was "Text" on one and "STRING" spelled out on another. Here the feature only says
+ * so a line of text was "Text" on one and "STRING" spelled out on another. Here the feature only defines
  * which types it offers; every type is called the same everywhere.
  *
  * <p>A field already saved under a type the feature no longer offers keeps showing it, so opening an
@@ -32,7 +32,7 @@ const props = defineProps<{
   /** Types offered but not available just now, such as a second date of birth. */
   unavailable?: readonly FieldType[]
   disabled?: boolean
-  /** Whether the line saying what the chosen type is for is shown under the select. */
+  /** Whether the line showing what the chosen type is for is shown under the select. */
   describe?: boolean
 }>()
 

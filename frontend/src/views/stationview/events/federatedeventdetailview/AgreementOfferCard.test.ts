@@ -20,7 +20,7 @@ async function mountCard(eligibleMembers: {uid: string, name: string}[], selecte
 
 /**
  * The agreement a partner station's appointment without registrations offers: what it is called, that signing
- * says one will come, and for whom it is signed.
+ * shows one will come, and for whom it is signed.
  */
 describe('AgreementOfferCard', () => {
     it('signs for the reader where nobody else is in their care', async () => {

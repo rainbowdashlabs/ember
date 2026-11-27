@@ -43,7 +43,7 @@ const publicUrl = computed(() => stationUid.value
     : '')
 
 /**
- * Loaded once the session says this reader may manage the association, which is not true at the moment the
+ * Loaded once the session shows this reader may manage the association, which is not true at the moment the
  * panel mounts: the session arrives after it. Reading the permission only on mount left the panel absent
  * for good.
  */

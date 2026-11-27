@@ -11,7 +11,7 @@ import CellRestrictionChips from './CellRestrictionChips.vue'
 import de from '@/i18n/de-DE'
 import {GuardianCondition} from '@/api/generated/schema'
 
-/** The chips on a block say who it is printed for, the condition on a second guardian included. */
+/** The chips on a block show who it is printed for, the condition on a second guardian included. */
 describe('CellRestrictionChips', () => {
     const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': de, en: {}}})
     const choices = {groups: [], tags: []}

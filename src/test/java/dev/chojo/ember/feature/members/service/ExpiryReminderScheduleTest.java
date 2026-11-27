@@ -153,7 +153,7 @@ class ExpiryReminderScheduleTest {
         assertEquals(LocalDate.of(2026, 4, 10), owed.remindOn());
     }
 
-    /** Reminders before the date say nothing about when a repeat is owed. */
+    /** Reminders before the date imply nothing about when a repeat is owed. */
     @Test
     void aRepeatWaitsForTheExpiredReminder() {
         var repeating = settings("{\"reminderDays\":[7],\"repeatEveryDays\":1}");

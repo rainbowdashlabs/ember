@@ -15,7 +15,7 @@ function shown(link: {token: string | null; opens: boolean} | null) {
 
 /**
  * A link handed out while the station keeps its pages closed opens nothing, and the stranger holding
- * it has nobody to ask. The one who hands it out is told instead, before it is sent.
+ * it has nobody to ask. The one who hands it out is warned instead, before it is sent.
  *
  * @vitest-environment happy-dom
  */

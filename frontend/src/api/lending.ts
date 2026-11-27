@@ -54,10 +54,10 @@ export async function listAvailable(options?: { q?: string; from?: string; to?: 
 }
 
 /**
- * What one row of the station's whole offer says, in the shape a single screen reads.
+ * What one row of the station's whole offer shows, in the shape a single screen reads.
  *
- * <p>A row existing at all is what "shared" means: it says somebody has decided about this thing,
- * and the grant then says which way. Reading the overview and reading one thing therefore give the
+ * <p>A row existing at all is what "shared" means: it shows somebody has decided about this thing,
+ * and the grant then shows which way. Reading the overview and reading one thing therefore give the
  * same answer instead of two that could drift.
  */
 export function settingOf(detail: ShareDetail): ShareSetting {
@@ -75,7 +75,7 @@ export async function listShares(): Promise<ShareDetail[]> {
 }
 
 /**
- * What is currently said about one inventory, one kind or one piece. The three levels answer the
+ * What is currently decided about one inventory, one kind or one piece. The three levels answer the
  * same shape, so the level travels as an argument rather than splitting into three near-identical
  * calls that every caller would then have to choose between.
  */

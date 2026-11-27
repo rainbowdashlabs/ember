@@ -7,7 +7,7 @@ import {useI18n} from 'vue-i18n'
 import {events} from '@/api'
 import {showToast} from '@/util/toast'
 
-/** A place just given up, and how long the server said it would take it back. */
+/** A place just given up, and how long the server reported it would take it back. */
 interface GivenUp {
     id: number
     undoUntil: string

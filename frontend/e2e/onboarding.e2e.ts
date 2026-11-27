@@ -91,7 +91,7 @@ test.describe('Onboarding tasks', () => {
 
     /**
      * Whether the notifications are set up is something Ember reads from the settings themselves, so
-     * saying it is done says nothing: the answer would be overwritten by what the data says the next
+     * marking it done changes nothing: the answer would be overwritten by what the data shows the next
      * time the list is read. The profile is not such a task any more, because a profile that looks
      * complete is exactly the one worth reading over.
      */

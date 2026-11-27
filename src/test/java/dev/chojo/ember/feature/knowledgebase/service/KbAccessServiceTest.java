@@ -264,7 +264,7 @@ class KbAccessServiceTest extends RepositoryTestBase {
 
     /**
      * A folder kept off the public knowledge base takes everything below it along, and an item
-     * carrying an access restriction is never public whatever the mode says.
+     * carrying an access restriction is never public whatever the mode sets.
      */
     @Test
     void hiddenFoldersAndRestrictedItemsAreNeverPublic() {

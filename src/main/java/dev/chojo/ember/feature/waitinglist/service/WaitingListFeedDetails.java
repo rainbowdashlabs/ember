@@ -12,7 +12,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import jakarta.inject.Singleton;
 
 /**
- * What a feed entry says about a new entry on a waiting list: the child and the list.
+ * What a feed entry shows about a new entry on a waiting list: the child and the list.
  */
 @Singleton
 public class WaitingListFeedDetails implements FeedDetailsContributor {

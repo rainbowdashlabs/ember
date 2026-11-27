@@ -16,7 +16,7 @@ import java.util.Optional;
  * Which rule takes a message.
  *
  * <p>Rules are ordered and the first one that matches takes it; the others do not run. What matching
- * means is fixed here and nowhere else, because a log saying which rule took a message is unanswerable
+ * means is fixed here and nowhere else, because a log showing which rule took a message is unanswerable
  * unless the answer is one thing.
  *
  * <p>A rule matches on the message: the senders it trusts, its subject filter, and whether any

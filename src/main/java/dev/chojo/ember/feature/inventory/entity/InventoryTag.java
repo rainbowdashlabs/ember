@@ -9,8 +9,8 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A tag a station puts on its items. Unlike an inventory it says nothing about where a thing is
- * kept, and unlike a size it says nothing about which piece it is: it is a standing property of the
+ * A tag a station puts on its items. Unlike an inventory it shows nothing about where a thing is
+ * kept, and unlike a size it shows nothing about which piece it is: it is a standing property of the
  * piece, true whatever the occasion, and it spans inventories.
  *
  * @param id            the tag identifier

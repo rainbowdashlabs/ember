@@ -16,7 +16,7 @@ import io.javalin.http.HttpStatus;
 public enum KnowledgeBaseRefusal implements Refusal {
     /**
      * A folder or an article of the wiki that the reader's reach does not cover. Answered as though
-     * it were not there, because saying it is there and withheld is already saying it is there.
+     * it were not there, because admitting it is there and withheld already admits it is there.
      */
     KB_ENTRY_NOT_YOURS_TO_OPEN(1, HttpStatus.NOT_FOUND, Sentences.NOT_HERE_OR_NOT_YOURS),
 
@@ -41,7 +41,7 @@ public enum KnowledgeBaseRefusal implements Refusal {
     /** The folder a move aims at, which is not one the reader may put anything into. */
     KB_MOVE_TARGET_NOT_USABLE(8, HttpStatus.NOT_FOUND, "Nothing can be put into that folder, so nothing was moved"),
 
-    /** A move being looked ahead at without saying what is to be moved. */
+    /** A move being looked ahead at without indicating what is to be moved. */
     KB_MOVE_PREVIEW_NEEDS_AN_ENTRY(9, HttpStatus.BAD_REQUEST, "Say which folder or article the move is for"),
 
     /** A folder being thrown away for good that is no longer in the trash. */
@@ -173,11 +173,11 @@ public enum KnowledgeBaseRefusal implements Refusal {
     /** A comment that is gone, asked for by a route that then checks whose article it hangs on. */
     KB_COMMENT_NOT_HERE(50, HttpStatus.NOT_FOUND, Sentences.KB_COMMENT_NOT_HERE),
 
-    /** A favourite being marked without saying what kind of thing it is. */
+    /** A favourite being marked without indicating what kind of thing it is. */
     KB_FAVOURITE_NEEDS_A_TARGET(
             52, HttpStatus.BAD_REQUEST, "Nothing was named to mark as a favourite, so nothing was saved"),
 
-    /** A favourite at a partner station, marked without saying which partner. */
+    /** A favourite at a partner station, marked without indicating which partner. */
     KB_FAVOURITE_NEEDS_A_PARTNER(
             53,
             HttpStatus.BAD_REQUEST,
@@ -201,7 +201,7 @@ public enum KnowledgeBaseRefusal implements Refusal {
 
     /**
      * A folder or an article of a public wiki that is gone, belongs to another station, or was
-     * never published. One code deliberately: telling them apart would say that the entry is there
+     * never published. One code deliberately: distinguishing them would reveal that the entry is there
      * and held back, to a reader who is not signed in to anything.
      */
     PUBLIC_KB_ENTRY_NOT_HERE(58, HttpStatus.NOT_FOUND, "That is not on this station's public wiki"),
@@ -290,7 +290,7 @@ public enum KnowledgeBaseRefusal implements Refusal {
 
     /**
      * An article a partner asks for that is not here, belongs to another station, or is not shared
-     * with it. One code for all three: telling them apart would let a partner count the articles it
+     * with it. One code for all three: distinguishing them would let a partner count the articles it
      * was never shown.
      */
     REMOTE_KB_FILE_NOT_SHARED(84, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
@@ -301,7 +301,7 @@ public enum KnowledgeBaseRefusal implements Refusal {
      */
     REMOTE_KB_FOLDER_NOT_SHARED(85, HttpStatus.NOT_FOUND, Sentences.FOLDER_NOT_HERE),
 
-    /** Who an entry is shared with, said for both an article and a folder at once, or for neither. */
+    /** Who an entry is shared with, given for both an article and a folder at once, or for neither. */
     KB_AUDIENCE_NEEDS_ONE_ENTRY(86, HttpStatus.BAD_REQUEST, "Name either an article or a folder, so nothing was saved"),
 
     /** An entry shared with every partner while the folder above it reaches named stations only. */

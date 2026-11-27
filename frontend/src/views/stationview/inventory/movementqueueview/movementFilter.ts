@@ -71,7 +71,7 @@ export function turnRank(movement: MovementResponse): number {
  * When the movement last moved, which for one that never has is the day it was raised.
  *
  * <p>The two dates answer different questions. When it was raised is what the queue was let sit for,
- * and when it last moved is what says which rows have gone quiet, so a row raised in January and
+ * and when it last moved is what shows which rows have gone quiet, so a row raised in January and
  * touched yesterday belongs at opposite ends of the two orders.
  */
 export function lastMovedAt(movement: MovementResponse): string {

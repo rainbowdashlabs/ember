@@ -25,7 +25,7 @@ public record Question(String name, QuestionKind kind, boolean required, String 
         rules = rules == null ? QuestionRules.none() : rules;
     }
 
-    /** A question of a kind that has nothing further to say about what it accepts. */
+    /** A question of a kind that has no further rules about what it accepts. */
     public static Question of(String name, QuestionKind kind, boolean required, String defaultValue) {
         return new Question(name, kind, required, defaultValue, QuestionRules.none());
     }

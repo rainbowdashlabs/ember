@@ -20,7 +20,7 @@ import {useDialogOverlay} from '@/components/feedback/dialogLayers'
  * the focus while it is open and gives it back afterwards. The default slot takes the picture's
  * place for a file that is shown some other way, a document or a table.
  *
- * Where it is one of several, `position` says which, and the arrows and the arrow keys ask for the
+ * Where it is one of several, `position` shows which, and the arrows and the arrow keys ask for the
  * one before or after it. `downloadable` offers the file itself as well.
  */
 const props = defineProps<{

@@ -28,10 +28,10 @@ import java.util.Optional;
  * Comments on an appointment.
  *
  * <p>They are read and written by whoever may see the appointment in its own station. Only their
- * author changes them; their author or an appointment manager removes them. A reply tells the
- * author of the answered comment and a comment tells whoever it mentions. A new top-level comment,
- * from here or from a partner station, tells the appointment managers, because it is mostly a
- * question to them; a partner's comment tells nobody else.
+ * author changes them; their author or an appointment manager removes them. A reply notifies the
+ * author of the answered comment and a comment notifies whoever it mentions. A new top-level comment,
+ * from here or from a partner station, notifies the appointment managers, because it is mostly a
+ * question to them; a partner's comment notifies nobody else.
  */
 @Singleton
 public class EventCommentTarget implements CommentTarget {

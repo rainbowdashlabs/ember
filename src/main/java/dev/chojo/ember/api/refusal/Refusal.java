@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * A refusal that has been given a code, with the sentence a reader is shown for it.
  *
- * <p>A reader who reports a failure can say what they were doing and what the screen said, and
+ * <p>A reader who reports a failure can say what they were doing and what the screen showed, and
  * neither of those finds the line that refused them. The code travels in the error body as
  * {@code code} and is short enough to be read out over a telephone, so a report arrives naming one
  * line rather than a kind of refusal thrown from eleven.
@@ -28,13 +28,13 @@ import java.util.List;
  *
  * <p>One constant stands for one throw site. That is what makes the code worth quoting. The
  * exception is a pair of lines that deliberately answer alike, a lookup that missed and the
- * ownership check right behind it: handing those two codes would tell a caller that the thing
+ * ownership check right behind it: handing those two codes would show a caller that the thing
  * exists somewhere else, which is the one thing the shared answer is there to withhold. Those
- * share a constant and say so in their own words.
+ * share a constant and put it in their own words.
  *
  * <p>The code and the wording live together on purpose. A code kept in one place and a sentence
  * written at the throw site drift apart within a release; at the constant, changing one means
- * seeing the other. Where several refusals say the same thing, they name the same
+ * seeing the other. Where several refusals carry the same message, they name the same
  * {@code Sentences} constant rather than repeating it, so the prose has a single home.
  *
  * <p>The interface is sealed so that {@link #all()} knows every area's enum: an area enum that is
@@ -103,7 +103,7 @@ public sealed interface Refusal
     Definition definition();
 
     /**
-     * The constant's name, which a screen that has to tell one refusal from its neighbours matches on.
+     * The constant's name, which a screen that has to distinguish one refusal from its neighbours matches on.
      *
      * @return the enum constant's name
      */
@@ -137,7 +137,7 @@ public sealed interface Refusal
     }
 
     /**
-     * The status this refusal answers with, chosen so the reader is told truthfully whose problem
+     * The status this refusal answers with, chosen so the reader learns truthfully whose problem
      * it is: what they sent is a {@code 400}, what they may not do is a {@code 403}, what is not
      * there is a {@code 404}, a collision is a {@code 409}, and only a fault is a {@code 500}.
      *
@@ -150,7 +150,7 @@ public sealed interface Refusal
     /**
      * The sentence the reader is shown.
      *
-     * @return one sentence saying what was refused and what became of their data
+     * @return one sentence showing what was refused and what became of their data
      */
     default String message() {
         return definition().message();

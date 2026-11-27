@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
  * @param selfService     whether the station offers it to its members for self service
  * @param restrictionMode how the parts of the station's audience combine
  * @param issuerId        the member of the station who issues its documents there, or null for nobody
- * @param issuerFunction  what the issuer does at the station, or null where nothing is said
+ * @param issuerFunction  what the issuer does at the station, or null where nothing is set
  */
 public record TemplateStationUse(
         int id,

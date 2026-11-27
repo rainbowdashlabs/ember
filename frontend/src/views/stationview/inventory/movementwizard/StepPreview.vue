@@ -20,12 +20,12 @@ import type {FlowPreview} from '@/api/generated/schema'
  * What will happen, drawn before anything is written.
  *
  * <p>The step that earns the wizard: the whole path, who answers each step, and where the piece will be
- * in between. Where no chain serves the combination this says so and points at the page that writes one,
+ * in between. Where no chain serves the combination this shows that and points at the page that writes one,
  * rather than letting a submit fail with a sentence about a flow with no steps.
  */
 const props = defineProps<{
   preview: FlowPreview | null
-  /** Whether the answer has come back, so a missing chain is told apart from one still being fetched. */
+  /** Whether the answer has come back, so a missing chain is distinguished from one still being fetched. */
   resolved: boolean
 }>()
 

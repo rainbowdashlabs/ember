@@ -38,7 +38,7 @@ public enum ItemCustody {
      */
     IN_TRANSIT,
     /**
-     * Missing. The lost timestamp says when it went, and whoever had it keeps it on their record
+     * Missing. The lost timestamp shows when it went, and whoever had it keeps it on their record
      * until it is replaced, which is what makes it visible that they are short of it.
      */
     LOST;

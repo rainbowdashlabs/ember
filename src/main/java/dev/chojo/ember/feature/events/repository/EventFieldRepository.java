@@ -407,7 +407,7 @@ public class EventFieldRepository {
     }
 
     /**
-     * Writes what a member's entry on one appointment says, replacing any entry they had there.
+     * Writes what a member's entry on one appointment contains, replacing any entry they had there.
      *
      * @param groupFieldId the member field of the event group
      * @param eventId      the appointment

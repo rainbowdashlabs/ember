@@ -105,7 +105,7 @@ function nameMatches(column: string, names: string[]): boolean {
     return names.includes(column.toLowerCase())
 }
 
-/** Whether a column name says it holds a date without being one of the plain names, such as "ImprDatum" or "Start Date". */
+/** Whether a column name indicates it holds a date without being one of the plain names, such as "ImprDatum" or "Start Date". */
 function namedLikeDate(column: string): boolean {
     const lower = column.toLowerCase()
     return lower.endsWith('datum') || DATE_WORD.test(lower)
@@ -135,7 +135,7 @@ function holdsOnlyDates(table: CsvTable, index: number): boolean {
  *
  * <p>Exact names come first: a plain date name, a time or title name, and a column named like a
  * field of the batch, so a field called "Abgabedatum" keeps its column. Only where no column took
- * the date does a name that merely says date, such as "ImprDatum", or failing that the first column
+ * the date does a name that merely contains date, such as "ImprDatum", or failing that the first column
  * whose every value reads as a date, become the date. One column at most is the date, so an
  * export carrying a creation date beside the appointment date does not get both.
  */

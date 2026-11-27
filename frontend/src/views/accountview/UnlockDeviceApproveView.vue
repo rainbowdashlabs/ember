@@ -47,7 +47,7 @@ const forAccountId = ref('')
  */
 const offersCandidates = computed(() => (details.value?.candidates.length ?? 0) > 1)
 
-/** What approving this actually does, said plainly. The three differ enormously. */
+/** What approving this actually does, put plainly. The three differ enormously. */
 const purposeSentence = computed(() => {
   const purpose = details.value?.purpose
   if (purpose === 'SIGN_IN') return t('passkeys.approve.purposeSignIn')
@@ -65,8 +65,8 @@ const purposeSentence = computed(() => {
  *
  * <p>Four answers, and they ask different things of the reader. An unknown code is a typo or a code
  * raised for somebody else, and the server does not distinguish those on purpose. A refusal for
- * asking too often can be waited out, and saying so is the difference between waiting twenty
- * seconds and giving up. A wrong number ends the request outright, which the reader has to be told
+ * asking too often can be waited out, and showing that is the difference between waiting twenty
+ * seconds and giving up. A wrong number ends the request outright, which the reader has to be informed
  * or they will sit waiting for something that is never coming.
  */
 function refusalFailure(e: unknown): Failure {
@@ -109,7 +109,7 @@ async function lookup() {
  * Approves, with the number the reader chose.
  *
  * <p>A wrong choice is the end of the request rather than a retry, so the screen goes back to the
- * beginning and says why: there is nothing left to press here, and the device has to ask again.
+ * beginning and shows why: there is nothing left to press here, and the device has to ask again.
  */
 async function approve(pickedNumber: number) {
   failure.value = null

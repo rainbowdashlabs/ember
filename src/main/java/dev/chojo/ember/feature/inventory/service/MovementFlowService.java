@@ -63,11 +63,11 @@ public class MovementFlowService {
      *
      * <p>Where a chain names the body above the station, that step belongs to it. A body that does
      * not run on this instance cannot press anything, so the station walks those steps in its place
-     * and the record says asserted rather than confirmed. That is the same chain either way, which
+     * and the record shows asserted rather than confirmed. That is the same chain either way, which
      * is what makes the two cases comparable afterwards.
      *
      * <p>A piece that arrives is named where it sets out rather than where it lands: the step that
-     * takes a replacement off the shelf or puts it in the post is the one that says which piece it
+     * takes a replacement off the shelf or puts it in the post is the one that decides which piece it
      * is. Naming it on arrival would leave the steps in between about a piece nobody had chosen yet.
      */
     private static final List<Preset> PRESETS = List.of(
@@ -451,7 +451,7 @@ public class MovementFlowService {
      * Writes a run of steps onto a chain, in the order they are to be walked.
      *
      * @param flowId the chain
-     * @param steps  what it is to say
+     * @param steps  what it is to define
      * @param from   the position the first of them takes, which is not zero where the chain already
      *               holds steps that keep their places
      * @return the steps as they were written, in the same order
@@ -481,7 +481,7 @@ public class MovementFlowService {
      *
      * <p>A restore takes the chain apart and puts another one in its place, so what happens to the
      * movements standing on it is decided before it happens rather than reported afterwards. The plan
-     * says what the preset would write and, for every movement on the chain, where it would land and
+     * shows what the preset would write and, for every movement on the chain, where it would land and
      * whether that is the preset's answer or a question for somebody.
      *
      * <p>The same three refusals as the restore itself, and in the same order: a plan that answered
@@ -504,7 +504,7 @@ public class MovementFlowService {
     }
 
     /**
-     * Writes a chain again as the preset for its combination says it goes.
+     * Writes a chain again as the preset for its combination defines it.
      *
      * <p>The seeding only writes combinations nothing has bound yet, so a station keeps the chain it
      * was given for good: an edit has no way back, and a preset that changes afterwards never reaches
@@ -515,9 +515,9 @@ public class MovementFlowService {
      * at this chain still points at it afterwards.
      *
      * <p>Nothing is written until every movement standing on the chain has somewhere to stand in the
-     * one that replaces it. Where the preset says on its own where a movement lands, it lands there
-     * and nobody is asked. Where it does not, the chosen landings have to say so, and a movement
-     * neither answered for nor chosen refuses the whole thing and says which one it was.
+     * one that replaces it. Where the preset defines on its own where a movement lands, it lands there
+     * and nobody is asked. Where it does not, the chosen landings have to define it, and a movement
+     * neither answered for nor chosen refuses the whole thing and shows which one it was.
      *
      * @param flowId        the chain to write again
      * @param actorMemberId who asked for it, which the carried movements' log entries name
@@ -574,7 +574,7 @@ public class MovementFlowService {
         return flow;
     }
 
-    /** What a carried movement's log says about the chain having changed underneath it. */
+    /** What a carried movement's log shows about the chain having changed underneath it. */
     private static String noteOf(Carry carry, MovementFlowStep landing) {
         if (carry.from() == null) {
             return "Ablauf auf die Vorlage zurückgesetzt, der Schritt heißt jetzt '%s'".formatted(landing.label());
@@ -662,9 +662,9 @@ public class MovementFlowService {
     /**
      * The step of the new chain that certainly means what the old one meant.
      *
-     * <p>One rule and no fallbacks: the same piece left in the same place. Where the preset says that
+     * <p>One rule and no fallbacks: the same piece left in the same place. Where the preset defines that
      * once, it is what the old step meant and the movement lands there without anybody being asked.
-     * Where it says it twice, or not at all, the answer is not the chain's to give: the four rules
+     * Where it defines it twice, or not at all, the answer is not the chain's to give: the four rules
      * that used to work down to one always produced an answer, and an answer nobody chose is how a
      * movement ends up three steps further on than anyone noticed.
      *
@@ -827,9 +827,9 @@ public class MovementFlowService {
      * press its buttons, and a chain stopping on a step nobody will ever answer is worse than no chain of
      * the owner's at all.
      *
-     * <p>This is what the association's settings screen is for, and until the gear said which body
+     * <p>This is what the association's settings screen is for, and until the gear showed which body
      * owned it nothing ever reached this at all: a station recording a piece as somebody else's could
-     * not say whose, so every such piece looked like one belonging to a body outside Ember and every
+     * not record whose, so every such piece looked like one belonging to a body outside Ember and every
      * station walked its own chain. The station's own chains name the owner's steps too, and are what
      * a station falls back to when the body above it is not here to press them.
      *
@@ -906,7 +906,7 @@ public class MovementFlowService {
     }
 
     /**
-     * Says whether a chain waits for the member to confirm a piece they received.
+     * Returns whether a chain waits for the member to confirm a piece they received.
      *
      * <p>Only steps reached from now on follow it. A movement already waiting on such a step keeps waiting,
      * because nobody reached that step after the change and the record would otherwise claim a confirmation
@@ -961,7 +961,7 @@ public class MovementFlowService {
     }
 
     /**
-     * Changes what a step says. Renaming alone is always allowed, because the behaviour hangs off
+     * Changes what a step defines. Renaming alone is always allowed, because the behaviour hangs off
      * the custody and the subject rather than the words.
      */
     public boolean updateStep(
@@ -1022,7 +1022,7 @@ public class MovementFlowService {
     /**
      * Puts the steps of a chain in the order given, in one write.
      *
-     * <p>Order is the whole of what a chain says: the same four steps in another order are another
+     * <p>Order is the whole of what a chain defines: the same four steps in another order are another
      * journey. Until now a step went to the end and stayed there, so a forgotten one in the middle
      * meant writing everything after it again.
      *
@@ -1130,7 +1130,7 @@ public class MovementFlowService {
     private record Carry(int movementId, String from, int landing) {}
 
     /**
-     * What a restore would do, said before it is done.
+     * What a restore would do, shown before it is done.
      *
      * @param steps     the chain the preset writes, in the order it is walked
      * @param movements every movement standing on the chain right now, and where each would land
@@ -1142,7 +1142,7 @@ public class MovementFlowService {
      *
      * @param index        where in the chain it stands, counted from the front, which is what a
      *                     chosen landing names it by
-     * @param label        what it says
+     * @param label        what it shows
      * @param actor        whose turn it is on it
      * @param subject      which of the two pieces it is about
      * @param custodyAfter where that piece is once it has been walked
@@ -1170,7 +1170,7 @@ public class MovementFlowService {
      *                       it does not, because an unsure answer offered as a filled-in one is an
      *                       answer nobody reads
      * @param certain        whether the preset answers on its own, which is what decides whether the
-     *                       restore has to be told
+     *                       restore has to be given an answer
      */
     public record PlannedLanding(
             @Nullable Integer stepId,

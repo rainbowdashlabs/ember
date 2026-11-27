@@ -20,7 +20,7 @@ import java.util.Optional;
 /**
  * What a mail relay reports about a message after it has taken it.
  *
- * <p>Sending tells us only that the relay accepted the message. Whether it arrived is decided
+ * <p>Sending shows us only that the relay accepted the message. Whether it arrived is decided
  * afterwards, between the relay and the receiving server, and comes back as an event: a delivery,
  * a bounce, a refusal. Until this service existed, none of it reached Ember: a message the receiving
  * side refused was recorded as sent and nobody could tell otherwise.
@@ -70,7 +70,7 @@ public class MailDeliveryService {
      *
      * @param event     what the provider reported
      * @param stationId the station whose key authorised the report, or null when the instance key
-     *                  did. A station may only be told about its own mail.
+     *                  did. A station may only be informed about its own mail.
      * @return whether the event could be matched to a queued mail
      */
     public boolean record(DeliveryEvent event, @Nullable Integer stationId) {

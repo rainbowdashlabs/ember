@@ -103,7 +103,7 @@ test.describe('Lists from sign-ups', () => {
     /**
      * The same menu makes a survey, and the survey is honest about what it is not yet.
      *
-     * <p>A form is written, then told who it is for, and only then published, so what the menu can
+     * <p>A form is written, then given who it is for, and only then published, so what the menu can
      * hand over is a draft addressed to the right people. The story lands in the editor and reads
      * back who the draft is addressed to, because that is the part no screen states outright.
      */

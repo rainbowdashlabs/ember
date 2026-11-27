@@ -14,7 +14,7 @@
  * width, and sharing one they are equal. From the breakpoint up it is the plain flex row it looks
  * like, with every button at its natural width.
  *
- * <p>Whether two short buttons share a mobile line is the caller's to say, because the length of a
+ * <p>Whether two short buttons share a mobile line is the caller's to decide, because the length of a
  * label is not something this can measure. Stacking is the safe answer and the default.
  */
 withDefaults(defineProps<{

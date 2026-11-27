@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>The whole point of drawing the table in one place is that the answer to the second question is
  * worked out once. A question the station asks only of its team is on the sheet for somebody who
  * keeps the register and absent for somebody who merely may read it, and absent means gone rather
- * than blank: a column of blanks says that something was withheld about these people in particular.
+ * than blank: a column of blanks shows that something was withheld about these people in particular.
  */
 class MemberTableServiceTest extends RepositoryTestBase {
     private static MemberTableService service;
@@ -100,7 +100,7 @@ class MemberTableServiceTest extends RepositoryTestBase {
      * A plain member does not, and the column is gone rather than empty.
      *
      * <p>This is the half that matters. A table that answered with the column and no values would
-     * tell the room that there is an identity card number and that it was kept from them, which about
+     * show the room that there is an identity card number and that it was kept from them, which about
      * a named person is itself worth keeping quiet.
      */
     @Test
@@ -146,7 +146,7 @@ class MemberTableServiceTest extends RepositoryTestBase {
                 "and never offered to somebody the table would drop it for");
     }
 
-    /** Every column says what it holds, so a screen never has to guess a date from how its cells read. */
+    /** Every column shows what it holds, so a screen never has to guess a date from how its cells read. */
     @Test
     void everyColumnSaysWhatItHolds() {
         var table = service.build(
@@ -174,7 +174,7 @@ class MemberTableServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * What a membership says about somebody without anybody having asked a question.
+     * What a membership shows about somebody without anybody having asked a question.
      *
      * <p>These are not guarded by the field scopes, because they are not the station's questions: a
      * reader who may see the person at all may see their name and what kind of member they are.
@@ -276,7 +276,7 @@ class MemberTableServiceTest extends RepositoryTestBase {
         assertEquals("09.03.2026", table.rows().getFirst().values().getFirst());
     }
 
-    /** A yes or no reads as a word, and an answer nobody gave stays empty rather than saying no. */
+    /** A yes or no reads as a word, and an answer nobody gave stays empty rather than showing no. */
     @Test
     void aYesOrNoReadsAsAWord() {
         var flag = profileFieldRepo.create(
@@ -386,7 +386,7 @@ class MemberTableServiceTest extends RepositoryTestBase {
         assertEquals("schon lange", table.rows().getFirst().values().getFirst());
     }
 
-    /** An age whose question counts from nothing has nothing to count, and says so quietly. */
+    /** An age whose question counts from nothing has nothing to count, and shows that quietly. */
     @Test
     void anAgeCountingFromNothingIsEmpty() {
         var age = profileFieldRepo.create(

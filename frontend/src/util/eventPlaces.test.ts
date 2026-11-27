@@ -57,7 +57,7 @@ describe('placesFromResponse', () => {
     })
 })
 
-/** The line says how many places are taken while some are free, and how many wait once none is. */
+/** The line shows how many places are taken while some are free, and how many wait once none is. */
 describe('placesLabel', () => {
     it('says how many places are taken while some are free', () => {
         expect(placesLabel({taken: 8, limit: 12, waiting: 0, full: false}, say))
@@ -77,7 +77,7 @@ describe('placesLabel', () => {
             .toBe('registrationQueue.placesTakenWaiting {"taken":13,"limit":12,"waiting":2}')
     })
 
-    /** An event group can have a place free while people wait for a full part: both are said. */
+    /** An event group can have a place free while people wait for a full part: both are shown. */
     it('says the taken places and the waiting ones where a place is free and people wait', () => {
         expect(placesLabel({taken: 4, limit: 10, waiting: 2, full: false}, say))
             .toBe('registrationQueue.placesTakenWaiting {"taken":4,"limit":10,"waiting":2}')

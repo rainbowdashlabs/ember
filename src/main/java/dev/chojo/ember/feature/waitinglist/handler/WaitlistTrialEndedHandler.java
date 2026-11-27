@@ -19,7 +19,7 @@ import jakarta.inject.Singleton;
 
 import java.util.Map;
 
-/** Tells whoever looks after the waiting lists that a family ended a trial. */
+/** Notifies whoever looks after the waiting lists that a family ended a trial. */
 @Singleton
 public class WaitlistTrialEndedHandler implements DomainEventHandler<WaitlistTrialEnded> {
     private final Notifier notifier;

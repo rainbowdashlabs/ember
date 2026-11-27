@@ -26,7 +26,7 @@ function order(movementId: number | null): ProcurementResponse {
     }
 }
 
-/** What an order says about itself on the procurement page. */
+/** What an order shows about itself on the procurement page. */
 describe('ProcurementEntryDetails', () => {
     it('leads to the swap an order is waiting for, and nowhere for an order of its own', () => {
         const forSwap = mount(ProcurementEntryDetails, {global: {plugins: [i18n]}, props: {entry: order(31)}})

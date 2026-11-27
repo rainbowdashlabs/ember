@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Where a card linking to a page is told that page now lives.
+ * Where a card linking to a page learns where that page now lives.
  *
  * <p>Worked out at drawing time rather than stored, so the interesting cases are the ones where the
  * answer has moved since the card was placed: the page was filed under another, or it left the

@@ -178,7 +178,7 @@ public class EventDateCancellationRepository {
     }
 
     /**
-     * Carries what a one-time appointment's date says about being off to the date it moved to, since
+     * Carries what a one-time appointment's date records about being off to the date it moved to, since
      * it is the same occasion.
      *
      * @param eventId the appointment

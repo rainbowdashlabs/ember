@@ -11,6 +11,6 @@ public enum PairRequestStatus {
     PENDING,
     /** The asked station agreed, and both stations are partners. */
     ACCEPTED,
-    /** The asked station said no. */
+    /** The asked station declined. */
     DECLINED
 }

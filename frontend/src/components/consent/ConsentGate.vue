@@ -22,7 +22,7 @@ import {OPTIONAL_NECESSITIES, type StorageNecessityName} from '@/api/storage'
  * <p>Every answer is one button of the same kind, side by side. Allowing everything is not dressed
  * up as the obvious choice and keeping only the necessary is not hidden behind a settings page or
  * painted as a warning; no optional group starts switched on. Declining is offered as plainly, with
- * what it means said next to it.
+ * what it means shown next to it.
  */
 const props = defineProps<{
   consentLoading: boolean

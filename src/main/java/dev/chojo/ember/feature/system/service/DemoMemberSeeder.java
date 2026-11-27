@@ -130,7 +130,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
      * manage them, because reading and notes are separate rights and a team where everyone holds the
      * whole bundle never shows the difference. He also collects signatures in person, as the trainer
      * with a tablet at a training evening does. The date of birth is one question put to four audiences:
-     * only member management writes it by default, and the two audiences that may are told so on their
+     * only member management writes it by default, and the two audiences that may see so on their
      * own row. The first guardian and the first beginner are left with incomplete profiles.
      */
     public SeedResult seed(int stationId, String passwordHash, DemoStationProfile profile, Random rng) {

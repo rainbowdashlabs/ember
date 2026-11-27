@@ -29,7 +29,7 @@ import java.util.Optional;
  *
  * <p>The move is written to the history as it happens, from where the files were to where they go, and a
  * version of association storage the station was the last one on is deleted once it has left it. The caller
- * makes its checks first, so the history never says a move started that a check refused.
+ * makes its checks first, so the history never shows a move started that a check refused.
  */
 @Singleton
 public class StationMoves {

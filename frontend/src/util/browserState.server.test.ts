@@ -10,7 +10,7 @@ import {browserRef, browserShallowRef} from './browserState'
 /**
  * A module is evaluated once per server process, so whatever a server render wrote into browser
  * state would reach every request after it. On the server the state therefore keeps its initial
- * value, and a write says so.
+ * value, and a write shows that.
  */
 describe('browser state on the server', () => {
     afterEach(() => {

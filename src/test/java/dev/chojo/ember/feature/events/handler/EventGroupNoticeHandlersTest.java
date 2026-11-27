@@ -34,7 +34,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-/** The three things said about an event group: each names the event group and links to its page. */
+/** The three notices sent about an event group: each names the event group and links to its page. */
 class EventGroupNoticeHandlersTest {
     private Notifier notifier;
 

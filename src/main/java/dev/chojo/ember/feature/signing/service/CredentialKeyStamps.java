@@ -38,7 +38,7 @@ import java.util.Optional;
  *       timestamp service nor fails when none answers;
  *   <li>by a daily retry for credentials still without one, because no service answered at the
  *       registration, timestamps were off then, or the credential is older than key timestamps. Such a
- *       stamp proves the key only from its own time on, and says so;
+ *       stamp proves the key only from its own time on, and shows that;
  *   <li>during a signing act with a credential that has none yet, before the evidence is recorded.
  * </ul>
  *

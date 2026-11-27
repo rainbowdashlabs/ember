@@ -13,7 +13,7 @@ import {formatDateTime} from '@/util/format'
 
 /**
  * The line a problem opens with, whether it happened on this instance or was reported here by
- * another one: how bad it is, where it came from, how often it was met and what it said.
+ * another one: how bad it is, where it came from, how often it was met and what it showed.
  *
  * <p>The `badges` slot takes whatever a source knows on top of that, the `notes` slot the lines
  * that do not fit beside the heading, and the `actions` slot the buttons in front of the chevron.

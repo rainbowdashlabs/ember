@@ -81,7 +81,7 @@ class ConfigurationSecretsTest {
                 + secrets.stream().map(Field::getName).toList());
     }
 
-    /** The declared string fields whose name says they hold a credential. */
+    /** The declared string fields whose name shows they hold a credential. */
     private List<Field> secretFieldsOf(Class<?> element) {
         var found = new ArrayList<Field>();
         for (Field field : element.getDeclaredFields()) {

@@ -37,7 +37,7 @@ public class KbBulkService {
 
     /**
      * How many refused entries a result names. Past this the message stops being something anybody
-     * reads, so it stops naming and the total says how many more there were.
+     * reads, so it stops naming and the total shows how many more there were.
      */
     private static final int NAMED_REFUSALS = 10;
 
@@ -165,7 +165,7 @@ public class KbBulkService {
      *
      * @param access    the caller's memberships and station rights
      * @param stationId the caller's station
-     * @param memberId  who is deleting, so the trash can say
+     * @param memberId  who is deleting, so the trash can show
      * @param folderIds the folders picked
      * @param fileIds   the articles picked
      * @return what went to the trash and what did not

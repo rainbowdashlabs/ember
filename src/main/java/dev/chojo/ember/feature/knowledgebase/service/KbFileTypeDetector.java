@@ -12,8 +12,8 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * Decides how an upload is treated in the knowledge base. The MIME type the browser reported has
- * the final say; uploads that arrive without one, or with a generic one, fall back to the file
+ * Decides how an upload is treated in the knowledge base. The MIME type the browser reported
+ * decides; uploads that arrive without one, or with a generic one, fall back to the file
  * name extension so a recognisable document is not stored as an opaque blob.
  */
 public final class KbFileTypeDetector {

@@ -26,7 +26,7 @@ public enum BodyRefusal implements Refusal {
     /** A body arrived whose shape was right but whose contents were refused. */
     BODY_VALUE_REJECTED(4, HttpStatus.BAD_REQUEST, "A value in the request body is not one this endpoint accepts"),
 
-    /** Something in the request could not be used, and whoever refused it said nothing readable. */
+    /** Something in the request could not be used, and whoever refused it gave nothing readable. */
     INPUT_NOT_USABLE(5, HttpStatus.BAD_REQUEST, "Something in what was sent could not be used, so nothing was saved"),
 
     /** A block of a page, news entry or article sent with settings its kind of block does not take. */

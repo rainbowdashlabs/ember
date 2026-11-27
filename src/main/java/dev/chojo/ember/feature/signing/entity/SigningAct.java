@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * What every piece of signing evidence says, whatever the signer confirmed with: who signed what, in
+ * What every piece of signing evidence shows, whatever the signer confirmed with: who signed what, in
  * which capacity, when and from where.
  *
  * <p>Names are official register names as they stood at signing, kept here because the account, the

@@ -35,7 +35,7 @@ const open = defineModel<boolean>('open', {default: false})
 const props = withDefaults(defineProps<{
   label: string
   role?: 'menu' | 'dialog'
-  /** Tells two panels on one page apart. The panel carries it, the trigger is expected to carry it with `-trigger`. */
+  /** Distinguishes two panels on one page. The panel carries it, the trigger is expected to carry it with `-trigger`. */
   testId?: string
   panelClass?: string
   /** Which edge of the trigger the panel lines up with. */

@@ -63,8 +63,8 @@ public final class SubjectMemberMatch {
      *
      * <p>Whole words are compared and never parts of them, so a subject reading "Anastasia Weber" does
      * not reach a member called Ana Weber. Of the members who clear the bar, the one whose name the
-     * subject says the most of wins, and where two are said equally often the one named more completely
-     * wins, which is what tells Anna Weber from Anna Weber-Schmidt. Still level binds nobody.
+     * subject shows the most of wins, and where two are shown equally often the one named more completely
+     * wins, which is what distinguishes Anna Weber from Anna Weber-Schmidt. Still level binds nobody.
      *
      * @param subject    what the message was called
      * @param candidates the station's members
@@ -90,7 +90,7 @@ public final class SubjectMemberMatch {
     }
 
     /**
-     * One member measured against a subject: how much of their name it says, and how much it leaves out.
+     * One member measured against a subject: how much of their name it shows, and how much it leaves out.
      *
      * @param candidate the member being measured
      * @param hits      the words of the name the subject carries
@@ -102,7 +102,7 @@ public final class SubjectMemberMatch {
             .thenComparing(Comparator.<Named>comparingInt(Named::unnamed).reversed());
 
     /**
-     * What the subject says of one member's name, or nothing where it says too little of it.
+     * What the subject shows of one member's name, or nothing where it shows too little of it.
      *
      * <p>The bar is two words, and every word where the name has only one. A member with no name worth
      * the term is never guessed at.

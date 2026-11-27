@@ -77,7 +77,7 @@ public class EventPlaces {
     }
 
     /**
-     * Whether a date starts in less than a day, which a member moving up is told plainly.
+     * Whether a date starts in less than a day, which a member moving up is notified of plainly.
      *
      * @param event     the appointment
      * @param eventDate the date

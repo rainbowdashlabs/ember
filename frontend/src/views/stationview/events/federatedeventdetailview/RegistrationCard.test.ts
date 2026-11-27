@@ -27,7 +27,7 @@ async function mountCard(registrations: RemoteMemberRegistration[], weDecide = f
 }
 
 /**
- * Signing members up for a partner station's appointment: the actions on a held place say what they do
+ * Signing members up for a partner station's appointment: the actions on a held place show what they do
  * in words, and a place on the waiting list reads as one.
  */
 describe('RegistrationCard', () => {

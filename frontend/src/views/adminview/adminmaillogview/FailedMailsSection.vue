@@ -69,7 +69,7 @@ async function revealWhenAskedFor() {
 
 const shown = computed(() => mails.value.length > 0 || stations.value.length > 0 || loadFailure.value !== null)
 
-/** Does one thing to the lists, says how it went, and reads them again. */
+/** Does one thing to the lists, shows how it went, and reads them again. */
 async function act(action: () => Promise<unknown>, done: string) {
   busy.value = true
   actionFailure.value = null

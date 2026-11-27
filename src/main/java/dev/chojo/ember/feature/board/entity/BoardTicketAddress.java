@@ -9,8 +9,8 @@ package dev.chojo.ember.feature.board.entity;
  * Where a ticket's page is, which is at its board and its number rather than at its id.
  *
  * <p>Every other thing a comment hangs under is reached by a plain id, so an event naming one by id
- * says enough to open it. A ticket does not, and the two travel together or not at all, which is
- * what this pair says.
+ * carries enough to open it. A ticket does not, and the two travel together or not at all, which is
+ * what this pair shows.
  *
  * @param boardKey     the short key of the board holding the ticket
  * @param ticketNumber the ticket's number within that board

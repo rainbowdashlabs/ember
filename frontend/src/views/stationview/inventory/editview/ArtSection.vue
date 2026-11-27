@@ -80,8 +80,8 @@ async function load() {
 }
 
 /**
- * Fetches the list again after a kind was written, and says so as a stale screen rather than a
- * failed write. The write is already through at this point, and a reader told otherwise saves twice.
+ * Fetches the list again after a kind was written, and reports it as a stale screen rather than a
+ * failed write. The write is already through at this point, and a reader shown otherwise saves twice.
  */
 async function refreshAfterWrite() {
   try {

@@ -28,7 +28,7 @@ export function groupedChartHeight(matrix: ResultMatrix, series: GroupSeries[]):
  * statement, in the group's colour, with its value written at the end of the bar.
  *
  * <p>Values are labelled on every bar because several of the group colours are too pale against the
- * light background to be told apart by colour alone; the legend names the groups, and the tooltip
+ * light background to be distinguished by colour alone; the legend names the groups, and the tooltip
  * adds how many answers stand behind each value.
  */
 export function groupedBarOption(matrix: ResultMatrix, series: GroupSeries[], textColor: string, locale: string) {

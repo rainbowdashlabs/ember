@@ -7,7 +7,7 @@ import type {MemberCompletion} from '@/api/generated/schema'
 
 /**
  * What a mention completion names in messages instead of a station: messages are between
- * accounts, so the person behind a mention is an account and the station part says so.
+ * accounts, so the person behind a mention is an account and the station part shows that.
  */
 export const ACCOUNT_SCOPE = 'account'
 

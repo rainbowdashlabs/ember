@@ -34,7 +34,7 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
  * What this station puts on offer to its lending partners. Nothing is offered until one of these
- * rows says so, and the narrowest row wins, so an inventory can go out with a single item kept back.
+ * rows allows it, and the narrowest row wins, so an inventory can go out with a single item kept back.
  */
 @Singleton
 public class InventoryShareRoutes implements Routes {
@@ -241,7 +241,7 @@ public class InventoryShareRoutes implements Routes {
         }
     }
 
-    /** What is currently said about one inventory or one item. */
+    /** What is currently set for one inventory or one item. */
     public record ShareSetting(
             boolean shared,
             @Nullable ShareGrant grant,

@@ -22,7 +22,7 @@ const props = defineProps<{
   /** Names whether a form is taking answers, which is not the same as its stored status. */
   statusLabel: (state: string) => string
   /**
-   * Where a tile leads, which only the screen owning the routes can say. Nothing where the tiles
+   * Where a tile leads, which only the screen owning the routes can decide. Nothing where the tiles
    * are shown rather than offered, and then they are not links.
    */
   formPage: (form: Form) => RouteLocationRaw | null

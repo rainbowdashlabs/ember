@@ -22,13 +22,13 @@ import java.util.Objects;
  * manager, the mail import, or a member reporting a loss with evidence attached.
  *
  * <p>Every file passes the same checks. It may weigh no more than the station takes for one file, the
- * station must have room for it, and where the bytes say what kind of file it is, the bytes decide
+ * station must have room for it, and where the bytes show what kind of file it is, the bytes decide
  * rather than the name or the type the sender declared. A file whose name claims one kind and whose
- * bytes are another is refused; one whose bytes say nothing is kept under the type it was declared as,
+ * bytes are another is refused; one whose bytes show nothing is kept under the type it was declared as,
  * unless that type is one the bytes would have shown, in which case it is kept as plain bytes and never
  * shown inline as something it is not.
  *
- * <p>Who hands a file over decides only which refusal says no, which is what {@link Refusals} carries.
+ * <p>Who hands a file over decides only which refusal is raised, which is what {@link Refusals} carries.
  */
 @Singleton
 public class DocumentIntake {
@@ -174,7 +174,7 @@ public class DocumentIntake {
          * Kept.
          *
          * @param mimeType   the type it is kept as
-         * @param recognised whether the bytes said what it is, rather than the sender
+         * @param recognised whether the bytes showed what it is, rather than the sender
          */
         record Taken(String mimeType, boolean recognised) implements Verdict {}
 

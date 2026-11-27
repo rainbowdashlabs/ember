@@ -20,7 +20,7 @@ function monitoring(waiting: MonitoringCounts): NavNode | undefined {
 
 /**
  * The administration sidebar's Monitoring group: it counts what waits on its pages, so a closed
- * group still says that something does, and the mail log counts the mails that did not arrive.
+ * group still shows that something does, and the mail log counts the mails that did not arrive.
  */
 describe('ADMIN_NAV monitoring', () => {
     it('adds problems, reports and failed mails up on the group', () => {

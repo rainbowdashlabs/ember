@@ -5,7 +5,7 @@
  */
 import type {InventorySize} from '@/api/generated/schema'
 
-/** Why a piece is swapped. Anything that is none of the three common ones is said in words. */
+/** Why a piece is swapped. Anything that is none of the three common ones is given in words. */
 export const ExchangeReason = {
     TOO_SMALL: 'TOO_SMALL',
     TOO_LARGE: 'TOO_LARGE',
@@ -36,7 +36,7 @@ function positionOf(sizes: InventorySize[], sizeId: number | null | undefined): 
  * @param reason  why the piece is swapped
  * @param sizes   the inventory's sizes, smallest first
  * @param current the size the piece has now
- * @param chosen  the size chosen so far, kept for a reason that says nothing about size
+ * @param chosen  the size chosen so far, kept for a reason that shows nothing about size
  * @return the size to ask for, or {@code null} for none
  */
 export function guessSize(

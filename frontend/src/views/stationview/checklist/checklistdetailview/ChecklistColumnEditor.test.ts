@@ -34,7 +34,7 @@ function holdShift(held: boolean) {
     window.dispatchEvent(new KeyboardEvent(held ? 'keydown' : 'keyup', {key: 'Shift'}))
 }
 
-/** Deleting a column says how many ticks go with it first, and shift skips the question. */
+/** Deleting a column shows how many ticks go with it first, and shift skips the question. */
 describe('ChecklistColumnEditor', () => {
     beforeAll(() => followModifierKeys())
     beforeEach(() => {

@@ -39,7 +39,7 @@ const pageSize = 50
 const pages = computed(() => Math.max(Math.ceil(total.value / pageSize), 1))
 
 /**
- * Fetches a page of the log, and says so when it cannot.
+ * Fetches a page of the log, and reports it when it cannot.
  *
  * <p>It used to empty the list on a failure, which reads on screen as a mailbox that has imported
  * nothing. The log exists to answer exactly that question, so a silent empty list is the one

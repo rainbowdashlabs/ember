@@ -14,7 +14,7 @@ import { describeFailure, type Failure } from '@/util/failure'
  * the assignment actions performed on them.
  *
  * <p>Nothing here reads movements. Whatever is running on a piece travels with the piece as the
- * movement's own standing, the last step that happened and whose turn it is, so the rows say where they
+ * movement's own standing, the last step that happened and whose turn it is, so the rows show where they
  * stand in the very words of the movement list without a second list to join them against.
  */
 export function useMemberInventory(memberId: Ref<number>, failure: Ref<Failure | null>) {
@@ -32,7 +32,7 @@ export function useMemberInventory(memberId: Ref<number>, failure: Ref<Failure |
    * Reads what the member holds and what they are still owed.
    *
    * <p>A failure here used to leave both lists empty without a word, and an empty gear list is a
-   * statement: it says this member holds nothing, which is the one thing the tab exists to say.
+   * statement: it means this member holds nothing, which is the one thing the tab exists to show.
    */
   async function load() {
     failure.value = null
@@ -49,7 +49,7 @@ export function useMemberInventory(memberId: Ref<number>, failure: Ref<Failure |
    * Reads the lists again after something was handed over or taken back.
    *
    * <p>Caught apart from the write itself: by the time this runs the piece has already changed hands,
-   * and a reader told the handover failed hands it over a second time.
+   * and a reader shown that the handover failed hands it over a second time.
    */
   async function refreshAfterWrite() {
     try {

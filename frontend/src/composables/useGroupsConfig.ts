@@ -215,7 +215,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
      * Writes the group, then catches the list up, and answers for the two separately.
      *
      * <p>They used to share one attempt, so a group that was written and a list that then failed to
-     * reload both reported a failed save. A reader told the group was not saved writes it again, and
+     * reload both reported a failed save. A reader shown that the group was not saved writes it again, and
      * the second one is a duplicate of a group that already exists under that name.
      */
     const {

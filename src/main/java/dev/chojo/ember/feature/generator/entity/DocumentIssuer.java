@@ -18,7 +18,7 @@ import org.jspecify.annotations.Nullable;
  * its documents without signing each by hand.
  *
  * @param memberId the member, or null where nobody is named or the one named was deleted
- * @param function what they do at the station, or null where nothing is said
+ * @param function what they do at the station, or null where nothing is set
  * @param fixed    whether this is the issuer the template names, rather than one picked for the occasion
  */
 public record DocumentIssuer(

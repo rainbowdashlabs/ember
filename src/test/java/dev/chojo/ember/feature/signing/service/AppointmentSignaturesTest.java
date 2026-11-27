@@ -649,7 +649,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
     /**
      * Withdrawing a signed agreement of a registration revokes its request, flags the registration and asks
      * for the agreement again on a fresh copy, so the requirement is open again; signing it anew takes the
-     * flag off. Whoever runs the appointment is told.
+     * flag off. Whoever runs the appointment is notified.
      */
     @Test
     void withdrawingReopensTheRequirementAndFlagsTheRegistration() {

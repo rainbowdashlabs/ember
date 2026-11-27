@@ -30,11 +30,11 @@ export function useMovementRowView(movement: Ref<MovementResponse>) {
     }))
 
     /**
-     * Whose gear it is, said on every row.
+     * Whose gear it is, shown on every row.
      *
      * <p>It sits under the kind of movement because the two together are what a row is: a swap of the
      * station's own gear and a swap of the association's walk different chains and end in different
-     * places, and telling them apart mattered enough to be worth a line of its own.
+     * places, and distinguishing them mattered enough to be worth a line of its own.
      */
     const owner = computed(() => ownerLabel.value)
 

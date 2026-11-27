@@ -128,7 +128,7 @@ class MediaFileRepositoryTest extends RepositoryTestBase {
      *
      * <p>Its files have no station, and the same bytes uploaded twice are still one file. That
      * second part is not free: the unique index counts two nulls as different values unless it is
-     * told otherwise, so without the index being declared NULLS NOT DISTINCT the instance would
+     * declared otherwise, so without the index being declared NULLS NOT DISTINCT the instance would
      * store a fresh copy every time somebody uploaded the same picture.
      */
     @Test

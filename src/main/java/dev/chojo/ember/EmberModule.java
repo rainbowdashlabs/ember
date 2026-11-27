@@ -1202,7 +1202,7 @@ public class EmberModule extends AbstractModule {
      * them is a reason to lose the process.
      *
      * <p>Bounded, because the other thing that refuses a connection is an address or a password
-     * that is simply wrong, and an instance that hung on that forever would say less than one that
+     * that is simply wrong, and an instance that hung on that forever would show less than one that
      * stops and shows the refusal. Every attempt is logged, so a wait is visible while it lasts.
      */
     private static DataSource openPool(Supplier<DataSource> open) {

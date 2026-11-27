@@ -34,7 +34,7 @@ import tools.jackson.databind.exc.ValueInstantiationException;
  * <p>Every one of them answers with a sentence. A status on its own leaves the reader unable to
  * tell whether they sent something wrong or Ember fell over, which is the one thing they need
  * to know before deciding whether to fix it or report it, so the body always carries prose and
- * the status is chosen to say honestly whose problem this is.
+ * the status is chosen to show honestly whose problem this is.
  *
  * <p>The technical half of a fault never reaches the reader. A stack trace, a statement, a
  * constraint name and a file path all stay in the log, and the response carries only the short
@@ -43,7 +43,7 @@ import tools.jackson.databind.exc.ValueInstantiationException;
  *
  * <p>A storage move that cannot be made is a refusal with a reason, not a fault. It arrives from the
  * acts that move files as a side effect of something else, a station joining a cluster or being let
- * go, where the caller has to be told that nothing happened and why. Somebody who cannot be given an
+ * go, where the caller has to learn that nothing happened and why. Somebody who cannot be given an
  * account is the same kind of answer: the address is already somebody's. It is mapped here rather
  * than at each route because provisioning happens as a side effect of several acts, naming a manager
  * for a station among them, and every route that forgot the mapping turned a refusal into a fault
@@ -200,7 +200,7 @@ public class ExceptionMapping {
     }
 
     /**
-     * Records a refusal: a reader asked for something and was told no.
+     * Records a refusal: a reader asked for something and was turned down.
      *
      * <p>A refusal is no fault, and one reader can cause any number of them, each with its own ids and
      * names in the message. It is therefore marked as a refusal, which the problem log keeps apart from
@@ -211,8 +211,8 @@ public class ExceptionMapping {
      *
      * @param ctx     the request that was refused
      * @param kind    what refused it: the refusal's code where it has one
-     * @param what    how the line starts, saying what was refused
-     * @param message what the response or the cause said
+     * @param what    how the line starts, showing what was refused
+     * @param message what the response or the cause carried
      * @param err     the cause, where its stack trace is worth keeping
      */
     private static void logRefusal(Context ctx, String kind, String what, String message, @Nullable Throwable err) {
@@ -240,7 +240,7 @@ public class ExceptionMapping {
     /**
      * Records that nothing was found at an address, but only where a route answered it.
      *
-     * <p>A 404 behind a real route says something that ought to be there is not, such as an appointment
+     * <p>A 404 behind a real route means something that ought to be there is not, such as an appointment
      * that was deleted while somebody still had it open, and that is worth an operator's attention. A 404
      * for an address no route claims is a guess, almost always a scanner trying file after file, and
      * worth none: it is logged at debug level and never reaches the problem log. The route's template
@@ -248,7 +248,7 @@ public class ExceptionMapping {
      * message keeps the address that was asked for.
      *
      * @param ctx     the request that found nothing
-     * @param message what the response said
+     * @param message what the response carried
      */
     private static void logNotFound(Context ctx, String message) {
         var endpoint = ctx.endpoints().matchedHttpEndpoint();
@@ -262,7 +262,7 @@ public class ExceptionMapping {
     }
 
     /**
-     * Says what was wrong with a value the body carried that whatever it describes refused to take.
+     * Shows what was wrong with a value the body carried that whatever it describes refused to take.
      *
      * <p>This is the refusal a record writes in its own constructor, so its wording is the most
      * useful thing there is to pass on, and it is passed on wherever it reads as prose rather than

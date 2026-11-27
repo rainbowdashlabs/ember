@@ -168,7 +168,7 @@ public class PublicSigningRoutes implements Routes {
         }
     }
 
-    /** Whether reading a form broke off because it grew past a limit, which the server says in words only. */
+    /** Whether reading a form broke off because it grew past a limit, which the server reports in words only. */
     private static boolean overLimit(Throwable failure) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
             String message = cause.getMessage();

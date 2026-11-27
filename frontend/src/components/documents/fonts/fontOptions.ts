@@ -69,7 +69,7 @@ export type EntryOrigin = FontOrigin | 'DEFAULT'
  *
  * @property value   the choice it stands for
  * @property name    what it is called
- * @property origin  where it comes from, or null where the list says nothing about it
+ * @property origin  where it comes from, or null where the list shows nothing about it
  * @property sample  the family a picture of sample text shows, null for the default font, and the
  *                   version of that picture; null where the entry shows none
  * @property missing whether the template names the family but no longer reaches it

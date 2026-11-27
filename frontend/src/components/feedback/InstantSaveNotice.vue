@@ -8,10 +8,10 @@ import Alert from '@/components/feedback/Alert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
 /**
- * Says that a screen keeps what is changed on it without being asked to.
+ * Shows that a screen keeps what is changed on it without being asked to.
  *
- * <p>Worth saying out loud wherever there is also a save button for something else, because the
- * reader otherwise has to guess which half of the page the button covers. A failed write says so
+ * <p>Worth showing wherever there is also a save button for something else, because the
+ * reader otherwise has to guess which half of the page the button covers. A failed write shows that
  * loudly: it is the one case where walking away does lose the change.
  */
 defineProps<{

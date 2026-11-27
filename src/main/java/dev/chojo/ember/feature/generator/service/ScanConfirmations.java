@@ -9,7 +9,7 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.feature.generator.entity.PaperSubmission;
 
 /**
- * Told where the scan of a signed paper copy stands, so the signatures still open on the participant's copy
+ * Informed of where the scan of a signed paper copy stands, so the signatures still open on the participant's copy
  * follow it: while the scan waits for a manager they are asked of nobody, and once it counts as confirmed
  * they are settled as signed on paper.
  */

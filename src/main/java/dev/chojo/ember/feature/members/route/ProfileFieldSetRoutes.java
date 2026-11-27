@@ -31,7 +31,7 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
  * The bundles a station keeps its profile questions in: which there are, writing one, renaming it,
- * ordering its questions and dissolving it. Which bundle a question is in is said where the question is
+ * ordering its questions and dissolving it. Which bundle a question is in is set where the question is
  * written.
  */
 @Singleton

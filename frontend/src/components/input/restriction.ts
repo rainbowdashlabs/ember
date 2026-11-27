@@ -99,7 +99,7 @@ export function restrictionLabels(
     }
 }
 
-/** The parts of a selection that say who is named, without how they combine. */
+/** The parts of a selection that show who is named, without how they combine. */
 type NamedParts = Pick<RestrictionSelection, 'userTypes' | 'groupIds' | 'tagIds' | 'memberIds'>
 
 /**

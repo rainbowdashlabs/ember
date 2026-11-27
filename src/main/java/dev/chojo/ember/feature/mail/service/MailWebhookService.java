@@ -178,10 +178,10 @@ public class MailWebhookService implements TaskSource {
     }
 
     /**
-     * Takes a Brevo report. Opens, clicks and unsubscribes say nothing about delivery: they are
+     * Takes a Brevo report. Opens, clicks and unsubscribes show nothing about delivery: they are
      * accepted so the provider does not keep retrying, and nothing else is done with them.
      *
-     * @return whether the report was settled: said nothing about delivery, or matched a mail we sent
+     * @return whether the report was settled: showed nothing about delivery, or matched a mail we sent
      */
     public boolean brevo(String key, JsonNode body) {
         var scope = authorise(key);
@@ -203,8 +203,8 @@ public class MailWebhookService implements TaskSource {
      *
      * <p>Sweego writes them inconsistently in its own documentation, {@code soft-bounce} with a
      * hyphen next to {@code hard_bounce} with an underscore, so both separators are ignored.
-     * {@code email_sent} means Sweego took the message, which is what our own send already told us,
-     * and says nothing about arrival.
+     * {@code email_sent} means Sweego took the message, which is what our own send already showed us,
+     * and shows nothing about arrival.
      */
     private static @Nullable MailDeliveryStatus sweegoStatus(@Nullable String event) {
         if (event == null) return null;

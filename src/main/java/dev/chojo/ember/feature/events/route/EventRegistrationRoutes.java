@@ -674,7 +674,7 @@ public class EventRegistrationRoutes implements Routes {
                 memberTableRenderer.toCsv(tableOf(ctx), station, CsvWriter.Separator.of(ctx.queryParam("separator"))));
     }
 
-    /** A registration list belongs to one appointment on one day, and says both. */
+    /** A registration list belongs to one appointment on one day, and shows both. */
     private String registrationsName(Station station, String eventName, Context ctx, String extension) {
         String language = StationFormat.languageOf(station);
         String filename = DocumentName.of(

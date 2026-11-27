@@ -96,7 +96,7 @@ async function sizesOfInventory(): Promise<InventorySize[]> {
  * Answers the step the movement stands on, then reads the movement back.
  *
  * <p>The answer and the reading back are caught apart. Once the step is acknowledged it is acknowledged,
- * and a reader told otherwise answers it again on a movement that has already walked on.
+ * and a reader shown otherwise answers it again on a movement that has already walked on.
  */
 async function run(action: () => Promise<MovementDetail>) {
   busy.value = true

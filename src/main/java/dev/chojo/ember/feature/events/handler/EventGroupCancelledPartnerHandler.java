@@ -13,7 +13,7 @@ import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 
 /**
- * Tells the partner stations whose members held or waited for a place that a shared event group was
+ * Notifies the partner stations whose members held or waited for a place that a shared event group was
  * called off, once for the event group.
  */
 @Singleton

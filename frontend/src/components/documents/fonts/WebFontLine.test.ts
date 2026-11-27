@@ -13,7 +13,7 @@ enableAutoUnmount(afterEach)
 
 const WEB: WebFontView = {fileName: 'haus.woff2', format: WebFontFormat.WOFF2, sizeBytes: 2048, uploadedAt: '2026-10-03T10:00:00Z'}
 
-/** A style says whether it has a web version and offers to upload, replace or remove it. */
+/** A style shows whether it has a web version and offers to upload, replace or remove it. */
 describe('WebFontLine', () => {
     it('offers an upload where the style has no web version', async () => {
         const wrapper = mount(WebFontLine, {props: {web: null}})

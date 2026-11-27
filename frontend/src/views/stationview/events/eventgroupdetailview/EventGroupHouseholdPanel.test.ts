@@ -154,7 +154,7 @@ describe('EventGroupHouseholdPanel', () => {
     expect(onChanged).toHaveBeenCalled()
   })
 
-  /** A full event group still takes sign-ups: they wait on the waiting list, which the button says. */
+  /** A full event group still takes sign-ups: they wait on the waiting list, which the button shows. */
   it('offers the waiting list once every place for people is taken', () => {
     const full = detail([entry(11, 'Lea')])
     full.eventGroup = {...full.eventGroup, holding: 10, details: {...full.eventGroup.details, registrationLimit: 10}}
@@ -163,7 +163,7 @@ describe('EventGroupHouseholdPanel', () => {
     expect(wrapper.get('[data-testid="event-group-sign-up"]').text()).toContain('Auf die Nachrückliste')
   })
 
-  /** Whoever waits sees their place in line and leaves the list, which the confirmation says too. */
+  /** Whoever waits sees their place in line and leaves the list, which the confirmation shows too. */
   it('shows the place in line and leaves the waiting list', async () => {
     wrapper = mount(EventGroupHouseholdPanel, {
       props: {detail: detail([entry(12, 'Mara', {status: 'QUEUED', parts: [11], queuePosition: 2})])},

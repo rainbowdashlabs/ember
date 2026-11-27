@@ -20,7 +20,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Tells a station's managers that its cluster has changed how much room it has.
+ * Notifies a station's managers that its cluster has changed how much room it has.
  */
 @Singleton
 public class ClusterQuotaChangedHandler implements DomainEventHandler<ClusterQuotaChanged> {
@@ -49,7 +49,7 @@ public class ClusterQuotaChangedHandler implements DomainEventHandler<ClusterQuo
     }
 
     /**
-     * A quota handed back to the instance default has no number to show, so it says so in words.
+     * A quota handed back to the instance default has no number to show, so it shows that in words.
      */
     private static String formatQuota(@Nullable Long quotaBytes) {
         return quotaBytes == null ? "-" : SizeParser.formatBytes(quotaBytes);

@@ -28,7 +28,7 @@ export type ProblemStateChange = keyof typeof STATE_CHANGES
  *
  * <p>The list is loaded again after every change, without the spinner, so the reader keeps their place
  * in it. Only the answer to the latest request is shown: a reader switching filters faster than the
- * server answers never sees the list of a filter they already left. Whatever fails is said, and the
+ * server answers never sees the list of a filter they already left. Whatever fails is reported, and the
  * list is loaded again all the same, so it shows what the server holds rather than what was hoped for.
  */
 export function useProblemList() {

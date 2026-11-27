@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 /**
  * Mails people what gathered for them, station members and cluster members through one loop.
  *
- * <p>The sweep looks in far more often than anybody is written to. A station or a cluster says the
+ * <p>The sweep looks in far more often than anybody is written to. A station or a cluster sets the
  * times of day it wants its mail, read on its own clock, and is written to only where one of those
  * times has gone by since it was last; one whose moment has not come keeps its notifications,
  * unmailed and unmarked, for the next look. Everything waiting is read in one statement with who it

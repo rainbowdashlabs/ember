@@ -9,12 +9,12 @@ import {MovementFilterColumn, setMovementFilter} from './fixtures/movementFilter
 import {movementRow} from './fixtures/movementRow'
 
 /**
- * Where a movement says it stands, and what may move it.
+ * Where a movement shows it stands, and what may move it.
  *
  * A movement never announces a status: where it stands is the step it is on, read off where the two
  * pieces are. That makes it easy for something that touched neither of them to look like a step
  * forward, which is what these stories hold the line on. Nothing but walking the chain moves a
- * movement, one that was called off says so rather than passing for a finished one, and putting one
+ * movement, one that was called off shows that rather than passing for a finished one, and putting one
  * right is putting the pieces right.
  */
 
@@ -53,7 +53,7 @@ async function swapOnItsWay(page: Page, headers: Record<string, string>, label: 
 }
 
 /**
- * What the station's queue says about one movement, asked of the API rather than the screen.
+ * What the station's queue shows about one movement, asked of the API rather than the screen.
  *
  * <p>Two labels, because a step is named after the state it brings about: `reached` is what is true
  * of the world now and `pending` is what pressing the row's button would make true.
@@ -153,7 +153,7 @@ test.describe('Movement queue', () => {
      *
      * There is no status to overwrite: where it stands is read off where the two pieces are, so
      * putting one right is saying where the pieces are. The reason is not optional, and the history
-     * says afterwards that a person set this rather than that anybody walked it.
+     * shows afterwards that a person set this rather than that anybody walked it.
      */
     test('a movement that stands too far is put right, with the reason on record',
         async ({managerPage: page}) => {
@@ -194,7 +194,7 @@ test.describe('Movement queue', () => {
      * MVQ-4 - A movement of any kind is started from the queue, and refused where no chain serves it.
      *
      * The wizard is the one way in, so it is the one place where a station finds out that a
-     * combination it asked for has no chain behind it. It has to say so rather than fail on submit.
+     * combination it asked for has no chain behind it. It has to show that rather than fail on submit.
      */
     test('the wizard starts a hand-out and draws the chain before it writes anything',
         async ({managerPage: page}) => {

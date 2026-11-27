@@ -104,7 +104,7 @@ const {loading, failure, reload: load} = useAsyncLoader(async () => {
  * Follows a scanned code to whatever it names.
  *
  * <p>The two lookups were unguarded, so a refused one ended as a rejected promise and the button
- * simply did nothing. A code that matches nothing is told apart from a lookup that could not be made:
+ * simply did nothing. A code that matches nothing is distinguished from a lookup that could not be made:
  * the first is the reader's to sort out and invites no report, the second is a failure like any other.
  */
 async function onScanDecoded(value: string) {

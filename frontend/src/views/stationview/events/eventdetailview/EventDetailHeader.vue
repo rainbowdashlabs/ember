@@ -55,7 +55,7 @@ const router = useRouter()
 const eventRoutes = useEventRoutes()
 const newsRoutes = useNewsRoutes()
 
-/** How long the series runs, where it was given an end. A series without one says nothing. */
+/** How long the series runs, where it was given an end. A series without one shows nothing. */
 const repeatEnd = computed(() => {
   if (!isRecurringEvent(props.event.eventType)) return ''
   if (props.event.repeatUntil) return t('events.repeatUntilLabel', {date: formatDate(props.event.repeatUntil)})

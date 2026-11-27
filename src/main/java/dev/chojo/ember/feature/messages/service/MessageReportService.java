@@ -39,7 +39,7 @@ import java.util.UUID;
  * Members reporting messages of a station chat, and the people handling the station's chats looking
  * at them.
  *
- * <p>Each new report tells the holders of the permission at the chat's station. A report is looked
+ * <p>Each new report notifies the holders of the permission at the chat's station. A report is looked
  * at with the message in its context; the message is then removed for the station or the report is
  * dismissed. Either way every open report of that message is handled with it, since one decision
  * answers them all.
@@ -82,8 +82,8 @@ public class MessageReportService {
 
     /**
      * Reports a message of a station chat the reader takes part in, keeping its text as it reads
-     * now. Reporting it again while the first report is open changes nothing and tells nobody again,
-     * and the reporter is not told about their own report.
+     * now. Reporting it again while the first report is open changes nothing and notifies nobody again,
+     * and the reporter is not notified about their own report.
      *
      * @param accountId       the reader
      * @param conversationUid the chat

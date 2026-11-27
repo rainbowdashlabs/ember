@@ -116,7 +116,7 @@ public class ClusterStationGroupRepository {
     }
 
     /**
-     * How many questions are pointed at one group, so a refused delete can say what is in the way.
+     * How many questions are pointed at one group, so a refused delete can show what is in the way.
      *
      * @param groupId the group
      * @return the number of questions keyed to it
@@ -130,7 +130,7 @@ public class ClusterStationGroupRepository {
     }
 
     /**
-     * How many recommended tags are aimed at one group, so a refused delete can say what is in the
+     * How many recommended tags are aimed at one group, so a refused delete can show what is in the
      * way.
      *
      * @param groupId the group
@@ -145,7 +145,7 @@ public class ClusterStationGroupRepository {
     }
 
     /**
-     * How many stock requirements count at one group, so a refused delete can say what is in the way.
+     * How many stock requirements count at one group, so a refused delete can show what is in the way.
      *
      * @param groupId the group
      * @return the number of requirements keyed to it

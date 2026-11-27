@@ -8,7 +8,7 @@ import StationBadge from '@/components/badge/StationBadge.vue'
 import type {KbItem} from './useKbItems'
 
 /**
- * What a tile says about where an entry comes from, in the corner rather than in its face: the star
+ * What a tile shows about where an entry comes from, in the corner rather than in its face: the star
  * of a favourite and the name of the partner it belongs to. It keeps out of the room the marking
  * tick takes, and takes none at all where an entry is neither.
  */

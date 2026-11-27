@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 
 /**
- * What a presentation says about itself while it is being shown: its name, where in it the reader is,
+ * What a presentation shows about itself while it is being shown: its name, where in it the reader is,
  * and the way out.
  *
  * <p>It fades rather than disappears, because a bar that leaves the layout would move the slide under

@@ -141,7 +141,7 @@ public class InventoryShareRepository {
      *
      * <p>Only read when the share's scope is {@code SPECIFIC}. An empty list with that scope reaches
      * nobody, which is a thing somebody may legitimately write: it is how a whole inventory is taken
-     * off the market without deleting the row that says what it was.
+     * off the market without deleting the row that records what it was.
      *
      * @param shareId    the share
      * @param partnerIds the partnerships it is for

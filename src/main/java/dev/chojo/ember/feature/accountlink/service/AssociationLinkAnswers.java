@@ -109,7 +109,7 @@ public class AssociationLinkAnswers {
     /**
      * Makes the account a member of the association with the role it offered. The answer and the
      * membership are written together or not at all. The account's own audit records it, and whoever
-     * runs the association is told.
+     * runs the association is notified.
      *
      * @param accountId the signed-in account
      * @param request   the request, waiting for that account

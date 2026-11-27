@@ -29,9 +29,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * What an instance says for itself when it comes up on a version it was not on before.
+ * What an instance publishes about itself when it comes up on a version it was not on before.
  *
- * <p>The mark it leaves is the whole of the mechanism: said once per version rather than once per
+ * <p>The mark it leaves is the whole of the mechanism: announced once per version rather than once per
  * start, silent on a fresh installation, silent on a step back, and silent about a version the
  * changelog does not name.
  */
@@ -76,7 +76,7 @@ class ChangelogAnnouncerTest extends RepositoryTestBase {
     }
 
     /**
-     * An announcer on a version of this test's choosing, since what a build says it is comes from
+     * An announcer on a version of this test's choosing, since what a build reports as its version comes from
      * the jar. Switched off, the operator's setting is the only thing that differs.
      */
     private ChangelogAnnouncer announcerOn(String version, boolean enabled) {
@@ -111,7 +111,7 @@ class ChangelogAnnouncerTest extends RepositoryTestBase {
         assertEquals(0, systemEntriesNaming(knownVersion));
     }
 
-    /** The point of the mark: said once per version, however often the process comes up. */
+    /** The point of the mark: announced once per version, however often the process comes up. */
     @Test
     void anUpdateIsAnnouncedOnceAndNotAgainOnTheNextStart() {
         applicationSettingRepo.set(ChangelogAnnouncer.ANNOUNCED_VERSION_KEY, "0.0.1");
@@ -158,7 +158,7 @@ class ChangelogAnnouncerTest extends RepositoryTestBase {
         assertTrue(entry.contentMarkdown().contains("/patch-notes"), "and the way to everything before them");
     }
 
-    /** A step back is an operator's deliberate act and needs no telling. */
+    /** A step back is an operator's deliberate act and needs no announcing. */
     @Test
     void aStepBackIsWrittenDownInSilence() {
         applicationSettingRepo.set(ChangelogAnnouncer.ANNOUNCED_VERSION_KEY, "999.0.0");
@@ -172,7 +172,7 @@ class ChangelogAnnouncerTest extends RepositoryTestBase {
                 "where the instance now stands is written down either way");
     }
 
-    /** A development build has no section, and an entry with an empty body says less than nothing. */
+    /** A development build has no section, and an entry with an empty body is worse than nothing. */
     @Test
     void aVersionTheChangelogDoesNotNameIsNotAnnounced() {
         applicationSettingRepo.set(ChangelogAnnouncer.ANNOUNCED_VERSION_KEY, "0.0.1");

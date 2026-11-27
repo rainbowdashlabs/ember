@@ -40,7 +40,7 @@ export interface FoundEvent {
  * see it, and links them to the event's own page on the day the block names. On a public page, and
  * for every other reader, the public blog and partner stations included, only the public list is
  * asked, so a page never shows an internal event even to a member. Where neither answers, the block
- * says the event is not available here.
+ * shows that the event is not available here.
  *
  * @param stationUid the station the block belongs to
  * @param eventUid   the public id the block names

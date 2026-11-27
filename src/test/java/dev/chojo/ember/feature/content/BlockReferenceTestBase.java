@@ -30,7 +30,7 @@ import java.util.UUID;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * A station with one news entry and one appointment of every kind a news or event block has to tell
+ * A station with one news entry and one appointment of every kind a news or event block has to keep
  * apart, and a second station owning one of each.
  *
  * <p>A page may name only what is public: the news entry on the public blog and the appointment on

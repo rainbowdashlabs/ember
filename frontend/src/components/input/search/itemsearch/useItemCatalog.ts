@@ -31,7 +31,7 @@ export interface ItemStateBadge {
 
 /**
  * Where a piece is, as the picker words it. A piece with a partner, in the post or back with an owner
- * that is not the station is away, which the row says rather than calling it free.
+ * that is not the station is away, which the row shows rather than calling it free.
  */
 function itemState(item: InventoryItem): ItemState {
     if (item.lostAt) return 'lost'
@@ -127,8 +127,8 @@ export function useItemCatalog(wantedSizeId: () => number | null | undefined, wi
     /**
      * What the piece is, rather than where it is.
      *
-     * <p>Where it is was what the icon used to say, which made a helmet and a jacket with the same member
-     * look alike. That answer is the badge's now, and the picture says what the thing is.
+     * <p>Where it is was what the icon used to show, which made a helmet and a jacket with the same member
+     * look alike. That answer is the badge's now, and the picture shows what the thing is.
      */
     function glyphOf(item: InventoryItem) {
         const art = item.artId != null ? artById.value.get(item.artId) : undefined

@@ -194,7 +194,7 @@ class EditorFontServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The list tells the editor which families it can load, and under a version that follows the files
+     * The list shows the editor which families it can load, and under a version that follows the files
      * it loads, the web version among them.
      */
     @Test

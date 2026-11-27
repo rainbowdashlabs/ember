@@ -154,7 +154,7 @@ class BeaconDeliveryTest {
      *
      * <p>The boolean this replaced was false for a closed port, a wrong address and a rejected
      * signature alike, and none of the three reached a log. Handing the status and the beacon's own
-     * words back is what lets the sender say which of them happened: a beacon says no with 403 for
+     * words back is what lets the sender report which of them happened: a beacon refuses with 403 for
      * three different reasons.
      */
     @Test
