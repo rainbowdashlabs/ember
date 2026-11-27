@@ -31348,6 +31348,65 @@
         } ]
       }
     },
+    "/api/v1/inventories/{inventoryId}/item-tags/batch" : {
+      "post" : {
+        "summary" : "Put words on and take words off many things of one inventory at once",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ItemTagsResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ItemTagsBatchRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/inventories/{inventoryId}/items" : {
       "post" : {
         "summary" : "Create an inventory item",
@@ -71827,6 +71886,30 @@
           "ownerClusterId" : {
             "type" : [ "string", "null" ],
             "format" : "uuid"
+          }
+        }
+      },
+      "ItemTagsBatchRequest" : {
+        "type" : "object",
+        "properties" : {
+          "itemIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "add" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "remove" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "string"
+            }
           }
         }
       },

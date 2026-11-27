@@ -62,6 +62,10 @@ public class InventoryTagRoutes implements Routes {
                 prefix + "/inventories/{inventoryId}/item-tags",
                 this::inventoryItemTags,
                 StationPermission.INVENTORY_READ);
+        routes.post(
+                prefix + "/inventories/{inventoryId}/item-tags/batch",
+                this::changeTagsOfItems,
+                StationPermission.INVENTORY_EDIT);
         routes.get(prefix + "/inventory-items/{itemId}/tags", this::itemTags, StationPermission.INVENTORY_READ);
         routes.put(prefix + "/inventory-items/{itemId}/tags", this::setItemTags, StationPermission.INVENTORY_EDIT);
     }
@@ -172,6 +176,28 @@ public class InventoryTagRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/inventories/{inventoryId}/item-tags/batch",
+            methods = HttpMethod.POST,
+            pathParams = @OpenApiParam(name = "inventoryId", type = Integer.class, required = true),
+            summary = "Put words on and take words off many things of one inventory at once",
+            tags = {"Inventory"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ItemTagsBatchRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemTagsResponse[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void changeTagsOfItems(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(ItemTagsBatchRequest.class);
+        var byItem = tagService.changeTagsOfItems(
+                session.stationId(), pathInt(ctx, "inventoryId"), request.itemIds(), request.add(), request.remove());
+        ctx.json(byItem.entrySet().stream()
+                .map(entry -> new ItemTagsResponse(entry.getKey(), entry.getValue()))
+                .toList());
+    }
+
+    @OpenApi(
             path = "/api/v1/inventory-items/{itemId}/tags",
             methods = HttpMethod.GET,
             pathParams = @OpenApiParam(name = "itemId", type = Integer.class, required = true),
@@ -231,6 +257,16 @@ public class InventoryTagRoutes implements Routes {
      * @param names the words a thing should wear, as somebody typed them
      */
     public record ItemTagsRequest(List<String> names) {}
+
+    /**
+     * @param itemIds the things, all in the inventory of the path
+     * @param add     the words to put on them, as somebody typed them
+     * @param remove  the words to take off them
+     */
+    public record ItemTagsBatchRequest(
+            @Nullable List<Integer> itemIds,
+            @Nullable List<String> add,
+            @Nullable List<String> remove) {}
 
     /**
      * @param itemId the thing

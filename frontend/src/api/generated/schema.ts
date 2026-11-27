@@ -37743,6 +37743,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventories/{inventoryId}/item-tags/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put words on and take words off many things of one inventory at once */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ItemTagsBatchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ItemTagsResponse"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventories/{inventoryId}/items": {
         parameters: {
             query?: never;
@@ -76392,6 +76452,11 @@ export interface components {
             /** Format: int32 */
             sizeId?: number | null;
         };
+        ItemTagsBatchRequest: {
+            add?: string[] | null;
+            itemIds?: number[] | null;
+            remove?: string[] | null;
+        };
         ItemTagsRequest: {
             names?: string[];
         };
@@ -84719,6 +84784,7 @@ export type ItemNameCount = components['schemas']['ItemNameCount'];
 export type ItemNumberValue = components['schemas']['ItemNumberValue'];
 export type ItemOwner = components['schemas']['ItemOwner'];
 export type ItemRequest = components['schemas']['ItemRequest'];
+export type ItemTagsBatchRequest = components['schemas']['ItemTagsBatchRequest'];
 export type ItemTagsRequest = components['schemas']['ItemTagsRequest'];
 export type ItemTagsResponse = components['schemas']['ItemTagsResponse'];
 export type ItemTextValue = components['schemas']['ItemTextValue'];

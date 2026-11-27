@@ -354,4 +354,7 @@ export default {
     'I-290': 'Für diesen Tausch ist schon etwas bestellt',
     'I-291': 'Ein passendes Stück liegt frei im Lager. Gib dieses aus, statt neu zu bestellen',
     'I-292': 'Dieser Tausch wartet auf eine Bestellung. Lösche sie zuerst, um selbst ein Stück auszusuchen',
+    'I-293': INVENTORY_NOT_HERE,
+    'I-294': ITEM_NOT_HERE,
+    'I-295': 'Dieser Gegenstand gehört zu einem anderen Inventar, es wurde kein Tag geändert',
 }

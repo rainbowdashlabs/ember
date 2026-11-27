@@ -201,4 +201,96 @@ class InventoryTagServiceTest extends RepositoryTestBase {
         inventoryRepo.deleteItem(antenna.id());
         inventoryRepo.delete(second);
     }
+
+    @Test
+    void manyThingsGetAndLoseWordsAtOnce() {
+        var radio = inventoryRepo.createItem(inventoryId, "TS-500", "Funkgerät", null, null);
+        var charger = inventoryRepo.createItem(inventoryId, "TS-501", "Ladestation", null, null);
+        var lamp = inventoryRepo.createItem(inventoryId, "TS-502", "Lampe", null, null);
+        inventoryTagService.setItemTags(station.id(), radio.id(), List.of("Alt"));
+
+        var byItem = inventoryTagService.changeTagsOfItems(
+                station.id(),
+                inventoryId,
+                List.of(radio.id(), charger.id(), radio.id()),
+                List.of("Batch Funk", " ", "Zeltlager"),
+                List.of("alt"));
+
+        assertEquals(
+                List.of("Batch Funk", "Zeltlager"),
+                byItem.get(radio.id()).stream().map(InventoryTag::name).sorted().toList());
+        assertEquals(
+                List.of("Batch Funk", "Zeltlager"),
+                byItem.get(charger.id()).stream()
+                        .map(InventoryTag::name)
+                        .sorted()
+                        .toList());
+        assertTrue(inventoryTagService.findTagsForItem(station.id(), lamp.id()).isEmpty());
+
+        var again = inventoryTagService.changeTagsOfItems(
+                station.id(), inventoryId, List.of(radio.id(), charger.id()), List.of("batch funk"), List.of());
+        assertEquals(2, again.get(radio.id()).size());
+        assertEquals(
+                1,
+                inventoryTagService.findByStation(station.id()).stream()
+                        .filter(tag -> tag.name().equalsIgnoreCase("batch funk"))
+                        .count());
+
+        var removed = inventoryTagService.changeTagsOfItems(
+                station.id(), inventoryId, List.of(radio.id()), List.of(), List.of("ZELTLAGER", "Unbekannt"));
+        assertEquals(
+                List.of("Batch Funk"),
+                removed.get(radio.id()).stream().map(InventoryTag::name).toList());
+        assertEquals(
+                2,
+                inventoryTagService.findTagsForItem(station.id(), charger.id()).size());
+
+        var both = inventoryTagService.changeTagsOfItems(
+                station.id(), inventoryId, List.of(radio.id()), List.of("Beides"), List.of("beides", "Batch Funk"));
+        assertEquals(List.of(), both.get(radio.id()), "removal is applied last, and a bare piece stays in the answer");
+
+        for (var tag : inventoryTagService.findByStation(station.id())) {
+            inventoryTagService.delete(station.id(), tag.id());
+        }
+        inventoryRepo.deleteItem(radio.id());
+        inventoryRepo.deleteItem(charger.id());
+        inventoryRepo.deleteItem(lamp.id());
+    }
+
+    @Test
+    void oneThingFromElsewhereLeavesAllOfThemAsTheyWere() {
+        var second = inventoryRepo
+                .create(station.id(), "Batch Sonstiges", InventoryType.INTERNAL, false)
+                .id();
+        var here = inventoryRepo.createItem(inventoryId, "TS-600", "Funkgerät", null, null);
+        var otherInventory = inventoryRepo.createItem(second, "TS-601", "Antenne", null, null);
+        var otherStation = inventoryRepo.createItem(strangerInventoryId, "TS-602", "Fremdgerät", null, null);
+
+        var elsewhere = assertThrows(
+                RefusalResponse.class,
+                () -> inventoryTagService.changeTagsOfItems(
+                        station.id(), inventoryId, List.of(here.id(), otherInventory.id()), List.of("Nie"), List.of()));
+        assertEquals(InventoryRefusal.INVENTORY_TAG_BATCH_ITEM_IN_ANOTHER_INVENTORY, elsewhere.refusal());
+
+        var foreign = assertThrows(
+                RefusalResponse.class,
+                () -> inventoryTagService.changeTagsOfItems(
+                        station.id(), inventoryId, List.of(here.id(), otherStation.id()), List.of("Nie"), List.of()));
+        assertEquals(InventoryRefusal.INVENTORY_TAG_BATCH_ITEM_NOT_HERE, foreign.refusal());
+
+        var foreignInventory = assertThrows(
+                RefusalResponse.class,
+                () -> inventoryTagService.changeTagsOfItems(
+                        station.id(), strangerInventoryId, List.of(otherStation.id()), List.of("Nie"), List.of()));
+        assertEquals(InventoryRefusal.INVENTORY_TAG_BATCH_INVENTORY_NOT_HERE, foreignInventory.refusal());
+
+        assertTrue(inventoryTagService.findTagsForItem(station.id(), here.id()).isEmpty());
+        assertTrue(inventoryTagService.findByStation(station.id()).stream()
+                .noneMatch(tag -> tag.name().equals("Nie")));
+
+        inventoryRepo.deleteItem(here.id());
+        inventoryRepo.deleteItem(otherInventory.id());
+        inventoryRepo.deleteItem(otherStation.id());
+        inventoryRepo.delete(second);
+    }
 }

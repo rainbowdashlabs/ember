@@ -1139,7 +1139,17 @@ public enum InventoryRefusal implements Refusal {
     MOVEMENT_WAITS_FOR_AN_ORDER(
             292,
             HttpStatus.CONFLICT,
-            "This swap waits for an order, so delete the order before picking a piece by hand");
+            "This swap waits for an order, so delete the order before picking a piece by hand"),
+
+    /** The inventory whose pieces were to be tagged at once, gone or at another station. */
+    INVENTORY_TAG_BATCH_INVENTORY_NOT_HERE(293, HttpStatus.NOT_FOUND, Sentences.INVENTORY_NOT_HERE),
+
+    /** A piece named for tagging at once that is gone. Nothing is tagged. */
+    INVENTORY_TAG_BATCH_ITEM_NOT_HERE(294, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
+
+    /** A piece named for tagging at once that lies in another inventory. Nothing is tagged. */
+    INVENTORY_TAG_BATCH_ITEM_IN_ANOTHER_INVENTORY(
+            295, HttpStatus.BAD_REQUEST, "That piece of gear belongs to another inventory, so no tag was changed");
 
     private final Definition definition;
 
