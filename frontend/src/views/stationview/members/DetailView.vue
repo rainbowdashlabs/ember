@@ -34,7 +34,7 @@ const route = useRoute()
 const { sessionInfo, hasPermission, isGuardian, canManageInventory, isModuleEnabled, canEditMemberAccounts } = useSession()
 const canEdit = computed(() => canEditMemberAccounts())
 const canReadMembers = computed(() => hasPermission(StationPermission.MEMBER_READ))
-const canReadDocuments = computed(() => canReadMembers.value || hasPermission(StationPermission.DOCUMENT_READ_MEMBER))
+const canReadDocuments = computed(() => hasPermission(StationPermission.DOCUMENT_READ_MEMBER))
 const inventoryEnabled = computed(() => isModuleEnabled(StationModule.INVENTORY))
 const canReadInventory = computed(() => inventoryEnabled.value && hasPermission(StationPermission.INVENTORY_READ))
 const canAssignInventory = computed(() => canReadInventory.value

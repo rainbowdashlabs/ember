@@ -155,6 +155,12 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var memberRead = stationMemberRepository
                 .findPermissionByName(StationPermission.MEMBER_READ)
                 .orElseThrow();
+        var memberDocumentsRead = stationMemberRepository
+                .findPermissionByName(StationPermission.DOCUMENT_READ_MEMBER)
+                .orElseThrow();
+        var memberDocumentsEdit = stationMemberRepository
+                .findPermissionByName(StationPermission.DOCUMENT_EDIT_MEMBER)
+                .orElseThrow();
         var signOthers = stationMemberRepository
                 .findPermissionByName(StationPermission.DOCUMENT_SIGN_OTHERS)
                 .orElseThrow();
@@ -339,11 +345,13 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), memberRead.id());
+                stationMemberRepository.grantPermission(m.id(), memberDocumentsRead.id());
                 stationMemberRepository.grantPermission(m.id(), signOthers.id());
             } else {
                 stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), memberMgmt.id());
+                stationMemberRepository.grantPermission(m.id(), memberDocumentsEdit.id());
             }
             memberGroupRepository.addMember(groupBetreuer.id(), m.id());
             betreuerMembers.add(m);

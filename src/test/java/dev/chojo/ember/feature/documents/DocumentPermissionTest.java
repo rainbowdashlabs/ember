@@ -44,24 +44,21 @@ class DocumentPermissionTest extends RepositoryTestBase {
     }
 
     /**
-     * Reading the store used to mean holding the permission to read members, so the new permissions
-     * are granted by implication rather than by migration. Without this a custom role holding only
-     * {@code MEMBER_READ} would have lost sight of the documents it can see today, which is a
-     * regression nobody asked for, and putting it right would have needed a migration over every
-     * station.
+     * Reading members and reading the documents that name them are given apart. Whoever held the
+     * member permission before was given the document permission of their own by the migration, so
+     * the enum no longer has to carry it.
      */
     @Test
-    void readingMembersStillReachesTheStore() {
-        assertTrue(StationPermission.MEMBER_READ.allChildren().contains(StationPermission.DOCUMENT_READ));
-        assertTrue(StationPermission.MEMBER_READ.allChildren().contains(StationPermission.DOCUMENT_READ_MEMBER));
+    void readingMembersDoesNotReachMemberDocuments() {
+        assertFalse(StationPermission.MEMBER_READ.allChildren().contains(StationPermission.DOCUMENT_READ_MEMBER));
+        assertFalse(StationPermission.MEMBER_READ.allChildren().contains(StationPermission.DOCUMENT_READ));
     }
 
-    /** Editing members still files documents, member documents included, for the same reason. */
+    /** Editing members and managing member documents, generation and signing included, are apart too. */
     @Test
-    void editingMembersStillFilesDocuments() {
-        assertTrue(StationPermission.MEMBER_EDIT.allChildren().contains(StationPermission.DOCUMENT_EDIT));
-        assertTrue(StationPermission.MEMBER_EDIT.allChildren().contains(StationPermission.DOCUMENT_READ));
-        assertTrue(StationPermission.MEMBER_EDIT.allChildren().contains(StationPermission.DOCUMENT_EDIT_MEMBER));
+    void editingMembersDoesNotFileDocuments() {
+        assertFalse(StationPermission.MEMBER_EDIT.allChildren().contains(StationPermission.DOCUMENT_EDIT_MEMBER));
+        assertFalse(StationPermission.MEMBER_EDIT.allChildren().contains(StationPermission.DOCUMENT_EDIT));
     }
 
     /**

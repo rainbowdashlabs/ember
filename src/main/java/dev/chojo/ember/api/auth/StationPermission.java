@@ -258,11 +258,11 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows reading all member data.
      *
-     * <p>Implies {@link #DOCUMENT_READ_MEMBER}, because reading member paperwork is what this
-     * permission bought before documents had permissions of their own, and taking that away from a
-     * role that holds only this would be a regression nobody asked for.
+     * <p>Reading a member's documents is {@link #DOCUMENT_READ_MEMBER} and not part of this: an address
+     * and a medical certificate are different things to be allowed to read. Whoever held this before
+     * the two were apart was given both, so nobody lost anything.
      */
-    MEMBER_READ(DOCUMENT_READ_MEMBER),
+    MEMBER_READ,
 
     /**
      * Allows creating and editing member notes.
@@ -292,14 +292,18 @@ public enum StationPermission implements RouteRole {
 
     /**
      * Allows putting documents on one's own profile. Reading them needs no permission at all: they
-     * are the member's own. Putting them on somebody else's profile is {@link #MEMBER_EDIT}.
+     * are the member's own. Putting them on somebody else's profile is {@link #DOCUMENT_EDIT_MEMBER}.
      */
     MEMBER_SELF_UPLOAD,
 
     /**
-     * Allows editing and create members.
+     * Allows editing and creating members.
+     *
+     * <p>Managing their documents, generating documents for them and asking them to sign is
+     * {@link #DOCUMENT_EDIT_MEMBER} and not part of this. Whoever held this before the two were apart
+     * was given both, so nobody lost anything.
      */
-    MEMBER_EDIT(MEMBER_READ, MEMBER_SELF_UPLOAD, DOCUMENT_EDIT_MEMBER),
+    MEMBER_EDIT(MEMBER_READ, MEMBER_SELF_UPLOAD),
 
     /**
      * Allows configuring the member fields config.

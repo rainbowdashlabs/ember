@@ -137,7 +137,6 @@ const activeTab = ref(props.tabs[0]?.key ?? '')
   <DocumentsTab
     v-if="activeTab === 'documents'"
     :member-id="memberId"
-    :can-edit="canEdit"
     :all-members="allMembers"
   />
 
