@@ -44344,6 +44344,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/lending/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The station's own offer, product by product, read through one partner where one is named */
+        get: {
+            parameters: {
+                query?: {
+                    partnerId?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CatalogProduct"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/lending/inventory/{inventoryId}/lent-out": {
         parameters: {
             query?: never;
@@ -73604,6 +73642,17 @@ export interface components {
         CatalogImportRejected: {
             problems: components["schemas"]["CatalogTransferProblem"][];
         };
+        CatalogKind: {
+            /** Format: int32 */
+            artId: number;
+            description: string;
+            name: string;
+            pictureKey: string | null;
+            /** Format: int32 */
+            pieceCount: number;
+            share: components["schemas"]["CatalogShare"] | null;
+            visible: boolean | null;
+        };
         CatalogListResponse: {
             catalogs: components["schemas"]["QuizCatalog"][];
             sharedCatalogs: components["schemas"]["SharedQuizCatalog"][];
@@ -73613,6 +73662,40 @@ export interface components {
             language: string | null;
             license: string | null;
             source: string | null;
+        };
+        CatalogPiece: {
+            /** Format: int32 */
+            artId: number | null;
+            description: string;
+            internalId: string | null;
+            /** Format: int32 */
+            itemId: number;
+            name: string;
+            pictureKey: string | null;
+            share: components["schemas"]["CatalogShare"] | null;
+            visible: boolean | null;
+        };
+        CatalogProduct: {
+            color: string | null;
+            description: string;
+            homogeneous: boolean;
+            icon: string | null;
+            /** Format: int32 */
+            inventoryId: number;
+            kinds: components["schemas"]["CatalogKind"][];
+            name: string;
+            offered: boolean;
+            pictureKey: string | null;
+            /** Format: int32 */
+            pieceCount: number;
+            pieces: components["schemas"]["CatalogPiece"][];
+            share: components["schemas"]["CatalogShare"] | null;
+            visible: boolean | null;
+        };
+        CatalogShare: {
+            grant: components["schemas"]["ShareGrant"];
+            partnerIds: number[];
+            scope: components["schemas"]["ShareScope"];
         };
         CatalogSharing: {
             catalogIds: number[];
@@ -85837,8 +85920,12 @@ export type CartLineState = components['schemas']['CartLineState'];
 export type CartLineView = components['schemas']['CartLineView'];
 export type CartView = components['schemas']['CartView'];
 export type CatalogImportRejected = components['schemas']['CatalogImportRejected'];
+export type CatalogKind = components['schemas']['CatalogKind'];
 export type CatalogListResponse = components['schemas']['CatalogListResponse'];
 export type CatalogMetadata = components['schemas']['CatalogMetadata'];
+export type CatalogPiece = components['schemas']['CatalogPiece'];
+export type CatalogProduct = components['schemas']['CatalogProduct'];
+export type CatalogShare = components['schemas']['CatalogShare'];
 export type CatalogSharing = components['schemas']['CatalogSharing'];
 export type CatalogSharingRequest = components['schemas']['CatalogSharingRequest'];
 export type CatalogTransfer = components['schemas']['CatalogTransfer'];

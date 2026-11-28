@@ -76,6 +76,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -584,6 +585,17 @@ public class LendingService implements FederationServer {
                 .findById(inventoryId)
                 .map(inventory -> inventory.stationId() == stationId)
                 .orElse(false);
+    }
+
+    /**
+     * Whether a piece is the station's to lend at all, before anything about sharing: owned by the
+     * station, or by the association it is home to, and not a partner's piece on loan here.
+     *
+     * @param stationId the station doing the lending
+     * @return the test, read once for the station
+     */
+    Predicate<InventoryItem> lendableBy(int stationId) {
+        return lenderAt(stationId)::owns;
     }
 
     /**

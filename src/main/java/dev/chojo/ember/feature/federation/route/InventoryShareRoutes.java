@@ -15,12 +15,15 @@ import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.InventoryShareOverviewService;
 import dev.chojo.ember.feature.federation.service.InventoryShareOverviewService.ShareDetail;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
+import dev.chojo.ember.feature.federation.service.LendingOfferCatalogService;
+import dev.chojo.ember.feature.federation.service.LendingOfferCatalogService.CatalogProduct;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -41,15 +44,25 @@ public class InventoryShareRoutes implements Routes {
 
     private final InventoryShareService service;
     private final InventoryShareOverviewService overviewService;
+    private final LendingOfferCatalogService catalogService;
 
     @Inject
-    public InventoryShareRoutes(InventoryShareService service, InventoryShareOverviewService overviewService) {
+    public InventoryShareRoutes(
+            InventoryShareService service,
+            InventoryShareOverviewService overviewService,
+            LendingOfferCatalogService catalogService) {
         this.service = service;
         this.overviewService = overviewService;
+        this.catalogService = catalogService;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        routes.get(
+                prefix + "/lending/catalog",
+                this::catalog,
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.get(
                 prefix + "/lending/shares",
                 this::listShares,
@@ -100,6 +113,28 @@ public class InventoryShareRoutes implements Routes {
                 this::deleteItemShare,
                 StationPermission.INVENTORY_LENDING_MANAGER,
                 StationModule.INVENTORY_LENDING);
+    }
+
+    @OpenApi(
+            path = "/api/v1/lending/catalog",
+            methods = HttpMethod.GET,
+            summary = "The station's own offer, product by product, read through one partner where one is named",
+            queryParams =
+                    @OpenApiParam(
+                            name = "partnerId",
+                            type = Integer.class,
+                            description = "A partnership to read the offer through"),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CatalogProduct[].class)))
+    private void catalog(Context ctx) {
+        var session = StationSession.from(ctx);
+        String partner = ctx.queryParam("partnerId");
+        Integer partnerId;
+        try {
+            partnerId = partner == null || partner.isBlank() ? null : Integer.valueOf(partner);
+        } catch (NumberFormatException e) {
+            throw FederationRefusal.LENDING_PARTNER_NOT_A_NUMBER.raise();
+        }
+        ctx.json(catalogService.catalog(session.stationId(), partnerId));
     }
 
     @OpenApi(

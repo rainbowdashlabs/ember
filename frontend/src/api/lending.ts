@@ -8,6 +8,7 @@ import {createCrudResource} from './crud'
 import type {
     AvailableInventoryResult,
     AvailableItemDetail,
+    CatalogProduct,
     components,
     CreateBlockRequest,
     CreateLendingRequest,
@@ -75,6 +76,14 @@ export async function getProductDays(
     const params: Record<string, string> = {month}
     if (itemId != null) params.itemId = String(itemId)
     const res = await client.get<RemoteProductDays>(`/federated/lending/products/${stationUid}/${inventoryId}/days`, {params})
+    return res.data
+}
+
+/** The station's own offer, product by product; read through one partnership where one is given. */
+export async function getCatalog(partnerId?: number): Promise<CatalogProduct[]> {
+    const params: Record<string, string> = {}
+    if (partnerId != null) params.partnerId = String(partnerId)
+    const res = await client.get<CatalogProduct[]>('/lending/catalog', {params})
     return res.data
 }
 

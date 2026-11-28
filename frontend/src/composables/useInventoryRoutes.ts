@@ -90,6 +90,8 @@ export interface InventoryRoutes {
     lendingBlocks?: string
     lendingBlocksCreate?: string
     lendingRequest?: string
+    /** The station's own offer, product by product, with its sharing and texts. */
+    lendingOffer?: string
     /** The lending shop: every partner's gear as products. */
     lendingShop?: string
     /** One partner product of the lending shop. */
@@ -128,6 +130,7 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     lendingBlocks: 'inventory-lending-blocks',
     lendingBlocksCreate: 'inventory-lending-blocks-create',
     lendingRequest: 'inventory-lending-request',
+    lendingOffer: 'inventory-lending-offer',
     lendingShop: 'inventory-lending-shop',
     lendingProduct: 'inventory-lending-product',
     lendingCart: 'inventory-lending-cart',

@@ -18,6 +18,7 @@ const listRequests = vi.fn()
 const approveRequest = vi.fn()
 const declineRequest = vi.fn()
 vi.mock('@/api/lending', () => ({
+    getCatalog: () => Promise.resolve([]),
     listRequests: () => listRequests(),
     approveRequest: (id: number) => approveRequest(id),
     declineRequest: (id: number, reason: string) => declineRequest(id, reason),

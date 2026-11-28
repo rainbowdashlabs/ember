@@ -12,7 +12,12 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {inventory} from '@/api'
 import * as lending from '@/api/lending'
-import {StationPermission, type BorrowedItemResponse, type LendingRequestResponse} from '@/api/generated/schema'
+import {
+  StationPermission,
+  type BorrowedItemResponse,
+  type CatalogProduct,
+  type LendingRequestResponse,
+} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useSession} from '@/composables/useSession'
@@ -21,7 +26,9 @@ import {todayIsoDate} from '@/util/format'
 import DeclineRequestModal from './lendingrequestview/DeclineRequestModal.vue'
 import BorrowColumn from './lendingoverviewview/BorrowColumn.vue'
 import LendColumn from './lendingoverviewview/LendColumn.vue'
+import OfferSummary from './lendingoverviewview/OfferSummary.vue'
 import RequestsTable from './lendingoverviewview/RequestsTable.vue'
+import {offerSummary} from './lendingofferview/catalogRows'
 import {borrowBlocks, borrowedGroups, lendBlocks} from './lendingoverviewview/overviewBlocks'
 import {useRequestsTable} from './lendingoverviewview/requestsTable'
 
@@ -41,16 +48,20 @@ const reads = computed(() => hasPermission(StationPermission.INVENTORY_READ))
 
 const requests = ref<LendingRequestResponse[]>([])
 const borrowed = ref<BorrowedItemResponse[]>([])
+const catalog = ref<CatalogProduct[]>([])
+const summary = computed(() => offerSummary(catalog.value))
 
 const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
   if (!loaded.value) return
-  const [answered, here] = await Promise.all([
+  const [answered, here, offer] = await Promise.all([
     asks.value ? lending.listRequests() : Promise.resolve([]),
     reads.value ? inventory.listBorrowed() : Promise.resolve([]),
+    lends.value ? lending.getCatalog() : Promise.resolve([]),
   ])
   if (!isCurrent()) return
   requests.value = answered
   borrowed.value = here
+  catalog.value = offer
 })
 watch(loaded, value => { if (value) void reload() })
 
@@ -93,7 +104,10 @@ function decline(reason: string) {
     <AsyncSection :failure="failure" :loading="loading">
       <div class="space-y-8">
         <div class="grid grid-cols-1 gap-8" :class="lend ? 'lg:grid-cols-2' : ''">
-          <LendColumn v-if="lend" :blocks="lend" :busy="answering" @approve="approve" @decline="declining = $event"/>
+          <div v-if="lend" class="space-y-5">
+            <LendColumn :blocks="lend" :busy="answering" @approve="approve" @decline="declining = $event"/>
+            <OfferSummary :summary="summary"/>
+          </div>
           <BorrowColumn :blocks="borrow" :borrowed="borrowedHere" :reads="reads"/>
         </div>
         <section v-if="asks" class="space-y-2">

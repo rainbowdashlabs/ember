@@ -355,7 +355,10 @@ public enum FederationRefusal implements Refusal {
 
     /** A piece handed over for a line that asks for another kind, inventory or piece. */
     LENDING_PIECE_NOT_FOR_LINE(
-            86, HttpStatus.BAD_REQUEST, "The piece does not fit this line of the request, so pick one the line offers");
+            86, HttpStatus.BAD_REQUEST, "The piece does not fit this line of the request, so pick one the line offers"),
+
+    /** A partner to read the offer through that is not given as a number. */
+    LENDING_PARTNER_NOT_A_NUMBER(87, HttpStatus.BAD_REQUEST, "The partner to look through is not given as a number");
 
     private final Definition definition;
 

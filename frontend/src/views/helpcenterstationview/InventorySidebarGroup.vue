@@ -110,7 +110,11 @@ const {t} = useI18n()
                    to="/helpcenter/station/inventory/lending/browse" @navigate="close">
         {{ t('helpCenter.inventoryLendingBrowse.title') }}
       </SidebarLink>
-      <SidebarLink :icon="['fas', 'share-nodes']" name="help-inventory-lending-shares"
+      <SidebarLink :icon="['fas', 'share-nodes']" name="help-inventory-lending-offer"
+                   to="/helpcenter/station/inventory/lending/offer" @navigate="close">
+        {{ t('helpCenter.inventoryLendingOffer.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'list-check']" name="help-inventory-lending-shares"
                    to="/helpcenter/station/inventory/lending/shares" @navigate="close">
         {{ t('helpCenter.inventoryLendingShares.title') }}
       </SidebarLink>

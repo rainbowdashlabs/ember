@@ -259,7 +259,8 @@ test.describe('Lending offer', () => {
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await page.getByRole('navigation').getByRole('link', {name: 'Angebot', exact: true}).click()
-        await page.waitForURL(/\/station\/inventory\/lending\/shares/)
+        await page.waitForURL(/\/station\/inventory\/lending\/offer/)
+        await expect(page.getByTestId('lending-offer-card').first()).toBeVisible()
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
 })
