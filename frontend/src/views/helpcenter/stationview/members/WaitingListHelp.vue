@@ -48,6 +48,10 @@ const sampleFields = [
       <p>{{ t('helpCenter.waitingList.whatIsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.waitingList.badgeTitle')">
+      <p>{{ t('helpCenter.waitingList.badgeText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.waitingList.howTo')">
       <p>{{ t('helpCenter.waitingList.step1') }}</p>
       <p>{{ t('helpCenter.waitingList.step2') }}</p>

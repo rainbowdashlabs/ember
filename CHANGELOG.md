@@ -31,6 +31,7 @@ People who already have an account on this instance can be invited into a statio
 - **Member data and member documents are separate permissions.** "Read members" no longer includes reading member documents. "Edit members" no longer includes managing member documents, generating documents or asking for signatures. During the update, everybody who held a member permission is given the matching document permission, so the two can now be granted separately. "Read member documents" no longer opens the station's own paperwork, which needs "Read documents". Whoever reads only members or member documents therefore sees only documents assigned to a member in the document store.
 - **Inventory checks and movements no longer create items freely.** Running inventory checks or managing movements no longer allows creating the association's items outside those flows. The pieces a check or a movement records itself are still created.
 - **No notice about decisions on sign-ups.** Confirming or turning down a sign-up for an appointment or event group no longer notifies the people who run appointments. The member still gets their notice, and the sign-up list shows the decision.
+- **The waiting list counter shows new entries.** The number beside "Waiting lists" counts the waiting entries a reader has not looked at yet, until they open the list. After the update, every waiting entry counts as new once.
 
 ### Fixes
 
@@ -42,6 +43,7 @@ People who already have an account on this instance can be invited into a statio
 - **External inventory procurements brought station-owned pieces.** Marking a procurement fulfilled in an inventory that holds only the association's gear created a piece owned by the station. The piece now belongs to the association and stays at the station.
 - **A tab could work in the station chosen in another tab.** With two tabs open in different stations, the older tab in some cases loaded or saved data in the station chosen last in the other tab, while it still showed its own. Each tab now keeps its own station.
 - **Some mails showed the wrong lifetime for their link.** The mails for a password reset, for setting up a new account and for an accepted station application showed a fixed number of hours instead of the lifetime the instance sets. They now show the lifetime the link actually has.
+- **Sidebar counters stayed behind.** The numbers beside the sidebar entries were only read again on some pages and often showed an old state until a reload. They now follow their lists after every change, on every page change, when the tab is shown again and once a minute.
 
 ## v26.26.4
 
