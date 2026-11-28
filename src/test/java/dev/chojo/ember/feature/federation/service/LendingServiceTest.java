@@ -1536,11 +1536,11 @@ class LendingServiceTest extends RepositoryTestBase {
                         asking, uid, new RemoteLendingRoutes.RemoteLendingStatus(LendingStatus.LENT, null)));
         assertEquals(FederationRefusal.LENDING_NOT_THE_OWNING_STATION, early.refusal());
 
-        service.serveStatus(asking, uid, new RemoteLendingRoutes.RemoteLendingStatus(LendingStatus.RETURNED, null));
-        assertEquals(
-                LendingStatus.RETURNED,
-                service.findRequest(copy.id()).orElseThrow().status());
-        service.serveStatus(asking, uid, new RemoteLendingRoutes.RemoteLendingStatus(LendingStatus.RETURNED, null));
+        var notReturned = assertThrows(
+                RefusalResponse.class,
+                () -> service.serveStatus(
+                        asking, uid, new RemoteLendingRoutes.RemoteLendingStatus(LendingStatus.RETURNED, null)));
+        assertEquals(FederationRefusal.LENDING_NOT_THE_OWNING_STATION, notReturned.refusal());
 
         assertTrue(service.serveMessages(asking, uid).stream().anyMatch(message -> message.isSystem()));
         assertDoesNotThrow(

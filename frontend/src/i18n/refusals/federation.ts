@@ -104,4 +104,7 @@ export default {
     'X-086': 'Das Stück passt nicht zu dieser Zeile der Anfrage. Wähle eines aus der Auswahl der Zeile',
     'X-087': 'Die Partnerwache ist nicht als Zahl angegeben',
     'X-088': 'Der Kalender zeigt höchstens ein Vierteljahr auf einmal',
+    'X-089': 'Nur Ausrüstung, die unterwegs ist, lässt sich zurückprüfen oder anmahnen',
+    'X-090': 'Die Rückgabeprüfung muss jedes Stück der Ausleihe abdecken, und nur diese',
+    'X-091': 'Die Ausrüstung ist noch nicht überfällig',
 }

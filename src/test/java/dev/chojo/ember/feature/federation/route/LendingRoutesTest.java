@@ -205,7 +205,7 @@ class LendingRoutesTest {
     }
 
     @Test
-    void eitherPartyReturnsClosesAndTalks() {
+    void eitherPartyClosesAndTalks() {
         var message = new LendingMessage(1, 5, OWNER, 11, "Hallo", false, Instant.EPOCH);
         when(lending.getMessages(5, STATION)).thenReturn(List.of(message));
         when(views.describe(message, STATION)).thenReturn(new EnrichedMessage(message, "Mara", "Wache Nord"));
@@ -213,10 +213,6 @@ class LendingRoutesTest {
                 .thenReturn(message);
 
         harness.run((server, client) -> {
-            assertEquals(
-                    200,
-                    client.post(PREFIX + "/lending/requests/5/returned", null, manager())
-                            .code());
             assertEquals(
                     200,
                     client.post(PREFIX + "/lending/requests/5/close", null, manager())
@@ -233,7 +229,6 @@ class LendingRoutesTest {
                             .code());
         });
 
-        verify(lending).markReturned(5, STATION);
         verify(lending).closeRequest(5, STATION);
     }
 

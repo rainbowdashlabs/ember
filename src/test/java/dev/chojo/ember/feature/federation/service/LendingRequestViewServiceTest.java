@@ -173,11 +173,11 @@ class LendingRequestViewServiceTest {
         assertEquals("Station " + PARTNER, overdue.requestingStationName());
         assertEquals("2 Zelte", overdue.itemSummary());
 
-        assertTrue(service.describe(request(2, PARTNER, HERE, LendingStatus.APPROVED, past), STATION)
+        assertFalse(service.describe(request(2, PARTNER, HERE, LendingStatus.APPROVED, past), STATION)
                 .overdue());
         assertFalse(service.describe(request(3, HERE, PARTNER, LendingStatus.RETURNED, past), STATION)
                 .overdue());
-        assertFalse(service.describe(request(4, HERE, PARTNER, LendingStatus.LENT, null), STATION)
+        assertTrue(service.describe(request(4, HERE, PARTNER, LendingStatus.LENT, null), STATION)
                 .overdue());
         assertFalse(service.describe(request(5, HERE, PARTNER, LendingStatus.LENT, LocalDate.of(2999, 1, 1)), STATION)
                 .overdue());

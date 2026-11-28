@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:1f9d240abb1637589e03510f9a9c77f9efb479df67e04ce1e05eeeff0bf77c65",
-  "generatedAt": "2026-11-28T02:18:33Z",
+  "schemaHash": "sha256:54bc31bc9ed08f33730e275e0104250241ec10745585a4d5f3e75b59e0dbe340",
+  "generatedAt": "2026-11-28T10:11:07Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -15228,7 +15228,7 @@
     "federation_lending_request": {
       "feature": "federation",
       "scope": "STATION",
-      "tableHash": "sha256:f2606d891b36b7232ba7e810332447e87e11d8eee60d7aa8de362c18587db6b0",
+      "tableHash": "sha256:6446312f93a9dd5e04399ec557bf407fd38d52050edb9e30f51ddc8b468b9763",
       "columns": [
         {
           "name": "id",
@@ -15318,6 +15318,13 @@
           "nullable": false,
           "verified": true,
           "description": "The identity the request carries between the two stations. A request to a station on another instance is kept on both instances under the same uid; between stations of one instance it is the one row both of them share."
+        },
+        {
+          "name": "reminded_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the borrowing station was last reminded of gear past its last day, NULL while it was not. The reminder sent on its own the day after the last day goes once; a manager can remind again by hand."
         }
       ],
       "foreignKeys": [

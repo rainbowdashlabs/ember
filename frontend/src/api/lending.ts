@@ -20,6 +20,8 @@ import type {
     LendingRequestDetail,
     LendingRequestResponse,
     LentOutItem,
+    LoanPiece,
+    PieceCheck,
     ProductDetail,
     ProductList,
     RemoteProductDays,
@@ -171,11 +173,6 @@ export async function markLent(id: number): Promise<LendingRequestResponse> {
     return res.data
 }
 
-export async function markReturned(id: number): Promise<LendingRequestResponse> {
-    const res = await client.post<LendingRequestResponse>(`/lending/requests/${id}/returned`)
-    return res.data
-}
-
 export async function closeRequest(id: number): Promise<LendingRequestResponse> {
     const res = await client.post<LendingRequestResponse>(`/lending/requests/${id}/close`)
     return res.data
@@ -188,6 +185,22 @@ export async function getAvailableItems(requestId: number): Promise<AvailableIte
 
 export async function assignItems(requestId: number, items: ItemAssignment[]): Promise<void> {
     await client.post(`/lending/requests/${requestId}/assign-items`, {items})
+}
+
+/** The pieces a loan of this station holds, to check back one by one. */
+export async function getReturnPieces(requestId: number): Promise<LoanPiece[]> {
+    const res = await client.get<LoanPiece[]>(`/lending/requests/${requestId}/return-check`)
+    return res.data
+}
+
+/** Takes the gear of a loan back with how each piece came back. */
+export async function checkReturn(requestId: number, pieces: PieceCheck[]): Promise<void> {
+    await client.post(`/lending/requests/${requestId}/return-check`, {pieces})
+}
+
+/** Reminds the borrowing station of gear past its last day. */
+export async function remind(requestId: number): Promise<void> {
+    await client.post(`/lending/requests/${requestId}/remind`)
 }
 
 export async function getMessages(requestId: number): Promise<EnrichedMessage[]> {

@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import OverviewBlock from './OverviewBlock.vue'
 import RequestRow from './RequestRow.vue'
@@ -22,6 +23,7 @@ defineProps<{
 const emit = defineEmits<{
   approve: [requestId: number]
   decline: [requestId: number]
+  remind: [requestId: number]
 }>()
 
 const {t} = useI18n()
@@ -49,7 +51,12 @@ const {t} = useI18n()
       <RequestRow v-for="entry in blocks.outNow.slice(0, limit)" :key="entry.request.id" :entry="entry"/>
     </OverviewBlock>
     <OverviewBlock v-slot="{limit}" :title="t('lendingOverview.overdue')" :count="blocks.overdue.length" :empty="t('lendingOverview.overdueEmpty')">
-      <RequestRow v-for="entry in blocks.overdue.slice(0, limit)" :key="entry.request.id" :entry="entry"/>
+      <RequestRow v-for="entry in blocks.overdue.slice(0, limit)" :key="entry.request.id" :entry="entry">
+        <template #actions>
+          <SecondaryButton :icon="['fas', 'bell']" :disabled="busy" :aria-label="t('lendingOverview.remindFor', {station: entry.requestingStationName})"
+                           @click="emit('remind', entry.request.id)">{{ t('lendingReturn.remind') }}</SecondaryButton>
+        </template>
+      </RequestRow>
     </OverviewBlock>
   </div>
 </template>

@@ -194,6 +194,40 @@ public class LendingRepository {
                 .all();
     }
 
+    /** Notes that the borrowing station was reminded of a request, so it is reminded once on its own. */
+    public void markReminded(int requestId) {
+        query("UPDATE federation_lending_request SET reminded_at = now() WHERE id = :id;")
+                .single(call().bind("id", requestId))
+                .update();
+    }
+
+    /**
+     * The lent requests of stations on this instance whose last day was before the given day and whose
+     * borrowing station was not reminded yet.
+     */
+    public List<LendingRequest> findOverdueUnreminded(LocalDate today) {
+        return query("""
+                SELECT %s
+                FROM federation_lending_request r
+                WHERE r.status = 'LENT'
+                  AND r.reminded_at IS NULL
+                  AND coalesce(r.requested_date_to, r.requested_date_from) < :today
+                  AND EXISTS (SELECT 1 FROM station s WHERE s.uid = r.owning_station_uid AND s.moved_away_at IS NULL);""", LENDING_REQUEST_COLUMNS)
+                .single(call().bind("today", today))
+                .map(LendingRequest.map())
+                .all();
+    }
+
+    /** Moves a request on only from the status it is expected to be in, so two moves never both happen. */
+    public boolean updateRequestStatusFrom(int id, LendingStatus expected, LendingStatus status) {
+        return query("""
+                UPDATE federation_lending_request SET status = :status, updated_at = now()
+                WHERE id = :id AND status = :expected;""")
+                .single(call().bind("id", id).bind("status", status).bind("expected", expected))
+                .update()
+                .changed();
+    }
+
     public boolean updateRequestStatus(int id, LendingStatus status) {
         return query("UPDATE federation_lending_request SET status = :status, updated_at = now() WHERE id = :id;")
                 .single(call().bind("id", id).bind("status", status))

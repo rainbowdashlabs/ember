@@ -19,7 +19,8 @@ defineProps<{
 const emit = defineEmits<{
   approve: []
   decline: []
-  markReturned: []
+  checkReturn: []
+  remind: []
   close: []
 }>()
 
@@ -36,9 +37,16 @@ const {t} = useI18n()
         {{ t('lending.decline') }}
       </ErrorButton>
     </template>
-    <PrimaryButton v-if="detail.request.request.status === LendingStatus.LENT" @click="emit('markReturned')">
-      {{ t('lending.markReturned') }}
-    </PrimaryButton>
+    <template v-if="detail.request.request.status === LendingStatus.LENT">
+      <PrimaryButton v-if="detail.request.isOwner" :icon="['fas', 'clipboard-check']" data-testid="lending-start-return-check"
+                     @click="emit('checkReturn')">
+        {{ t('lendingReturn.start') }}
+      </PrimaryButton>
+      <SecondaryButton v-if="detail.request.isOwner && detail.request.overdue" :icon="['fas', 'bell']" data-testid="lending-remind"
+                       @click="emit('remind')">
+        {{ t('lendingReturn.remind') }}
+      </SecondaryButton>
+    </template>
     <SecondaryButton v-if="detail.request.request.status === LendingStatus.RETURNED" @click="emit('close')">
       {{ t('lending.close') }}
     </SecondaryButton>

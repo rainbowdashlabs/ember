@@ -334,7 +334,7 @@ test.describe('Inventory', () => {
 
     /** Borrowing is open to members; approving it is not. */
     test('a member reaches the equipment they may borrow', async ({memberPage: page}) => {
-        await page.goto('/station/inventory/lending/browse')
+        await page.goto('/station/inventory/lending/shop')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })

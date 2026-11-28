@@ -3,40 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AvailableInventoryEntry, LendingRequestResponse, LendingStatus} from '@/api/generated/schema'
+import type {LendingRequestResponse, LendingStatus} from '@/api/generated/schema'
 
-/** What two partner stations offer, one with a known distance and one without. */
-export const offers: AvailableInventoryEntry[] = [
-  {
-    artId: null,
-    artName: null,
-    availableCount: 5,
-    color: null,
-    distanceKm: 12.4,
-    homogeneous: true,
-    icon: 'ph:lifebuoy',
-    inventoryId: 1,
-    inventoryName: 'Rettungsringe',
-    pictureKey: null,
-    stationId: 'musterstadt',
-    stationName: 'DLRG Musterstadt',
-  },
-  {
-    artId: null,
-    artName: null,
-    availableCount: 3,
-    color: null,
-    distanceKm: null,
-    homogeneous: true,
-    icon: null,
-    inventoryId: 2,
-    inventoryName: 'Taucheranzüge',
-    pictureKey: null,
-    stationId: 'beispielburg',
-    stationName: 'DLRG Beispielburg',
-  },
-]
-
+/** One sample request of the lending help pages. */
 interface RequestFixture {
   id: number
   partner: string

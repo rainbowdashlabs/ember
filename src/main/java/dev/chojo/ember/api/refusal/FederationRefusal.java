@@ -361,7 +361,19 @@ public enum FederationRefusal implements Refusal {
     LENDING_PARTNER_NOT_A_NUMBER(87, HttpStatus.BAD_REQUEST, "The partner to look through is not given as a number"),
 
     /** A lending calendar asked for over more than a quarter of a year. */
-    LENDING_CALENDAR_TOO_LONG(88, HttpStatus.BAD_REQUEST, "The calendar shows at most a quarter of a year at once");
+    LENDING_CALENDAR_TOO_LONG(88, HttpStatus.BAD_REQUEST, "The calendar shows at most a quarter of a year at once"),
+
+    /** A return checked, or a reminder sent, for a request whose gear is not out. */
+    LENDING_NOT_OUT(89, HttpStatus.CONFLICT, "Only gear that is out can be checked back or reminded of"),
+
+    /** A return check that does not answer for exactly the pieces the loan holds. */
+    LENDING_RETURN_PIECES_MISMATCH(
+            90,
+            HttpStatus.BAD_REQUEST,
+            "The return check has to answer for every piece of the loan, and only for those"),
+
+    /** A reminder for gear whose last day has not passed. */
+    LENDING_NOT_OVERDUE(91, HttpStatus.CONFLICT, "The gear is not overdue yet");
 
     private final Definition definition;
 

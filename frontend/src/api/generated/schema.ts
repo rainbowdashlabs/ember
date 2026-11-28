@@ -44861,7 +44861,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/lending/requests/{id}/returned": {
+    "/api/v1/lending/requests/{id}/remind": {
         parameters: {
             query?: never;
             header?: never;
@@ -44870,11 +44870,48 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Reminds the borrowing station of gear past its last day */
         post: {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests/{id}/return-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The pieces a loan of this station holds, to check back */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -44885,8 +44922,34 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["LendingRequestResponse"];
+                        "application/json": components["schemas"]["LoanPiece"][];
                     };
+                };
+            };
+        };
+        put?: never;
+        /** Takes the gear of a loan back, every piece in order, damaged or missing */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ReturnCheckBody"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -78609,6 +78672,12 @@ export interface components {
             /** Format: int32 */
             total: number;
         };
+        LoanPiece: {
+            internalId: string | null;
+            /** Format: int32 */
+            itemId: number;
+            name: string;
+        };
         Local: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -80712,6 +80781,12 @@ export interface components {
         PictureResponse: {
             pictureKey: string;
         };
+        PieceCheck: {
+            comment?: string | null;
+            /** Format: int32 */
+            itemId?: number;
+            state?: components["schemas"]["ReturnState"] | null;
+        };
         PlaceAnswer: {
             place: components["schemas"]["StationPlace"] | null;
         };
@@ -82709,10 +82784,15 @@ export interface components {
             fieldId?: number | null;
             only?: string[];
         };
+        ReturnCheckBody: {
+            pieces?: components["schemas"]["PieceCheck"][];
+        };
         ReturnEverythingRequest: {
             /** Format: int32 */
             memberId?: number | null;
         };
+        /** @enum {string} */
+        ReturnState: "OK" | "DAMAGED" | "MISSING";
         /** @enum {string} */
         RevocationReason: "KEY_COMPROMISE" | "SUPERSEDED" | "CESSATION_OF_OPERATION";
         /** @enum {string} */
@@ -86683,6 +86763,7 @@ export type LinkState = components['schemas']['LinkState'];
 export type LinkStatus = components['schemas']['LinkStatus'];
 export type LinkType = components['schemas']['LinkType'];
 export type ListKeysResponse = components['schemas']['ListKeysResponse'];
+export type LoanPiece = components['schemas']['LoanPiece'];
 export type Local = components['schemas']['Local'];
 export type LocalBookmarkRequest = components['schemas']['LocalBookmarkRequest'];
 export type LocalChecklistItemRequest = components['schemas']['LocalChecklistItemRequest'];
@@ -86988,6 +87069,7 @@ export type PermissionsByMember = components['schemas']['PermissionsByMember'];
 export type PickerEvent = components['schemas']['PickerEvent'];
 export type PickerPage = components['schemas']['PickerPage'];
 export type PictureResponse = components['schemas']['PictureResponse'];
+export type PieceCheck = components['schemas']['PieceCheck'];
 export type PlaceAnswer = components['schemas']['PlaceAnswer'];
 export type PlaceDraft = components['schemas']['PlaceDraft'];
 export type Placeholder = components['schemas']['Placeholder'];
@@ -87255,7 +87337,9 @@ export type RestrictionType = components['schemas']['RestrictionType'];
 export type ResultFieldCondition = components['schemas']['ResultFieldCondition'];
 export type ResultFilter = components['schemas']['ResultFilter'];
 export type ResultGrouping = components['schemas']['ResultGrouping'];
+export type ReturnCheckBody = components['schemas']['ReturnCheckBody'];
 export type ReturnEverythingRequest = components['schemas']['ReturnEverythingRequest'];
+export type ReturnState = components['schemas']['ReturnState'];
 export type RevocationReason = components['schemas']['RevocationReason'];
 export type RevocationStatus = components['schemas']['RevocationStatus'];
 export type RichMember = components['schemas']['RichMember'];
@@ -88920,6 +89004,12 @@ export const RestrictionType = {
     QUIZ_TEST: "QUIZ_TEST",
     STATION_CHAT: "STATION_CHAT",
     WITNESS_REACH: "WITNESS_REACH",
+} as const;
+
+export const ReturnState = {
+    DAMAGED: "DAMAGED",
+    MISSING: "MISSING",
+    OK: "OK",
 } as const;
 
 export const RevocationReason = {

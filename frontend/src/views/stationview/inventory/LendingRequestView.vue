@@ -21,6 +21,7 @@ import {
   type LendingRequestDetail,
 } from '@/api/generated/schema'
 import * as lending from '@/api/lending'
+import {showToast} from '@/util/toast'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -33,6 +34,7 @@ import LendingItemAssignment from './lendingrequestview/LendingItemAssignment.vu
 import LendingChat from './lendingrequestview/LendingChat.vue'
 import DeclineRequestModal from './lendingrequestview/DeclineRequestModal.vue'
 import BorrowAgainPanel from './lendingrequestview/BorrowAgainPanel.vue'
+import ReturnCheckPanel from './lendingrequestview/ReturnCheckPanel.vue'
 
 const routes = useInventoryRoutes()
 
@@ -176,9 +178,21 @@ function handleDecline(reason: string) {
   })
 }
 
-function handleMarkReturned() {
-  return answer(() => lending.markReturned(requestId))
+const checkingReturn = ref(false)
+
+async function returnChecked() {
+  checkingReturn.value = false
+  await loadData()
+  refreshSidebarCounts()
 }
+
+function handleRemind() {
+  return answer(async () => {
+    await lending.remind(requestId)
+    showToast(t('lendingReturn.reminded'), 'success')
+  })
+}
+
 
 function handleClose() {
   return answer(() => lending.closeRequest(requestId))
@@ -206,8 +220,10 @@ function handleClose() {
           :detail="detail"
           @approve="handleApprove"
           @decline="showDeclineModal = true"
-          @mark-returned="handleMarkReturned"
+          @check-return="checkingReturn = true"
+          @remind="handleRemind"
           @close="handleClose"/>
+      <ReturnCheckPanel v-if="checkingReturn" :request-id="detail.request.request.id" @done="returnChecked" @cancel="checkingReturn = false"/>
       <BorrowAgainPanel v-if="canBorrowAgain" :request-id="detail.request.request.id"/>
       <LendingItemAssignment
           v-if="detail.request.isOwner && detail.request.request.status === LendingStatus.APPROVED"

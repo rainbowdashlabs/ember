@@ -17,8 +17,10 @@ import LendingOverviewView from './LendingOverviewView.vue'
 const listRequests = vi.fn()
 const approveRequest = vi.fn()
 const declineRequest = vi.fn()
+const remind = vi.fn()
 vi.mock('@/api/lending', () => ({
     getCatalog: () => Promise.resolve([]),
+    remind: (id: number) => remind(id),
     listRequests: () => listRequests(),
     approveRequest: (id: number) => approveRequest(id),
     declineRequest: (id: number, reason: string) => declineRequest(id, reason),
@@ -110,6 +112,15 @@ describe('LendingOverviewView', () => {
         await flushPromises()
         expect(declineRequest).toHaveBeenCalledWith(1, 'Kein Platz')
         expect(wrapper.findComponent(DeclineRequestModal).props('modelValue')).toBe(false)
+    })
+
+    it('reminds of overdue gear right on the overview', async () => {
+        remind.mockReset().mockResolvedValue(undefined)
+        const wrapper = await overview()
+
+        wrapper.findComponent(LendColumn).vm.$emit('remind', 1)
+        await flushPromises()
+        expect(remind).toHaveBeenCalledWith(1)
     })
 
     it('keeps the decline dialog open with its failure where declining fails', async () => {

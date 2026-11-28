@@ -36560,20 +36560,78 @@
         }
       }
     },
-    "/api/v1/lending/requests/{id}/returned" : {
+    "/api/v1/lending/requests/{id}/remind" : {
       "post" : {
+        "summary" : "Reminds the borrowing station of gear past its last day",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/lending/requests/{id}/return-check" : {
+      "post" : {
+        "summary" : "Takes the gear of a loan back, every piece in order, damaged or missing",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReturnCheckBody"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The pieces a loan of this station holds, to check back",
         "responses" : {
           "200" : {
             "description" : "OK",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/LendingRequestResponse"
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/LoanPiece"
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/lending/shares" : {
@@ -75113,6 +75171,22 @@
         },
         "required" : [ "keys", "next", "total" ]
       },
+      "LoanPiece" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "internalId" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "itemId", "name", "internalId" ]
+      },
       "Local" : {
         "type" : "object",
         "properties" : {
@@ -81239,6 +81313,25 @@
         },
         "required" : [ "pictureKey" ]
       },
+      "PieceCheck" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ReturnState"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "comment" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "PlaceAnswer" : {
         "type" : "object",
         "properties" : {
@@ -87194,6 +87287,17 @@
           }
         }
       },
+      "ReturnCheckBody" : {
+        "type" : "object",
+        "properties" : {
+          "pieces" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PieceCheck"
+            }
+          }
+        }
+      },
       "ReturnEverythingRequest" : {
         "type" : "object",
         "properties" : {
@@ -87202,6 +87306,10 @@
             "format" : "int32"
           }
         }
+      },
+      "ReturnState" : {
+        "type" : "string",
+        "enum" : [ "OK", "DAMAGED", "MISSING" ]
       },
       "RevocationReason" : {
         "type" : "string",

@@ -109,6 +109,7 @@ class RouteConventionsTest {
             Map.entry("InventoryShareRoutes", StationModule.INVENTORY_LENDING),
             Map.entry("LendingCalendarRoutes", StationModule.INVENTORY_LENDING),
             Map.entry("LendingCartRoutes", StationModule.INVENTORY_LENDING),
+            Map.entry("LendingReturnRoutes", StationModule.INVENTORY_LENDING),
             Map.entry("LendingRoutes", StationModule.INVENTORY_LENDING),
             Map.entry("MovementFlowRoutes", StationModule.INVENTORY_MOVEMENTS),
             Map.entry("MovementRoutes", StationModule.INVENTORY_MOVEMENTS),

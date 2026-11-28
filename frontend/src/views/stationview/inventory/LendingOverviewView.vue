@@ -12,6 +12,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {inventory} from '@/api'
 import * as lending from '@/api/lending'
+import {showToast} from '@/util/toast'
 import {
   StationPermission,
   type BorrowedItemResponse,
@@ -84,6 +85,13 @@ const {run: answer, running: answering, failure: answerFailure} = useAsyncAction
   void refreshCounts()
 })
 
+function remind(requestId: number) {
+  void answer(async () => {
+    await lending.remind(requestId)
+    showToast(t('lendingReturn.reminded'), 'success')
+  })
+}
+
 function approve(requestId: number) {
   void answer(() => lending.approveRequest(requestId))
 }
@@ -105,7 +113,7 @@ function decline(reason: string) {
       <div class="space-y-8">
         <div class="grid grid-cols-1 gap-8" :class="lend ? 'lg:grid-cols-2' : ''">
           <div v-if="lend" class="space-y-5">
-            <LendColumn :blocks="lend" :busy="answering" @approve="approve" @decline="declining = $event"/>
+            <LendColumn :blocks="lend" :busy="answering" @approve="approve" @decline="declining = $event" @remind="remind"/>
             <OfferSummary :summary="summary"/>
           </div>
           <BorrowColumn :blocks="borrow" :borrowed="borrowedHere" :reads="reads"/>

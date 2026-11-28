@@ -698,6 +698,16 @@ public class LendingService implements FederationServer {
         return moveOn(requestId, stationId, LendingStatus.RETURNED, "Ausrüstung zurückgegeben", null);
     }
 
+    /**
+     * Returns a loan only while its gear is out, so a return checked twice at once is taken back once.
+     *
+     * @return {@code true} when this call returned it
+     */
+    public boolean markReturnedFromLent(int requestId, int stationId) {
+        if (!repository.updateRequestStatusFrom(requestId, LendingStatus.LENT, LendingStatus.RETURNED)) return false;
+        return moveOn(requestId, stationId, LendingStatus.RETURNED, "Ausrüstung zurückgegeben", null);
+    }
+
     public boolean closeRequest(int requestId, int stationId) {
         return moveOn(requestId, stationId, LendingStatus.CLOSED, "Anfrage geschlossen", null);
     }
@@ -755,7 +765,9 @@ public class LendingService implements FederationServer {
      */
     public void serveStatus(ServingPartner partner, UUID uid, RemoteLendingStatus body) {
         var request = sharedRequest(partner, uid);
-        boolean lendersOnly = body.status() == LendingStatus.APPROVED || body.status() == LendingStatus.LENT;
+        boolean lendersOnly = body.status() == LendingStatus.APPROVED
+                || body.status() == LendingStatus.LENT
+                || body.status() == LendingStatus.RETURNED;
         if (lendersOnly && !request.owningStationUid().equals(partner.askingStationUid())) {
             throw FederationRefusal.LENDING_NOT_THE_OWNING_STATION.raise();
         }
@@ -876,8 +888,31 @@ public class LendingService implements FederationServer {
 
     public LendingMessage sendMessage(
             int requestId, int senderStationId, int senderMemberId, String senderName, String message) {
+        return deliver(requestId, senderStationId, senderMemberId, senderName, message, false);
+    }
+
+    /**
+     * Writes a message in a station's own name rather than a member's, such as a reminder sent on
+     * its own, and lets the other station know as any message does.
+     *
+     * @param requestId       the request
+     * @param senderStationId the station writing
+     * @param message         what it writes
+     * @return the stored message
+     */
+    public LendingMessage sendStationMessage(int requestId, int senderStationId, String message) {
+        return deliver(requestId, senderStationId, null, stationName(senderStationId), message, true);
+    }
+
+    private LendingMessage deliver(
+            int requestId,
+            int senderStationId,
+            @Nullable Integer senderMemberId,
+            String senderName,
+            String message,
+            boolean fromStation) {
         UUID senderStationUid = stationRepository.requireUid(senderStationId);
-        var msg = repository.createMessage(requestId, senderStationUid, senderMemberId, message, false);
+        var msg = repository.createMessage(requestId, senderStationUid, senderMemberId, message, fromStation);
         repository.findRequestById(requestId).ifPresent(r -> {
             UUID targetStationUid = r.otherParty(senderStationUid);
             eventBus.publish(new LendingMessageSent(

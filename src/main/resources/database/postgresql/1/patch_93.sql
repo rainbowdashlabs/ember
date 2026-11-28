@@ -184,6 +184,18 @@ COMMENT ON COLUMN ember_schema.lending_cart_line.line_name IS 'The kind''s or th
 COMMENT ON COLUMN ember_schema.lending_cart_line.picture_key IS 'The key of the photo the lending station last showed for the line, to ask for through this instance; NULL for none.';
 COMMENT ON COLUMN ember_schema.lending_cart_line.added_at IS 'When the line was first put in the cart.';
 
+-- A lending station reminds a borrowing station of gear past its last day once on its own.
+
+ALTER TABLE ember_schema.federation_lending_request
+    ADD COLUMN reminded_at TIMESTAMPTZ;
+
+UPDATE ember_schema.federation_lending_request
+SET reminded_at = now()
+WHERE status = 'LENT'
+  AND coalesce(requested_date_to, requested_date_from) < current_date;
+
+COMMENT ON COLUMN ember_schema.federation_lending_request.reminded_at IS 'When the borrowing station was last reminded of gear past its last day, NULL while it was not. The reminder sent on its own the day after the last day goes once; a manager can remind again by hand.';
+
 -- A borrowing station keeps what it asked for in the lending station's own ids, so a request to a station
 -- on another instance can be borrowed again.
 
