@@ -75,7 +75,7 @@ function update(patch: Partial<EventFieldEntry>) {
       @remove="emit('remove')"
   >
     <template #value>
-      <div class="flex min-w-0 grow-[2] basis-48 items-center gap-1" :role="offersValue ? 'group' : undefined"
+      <div class="flex min-w-0 items-center gap-1" :role="offersValue ? 'group' : undefined"
            :aria-label="offersValue ? valueName : undefined">
         <EventFieldValueInput
             v-if="offersValue"
