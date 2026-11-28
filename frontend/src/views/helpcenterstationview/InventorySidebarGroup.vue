@@ -27,10 +27,6 @@ const {t} = useI18n()
                  to="/helpcenter/station/inventory/my" @navigate="close">
       {{ t('sidebar.myInventory') }}
     </SidebarLink>
-    <SidebarLink :icon="['fas', 'hand-holding']" name="help-inventory-borrowed"
-                 to="/helpcenter/station/inventory/borrowed" @navigate="close">
-      {{ t('helpCenter.inventoryBorrowed.title') }}
-    </SidebarLink>
     <SidebarLink :icon="['fas', 'rotate']" name="help-inventory-movements"
                  to="/helpcenter/station/inventory/movements" @navigate="close">
       {{ t('sidebar.inventoryMovements') }}
@@ -105,7 +101,7 @@ const {t} = useI18n()
     </SidebarLink>
     <SidebarExpandableLink :icon="['fas', 'handshake']" name="help-inventory-lending"
                            to="/helpcenter/station/inventory/lending" prefix="/helpcenter/station/inventory/lending" @navigate="close">
-      <template #label>{{ t('sidebar.inventoryLending') }}</template>
+      <template #label>{{ t('sidebar.inventoryLendingGroup') }}</template>
       <SidebarLink :icon="['fas', 'calendar-xmark']" name="help-inventory-lending-blocks"
                    to="/helpcenter/station/inventory/lending/blocks" @navigate="close">
         {{ t('helpCenter.inventoryLendingBlocks.title') }}
@@ -113,6 +109,14 @@ const {t} = useI18n()
       <SidebarLink :icon="['fas', 'magnifying-glass']" name="help-inventory-lending-browse"
                    to="/helpcenter/station/inventory/lending/browse" @navigate="close">
         {{ t('helpCenter.inventoryLendingBrowse.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'share-nodes']" name="help-inventory-lending-shares"
+                   to="/helpcenter/station/inventory/lending/shares" @navigate="close">
+        {{ t('helpCenter.inventoryLendingShares.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'store']" name="help-inventory-lending-shop"
+                   to="/helpcenter/station/inventory/lending/shop" @navigate="close">
+        {{ t('helpCenter.inventoryLendingShop.title') }}
       </SidebarLink>
       <SidebarLink :icon="['fas', 'box-open']" name="help-inventory-lending-product"
                    to="/helpcenter/station/inventory/lending/product/0/0" @navigate="close">

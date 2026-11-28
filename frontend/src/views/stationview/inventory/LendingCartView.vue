@@ -100,7 +100,7 @@ function saveDetails(next: CartDetails) {
 }
 
 function backToShop() {
-  void router.push({name: routes.lending, query: route.query})
+  void router.push({name: routes.lendingShop, query: route.query})
 }
 
 </script>

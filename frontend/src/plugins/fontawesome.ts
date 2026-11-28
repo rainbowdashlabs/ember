@@ -21,7 +21,7 @@ import {
     faRotate, faScissors, faShield, faShuffle, faScaleBalanced, faSitemap, faSliders, faSort, faSortDown,
     faSortUp, faSpinner, faStrikethrough, faSun, faTableColumns, faTableList, faTrash, faTriangleExclamation,
     faUnderline, faUpload, faUser, faUserCheck, faUserGroup, faUserMinus, faUserPlus, faUserSlash, faUsers,
-    faUsersGear, faXmark, faXmarkCircle, faCircleQuestion, faFilter, faTags, faBarcode, faCartShopping,
+    faUsersGear, faXmark, faXmarkCircle, faCircleQuestion, faFilter, faTags, faBarcode, faCartShopping, faStore,
     faSquarePollVertical, faStar, faHeart, faThumbsUp, faGripLines, faLocationDot, faCamera,
     faToggleOn, faArrowRightArrowLeft, faPuzzlePiece, faPalette, faBook, faServer, faDatabase,
     faEnvelope, faEnvelopeOpenText, faArrowDown, faBug, faFlag, faHouseFlag, faPaperclip, faInbox, faExpand, faRocket, faShirt,
@@ -52,6 +52,7 @@ config.autoAddCss = false
 
 library.add(
     faCartShopping,
+    faStore,
     faComments, faFaceSmile, faCrown,
     faDiagramProject, faSun, faMoon, faCheck, faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faEllipsis,
     faEquals, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faCircle,

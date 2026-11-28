@@ -3020,20 +3020,25 @@ volumes:
             tip: 'Beschaffungen können auch direkt aus Tausch-Anfragen oder der Inventarprüfung erstellt werden.',
         },
         inventoryLending: {
-            title: 'Ausleihe',
-            subtitle: 'Ausrüstung zwischen Partnerwachen ausleihen und verwalten.',
-            whatIs: 'Was ist die Ausleihe?',
-            whatIsText: 'Hier siehst du alle Ausleih-Anfragen - also Anfragen, bei denen eine andere Wache Ausrüstung von euch leihen möchte oder ihr Ausrüstung von einer anderen Wache ausleiht.',
-            whatIsText2: 'Du kannst eingehende Anfragen (andere Wachen bitten euch) und ausgehende Anfragen (ihr bittet andere Wachen) getrennt einsehen.',
+            title: 'Verleih-Übersicht',
+            subtitle: 'Was eure Wache verleiht und was sie ausleiht, auf einen Blick.',
+            whatIs: 'Was zeigt die Übersicht?',
+            whatIsText: 'Die Übersicht ist die erste Seite des Verleihs. Sie zeigt, was ihr verleiht und was ihr ausleiht. Jede Anfrage steht in dem Block, der ihren nächsten Schritt zeigt.',
+            whatIsText2: 'Darunter stehen alle Anfragen in beide Richtungen in einer Tabelle. Mit den Filtern grenzt du sie nach Richtung, Status, Wache oder Tagen ein.',
+            borrowTitle: 'Ausleihen',
+            lend: 'Verleihen',
+            lendText: 'Unter „Wir verleihen“ sagst du bei neuen Anfragen gleich zu oder ab. Darunter steht, was diese Woche herausgegeben wird, was gerade unterwegs ist und was überfällig ist.',
+            borrowText: '„Wir leihen aus“ zeigt eure Anfragen, die noch auf Antwort warten, was ihr diese Woche abholt, welche Ausrüstung von Partnerwachen gerade bei euch ist und was ihr bald zurückgebt. Wer nur das Inventar lesen darf, sieht hier nur die Ausrüstung, die gerade bei euch ist.',
+            blocksText: 'Jeder Block zeigt bis zu fünf Einträge. Hat er mehr, öffnet „Alle anzeigen“ ihn ganz.',
+            borrowedTitle: 'Geliehene Ausrüstung bei euch',
+            borrowedText: 'Was euch eine Partnerwache geliehen hat, liegt bei euch im Regal „Geliehene Ausrüstung“. Ihr könnt es in einen Behälter legen, an ein Mitglied ausgeben und mitprüfen. Ändern, weiterverleihen und löschen kann nur die Wache, der es gehört.',
+            borrowedSnapshot: 'Bezeichnung und Kennung werden bei der Übergabe kopiert und danach nicht nachgeführt. Fehlt in der Prüfung ein geliehenes Stück, wird das vermerkt, aber nicht als Verlust gemeldet. Sagt es der Wache über die Anfrage.',
+            borrowedReturn: 'Wird die Ausleihe als zurückgegeben eingetragen, verschwindet das Stück aus dem Regal. Die Anfrage bleibt auf beiden Seiten im Verlauf.',
+            tableTitle: 'Alle Anfragen',
+            tableText: 'Ein Klick auf die Wache öffnet die Anfrage mit allen Details und den Nachrichten. Die neuesten Anfragen stehen oben.',
             otherInstanceTitle: 'Partnerwachen auf anderen Instanzen',
             otherInstanceText: 'Eine Partnerwache, die auf einer anderen Ember-Instanz läuft, leiht genauso wie eine auf eurer eigenen: Ihr seht, was sie anbietet, stellt eine Anfrage, und sie sagt zu, gibt die Ausrüstung heraus und nimmt sie zurück. Jede Wache führt die Anfrage bei sich, und jeder Schritt der einen erscheint auch bei der anderen.',
             otherInstanceText2: 'Damit das klappt, müssen beide Instanzen eine Version haben, die das Ausleihen zwischen Instanzen kennt. Solange die Partnerwache noch nicht aktualisiert hat, taucht sie in den Angeboten nicht auf.',
-            tabsTitle: 'Zwei Tabs: Angebote und Anfragen',
-            tabsOffersText: 'Im Tab „Angebote" siehst du verfügbare Ausrüstung von Partnerwachen.',
-            tabsRequestsText: 'Im Tab „Anfragen" siehst du eingehende und ausgehende Anfragen.',
-            dummyOffersTitle: 'Tab: Angebote',
-            dummyRequestsTitle: 'Tab: Anfragen',
-            requestsExplanation: 'Im Anfragen-Tab siehst du eingehende Anfragen anderer Wachen (nur als Verwalter) und deine eigenen ausgehenden Anfragen.',
             statusTitle: 'Die 6 Status-Stufen',
             statusRequestedDesc: 'Angefragt - Die Anfrage wurde gestellt und wartet auf Antwort.',
             statusApprovedDesc: 'Genehmigt - Die Anfrage wurde angenommen.',
@@ -3041,7 +3046,20 @@ volumes:
             statusReturnedDesc: 'Zurückgegeben - Die Ausrüstung wurde zurückgebracht.',
             statusDeclinedDesc: 'Abgelehnt - Die Anfrage wurde abgelehnt.',
             statusClosedDesc: 'Abgeschlossen - Der Vorgang ist beendet.',
-            tip: 'Klicke auf eine Anfrage, um alle Details zu sehen und direkt mit der anderen Wache zu chatten.',
+            tip: 'Neue Ausrüstung von Partnerwachen findest du über „Ausleihen“ in der Seitenleiste. Dort legst du sie in den Warenkorb.',
+        },
+        inventoryLendingShop: {
+            title: 'Ausleihen',
+            subtitle: 'Ausrüstung von Partnerwachen finden.',
+            whatIs: 'Was ist das?',
+            whatIsText: 'Hier siehst du alles, was eure Partnerwachen anbieten. Jede Kachel ist ein Inventar einer Wache, zum Beispiel ihre Funkgeräte oder ihre Spiele.',
+            searchText: 'Die Suche findet Namen und Beschreibungen von Inventaren, Arten und Einzelstücken. So findest du auch ein bestimmtes Spiel in einem Inventar voller Spiele.',
+            howTo: 'Wie finde ich etwas?',
+            daysText: 'Wähle zuerst die Tage, an denen ihr die Ausrüstung braucht. Dann zeigen die Kacheln, was an diesen Tagen frei ist. Ohne Tage zeigen sie, was heute frei ist.',
+            filterText: 'Mit „Wache“ zeigst du nur eine Partnerwache. „Nur Wachen im Warenkorb“ zeigt nur Wachen, bei denen schon etwas im Warenkorb liegt. So wird es eine Anfrage weniger.',
+            tileText: 'Ein Klick auf eine Kachel öffnet das Angebot mit allen Arten, Einzelstücken und dem Kalender. Ein grünes Zeichen auf der Kachel zeigt, wie viel davon schon im Warenkorb liegt.',
+            exampleTitle: 'So sieht die Seite aus',
+            tip: 'Die Tage und die Suche stehen in der Adresse. So kannst du einen Link wie „Funkgeräte am 12.“ weitergeben.',
         },
         inventoryLendingBlocks: {
             title: 'Ausleih-Sperrzeiten',
@@ -6393,42 +6411,6 @@ volumes:
             tip: 'Es wird nichts von allein gruppiert. Erst wenn du hier auf eine Schaltfläche klickst, '
                 + 'entsteht eine Art. So wandert kein Tippfehler versehentlich in die Liste.',
         },
-        inventoryBorrowed: {
-            title: 'Geliehene Ausrüstung',
-            subtitle: 'Was einer Partnerwache gehört und gerade hier liegt.',
-            whatShown: 'Was steht hier?',
-            whatShownText: 'Alles, was eine Partnerwache euch geliehen hat, auf einer Liste. Sobald die '
-                + 'Übergabe eingetragen ist, legt Ember dafür ein eigenes Regal an: „Geliehene Ausrüstung". '
-                + 'Darin liegt alles, was anderen gehört, egal von welcher Wache es kommt.',
-            whyOneShelfTitle: 'Ein Regal, nicht eines je Wache',
-            whyOneShelfText: 'Die Frage, die eine Wache wirklich stellt, lautet: was liegt hier gerade, das '
-                + 'uns nicht gehört. Getrennt nach Wachen bräuchte diese Antwort mehrere Listen nebeneinander, '
-                + 'und jede einmalige Ausleihe hinterließe für immer ein leeres Regal. Wem ein Stück gehört, '
-                + 'steht deshalb an der Zeile, und die Liste lässt sich danach sortieren.',
-            renameTitle: 'Umbenennen und löschen',
-            renameText: 'Ihr könnt das Regal umbenennen, wenn ihr es anders nennt. Löschen lässt es sich nur, '
-                + 'solange nichts darin liegt: sonst würden Zeilen verschwinden, die euch nicht gehören. Ist es '
-                + 'leer, könnt ihr es löschen, und die nächste Übergabe legt ein neues an.',
-            useTitle: 'Was ihr damit tun könnt',
-            useText: 'Geliehene Ausrüstung ist ein Gegenstand wie jeder andere: sie kann in einen Behälter, '
-                + 'sie kann an ein Mitglied ausgegeben werden, und sie läuft in der Prüfung mit. Nur ändern, '
-                + 'weiterverleihen und löschen könnt ihr sie nicht. Das bleibt bei der Wache, der sie gehört.',
-            snapshotTitle: 'Ein Abzug vom Tag der Übergabe',
-            snapshotText: 'Bezeichnung, Kennung und Felder werden bei der Übergabe kopiert und danach nicht '
-                + 'mehr nachgeführt. Benennt die andere Wache das Funkgerät um, steht hier weiter der alte '
-                + 'Name, bis es zurückgeht. Das ist Absicht: nachgeführte Angaben brauchen eine Verbindung, '
-                + 'die auch ausfallen kann, und dann zeigen zwei Wachen unbemerkt Verschiedenes an.',
-            checkTitle: 'Was die Prüfung damit macht',
-            checkText: 'Geliehene Ausrüstung liegt im Haus, also wird sie mitgeprüft. Fehlt ein Stück, wird '
-                + 'das in der Prüfung vermerkt, aber nicht als Verlust gemeldet: die Zeile hier verschwindet '
-                + 'ohnehin bei der Rückgabe, und auf der Seite der anderen Wache stünde weiter, dass ihr das '
-                + 'Stück habt. Sagt es der Wache über die Ausleih-Anfrage, auf der ihr es bekommen habt.',
-            returnTitle: 'Bei der Rückgabe',
-            returnText: 'Wird die Ausleihe als zurückgegeben eingetragen, verschwindet die Zeile hier ganz. '
-                + 'Was bleibt, ist die Ausleih-Anfrage, und die steht auf beiden Seiten weiter im Verlauf.',
-            tip: 'Sortiert nach Wache, wenn ihr von mehreren Partnern etwas dahabt: dann steht zusammen, was '
-                + 'zusammen zurückgeht.',
-        },
         inventoryCheckMember: {
             title: 'Inventarprüfung - Mitglied',
             subtitle: 'Ausrüstung eines einzelnen Mitglieds prüfen.',
@@ -7696,7 +7678,6 @@ volumes:
                 jfBeispieldorf: 'JF Beispieldorf',
                 jfAltenburg: 'JF Altenburg',
                 north: 'Wache Nord',
-                south: 'Wache Süd',
                 jfMusterstadtText: 'Jugendfeuerwehr im Herzen von Musterstadt',
                 jfBeispieldorfText: 'Freiwillige Feuerwehr Beispieldorf',
                 connectedSince: 'Verbunden seit 1. März 2026 · Protokollversion v1',
@@ -7727,8 +7708,6 @@ volumes:
                 boots: 'Stiefel',
                 trousers: 'Bundhose',
                 heavyTrousers: 'Bundhose schwer',
-                radio: 'Handfunkgerät',
-                thermalCamera: 'Wärmebildkamera',
                 lifebuoysThree: 'Rettungsring (3×)',
                 exchangeRequested: 'Tausch angefordert',
                 helmetTooSmall: 'Helm passt nicht mehr',

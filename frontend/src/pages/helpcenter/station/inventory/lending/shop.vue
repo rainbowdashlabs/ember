@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import BorrowedGearHelp from '~/views/helpcenter/stationview/inventory/BorrowedGearHelp.vue'
+import LendingShopHelp from '~/views/helpcenter/stationview/inventory/LendingShopHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-inventory-borrowed',
+  name: 'help-inventory-lending-shop',
 })
 </script>
 
 <template>
-  <BorrowedGearHelp />
+  <LendingShopHelp />
 </template>

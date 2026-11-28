@@ -407,8 +407,7 @@ test.describe('Inventory', () => {
      * seeds, since the cart sends only what is free on it.
      */
     test('equipment is asked for from a partner station', async ({managerPage: page}) => {
-        await page.goto('/station/inventory/lending')
-        await page.getByRole('button', {name: 'Angebote'}).click()
+        await page.goto('/station/inventory/lending/shop')
 
         const tile = page.getByTestId('lending-product-tile').first()
         await expect(tile, 'a partner station offers something to ask for').toBeVisible()
@@ -437,21 +436,20 @@ test.describe('Inventory', () => {
     })
 
     /**
-     * The other end of a borrowing: somebody has to say yes. The story takes a request that is
-     * waiting and approves it, and the request shows that afterwards.
+     * The other end of a borrowing: somebody has to say yes. The story takes a request waiting on the
+     * overview and approves it right there, then opens it and finds it approved.
      */
     test('an incoming request for equipment is approved', async ({managerPage: page}) => {
         await page.goto('/station/inventory/lending')
-        await page.getByRole('button', {name: 'Anfragen'}).first().click()
 
-        const waiting = page.locator('main').filter({hasText: 'Eingehende Anfragen'})
-            .getByText('Angefragt').first()
+        const waiting = page.getByTestId('lending-overview-lend').getByTestId('lending-overview-row').first()
         await expect(waiting).toBeVisible()
-        await waiting.click()
+        const address = must(await waiting.getByRole('link').getAttribute('href'), 'the waiting request links to itself')
+        await waiting.getByRole('button', {name: 'Genehmigen'}).click()
+        await expect(page.getByTestId('lending-overview-lend').locator(`a[href="${address}"]`)
+            .locator('xpath=ancestor::li').getByRole('button', {name: 'Genehmigen'})).toHaveCount(0)
 
-        await page.waitForURL(/\/station\/inventory\/lending\/request\/\d+/)
-        await page.getByRole('button', {name: 'Genehmigen'}).click()
-
+        await page.goto(address)
         await expect(page.getByText('Genehmigt').first()).toBeVisible()
     })
 

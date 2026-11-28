@@ -240,18 +240,19 @@ export const STATION_NAV: Entry[] = [
                 kind: 'group', key: 'inventory-lending-group', label: 'sidebar.inventoryLendingGroup', icon: 'handshake', badge: ({counts}) => counts.lendingRequests,
                 visible: runs(StationModule.INVENTORY_LENDING),
                 children: [
-                    {kind: 'page', key: 'inventory-borrowed', label: 'sidebar.inventoryBorrowed', icon: 'hand-holding', to: '/station/inventory/borrowed', visible: can(StationPermission.INVENTORY_READ)},
                     {
                         kind: 'page', key: 'inventory-lending', label: 'sidebar.inventoryLending', icon: 'handshake', to: '/station/inventory/lending', onboarding: 'nav.inventory.lending',
                         badge: ({counts}) => counts.lendingRequests,
-                        visible: canAny(StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER),
+                        visible: canAny(StationPermission.INVENTORY_READ, StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER),
                     },
+                    {kind: 'page', key: 'inventory-lending-shop', label: 'sidebar.inventoryLendingShop', icon: 'store', to: '/station/inventory/lending/shop', visible: can(StationPermission.INVENTORY_LENDING_REQUEST)},
                     {
                         kind: 'page', key: 'inventory-lending-cart', label: 'sidebar.inventoryLendingCart', icon: 'cart-shopping', to: '/station/inventory/lending/cart',
                         badge: ({counts}) => counts.lendingCart,
                         visible: can(StationPermission.INVENTORY_LENDING_REQUEST),
                     },
-                    {kind: 'page', key: 'inventory-lending-shares', label: 'sidebar.inventoryLendingShares', icon: 'share-nodes', to: '/station/inventory/lending/shares', paletteOnly: true, visible: can(StationPermission.INVENTORY_LENDING_MANAGER)},
+                    {kind: 'page', key: 'inventory-lending-shares', label: 'sidebar.inventoryLendingShares', icon: 'share-nodes', to: '/station/inventory/lending/shares', visible: can(StationPermission.INVENTORY_LENDING_MANAGER)},
+                    {kind: 'page', key: 'inventory-lending-blocks', label: 'sidebar.inventoryLendingBlocks', icon: 'calendar-xmark', to: '/station/inventory/lending/blocks', visible: can(StationPermission.INVENTORY_LENDING_MANAGER)},
                 ],
             },
         ],

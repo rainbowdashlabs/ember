@@ -13,7 +13,7 @@ const routes = useInventoryRoutes()
 const router = useRouter()
 
 onMounted(() => {
-  router.replace({name: routes.lending})
+  router.replace({name: routes.lendingShop})
 })
 </script>
 

@@ -16,7 +16,7 @@ import * as lending from '@/api/lending'
 import type {ProductDetail, RemotePiece} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import {useShopQuery} from './lendingview/useShopQuery'
+import {useShopQuery} from './lendingshopview/useShopQuery'
 import AvailabilityCalendar from './lendingproductview/AvailabilityCalendar.vue'
 import KindRows from './lendingproductview/KindRows.vue'
 import PieceList from './lendingproductview/PieceList.vue'
@@ -62,7 +62,7 @@ const calendarRows = computed(() => {
 })
 
 function backToShop() {
-  void router.push({name: routes.lending, query: route.query})
+  void router.push({name: routes.lendingShop, query: route.query})
 }
 </script>
 

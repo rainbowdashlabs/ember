@@ -253,12 +253,12 @@ test.describe('Lending offer', () => {
         await expect(page.getByTestId('lending-shares-withheld')).toBeVisible()
     })
 
-    /** The way into the offer screen, which only somebody who may manage lending is shown. */
+    /** The way into the offer screen, which the sidebar shows only somebody who may manage lending. */
     test('the lending screen leads to what the station offers', async ({managerPage: page}) => {
         await page.goto('/station/inventory/lending')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
-        await page.getByTestId('lending-shares-link').click()
+        await page.getByRole('navigation').getByRole('link', {name: 'Angebot', exact: true}).click()
         await page.waitForURL(/\/station\/inventory\/lending\/shares/)
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })

@@ -11,7 +11,7 @@
 definePageMeta({
   layout: 'station',
   name: 'inventory-lending-create-legacy',
-  redirect: '/station/inventory/lending',
+  redirect: '/station/inventory/lending/shop',
 })
 </script>
 

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import LendingView from '~/views/stationview/inventory/LendingView.vue'
+import LendingOverviewView from '~/views/stationview/inventory/LendingOverviewView.vue'
 
 definePageMeta({
   layout: 'station',
@@ -13,5 +13,5 @@ definePageMeta({
 </script>
 
 <template>
-  <LendingView />
+  <LendingOverviewView />
 </template>

@@ -31,7 +31,7 @@ vi.mock('@/api/lending', () => ({getProduct: (...args: unknown[]) => getProduct(
 
 const setDays = vi.fn()
 const query = {dateFrom: ref('2030-06-12'), dateTo: ref(''), search: ref(''), station: ref(''), sort: ref('best'), onlyInCart: ref(false), setDays}
-vi.mock('./lendingview/useShopQuery', () => ({useShopQuery: () => query}))
+vi.mock('./lendingshopview/useShopQuery', () => ({useShopQuery: () => query}))
 
 const push = vi.fn()
 vi.mock('vue-router', () => ({
@@ -113,6 +113,6 @@ describe('LendingProductView', () => {
         const wrapper = await view()
 
         await wrapper.findComponent(SecondaryButton).vm.$emit('click')
-        expect(push).toHaveBeenCalledWith({name: 'inventory-lending', query: {station: 'own', q: 'funk'}})
+        expect(push).toHaveBeenCalledWith({name: 'inventory-lending-shop', query: {station: 'own', q: 'funk'}})
     })
 })
