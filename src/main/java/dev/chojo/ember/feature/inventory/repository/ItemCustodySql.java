@@ -138,33 +138,84 @@ public final class ItemCustodySql {
     }
 
     /**
-     * A predicate matching the items no loan to a partner station holds: none that is approved or running
-     * and not over before today has set them aside.
+     * A predicate matching the items no loan to a partner station holds today.
+     *
+     * <p>A piece is out only while it is gone: an agreed loan holds it from its first day to its last,
+     * nothing before, and gear handed over is held until it is back, whatever the days said.
      *
      * @param itemAlias the alias of {@code inventory_item}, or the bare table name
      * @return the SQL predicate, needing no bind of its own
      */
     public static String notSetAsideForALoan(String itemAlias) {
-        return loanHold(itemAlias, "");
+        return loanHold(itemAlias, "current_date", "current_date", "");
     }
 
     /**
-     * The same, leaving out one loan, which is the loan asking about its own pieces.
+     * The same over the days of one loan, leaving that loan out, which is the loan asking about its own
+     * pieces: another loan holds a piece when it holds it on any of those days.
      *
      * @param itemAlias the alias of {@code inventory_item}, or the bare table name
      * @return the SQL predicate, expecting {@code :own_loan} to be bound to the request id
      */
     public static String notSetAsideForAnotherLoan(String itemAlias) {
-        return loanHold(itemAlias, " AND loan.id <> :own_loan");
+        return loanHold(
+                itemAlias,
+                "(SELECT own.requested_date_from FROM federation_lending_request own WHERE own.id = :own_loan)",
+                "(SELECT own.requested_date_to FROM federation_lending_request own WHERE own.id = :own_loan)",
+                " AND loan.id <> :own_loan");
     }
 
-    private static String loanHold(String itemAlias, String except) {
+    private static String loanHold(String itemAlias, String firstDay, String lastDay, String except) {
         return """
                 NOT EXISTS (SELECT 1 FROM federation_lending_request_item_assignment loan_piece \
                 JOIN federation_lending_request_item loan_line ON loan_line.id = loan_piece.request_item_id \
                 JOIN federation_lending_request loan ON loan.id = loan_line.request_id \
-                WHERE loan_piece.item_id = %1$s.id AND loan.status IN ('APPROVED', 'LENT') \
-                AND loan.requested_date_to >= current_date%2$s)""".formatted(itemAlias, except);
+                WHERE loan_piece.item_id = %1$s.id AND %2$s%3$s)""".formatted(itemAlias, loanHoldsOn("loan", firstDay, lastDay), except);
+    }
+
+    /**
+     * A condition on a lending request matching a loan that holds its pieces on any day of a span: gear
+     * handed over until it is back, whatever the days said, and agreed gear on its own days only.
+     *
+     * @param loanAlias the alias of {@code federation_lending_request}
+     * @param firstDay  the first day of the span, as SQL
+     * @param lastDay   the last day of the span, as SQL
+     * @return the SQL condition
+     */
+    public static String loanHoldsOn(String loanAlias, String firstDay, String lastDay) {
+        return """
+                ((%1$s.status = 'LENT' AND greatest(%1$s.requested_date_to, current_date) >= %2$s) \
+                OR (%1$s.status = 'APPROVED' AND %1$s.requested_date_from <= %3$s \
+                AND %1$s.requested_date_to >= %2$s))""".formatted(loanAlias, firstDay, lastDay);
+    }
+
+    /**
+     * A predicate matching the items a station can lend over some days, before asking which days: on the
+     * shelf, or out with a partner on a loan and coming back, and carried by no open movement. Whether a
+     * piece is free on a given day is the claims' question.
+     *
+     * @param itemAlias the alias of {@code inventory_item}, or the bare table name
+     * @return the SQL predicate, needing no bind of its own
+     */
+    public static String lendable(String itemAlias) {
+        return "((%2$s OR %3$s) AND %4$s)"
+                .formatted(itemAlias, freeStock(itemAlias), lentOut(itemAlias), notOnAMovement(itemAlias));
+    }
+
+    /**
+     * A predicate matching the items out with a partner station on one of the station's own loans, which
+     * come back when the loan is checked back. A piece with a partner for any other reason is not.
+     *
+     * @param itemAlias the alias of {@code inventory_item}, or the bare table name
+     * @return the SQL predicate, needing no bind of its own
+     */
+    public static String lentOut(String itemAlias) {
+        return """
+                (%1$s.custody = 'WITH_PARTNER' AND EXISTS (SELECT 1 \
+                FROM federation_lending_request_item_assignment out_piece \
+                JOIN federation_lending_request_item out_line ON out_line.id = out_piece.request_item_id \
+                JOIN federation_lending_request out_loan ON out_loan.id = out_line.request_id \
+                WHERE out_piece.item_id = %1$s.id AND out_loan.status = 'LENT'))""".formatted(itemAlias);
     }
 
     /**
@@ -177,7 +228,9 @@ public final class ItemCustodySql {
      * the exception: a list that reports them missing because somebody at the station is holding them
      * is worse than no list.
      *
-     * <p>Gear with a federation partner is out for the same reason lost gear is: it is somewhere else.
+     * <p>Gear the station lent to a partner station on a loan counts: the loan's claim takes it out for
+     * the days it is gone, until it is back, so the stock does not take it out a second time. Gear a
+     * partner keeps for any other reason is out for the same reason lost gear is: it is somewhere else.
      *
      * @param itemAlias      the alias of {@code inventory_item}
      * @param inventoryAlias the alias of the joined {@code inventory} row
@@ -188,6 +241,7 @@ public final class ItemCustodySql {
                 (
                     (%1$s.custody = 'WITH_OWNER' AND %1$s.owner_kind = 'STATION' AND %2$s.station_id = :%3$s)
                     OR (%1$s.custody IN ('AT_STATION', 'WITH_MEMBER') AND %1$s.custody_station_id = :%3$s)
-                )""".formatted(itemAlias, inventoryAlias, STATION_BIND);
+                    OR (%1$s.owner_kind = 'STATION' AND %2$s.station_id = :%3$s AND %4$s)
+                )""".formatted(itemAlias, inventoryAlias, STATION_BIND, lentOut(itemAlias));
     }
 }

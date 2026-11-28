@@ -79,6 +79,22 @@ public record ClaimSnapshot(List<EquipmentClaim> claims) {
     }
 
     /**
+     * Whether a block takes the whole of something over a window: one on the station or on its
+     * inventory, and for a single piece also one on that piece. A block takes everything it covers, so
+     * nothing of it is free then. A block on one piece leaves the rest of its kind or inventory.
+     *
+     * @param question what is asked about
+     * @param from     the first moment of the window
+     * @param to       the last moment of the window
+     * @return {@code true} when a block covers it
+     */
+    public boolean blocked(ResolvedTarget question, Instant from, Instant to) {
+        return claims.stream()
+                .filter(claim -> claim.origin() == ClaimOrigin.BLOCK && (!claim.firm() || question.itemId() != null))
+                .anyMatch(claim -> claim.touches(question, from, to));
+    }
+
+    /**
      * One thing a snapshot is asked about, resolved once together with how much of it the station has.
      *
      * @param target   what is asked about

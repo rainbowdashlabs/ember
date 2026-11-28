@@ -35,8 +35,9 @@ public class EquipmentAvailabilityRepository {
      *
      * <p>The predicate is {@link ItemCustodySql#atHand(String, String)} rather than free stock: radios
      * permanently handed to a group leader are the ordinary case, and a list reporting them missing
-     * because somebody at the station is holding them is worse than no list. Gear that is lost, in the post or with a partner is out, because it cannot
-     * be brought along.
+     * because somebody at the station is holding them is worse than no list. Gear that is lost or in the post
+     * is out, because it cannot be brought along. Gear lent to a partner counts, and its loan's claim takes it
+     * out for the days it is gone.
      *
      * @param stationId the station asking
      * @param target    what is being asked about
@@ -129,19 +130,25 @@ public class EquipmentAvailabilityRepository {
                        ri.item_id,
                        ri.art_id,
                        ri.inventory_id,
-                       r.requested_date_from    AS date_from,
-                       r.requested_date_to      AS date_to,
+                       held.date_from,
+                       held.date_to,
                        coalesce(s.name, '')     AS partner_name
                 FROM federation_lending_request_item ri
                 JOIN federation_lending_request r ON r.id = ri.request_id
                 JOIN station owner ON owner.uid = r.owning_station_uid
                 LEFT JOIN federation_lending_request_item_assignment a ON a.request_item_id = ri.id
                 LEFT JOIN station s ON s.uid = r.requesting_station_uid
+                CROSS JOIN LATERAL (SELECT CASE WHEN r.status = 'LENT'
+                                                THEN least(r.requested_date_from, current_date)
+                                                ELSE r.requested_date_from END    AS date_from,
+                                           CASE WHEN r.status = 'LENT'
+                                                THEN greatest(r.requested_date_to, current_date)
+                                                ELSE r.requested_date_to END      AS date_to) held
                 WHERE owner.id = :station_id
                   AND r.status IN ('APPROVED', 'LENT')
                   AND (:ignore_request::INT IS NULL OR r.id <> :ignore_request::INT)
-                  AND (:date_to::DATE IS NULL OR r.requested_date_from <= :date_to::DATE)
-                  AND (:date_from::DATE IS NULL OR r.requested_date_to >= :date_from::DATE)
+                  AND (:date_to::DATE IS NULL OR held.date_from <= :date_to::DATE)
+                  AND (:date_from::DATE IS NULL OR held.date_to >= :date_from::DATE)
                 ORDER BY ri.id, a.item_id;""")
                 .single(call().bind("station_id", stationId)
                         .bind("date_from", from)

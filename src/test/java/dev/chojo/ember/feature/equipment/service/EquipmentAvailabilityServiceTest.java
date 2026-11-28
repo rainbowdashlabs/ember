@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -249,6 +251,81 @@ class EquipmentAvailabilityServiceTest extends RepositoryTestBase {
         assertFalse(free.contains(pieces.getFirst()));
         assertEquals(pieces.size() - 1, free.size());
         lendingRepo.updateRequestStatus(request.id(), LendingStatus.CLOSED);
+    }
+
+    /** A block on the inventory or on the whole station leaves no free piece in it, not only no free count. */
+    @Test
+    void aBlockOnTheInventoryOrTheStationLeavesNoFreePiece() {
+        LocalDate day = EquipmentTestSupport.SATURDAY.plusDays(133);
+        var target = LineTarget.art(blue.id());
+        assertFalse(availability
+                .freePieces(station.id(), target, from(day, 10), from(day, 12))
+                .isEmpty());
+
+        var drawerBlock = lendingRepo.createBlock(station.id(), drawer.id(), null, day, day, "Inspektion");
+        assertEquals(List.of(), availability.freePieces(station.id(), target, from(day, 10), from(day, 12)));
+        lendingRepo.deleteBlock(drawerBlock.id(), station.id());
+
+        var stationBlock = lendingRepo.createBlock(station.id(), null, null, day, day, "Wache geschlossen");
+        assertEquals(List.of(), availability.freePieces(station.id(), target, from(day, 10), from(day, 12)));
+        lendingRepo.deleteBlock(stationBlock.id(), station.id());
+    }
+
+    /**
+     * Gear handed over is out until it is back: a loan past its last day still claims its piece today,
+     * and an agreed loan claims nothing before its first day.
+     */
+    @Test
+    void lentGearIsOutUntilItIsBackAndAgreedGearOnlyOnItsDays() {
+        var pieces = equipmentAvailabilityRepo.piecesOf(station.id(), LineTarget.art(blue.id()));
+        LocalDate today = LocalDate.now();
+        var overdue = lendingRepo.createRequest(
+                partner.uid(), station.uid(), today.minusDays(5), today.minusDays(2), member.id(), null, null, "");
+        lendingRepo.assignItem(
+                lendingRepo
+                        .addRequestItem(overdue.id(), drawer.id(), null, blue.id(), 1, null)
+                        .id(),
+                pieces.get(0));
+        lendingRepo.updateRequestStatus(overdue.id(), LendingStatus.LENT);
+        var later = lendingRepo.createRequest(
+                partner.uid(), station.uid(), today.plusDays(20), today.plusDays(22), member.id(), null, null, "");
+        lendingRepo.assignItem(
+                lendingRepo
+                        .addRequestItem(later.id(), drawer.id(), null, blue.id(), 1, null)
+                        .id(),
+                pieces.get(1));
+        lendingRepo.updateRequestStatus(later.id(), LendingStatus.APPROVED);
+
+        var custodyBefore =
+                inventoryRepo.findItemById(pieces.get(0)).orElseThrow().custody();
+        inventoryRepo.updateCustody(pieces.get(0), ItemCustody.WITH_PARTNER, station.id(), null, null, partner.id());
+
+        var target = LineTarget.art(blue.id());
+        var free = availability.freePieces(station.id(), target, from(today, 10), from(today, 12));
+        assertFalse(free.contains(pieces.get(0)), "the overdue piece is still out");
+        assertTrue(free.contains(pieces.get(1)), "the piece agreed for later is on the shelf today");
+        assertEquals(
+                pieces.size() - 1,
+                availability
+                        .availability(station.id(), target, from(today, 10), from(today, 12), null)
+                        .free(),
+                "the piece out is taken once, by its loan, not again by the stock");
+        LocalDate nextWeek = today.plusDays(7);
+        assertTrue(
+                availability
+                        .freePieces(station.id(), target, from(nextWeek, 10), from(nextWeek, 12))
+                        .contains(pieces.get(0)),
+                "gear out today counts again once its loan no longer holds it");
+
+        inventoryRepo.updateCustody(
+                pieces.get(0),
+                custodyBefore,
+                custodyBefore == ItemCustody.WITH_OWNER ? null : station.id(),
+                null,
+                null,
+                null);
+        lendingRepo.updateRequestStatus(overdue.id(), LendingStatus.CLOSED);
+        lendingRepo.updateRequestStatus(later.id(), LendingStatus.CLOSED);
     }
 
     @Test

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * A {@link LineTarget} with the levels above it filled in, which is what lets two lines be compared.
  *
@@ -17,7 +19,11 @@ package dev.chojo.ember.feature.inventory.entity;
  * @param inventoryId the inventory, either named or the one the piece or the kind lives in
  * @param label       what to call it on screen
  */
-public record ResolvedTarget(Integer itemId, Integer artId, Integer inventoryId, String label) {
+public record ResolvedTarget(
+        @Nullable Integer itemId,
+        @Nullable Integer artId,
+        @Nullable Integer inventoryId,
+        String label) {
 
     /**
      * Whether a claim on this target takes anything away from a question about the given one.

@@ -82695,11 +82695,11 @@ export interface components {
         };
         ResolvedTarget: {
             /** Format: int32 */
-            artId: number;
+            artId: number | null;
             /** Format: int32 */
-            inventoryId: number;
+            inventoryId: number | null;
             /** Format: int32 */
-            itemId: number;
+            itemId: number | null;
             label: string;
         };
         ResolvedValueResponse: {

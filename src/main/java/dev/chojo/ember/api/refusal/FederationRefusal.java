@@ -376,7 +376,10 @@ public enum FederationRefusal implements Refusal {
     LENDING_NOT_OVERDUE(91, HttpStatus.CONFLICT, "The gear is not overdue yet"),
 
     /** A step a lending request cannot take from where it is, or one another change got to first. */
-    LENDING_STEP_NOT_ALLOWED(92, HttpStatus.CONFLICT, "The lending request cannot take this step from where it is");
+    LENDING_STEP_NOT_ALLOWED(92, HttpStatus.CONFLICT, "The lending request cannot take this step from where it is"),
+
+    /** A piece set aside for a request on days a block covers it, its inventory or the station. */
+    LENDING_PIECE_BLOCKED(93, HttpStatus.CONFLICT, "The piece is blocked on the days of the request");
 
     private final Definition definition;
 

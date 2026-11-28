@@ -10,7 +10,6 @@ import dev.chojo.ember.feature.equipment.entity.ClaimSnapshot;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
-import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.SharePolicy;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteAddress;
@@ -35,6 +34,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryMatch;
 import dev.chojo.ember.feature.inventory.entity.ItemPresentation;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
+import dev.chojo.ember.feature.inventory.entity.ResolvedTarget;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -156,16 +156,8 @@ public class LendingCatalogService implements FederationServer {
         int stationId = partner.servingStationId();
         SharePolicy policy = shareService.policyFor(stationId, partner.askingStationUid());
         if (!policy.offersAnything()) return new RemoteProducts(List.of(), false);
-        Window window = Window.of(dateFrom, dateTo);
-        Counter counter = counter(stationId, window);
-        if (counter.blocked(null, null)) return new RemoteProducts(List.of(), true);
-        var stocks = new ArrayList<>(lendingService.offeredStock(
-                stationId,
-                policy,
-                null,
-                query,
-                window == null ? null : window.first(),
-                window == null ? null : window.last()));
+        Counter counter = counter(stationId, Window.of(dateFrom, dateTo));
+        var stocks = new ArrayList<>(lendingService.offeredStock(stationId, policy, null, query));
         stocks.sort(Comparator.comparingDouble(LendingCatalogService::rankOf).reversed());
         var products = new ArrayList<RemoteProductSummary>();
         for (var stock : stocks) {
@@ -178,7 +170,7 @@ public class LendingCatalogService implements FederationServer {
             for (var piece : split.singles()) {
                 if (counter.free(piece)) free++;
             }
-            if (window != null && free == 0) continue;
+            if (free == 0) continue;
             products.add(new RemoteProductSummary(
                     inventory.id(),
                     inventory.name(),
@@ -212,7 +204,6 @@ public class LendingCatalogService implements FederationServer {
         OfferedStock stock = requireOffered(partner, inventoryId);
         Inventory inventory = stock.inventory();
         Counter counter = counter(stationId, Window.of(dateFrom, dateTo));
-        boolean blocked = counter.blocked(inventoryId, null);
         Map<Integer, InventoryArt> arts = artRepository.findByInventory(inventoryId).stream()
                 .collect(Collectors.toMap(InventoryArt::id, Function.identity(), (a, b) -> a, LinkedHashMap::new));
         Split split = Split.of(stock);
@@ -221,10 +212,7 @@ public class LendingCatalogService implements FederationServer {
         for (var row : split.counted().entrySet()) {
             Integer artId = row.getKey();
             InventoryArt art = artId == null ? null : arts.get(artId);
-            var pieces = row.getValue().stream()
-                    .filter(piece -> !counter.blocked(null, piece.id()))
-                    .toList();
-            int free = blocked ? 0 : counter.count(target(inventoryId, artId), pieces);
+            int free = counter.count(target(inventoryId, artId), row.getValue());
             kinds.add(new RemoteKind(
                     artId,
                     art == null ? "" : art.name(),
@@ -248,7 +236,7 @@ public class LendingCatalogService implements FederationServer {
                     piece.name(),
                     presentation == null ? "" : presentation.description(),
                     firstNamed(presentation == null ? null : presentation.pictureKey(), inventory.pictureKey()),
-                    !blocked && !counter.blocked(null, piece.id()) && counter.free(piece)));
+                    counter.free(piece)));
         }
         pieces.sort(Comparator.comparing(RemotePiece::name, String.CASE_INSENSITIVE_ORDER));
         return new RemoteProduct(
@@ -290,26 +278,18 @@ public class LendingCatalogService implements FederationServer {
         var days = new ArrayList<RemoteDay>();
         for (LocalDate date = month.atDay(1); !date.isAfter(month.atEndOfMonth()); date = date.plusDays(1)) {
             Counter day = monthCounter.on(date);
-            boolean blocked = day.blocked(inventoryId, itemId);
+            boolean blocked = asked != null ? day.pieceBlocked(asked) : day.inventoryBlocked(inventoryId);
             var counts = new ArrayList<RemoteDayCount>();
             if (asked != null) {
-                boolean free = !blocked && day.free(asked);
-                counts.add(new RemoteDayCount(null, itemId, false, free ? 1 : 0, 1));
+                counts.add(new RemoteDayCount(null, itemId, false, day.free(asked) ? 1 : 0, 1));
             } else {
                 for (var row : split.counted().entrySet()) {
-                    var pieces = row.getValue().stream()
-                            .filter(piece -> !day.blocked(null, piece.id()))
-                            .toList();
-                    int free = blocked ? 0 : day.count(target(inventoryId, row.getKey()), pieces);
+                    int free = day.count(target(inventoryId, row.getKey()), row.getValue());
                     counts.add(new RemoteDayCount(
                             row.getKey(), null, false, free, row.getValue().size()));
                 }
                 if (!split.singles().isEmpty()) {
-                    int free = blocked
-                            ? 0
-                            : (int) split.singles().stream()
-                                    .filter(piece -> !day.blocked(null, piece.id()) && day.free(piece))
-                                    .count();
+                    int free = (int) split.singles().stream().filter(day::free).count();
                     counts.add(new RemoteDayCount(
                             null, null, true, free, split.singles().size()));
                 }
@@ -437,17 +417,18 @@ public class LendingCatalogService implements FederationServer {
         int stationId = partner.servingStationId();
         SharePolicy policy = shareService.policyFor(stationId, partner.askingStationUid());
         if (!policy.offersAnything()) throw FederationRefusal.LENDING_PRODUCT_NOT_OFFERED.raise();
-        return lendingService.offeredStock(stationId, policy, inventoryId, null, null, null).stream()
+        return lendingService.offeredStock(stationId, policy, inventoryId, null).stream()
                 .findFirst()
                 .orElseThrow(FederationRefusal.LENDING_PRODUCT_NOT_OFFERED::raise);
     }
 
-    /** Reads the claims and blocks of a window once; without a window it counts today's shelf. */
+    /**
+     * The counter for the days asked about, today's when none were: what is free is one question
+     * whatever the days, answered from the claims (loans, the station's own needs, blocks) read once.
+     */
     private Counter counter(int stationId, @Nullable Window window) {
-        if (window == null) return new Counter(stationId, null, null, List.of());
-        ClaimSnapshot snapshot = availability.snapshot(stationId, window.from(), window.to());
-        return new Counter(
-                stationId, window, snapshot, lendingService.blocksBetween(stationId, window.first(), window.last()));
+        Window days = window != null ? window : Window.today();
+        return new Counter(stationId, days, availability.snapshot(stationId, days.from(), days.to()));
     }
 
     private static LineTarget target(int inventoryId, @Nullable Integer artId) {
@@ -455,63 +436,60 @@ public class LendingCatalogService implements FederationServer {
     }
 
     /**
-     * Counts over one window from claims and blocks read once.
+     * Counts over one window from the claims read once. A piece is free when no claim names it and no
+     * block covers it, its inventory or the station; a row is free up to what the claims leave of it.
      *
      * @param stationId the station counting
-     * @param window    the days, or {@code null} for today's shelf
-     * @param snapshot  the claims over the window, or {@code null} without one
-     * @param blocks    the blocks touching the window
+     * @param window    the days
+     * @param snapshot  the claims over the window
      */
     private final class Counter {
         private final int stationId;
-        private final @Nullable Window window;
-        private final @Nullable ClaimSnapshot snapshot;
-        private final List<InventoryBlock> blocks;
+        private final Window window;
+        private final ClaimSnapshot snapshot;
         private final Map<LineTarget, Optional<ClaimSnapshot.Question>> questions;
         private @Nullable Set<Integer> named;
 
-        private Counter(
-                int stationId, @Nullable Window window, @Nullable ClaimSnapshot snapshot, List<InventoryBlock> blocks) {
-            this(stationId, window, snapshot, blocks, new LinkedHashMap<>());
+        private Counter(int stationId, Window window, ClaimSnapshot snapshot) {
+            this(stationId, window, snapshot, new LinkedHashMap<>());
         }
 
         private Counter(
                 int stationId,
-                @Nullable Window window,
-                @Nullable ClaimSnapshot snapshot,
-                List<InventoryBlock> blocks,
+                Window window,
+                ClaimSnapshot snapshot,
                 Map<LineTarget, Optional<ClaimSnapshot.Question>> questions) {
             this.stationId = stationId;
             this.window = window;
             this.snapshot = snapshot;
-            this.blocks = blocks;
             this.questions = questions;
         }
 
-        /** The same claims and blocks narrowed to one day, sharing what was resolved already. */
+        /** The same claims narrowed to one day, sharing what was resolved already. */
         Counter on(LocalDate day) {
-            var dayBlocks = blocks.stream()
-                    .filter(block ->
-                            !block.blockFrom().isAfter(day) && !block.blockTo().isBefore(day))
-                    .toList();
-            return new Counter(stationId, new Window(day, day), snapshot, dayBlocks, questions);
+            return new Counter(stationId, new Window(day, day), snapshot, questions);
         }
 
-        boolean blocked(@Nullable Integer inventoryId, @Nullable Integer itemId) {
-            return LendingService.blocks(blocks, inventoryId, itemId);
+        /** Whether a block takes the whole inventory over the window, its own or the station's. */
+        boolean inventoryBlocked(int inventoryId) {
+            return snapshot.blocked(new ResolvedTarget(null, null, inventoryId, ""), window.from(), window.to());
         }
 
-        /** Whether a single piece is free: today always, over days when no claim names it. */
+        /** Whether a block covers a single piece over the window: its own, its inventory's or the station's. */
+        boolean pieceBlocked(InventoryItem piece) {
+            return snapshot.blocked(
+                    new ResolvedTarget(piece.id(), piece.artId(), piece.inventoryId(), piece.name()),
+                    window.from(),
+                    window.to());
+        }
+
+        /** Whether a single piece is free over the window. */
         boolean free(InventoryItem piece) {
-            return window == null || !named().contains(piece.id());
+            return !named().contains(piece.id()) && !pieceBlocked(piece);
         }
 
-        /**
-         * How many of a row's pieces are free: all of them today, over days those no claim names, never
-         * more than the claims leave of the row.
-         */
+        /** How many of a row's pieces are free: those no claim names, never more than the claims leave. */
         int count(LineTarget target, List<InventoryItem> pieces) {
-            if (window == null || snapshot == null) return pieces.size();
             var named = named();
             int unclaimed = (int)
                     pieces.stream().filter(piece -> !named.contains(piece.id())).count();
@@ -522,9 +500,7 @@ public class LendingCatalogService implements FederationServer {
         }
 
         private Set<Integer> named() {
-            if (named == null) {
-                named = snapshot == null || window == null ? Set.of() : snapshot.named(window.from(), window.to());
-            }
+            if (named == null) named = snapshot.named(window.from(), window.to());
             return named;
         }
     }
@@ -662,6 +638,12 @@ public class LendingCatalogService implements FederationServer {
      * included.
      */
     private record Window(LocalDate first, LocalDate last) {
+        /** Today alone, the window counted when nobody asked about days. */
+        static Window today() {
+            LocalDate today = LocalDate.now();
+            return new Window(today, today);
+        }
+
         /**
          * The window of the days asked about.
          *

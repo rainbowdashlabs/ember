@@ -476,6 +476,7 @@ class LendingServiceTest extends RepositoryTestBase {
         service.addRequestItem(req2.id(), inventoryIdA, itemIdA, null, 1, null);
 
         assertTrue(service.approveRequest(req.id(), stationA.id()));
+        lendingRepo.updateRequestStatus(req.id(), LendingStatus.CLOSED);
     }
 
     @Test
@@ -971,12 +972,12 @@ class LendingServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * An approved loan holds its radio until its end date has passed, against every other loan, even one
-     * asked for a later week; the loan that holds it may still act on it.
+     * An approved loan holds its radio on its own days only: a loan overlapping them cannot take it, by
+     * itself or by hand, while a loan for a later week can; the loan that holds it may still act on it.
      */
     @Test
     @Order(313)
-    void aSecondLoanCannotTakeARadioAnEarlierApprovedLoanHolds() {
+    void aLoanCannotTakeARadioAnotherLoanHoldsOnItsDays() {
         var inv = inventoryRepo.create(stationA.id(), "LendSvcHeldRadioInv", InventoryType.INTERNAL, false);
         var radio = inventoryRepo.createItem(inv.id(), "HR-001", "Funkgerät", null, null);
         var first = requestOn(stationA);
@@ -985,31 +986,36 @@ class LendingServiceTest extends RepositoryTestBase {
         assertTrue(service.approveRequest(first, stationA.id()));
         assertEquals(radio.id(), assignedItemOf(first, firstLine));
 
-        var later = lendingRepo
-                .createRequest(
-                        stationB.uid(),
-                        stationA.uid(),
-                        LocalDate.now().plusDays(10),
-                        LocalDate.now().plusDays(12),
-                        memberB.id(),
-                        null,
-                        null,
-                        "")
+        var overlapping =
+                requestBetween(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
+        var overlappingLine = lendingRepo
+                .addRequestItem(overlapping, inv.id(), null, null, 1, null)
                 .id();
-        var laterLine =
-                lendingRepo.addRequestItem(later, inv.id(), null, null, 1, null).id();
-
-        assertTrue(service.approveRequest(later, stationA.id()));
-        assertNull(assignedItemOf(later, laterLine), "filling it by itself passes the held radio over");
-
+        assertTrue(service.approveRequest(overlapping, stationA.id()));
+        assertNull(assignedItemOf(overlapping, overlappingLine), "filling it by itself passes the held radio over");
         var refused = assertThrows(
                 RefusalResponse.class,
-                () -> service.assignItem(requestOf(laterLine), laterLine, radio.id(), stationA.id()));
+                () -> service.assignItem(overlapping, overlappingLine, radio.id(), stationA.id()));
         assertEquals(InventoryRefusal.CUSTODY_PIECE_SET_ASIDE_FOR_A_LOAN, refused.refusal());
+
+        var later = requestBetween(LocalDate.now().plusDays(10), LocalDate.now().plusDays(12));
+        var laterLine =
+                lendingRepo.addRequestItem(later, inv.id(), null, null, 1, null).id();
+        assertTrue(service.approveRequest(later, stationA.id()));
+        assertEquals(radio.id(), assignedItemOf(later, laterLine), "a later week finds the radio back by then");
 
         assertTrue(
                 service.assignItem(requestOf(firstLine), firstLine, radio.id(), stationA.id()),
                 "the loan holding it may act on it");
+        for (int request : List.of(first, overlapping, later)) {
+            lendingRepo.updateRequestStatus(request, LendingStatus.CLOSED);
+        }
+    }
+
+    private static int requestBetween(LocalDate from, LocalDate to) {
+        return lendingRepo
+                .createRequest(stationB.uid(), stationA.uid(), from, to, memberB.id(), null, null, "")
+                .id();
     }
 
     /**
@@ -1952,7 +1958,7 @@ class LendingServiceTest extends RepositoryTestBase {
 
     /** A line counting the whole of an inventory, as the picker is asked for. */
     private static LendingRequestItem wholeInventory(int inventoryId) {
-        return new LendingRequestItem(0, 0, inventoryId, null, null, 1, null, "");
+        return lendingRepo.findRequestItem(lineOn(stationA, inventoryId, null)).orElseThrow();
     }
 
     /** The request a line belongs to. */
@@ -2203,5 +2209,59 @@ class LendingServiceTest extends RepositoryTestBase {
                 "a station here cannot ask backwards either");
         lendingRepo.deleteRequest(oneDay);
         federationRepo.deletePartner(row.id());
+    }
+
+    /** A line naming one free piece is filled with it when the request is approved. */
+    @Test
+    @Order(616)
+    void aNamedPieceIsFilledOnApproval() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcNamedFill", InventoryType.INTERNAL, false);
+        var ladder = inventoryRepo.createItem(inv.id(), "NF-001", "Leiter", null, null);
+        int request =
+                requestBetween(LocalDate.now().plusDays(30), LocalDate.now().plusDays(31));
+        int line = lendingRepo
+                .addRequestItem(request, inv.id(), ladder.id(), null, 1, null)
+                .id();
+
+        assertTrue(service.approveRequest(request, stationA.id()));
+
+        assertEquals(ladder.id(), assignedItemOf(request, line));
+        lendingRepo.updateRequestStatus(request, LendingStatus.CLOSED);
+    }
+
+    /**
+     * The picker of a request offers what is free on that request's days: not a piece another loan
+     * holds then, not a piece blocked then; and a blocked piece is refused by hand as well.
+     */
+    @Test
+    @Order(617)
+    void thePickerReadsTheRequestsOwnDays() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcPickerDays", InventoryType.INTERNAL, false);
+        var held = inventoryRepo.createItem(inv.id(), "PD-001", "Gehalten", null, null);
+        var blocked = inventoryRepo.createItem(inv.id(), "PD-002", "Gesperrt", null, null);
+        var free = inventoryRepo.createItem(inv.id(), "PD-003", "Frei", null, null);
+        LocalDate first = LocalDate.now().plusDays(40);
+        int other = requestBetween(first, first.plusDays(2));
+        lendingRepo.assignItem(
+                lendingRepo.addRequestItem(other, inv.id(), null, null, 1, null).id(), held.id());
+        lendingRepo.updateRequestStatus(other, LendingStatus.APPROVED);
+        var block = service.createBlock(stationA.id(), null, blocked.id(), first, first, "Prüfung");
+        int request = requestBetween(first, first.plusDays(1));
+        lendingRepo.updateRequestStatus(request, LendingStatus.APPROVED);
+        var line = lendingRepo.addRequestItem(request, inv.id(), null, null, 2, null);
+
+        var offered = service.findAssignableItems(stationA.id(), line).stream()
+                .map(InventoryItem::id)
+                .toList();
+
+        assertEquals(List.of(free.id()), offered);
+        assertEquals(
+                FederationRefusal.LENDING_PIECE_BLOCKED,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.assignItem(request, line.id(), blocked.id(), stationA.id()))
+                        .refusal());
+        service.deleteBlock(block.id(), stationA.id());
+        for (int loan : List.of(other, request)) lendingRepo.updateRequestStatus(loan, LendingStatus.CLOSED);
     }
 }

@@ -44,6 +44,8 @@ People who already have an account on this instance can be invited into a statio
 ### Fixes
 
 - **Pieces of the wrong kind could be assigned to a lending request.** When gear was assigned to a lending request by hand, the selection offered every free piece of the inventory, whatever kind the request asked for. It now offers only pieces of that kind, or the one piece named.
+- **Gear agreed for a later loan counted as taken right away.** A piece set aside for a loan next month could not be handed out or lent to anybody else in the meantime. A piece now counts as out only on the days of its loan, and lent gear until it is back.
+- **Blocked gear could still be set aside for a lending request.** A block on an inventory or on the whole station did not keep its pieces from being assigned to a request on the blocked days. Such pieces are now left out, by hand and when a request is approved.
 - **The note of a lending request was not sent.** The note written on the request form never reached the lending station. The note of the request list now arrives as the first message of each request.
 - **A second place was missing from calendar entries.** When an appointment had both a place and a meeting point, calendar subscriptions showed one of them and left the other out entirely. The other place now appears in the description of the entry, in every subscription setting.
 - **Single appointments in calendar subscriptions were written in UTC.** In the personal and the public subscription, one-time appointments were written in UTC, while series already carried the station's timezone. One-time appointments are now written in the station's timezone too, with summer and winter time as the date has them.

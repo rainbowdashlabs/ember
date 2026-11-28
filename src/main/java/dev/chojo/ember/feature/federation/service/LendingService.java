@@ -48,6 +48,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryMatch;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
+import dev.chojo.ember.feature.inventory.entity.ResolvedTarget;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
@@ -543,6 +544,9 @@ public class LendingService implements FederationServer {
         requireLendable(stationId, assignedItemId);
         var piece = inventoryRepository.findItemById(assignedItemId).orElse(null);
         if (piece != null && !fitsLine(line, piece)) throw FederationRefusal.LENDING_PIECE_NOT_FOR_LINE.raise();
+        if (availability.blocked(stationId, LineTarget.item(assignedItemId), dayStart(request), dayEnd(request))) {
+            throw FederationRefusal.LENDING_PIECE_BLOCKED.raise();
+        }
         custodyService.requireFreeToActOn(assignedItemId, ItemCustodyService.Allowance.lending(requestId));
         boolean assigned = repository.assignItem(requestItemId, assignedItemId);
         if (assigned) log.info("Item {} was set aside for lending request item {}", assignedItemId, requestItemId);
@@ -563,11 +567,29 @@ public class LendingService implements FederationServer {
     public List<InventoryItem> findAssignableItems(int stationId, LendingRequestItem line) {
         Integer inventoryId = line.inventoryId();
         if (inventoryId == null || !ownsInventory(stationId, inventoryId)) return List.of();
+        var request = repository.findRequestById(line.requestId()).orElse(null);
+        if (request == null) return List.of();
+        var free = Set.copyOf(availability.freePieces(
+                stationId, LineTarget.inventory(inventoryId), dayStart(request), dayEnd(request), request.id()));
         var lender = lenderAt(stationId);
-        return inventoryRepository.findFreeToHandOut(inventoryId).stream()
+        return inventoryRepository.findLendable(inventoryId).stream()
+                .filter(item -> free.contains(item.id()))
                 .filter(lender::owns)
                 .filter(item -> fitsLine(line, item))
+                .filter(item ->
+                        custodyService.isFreeToActOn(item.id(), ItemCustodyService.Allowance.lending(request.id())))
                 .toList();
+    }
+
+    private static Instant dayStart(LendingRequest request) {
+        return request.requestedDateFrom().atStartOfDay(ZoneOffset.UTC).toInstant();
+    }
+
+    private static Instant dayEnd(LendingRequest request) {
+        return request.requestedDateTo()
+                .plusDays(1)
+                .atStartOfDay(ZoneOffset.UTC)
+                .toInstant();
     }
 
     /**
@@ -1292,11 +1314,8 @@ public class LendingService implements FederationServer {
                 stationRepository.findHereByUid(request.owningStationUid()).orElse(null);
         if (owningStation == null) return;
         var lender = lenderAt(owningStation.id());
-        Instant from = request.requestedDateFrom().atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant to = request.requestedDateTo()
-                .plusDays(1)
-                .atStartOfDay(ZoneOffset.UTC)
-                .toInstant();
+        Instant from = dayStart(request);
+        Instant to = dayEnd(request);
         for (var ri : repository.findItemsByRequest(requestId)) {
             int alreadySet = repository.findAssignedItems(ri.id()).size();
             if (alreadySet >= ri.quantity()) continue;
@@ -1307,13 +1326,13 @@ public class LendingService implements FederationServer {
                         .filter(item -> isLendable(lender, item))
                         .filter(item -> custodyService.isFreeToActOn(
                                 item.id(), ItemCustodyService.Allowance.lending(requestId)))
-                        .filter(item -> isFree(owningStation.id(), LineTarget.item(item.id()), from, to))
+                        .filter(item -> isFree(owningStation.id(), LineTarget.item(item.id()), from, to, requestId))
                         .ifPresent(item -> repository.assignItem(ri.id(), item.id()));
                 continue;
             }
             LineTarget target = ri.target();
             if (target == null || !ownsTarget(lender.stationId(), target)) continue;
-            var free = availability.freePieces(owningStation.id(), target, from, to).stream()
+            var free = availability.freePieces(owningStation.id(), target, from, to, requestId).stream()
                     .map(inventoryRepository::findItemById)
                     .flatMap(Optional::stream)
                     .filter(lender::owns)
@@ -1343,8 +1362,8 @@ public class LendingService implements FederationServer {
      * @param to        the last moment of the window
      * @return {@code true} when nobody has it and nobody has spoken for it
      */
-    private boolean isFree(int stationId, LineTarget target, Instant from, Instant to) {
-        return !availability.freePieces(stationId, target, from, to).isEmpty();
+    private boolean isFree(int stationId, LineTarget target, Instant from, Instant to, int requestId) {
+        return !availability.freePieces(stationId, target, from, to, requestId).isEmpty();
     }
 
     /**
@@ -1579,7 +1598,7 @@ public class LendingService implements FederationServer {
         if (inventoryId.isEmpty()) return false;
         var policy = shareService.policyFor(lendingStationId, partner.askingStationUid());
         if (!policy.offersAnything()) return false;
-        for (var stock : offeredStock(lendingStationId, policy, inventoryId.get(), null, null, null)) {
+        for (var stock : offeredStock(lendingStationId, policy, inventoryId.get(), null)) {
             if (pictureKey.equals(stock.inventory().pictureKey())) return true;
             var offeredArts = stock.offeredArtIds();
             for (var art : artRepository.findByInventory(stock.inventory().id())) {
@@ -1608,10 +1627,19 @@ public class LendingService implements FederationServer {
             @Nullable LocalDate dateFrom,
             @Nullable LocalDate dateTo) {
         var groups = new ArrayList<OfferedGroup>();
-        for (var stock : offeredStock(lendingStationId, policy, onlyInventory, query, dateFrom, dateTo)) {
+        LocalDate first = dateFrom != null ? dateFrom : LocalDate.now();
+        LocalDate last = dateTo != null ? dateTo : first;
+        Instant from = first.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant to = last.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        var claims = availability.snapshot(lendingStationId, from, to);
+        var named = claims.named(from, to);
+        for (var stock : offeredStock(lendingStationId, policy, onlyInventory, query)) {
             var perArt = new LinkedHashMap<Integer, Integer>();
             for (var item : stock.pieces()) {
-                perArt.merge(item.artId(), 1, Integer::sum);
+                boolean free = !named.contains(item.id())
+                        && !claims.blocked(
+                                new ResolvedTarget(item.id(), item.artId(), item.inventoryId(), item.name()), from, to);
+                if (free) perArt.merge(item.artId(), 1, Integer::sum);
             }
             for (var group : perArt.entrySet()) {
                 Integer artId = group.getKey();
@@ -1624,66 +1652,38 @@ public class LendingService implements FederationServer {
     }
 
     /**
-     * What a station has free to offer under a policy, per inventory: the pieces on the shelf, carried by
-     * no open movement, held by no loan, owned by the station, shared with the partner, and not blocked
-     * over the days asked for. An inventory with nothing on offer is left out, and so is one the search
-     * does not reach through something on offer.
+     * What a station offers under a policy, per inventory: the pieces it can lend at all (on the shelf
+     * or out on a loan and coming back, carried by no open movement), owned by the station and shared
+     * with the partner. Whether a piece is free on given days is the claims' question, asked by the
+     * caller. An inventory with nothing on offer is left out, and so is one the search does not reach
+     * through something on offer.
      *
      * @param lendingStationId the station doing the lending
      * @param policy           what the station shares with the asking partner
      * @param onlyInventory    one inventory to look at, or {@code null} for every one
      * @param query            a search over names and descriptions, or {@code null}
-     * @param dateFrom         the first day the gear is wanted, or {@code null}
-     * @param dateTo           the last day, or {@code null}
      * @return one entry per inventory with something on offer, in the station's order
      */
     List<OfferedStock> offeredStock(
-            int lendingStationId,
-            SharePolicy policy,
-            @Nullable Integer onlyInventory,
-            @Nullable String query,
-            @Nullable LocalDate dateFrom,
-            @Nullable LocalDate dateTo) {
+            int lendingStationId, SharePolicy policy, @Nullable Integer onlyInventory, @Nullable String query) {
         var lender = lenderAt(lendingStationId);
         var result = new ArrayList<OfferedStock>();
         Map<Integer, InventoryMatch> matches =
                 query == null || query.isBlank() ? null : searchService.match(lendingStationId, query);
-        List<InventoryBlock> blocks = dateFrom == null
-                ? List.of()
-                : repository.findActiveBlocks(lendingStationId, dateFrom, dateTo == null ? dateFrom : dateTo);
         for (var inv : inventoryRepository.findByStation(lendingStationId)) {
             if (onlyInventory != null && inv.id() != onlyInventory) continue;
             InventoryMatch match = matches == null ? null : matches.get(inv.id());
             if (matches != null && match == null) continue;
-            if (blocks(blocks, inv.id(), null)) continue;
-
-            var offered = shareService
-                    .filterShared(
-                            policy,
-                            inventoryRepository.findFreeToHandOut(inv.id()).stream()
-                                    .filter(lender::owns)
-                                    .toList())
-                    .stream()
-                    .filter(item -> !blocks(blocks, null, item.id()))
-                    .toList();
+            var offered = shareService.filterShared(
+                    policy,
+                    inventoryRepository.findLendable(inv.id()).stream()
+                            .filter(lender::owns)
+                            .toList());
             if (offered.isEmpty()) continue;
             if (match != null && !matchesAnyOffered(match, offered)) continue;
             result.add(new OfferedStock(inv, offered, match));
         }
         return result;
-    }
-
-    /**
-     * Whether any of the blocks covers the station, the inventory or the piece, by
-     * {@link InventoryBlock#covers}, for a caller that read the blocks once.
-     *
-     * @param blocks      the blocks over the days in question
-     * @param inventoryId the inventory, or {@code null}
-     * @param itemId      the piece, or {@code null}
-     * @return {@code true} when one of them covers it
-     */
-    static boolean blocks(List<InventoryBlock> blocks, @Nullable Integer inventoryId, @Nullable Integer itemId) {
-        return blocks.stream().anyMatch(block -> block.covers(inventoryId, itemId));
     }
 
     /**

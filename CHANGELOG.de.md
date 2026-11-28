@@ -44,6 +44,8 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 ### Fehlerbehebungen
 
 - **Stücke der falschen Art ließen sich einer Ausleih-Anfrage zuweisen.** Beim Zuweisen von Hand bot die Auswahl jedes freie Stück des Inventars an, egal welche Art die Anfrage wollte. Jetzt stehen nur Stücke dieser Art zur Wahl, oder das eine genannte Stück.
+- **Für später zugesagte Ausrüstung galt sofort als vergeben.** Ein Stück, das für eine Ausleihe im nächsten Monat vorgesehen war, ließ sich bis dahin weder ausgeben noch anderweitig verleihen. Ein Stück gilt jetzt nur an den Tagen seiner Ausleihe als weg, verliehene Ausrüstung bis zur Rückgabe.
+- **Gesperrte Ausrüstung ließ sich einer Ausleih-Anfrage zuweisen.** Eine Sperrzeit auf einem Inventar oder der ganzen Wache hielt die betroffenen Stücke nicht davon ab, einer Anfrage an den gesperrten Tagen zugewiesen zu werden. Solche Stücke bleiben jetzt außen vor, von Hand wie beim Genehmigen.
 - **Die Notiz einer Ausleih-Anfrage kam nicht an.** Die Notiz aus dem Anfrageformular erreichte die verleihende Wache nie. Die Notiz der Anfrageliste kommt jetzt als erste Nachricht jeder Anfrage an.
 - **Ein zweiter Ort fehlte in Kalendereinträgen.** Hatte ein Termin einen Ort und einen Treffpunkt, zeigten Kalenderabos nur einen davon, der andere fehlte ganz. Der andere Ort steht jetzt in der Beschreibung des Eintrags, in jeder Einstellung des Abos.
 - **Einzelne Termine in Kalenderabos standen in UTC.** Im persönlichen und im öffentlichen Abo standen einmalige Termine in UTC, während Serien schon die Zeitzone der Wache trugen. Einmalige Termine stehen jetzt ebenfalls in der Zeitzone der Wache, mit Sommer- und Winterzeit, wie sie an ihrem Datum gilt.

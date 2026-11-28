@@ -3,16 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {LentOutItem} from '@/api/generated/schema'
-
-const HOLDING_STATUSES: ReadonlySet<string> = new Set(['APPROVED', 'LENT'])
+import {LendingStatus, type LentOutItem} from '@/api/generated/schema'
 
 /**
- * The pieces loans to partner stations hold, each with the station it is set aside for.
+ * The pieces loans to partner stations hold today, each with the station it is set aside for.
  *
- * <p>A loan holds its pieces from its approval until its end date has passed, which is how the station
- * is refused for acting on one. A loan whose end date is behind it holds nothing, whatever its status
- * still shows.
+ * <p>A piece is out only while it is gone: an agreed loan holds it from its first day to its last,
+ * nothing before, and gear handed over is held until it is back, whatever the days said. The server
+ * refuses acting on a held piece by the same rule.
  *
  * @param loans the loans of an inventory, as the lending screen lists them
  * @param today the day to read them on, as an ISO date
@@ -21,9 +19,13 @@ const HOLDING_STATUSES: ReadonlySet<string> = new Set(['APPROVED', 'LENT'])
 export function piecesHeldByLoans(loans: readonly LentOutItem[], today: string): ReadonlyMap<number, string> {
     const held = new Map<number, string>()
     for (const loan of loans) {
-        if (loan.assignedItemId == null || !HOLDING_STATUSES.has(loan.status)) continue
-        if (loan.dateTo < today) continue
+        if (loan.assignedItemId == null || !holdsToday(loan, today)) continue
         held.set(loan.assignedItemId, loan.requestingStationName)
     }
     return held
+}
+
+function holdsToday(loan: LentOutItem, today: string): boolean {
+    if (loan.status === LendingStatus.LENT) return true
+    return loan.status === LendingStatus.APPROVED && loan.dateFrom <= today && loan.dateTo >= today
 }

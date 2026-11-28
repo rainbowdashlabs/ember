@@ -159,7 +159,33 @@ public class EquipmentAvailabilityService {
      * @return the claims
      */
     public ClaimSnapshot snapshot(int stationId, Instant from, Instant to) {
-        return new ClaimSnapshot(claims(stationId, from, to, null));
+        return snapshot(stationId, from, to, null);
+    }
+
+    /**
+     * The same, leaving one lending request out, for that request asking what it can still find.
+     *
+     * @param ignoreRequestId the lending request not to count, or {@code null} to count every one
+     */
+    public ClaimSnapshot snapshot(int stationId, Instant from, Instant to, @Nullable Integer ignoreRequestId) {
+        return new ClaimSnapshot(claims(stationId, from, to, null, ignoreRequestId));
+    }
+
+    /**
+     * Whether a block takes something over a window: one on the station, its inventory or, for a piece,
+     * the piece itself.
+     *
+     * @param stationId the station
+     * @param target    what is asked about
+     * @param from      the first moment of the window
+     * @param to        the last moment of the window
+     * @return {@code true} when a block covers it, or when it no longer exists
+     */
+    public boolean blocked(int stationId, LineTarget target, Instant from, Instant to) {
+        return availabilityRepository
+                .resolve(target)
+                .map(resolved -> snapshot(stationId, from, to).blocked(resolved, from, to))
+                .orElse(true);
     }
 
     /**
@@ -182,7 +208,8 @@ public class EquipmentAvailabilityService {
      * <p>Loose claims name no pieces, so they cannot take one out of this list; they take a count out
      * of {@link EquipmentAvailability#free()} instead. What is dropped here is what a piece-level
      * claim points at: a piece already handed over for another date, a piece set aside for a
-     * partner, and a piece a block names.
+     * partner, and a piece a block names. A block on the whole target, its inventory or the station
+     * leaves nothing.
      *
      * @param stationId the station asking
      * @param target    what is being asked about
@@ -191,12 +218,21 @@ public class EquipmentAvailabilityService {
      * @return the piece IDs, in a stable order
      */
     public List<Integer> freePieces(int stationId, LineTarget target, Instant from, Instant to) {
-        var spoken = claims(stationId, from, to, null).stream()
-                .filter(claim -> claim.from().isBefore(to) && claim.to().isAfter(from))
-                .map(EquipmentClaim::target)
-                .filter(claimed -> claimed != null && claimed.itemId() != null)
-                .map(ResolvedTarget::itemId)
-                .toList();
+        return freePieces(stationId, target, from, to, null);
+    }
+
+    /**
+     * The same, leaving one lending request out, which is that request filling itself: the pieces its own
+     * lines name are not taken from it by its own claim.
+     *
+     * @param ignoreRequestId the lending request not to count, or {@code null} to count every one
+     */
+    public List<Integer> freePieces(
+            int stationId, LineTarget target, Instant from, Instant to, @Nullable Integer ignoreRequestId) {
+        var snapshot = snapshot(stationId, from, to, ignoreRequestId);
+        var resolved = availabilityRepository.resolve(target).orElse(null);
+        if (resolved == null || snapshot.blocked(resolved, from, to)) return List.of();
+        var spoken = snapshot.named(from, to);
         return availabilityRepository.piecesOf(stationId, target).stream()
                 .filter(id -> !spoken.contains(id))
                 .toList();

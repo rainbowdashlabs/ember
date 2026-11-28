@@ -108,4 +108,5 @@ export default {
     'X-090': 'Die Rückgabeprüfung muss jedes Stück der Ausleihe abdecken, und nur diese',
     'X-091': 'Die Ausrüstung ist noch nicht überfällig',
     'X-092': 'Die Anfrage kann diesen Schritt gerade nicht gehen. Lade die Seite neu, um den aktuellen Stand zu sehen',
+    'X-093': 'Das Stück ist an den Tagen der Anfrage gesperrt',
 }

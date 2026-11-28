@@ -120,7 +120,7 @@ public class InventoryRepository {
                     FROM federation_lending_request_item li
                     JOIN federation_lending_request lr ON lr.id = li.request_id
                     JOIN federation_lending_request_item_assignment la ON la.request_item_id = li.id
-                    WHERE lr.status IN ('APPROVED', 'LENT')
+                    WHERE %s
                     GROUP BY li.inventory_id
                 ) lent ON lent.inventory_id = i.id
                 LEFT JOIN (
@@ -133,7 +133,8 @@ public class InventoryRepository {
                 ORDER BY i.name;""",
                         SqlSupport.alias("i", INVENTORY_COLUMNS),
                         ItemCustodySql.joinInventory("ii", "iinv"),
-                        ItemCustodySql.stockOf("ii", "iinv"))
+                        ItemCustodySql.stockOf("ii", "iinv"),
+                        ItemCustodySql.loanHoldsOn("lr", "current_date", "current_date"))
                 .single(call().bind("station_id", stationId))
                 .map(InventorySummary.map())
                 .all();
@@ -1080,6 +1081,24 @@ public class InventoryRepository {
     }
 
     /**
+     * The pieces of an inventory a station can lend over some days, before asking which: on the shelf, or
+     * out with a partner and coming back, and carried by no open movement, ordered by name.
+     *
+     * @param inventoryId the inventory
+     * @return the pieces
+     */
+    public List<InventoryItem> findLendable(int inventoryId) {
+        return query("""
+                SELECT %s FROM inventory_item
+                WHERE inventory_id = :inventory_id
+                  AND %s
+                ORDER BY name;""", INVENTORY_ITEM_COLUMNS, ItemCustodySql.lendable("inventory_item"))
+                .single(call().bind("inventory_id", inventoryId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
+    /**
      * The free stock of one size in an inventory that no open movement names, ordered by name.
      *
      * @param inventoryId the inventory
@@ -1554,11 +1573,11 @@ public class InventoryRepository {
     }
 
     /**
-     * Whether a piece is set aside for a loan to a partner station that is approved or running and
-     * not over yet.
+     * Whether a loan to a partner station holds a piece today.
      *
-     * <p>An approved loan holds its pieces from the moment it is approved, though they stay on the shelf
-     * until they are handed over: acting on such a piece leaves the partner without what it was promised.
+     * <p>An agreed loan holds its pieces on its own days, though they stay on the shelf until they are
+     * handed over: acting on such a piece then leaves the partner without what it was promised. Gear
+     * handed over is held until it is back.
      *
      * @param itemId the piece
      * @return {@code true} when such a loan holds it
@@ -1570,10 +1589,11 @@ public class InventoryRepository {
     }
 
     /**
-     * Whether a loan other than the given one holds a piece, approved or running and not over yet.
+     * Whether a loan other than the given one holds a piece on any of the given loan's days.
      *
-     * <p>A loan acting on the pieces it holds itself is not held up by them; any other loan is, from its
-     * approval until its end date has passed, whatever dates it was asked for.
+     * <p>A loan acting on the pieces it holds itself is not held up by them; another loan is when it
+     * holds the piece on one of those days: an agreed one on its own days, gear handed over until it is
+     * back.
      *
      * @param itemId    the piece
      * @param requestId the loan asking

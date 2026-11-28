@@ -137,45 +137,100 @@ class ItemCustodyGuardRepositoryTest extends RepositoryTestBase {
         assertTrue(itemMovementRepo.findOpenCarrying(extra).isEmpty());
     }
 
+    /**
+     * A piece is held only while it is gone: an agreed loan from its first day to its last, gear handed
+     * over until it is back, even past its last day; a loan agreed for later holds nothing yet.
+     */
     @Test
-    void aPieceIsSetAsideOnlyByAnApprovedOrRunningLoanThatIsNotOver() {
+    void aPieceIsHeldOnlyWhileItIsGone() {
         int approved = piece();
         int lent = piece();
+        int overdue = piece();
         int asked = piece();
         int over = piece();
+        int later = piece();
         int free = piece();
-        loan(approved, LendingStatus.APPROVED, LocalDate.now().plusDays(2));
-        loan(lent, LendingStatus.LENT, LocalDate.now().plusDays(1));
-        loan(asked, LendingStatus.REQUESTED, LocalDate.now().plusDays(2));
-        loan(over, LendingStatus.APPROVED, LocalDate.now().minusDays(1));
+        loan(
+                approved,
+                LendingStatus.APPROVED,
+                LocalDate.now().minusDays(3),
+                LocalDate.now().plusDays(2));
+        loan(
+                lent,
+                LendingStatus.LENT,
+                LocalDate.now().minusDays(3),
+                LocalDate.now().plusDays(1));
+        loan(
+                overdue,
+                LendingStatus.LENT,
+                LocalDate.now().minusDays(3),
+                LocalDate.now().minusDays(1));
+        loan(
+                asked,
+                LendingStatus.REQUESTED,
+                LocalDate.now().minusDays(3),
+                LocalDate.now().plusDays(2));
+        loan(
+                over,
+                LendingStatus.APPROVED,
+                LocalDate.now().minusDays(3),
+                LocalDate.now().minusDays(1));
+        loan(
+                later,
+                LendingStatus.APPROVED,
+                LocalDate.now().plusDays(20),
+                LocalDate.now().plusDays(22));
 
         assertTrue(inventoryRepo.isSetAsideForALoan(approved));
         assertTrue(inventoryRepo.isSetAsideForALoan(lent), "a running loan holds its piece");
+        assertTrue(inventoryRepo.isSetAsideForALoan(overdue), "gear out past its last day is out until it is back");
         assertFalse(inventoryRepo.isSetAsideForALoan(asked), "a loan only asked for holds nothing yet");
-        assertFalse(inventoryRepo.isSetAsideForALoan(over), "a loan that is over holds nothing");
+        assertFalse(inventoryRepo.isSetAsideForALoan(over), "an agreed loan that is over holds nothing");
+        assertFalse(inventoryRepo.isSetAsideForALoan(later), "a loan agreed for later holds nothing today");
         assertFalse(inventoryRepo.isSetAsideForALoan(free));
     }
 
-    private int loan(int itemId, LendingStatus status, LocalDate until) {
-        var request = LENDING.createRequest(
-                partner.uid(), station.uid(), LocalDate.now().minusDays(3), until, member.id(), null, null, "");
+    private int loan(int itemId, LendingStatus status, LocalDate from, LocalDate until) {
+        var request = LENDING.createRequest(partner.uid(), station.uid(), from, until, member.id(), null, null, "");
         var line = LENDING.addRequestItem(request.id(), inventoryId, null, null, 1, null);
         LENDING.assignItem(line.id(), itemId);
         LENDING.updateRequestStatus(request.id(), status);
         return request.id();
     }
 
-    /** The loan holding a piece does not hold it against itself, and holds it against every other. */
+    /**
+     * The loan holding a piece does not hold it against itself, and holds it against every other loan on
+     * its days, not against one on other days.
+     */
     @Test
-    void aPieceIsHeldAgainstEveryLoanButItsOwn() {
+    void aPieceIsHeldAgainstEveryLoanOnItsDaysButItsOwn() {
         int radio = piece();
-        int holding = loan(radio, LendingStatus.APPROVED, LocalDate.now().plusDays(2));
-        int other = LENDING.createRequest(
-                        partner.uid(), station.uid(), LocalDate.now(), LocalDate.now(), member.id(), null, null, "")
+        int holding = loan(
+                radio, LendingStatus.APPROVED, LocalDate.now(), LocalDate.now().plusDays(2));
+        int overlapping = LENDING.createRequest(
+                        partner.uid(),
+                        station.uid(),
+                        LocalDate.now().plusDays(1),
+                        LocalDate.now().plusDays(4),
+                        member.id(),
+                        null,
+                        null,
+                        "")
+                .id();
+        int later = LENDING.createRequest(
+                        partner.uid(),
+                        station.uid(),
+                        LocalDate.now().plusDays(5),
+                        LocalDate.now().plusDays(6),
+                        member.id(),
+                        null,
+                        null,
+                        "")
                 .id();
 
         assertFalse(inventoryRepo.isSetAsideForAnotherLoan(radio, holding));
-        assertTrue(inventoryRepo.isSetAsideForAnotherLoan(radio, other));
+        assertTrue(inventoryRepo.isSetAsideForAnotherLoan(radio, overlapping));
+        assertFalse(inventoryRepo.isSetAsideForAnotherLoan(radio, later), "back before the later loan starts");
     }
 
     /** What a picker offers is what the guard lets through: on the shelf, carried by nothing, held by no loan. */
@@ -200,7 +255,11 @@ class ItemCustodyGuardRepositoryTest extends RepositoryTestBase {
                 new ItemMovementService.Actor(member.id(), true),
                 promised);
         int onLoan = piece();
-        loan(onLoan, LendingStatus.APPROVED, LocalDate.now().plusDays(2));
+        loan(
+                onLoan,
+                LendingStatus.APPROVED,
+                LocalDate.now().minusDays(3),
+                LocalDate.now().plusDays(2));
 
         var offered = inventoryRepo.findFreeToHandOut(inventoryId).stream()
                 .map(item -> item.id())
@@ -209,5 +268,29 @@ class ItemCustodyGuardRepositoryTest extends RepositoryTestBase {
         for (int notFree : List.of(withMember, missing, promised, onLoan)) {
             assertFalse(offered.contains(notFree), "piece " + notFree + " is not free to hand out");
         }
+    }
+
+    /** The inventory card counts what loans hold today by the same rule, not what is agreed for later. */
+    @Test
+    void theInventoryCardCountsWhatIsGoneToday() {
+        int before = lentOutCount();
+        int now = piece();
+        int later = piece();
+        loan(now, LendingStatus.APPROVED, LocalDate.now(), LocalDate.now().plusDays(1));
+        loan(
+                later,
+                LendingStatus.APPROVED,
+                LocalDate.now().plusDays(20),
+                LocalDate.now().plusDays(21));
+
+        assertEquals(before + 1, lentOutCount());
+    }
+
+    private int lentOutCount() {
+        return inventoryRepo.findSummariesByStation(station.id()).stream()
+                .filter(summary -> summary.id() == inventoryId)
+                .findFirst()
+                .orElseThrow()
+                .lentOutCount();
     }
 }
