@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.equipment.entity.ClaimSnapshot;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
+import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.SharePolicy;
@@ -377,9 +378,7 @@ public class LendingCatalogService implements FederationServer {
             @Nullable LocalDate dateTo) {
         Window.of(dateFrom, dateTo);
         FederationPartner partner = lendingPartner(stationId, partnerStationUid);
-        var request = RemoteLendingRoutes.GET_PRODUCT.at(String.valueOf(inventoryId));
-        if (dateFrom != null) request = request.query("from", dateFrom);
-        if (dateTo != null) request = request.query("to", dateTo);
+        var request = withDays(RemoteLendingRoutes.GET_PRODUCT.at(String.valueOf(inventoryId)), dateFrom, dateTo);
         RemoteProduct product = transport.get(partner, request, RemoteProduct.class);
         Station local = stationRepository.findById(stationId).orElse(null);
         return new ProductDetail(
@@ -417,18 +416,20 @@ public class LendingCatalogService implements FederationServer {
             @Nullable LocalDate dateTo) {
         var request = RemoteLendingRoutes.GET_PRODUCTS.at();
         if (query != null && !query.isBlank()) request = request.query("q", query);
-        if (dateFrom != null) request = request.query("from", dateFrom);
-        if (dateTo != null) request = request.query("to", dateTo);
-        RemoteProducts answer = transport.get(partner, request, RemoteProducts.class);
+        RemoteProducts answer = transport.get(partner, withDays(request, dateFrom, dateTo), RemoteProducts.class);
         return new PartnerProducts(
                 partner, FederationDisplayNames.partnerName(stationRepository, partner, "?"), answer);
     }
 
+    private static FederationRequest withDays(
+            FederationRequest request, @Nullable LocalDate dateFrom, @Nullable LocalDate dateTo) {
+        var asked = dateFrom == null ? request : request.query("from", dateFrom);
+        return dateTo == null ? asked : asked.query("to", dateTo);
+    }
+
     private FederationPartner lendingPartner(int stationId, UUID partnerStationUid) {
-        FederationPartner partner = lendingService.findPartnerForStation(stationId, partnerStationUid);
-        if (partner == null || !lendingService.lendsWith(partner)) {
-            throw FederationRefusal.LENDING_PARTNER_DOES_NOT_LEND.raise();
-        }
+        FederationPartner partner = lendingService.lendingPartnerOf(stationId, partnerStationUid);
+        if (partner == null) throw FederationRefusal.LENDING_PARTNER_DOES_NOT_LEND.raise();
         return partner;
     }
 
@@ -559,11 +560,8 @@ public class LendingCatalogService implements FederationServer {
     private static List<String> matchedNames(OfferedStock stock) {
         InventoryMatch match = stock.match();
         if (match == null || match.itself()) return List.of();
-        var offeredArts = stock.pieces().stream()
-                .map(InventoryItem::artId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        var offeredPieces = stock.pieces().stream().map(InventoryItem::id).collect(Collectors.toSet());
+        var offeredArts = stock.offeredArtIds();
+        var offeredPieces = stock.offeredPieceIds();
         var names = new ArrayList<String>();
         match.kinds().stream()
                 .filter(hit -> offeredArts.contains(hit.id()))

@@ -134,8 +134,7 @@ public class LendingCartService {
                 || (line.artId() != null && line.itemId() != null)) {
             throw FederationRefusal.LENDING_CART_LINE_INVALID.raise();
         }
-        var partner = lendingService.findPartnerForStation(stationId, line.lendingStationUid());
-        if (partner == null || !lendingService.lendsWith(partner)) {
+        if (lendingService.lendingPartnerOf(stationId, line.lendingStationUid()) == null) {
             throw FederationRefusal.LENDING_PARTNER_DOES_NOT_LEND.raise();
         }
         carts.addLine(
@@ -183,8 +182,8 @@ public class LendingCartService {
         var partners = new ArrayList<FederationPartner>();
         Set<UUID> stoppedLending = new HashSet<>();
         for (UUID lender : byStation.keySet()) {
-            var partner = lendingService.findPartnerForStation(stationId, lender);
-            if (partner == null || !lendingService.lendsWith(partner)) stoppedLending.add(lender);
+            var partner = lendingService.lendingPartnerOf(stationId, lender);
+            if (partner == null) stoppedLending.add(lender);
             else partners.add(partner);
         }
         Map<ProductKey, ProductAnswer> answers = new HashMap<>();
@@ -205,7 +204,7 @@ public class LendingCartService {
             checks.add(
                     answer == null
                             ? new CartLineCheck(line.id(), 0, CartLineState.UNREACHABLE)
-                            : checkLine(line, answer.product(), false));
+                            : checkLine(line, answer.product()));
         }
         return checks;
     }
@@ -368,10 +367,9 @@ public class LendingCartService {
      * A line of an earlier request as a cart line, where the product still offers its kind or piece.
      */
     static Optional<NewCartLine> againLine(UUID lender, RemoteProduct product, OfferedLine line) {
-        if (line.itemId() != null) {
-            return product.pieces().stream()
-                    .filter(piece -> piece.itemId() == line.itemId())
-                    .findFirst()
+        Integer itemId = line.itemId();
+        if (itemId != null) {
+            return product.piece(itemId)
                     .map(piece -> new NewCartLine(
                             lender,
                             product.inventoryId(),
@@ -382,9 +380,7 @@ public class LendingCartService {
                             piece.name(),
                             piece.pictureKey()));
         }
-        return product.kinds().stream()
-                .filter(kind -> Objects.equals(kind.artId(), line.artId()))
-                .findFirst()
+        return product.kind(line.artId())
                 .map(kind -> new NewCartLine(
                         lender,
                         product.inventoryId(),
@@ -400,20 +396,12 @@ public class LendingCartService {
      * How much of a line is free in a product's answer: a piece is free or not, a count is the free
      * count of its kind, or of the whole inventory for a line without kind.
      */
-    static CartLineCheck checkLine(LendingCartLine line, @Nullable RemoteProduct product, boolean unreachable) {
-        if (unreachable) return new CartLineCheck(line.id(), 0, CartLineState.UNREACHABLE);
+    static CartLineCheck checkLine(LendingCartLine line, @Nullable RemoteProduct product) {
         if (product == null) return new CartLineCheck(line.id(), 0, CartLineState.GONE);
-        Integer free = line.isPiece()
-                ? product.pieces().stream()
-                        .filter(piece -> piece.itemId() == line.itemId())
-                        .findFirst()
-                        .map(piece -> piece.free() ? 1 : 0)
-                        .orElse(null)
-                : product.kinds().stream()
-                        .filter(kind -> Objects.equals(kind.artId(), line.artId()))
-                        .findFirst()
-                        .map(RemoteKind::free)
-                        .orElse(null);
+        Integer itemId = line.itemId();
+        Integer free = itemId != null
+                ? product.piece(itemId).map(piece -> piece.free() ? 1 : 0).orElse(null)
+                : product.kind(line.artId()).map(RemoteKind::free).orElse(null);
         if (free == null) return new CartLineCheck(line.id(), 0, CartLineState.GONE);
         return new CartLineCheck(line.id(), free, free >= line.quantity() ? CartLineState.FREE : CartLineState.SHORT);
     }

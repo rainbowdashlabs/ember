@@ -106,7 +106,7 @@ public class InventorySearchRepository {
             } else {
                 String termBind = "term_" + letter(index);
                 call = call.bind(termBind, term);
-                String tsQuery = "to_tsquery('%s', :%s)".formatted(cfg, termBind);
+                String tsQuery = FullTextSearch.prefixQuery(cfg, termBind);
                 conditions.add("(r.name ILIKE :%1$s OR numnode(%2$s) = 0 OR r.vec @@ %2$s)".formatted(like, tsQuery));
                 anyHit.add("r.name ILIKE :%1$s OR r.vec @@ %2$s".formatted(like, tsQuery));
             }
@@ -118,7 +118,7 @@ public class InventorySearchRepository {
         String textRank = "0.0";
         if (!all.isEmpty()) {
             call = call.bind("all", all);
-            textRank = "ts_rank(r.vec, to_tsquery('%s', :all))".formatted(cfg);
+            textRank = "ts_rank(r.vec, %s)".formatted(FullTextSearch.prefixQuery(cfg, "all"));
         }
         String rank = "(%s) / %d + %s".formatted(String.join(" + ", nameHits), words.size(), textRank);
         return query(

@@ -76,13 +76,12 @@ class FederatedLendingRoutesTest {
         assertEquals(200, get("/federated/lending/products", StationPermission.INVENTORY_LENDING_REQUEST));
     }
 
-    /** One day given means that one day; the search goes along as typed. */
+    /** One day given goes along alone, for the partner to read as the whole window; the search goes as typed. */
     @Test
-    void aSingleDayIsTheWholeWindow() {
+    void aSingleDayGoesAlong() {
         get("/federated/lending/products?q=funk&from=2030-06-12", StationPermission.INVENTORY_LENDING_REQUEST);
 
-        LocalDate day = LocalDate.of(2030, 6, 12);
-        verify(catalog).findProducts(STATION, "funk", day, day);
+        verify(catalog).findProducts(STATION, "funk", LocalDate.of(2030, 6, 12), null);
     }
 
     /** The product page and its calendar ask the partner named in the address. */

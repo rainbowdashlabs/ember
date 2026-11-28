@@ -15,8 +15,8 @@ vi.mock('@/api/lendingCart', () => ({
     borrowAgain: (id: number) => borrowAgain(id),
     getCart: () => Promise.resolve({dateFrom: null, dateTo: null, occasion: '', note: '', lines: []}),
 }))
-const replace = vi.fn()
-vi.mock('@/composables/useLendingCart', () => ({useLendingCart: () => ({replace})}))
+const reload = vi.fn()
+vi.mock('@/composables/useLendingCart', () => ({useLendingCart: () => ({reload})}))
 vi.mock('vue-router', () => ({useRouter: () => ({resolve: () => ({href: '/station/inventory/lending/cart'})})}))
 
 const i18n = createI18n({
@@ -37,7 +37,7 @@ describe('BorrowAgainPanel', () => {
         await flushPromises()
 
         expect(borrowAgain).toHaveBeenCalledWith(41)
-        expect(replace).toHaveBeenCalled()
+        expect(reload).toHaveBeenCalled()
         const result = wrapper.get('[data-testid="lending-borrow-again-result"]').text()
         expect(result).toContain('2 Zeilen')
         expect(result).toContain('Nicht: Zelt')

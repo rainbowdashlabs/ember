@@ -121,4 +121,9 @@ public record LendingRequest(
                 row.getString("occasion"),
                 row.get("uid", StandardValueConverter.UUID_STRING));
     }
+
+    /** The last day the gear is wanted, which is the first day where the request names no other. */
+    public LocalDate lastDay() {
+        return requestedDateTo != null ? requestedDateTo : requestedDateFrom;
+    }
 }

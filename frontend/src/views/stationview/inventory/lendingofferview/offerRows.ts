@@ -71,15 +71,10 @@ export function rowsOf(product: OfferProduct): OfferRow[] {
     return rows
 }
 
-/** Whether a product is offered to some partner, as the server resolved it through the narrowest rules. */
-export function isOffered(product: OfferProduct): boolean {
-    return product.offered
-}
-
 export function matchesFilter(product: OfferProduct, filter: OfferFilter): boolean {
     switch (filter) {
-        case 'offered': return isOffered(product)
-        case 'notOffered': return !isOffered(product)
+        case 'offered': return product.offered
+        case 'notOffered': return !product.offered
         case 'noDescription': return !product.description.trim()
         case 'noPicture': return !product.pictureKey
         default: return true
@@ -89,7 +84,7 @@ export function matchesFilter(product: OfferProduct, filter: OfferFilter): boole
 /** How many products are offered, and how many products lack a text or a photo, as the offer page's filters count them. */
 export function offerSummary(products: readonly OfferProduct[]) {
     return {
-        offered: products.filter(isOffered).length,
+        offered: products.filter(product => product.offered).length,
         noDescription: products.filter(product => matchesFilter(product, 'noDescription')).length,
         noPicture: products.filter(product => matchesFilter(product, 'noPicture')).length,
     }

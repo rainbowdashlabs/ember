@@ -26,13 +26,13 @@ vi.mock('@/api/lendingCart', () => ({
 const held = ref<CartView | null>(null)
 const setDetails = vi.fn()
 const query = ref<Record<string, string>>({station: 'own'})
-const replace = vi.fn((next: CartView | null) => { held.value = next })
+const reload = vi.fn(async () => { held.value = await getCart() })
 vi.mock('@/composables/useLendingCart', () => ({
     useLendingCart: () => ({
         cart: held,
         lines: computed(() => held.value?.lines ?? []),
         load: () => Promise.resolve(held.value),
-        replace,
+        reload,
         setQuantity: vi.fn(),
         remove: vi.fn(),
         setDetails: (details: unknown) => setDetails(details),
@@ -73,7 +73,7 @@ describe('LendingCartView', () => {
         ])
         checkoutCart.mockReset()
         getCart.mockReset().mockResolvedValue({dateFrom: null, dateTo: null, occasion: '', note: '', lines: []})
-        replace.mockClear()
+        reload.mockClear()
         setDetails.mockReset().mockResolvedValue({})
         query.value = {station: 'own'}
     })
@@ -110,7 +110,7 @@ describe('LendingCartView', () => {
         await sendButton(wrapper).vm.$emit('click')
         await flushPromises()
         expect(checkoutCart).toHaveBeenCalled()
-        expect(replace).toHaveBeenCalled()
+        expect(reload).toHaveBeenCalled()
         expect(wrapper.findComponent(CheckoutOutcome).props('outcome')).toEqual(outcome)
     })
 

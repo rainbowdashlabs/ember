@@ -19,6 +19,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -157,7 +159,20 @@ public class RemoteLendingRoutes implements Routes {
             @Nullable String color,
             @Nullable RemoteAddress address,
             List<RemoteKind> kinds,
-            List<RemotePiece> pieces) {}
+            List<RemotePiece> pieces) {
+
+        /** The single piece of this product with that id, where it lists one. */
+        public Optional<RemotePiece> piece(int itemId) {
+            return pieces.stream().filter(piece -> piece.itemId() == itemId).findFirst();
+        }
+
+        /** The count row of this product for that kind, the one without kind for {@code null}. */
+        public Optional<RemoteKind> kind(@Nullable Integer artId) {
+            return kinds.stream()
+                    .filter(kind -> Objects.equals(kind.artId(), artId))
+                    .findFirst();
+        }
+    }
 
     /**
      * Where a station keeps what it lends, as its settings give it.

@@ -122,10 +122,8 @@ public class FederatedLendingRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProductList.class)))
     private void listProducts(Context ctx) {
         var session = StationSession.from(ctx);
-        LocalDate dateFrom = dayParam(ctx, "from");
-        LocalDate dateTo = dayParam(ctx, "to");
         ctx.json(catalog.findProducts(
-                session.stationId(), ctx.queryParam("q"), dateFrom, dateTo == null ? dateFrom : dateTo));
+                session.stationId(), ctx.queryParam("q"), dayParam(ctx, "from"), dayParam(ctx, "to")));
     }
 
     @OpenApi(
@@ -146,14 +144,12 @@ public class FederatedLendingRoutes implements Routes {
             })
     private void product(Context ctx) {
         var session = StationSession.from(ctx);
-        LocalDate dateFrom = dayParam(ctx, "from");
-        LocalDate dateTo = dayParam(ctx, "to");
         ctx.json(catalog.findProduct(
                 session.stationId(),
                 RouteSupport.pathUuid(ctx, "stationUid"),
                 RouteSupport.pathInt(ctx, "inventoryId"),
-                dateFrom,
-                dateTo == null ? dateFrom : dateTo));
+                dayParam(ctx, "from"),
+                dayParam(ctx, "to")));
     }
 
     @OpenApi(

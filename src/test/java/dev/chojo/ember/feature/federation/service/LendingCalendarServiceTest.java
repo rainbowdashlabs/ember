@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -145,12 +146,9 @@ class LendingCalendarServiceTest {
                 .thenReturn(List.of(
                         new LendingRequestItem(1, 1, 1, 77, null, 1, null, "FuG 1"),
                         new LendingRequestItem(2, 1, null, null, null, 2, null, "fremd")));
-        when(lending.findBlocks(STATION))
-                .thenReturn(List.of(
-                        new InventoryBlock(
-                                5, STATION, null, 77, LocalDate.of(2030, 6, 10), LocalDate.of(2030, 6, 12), "Wartung"),
-                        new InventoryBlock(
-                                6, STATION, null, null, LocalDate.of(2030, 8, 1), LocalDate.of(2030, 8, 2), "Fest")));
+        when(lending.blocksBetween(STATION, FROM, TO))
+                .thenReturn(List.of(new InventoryBlock(
+                        5, STATION, null, 77, LocalDate.of(2030, 6, 10), LocalDate.of(2030, 6, 12), "Wartung")));
 
         var calendar = service.calendar(STATION, FROM, TO, LocalDate.of(2030, 6, 5));
 
@@ -175,7 +173,7 @@ class LendingCalendarServiceTest {
                 assertThrows(RefusalResponse.class, () -> service.calendar(STATION, TO, FROM, FROM))
                         .refusal());
         when(lending.findRequestsByStation(STATION)).thenReturn(List.of());
-        when(lending.findBlocks(STATION)).thenReturn(List.of());
+        when(lending.blocksBetween(eq(STATION), any(), any())).thenReturn(List.of());
         assertEquals(
                 1,
                 service.calendar(STATION, FROM, FROM.plusDays(91), FROM).rows().size());
@@ -190,7 +188,7 @@ class LendingCalendarServiceTest {
     void aBlockOnAGonePieceStaysAPieceBlock() {
         when(lending.findRequestsByStation(STATION)).thenReturn(List.of());
         when(inventories.findItemById(88)).thenReturn(Optional.empty());
-        when(lending.findBlocks(STATION))
+        when(lending.blocksBetween(STATION, FROM, TO))
                 .thenReturn(List.of(
                         new InventoryBlock(
                                 7, STATION, null, 88, LocalDate.of(2030, 6, 10), LocalDate.of(2030, 6, 12), "Weg"),

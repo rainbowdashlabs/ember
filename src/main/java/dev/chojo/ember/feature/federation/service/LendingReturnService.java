@@ -31,7 +31,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -186,16 +185,12 @@ public class LendingReturnService implements TaskSource {
 
     private static String reminder(LendingRequest request) {
         return "Erinnerung: Die Ausrüstung dieser Ausleihe war bis zum %s vereinbart. Bitte gebt sie zurück oder schreibt, wann sie kommt."
-                .formatted(DAY.format(lastDay(request)));
+                .formatted(DAY.format(request.lastDay()));
     }
 
     /** Whether a loan's gear is out past its last day, the first day where it names none. */
     public static boolean isOverdue(LendingRequest request, LocalDate today) {
-        return request.status() == LendingStatus.LENT && lastDay(request).isBefore(today);
-    }
-
-    private static LocalDate lastDay(LendingRequest request) {
-        return Objects.requireNonNullElse(request.requestedDateTo(), request.requestedDateFrom());
+        return request.status() == LendingStatus.LENT && request.lastDay().isBefore(today);
     }
 
     static String summary(List<LoanPiece> pieces, List<PieceCheck> checks) {

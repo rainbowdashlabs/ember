@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.federation.entity.LendingCart;
 import dev.chojo.ember.feature.federation.entity.LendingCartLine;
@@ -132,11 +133,10 @@ public class LendingCartRepository {
 
     /** Takes lines out of the cart once they were sent, leaving any put in since. */
     public void removeLines(int stationId, List<Integer> lineIds) {
-        for (int lineId : lineIds) {
-            query("DELETE FROM lending_cart_line WHERE id = :id AND station_id = :station_id;")
-                    .single(call().bind("id", lineId).bind("station_id", stationId))
-                    .delete();
-        }
+        if (lineIds.isEmpty()) return;
+        query("DELETE FROM lending_cart_line WHERE id = ANY(:ids::INT[]) AND station_id = :station_id;")
+                .single(call().bind("ids", lineIds, PostgreSqlTypes.INTEGER).bind("station_id", stationId))
+                .delete();
         touch(stationId);
     }
 

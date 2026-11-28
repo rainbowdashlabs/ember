@@ -71,7 +71,7 @@ const {run: change, running: changing, failure: changeFailure} = useAsyncAction(
 const {run: checkout, running: sending, failure: sendFailure} = useAsyncAction(async () => {
   try {
     outcome.value = await carts.checkoutCart()
-    cart.replace(await carts.getCart())
+    await cart.reload()
   } finally {
     void recheck()
   }

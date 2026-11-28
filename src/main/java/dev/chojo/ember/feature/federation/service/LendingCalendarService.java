@@ -68,12 +68,11 @@ public class LendingCalendarService {
         var bars = new ArrayList<CalendarBar>();
         for (LendingRequest request : lendingService.findRequestsByStation(stationId)) {
             if (!request.owningStationUid().equals(own) || request.status() == LendingStatus.DECLINED) continue;
-            LocalDate last =
-                    request.requestedDateTo() == null ? request.requestedDateFrom() : request.requestedDateTo();
+            LocalDate last = request.lastDay();
             if (last.isBefore(from) || request.requestedDateFrom().isAfter(to)) continue;
             String partner = partners.computeIfAbsent(
                     request.requestingStationUid(), uid -> lendingService.stationName(uid, stationId));
-            boolean overdue = request.status() == LendingStatus.LENT && last.isBefore(today);
+            boolean overdue = LendingReturnService.isOverdue(request, today);
             for (var line : lendingService.findRequestItems(request.id())) {
                 if (line.inventoryId() == null) continue;
                 bars.add(new CalendarBar(
@@ -88,9 +87,7 @@ public class LendingCalendarService {
                         last));
             }
         }
-        var blocks = lendingService.findBlocks(stationId).stream()
-                .filter(block ->
-                        !block.blockTo().isBefore(from) && !block.blockFrom().isAfter(to))
+        var blocks = lendingService.blocksBetween(stationId, from, to).stream()
                 .map(block -> block(block, pieces))
                 .toList();
         return new LendingCalendar(rows, bars, blocks);

@@ -268,7 +268,7 @@ public class InventoryPictureRoutes implements Routes {
      * present, before anything is read from the request.
      */
     private void requirePresentable(Context ctx, int itemId) {
-        pictureService.pictureKeyOfItem(stationId(ctx), itemId);
+        pictureService.requireItem(stationId(ctx), itemId);
         inventoryService.requirePresentable(itemId, InventoryRoutes.describingClusterId(UserSession.from(ctx)));
     }
 

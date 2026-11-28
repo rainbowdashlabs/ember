@@ -33,7 +33,7 @@ const result = ref<BorrowAgainResult | null>(null)
 
 const {run, running, failure} = useAsyncAction(async () => {
   result.value = await carts.borrowAgain(props.requestId)
-  cart.replace(await carts.getCart())
+  await cart.reload()
 })
 
 const cartHref = routes.lendingCart ? router.resolve({name: routes.lendingCart}).href : ''

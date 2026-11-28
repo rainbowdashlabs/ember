@@ -18,9 +18,17 @@ export type CalendarCell =
  * together, `piece` for one piece, otherwise the kind's id or `copies` for an inventory of copies.
  */
 export function rowKey(count: RemoteDayCount): string {
-    if (count.singles) return 'singles'
+    if (count.singles) return SINGLES_ROW
     if (count.itemId != null) return 'piece'
-    return count.artId == null ? 'copies' : String(count.artId)
+    return kindRowKey(count.artId)
+}
+
+/** The row of the single pieces of a product. */
+export const SINGLES_ROW = 'singles'
+
+/** The row of one kind of a product, or of its copies where the count names no kind. */
+export function kindRowKey(artId: number | null | undefined): string {
+    return artId == null ? 'copies' : String(artId)
 }
 
 /** How much of the chosen rows is free on a day, a blocked day being none whatever its counts. */

@@ -322,7 +322,12 @@ public class InventoryPictureService {
                 .orElseThrow(InventoryRefusal.INVENTORY_PICTURE_INVENTORY_NOT_HERE::raise);
     }
 
-    private InventoryItem requireItem(int stationId, int itemId) {
+    /**
+     * The piece, where it belongs to an inventory of the station.
+     *
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when it is missing or another station's
+     */
+    public InventoryItem requireItem(int stationId, int itemId) {
         InventoryItem item = inventoryRepository
                 .findItemById(itemId)
                 .orElseThrow(InventoryRefusal.INVENTORY_PICTURE_ITEM_NOT_HERE::raise);

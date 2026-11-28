@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {kindRowKey, SINGLES_ROW} from '@/views/stationview/inventory/lendingproductview/calendarCells'
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
@@ -56,8 +57,8 @@ const panelOpen = computed({
 const calendarRows = computed(() => {
   const product = detail.value?.product
   if (!product) return []
-  const rows = product.kinds.map(kind => ({key: kind.artId == null ? 'copies' : String(kind.artId), label: kind.name || product.name}))
-  if (product.pieces.length > 0) rows.push({key: 'singles', label: t('lendingCalendar.singles')})
+  const rows = product.kinds.map(kind => ({key: kindRowKey(kind.artId), label: kind.name || product.name}))
+  if (product.pieces.length > 0) rows.push({key: SINGLES_ROW, label: t('lendingCalendar.singles')})
   return rows
 })
 

@@ -76,8 +76,7 @@ class LendingCartServiceTest {
         for (UUID lender : List.of(NORTH, SOUTH)) {
             var partner = mock(FederationPartner.class);
             when(partner.partnerStationId()).thenReturn(lender);
-            when(lending.findPartnerForStation(STATION, lender)).thenReturn(partner);
-            when(lending.lendsWith(partner)).thenReturn(true);
+            when(lending.lendingPartnerOf(STATION, lender)).thenReturn(partner);
         }
         when(carts.claimSending(STATION)).thenReturn(true);
         when(lending.stationName(any(), anyInt()))
@@ -126,7 +125,7 @@ class LendingCartServiceTest {
     /** Gear goes in the cart only from a station this one lends with. */
     @Test
     void onlyAPartnerThatLendsFillsTheCart() {
-        when(lending.findPartnerForStation(STATION, SOUTH)).thenReturn(null);
+        when(lending.lendingPartnerOf(STATION, SOUTH)).thenReturn(null);
 
         var refused = assertThrows(
                 RefusalResponse.class,
@@ -142,30 +141,26 @@ class LendingCartServiceTest {
 
         assertEquals(
                 CartLineState.FREE,
-                LendingCartService.checkLine(line(1, NORTH, 7, 3, null, 2), product, false)
+                LendingCartService.checkLine(line(1, NORTH, 7, 3, null, 2), product)
                         .state());
-        var short_ = LendingCartService.checkLine(line(2, NORTH, 7, 3, null, 3), product, false);
+        var short_ = LendingCartService.checkLine(line(2, NORTH, 7, 3, null, 3), product);
         assertEquals(CartLineState.SHORT, short_.state());
         assertEquals(2, short_.free());
         assertEquals(
                 CartLineState.FREE,
-                LendingCartService.checkLine(line(3, NORTH, 7, null, null, 1), product, false)
+                LendingCartService.checkLine(line(3, NORTH, 7, null, null, 1), product)
                         .state());
         assertEquals(
                 CartLineState.GONE,
-                LendingCartService.checkLine(line(4, NORTH, 7, 5, null, 1), product, false)
+                LendingCartService.checkLine(line(4, NORTH, 7, 5, null, 1), product)
                         .state());
         assertEquals(
                 CartLineState.SHORT,
-                LendingCartService.checkLine(line(5, NORTH, 7, null, 14, 1), product, false)
+                LendingCartService.checkLine(line(5, NORTH, 7, null, 14, 1), product)
                         .state());
         assertEquals(
                 CartLineState.GONE,
-                LendingCartService.checkLine(line(6, NORTH, 7, 3, null, 1), null, false)
-                        .state());
-        assertEquals(
-                CartLineState.UNREACHABLE,
-                LendingCartService.checkLine(line(7, NORTH, 7, 3, null, 1), null, true)
+                LendingCartService.checkLine(line(6, NORTH, 7, 3, null, 1), null)
                         .state());
     }
 
@@ -324,7 +319,7 @@ class LendingCartServiceTest {
                         line(3, SOUTH, 9, null, null, 1)));
         when(catalog.findProduct(eq(STATION), eq(NORTH), anyInt(), any(), any()))
                 .thenThrow(new IllegalStateException("no answer"));
-        when(lending.lendsWith(lending.findPartnerForStation(STATION, SOUTH))).thenReturn(false);
+        when(lending.lendingPartnerOf(STATION, SOUTH)).thenReturn(null);
 
         var states = service.check(STATION).stream().map(CartLineCheck::state).toList();
 

@@ -78,10 +78,7 @@ export function useLendingCart() {
         setQuantity: (lineId: number, quantity: number) => apply(carts.setCartQuantity(lineId, quantity)),
         remove: (lineId: number) => apply(carts.removeCartLine(lineId)),
         setDetails: (details: Parameters<typeof carts.setCartDetails>[0]) => apply(carts.setCartDetails(details)),
-        /** Takes the answer of a change made elsewhere, such as sending, as the cart. */
-        replace: (next: CartView | null) => {
-            cart.value = next
-            void refreshCounts()
-        },
+        /** Reads the cart again after a change made elsewhere, such as sending. */
+        reload: () => apply(carts.getCart()),
     }
 }

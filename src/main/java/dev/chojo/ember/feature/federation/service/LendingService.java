@@ -76,6 +76,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -306,11 +307,23 @@ public class LendingService implements FederationServer {
      * @throws RefusalResponse when the two stations do not lend with each other
      */
     private FederationPartner requireLendingPartner(int requestingStationId, UUID owningUid) {
-        var partner = findPartnerForStation(requestingStationId, owningUid);
-        if (partner == null || !lendsWith(partner)) {
-            throw FederationRefusal.LENDING_PARTNER_DOES_NOT_LEND.raise();
-        }
+        var partner = lendingPartnerOf(requestingStationId, owningUid);
+        if (partner == null) throw FederationRefusal.LENDING_PARTNER_DOES_NOT_LEND.raise();
         return partner;
+    }
+
+    /**
+     * The active partnership two stations lend along, which is the one rule every lending question
+     * asks first: the catalog, the request list and every request.
+     *
+     * @param stationId        the station asking
+     * @param partnerStationUid the station it wants to borrow from
+     * @return the partnership, or {@code null} when the two are not partners or lending is off for it
+     */
+    @Nullable
+    FederationPartner lendingPartnerOf(int stationId, UUID partnerStationUid) {
+        var partner = findPartnerForStation(stationId, partnerStationUid);
+        return partner != null && lendsWith(partner) ? partner : null;
     }
 
     /**
@@ -1434,14 +1447,11 @@ public class LendingService implements FederationServer {
         if (!policy.offersAnything()) return false;
         for (var stock : offeredStock(lendingStationId, policy, inventoryId.get(), null, null, null)) {
             if (pictureKey.equals(stock.inventory().pictureKey())) return true;
-            var offeredArts = stock.pieces().stream()
-                    .map(InventoryItem::artId)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
+            var offeredArts = stock.offeredArtIds();
             for (var art : artRepository.findByInventory(stock.inventory().id())) {
                 if (offeredArts.contains(art.id()) && pictureKey.equals(art.pictureKey())) return true;
             }
-            var offeredPieces = stock.pieces().stream().map(InventoryItem::id).collect(Collectors.toSet());
+            var offeredPieces = stock.offeredPieceIds();
             for (var presentation :
                     inventoryRepository.findItemPresentations(stock.inventory().id())) {
                 if (offeredPieces.contains(presentation.itemId()) && pictureKey.equals(presentation.pictureKey())) {
@@ -1564,7 +1574,21 @@ public class LendingService implements FederationServer {
     record OfferedStock(
             Inventory inventory,
             List<InventoryItem> pieces,
-            @Nullable InventoryMatch match) {}
+            @Nullable InventoryMatch match) {
+
+        /** The kinds at least one offered piece is of. */
+        Set<Integer> offeredArtIds() {
+            return pieces.stream()
+                    .map(InventoryItem::artId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+        }
+
+        /** The ids of the offered pieces. */
+        Set<Integer> offeredPieceIds() {
+            return pieces.stream().map(InventoryItem::id).collect(Collectors.toSet());
+        }
+    }
 
     /**
      * Whether a search reaches the inventory through something actually on offer: the inventory
