@@ -11,7 +11,7 @@ import {formatDate, formatTime} from '@/util/format'
  * The kinds of question anything in Ember asks, as the browser knows them.
  *
  * <p>The twin of the kinds the server measures answers against. A field type is one of these, or
- * says something more on top of one: a birth date is a date, a place is a line of text, and the
+ * adds something on top of one: a birth date is a date, a place is a line of text, and the
  * nine ways of naming members are two kinds, one member or several.
  */
 export const QuestionKinds = {
@@ -34,11 +34,11 @@ export type QuestionKindName = (typeof QuestionKinds)[keyof typeof QuestionKinds
  * The kind a field type is, or nothing where it asks nobody anything.
  *
  * <p>A heading and a gap ask nothing, and an age is counted from a date and asks nothing either. A
- * number is whole unless its step is below one, which is how a length in metres is told from a count
+ * number is whole unless its step is below one, which is how a length in metres is distinguished from a count
  * of people: the server reads it the same way.
  *
  * @param fieldType the field's type
- * @param step      what a number steps by, where the field says
+ * @param step      what a number steps by, where the field sets one
  */
 export function questionKindOf(
     fieldType: string | undefined | null,
@@ -80,7 +80,7 @@ export function isWrittenType(fieldType: string | undefined | null): boolean {
 }
 
 /**
- * Whether an answer says yes.
+ * Whether an answer means yes.
  *
  * <p>A yes has been stored as a JSON {@code true}, as the text {@code "true"} and as {@code "1"}, and
  * screens that only knew one of those showed the others as no. Every one of them is read here.

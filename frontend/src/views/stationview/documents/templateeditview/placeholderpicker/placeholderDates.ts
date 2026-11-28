@@ -73,7 +73,7 @@ export function presetPattern(option: DateFormatOption, language: DocumentLangua
 /**
  * The example day in a format the server takes, each token as the server prints it and everything
  * between them as written. It only shows a date: whether an own format can be printed is the server's
- * to say.
+ * to decide.
  *
  * @param pattern the format in tokens
  * @param dates   the tokens and the template's language

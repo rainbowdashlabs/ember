@@ -18,7 +18,7 @@ import java.util.Optional;
  * Carries a station's federation key from the instance it leaves to the instance it moves to.
  *
  * <p>The key has to move with the station: its partners hold the matching public key and verify
- * every request against it, and there is no way to tell them about a new one. It cannot travel as
+ * every request against it, and there is no way to notify them of a new one. It cannot travel as
  * it is stored either, because it is encrypted with the source instance's own key, which the
  * destination does not have. So the source decrypts it and seals it again with a key derived from
  * the transfer token, which the operator carried from one instance to the other by hand, and the

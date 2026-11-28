@@ -20,7 +20,7 @@ public enum SelfCheckRaisedState {
      */
     RAISED,
     /**
-     * It is written down and nothing has happened yet, because the answer it hangs on says the
+     * It is written down and nothing has happened yet, because the answer it hangs on shows the
      * record is wrong and no reviewer has put that right.
      */
     WAITING,

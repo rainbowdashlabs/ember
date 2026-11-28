@@ -50,7 +50,7 @@ public class StationMemberEligibility implements MemberEligibility {
     /**
      * {@inheritDoc}
      *
-     * <p>A private tag lets nobody through. Answering for it would tell whoever fills in the field
+     * <p>A private tag lets nobody through. Answering for it would show whoever fills in the field
      * who carries it, one member at a time.
      */
     @Override

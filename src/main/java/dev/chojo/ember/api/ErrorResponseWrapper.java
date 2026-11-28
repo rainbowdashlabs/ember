@@ -18,11 +18,11 @@ import org.jspecify.annotations.Nullable;
  * @param code    the code of the {@link Refusal} that refused this, where it has been given one,
  *         and {@code null} where it has not. It is what a reader quotes in a report and what an
  *         operator looks up to find the one line that threw, which is why it is short enough to
- *         read out over a telephone and says nothing an attacker can use
+ *         read out over a telephone and carries nothing an attacker can use
  * @param retryAfterSeconds how long to wait before asking again, on a refusal that named a time,
  *         and {@code null} on every other failure. It rides here as well as in the
  *         {@code Retry-After} header, because a header is only readable from another origin when
- *         the server says it may be, and a screen counting the wait down should not depend on that
+ *         the server allows it, and a screen counting the wait down should not depend on that
  * @param reference a short code naming the log line this failure wrote, on a fault, and
  *         {@code null} on a refusal. It is the one thing a reader can hand an operator that finds
  *         the technical half of what happened, which is why the technical half is not in here
@@ -78,7 +78,7 @@ public record ErrorResponseWrapper(
     }
 
     /**
-     * Creates the error response for a named refusal that says when to come back.
+     * Creates the error response for a named refusal that shows when to come back.
      *
      * @param refusal what refused
      * @param message the sentence to show

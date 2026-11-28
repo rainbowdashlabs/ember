@@ -14,6 +14,7 @@ import type {
     WaitingList,
     WaitingListAccessResponse,
     WaitingListCreatedAtRequest,
+    WaitingListSeenRequest,
     WaitingListEntry,
     WaitingListEntryRequest,
     WaitingListEntryWithScore,
@@ -100,6 +101,16 @@ export const createEntry = entries.create
 export const updateEntry = entries.update
 export const deleteEntry = entries.remove
 
+/**
+ * Records how far the reader was shown a list, which takes those entries off their own sidebar count.
+ *
+ * @param upToEntryId the highest entry id the page showed
+ */
+export async function markSeen(listId: number, upToEntryId: number): Promise<void> {
+    const request: WaitingListSeenRequest = {upToEntryId}
+    await client.post(`/waiting-lists/${listId}/seen`, request)
+}
+
 export async function updateCreatedAt(listId: number, entryId: number, createdAt: string): Promise<WaitingListEntry> {
     const request: WaitingListCreatedAtRequest = {createdAt}
     const res = await client.put<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}/created-at`, request)
@@ -162,7 +173,7 @@ export async function moveToJoined(listId: number, entryId: number): Promise<Wai
     return res.data
 }
 
-/** Takes the entry off the list and tells the family, with what the station writes to them. */
+/** Takes the entry off the list and notifies the family, with what the station writes to them. */
 export async function withdrawEntry(listId: number, entryId: number, message = ''): Promise<void> {
     const request: WaitingListMessageRequest = {message: message.trim() || null}
     await client.post(`/waiting-lists/${listId}/entries/${entryId}/withdraw`, request)
@@ -194,7 +205,7 @@ export async function confirmInterest(token: string): Promise<void> {
 /**
  * Answers the invitation the entry currently holds.
  *
- * The invitation round travels with the answer so it says what it answers: an entry carries one
+ * The invitation round travels with the answer so it shows what it answers: an entry carries one
  * current invitation, and a click on a page opened before it was replaced is refused rather than
  * applied to the invitation that replaced it.
  */

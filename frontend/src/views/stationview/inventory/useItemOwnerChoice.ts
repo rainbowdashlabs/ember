@@ -17,7 +17,7 @@ import {useSession} from '@/composables/useSession'
 /**
  * Who owns a piece of a mixed inventory, chosen while the piece is being edited.
  *
- * <p>Offered only in a mixed inventory: an internal or external one says by its type whose gear it holds.
+ * <p>Offered only in a mixed inventory: an internal or external one shows by its type whose gear it holds.
  * Changeable only while the piece rests in the station's store, because one that is with somebody, on its
  * way or missing has a chain or a record running for the owner it has. And only for whoever may write gear
  * down for both owners, and never for gear of an association that keeps its own in Ember.

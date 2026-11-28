@@ -355,7 +355,7 @@ public class EventGroupRepository {
     }
 
     /**
-     * What every part of a station's event groups says about its event group in a list, by appointment.
+     * What every part of a station's event groups shows about its event group in a list, by appointment.
      *
      * @param stationId the station
      * @return the event group of each part, numbered in date order within its event group
@@ -761,7 +761,7 @@ public class EventGroupRepository {
 
     /**
      * Event groups whose sign-ups closed while some still wait for a decision, and whose managers were not
-     * told about the close as it stands: a notice about an earlier close does not count once the close
+     * notified of the close as it stands: a notice about an earlier close does not count once the close
      * moved.
      *
      * @return those event groups
@@ -815,10 +815,10 @@ public class EventGroupRepository {
     }
 
     /**
-     * Notes that managers were told that an event group's sign-ups closed at an instant.
+     * Notes that managers were notified that an event group's sign-ups closed at an instant.
      *
      * @param eventGroupId the event group
-     * @param closesAt     the close they were told about
+     * @param closesAt     the close they were notified of
      */
     public void markDeadlineNotified(int eventGroupId, Instant closesAt) {
         query("UPDATE event_group SET deadline_notified_for = :closes_at WHERE id = :id;")

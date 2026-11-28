@@ -49,7 +49,7 @@ const {config: catalogName, loading, failure, reload: loadData} = useConfigPanel
 
 /**
  * The catalog being filled out, with the job after its name, so two catalogs worked on at once are
- * two tabs that say which is which.
+ * two tabs that show which is which.
  */
 const pageTitle = computed(() => catalogName.value
   ? t('pages.quiz-catalog-mc-fill.titleNamed', {name: catalogName.value})
@@ -117,7 +117,7 @@ async function buildReviewItem(q: MultipleChoiceQuestion, credentials: AiCredent
 /**
  * Generates the missing wrong answers for every multiple-choice question of the catalogue.
  *
- * <p>A missing key is the reader's own setting rather than a fault in Ember, so it is said without
+ * <p>A missing key is the reader's own setting rather than a fault in Ember, so it is shown without
  * offering a report.
  */
 async function generate() {

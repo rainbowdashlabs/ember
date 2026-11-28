@@ -11,7 +11,7 @@ import type {SelectableOption} from '../LabelSelectInput.vue'
 /**
  * The closed face of a label picker: what is picked, as chips that can each be taken off, and the
  * words not made yet beside them. The whole of it opens the picker, by pointer or by Enter and
- * Space once it has the focus. A disabled picker keeps its place in the tab order and says it is
+ * Space once it has the focus. A disabled picker keeps its place in the tab order and signals it is
  * disabled, the way a disabled ARIA button may, and opens nothing. Each chip's cross is a control of
  * its own, reached by pointer or keyboard.
  */

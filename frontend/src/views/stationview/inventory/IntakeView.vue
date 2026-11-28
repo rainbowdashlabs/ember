@@ -75,7 +75,7 @@ const sizes = computed(() => detail.value?.sizes ?? [])
 
 /**
  * Which inventory is being written down, at the head of the page, so two stocktakings open at once
- * are told apart in the tab and in the history. The plain wording stands while it loads and where
+ * are distinguished in the tab and in the history. The plain wording stands while it loads and where
  * the inventory could not be fetched.
  */
 const pageTitle = computed(() => (detail.value?.name

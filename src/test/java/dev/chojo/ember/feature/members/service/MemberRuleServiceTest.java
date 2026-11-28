@@ -166,7 +166,7 @@ class MemberRuleServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A rule asking about something deleted underneath it cannot say who belongs, so it is left alone and keeps its
+     * A rule asking about something deleted underneath it cannot decide who belongs, so it is left alone and keeps its
      * members, even where the lost check sits in a block next to checks that still work.
      */
     @Test

@@ -27,7 +27,7 @@ const props = withDefaults(defineProps<{
   html?: string
   /** How tall it may grow before it is cut, as the height class to apply. */
   maxHeight?: string
-  /** What to say under a cut body, for a list that leads somewhere to read the rest. */
+  /** What to show under a cut body, for a list that leads somewhere to read the rest. */
   moreLabel?: string
 }>(), {html: '', maxHeight: 'max-h-44', moreLabel: ''})
 

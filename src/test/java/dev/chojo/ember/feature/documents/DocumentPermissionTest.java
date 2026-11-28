@@ -44,24 +44,21 @@ class DocumentPermissionTest extends RepositoryTestBase {
     }
 
     /**
-     * Reading the store used to mean holding the permission to read members, so the new permissions
-     * are granted by implication rather than by migration. Without this a custom role holding only
-     * {@code MEMBER_READ} would have lost sight of the documents it can see today, which is a
-     * regression nobody asked for, and putting it right would have needed a migration over every
-     * station.
+     * Reading members and reading the documents that name them are given apart. Whoever held the
+     * member permission before was given the document permission of their own by the migration, so
+     * the enum no longer has to carry it.
      */
     @Test
-    void readingMembersStillReachesTheStore() {
-        assertTrue(StationPermission.MEMBER_READ.allChildren().contains(StationPermission.DOCUMENT_READ));
-        assertTrue(StationPermission.MEMBER_READ.allChildren().contains(StationPermission.DOCUMENT_READ_MEMBER));
+    void readingMembersDoesNotReachMemberDocuments() {
+        assertFalse(StationPermission.MEMBER_READ.allChildren().contains(StationPermission.DOCUMENT_READ_MEMBER));
+        assertFalse(StationPermission.MEMBER_READ.allChildren().contains(StationPermission.DOCUMENT_READ));
     }
 
-    /** Editing members still files documents, member documents included, for the same reason. */
+    /** Editing members and managing member documents, generation and signing included, are apart too. */
     @Test
-    void editingMembersStillFilesDocuments() {
-        assertTrue(StationPermission.MEMBER_EDIT.allChildren().contains(StationPermission.DOCUMENT_EDIT));
-        assertTrue(StationPermission.MEMBER_EDIT.allChildren().contains(StationPermission.DOCUMENT_READ));
-        assertTrue(StationPermission.MEMBER_EDIT.allChildren().contains(StationPermission.DOCUMENT_EDIT_MEMBER));
+    void editingMembersDoesNotFileDocuments() {
+        assertFalse(StationPermission.MEMBER_EDIT.allChildren().contains(StationPermission.DOCUMENT_EDIT_MEMBER));
+        assertFalse(StationPermission.MEMBER_EDIT.allChildren().contains(StationPermission.DOCUMENT_EDIT));
     }
 
     /**
@@ -78,6 +75,12 @@ class DocumentPermissionTest extends RepositoryTestBase {
         assertFalse(StationPermission.DOCUMENT_READ_MEMBER.allChildren().contains(StationPermission.MEMBER_READ));
         assertFalse(StationPermission.DOCUMENT_EDIT_MEMBER.allChildren().contains(StationPermission.MEMBER_READ));
         assertFalse(StationPermission.DOCUMENT_MANAGER.allChildren().contains(StationPermission.MEMBER_READ));
+    }
+
+    /** Reading the documents that name a member does not open the station's own paperwork. */
+    @Test
+    void readingMemberDocumentsDoesNotReachTheStationsPaperwork() {
+        assertFalse(StationPermission.DOCUMENT_READ_MEMBER.allChildren().contains(StationPermission.DOCUMENT_READ));
     }
 
     /** Filing implies reading, because nobody should be able to write into a store they cannot see. */
@@ -111,7 +114,10 @@ class DocumentPermissionTest extends RepositoryTestBase {
         assertTrue(held(StationPermission.DOCUMENT_EDIT_MEMBER).contains(StationPermission.DOCUMENT_EDIT_MEMBER));
     }
 
-    /** The station's own paperwork is all a reader without the member permission is shown. */
+    /**
+     * The station's own paperwork is all a reader without the member permission is shown, and the
+     * documents that name somebody are all a reader of member documents alone is shown.
+     */
     @Test
     void theStationListingHoldsBackWhatNamesAMember() {
         var bound = write("Attest", List.of(memberId));
@@ -121,8 +127,11 @@ class DocumentPermissionTest extends RepositoryTestBase {
 
         assertTrue(seen.stream().anyMatch(document -> document.id() == unbound.id()), "the station's own paperwork");
         assertFalse(seen.stream().anyMatch(document -> document.id() == bound.id()), "and nothing that names anybody");
-        assertTrue(storeAsSeenBy(StationPermission.DOCUMENT_READ_MEMBER, null).stream()
-                .anyMatch(document -> document.id() == bound.id()));
+        var seenByMemberReader = storeAsSeenBy(StationPermission.DOCUMENT_READ_MEMBER, null);
+        assertTrue(seenByMemberReader.stream().anyMatch(document -> document.id() == bound.id()));
+        assertFalse(
+                seenByMemberReader.stream().anyMatch(document -> document.id() == unbound.id()),
+                "but not the station's own paperwork");
     }
 
     /**
@@ -148,13 +157,16 @@ class DocumentPermissionTest extends RepositoryTestBase {
     /**
      * The store as the listing hands it to a reader holding this permission and nothing else.
      * Without the permission for member documents that is the documents naming nobody, none of the
-     * hidden ones, and no narrowing to a member however the request asks for one.
+     * hidden ones, and no narrowing to a member however the request asks for one. Without the
+     * permission for the station's paperwork it is the documents naming somebody.
      */
     private static List<Document> storeAsSeenBy(StationPermission granted, String search) {
         boolean readsMemberDocuments = held(granted).contains(StationPermission.DOCUMENT_READ_MEMBER);
+        boolean readsStationDocuments = held(granted).contains(StationPermission.DOCUMENT_READ);
         return memberDocumentRepo.findByStation(
                 station.id(),
-                new DocumentFilter(List.of(), search, readsMemberDocuments, !readsMemberDocuments, false),
+                new DocumentFilter(
+                        List.of(), search, readsMemberDocuments, !readsMemberDocuments, !readsStationDocuments, false),
                 "simple",
                 50,
                 0);

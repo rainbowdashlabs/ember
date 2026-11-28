@@ -71,7 +71,7 @@ public record MemberWithName(
      * in with, and identity.
      *
      * <p>The name is asked for rather than built here. These rows feed the screens a station is
-     * administered from, which say who somebody is and what they are called at once, and only the
+     * administered from, which show who somebody is and what they are called at once, and only the
      * resolver knows the second half: it lives on the membership and the station may have turned it
      * off.
      */

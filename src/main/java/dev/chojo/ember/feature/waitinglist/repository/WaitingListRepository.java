@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListDeadlines;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
@@ -78,8 +79,8 @@ public class WaitingListRepository {
      * <p>A number kept beside the entry only ever went up, and only when somebody pressed the button
      * on the sheet: a mark taken back left it standing, a sheet thrown away left it standing, and
      * every other way of being written down as present, from an appointment or from a field that
-     * attends by itself, never reached it at all. Reading it off the sheets makes the count say what
-     * the sheets say.
+     * attends by itself, never reached it at all. Reading it off the sheets makes the count match what
+     * the sheets show.
      *
      * <p>The trial period is a stretch of time rather than a status: it begins when the entry moves
      * to testing and ends when whoever it is about joins or withdraws. A date outside that stretch
@@ -549,7 +550,7 @@ public class WaitingListRepository {
      * until the next invitation raises it.
      *
      * <p>A new invitation counts as mailed now, which is where its weekly reminders count from, and
-     * forgets that the station was told its dates had run out. Clearing forgets both.
+     * forgets that the station was notified its dates had run out. Clearing forgets both.
      */
     public void updateInvitation(int entryId, @Nullable WaitingListInvitation invitation) {
         Transactions.run(() -> {
@@ -633,7 +634,7 @@ public class WaitingListRepository {
     }
 
     /**
-     * The open invitations of a list the station has not yet been told about: invited, unanswered, with
+     * The open invitations of a list the station has not yet been notified about: invited, unanswered, with
      * at least one offered date and not marked as run out. Whether every date has begun is the caller's
      * to decide.
      */
@@ -652,7 +653,7 @@ public class WaitingListRepository {
     }
 
     /**
-     * Records that the station was told the invitation has no date left, so it is told once. Written
+     * Records that the station was notified the invitation has no date left, so it is notified once. Written
      * only while the entry still holds the same open invitation and nobody marked it yet.
      *
      * @param round the invitation round whose dates ran out
@@ -675,7 +676,7 @@ public class WaitingListRepository {
     /**
      * Records what came back to the invitation the entry currently holds.
      *
-     * <p>Written together with its moment, because an answer nobody can date says nothing about how
+     * <p>Written together with its moment, because an answer nobody can date shows nothing about how
      * long an invitation has been sitting.
      *
      * <p>Written only while the entry is still invited in the round the answer was given in. A station
@@ -733,9 +734,10 @@ public class WaitingListRepository {
                 WHERE list_id = :list_id
                   AND status = 'WAITING'
                   AND reminder_sent_at IS NOT NULL
-                  AND reminder_sent_at + INTERVAL '16 days' < now()
-                  AND reminder_sent_at + INTERVAL '17 days' > now();""", WAITING_LIST_ENTRY_READ_COLUMNS)
-                .single(call().bind("list_id", listId))
+                  AND reminder_sent_at + make_interval(days => :warning_day) < now()
+                  AND reminder_sent_at + make_interval(days => :warning_day + 1) > now();""", WAITING_LIST_ENTRY_READ_COLUMNS)
+                .single(call().bind("list_id", listId)
+                        .bind("warning_day", (int) WaitingListDeadlines.removalWarningDay()))
                 .map(WaitingListEntry.map())
                 .all();
     }
@@ -748,8 +750,9 @@ public class WaitingListRepository {
                 WHERE list_id = :list_id
                   AND status = 'WAITING'
                   AND reminder_sent_at IS NOT NULL
-                  AND reminder_sent_at + INTERVAL '30 days' < now();""", WAITING_LIST_ENTRY_READ_COLUMNS)
-                .single(call().bind("list_id", listId))
+                  AND reminder_sent_at + make_interval(days => :grace_days) < now();""", WAITING_LIST_ENTRY_READ_COLUMNS)
+                .single(call().bind("list_id", listId)
+                        .bind("grace_days", (int) WaitingListDeadlines.CONFIRMATION_GRACE.toDays()))
                 .map(WaitingListEntry.map())
                 .all();
     }
@@ -792,7 +795,17 @@ public class WaitingListRepository {
                 .delete();
     }
 
-    public int countPendingEntries(int stationId) {
+    /**
+     * The waiting entries of the station's lists that the member has not been shown yet: on a list
+     * they never opened every one, otherwise those above the highest entry they were shown there. An
+     * entry put back to waiting keeps its place in that order, so it is new again only if it was never
+     * shown.
+     *
+     * @param stationId the station
+     * @param memberId  the member reading the sidebar
+     * @return how many entries are new to them
+     */
+    public int countUnseenEntries(int stationId, int memberId) {
         return count("""
                 SELECT
                     count(*) AS cnt
@@ -800,8 +813,38 @@ public class WaitingListRepository {
                     waiting_list_entry wle
                         JOIN waiting_list wl
                         ON wl.id = wle.list_id
+                        LEFT JOIN waiting_list_seen seen
+                        ON seen.list_id = wl.id AND seen.member_id = :member_id
                 WHERE wl.station_id = :station_id
-                  AND wle.status = 'WAITING';""", call().bind("station_id", stationId));
+                  AND wle.status = 'WAITING'
+                  AND wle.id > coalesce(seen.seen_up_to, 0);""", call().bind("station_id", stationId).bind("member_id", memberId));
+    }
+
+    /**
+     * Records that the member was shown the list up to an entry. Never moves back, and never past the
+     * list's highest entry, so an id from elsewhere cannot hide entries that do not exist yet.
+     *
+     * @param listId    the list
+     * @param memberId  the member who looked
+     * @param upToEntry the highest entry id they were shown
+     */
+    public void markSeen(int listId, int memberId, int upToEntry) {
+        query("""
+                INSERT
+                INTO
+                    waiting_list_seen
+                    (list_id, member_id, seen_up_to)
+                SELECT
+                    :list_id, :member_id, least(:up_to, coalesce(max(id), 0))
+                FROM
+                    waiting_list_entry
+                WHERE list_id = :list_id
+                ON CONFLICT (list_id, member_id) DO UPDATE
+                    SET seen_up_to = greatest(waiting_list_seen.seen_up_to, excluded.seen_up_to);""")
+                .single(call().bind("list_id", listId)
+                        .bind("member_id", memberId)
+                        .bind("up_to", upToEntry))
+                .insert();
     }
 
     public List<WaitingListEntryGuardian> findGuardiansByEntry(int entryId) {
@@ -948,9 +991,9 @@ public class WaitingListRepository {
                 INSERT
                 INTO
                     waitlist_verification_token
-                    (token, list_id, firstname, lastname, email, guardians, field_values, notes, consent_proof)
+                    (token, list_id, firstname, lastname, email, guardians, field_values, notes, consent_proof, expires_at)
                 VALUES
-                    (:token, :list_id, :firstname, :lastname, :email, :guardians::JSONB, :field_values::JSONB, :notes, :consent_proof::JSONB)
+                    (:token, :list_id, :firstname, :lastname, :email, :guardians::JSONB, :field_values::JSONB, :notes, :consent_proof::JSONB, :expires_at)
                 RETURNING %s;""".formatted(WAITLIST_VERIFICATION_TOKEN_COLUMNS),
                 call().bind("token", token)
                         .bind("list_id", listId)
@@ -960,7 +1003,11 @@ public class WaitingListRepository {
                         .bind("guardians", WaitlistVerificationToken.guardiansToJson(guardians))
                         .bind("field_values", WaitlistVerificationToken.fieldValuesToJson(fieldValues))
                         .bind("notes", notes)
-                        .bind("consent_proof", consent.toJson()),
+                        .bind("consent_proof", consent.toJson())
+                        .bind(
+                                "expires_at",
+                                Instant.now().plus(WaitingListDeadlines.VERIFICATION_VALIDITY),
+                                INSTANT_TIMESTAMP),
                 WaitlistVerificationToken.map(),
                 WAITLIST_VERIFICATION_TOKEN_COLUMNS);
     }

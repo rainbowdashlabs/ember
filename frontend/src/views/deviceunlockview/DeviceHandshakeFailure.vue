@@ -19,7 +19,7 @@ const {t} = useI18n()
 
 defineProps<{
   message: string
-  /** A second line where the first needs one, such as saying why a request cannot be resumed. */
+  /** A second line where the first needs one, such as showing why a request cannot be resumed. */
   hint?: string
   testId?: string
 }>()

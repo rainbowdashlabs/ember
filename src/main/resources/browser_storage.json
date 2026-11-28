@@ -6,8 +6,8 @@
       "en": "Storage in your browser"
     },
     "intro": {
-      "de": "Diese Anwendung setzt **nur technisch erforderliche Cookies** für die Anmeldung und bindet keine Dienste zur Reichweitenmessung ein. Die Cookies sind unten als solche gekennzeichnet, alle übrigen Werte legt die Anwendung im lokalen Speicher (Local Storage) Ihres Browsers ab. Nichts davon wird zu Werbe- oder Analysezwecken ausgewertet oder an Dritte weitergegeben.",
-      "en": "This application sets **only technically required cookies** for signing in and embeds no analytics services. The cookies are marked as such below; every other value is kept in your browser's local storage. None of it is evaluated for advertising or analytics, or passed to third parties."
+      "de": "Diese Anwendung setzt **nur technisch erforderliche Cookies** für die Anmeldung und bindet keine Dienste zur Reichweitenmessung ein. Die Cookies sind unten als solche gekennzeichnet, ebenso die Werte im Sitzungsspeicher (Session Storage), die nur für einen Tab gelten. Alle übrigen Werte legt die Anwendung im lokalen Speicher (Local Storage) Ihres Browsers ab. Nichts davon wird zu Werbe- oder Analysezwecken ausgewertet oder an Dritte weitergegeben.",
+      "en": "This application sets **only technically required cookies** for signing in and embeds no analytics services. The cookies are marked as such below, and so are the values in session storage, which hold for one tab only. Every other value is kept in your browser's local storage. None of it is evaluated for advertising or analytics, or passed to third parties."
     },
     "closing": {
       "de": "Die technisch erforderlichen Werte gehören zur Anmeldung: lehnen Sie die Speicherung ab, ist eine Anmeldung nicht möglich. Über die beiden übrigen Gruppen entscheiden Sie einzeln, sowohl bei der Einwilligung als auch später unter „Konto → Daten & Konto\". Nehmen Sie eine Gruppe zurück, löscht die Anwendung deren Werte sofort. Bei der Abmeldung entfernt sie die Werte, die zur Sitzung gehören; alles Übrige können Sie jederzeit über die Einstellungen Ihres Browsers löschen.\n\nDiese Aufstellung wird unmittelbar aus der Anwendung erzeugt und bleibt dadurch mit dem tatsächlichen Verhalten der Software in Übereinstimmung.",
@@ -61,6 +61,10 @@
       "UNTIL_TRUST_ENDS": {
         "de": "bis der gewählte Zeitraum abläuft oder Sie das Gerät entfernen",
         "en": "until the chosen period runs out or you remove the device"
+      },
+      "UNTIL_TAB_CLOSES": {
+        "de": "bis zur Abmeldung, längstens bis Sie den Tab schließen",
+        "en": "until sign-out, at most until you close the tab"
       }
     },
     "kind": {
@@ -71,6 +75,10 @@
       "LOCAL_STORAGE": {
         "de": "lokaler Speicher",
         "en": "local storage"
+      },
+      "SESSION_STORAGE": {
+        "de": "Sitzungsspeicher des Tabs",
+        "en": "session storage of the tab"
       }
     }
   },
@@ -164,8 +172,8 @@
       "necessity": "REQUIRED",
       "retention": "UNTIL_LOGOUT",
       "purpose": {
-        "de": "Die von Ihnen gewählte Wache. Sie bestimmt, welche Inhalte geladen werden, wenn Sie mehreren Wachen angehören.",
-        "en": "The station you selected. It determines which content is loaded if you belong to more than one station."
+        "de": "Die Wache, die Sie zuletzt gewählt haben. Ein neuer Tab beginnt in dieser Wache, wenn Sie mehreren Wachen angehören.",
+        "en": "The station you selected last. A new tab starts in it if you belong to more than one station."
       }
     },
     {
@@ -173,8 +181,28 @@
       "necessity": "REQUIRED",
       "retention": "UNTIL_LOGOUT",
       "purpose": {
-        "de": "Der von Ihnen gewählte Verband. Er bestimmt, für welchen Verband die Verbandsseiten geladen werden, wenn Sie mehreren Verbänden angehören.",
-        "en": "The cluster you selected. It determines which cluster the cluster pages are loaded for if you belong to more than one cluster."
+        "de": "Der Verband, den Sie zuletzt gewählt haben. Ein neuer Tab beginnt in diesem Verband, wenn Sie mehreren Verbänden angehören.",
+        "en": "The cluster you selected last. A new tab starts in it if you belong to more than one cluster."
+      }
+    },
+    {
+      "key": "tab_station_id",
+      "kind": "SESSION_STORAGE",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_TAB_CLOSES",
+      "purpose": {
+        "de": "Die Wache, in der dieser Tab arbeitet. So kann jeder Tab eine andere Ihrer Wachen zeigen, ohne dass ein Wechsel in einem Tab die anderen umstellt.",
+        "en": "The station this tab works in. Each tab can show a different one of your stations, and switching in one tab leaves the others where they are."
+      }
+    },
+    {
+      "key": "tab_cluster_id",
+      "kind": "SESSION_STORAGE",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_TAB_CLOSES",
+      "purpose": {
+        "de": "Der Verband, in dem dieser Tab arbeitet, aus demselben Grund wie die Wache des Tabs.",
+        "en": "The cluster this tab works in, for the same reason as the tab's station."
       }
     },
     {

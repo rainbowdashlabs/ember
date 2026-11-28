@@ -121,7 +121,7 @@ public class PasskeyEnrollmentService {
     }
 
     /**
-     * The QR code held up in the room: issues a fresh code with its QR, tells whoever mail
+     * The QR code held up in the room: issues a fresh code with its QR, notifies whoever mail
      * about the account already goes to (the guardians, whoever pressed the button), and writes
      * the audit row. Without that, a credential appears on an account and the only record is a
      * log line.

@@ -75,7 +75,7 @@ class MailDashboardServiceTest {
 
     /**
      * The instance's overview counts everything a provider sent, its own mail and the stations',
-     * and says how much of the stations' share is used and by whom.
+     * and shows how much of the stations' share is used and by whom.
      */
     @Test
     void theInstanceSeesEveryProvidersShareAndWhoUsedIt() {

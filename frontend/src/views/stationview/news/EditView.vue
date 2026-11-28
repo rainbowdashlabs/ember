@@ -97,7 +97,7 @@ function toSaveRows(): BlockRowRequest[] {
  * <p>An entry that already exists is switched by the server, which is what records the change and
  * hands back the text as a first block. One that does not exist yet cannot be: there is nothing to
  * address. It is switched here instead, to the same shape the server would have produced, and the
- * save below tells the server about it as soon as the entry has an id. Either way the author sees
+ * save below lets the server know about it as soon as the entry has an id. Either way the author sees
  * the same thing, which is the point: whether an entry happens to be saved yet is not a reason to
  * withhold the editor from them.
  */
@@ -130,14 +130,14 @@ const pageTitle = computed(() => {
       : t('pages.news-edit.title')
 })
 
-/** The line under it says which of the two this is, since the title no longer can. */
+/** The line under it shows which of the two this is, since the title no longer can. */
 const pageSubtitle = computed(() => isEdit.value
     ? t('pages.news-edit.subtitle')
     : t('pages.news-create.subtitle'))
 
 /**
  * Whether the entry still names an audience of its own. An entry that does reaches nobody outside
- * this station, whatever the two switches below it say, so lifting the last restriction is the
+ * this station, whatever the two switches below it are set to, so lifting the last restriction is the
  * deliberate act that lets an announcement travel.
  */
 const stillRestricted = computed(() =>
@@ -154,7 +154,7 @@ const stillRestricted = computed(() =>
  * <p>The entry opens in the block editor, since its first block shows the appointment itself.
  *
  * <p>The audience comes from the appointment's own view restriction rather than from anything the
- * previous screen said, so an appointment only some members may know about produces an entry only
+ * previous screen showed, so an appointment only some members may know about produces an entry only
  * those members may read. Such an entry reaches no partner station and no public page while it
  * stays restricted, which is what makes announcing a restricted appointment safe to offer at all.
  */

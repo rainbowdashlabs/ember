@@ -13,7 +13,6 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {lostAndFound, managedMembers as managedMembersApi} from '@/api'
 import {StationPermission, type LostAndFoundItemResponse, type ManagedMember} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
-import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useConfirmAction} from '@/composables/useConfirmAction'
@@ -27,7 +26,6 @@ import LostItemCreateModal, {type LostItemCreatePayload} from './listview/LostIt
 
 const {t} = useI18n()
 const {hasPermission, sessionInfo} = useSession()
-const {refresh: refreshSidebarCounts} = useSidebarCounts()
 const canCreate = () => hasPermission(StationPermission.LOST_AND_FOUND_CREATE)
 const canManage = () => hasPermission(StationPermission.LOST_AND_FOUND_MANAGE)
 const myMemberId = () => sessionInfo.value?.member?.id
@@ -52,7 +50,7 @@ const imageInputRef = ref<HTMLInputElement | null>(null)
  *
  * <p>A picture the browser could not read never reached the server, so this screen is the only one
  * with words for it. Everything else is described: a dropped connection and a request that timed out
- * both say so, and only a failure nobody can name falls back to admitting that.
+ * are both described as what they are, and only a failure nobody can name falls back to admitting that.
  */
 function failureText(e: unknown): string {
   if (e instanceof UnreadableImageError) return t('lostAndFound.imageUnreadable')
@@ -122,7 +120,6 @@ const {running: claiming, failure: claimFailure, run: confirmClaim} = useAsyncAc
       showClaim.value = false
       claimTarget.value = null
       await reload()
-      refreshSidebarCounts()
     },
     {formatError: failureText},
 )
@@ -151,7 +148,6 @@ const release = useConfirmAction<number>({
   onConfirm: (itemId) => onlyOnce(itemId, () => lostAndFound.releaseItem(itemId)),
   onSuccess: async () => {
     await reload()
-    refreshSidebarCounts()
   },
 })
 
@@ -159,7 +155,6 @@ const provided = useConfirmAction<number>({
   onConfirm: (itemId) => onlyOnce(itemId, () => lostAndFound.markProvided(itemId)),
   onSuccess: async () => {
     await reload()
-    refreshSidebarCounts()
   },
 })
 
@@ -167,7 +162,6 @@ const {failure: deleteFailure, run: handleDelete} = useAsyncAction(
     async (itemId: number) => {
       await lostAndFound.deleteItem(itemId)
       await reload()
-      refreshSidebarCounts()
     },
     {formatError: failureText},
 )

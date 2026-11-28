@@ -92,8 +92,8 @@ public class PartnerEventGroupService implements FederationServer {
     }
 
     /**
-     * Takes in a decision a partner told about one of this station's members' event group sign-ups and
-     * tells their household where the status changed. Believed only for a member this station signed up,
+     * Takes in a decision a partner sent about one of this station's members' event group sign-ups and
+     * lets their household know where the status changed. Believed only for a member this station signed up,
      * and only where it is newer than what this station knows.
      */
     private void statusChanged(ServingPartner partner, RemoteEventGroupSignUpStatus told) {
@@ -116,8 +116,8 @@ public class PartnerEventGroupService implements FederationServer {
     }
 
     /**
-     * Tells this station's members a partner named that the partner's event group was called off. Only
-     * members this station signed up for that event group are told.
+     * Notifies this station's members a partner named that the partner's event group was called off. Only
+     * members this station signed up for that event group are notified.
      */
     private void cancelled(ServingPartner partner, RemoteEventGroupCancelled cancelled) {
         int stationId = partner.row().stationId();
@@ -236,7 +236,7 @@ public class PartnerEventGroupService implements FederationServer {
      *
      * <p>The places are the partner's and so is the counting, so this asks rather than decides. A refusal
      * means either that the partner never handed the decision over or that the places it gave are full,
-     * and both are things to tell the person pressing the button rather than retry.
+     * and both are things to show the person pressing the button rather than retry.
      *
      * @param stationId         this station
      * @param partnerStationUid the partner holding the event group
@@ -262,7 +262,7 @@ public class PartnerEventGroupService implements FederationServer {
         return confirmed.standing();
     }
 
-    /** Records where a member this station confirmed stands now, and tells their household where it changed. */
+    /** Records where a member this station confirmed stands now, and lets their household know where it changed. */
     private void tellConfirmed(
             int stationId, UUID partnerStationUid, int eventGroupId, RemoteEventGroupConfirmed confirmed) {
         var standing = confirmed.standing();

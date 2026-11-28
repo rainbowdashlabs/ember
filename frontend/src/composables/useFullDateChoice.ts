@@ -24,7 +24,7 @@ export interface FullDateQuestion {
     places: Places | null
 }
 
-/** Whether a failure is the server saying every place of the date is taken. */
+/** Whether a failure is the server reporting that every place of the date is taken. */
 export function isFullRefusal(e: unknown): boolean {
     return apiErrorCode(e) === REGISTRATION_FULL_CODE
 }
@@ -63,7 +63,7 @@ export function useFullDateChoice() {
      *
      * @param kind  what is being done, which decides what is offered
      * @param places how the places stand, for the question to name
-     * @param send  the request, told the choice on the second try
+     * @param send  the request, given the choice on the second try
      * @return whether the request went through
      */
     async function sendAsking(

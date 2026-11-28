@@ -27,7 +27,7 @@ import java.util.List;
  * whose public page shows something. A reader takes a missing one as "nothing there"; peers that
  * predate this send both for every station.
  *
- * <p>The last five fields say which parts of the public page a tile may link to and whether the station
+ * <p>The last five fields show which parts of the public page a tile may link to and whether the station
  * takes federation requests. A peer that predates them sends none of them, and a reader takes each
  * missing one as "no". The addresses of those parts are never taken from the card: a reader builds them
  * from the instance it fetched the card from.
@@ -111,7 +111,7 @@ public record DiscoveryStationCard(
      * A card from a peer that predates the cluster fields, which reads as "not in a cluster".
      *
      * <p>Older instances send nothing for them, and absent is exactly what a station outside any cluster
-     * would send anyway, so no version check is needed to tell the two apart.
+     * would send anyway, so no version check is needed to distinguish the two.
      */
     public DiscoveryStationCard(
             String stationUid,

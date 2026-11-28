@@ -61,7 +61,7 @@ export function useGroupRulesForm() {
         if (opening === opened) members.value = current
     }
 
-    /** Whether the save asks for the members of no ticked type to be taken out, said up front or after a refusal. */
+    /** Whether the save asks for the members of no ticked type to be taken out, shown up front or after a refusal. */
     function removesMisfits(): boolean {
         return removeNonMatching.value || misfits.value.length > 0
     }

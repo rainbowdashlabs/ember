@@ -18,7 +18,7 @@ import {SignatureDisplay, signatureDisplayOf, waitsForNobody} from './signatureS
 /**
  * How the signatures asked for on a document stand, as one badge: signed, partly signed with how many of
  * how many, open, withdrawn or replaced by a corrected document. A request that waits for a field nobody can
- * sign carries a second badge saying so, since only a manager can settle such a field.
+ * sign carries a second badge showing that, since only a manager can settle such a field.
  */
 const props = defineProps<{
   summary: SignatureSummary

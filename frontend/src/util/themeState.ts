@@ -23,7 +23,7 @@ export interface ThemePaint {
  * <p>Shared rather than provided, because the alternative is one mutation observer per reader on
  * the root element: a list carries a hundred badges and the toggle is pressed once. Only the browser
  * paints, so it is browser state: every server render reads it light, and the client plugin's first
- * paint is what says dark.
+ * paint is what shows dark.
  */
 const paint = browserShallowRef<ThemePaint>({revision: 0, dark: false})
 

@@ -12,7 +12,7 @@ import StartTileSection from '@/components/start/StartTileSection.vue'
  * The way in for a sheet whose people no template describes.
  *
  * <p>Until this stood here, a station that wanted one kept a template with no groups on it, which
- * then sat in the template list, the report and the configuration screen saying nothing to anybody
+ * then sat in the template list, the report and the configuration screen showing nothing to anybody
  * who found it.
  */
 const emit = defineEmits<{

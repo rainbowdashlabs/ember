@@ -123,7 +123,7 @@ function lettersOf(element: Locator): Promise<string> {
  * paints anything that leads somewhere. Names that are only text read in the page's own colour.
  *
  * <p>All of it is read in one go: the theme can be repainted between two separate readings, and a
- * name compared against the colour of the theme before says nothing.
+ * name compared against the colour of the theme before shows nothing.
  */
 function namesAgainstThePage(page: Page): Promise<string[]> {
     return page.evaluate(() => {
@@ -204,7 +204,7 @@ test.describe('Inventory', () => {
      * back to hand it in: the same button then reads as assigning rather than taking back, so the
      * story pressed it and waited for a word that was never going to appear.
      *
-     * <p>The picker's options are buttons, which tells them apart from the text the search leaves in
+     * <p>The picker's options are buttons, which distinguishes them from the text the search leaves in
      * the field. The counter is reopened before handing back, since the picker believes the piece is
      * free until the page asks again.
      */
@@ -422,7 +422,7 @@ test.describe('Inventory', () => {
 
     /**
      * The other end of a borrowing: somebody has to say yes. The story takes a request that is
-     * waiting and approves it, and the request says so afterwards.
+     * waiting and approves it, and the request shows that afterwards.
      */
     test('an incoming request for equipment is approved', async ({managerPage: page}) => {
         await page.goto('/station/inventory/lending')
@@ -624,6 +624,17 @@ test.describe('Inventory', () => {
             const orders = await page.request.get('/api/v1/procurement', {headers}).then(r => r.json())
             expect(orders.find((entry: {id: number}) => entry.id === orderId)?.fulfilledAt, 'the order is delivered')
                 .toBeTruthy()
+
+            await page.reload()
+            const fulfilled = page.getByTestId('procurement-done').getByTestId('procurement-entry')
+                .filter({hasText: `Zuweisung ${piece.code}`})
+            await expect(page.getByTestId('procurement-done'), 'fulfilled orders start folded')
+                .not.toHaveAttribute('open')
+            await expect(fulfilled, 'the delivered order is among them').toHaveCount(1)
+            await expect(fulfilled, 'and folded away below the open ones').toBeHidden()
+            await page.getByTestId('procurement-done').locator('summary').click()
+            await expect(fulfilled).toBeVisible()
+            await expect(page.getByTestId('procurement-open').getByText(`Zuweisung ${piece.code}`)).toHaveCount(0)
         })
 
     /**
@@ -635,6 +646,37 @@ test.describe('Inventory', () => {
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
         expect(page.url()).toContain('/station/inventory/procurement')
+    })
+
+    /**
+     * A request to an association that does not answer in Ember is noted down as an order of its piece.
+     * Whose piece it is follows the inventory: an external one holds only the association's, so the order
+     * needs no owner and still reads as asked of the association.
+     */
+    test('an order of the association\'s piece reads as asked of the association', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const name = unique('Vom Träger')
+        const created = await page.request.post('/api/v1/inventories', {
+            headers,
+            data: {name, inventoryType: 'EXTERNAL', homogeneous: true, hasSizes: false},
+        })
+        expect(created.ok(), await created.text()).toBeTruthy()
+        const inventoryId = (await created.json()).id as number
+        try {
+            const note = unique('Beim Träger angefragt')
+            const ordered = await page.request.post('/api/v1/procurement', {
+                headers,
+                data: {inventoryId, notes: note},
+            })
+            expect(ordered.ok(), await ordered.text()).toBeTruthy()
+            expect((await ordered.json()).owner, 'an external inventory holds the association\'s piece').toBe('CLUSTER')
+
+            await page.goto('/station/inventory/procurement')
+            const entry = page.getByTestId('procurement-entry').filter({hasText: note})
+            await expect(entry.getByTestId('procurement-from-association')).toBeVisible()
+        } finally {
+            await page.request.delete(`/api/v1/inventories/${inventoryId}`, {headers})
+        }
     })
 
     /**
@@ -708,7 +750,7 @@ test.describe('Inventory', () => {
 
     /**
      * A correction is not a movement. The member is already holding the piece named in the window,
-     * and pressing save only makes the record say so.
+     * and pressing save only makes the record show that.
      */
     test('a check corrects which piece a member is holding', async ({managerPage: page}) => {
         await page.goto('/station/inventory/checks/member')
@@ -760,7 +802,7 @@ test.describe('Inventory', () => {
         await page.getByTestId('intake-number-0').fill(`A-${stamp}`)
         await page.getByTestId('intake-save').click()
 
-        await page.waitForURL(new RegExp(`/station/inventory/detail/${inventoryId}$`))
+        await page.waitForURL(new RegExp(`/station/inventory/detail/${inventoryId}(\\?[^#]*)?$`))
 
         const written = await page.request.get(`/api/v1/inventories/${inventoryId}/items`, {headers})
             .then(r => r.json())
@@ -789,7 +831,7 @@ test.describe('Inventory', () => {
         await page.getByTestId('intake-asked-0').check()
         await page.getByTestId('intake-save').click()
 
-        await page.waitForURL(new RegExp(`/station/inventory/detail/${inventoryId}$`))
+        await page.waitForURL(new RegExp(`/station/inventory/detail/${inventoryId}(\\?[^#]*)?$`))
 
         const written = await page.request.get(`/api/v1/inventories/${inventoryId}/items`, {headers})
             .then(r => r.json())
@@ -799,7 +841,7 @@ test.describe('Inventory', () => {
     })
 
     /**
-     * An inventory says whether it holds one thing in many copies or a drawer of different things,
+     * An inventory defines whether it holds one thing in many copies or a drawer of different things,
      * and the three features that only mean something for the first stop offering themselves for
      * the second. The story marks a drawer, then goes to the screen that writes requirements and
      * expects it not to be on offer there.
@@ -866,7 +908,7 @@ test.describe('Inventory', () => {
     /**
      * Tidying a drawer up into kinds. The point of the story is the rename: setting a kind leaves
      * the name alone, and the name is what every list and both exports read, so a typo would go on
-     * reading as a typo under a heading that says otherwise. Merging therefore rewrites it.
+     * reading as a typo under a heading that reads otherwise. Merging therefore rewrites it.
      */
     test('two spellings of one thing become one kind, and the typo is written out', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -1081,7 +1123,7 @@ test.describe('Inventory', () => {
         })
 
     /**
-     * Every open row of the queue wears a badge saying which step it stands on, and a badge picks
+     * Every open row of the queue wears a badge showing which step it stands on, and a badge picks
      * light or dark letters from the colours behind it. Switching the theme repaints those colours,
      * so the badge has to answer again: the pale one is what turns, and white letters on it are the
      * thing this story stands guard over.

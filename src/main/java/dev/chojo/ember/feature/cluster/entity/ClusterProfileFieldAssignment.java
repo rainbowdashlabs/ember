@@ -35,9 +35,9 @@ public record ClusterProfileFieldAssignment(
         @Nullable Boolean requiredOverride) {
 
     /**
-     * Whether only the member management may write the answer here, given what the definition says.
+     * Whether only the member management may write the answer here, given what the definition sets.
      *
-     * @param definitionReadonly what the field says of everybody asked it
+     * @param definitionReadonly what the field sets for everybody asked it
      * @return what holds for this audience
      */
     public boolean readonly(boolean definitionReadonly) {
@@ -45,7 +45,7 @@ public record ClusterProfileFieldAssignment(
     }
 
     /**
-     * How much of a row this audience gives the question, given what the definition says.
+     * How much of a row this audience gives the question, given what the definition sets.
      *
      * @param definitionWidth the width the question carries
      * @return the width this audience draws it at
@@ -55,7 +55,7 @@ public record ClusterProfileFieldAssignment(
     }
 
     /**
-     * Whether this audience must answer, given what the definition says.
+     * Whether this audience must answer, given what the definition sets.
      *
      * @param definitionRequired what the field asks of everybody
      * @return what it asks of this audience

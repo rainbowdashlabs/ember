@@ -67,7 +67,7 @@ test.describe('Cluster stations', () => {
     /**
      * CLS-14 - A station owner cannot leave on their own.
      *
-     * Belonging to a cluster is the cluster's to end. The station's page says which cluster it is and
+     * Belonging to a cluster is the cluster's to end. The station's page shows which cluster it is and
      * offers nothing that would leave it.
      */
     test('a station owner cannot leave on their own', async ({clusterStationManagerPage: page}) => {
@@ -112,7 +112,7 @@ test.describe('Cluster stations', () => {
     /**
      * CLS-16 - A cluster with stations cannot be deleted.
      *
-     * Deleting one would leave its stations answering to something that is not there. The refusal says
+     * Deleting one would leave its stations answering to something that is not there. The refusal shows
      * what has to happen first rather than simply failing.
      */
     test('a cluster with stations cannot be deleted', async ({adminPage: page}) => {

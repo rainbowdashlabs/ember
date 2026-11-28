@@ -148,8 +148,8 @@ const {running: saving, failure: addFailure, run: submitAdd} = useAsyncAction(as
 })
 
 /**
- * Reads the requirements again after one was written, and says a stale screen rather than a failed
- * change: the change is in by then, and a reader told otherwise makes the same change twice.
+ * Reads the requirements again after one was written, and reports a stale screen rather than a failed
+ * change: the change is in by then, and a reader shown otherwise makes the same change twice.
  */
 async function refreshAfterWrite() {
   try {

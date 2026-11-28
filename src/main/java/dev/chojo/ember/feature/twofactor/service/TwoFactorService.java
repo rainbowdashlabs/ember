@@ -422,7 +422,7 @@ public class TwoFactorService {
     }
 
     /**
-     * Stamps the session as freshly proved and records what proved it. Every caller says which proof
+     * Stamps the session as freshly proved and records what proved it. Every caller passes which proof
      * it accepted, because a route that vouches for another device has to refuse a stamp that came
      * from a device vouching in the first place.
      */
@@ -439,7 +439,7 @@ public class TwoFactorService {
     }
 
     /**
-     * Spends the stamp the caller read, and says whether it was still there to spend. Two callers
+     * Spends the stamp the caller read, and returns whether it was still there to spend. Two callers
      * racing on one proof both see it; only the one whose update matches the timestamp it read wins.
      */
     public boolean spendSessionProof(int sessionId, Instant seenAt) {

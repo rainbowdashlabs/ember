@@ -59,7 +59,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/** A shared appointment that changes tells the partner stations whose members hold a place on it. */
+/** A shared appointment that changes notifies the partner stations whose members hold a place on it. */
 class FederatedEventChangeServiceTest extends RepositoryTestBase {
 
     private static FederationRepository federationRepo;

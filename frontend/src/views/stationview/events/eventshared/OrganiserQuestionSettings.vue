@@ -13,13 +13,14 @@ import MutedText from '@/components/typography/MutedText.vue'
 import WidthField from '@/components/profilefields/WidthField.vue'
 import {FieldWidths} from '@/components/profilefields/fieldLayout'
 import {namesMembers} from '@/api/fieldTypes'
-import type {AttendanceTemplateField, EventFieldEntry, EventQuestionSettings} from '@/api/generated/schema'
+import {FieldType, type AttendanceTemplateField, type EventFieldEntry, type EventQuestionSettings} from '@/api/generated/schema'
 import {emptySettings} from './eventQuestions'
 
 /**
  * What only the organiser's question has: whether it shows in the overview and to readers outside,
  * which field of the attendance sheet its answer fills in, how wide it is drawn, and for a member
- * field whether members put themselves in and whether a series answers it per date.
+ * field whether members put themselves in and whether a series answers it per date, and for a place
+ * whether it is the location the calendar shows.
  */
 const question = defineModel<EventFieldEntry>({required: true})
 
@@ -80,6 +81,16 @@ function widthOf(width: string): string | undefined {
                  @update:model-value="selfRegistration => updateSettings({selfRegistration})"/>
     {{ t('eventFields.selfRegistration') }}
   </label>
+
+  <div v-if="question.fieldType === FieldType.LOCATION" class="space-y-1">
+    <label class="flex items-center gap-2 text-sm">
+      <ToggleInput :model-value="settings.calendarLocation ?? false"
+                   data-testid="question-calendar-location"
+                   @update:model-value="calendarLocation => updateSettings({calendarLocation})"/>
+      {{ t('eventFields.calendarLocation') }}
+    </label>
+    <MutedText size="sm" tag="p">{{ t('eventFields.calendarLocationHint') }}</MutedText>
+  </div>
 
   <div v-if="namesPeople && recurring" class="space-y-1">
     <label class="flex items-center gap-2 text-sm">

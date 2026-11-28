@@ -29,7 +29,7 @@ export interface DemoAccount {
     lastName: string
     userType: string
     permissions: string[]
-    /** Whether the account administers the instance. Station permissions say nothing about that. */
+    /** Whether the account administers the instance. Station permissions show nothing about that. */
     instanceAdministrator?: boolean
     /** The station the account belongs to, carried over from the group it was listed under. */
     stationId?: string
@@ -302,8 +302,28 @@ export async function apiHeaders(page: Page): Promise<Record<string, string>> {
 
     const csrf = await csrfOf(page.context())
     if (!csrf) throw new Error('The page holds no session to ask the backend with')
-    const station = await page.evaluate(() => window.localStorage.getItem('station_id'))
+    const station = await stationOf(page)
     return sessionHeaders({csrf}, station ?? undefined)
+}
+
+/**
+ * The station the page's tab works in. A tab keeps its own once it has used one, and the shared value
+ * only says where a new tab starts.
+ */
+export async function stationOf(page: Page): Promise<string | null> {
+    return page.evaluate(() =>
+        window.sessionStorage.getItem('tab_station_id') ?? window.localStorage.getItem('station_id'))
+}
+
+/**
+ * Moves the page's tab to a cluster the way the switcher does: the tab's own value and the one a new
+ * tab starts with. Takes effect with the next page load.
+ */
+export async function actForCluster(page: Page, clusterUid: string): Promise<void> {
+    await page.evaluate(uid => {
+        window.sessionStorage.setItem('tab_cluster_id', uid)
+        window.localStorage.setItem('cluster_id', uid)
+    }, clusterUid)
 }
 
 /**
@@ -418,17 +438,17 @@ export async function clusterHeaders(page: Page, cluster: Cluster): Promise<Reco
  */
 export async function enterCluster(page: Page): Promise<Cluster> {
     const cluster = await theSeededCluster(page)
-    await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), cluster.uid)
+    await actForCluster(page, cluster.uid)
     return cluster
 }
 
 /**
- * The cluster the demo is about, told apart from the ones the stories make.
+ * The cluster the demo is about, distinguished from the ones the stories make.
  *
  * Several stories create a cluster of their own to govern, and the administrator is appointed to every one
  * of them, so "the first cluster this account may act for" stops meaning anything the moment two stories
  * run at once. The seeded one is the only one with stations under it, which is also what makes it the one
- * worth telling a story about. It is told apart by name, because asking a cluster for its stations
+ * worth writing a story about. It is distinguished by name, because asking a cluster for its stations
  * needs a right the narrower cluster roles do not hold.
  */
 export async function theSeededCluster(page: Page): Promise<Cluster> {
@@ -535,7 +555,7 @@ function managersOf(group: DemoStationGroup): DemoAccount[] {
 /**
  * The cluster a station answers to, asked as one of its managers.
  *
- * @returns what the station says about its cluster, or null when this manager cannot ask
+ * @returns what the station reports about its cluster, or null when this manager cannot ask
  */
 async function clusterOf(
     request: APIRequestContext,
@@ -612,7 +632,7 @@ export async function standaloneStationManager(request: APIRequestContext): Prom
  *
  * Its own context because the account is also somebody at a station, and planting a cluster into the
  * shared session would follow the station stories around. The station header travels too: the same person
- * works a station queue and the cluster's, and which one they mean is the header's job to say.
+ * works a station queue and the cluster's, and which one they mean is the header's job to indicate.
  */
 export async function clusterGearManagerPage(browser: Browser, request: APIRequestContext): Promise<Page> {
     const account = await clusterAccountOnlyWith(request, 'CLUSTER_INVENTORY_MOVEMENTS')

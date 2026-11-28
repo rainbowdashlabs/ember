@@ -54,8 +54,8 @@ function pickedOption(answer: FormAnswerValue | undefined): string | null {
 }
 
 /**
- * Where a page leads with the given answers: where its deciding question's answer says, and where the
- * page itself says otherwise. The server walks the same way when the form is sent.
+ * Where a page leads with the given answers: where its deciding question's answer points, and where the
+ * page itself decides otherwise. The server walks the same way when the form is sent.
  */
 function targetOf(page: PathPage, questions: readonly PathQuestion[], answers: PathAnswers): PageTarget {
     const deciding = decidingQuestion(questions, page.key)

@@ -19,6 +19,7 @@ import {useCluster} from '@/composables/useCluster'
 import {useClusterNav} from '@/composables/useClusterNav'
 import {usePageHeader} from '@/composables/usePageHeader'
 import {useClusterNotificationCount} from '@/composables/useClusterNotificationCount'
+import {useLiveCounts} from '@/composables/useLiveCounts'
 import {ClusterPermission} from '@/api/clusters'
 
 const {loaded, sessionClusterId, load, hasClusterPermission} = useSession()
@@ -40,6 +41,7 @@ const {refresh: refreshUnreadNotifications} = useClusterNotificationCount()
 /** The number on the bell follows the association the shell is open on, once the reader may read its inbox. */
 const mayReadInbox = computed(() => sessionCurrent.value && hasClusterPermission(ClusterPermission.USER))
 watch(mayReadInbox, may => { if (may) void refreshUnreadNotifications() })
+useLiveCounts(refreshUnreadNotifications, () => mayReadInbox.value)
 
 onMounted(() => {
   if (!sessionCurrent.value) {

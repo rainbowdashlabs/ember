@@ -14,7 +14,7 @@ import {eventGroupColor, type EventGroupMark} from './eventGroupColor'
  * like the theme: the band lies over the tile's border and follows its rounded corners all the way
  * down, and leaves the words to the {@link EventGroupHeading} that runs along the top edge; as `mark` it is a short bar in a line of
  * text, for a calendar chip too narrow for a heading, and names the event group and the part
- * ("Jugendflamme 1, Teil 2 von 4") as its label and tooltip, so nothing is said by colour alone.
+ * ("Jugendflamme 1, Teil 2 von 4") as its label and tooltip, so nothing is conveyed by colour alone.
  */
 const props = withDefaults(defineProps<{
   eventGroup: EventGroupMark

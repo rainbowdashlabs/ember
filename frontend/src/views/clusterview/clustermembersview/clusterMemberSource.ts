@@ -14,7 +14,7 @@ import type {MemberDataSource, RosterMember} from '@/views/stationview/members/l
  * <p>The table filters and sorts what it holds, so it has to hold the whole roll to answer honestly.
  * The search is paged, so its pages are walked until they run out or this many have been read. An
  * association past this size needs the filtering and sorting done by the server instead, and the
- * screen says so rather than quietly showing a slice.
+ * screen indicates this rather than quietly showing a slice.
  */
 export const MANAGED_MEMBER_CAP = 2000
 

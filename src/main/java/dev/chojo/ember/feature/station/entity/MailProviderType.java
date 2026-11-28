@@ -32,7 +32,7 @@ public enum MailProviderType {
     /**
      * The last part of the address this provider reports delivery events to.
      *
-     * <p>Each provider sends a report of its own shape, so the address says which shape to expect.
+     * <p>Each provider sends a report of its own shape, so the address decides which shape to expect.
      * A provider that reports nothing of its own is read as Brevo's, which is what a plain server
      * relayed through one looks like.
      */

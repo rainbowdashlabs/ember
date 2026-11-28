@@ -88,7 +88,7 @@ public class MemberNameResolver {
     }
 
     /**
-     * The name that says who somebody is and what they are called at once, for a list of people.
+     * The name that shows who somebody is and what they are called at once, for a list of people.
      *
      * @return the name, or null where the member is not known
      */
@@ -106,7 +106,7 @@ public class MemberNameResolver {
     }
 
     /**
-     * The first name a mail says hello to, standing on its own.
+     * The first name a mail greets, standing on its own.
      *
      * @return the first name, or null where the member is not known
      */
@@ -149,7 +149,7 @@ public class MemberNameResolver {
     }
 
     /**
-     * The names that say who somebody is and what they are called, for a whole list at once: the
+     * The names that show who somebody is and what they are called, for a whole list at once: the
      * members not read yet are read in one go rather than one by one.
      *
      * @param memberIds the members

@@ -15,7 +15,8 @@ import CatalogHeader from './catalogdetailview/CatalogHeader.vue'
 import CategorySection from './catalogdetailview/CategorySection.vue'
 import QuestionSection from './catalogdetailview/QuestionSection.vue'
 import { StationPermission, type QuizCatalogDetail, type QuizQuestion, type QuizQuestionReport } from '@/api/generated/schema'
-import { quiz, storage } from '@/api'
+import { quiz } from '@/api'
+import { tabStationId } from '@/util/tabPlace'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure, type Failure } from '@/util/failure'
@@ -29,7 +30,7 @@ const catalogId = computed(() => Number(route.params.id))
 const canEdit = computed(() => hasPermission(StationPermission.TEST_CATALOG_EDIT))
 
 const currentStationId = computed(() => {
-  return storage.getItem('station_id') ?? null
+  return tabStationId()
 })
 
 const isFederated = computed(() => {
@@ -60,7 +61,7 @@ const { loading, failure, reload: loadData } = useAsyncLoader(async () => {
  * Writes the catalogue's own details, then reads it back.
  *
  * <p>Answered for separately: a name the server had already taken, followed by a page that would
- * not refresh, used to say the name had been refused, over a field still showing the new one.
+ * not refresh, used to show that the name had been refused, over a field still showing the new one.
  */
 async function saveCatalog(payload: { name: string; description: string; trainingEnabled: boolean }) {
   failure.value = null

@@ -182,7 +182,7 @@ public class DemoNewsSeeder implements DemoPerStationSeeder {
     }
 
     /**
-     * Writes a demo comment on an entry, telling whoever a comment written there tells.
+     * Writes a demo comment on an entry, notifying whoever a comment written there notifies.
      *
      * @return the comment's id
      */

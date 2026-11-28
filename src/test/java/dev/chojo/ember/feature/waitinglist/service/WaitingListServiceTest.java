@@ -1016,7 +1016,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                         entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 15), null)));
     }
 
-    /** Starting the trial tells the family, with what the station wrote, and the page keeps it. */
+    /** Starting the trial notifies the family, with what the station wrote, and the page keeps it. */
     @Test
     void theTrialBeginsWithAMessageToTheFamily() {
         var entry = service.createEntry(listId, "Neu", "Probe", guardians("", "probebeginn@test.com"), Map.of(), "");
@@ -1902,8 +1902,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     /**
      * A list holds what it asked for. A date field that took "irgendwann" carried it into the age it
-     * works out and into every export of the list, and nothing between the form and the row said a
-     * word about it.
+     * works out and into every export of the list, and nothing between the form and the row flagged it.
      */
     @Test
     void anAnswerTheQuestionDoesNotTakeIsRefused() {
@@ -2339,7 +2338,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Once every offered date has begun without an answer, the station is told, and only once. Other
+     * Once every offered date has begun without an answer, the station is notified, and only once. Other
      * dates make it count again.
      */
     @Test
@@ -2380,7 +2379,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertEquals(List.of(), datesGone);
     }
 
-    /** A list that writes to nobody and a switched-off waiting list tell the station nothing either. */
+    /** A list that writes to nobody and a switched-off waiting list notify the station of nothing either. */
     @Test
     void aQuietOrSwitchedOffListReportsNothing() {
         invitedTo("Still", "still-leer@test.com", LocalDate.of(2020, 5, 12));

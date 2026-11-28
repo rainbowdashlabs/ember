@@ -13,7 +13,7 @@ import {isStuck, isTroubled} from './mailRecordColumns'
 
 /**
  * A list of mails and what became of each. A mail that went wrong is marked red at its edge, one
- * that arrived green, and one stuck in the queue says so outright. Its `actions` slot takes what may
+ * that arrived green, and one stuck in the queue shows that outright. Its `actions` slot takes what may
  * be done with a mail.
  */
 defineProps<{

@@ -163,7 +163,7 @@ public class AttendanceReportService {
      * monthly tables have always done this; the overall one used to list every member of the chosen
      * groups, so the same report contradicted itself on the same page and a reader scrolled past
      * empty rows to find the people who had actually been there. Preview and printout are built from
-     * these same rows, so both say the same thing.
+     * these same rows, so both show the same thing.
      */
     public ReportData buildReport(
             int stationId,
@@ -372,7 +372,11 @@ public class AttendanceReportService {
         data.put("from", DATE_FMT.format(from.atZone(zone)));
         data.put("to", DATE_FMT.format(to.atZone(zone)));
         data.put("filterLabel", report.filterLabel());
-        data.put("members", report.members().stream().map(this::memberToMap).toList());
+        data.put(
+                "members",
+                report.members().stream()
+                        .map(member -> memberToMap(member, language))
+                        .toList());
         data.put(
                 "monthlySummaries",
                 report.monthlySummaries().stream()
@@ -381,7 +385,9 @@ public class AttendanceReportService {
                             m.put("month", ms.month());
                             m.put(
                                     "members",
-                                    ms.members().stream().map(this::memberToMap).toList());
+                                    ms.members().stream()
+                                            .map(member -> memberToMap(member, language))
+                                            .toList());
                             m.put(
                                     "sessions",
                                     ms.sessions().stream()
@@ -422,7 +428,7 @@ public class AttendanceReportService {
      * disagree: a member left out of one is left out of all of them. The per-session detail below the
      * summary is deliberately not here, because what this is for is the total against a name. The
      * preparation and follow-up counted into that total stand beside it in minutes, so a reader can
-     * tell the time spent at appointments from the time spent around them.
+     * distinguish the time spent at appointments from the time spent around them.
      */
     public Optional<ExportedDocument> exportReportCsv(
             int stationId,
@@ -445,12 +451,11 @@ public class AttendanceReportService {
                 english ? "Hours" : "Stunden",
                 english ? "Preparation (min)" : "Vorbereitung (Min.)",
                 english ? "Follow-up (min)" : "Nachbereitung (Min.)");
-        var hoursFormat = hoursFormatFor(locale);
         var rows = report.members().stream()
                 .map(member -> List.of(
                         member.name(),
                         String.valueOf(member.sessionCount()),
-                        hoursFormat.format(member.totalHours()),
+                        hoursIn(member.totalHours(), locale),
                         String.valueOf(member.preparationMinutes()),
                         String.valueOf(member.followUpMinutes())))
                 .toList();
@@ -461,15 +466,20 @@ public class AttendanceReportService {
     }
 
     /**
-     * Hours are written the way the station's own language writes a number.
+     * Hours written the way the station's own language writes a number, to one decimal.
      *
-     * <p>Seven and a half is {@code 7,5} in German and {@code 7.5} in English, and a spreadsheet
-     * reads a number it does not recognise as text, which is the difference between a column that
-     * adds up and one that does not.
+     * <p>Seven and a half is {@code 7,5} in German and {@code 7.5} in English, whatever locale the
+     * server runs in. A spreadsheet reads a number it does not recognise as text, which is the
+     * difference between a column that adds up and one that does not, and a printed sheet reads the
+     * same as the spreadsheet beside it.
+     *
+     * @param hours    the hours
+     * @param language the station's language
+     * @return the hours as the station writes them
      */
-    private static DecimalFormat hoursFormatFor(String locale) {
-        Locale numbers = "en".equals(locale) ? Locale.ENGLISH : Locale.GERMANY;
-        return new DecimalFormat("0.0", DecimalFormatSymbols.getInstance(numbers));
+    static String hoursIn(double hours, String language) {
+        Locale numbers = "en".equals(language) ? Locale.ENGLISH : Locale.GERMANY;
+        return new DecimalFormat("0.0", DecimalFormatSymbols.getInstance(numbers)).format(hours);
     }
 
     /**
@@ -477,7 +487,7 @@ public class AttendanceReportService {
      *
      * <p>Reads {@code Anwesenheit - Jugend - Januar 2026.pdf}: what it is, whose it is, and when it
      * covers. The filter goes in only where it names one thing, because a report covering several
-     * groups is about all of them and a name carrying only the first would say something the document
+     * groups is about all of them and a name carrying only the first would claim something the document
      * does not.
      */
     static String reportFileName(String period, Instant from, ZoneId zone, String locale, String filterLabel) {
@@ -492,10 +502,10 @@ public class AttendanceReportService {
     /**
      * What one entry adds to the hours, rounded the way the report was asked for.
      *
-     * <p>How long the presence is worth is the sheet's to say: a sheet with a number of its own
+     * <p>How long the presence is worth is the sheet's to decide: a sheet with a number of its own
      * counts a whole presence as that number and a part of one as its share, and a sheet without
      * counts the clock. Preparation and follow-up come on top in full, also on a sheet with a number
-     * of its own, since that number says what the appointment is worth and not the work around it.
+     * of its own, since that number shows what the appointment is worth and not the work around it.
      * The rounding comes last, over the whole duty, so the printed number is the one that was added
      * up.
      */
@@ -518,9 +528,9 @@ public class AttendanceReportService {
     /**
      * One sheet as the report template reads it.
      *
-     * <p>A sheet that runs into another day says so: its own line carries the second date, and every
+     * <p>A sheet that runs into another day shows it: its own line carries the second date, and every
      * arrival and departure under it carries the day it happened on, since a time on its own would
-     * be two different moments at once. A sheet counted by hand says that too, so that a reader
+     * be two different moments at once. A sheet counted by hand shows that too, so that a reader
      * adding the column up can see why it does not follow the times printed beside it.
      */
     private Map<String, Object> sessionToMap(SessionData s, String language) {
@@ -533,7 +543,8 @@ public class AttendanceReportService {
         m.put("endDate", spansDays ? s.endDate() : "");
         m.put("startTime", s.startTime());
         m.put("endTime", s.endTime());
-        m.put("countedHours", s.countedHours() != null ? String.format("%.1f", s.countedHours()) : "");
+        Double countedHours = s.countedHours();
+        m.put("countedHours", countedHours != null ? hoursIn(countedHours, language) : "");
         m.put(
                 "entries",
                 s.entries().stream()
@@ -543,7 +554,7 @@ public class AttendanceReportService {
                             em.put("status", e.status());
                             em.put("checkIn", momentInSheet(e.checkIn(), spansDays));
                             em.put("checkOut", momentInSheet(e.checkOut(), spansDays));
-                            em.put("hours", String.format("%.1f", e.hours()));
+                            em.put("hours", hoursIn(e.hours(), language));
                             em.put("extra", extraTimeText(e.preparationMinutes(), e.followUpMinutes(), language));
                             return em;
                         })
@@ -582,10 +593,10 @@ public class AttendanceReportService {
                 : SHEET_TIME_FMT.format(moment);
     }
 
-    private Map<String, Object> memberToMap(MemberSummary m) {
+    private Map<String, Object> memberToMap(MemberSummary m, String language) {
         var map = new LinkedHashMap<String, Object>();
         map.put("name", m.name());
-        map.put("totalHours", String.format("%.1f", m.totalHours()));
+        map.put("totalHours", hoursIn(m.totalHours(), language));
         map.put("sessionCount", m.sessionCount());
         map.put("presentCount", m.presentCount());
         return map;
@@ -593,7 +604,7 @@ public class AttendanceReportService {
 
     /**
      * The preparation and follow-up one present person is credited with on one sheet: nothing where
-     * the sheet says they did not do it, otherwise what the sheet's rules give them.
+     * the sheet shows they did not do it, otherwise what the sheet's rules give them.
      */
     private static ExtraTime extraTimeOf(
             AttendanceEntry entry, List<TimeRule> rules, Map<Integer, RestrictionMember> members) {
@@ -679,9 +690,9 @@ public class AttendanceReportService {
     /**
      * A member's attendance entry within a specific session.
      *
-     * <p>The two moments carry their day, because a sheet that runs over a weekend cannot say when
+     * <p>The two moments carry their day, because a sheet that runs over a weekend cannot show when
      * somebody arrived with a time alone. Preparation and follow-up are not in the moments: they are
-     * counted into the hours and named beside them, so the times still say when somebody was there.
+     * counted into the hours and named beside them, so the times still show when somebody was there.
      *
      * @param hours              the hours counted, preparation and follow-up included
      * @param preparationMinutes the preparation counted into them

@@ -116,7 +116,7 @@ class QuestionConfigsTest {
     }
 
     /**
-     * A column that says nothing, or says something unreadable, is a field to put right rather than
+     * A column that holds nothing, or holds something unreadable, is a field to put right rather than
      * a feature to take out: every one of the five answers with its empty settings.
      */
     @Test

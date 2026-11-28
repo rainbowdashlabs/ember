@@ -52,7 +52,7 @@ public class Auth {
      * How long a mail waits after a guardian switched signing in on or off for a member in their
      * care, before it is sent.
      *
-     * <p>The switch itself takes effect at once; only the telling waits. A guardian who flicks it by
+     * <p>The switch itself takes effect at once; only the notice waits. A guardian who flicks it by
      * accident and flicks it straight back inside this window sends the member nothing at all, which
      * is the whole point of the delay. Zero sends with the next sweep, about a minute later.
      */
@@ -153,7 +153,7 @@ public class Auth {
      * How long a session lasts on a machine nobody vouched for, never longer than one somebody did.
      *
      * <p>The settings screen refuses to save the two the wrong way round, but a config file written
-     * by hand can still say it, and the ordering has to hold whichever way the value arrived.
+     * by hand can still contain it, and the ordering has to hold whichever way the value arrived.
      */
     public int untrustedSessionMinutes() {
         return Math.min(Math.max(5, untrustedSessionMinutes), sessionMinutes());

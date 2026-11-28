@@ -133,7 +133,7 @@ public class RequirementSignatureStates implements RequirementSignatures {
     }
 
     /**
-     * Where a copy stands as a whole: revoked where a signer withdrew its agreement, else as its fields say.
+     * Where a copy stands as a whole: revoked where a signer withdrew its agreement, else as its fields show.
      *
      * @param state  where its request stands
      * @param fields its fields

@@ -6,7 +6,7 @@
 import {readonly} from 'vue'
 import {browserRef, browserShallowRef} from '@/util/browserState'
 
-/** Something the reader may do about what the toast says, offered beside it. */
+/** Something the reader may do about what the toast shows, offered beside it. */
 export interface ToastAction {
     label: string
     run: () => void | Promise<void>

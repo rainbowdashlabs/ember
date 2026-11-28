@@ -37,7 +37,8 @@ import {
     faFilePowerpoint, faDisplay, faKey, faArrowsUpDown, faLightbulb, faBroom, faTowerBroadcast,
     faEllipsisVertical, faWarehouse, faBox, faSuitcase, faCube, faFingerprint, faPrint,
     faHelmetSafety, faVest, faVestPatches, faMitten, faShoePrints, faSocks, faMask, faHeadSideMask,
-    faGlasses, faRadio, faWalkieTalkie, faHeadphones, faStapler, faToolbox, faScrewdriverWrench, faWrench, faHammer,
+    faGlasses, faChair, faTrailer, faFireBurner, faMugHot, faUtensils, faCashRegister, faBolt, faGift, faTree,
+    faSnowflake, faRadio, faWalkieTalkie, faHeadphones, faStapler, faToolbox, faScrewdriverWrench, faWrench, faHammer,
     faFireExtinguisher, faWaterLadder, faBatteryFull, faTrowel, faKitMedical, faSuitcaseMedical,
     faTruckMedical, faDice, faDiceD20, faTent, faRuler, faBagShopping, faBriefcase,
     faComments, faFaceSmile, faCrown,
@@ -85,13 +86,14 @@ library.add(
     faArrowsUpDown, faLightbulb, faBroom, faTowerBroadcast, faEllipsisVertical,
     faWarehouse, faBox, faSuitcase, faCube, faFingerprint, faShirt,
     faHelmetSafety, faVest, faVestPatches, faMitten, faShoePrints, faSocks, faMask, faHeadSideMask,
-    faGlasses, faRadio, faWalkieTalkie, faHeadphones, faStapler, faToolbox, faScrewdriverWrench, faWrench, faHammer,
+    faGlasses, faChair, faTrailer, faFireBurner, faMugHot, faUtensils, faCashRegister, faBolt, faGift, faTree,
+    faSnowflake, faRadio, faWalkieTalkie, faHeadphones, faStapler, faToolbox, faScrewdriverWrench, faWrench, faHammer,
     faFireExtinguisher, faWaterLadder, faBatteryFull, faTrowel, faKitMedical, faSuitcaseMedical,
     faTruckMedical, faDice, faDiceD20, faTent, faRuler, faBagShopping, faBriefcase, faPrint,
 )
 
 /**
- * Tells the template type-check about the icon component this plugin registers globally. Templates are
+ * Informs the template type-check of the icon component this plugin registers globally. Templates are
  * checked for unknown components, and a component registered at runtime is unknown to them otherwise.
  */
 declare module 'vue' {

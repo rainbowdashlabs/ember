@@ -40,7 +40,7 @@ const rows = ref<RowEditData[]>([])
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 const pageId = computed(() => Number(route.params.id))
 
-/** Held so that a save can tell the editor its draft is no longer a rescue worth keeping. */
+/** Held so that a save can let the editor know its draft is no longer a rescue worth keeping. */
 const editor = ref<InstanceType<typeof ContentBlockEditor> | null>(null)
 
 /**

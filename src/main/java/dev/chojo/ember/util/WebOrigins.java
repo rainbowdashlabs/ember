@@ -33,7 +33,7 @@ public final class WebOrigins {
      *
      * <p>The port comes with it when the address names one. Without it a code from an instance that
      * does not sit on the standard port names something nobody can reach: the side entering the code
-     * has only the code to go by, and would call the same host on a port it was never told about.
+     * has only the code to go by, and would call the same host on a port it was never given.
      *
      * @param baseUrl the base URL of an instance
      * @return its host, with the port where the URL names one; the text itself where it is no address

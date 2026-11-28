@@ -13,7 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
  *
  * <p>The partner decides what it shares, and nothing here learns that it stopped until the file is
  * asked for. A bare error at that moment leaves the reader with a star pointing nowhere and no idea
- * why, so the likely reason is said and the way to take the favourite off is right beside it.
+ * why, so the likely reason is shown and the way to take the favourite off is right beside it.
  */
 defineEmits<{remove: []}>()
 

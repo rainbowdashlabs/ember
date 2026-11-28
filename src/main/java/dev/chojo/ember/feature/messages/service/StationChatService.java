@@ -197,7 +197,7 @@ public class StationChatService {
         if (reopened && !reconcileQuietly(chat)) tell(chat);
     }
     /**
-     * Tells the tabs of everybody in a chat that its name or state changed.
+     * Notifies the tabs of everybody in a chat that its name or state changed.
      */
     private void tell(Conversation chat) {
         Transactions.afterCommit(() -> signals.publishTo(chat.id(), MessageEvent.conversation(chat.uid()), List.of()));
@@ -206,7 +206,7 @@ public class StationChatService {
     /**
      * Takes a chat's audience in after a change that has been committed. A failure here leaves the
      * change standing and is logged; the next change to the station or the daily sweep makes up for
-     * it. Answers whether anything changed, in which case the chat's tabs were told already.
+     * it. Answers whether anything changed, in which case the chat's tabs were notified already.
      */
     private boolean reconcileQuietly(Conversation chat) {
         try {

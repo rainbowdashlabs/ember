@@ -25,7 +25,7 @@ import java.util.Optional;
  * <p>The rules are deliberately about shape and not about wording. What a step is called is the
  * station's business; that the chain ends somewhere the gear can rest is not.
  *
- * <p>What a single step may say is checked where that step is written, not here. This is only about
+ * <p>What a single step may hold is checked where that step is written, not here. This is only about
  * what the steps add up to.
  */
 final class MovementFlowValidation {
@@ -49,7 +49,7 @@ final class MovementFlowValidation {
      * The one thing that stops this chain from being walked.
      *
      * <p>Reported rather than only thrown, because a chain under construction is briefly unwalkable
-     * on the way to being finished. The editor says what is still missing while somebody builds it,
+     * on the way to being finished. The editor shows what is still missing while somebody builds it,
      * and binding it or starting a movement on it is where the same answer becomes a refusal.
      *
      * @param purpose what the chain is for

@@ -45,7 +45,7 @@ class MessageIdentityTest {
 
     /**
      * Two different mails must not collide into one, or the second would look handled and be dropped
-     * without anybody being told.
+     * without anybody being notified.
      */
     @Test
     void differentEnvelopesAreDifferentMessages() {

@@ -64,7 +64,7 @@ public class EventCancellationService {
     }
 
     /**
-     * Calls a whole series off, and tells everybody holding a place on a date still to come.
+     * Calls a whole series off, and notifies everybody holding a place on a date still to come.
      *
      * @param stationId the station the caller acts for
      * @param eventId   the series
@@ -85,7 +85,7 @@ public class EventCancellationService {
     }
 
     /**
-     * Calls one date of an appointment off, and tells everybody holding a place on it.
+     * Calls one date of an appointment off, and notifies everybody holding a place on it.
      *
      * @param event       the appointment
      * @param date        the date, on the station's calendar
@@ -123,7 +123,7 @@ public class EventCancellationService {
     }
 
     /**
-     * Brings a date back that was called off, and tells everybody who kept their place on it.
+     * Brings a date back that was called off, and notifies everybody who kept their place on it.
      *
      * <p>A date of a series that was called off as a whole stays off: that cancellation is final.
      *
@@ -145,7 +145,7 @@ public class EventCancellationService {
     }
 
     /**
-     * The dates of an appointment that are off, as a reader is told about them.
+     * The dates of an appointment that are off, as a reader sees them.
      *
      * @param eventId the appointment
      * @return those dates, earliest first

@@ -15,7 +15,7 @@ const HALF_STOP = '2'
  *
  * <p>A template is edited once and then used for a year, so the things that go wrong here are the
  * things nobody notices until they are needed: a question in the wrong place, a question asking for a
- * member of a group without saying which group, and a second template that has to be typed out again
+ * member of a group without showing which group, and a second template that has to be typed out again
  * because the first one could only be copied by hand.
  */
 
@@ -76,7 +76,7 @@ test.describe('Event templates', () => {
     })
 
     /**
-     * A question that asks for a member of a group says which group.
+     * A question that asks for a member of a group shows which group.
      *
      * <p>The choice was missing entirely, which left a question that could be saved and then answered
      * with nobody: the group it draws from was never written down.
@@ -156,7 +156,7 @@ test.describe('Event templates', () => {
     /**
      * The attendance sheet a template names travels with it onto the appointment.
      *
-     * <p>A template said which sheet the attendance is taken on, and applying it to an appointment
+     * <p>A template defined which sheet the attendance is taken on, and applying it to an appointment
      * left that empty, so whoever applied it set the same thing again by hand. The story sets the
      * sheet on the template, applies the template to a new appointment, and reads the appointment's
      * own field back. The template is its own, since the stories beside it read the seeded ones.
@@ -212,7 +212,7 @@ test.describe('Event templates', () => {
     })
 
     /**
-     * A template says who its appointments are for, and applying it says so on the appointment.
+     * A template defines who its appointments are for, and applying it shows that on the appointment.
      *
      * <p>A template could only ever name a kind of member, so a station running one appointment for the
      * youngest group picked that group again on every date of the year. Naming it once on the

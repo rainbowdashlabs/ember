@@ -22,7 +22,7 @@ const rows = defineModel<RowEditData[]>('rows', {required: true})
 defineProps<{
   mode: ContentMode
   stationUid: string
-  /** Names this entry so its unsaved writing is told apart from another's. */
+  /** Names this entry so its unsaved writing is distinguished from another's. */
   draftKey?: string
 }>()
 

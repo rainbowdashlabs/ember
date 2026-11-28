@@ -21,8 +21,8 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -154,13 +154,11 @@ public class StationApplicationService {
         stationRepository.startWaiting(station.id());
 
         String token = UUID.randomUUID().toString();
+        Duration validFor = Duration.ofDays(authConfig.setupTokenDays());
         accountRepository.createToken(
-                account.id(),
-                token,
-                TokenType.SET_PASSWORD,
-                Instant.now().plus(authConfig.setupTokenDays(), ChronoUnit.DAYS));
+                account.id(), token, TokenType.SET_PASSWORD, Instant.now().plus(validFor));
         emailService.sendApplicationAcceptedEmail(
-                application.email(), application.firstName(), application.stationName(), token, "de", null);
+                application.email(), application.firstName(), application.stationName(), token, validFor, "de", null);
 
         log.info(
                 "Station application accepted: id={}, station='{}', account={}",

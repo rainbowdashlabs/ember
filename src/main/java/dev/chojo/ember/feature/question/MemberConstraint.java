@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.question;
 /**
  * Which members a field that names members may name.
  *
- * <p>The field type says which of these applies, and the field's settings say which group, user type
+ * <p>The field type decides which of these applies, and the field's settings define which group, user type
  * or tag it is. Whether a given member passes is asked of {@link MemberEligibility}, because only the
  * members feature knows who is in which group.
  */

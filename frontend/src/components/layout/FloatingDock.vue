@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 /**
  * The row of round buttons at the bottom right of the page, laid out right to left in the order they
- * are given: bug report, help center, the onboarding to resume, developer tools. Each button only says
+ * are given: bug report, help center, the onboarding to resume, developer tools. Each button only shows
  * what it is; where it sits is this row's business, so two of them can never claim the same spot.
  */
 </script>

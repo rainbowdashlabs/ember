@@ -18,7 +18,6 @@ const api = vi.hoisted(() => ({
     deleteProblem: vi.fn(),
     resolveAll: vi.fn(),
     sendProblems: vi.fn(),
-    refreshCounts: vi.fn(),
 }))
 
 vi.mock('@/api', () => ({
@@ -31,10 +30,6 @@ vi.mock('@/api', () => ({
         resolveAll: api.resolveAll,
     },
     beacon: {sendProblems: api.sendProblems},
-}))
-
-vi.mock('@/composables/useMonitoringCounts', () => ({
-    useMonitoringCounts: () => ({refresh: api.refreshCounts}),
 }))
 
 function problem(id: number, level: ProblemLevel = ProblemLevel.ERROR, state: ProblemState = ProblemState.OPEN): StoredProblem {
@@ -61,7 +56,7 @@ async function mounted() {
 
 /**
  * Working through the problem log: the list follows its filters and only the latest answer counts, every
- * change is followed by a quiet reload and a fresh count, and whatever fails is said.
+ * change is followed by a quiet reload and a fresh count, and whatever fails is shown.
  */
 describe('useProblemList', () => {
     beforeEach(() => {
@@ -109,7 +104,7 @@ describe('useProblemList', () => {
         expect(list.entries.value.map(e => e.id)).toEqual([9])
     })
 
-    it('reloads quietly and refreshes the counts after a change', async () => {
+    it('reloads quietly after a change', async () => {
         const list = await mounted()
         api.listProblems.mockResolvedValue([problem(2, ProblemLevel.WARN)])
 
@@ -118,7 +113,6 @@ describe('useProblemList', () => {
         expect(api.mute).toHaveBeenCalledWith(1)
         expect(list.loading.value).toBe(false)
         expect(list.entries.value.map(e => e.id)).toEqual([2])
-        expect(api.refreshCounts).toHaveBeenCalled()
     })
 
     it('says what failed and still shows what the server holds', async () => {

@@ -101,7 +101,7 @@ export function snapWidth(columns: number): FieldWidthName {
  * A field's settings, whether they arrive as an object or as the text they are stored as.
  *
  * <p>Which of the two turns up depends on the screen: a field just typed carries its settings as an
- * object, while one read back from the server carries the text. Both say the same thing, and a width
+ * object, while one read back from the server carries the text. Both mean the same thing, and a width
  * that only applies to one of them is a width that appears to be ignored every other time.
  *
  * @param config what the field carries, in either shape
@@ -125,20 +125,20 @@ export function configOf(config?: string | Record<string, unknown> | null): Reco
  * one place gets the same result in the other.
  *
  * @param width what was configured, or nothing
- * @return the grid class, a whole row where nothing was said
+ * @return the grid class, a whole row where nothing was given
  */
 export function spanForWidth(width?: unknown): string {
     return SPANS[asFieldWidth(width)]
 }
 
-/** A field that says nothing about its width takes the whole row, which is how it always was. */
+/** A field that defines no width takes the whole row, which is how it always was. */
 export function widthOf(field: LayoutField): FieldWidthName {
     return asFieldWidth(field.width)
 }
 
 /**
  * The grid class for a field. A heading always takes the whole row: it introduces what follows and
- * would say nothing standing beside it.
+ * would show nothing standing beside it.
  */
 export function spanClass(field: LayoutField): string {
     return isSection(field) ? SPANS[FieldWidths.FULL] : SPANS[widthOf(field)]
@@ -157,8 +157,8 @@ export function isSpacer(field: LayoutField): boolean {
 /**
  * Whether the entry asks anything.
  *
- * <p>Two of them do not, and they are not the same thing: a heading takes the whole row and says
- * something, a spacer keeps its width and says nothing. Everything that saves, exports or asks about
+ * <p>Two of them do not, and they are not the same thing: a heading takes the whole row and shows
+ * something, a spacer keeps its width and shows nothing. Everything that saves, exports or asks about
  * an answer wants this rather than either of them on its own.
  */
 export function holdsAnswer(field: LayoutField): boolean {

@@ -318,7 +318,7 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Applying the storage the instance already stands on, say with only new credentials, builds a fresh
+     * Applying the storage the instance already stands on, for example with only new credentials, builds a fresh
      * backend for the same place. Its keys are the instance's own files, so nothing is copied and nothing
      * is deleted, even when the old files are not to be kept.
      */

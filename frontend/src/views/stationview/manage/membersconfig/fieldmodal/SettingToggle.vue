@@ -19,7 +19,7 @@ const on = defineModel<boolean>({required: true})
 
 defineProps<{
   label: string
-  /** What the switch does, where its name alone does not say. */
+  /** What the switch does, where its name alone does not make clear. */
   hint?: string
   /** What the switch is found by in tests. */
   testId?: string

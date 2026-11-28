@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A chain that does not wait for the member's receipt confirms it for them the moment a movement reaches it,
- * in the member's name and marked as automatic, and tells nobody to confirm it. A chain without the setting
+ * in the member's name and marked as automatic, and asks nobody to confirm it. A chain without the setting
  * still waits.
  */
 class MemberReceiptSkipTest extends RepositoryTestBase {

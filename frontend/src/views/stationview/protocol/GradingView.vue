@@ -173,7 +173,7 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
  *
  * <p>The two are answered for separately. Marking somebody complete, releasing them again and
  * moving on all used to share the save's `try`, so a grading the server had already taken, followed
- * by a step that was refused, said the grading had not been saved. A grader told that ticks the
+ * by a step that was refused, showed that the grading had not been saved. A grader shown that ticks the
  * whole section again.
  */
 const {running: saving, failure: saveFailure, run: runSave} = useAsyncAction(
@@ -218,7 +218,7 @@ async function markSection(sectionId: number): Promise<boolean> {
   return everySectionDone.value
 }
 
-/** Says that the member is through with every station, then leaves for the run. */
+/** Shows that the member is through with every station, then leaves for the run. */
 function finishedExam() {
   showToast(t('protocol.examFinished', {name: member.value?.name || member.value?.email || ''}), 'success')
   return backToRun()

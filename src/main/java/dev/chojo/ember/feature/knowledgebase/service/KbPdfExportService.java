@@ -65,7 +65,7 @@ public class KbPdfExportService {
     }
 
     /**
-     * Tells whether a file type has a written body this service can render.
+     * Returns whether a file type has a written body this service can render.
      *
      * @param fileType the file type to check
      * @return whether the file can be exported as PDF

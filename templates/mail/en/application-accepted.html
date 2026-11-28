@@ -4,5 +4,5 @@
       <p>Your application for the station <strong>{{ stationName }}</strong> has been accepted!</p>
       <p>Your account has been created. Please set your password to get started:</p>
       <div class="btn-wrap"><a class="btn-green" href="{{ url }}">Set Password</a></div>
-      <p class="hint">This link expires in 72 hours.</p>
+      <p class="hint">This link expires in {{ validFor }}.</p>
 {% endblock %}

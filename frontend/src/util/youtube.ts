@@ -62,7 +62,7 @@ export function extractYoutubePlaylistId(url: string): string | null {
  * The privacy-friendly embed URL for a whole playlist, which plays it in order.
  *
  * <p>Takes the id itself rather than a link, because the place this is used knows the playlist it
- * means and should not have to carry a whole address to say so.
+ * means and should not have to carry a whole address to identify it.
  */
 export function youtubePlaylistEmbedUrl(playlistId: string): string {
     return `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(playlistId)}`

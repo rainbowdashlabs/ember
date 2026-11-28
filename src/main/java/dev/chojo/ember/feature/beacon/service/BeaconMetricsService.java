@@ -131,7 +131,7 @@ public class BeaconMetricsService implements TaskSource {
      * The same, judged against a given moment.
      *
      * <p>The moment is a parameter because whether a report is due depends on the time of day, and a
-     * test that cannot say what time it is can only assert the case the clock happens to be in.
+     * test that cannot know what time it is can only assert the case the clock happens to be in.
      *
      * @param version this instance's version
      * @param now     the moment to judge against

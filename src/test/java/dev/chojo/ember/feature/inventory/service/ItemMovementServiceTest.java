@@ -107,7 +107,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 .orElseThrow();
     }
 
-    /** Whether the step a movement is standing on is the one that says which piece arrived. */
+    /** Whether the step a movement is standing on is the one that marks which piece arrived. */
     private boolean namesTheArrival(ItemMovement movement) {
         int stepId = movement.currentStepId();
         return itemMovementService.stepsOf(movement).stream()
@@ -182,8 +182,8 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A replacement is owned by whoever the inventory says it holds gear of, whatever the piece
-     * that left had written on it. A piece still saying STATION inside an external inventory is the
+     * A replacement is owned by whoever the inventory shows it holds gear of, whatever the piece
+     * that left had written on it. A piece still marked STATION inside an external inventory is the
      * state an inventory switched after its items were created used to leave behind, and the
      * replacement must not inherit it: the inventory would refuse its own replacement. Only a mixed
      * inventory leaves the answer to the piece that left.
@@ -288,7 +288,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
     /**
      * The owning body is named, but nobody from its side can press anything, so the station is still
-     * standing in and the record has to say so.
+     * standing in and the record has to show that.
      */
     @Test
     void namingABodyAboveTheStationDoesNotMakeItsStepsItsOwnAnswer() {
@@ -340,8 +340,8 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
     /**
      * An issue that already names what is being sent is what a cluster starting one looks like, and the
-     * station is told what is coming by name rather than by a step it has to go and read. Somebody
-     * answering for the cluster starts it, because the station cannot say that gear has been sent.
+     * station sees what is coming by name rather than by a step it has to go and read. Somebody
+     * answering for the cluster starts it, because the station cannot confirm that gear has been sent.
      */
     @Test
     void anIssueOfClusterGearNamesWhatIsOnItsWay() {
@@ -484,7 +484,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A member's inventory says what they hold, and stops saying it the moment they hand it over.
+     * A member's inventory shows what they hold, and stops showing it the moment they hand it over.
      *
      * <p>Before the handover the row stays and names the movement, because the jacket is still on them
      * and the exchange is merely asked for. After it, neither piece is theirs: the old one is in the
@@ -892,7 +892,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A movement on the wrong flow is moved over and stands where it is told to stand.
+     * A movement on the wrong flow is moved over and stands where it is meant to stand.
      *
      * <p>The wrong flow is put under it by hand, because the bug that used to do so is fixed: a mixed
      * inventory once answered with the body's flow for the station's own gear, and the movements that

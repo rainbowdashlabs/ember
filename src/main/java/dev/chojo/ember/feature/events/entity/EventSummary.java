@@ -13,7 +13,7 @@ import java.time.Instant;
  * Sparse representation of a station event for list views and federated browse responses.
  * Contains only the fields needed to render an event list row.
  *
- * <p>{@code seriesCancelled} says that every date is off for good. A single date that is off is told
+ * <p>{@code seriesCancelled} marks that every date is off for good. A single date that is off is shown
  * beside the date it belongs to, since the appointment itself goes on.
  */
 public record EventSummary(
@@ -57,7 +57,7 @@ public record EventSummary(
     }
 
     /**
-     * The same appointment, saying which event group it is a part of.
+     * The same appointment, showing which event group it is a part of.
      *
      * @param part the event group it is a part of, or null for an appointment of its own
      * @return the summary with the event group

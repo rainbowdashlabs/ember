@@ -60,7 +60,7 @@ export function setFieldValue(values: Ref<Map<number, string>>, fieldId: number,
 export type ProfileFieldValueEntry = Pick<MergedValue, 'fieldId'> & {value?: string | null}
 
 /**
- * The question as one audience meets it: the definition, with whatever their assignment says instead.
+ * The question as one audience meets it: the definition, with whatever their assignment sets instead.
  *
  * <p>Width and whether an answer is expected are the definition's until an audience overrides them, so
  * the override standing at null is what keeps the definition's answer free to change underneath.
@@ -91,7 +91,7 @@ export interface GroupedField {
  * were dragged into, which becomes the group's own order.
  *
  * @param ordered the questions in the order they were dragged into
- * @param fields  every question of the owner, which says which group each is in
+ * @param fields  every question of the owner, which records which group each is in
  */
 export function keepSetsTogether(ordered: readonly number[], fields: readonly GroupedField[]): number[] {
     return groupTogether(ordered, fields, (setId, setOf) => ordered.filter(other => setOf(other) === setId))
@@ -137,7 +137,7 @@ function setLookup(fields: readonly GroupedField[]): (id: number) => number | nu
  * they were dragged into. Questions of the group the form does not ask keep their places.
  *
  * @param ordered the questions in the order they were dragged into
- * @param fields  every question of the owner, which says which group each is in and where
+ * @param fields  every question of the owner, which records which group each is in and where
  * @return the full new order of every group that changes, by group
  */
 export function reorderedSets(ordered: readonly number[], fields: readonly GroupedField[]): Map<number, number[]> {
@@ -162,7 +162,7 @@ export function reorderedSets(ordered: readonly number[], fields: readonly Group
  * server puts every other form back once a group's order has changed.
  *
  * @param ordered the questions in the order the form had them
- * @param fields  every question of the owner, which says which group each is in and where
+ * @param fields  every question of the owner, which records which group each is in and where
  */
 export function keepSetsInTheirOrder(ordered: readonly number[], fields: readonly GroupedField[]): number[] {
     return groupTogether(ordered, fields, setId =>
@@ -220,7 +220,7 @@ export function membersOfSet<T extends GroupedField>(fields: readonly T[], setId
         .sort((a, b) => (a.setPosition ?? 0) - (b.setPosition ?? 0))
 }
 
-/** Who a question belongs to; one that does not say is the station's. */
+/** Who a question belongs to; one that carries none is the station's. */
 export function originOf(field: {origin?: FieldOrigin | null}): FieldOrigin {
     return field.origin ?? 'STATION'
 }

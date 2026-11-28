@@ -15,7 +15,7 @@ const RouterLink = {template: '<a :data-to="JSON.stringify(to)"><slot/></a>', pr
  * What the member's gear tab shows of a piece a movement is bringing them.
  *
  * <p>A planned hand-out leaves the piece on the shelf until it is handed over, so the member's list
- * said nothing of it and the gap looked open, offering a second hand-out of the same thing.
+ * showed nothing of it and the gap looked open, offering a second hand-out of the same thing.
  */
 function arriving(over: Partial<MovementResponse> = {}): MovementResponse {
     return {

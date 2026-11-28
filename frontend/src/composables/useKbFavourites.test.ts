@@ -38,7 +38,7 @@ function favourite(overrides: Partial<KbFavourite>): KbFavourite {
 }
 
 /**
- * The favourites a page draws its stars from, told apart the way the server tells them apart and
+ * The favourites a page draws its stars from, distinguished the way the server distinguishes them and
  * changed in place, so the page never fetches the list again for its own changes.
  */
 describe('useKbFavourites', () => {

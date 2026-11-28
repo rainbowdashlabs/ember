@@ -241,12 +241,33 @@ class EventTemplateServiceTest extends RepositoryTestBase {
         assertEquals(before, service.findFields(templateId), "nothing was written");
     }
 
+    /** A template with two places that both claim to be the calendar's location is refused. */
+    @Test
+    @Order(12)
+    void twoCalendarLocationsAreRefused() {
+        var before = service.findFields(templateId);
+        var meetingPoint = EventQuestionSettings.parse("{\"calendarLocation\":true}");
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.replaceFields(
+                        templateId,
+                        List.of(
+                                new AppointmentTemplateFieldDraft(
+                                        "Ort", FieldType.LOCATION, meetingPoint, 0, false, false, null, null),
+                                new AppointmentTemplateFieldDraft(
+                                        "Treffpunkt", FieldType.LOCATION, meetingPoint, 1, false, false, null, null))));
+
+        assertEquals(EventRefusal.TEMPLATE_TWO_CALENDAR_LOCATIONS, refused.refusal());
+        assertEquals(before, service.findFields(templateId), "nothing was written");
+    }
+
     /**
      * A question can only be tied to a field of the sheet the template actually names.
      *
      * <p>The reported fault, in the shape it was found in: two attendance sheets each carried a field
      * called "Ausbilder Anfänger", the picker offered every sheet's fields at once with nothing to
-     * tell them apart, and the template ended up tied to a field of a sheet it does not use. Nothing
+     * distinguish them, and the template ended up tied to a field of a sheet it does not use. Nothing
      * complained, and the answer would have been written into a sheet nobody opens.
      */
     @Test
@@ -329,7 +350,7 @@ class EventTemplateServiceTest extends RepositoryTestBase {
         assertTrue(service.findFields(templateId).isEmpty());
     }
 
-    /** Who a template hands its appointments to, in every kind it can be said. */
+    /** Who a template hands its appointments to, in every kind it can be set. */
     @Test
     @Order(20)
     void setAndFindRestrictions() {
@@ -351,7 +372,7 @@ class EventTemplateServiceTest extends RepositoryTestBase {
      * A group is an audience a template can name, which it could not before.
      *
      * <p>The point of the whole thing: a station whose appointments are for the youngest group used
-     * to pick that group again on every date of the year, because a template could only say what kind
+     * to pick that group again on every date of the year, because a template could only define what kind
      * of member somebody is.
      */
     @Test

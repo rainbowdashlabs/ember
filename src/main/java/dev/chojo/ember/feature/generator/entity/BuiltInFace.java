@@ -66,7 +66,7 @@ public record BuiltInFace(
      * {@inheritDoc}
      *
      * <p>A face only PDF fields print in carries the name of its family, the same as a face of the family
-     * itself, so it is told apart by its file.
+     * itself, so it is distinguished by its file.
      */
     @Override
     public String identity() {

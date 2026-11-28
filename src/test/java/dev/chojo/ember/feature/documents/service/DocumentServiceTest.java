@@ -127,7 +127,7 @@ class DocumentServiceTest extends RepositoryTestBase {
                         .toList());
     }
 
-    /** A text file says something, and what it says is what somebody searches for later. */
+    /** A text file holds something, and what it holds is what somebody searches for later. */
     @Test
     @Order(2)
     void whatATextFileSaysIsSearchableAfterwards() {
@@ -145,7 +145,7 @@ class DocumentServiceTest extends RepositoryTestBase {
 
         var found = memberDocumentRepo.findByStation(
                 station.id(),
-                new DocumentFilter(List.of(), "Loeschzug", true, false, false),
+                new DocumentFilter(List.of(), "Loeschzug", true, false, false, false),
                 service.searchConfigOf(station.id()),
                 50,
                 0);

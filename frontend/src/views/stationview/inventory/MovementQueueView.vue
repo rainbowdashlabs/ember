@@ -30,7 +30,7 @@ import {describeFailure, type Failure} from '@/util/failure'
  * Every movement the station has, in the order of whose turn it is.
  *
  * <p>The rows somebody here can act on stand at the top, because that is what a queue is read for. A
- * row says what it is about, who it is with and the step it stands on, and where the step is ours it
+ * row shows what it is about, who it is with and the step it stands on, and where the step is ours it
  * carries the button that acknowledges it. Nothing on a row is a status: there is none.
  */
 const {t} = useI18n()

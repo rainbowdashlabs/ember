@@ -21,7 +21,7 @@ import java.util.Objects;
  *
  * <p>Every list built out of the three targets asks the same question before it writes a line: does
  * this belong to the station writing it. A line naming another station's gear would resolve to
- * nothing for ever and say nothing about why, so it is refused where it is written rather than left
+ * nothing for ever and show nothing about why, so it is refused where it is written rather than left
  * to be discovered.
  */
 @Singleton
@@ -67,7 +67,7 @@ public class LineTargetService {
      *
      * @param target    the target
      * @param stationId the station the line is being written for
-     * @param refusal   what to say when it belongs to somebody else
+     * @param refusal   the refusal to use when it belongs to somebody else
      * @throws IllegalArgumentException if the target belongs to another station or does not exist
      */
     public void requireOwnedBy(LineTarget target, int stationId, String refusal) {

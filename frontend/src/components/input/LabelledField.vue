@@ -10,7 +10,7 @@ import HintIcon from '@/components/typography/HintIcon.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
 /**
- * One input with its label above it and, where there is one, a line underneath saying what it is for.
+ * One input with its label above it and, where there is one, a line underneath showing what it is for.
  *
  * <p>A form of eight fields is eight of these rather than eight hand-built wrappers, which is what keeps
  * the labels, the spacing and the hint text the same everywhere without anybody remembering to make them

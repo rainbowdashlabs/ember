@@ -24,7 +24,7 @@ public record AssignedClusterProfileField(
         ClusterProfileFieldAssignment assignment,
         @Nullable FieldSetLabel set) {
 
-    /** The columns this reads, with the two identifiers told apart. */
+    /** The columns this reads, with the two identifiers distinguished. */
     public static final String COLUMNS = """
             cpf.id, cpf.cluster_id, cpf.name, cpf.field_type, cpf.config, cpf.required, cpf.readonly,
             cpf.width, cpf.station_readonly, cpf.keep_on_archive, cpf.station_group_id, cpf.shown_if_field_id,

@@ -10,7 +10,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 
-/** Asks before an event group is called off for good, with an optional reason the people signed up are told. */
+/** Asks before an event group is called off for good, with an optional reason the people signed up receive. */
 defineProps<{
   busy?: boolean
 }>()

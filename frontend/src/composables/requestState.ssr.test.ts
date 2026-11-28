@@ -11,7 +11,7 @@ import {useConsentGuard} from './useConsentGuard'
 import {claimPageHeader, usePageHeader} from './usePageHeader'
 import {useSidebarCollapse} from './useSidebarCollapse'
 
-/** A page that changes shared state while it sets up when told to, and draws what it then holds. */
+/** A page that changes shared state while it sets up when asked to, and draws what it then holds. */
 function page(write: () => void, read: () => string) {
     return defineComponent({
         props: {writes: {type: Boolean, default: false}},

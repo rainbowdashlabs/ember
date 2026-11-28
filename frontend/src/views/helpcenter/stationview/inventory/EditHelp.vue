@@ -57,6 +57,14 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryEdit.pictureTitle')">
+      <p>{{ t('helpCenter.inventoryEdit.pictureText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryEdit.iconTitle')">
+      <p>{{ t('helpCenter.inventoryEdit.iconText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.inventoryEdit.sizesTitle')">
       <p>{{ t('helpCenter.inventoryEdit.sizesText') }}</p>
       <p>{{ t('helpCenter.inventoryEdit.sizesDragText') }}</p>

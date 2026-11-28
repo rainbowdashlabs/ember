@@ -34,7 +34,7 @@ class RelayBlockDetectorTest {
     }
 
     /**
-     * A full mailbox or a rejected message says nothing about the relay, and a provider taken away
+     * A full mailbox or a rejected message shows nothing about the relay, and a provider taken away
      * over one of these would be taken away for everybody at that domain.
      */
     @Test
@@ -47,7 +47,7 @@ class RelayBlockDetectorTest {
     }
 
     /**
-     * Naming a block without saying what is blocked is not enough: half the refusals in the world
+     * Naming a block without showing what is blocked is not enough: half the refusals in the world
      * contain the word.
      */
     @Test

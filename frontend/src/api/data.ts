@@ -21,7 +21,7 @@ export async function getClusterPermissionHierarchy(): Promise<PermissionNode[]>
  * The permissions worth naming out of a set somebody holds: the ones nothing else in the set already
  * carries.
  *
- * Listing a right beside the one that grants it says the same thing twice and buries what is actually
+ * Listing a right beside the one that grants it shows the same thing twice and buries what is actually
  * distinctive. Somebody holding the whole of member management should read as holding that, not as holding
  * it and the four smaller rights it is made of.
  */

@@ -10,7 +10,7 @@ import AppLink from '@/components/navigation/AppLink.vue'
 import type {Failure} from '@/util/failure'
 
 /**
- * A field that cannot be signed from here: already signed, never the reader's, or gone. Says which, and
+ * A field that cannot be signed from here: already signed, never the reader's, or gone. Shows which, and
  * offers the way back to what still waits for the reader, since a link from a mail is often opened
  * after somebody else has already signed.
  */

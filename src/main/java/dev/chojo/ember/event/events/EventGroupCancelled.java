@@ -17,7 +17,7 @@ import java.util.List;
  * @param stationId  the station
  * @param eventGroupId   the event group
  * @param eventGroupName its name
- * @param reason     why, as told to the people signed up, or null
+ * @param reason     why, as given to the people signed up, or null
  * @param memberIds  the members whose sign-up held or waited for a place
  * @param cause      who called it off: a manager, or the check that too few sign-ups were accepted
  */

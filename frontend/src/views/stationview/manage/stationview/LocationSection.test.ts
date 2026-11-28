@@ -43,7 +43,7 @@ const PickerStub = defineComponent({
 
 /**
  * Finding the typed station address on the map: the button is offered only where the instance has
- * an address search, sends the unsaved fields, moves the pin, says how close the match is, and
+ * an address search, sends the unsaved fields, moves the pin, shows how close the match is, and
  * never saves.
  */
 describe('LocationSection', () => {

@@ -8,6 +8,7 @@ import {createCrudResource} from './crud'
 import type {
     InventoryTag,
     InventoryTagRequest,
+    ItemTagsBatchRequest,
     ItemTagsResponse,
     RecommendedTag,
     TaggedItemSummary,
@@ -48,7 +49,7 @@ export async function itemTags(itemId: number): Promise<InventoryTag[]> {
 }
 
 /**
- * Says which words a thing wears.
+ * Returns which words a thing wears.
  *
  * The call speaks in words rather than identifiers, which is what makes a word picked from the
  * list and a word made up on the spot the same thing, and what lets the picker keep a new word as
@@ -56,6 +57,15 @@ export async function itemTags(itemId: number): Promise<InventoryTag[]> {
  */
 export async function setItemTags(itemId: number, names: string[]): Promise<InventoryTag[]> {
     const res = await client.put<InventoryTag[]>(`/inventory-items/${itemId}/tags`, {names})
+    return res.data
+}
+
+/**
+ * Puts tags on and takes tags off many items of one inventory at once. Either every item changes or,
+ * when one of them is not in the inventory, none does.
+ */
+export async function changeTagsOfItems(inventoryId: number, request: ItemTagsBatchRequest): Promise<ItemTagsResponse[]> {
+    const res = await client.post<ItemTagsResponse[]>(`/inventories/${inventoryId}/item-tags/batch`, request)
     return res.data
 }
 

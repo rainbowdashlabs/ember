@@ -24,7 +24,7 @@ import {formatDate} from '@/util/format'
  * One of the station's chats as its managers handle it: whom it is for, named the way a restricted
  * appointment names its audience, how many are in it, and changing, closing or reopening it. A chat
  * that lost part of its audience, a deleted group or tag, or every member it named,
- * says so, and stays closed until it is given a new audience.
+ * shows it, and stays closed until it is given a new audience.
  */
 const props = defineProps<{
   chat: StationChatResponse

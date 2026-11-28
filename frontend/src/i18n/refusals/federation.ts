@@ -90,4 +90,5 @@ export default {
     'X-072': 'Die Signatur der Antwort wurde nicht angenommen',
     'X-073': 'Eine Partnerschaftsanfrage dieser Wache ist hier nicht bekannt',
     'X-074': 'Eine Wache kann keine Partnerschaft mit sich selbst eingehen',
+    'X-075': 'Dieses Foto gehört nicht zu dem, was deiner Wache angeboten wird',
 }

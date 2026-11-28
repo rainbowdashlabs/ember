@@ -14,7 +14,7 @@ import BareButton from '@/components/button/BareButton.vue'
  *
  * The severity carries the colour because that is what a reader scans by. A stack trace is folded
  * away: it is the most useful thing on the line and the longest, and a list where every error opens
- * its trace is a list nobody can scroll. That it has one is said outright, so the lines worth
+ * its trace is a list nobody can scroll. That it has one is shown outright, so the lines worth
  * opening can be picked out without opening any.
  */
 const props = defineProps<{

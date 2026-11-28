@@ -10,6 +10,7 @@ import {
     clusterHeaders,
     clusterPage,
     theSeededCluster,
+    actForCluster,
 } from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
 
@@ -105,7 +106,7 @@ test.describe('Cluster inventory screens', () => {
         await expect(page.getByTestId('inventory-module-setting')).toHaveCount(0)
 
         await page.getByTestId('tab-cluster-inventory-settings').click()
-        await expect(page).toHaveURL(/\/cluster\/inventory\/settings$/)
+        await expect(page).toHaveURL(/\/cluster\/inventory\/settings(\?[^#]*)?$/)
         await expect(page.getByTestId('inventory-module-setting')).toBeVisible({timeout: 15000})
         await page.context().close()
     })
@@ -148,7 +149,7 @@ test.describe('Cluster inventory screens', () => {
         const own = await ownCluster(page, browser, request, 'Ablauf')
 
         await page.goto('/cluster/inventory/settings')
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+        await actForCluster(page, own.uid)
         await page.goto('/cluster/inventory/settings')
         await expect(page.getByTestId('inventory-flow-setting')).toBeVisible({timeout: 15000})
 
@@ -224,10 +225,10 @@ test.describe('Cluster inventory screens', () => {
 
         await page.goto('/cluster/inventory')
         await page.getByTestId('tab-cluster-inventory-out').click()
-        await expect(page).toHaveURL(/\/cluster\/inventory\/out$/)
+        await expect(page).toHaveURL(/\/cluster\/inventory\/out(\?[^#]*)?$/)
 
         await page.reload()
-        await expect(page).toHaveURL(/\/cluster\/inventory\/out$/)
+        await expect(page).toHaveURL(/\/cluster\/inventory\/out(\?[^#]*)?$/)
         await expect(page.getByTestId('cluster-inventory-tabs')).toBeVisible()
         await page.context().close()
     })
@@ -252,7 +253,7 @@ test.describe('Cluster inventory screens', () => {
     /**
      * CLS-55 - Statistics counts what the association owns, size by size.
      *
-     * The four totals say how much gear there is; they cannot say how many of size 48 are still in the
+     * The four totals show how much gear there is; they cannot show how many of size 48 are still in the
      * store, which is the question somebody ordering two hundred jackets actually has. The breakdown was
      * specified and then handed an empty list, so the table never appeared at all.
      *
@@ -350,7 +351,7 @@ test.describe('Cluster inventory screens', () => {
         await page.getByRole('button', {name: 'Erstellen'}).click()
 
         await page.getByText(name).first().click()
-        await expect(page).toHaveURL(/\/cluster\/inventory\/storage\/\d+$/, {timeout: 15000})
+        await expect(page).toHaveURL(/\/cluster\/inventory\/storage\/\d+(\?[^#]*)?$/, {timeout: 15000})
         await expect(page.getByTestId('container-item')).toHaveCount(0)
 
         await page.getByTestId('container-add-items').click()

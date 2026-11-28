@@ -13,6 +13,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,9 @@ class MailTemplateRendererTest {
             Map.entry("appointmentDate", "12.05.2026"),
             Map.entry("appointmentTime", "18:00 - 20:00"),
             Map.entry("arrivalTime", "17:45"),
-            Map.entry("location", "Feuerwache, Musterstadt"));
+            Map.entry("location", "Feuerwache, Musterstadt"),
+            Map.entry("validFor", "30 days"),
+            Map.entry("removedIn", "14 days"));
 
     private final MailTemplateRenderer renderer = new MailTemplateRenderer();
 
@@ -203,5 +206,29 @@ class MailTemplateRendererTest {
         var vars = new HashMap<>(VARS);
         String rendered = renderer.render("station-delete.html", "de", vars);
         assertTrue(rendered.contains("Confirm"), "expected English fallback content");
+    }
+
+    /** Short spans read in hours, long ones in days, and the German wording fits after "nach". */
+    @ParameterizedTest
+    @CsvSource({
+        "1, en, 1 hour",
+        "24, en, 24 hours",
+        "72, en, 3 days",
+        "720, en, 30 days",
+        "1, de, 1 Stunde",
+        "24, de, 24 Stunden",
+        "720, de, 30 Tagen"
+    })
+    void aSpanIsWrittenInTheUnitItIsMeasuredIn(long hours, String locale, String expected) {
+        assertEquals(expected, renderer.duration(Duration.ofHours(hours), locale));
+    }
+
+    /** A link mail prints the lifetime it is given, not a number of its own. */
+    @Test
+    void aLinkMailPrintsTheLifetimeItIsGiven() {
+        var vars = new HashMap<>(VARS);
+        vars.put("validFor", renderer.duration(Duration.ofHours(1), "de"));
+        String rendered = renderer.render("reset-password.html", "de", vars);
+        assertTrue(rendered.contains("verfällt nach 1 Stunde"), rendered);
     }
 }

@@ -342,7 +342,7 @@ class EventReminderCheckerTest {
      * Somebody the appointment is not open to owes no answer, so no deadline is warned about.
      *
      * <p>The list of unanswered members is everybody at the station without a registration, which
-     * says nothing about whether they were ever allowed to give one. The warning is still marked as
+     * shows nothing about whether they were ever allowed to give one. The warning is still marked as
      * sent, because there is nothing left to warn about on a later pass either.
      */
     @Test
@@ -467,7 +467,7 @@ class EventReminderCheckerTest {
         assertNull(closingWarning().eventDate());
     }
 
-    /** The parameters of the one closing warning sent, which say whether it names a date. */
+    /** The parameters of the one closing warning sent, which show whether it names a date. */
     private NotificationParams.RegistrationClosing closingWarning() {
         var data = ArgumentCaptor.forClass(NotificationData.class);
         verify(notifier).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), data.capture(), any());
@@ -719,7 +719,7 @@ class EventReminderCheckerTest {
     /**
      * A day the station takes a break on is not an occurrence, so nobody is reminded of it.
      *
-     * <p>The reminders used to read the repetition alone, and members were told to come to a drill
+     * <p>The reminders used to read the repetition alone, and members were asked to come to a drill
      * the station had called off for the holidays.
      */
     @Test

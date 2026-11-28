@@ -189,7 +189,7 @@ describe('useEventAttachments', () => {
 
     /**
      * A switch the server refused must not keep standing. What it shows is a claim about who may
-     * read the file, and a screen saying "kept back" over a file that is still open to everyone,
+     * read the file, and a screen showing "kept back" over a file that is still open to everyone,
      * partner stations included, is worse than no screen at all.
      */
     it('takes a refused switch back off the screen and says so', async () => {

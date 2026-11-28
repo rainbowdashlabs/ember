@@ -10,7 +10,7 @@ import dev.chojo.ocular.override.Overwrite;
 import dev.chojo.ocular.override.OverwritePrefix;
 
 /**
- * Configuration for the check that tells an administrator a newer release exists.
+ * Configuration for the check that lets an administrator know a newer release exists.
  */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 @OverwritePrefix("UPDATES")
@@ -22,7 +22,7 @@ public class Updates {
     /**
      * Whether this instance asks GitHub whether a newer release exists.
      *
-     * <p>Switched off, nothing leaves the instance and nobody is told about a new version. That is
+     * <p>Switched off, nothing leaves the instance and nobody is notified of a new version. That is
      * the right setting for an installation with no outbound access, and for anyone who would
      * rather their instance did not announce itself by asking.
      */
@@ -42,7 +42,7 @@ public class Updates {
     /**
      * The GitHub repository the releases are read from, as {@code owner/name}.
      *
-     * <p>Configurable because an operator running their own build from a fork should be told about
+     * <p>Configurable because an operator running their own build from a fork should be notified of
      * their own releases rather than somebody else's.
      */
     @Overwrite(env = @Env)

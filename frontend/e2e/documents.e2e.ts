@@ -91,7 +91,7 @@ test.describe('Documents', () => {
     /**
      * The station's own paperwork is what the store holds besides the members' documents, and mixed
      * together the one is lost among the other. Two documents go in, one on a member and one on
-     * nobody, and the switch has to tell them apart.
+     * nobody, and the switch has to distinguish them.
      */
     test('the station\'s own paperwork is shown without the members\' documents', async ({managerPage: page}) => {
         const ownPaper = unique('Pruefbescheinigung')
@@ -139,7 +139,7 @@ test.describe('Documents', () => {
     })
 
     /**
-     * A document kept for the record outlives the member it is about, and still says whose it is.
+     * A document kept for the record outlives the member it is about, and still shows whose it is.
      *
      * The member is deleted rather than archived, so nobody is left on the document to name: their name is
      * what stays, marked as deleted. The switch for the paperwork of people who left finds it, and leaves the

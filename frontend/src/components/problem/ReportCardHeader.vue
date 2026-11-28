@@ -11,7 +11,7 @@ import {formatDateTime} from '@/util/format'
 
 /**
  * The line a problem report opens with, whether it was written on this instance or forwarded here
- * by another one: who it comes from, when it was written and what it says.
+ * by another one: who it comes from, when it was written and what it contains.
  */
 defineProps<{
   reporter: string

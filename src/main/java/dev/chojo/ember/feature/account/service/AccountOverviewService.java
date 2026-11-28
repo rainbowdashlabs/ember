@@ -16,12 +16,12 @@ import java.util.List;
 /**
  * The instance's account list, a page at a time. The paging, the filters and the order happen in the
  * database, because an instance holds every member of every station and the list must not grow with
- * it, and a filter that only saw one page would say nothing about the others.
+ * it, and a filter that only saw one page would show nothing about the others.
  */
 @Singleton
 public class AccountOverviewService {
 
-    /** How many accounts a page holds when the caller does not say. */
+    /** How many accounts a page holds when the caller does not specify. */
     public static final int DEFAULT_SIZE = 25;
 
     /** How many accounts a page may hold at most. */

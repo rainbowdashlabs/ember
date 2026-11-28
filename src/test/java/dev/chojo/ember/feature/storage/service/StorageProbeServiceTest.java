@@ -60,7 +60,7 @@ class StorageProbeServiceTest {
         verifyNoInteractions(audit);
     }
 
-    /** The instance is told what a station is told: an operator who wants the reason reads the log. */
+    /** The instance gets what a station gets: an operator who wants the reason reads the log. */
     @Test
     void aBackendThatCannotBeBuiltAnswersAsNotHealthyWithoutTheReason() {
         when(factory.buildForInstance(any())).thenThrow(new IllegalArgumentException("bucket missing"));

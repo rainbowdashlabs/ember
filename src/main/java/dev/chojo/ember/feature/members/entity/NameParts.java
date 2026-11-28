@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  * The halves a member's name is written from, and the four ways of writing them.
  * <p>
  * One person is written differently depending on who is reading: a station talking about its own
- * people uses the name they are called by, a list of people has to say who somebody is as well, a
+ * people uses the name they are called by, a list of people has to show who somebody is as well, a
  * document carries the register name, and a mail greets by a first name alone. Keeping the halves
  * apart is what lets one reading of the database answer all four.
  * <p>
@@ -85,7 +85,7 @@ public record NameParts(
     }
 
     /**
-     * The name that says who somebody is and what they are called at once.
+     * The name that shows who somebody is and what they are called at once.
      *
      * <p>{@code Maximilian "Max" Hoffmann}, and the register name alone where there is nothing to
      * put beside it, so that nobody is written with empty quotes.
@@ -102,7 +102,7 @@ public record NameParts(
         return join(firstName);
     }
 
-    /** The first name a mail says hello to, standing on its own. */
+    /** The first name a mail greets, standing on its own. */
     public String greeting() {
         if (frozen != null) return frozen;
         return nickname != null ? nickname : firstName;

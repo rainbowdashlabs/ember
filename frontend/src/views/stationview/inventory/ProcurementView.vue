@@ -17,7 +17,7 @@ import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { describeFailure } from '@/util/failure'
-import ProcurementEntryRow from './procurementview/ProcurementEntryRow.vue'
+import ProcurementList from './procurementview/ProcurementList.vue'
 import ProcurementCreateModal from './procurementview/ProcurementCreateModal.vue'
 import ProcurementStockModal from './procurementview/ProcurementStockModal.vue'
 
@@ -58,8 +58,8 @@ const {loading, failure} = useAsyncLoader(async () => {
 const orderableInventories = computed(() => inventories.value.filter(i => i.homogeneous))
 
 /**
- * Fetches the orders again after one was settled or struck out, and says a stale screen rather than a
- * failed change: the change is written by then, and a reader told otherwise makes it twice.
+ * Fetches the orders again after one was settled or struck out, and reports a stale screen rather than a
+ * failed change: the change is written by then, and a reader shown otherwise makes it twice.
  */
 async function reloadEntries() {
   try {
@@ -130,17 +130,13 @@ function onCreated() {
         :failure="failure"
         :loading="loading"
       >
-        <div class="space-y-3">
-          <ProcurementEntryRow
-            v-for="entry in entries"
-            :key="entry.id"
-            :entry="entry"
-            :can-manage-procurement="canManageProcurement"
-            @fulfill="fulfillEntry"
-            @from-stock="openFromStock"
-            @delete="deleteEntry"
-          />
-        </div>
+        <ProcurementList
+          :entries="entries"
+          :can-manage-procurement="canManageProcurement"
+          @fulfill="fulfillEntry"
+          @from-stock="openFromStock"
+          @delete="deleteEntry"
+        />
       </AsyncSection>
 
       <ProcurementStockModal

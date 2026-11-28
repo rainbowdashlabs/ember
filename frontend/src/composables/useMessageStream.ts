@@ -12,7 +12,7 @@ import {listenToMessages, messageStreamLive, type MessageListener} from '@/util/
  *
  * <p>The stream is one per tab: the first component listening opens it, the last one leaving closes
  * it. A proxy that holds events back leaves it silent, which is when the timer takes over. While
- * `active` says no, as when messages are not available to the reader, the component does not listen
+ * `active` is false, as when messages are not available to the reader, the component does not listen
  * and only the timer asks, so it notices when they become available.
  *
  * @param listener   called with every signal

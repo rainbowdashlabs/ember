@@ -11,6 +11,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -136,7 +137,7 @@ class ProcurementServiceTest extends RepositoryTestBase {
      *
      * <p>An order is a promise: the piece turns up at the station and somebody gives it to the member
      * at the next duty. Writing it straight onto them recorded a hand-over that had not happened, and
-     * the shelf then said a piece was gone that was still lying there.
+     * the shelf then showed a piece was gone that was still lying there.
      */
     @Test
     @Order(12)
@@ -274,5 +275,122 @@ class ProcurementServiceTest extends RepositoryTestBase {
         inventoryRepo.delete(pool.id());
         clusterRepo.delete(cluster.id());
         stationRepo.delete(home.id());
+    }
+
+    /** A piece delivered for nobody: who owns it and where it now rests. */
+    private record Delivered(ItemOwner owner, ItemCustody custody) {}
+
+    /** Orders a piece for the store into a fresh inventory of the given type, delivers it, and reads what came. */
+    private Delivered delivered(InventoryType type, ItemOwner given) {
+        int inventory =
+                inventoryRepo.create(station.id(), "Owner " + type, type, false).id();
+        try {
+            var order = service.create(station.id(), inventory, null, null, "", given);
+            assertEquals(given, service.ownerOf(order));
+            assertTrue(service.fulfill(order.id(), new ItemMovementService.Actor(member.id(), true)));
+            var piece = inventoryRepo.findItems(inventory).getFirst();
+            return new Delivered(piece.ownerKind(), piece.custody());
+        } finally {
+            inventoryRepo.delete(inventory);
+        }
+    }
+
+    /** The association's piece stays with the station that ordered it, rather than going back to the association. */
+    @Test
+    @Order(50)
+    void anOrderInAnExternalInventoryBringsTheAssociationsPieceToTheStation() {
+        assertEquals(
+                new Delivered(ItemOwner.CLUSTER, ItemCustody.AT_STATION),
+                delivered(InventoryType.EXTERNAL, ItemOwner.CLUSTER));
+    }
+
+    @Test
+    @Order(51)
+    void anOrderInAMixedInventoryBringsThePieceOfWhomItGave() {
+        assertEquals(
+                new Delivered(ItemOwner.CLUSTER, ItemCustody.AT_STATION),
+                delivered(InventoryType.MIXED, ItemOwner.CLUSTER));
+        assertEquals(
+                new Delivered(ItemOwner.STATION, ItemCustody.WITH_OWNER),
+                delivered(InventoryType.MIXED, ItemOwner.STATION));
+    }
+
+    @Test
+    @Order(52)
+    void anOrderInAMixedInventoryGivesWhosePieceItBrings() {
+        int mixed = inventoryRepo
+                .create(station.id(), "Mixed", InventoryType.MIXED, false)
+                .id();
+        try {
+            var refusal = assertThrows(
+                    RefusalResponse.class, () -> service.create(station.id(), mixed, null, null, "", null));
+            assertEquals(InventoryRefusal.PROCUREMENT_NEEDS_AN_OWNER, refusal.refusal());
+        } finally {
+            inventoryRepo.delete(mixed);
+        }
+    }
+
+    @Test
+    @Order(53)
+    void anOrderCannotGiveAnOwnerTheInventoryDoesNotHold() {
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> service.create(station.id(), inventoryId, null, null, "", ItemOwner.CLUSTER));
+        assertEquals(InventoryRefusal.INVENTORY_HOLDS_NO_ASSOCIATION_GEAR, refusal.refusal());
+
+        int external = inventoryRepo
+                .create(station.id(), "External", InventoryType.EXTERNAL, false)
+                .id();
+        try {
+            var stations = assertThrows(
+                    RefusalResponse.class,
+                    () -> service.create(station.id(), external, null, null, "", ItemOwner.STATION));
+            assertEquals(InventoryRefusal.INVENTORY_HOLDS_NO_STATION_GEAR, stations.refusal());
+        } finally {
+            inventoryRepo.delete(external);
+        }
+    }
+
+    @Test
+    @Order(54)
+    void anOrderBringsNoPartnersPiece() {
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> service.create(station.id(), inventoryId, null, null, "", ItemOwner.PARTNER_STATION));
+        assertEquals(InventoryRefusal.PROCUREMENT_OWNER_NOT_POSSIBLE, refusal.refusal());
+    }
+
+    /** An order placed in a mixed inventory before the choice existed brings what it brought then. */
+    @Test
+    @Order(55)
+    void anOlderOrderInAMixedInventoryBringsTheStationsPiece() {
+        int mixed = inventoryRepo
+                .create(station.id(), "Older", InventoryType.MIXED, false)
+                .id();
+        try {
+            var older = procurementRepo.create(station.id(), mixed, null, null, "", null, null);
+            assertEquals(ItemOwner.STATION, service.ownerOf(older));
+        } finally {
+            inventoryRepo.delete(mixed);
+        }
+    }
+
+    /** At an association's own store an older order in a mixed inventory brought the association's piece. */
+    @Test
+    @Order(56)
+    void anOlderOrderInAMixedInventoryAtAnAssociationsStoreBringsItsPiece() {
+        var home = stationRepo.create("Träger Altbestellung");
+        var cluster = clusterRepo.create("Kreisverband Altbestellung", null, home.id());
+        int mixed = inventoryRepo
+                .create(home.id(), "Gemischt", InventoryType.MIXED, false)
+                .id();
+        try {
+            var older = procurementRepo.create(home.id(), mixed, null, null, "", null, null);
+            assertEquals(ItemOwner.CLUSTER, service.ownerOf(older));
+        } finally {
+            inventoryRepo.delete(mixed);
+            clusterRepo.delete(cluster.id());
+            stationRepo.delete(home.id());
+        }
     }
 }

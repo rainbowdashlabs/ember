@@ -63,7 +63,7 @@ public class UpdateCheckService implements TaskSource {
     /**
      * Lets a test answer for GitHub. The host is the one thing about this service that cannot be
      * exercised against the real thing: a test that asked api.github.com would be slow, would fail
-     * offline, and would say something different every release.
+     * offline, and would return something different every release.
      *
      * @param config  the operator's settings
      * @param apiBase the root the releases are read from, without a trailing slash
@@ -144,7 +144,7 @@ public class UpdateCheckService implements TaskSource {
      *
      * <p>Checked as a whole before anything is compared, so a release candidate of a higher version
      * is refused rather than announced: reaching the higher number first would otherwise decide the
-     * answer before the part that says it is not a finished release is ever looked at.
+     * answer before the part that marks it as not a finished release is ever looked at.
      */
     private static int @Nullable [] numbersOf(String version) {
         String[] parts = version.split("\\.");
@@ -174,7 +174,7 @@ public class UpdateCheckService implements TaskSource {
     /**
      * The version this instance runs, as the release names it.
      *
-     * <p>Read once from the packaged resource. Anything that has to say which release it is speaking
+     * <p>Read once from the packaged resource. Anything that has to report which release it is
      * for asks here rather than reading the file a second time.
      *
      * @return the version string

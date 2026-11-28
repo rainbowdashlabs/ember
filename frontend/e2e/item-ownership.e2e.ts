@@ -10,14 +10,14 @@ import {cast} from './fixtures/cast'
  * Who owns a piece of gear, which is a different question from who has it.
  *
  * A station buys some of what it keeps and looks after the rest for the body above it, and the two are
- * told apart on the row rather than by which list they are in. What the station may do with each follows
+ * distinguished on the row rather than by which list they are in. What the station may do with each follows
  * from that one fact, so these stories are the ground the custody and movement ones stand on.
  */
 test.describe('Item ownership', () => {
     /**
-     * ITM-1 - An item says who owns it.
+     * ITM-1 - An item shows who owns it.
      *
-     * Told apart without opening anything, because the difference decides what may be done with it.
+     * Distinguished without opening anything, because the difference decides what may be done with it.
      */
     test('an item says who owns it', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -38,7 +38,7 @@ test.describe('Item ownership', () => {
      * ITM-2 - One inventory holds both owners at once.
      *
      * A mixed inventory is the interesting case: the same list carries gear of both owners, and the row
-     * says which without the reader having to know which inventory they are in. The story puts gear of
+     * shows which without the reader having to know which inventory they are in. The story puts gear of
      * both owners in itself rather than relying on what the demo happened to put there.
      */
     test('one inventory holds gear of both owners', async ({managerPage: page}) => {
@@ -165,7 +165,7 @@ test.describe('Item ownership', () => {
      * ITM-6 - Exchanging gear the station does not own does not make it the station's.
      *
      * The bug this whole rework is built on: an exchange in a mixed inventory used to put the returned
-     * piece into the station's free stock whatever it said about its owner. The story exists to keep that
+     * piece into the station's free stock whatever it showed about its owner. The story exists to keep that
      * dead.
      */
     test('exchanging gear the station does not own leaves the owner alone', async ({managerPage: page}) => {

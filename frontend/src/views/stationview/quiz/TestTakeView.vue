@@ -19,14 +19,12 @@ import { useQuizQuestionOptions } from './testtakeview/useQuizQuestionOptions'
 import type { QuizAttemptDetail, QuizQuestionRead, QuizTest } from '@/api/generated/schema'
 import { quiz } from '@/api'
 import { useSession } from '@/composables/useSession'
-import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 
 const { t } = useI18n()
 const route = useRoute()
 const { loaded } = useSession()
-const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const testId = computed(() => Number(route.params.id))
 
@@ -130,7 +128,6 @@ async function doSubmit() {
   }
   stopTimer()
   submitted.value = true
-  refreshSidebarCounts()
 }
 
 const {loading, failure, reload} = useAsyncLoader(async () => {

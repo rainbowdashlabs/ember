@@ -269,7 +269,7 @@ class AuthRateLimiterTest {
      * a waiting device asks about twenty-four times a minute and the bucket refilled forty.
      *
      * <p>The poll secret is handed out by the request that created it and nobody else holds it, so
-     * it tells two waiting devices apart where the address cannot.
+     * it distinguishes two waiting devices where the address cannot.
      */
     @Test
     void twoDevicesBehindOneAddressDoNotSpendEachOthersPolls() {

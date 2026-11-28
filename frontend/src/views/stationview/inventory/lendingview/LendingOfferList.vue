@@ -9,7 +9,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import PieceThumb from '@/components/inventory/PieceThumb.vue'
 import type {AvailableInventoryEntry} from '@/api/generated/schema'
+import {offerLook} from '@/util/offerLook'
 
 /**
  * What the partners offer, one tile per inventory with how many pieces are free and how far away
@@ -30,10 +32,11 @@ const {t} = useI18n()
 <template>
   <div class="flex flex-col gap-2">
     <SubHeader class="mb-1">{{ t('lending.availableItems') }}</SubHeader>
-    <NeutralContainer v-for="item in items" :key="`${item.stationId}-${item.inventoryId}`">
+    <NeutralContainer v-for="item in items" :key="`${item.stationId}-${item.inventoryId}-${item.artId ?? 'all'}`">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div class="flex flex-col gap-1">
           <div class="flex items-center gap-2 flex-wrap">
+            <PieceThumb v-bind="offerLook(item)"/>
             <span class="font-medium">{{ item.inventoryName }}</span>
             <StationBadge :station-name="item.stationName"/>
           </div>

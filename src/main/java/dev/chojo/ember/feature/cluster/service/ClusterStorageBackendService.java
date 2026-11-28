@@ -283,7 +283,7 @@ public class ClusterStorageBackendService {
     }
 
     /**
-     * Carries one station's bytes to where its association's policy says they belong. Every check is made
+     * Carries one station's bytes to where its association's policy places them. Every check is made
      * before the move is written down, so a refused move never reads as one that started.
      *
      * @param actor     who asked
@@ -381,7 +381,7 @@ public class ClusterStorageBackendService {
      * Where a station belongs, read off the two settings and what the station brought.
      *
      * <p>The one rule that overrides every other: a station standing on a version that is no longer current
-     * is out of place whatever the policy says, which is what makes a new destination and a dropped backend
+     * is out of place whatever the policy sets, which is what makes a new destination and a dropped backend
      * mean anything at all.
      */
     private Expected expectedFor(Station station, Policy policy, boolean isHome) {
@@ -474,7 +474,7 @@ public class ClusterStorageBackendService {
      * @param name        what it is called
      * @param homeStation whether this is the association's own store
      * @param actual      where its bytes are
-     * @param expected    where the policy says they belong
+     * @param expected    where the policy places them
      * @param inPlace     whether those two are the same thing
      */
     public record Placement(

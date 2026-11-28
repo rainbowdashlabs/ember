@@ -29,7 +29,7 @@ const props = defineProps<{
   label: string
   /** The colours offered as swatches, an empty one for taking the colour off. */
   swatches: readonly string[]
-  /** What the empty swatch says on hover. */
+  /** What the empty swatch shows on hover. */
   resetLabel: string
   /** The colour at the cursor, in whatever form the editor reads it. */
   current: string | null

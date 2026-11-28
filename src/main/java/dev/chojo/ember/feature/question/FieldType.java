@@ -21,14 +21,14 @@ import java.util.function.Function;
  * a user type or a tag. An age, a heading and a gap hold no value at all.
  *
  * <p>A number is whole unless its settings carry a step below one, which is how a length in metres
- * is told from a count of people without a second type.
+ * is distinguished from a count of people without a second type.
  */
 public enum FieldType {
     /** A line of text. */
     TEXT,
     /** Several lines of text. */
     LONG_TEXT,
-    /** A number, whole unless its step says otherwise. */
+    /** A number, whole unless its step is below one. */
     NUMBER,
     /** A calendar date. */
     DATE,
@@ -39,7 +39,7 @@ public enum FieldType {
     /** One of a written-down set of answers. */
     CHOICE,
     /**
-     * A choice saying how a member is written about, one per station: each answer carries the pronouns
+     * A choice that defines how a member is written about, one per station: each answer carries the pronouns
      * a document uses for the member, or none for their first name.
      */
     GENDER,
@@ -136,7 +136,7 @@ public enum FieldType {
      * The name a wire enum sends this type under.
      *
      * <p>Shared appointments and shared boards still spell their field types the way partner
-     * stations read them, so each of those two enums says which shared type each of its names
+     * stations read them, so each of those two enums defines which shared type each of its names
      * stands for, and this finds the name again.
      *
      * @param wire    the wire enum

@@ -21,7 +21,7 @@ public enum WaitingListRefusal implements Refusal {
     WAITING_LIST_REGISTRATION_INCOMPLETE(
             23, HttpStatus.BAD_REQUEST, "An invite and a first name are needed, so nothing was saved"),
 
-    /** A sign-up by invite refused for what it said. */
+    /** A sign-up by invite refused for what it contained. */
     WAITING_LIST_REGISTRATION_REFUSED(
             24, HttpStatus.BAD_REQUEST, "You could not be put on the waiting list, so nothing was saved"),
 
@@ -31,7 +31,7 @@ public enum WaitingListRefusal implements Refusal {
             HttpStatus.FORBIDDEN,
             "This waiting list cannot be signed up for as it now stands, so nothing was saved"),
 
-    /** An answer to an invitation that said nothing. */
+    /** An answer to an invitation that contained nothing. */
     WAITING_LIST_ANSWER_MISSING(26, HttpStatus.BAD_REQUEST, "Say what your answer is"),
 
     /** An answer to an invitation that is none of the ones it offers. */
@@ -60,7 +60,7 @@ public enum WaitingListRefusal implements Refusal {
     APPOINTMENT_NOT_YOURS_TO_INVITE_TO(
             33, HttpStatus.FORBIDDEN, "You cannot see that appointment, so nothing was saved"),
 
-    /** An invitation to an appointment that did not say which occurrence of it. */
+    /** An invitation to an appointment that did not indicate which occurrence of it. */
     INVITATION_NEEDS_A_DATE(34, HttpStatus.BAD_REQUEST, "An invitation needs the date of the occurrence"),
 
     /** A date on an invitation that is not one. */
@@ -136,7 +136,7 @@ public enum WaitingListRefusal implements Refusal {
 
     /**
      * An entry that is gone, or belongs to another waiting list. The two are one code deliberately:
-     * telling them apart would say that the entry exists on a list the caller may not see.
+     * distinguishing them would reveal that the entry exists on a list the caller may not see.
      */
     WAITING_LIST_ENTRY_NOT_IN_LIST(3, HttpStatus.NOT_FOUND, Sentences.WAITING_LIST_ENTRY_NOT_HERE),
 
@@ -190,7 +190,7 @@ public enum WaitingListRefusal implements Refusal {
 
     /**
      * A waiting list that is gone, belongs to another station, or is not open to the public. One
-     * code deliberately: telling them apart would say that a list nobody outside may see is there.
+     * code deliberately: distinguishing them would reveal that a list nobody outside may see is there.
      */
     PUBLIC_WAITING_LIST_NOT_HERE(20, HttpStatus.NOT_FOUND, Sentences.WAITING_LIST_NOT_HERE),
 
@@ -242,7 +242,7 @@ public enum WaitingListRefusal implements Refusal {
     /** Ending a trial that is no longer running. */
     TRIAL_NO_LONGER_RUNNING(64, HttpStatus.CONFLICT, "This trial is no longer running, so nothing was changed"),
 
-    /** Coming to an invitation that offers several dates, without saying which. */
+    /** Coming to an invitation that offers several dates, without indicating which. */
     WAITING_LIST_ANSWER_NEEDS_A_DATE(
             65, HttpStatus.BAD_REQUEST, "Pick the date you are coming to, so nothing was saved"),
 

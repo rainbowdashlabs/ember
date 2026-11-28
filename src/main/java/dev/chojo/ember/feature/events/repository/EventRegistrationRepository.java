@@ -39,7 +39,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRegistrationRepository {
     /**
      * A registration row standing for an answer the member gave. Every status does except a
-     * withdrawal, and a withdrawal only where it gave up a place, which its previous status says: one
+     * withdrawal, and a withdrawal only where it gave up a place, which its previous status shows: one
      * taking back a refusal leaves no answer, and one the system wrote because the date went away
      * ({@link #withdrawOnDates}) carries no previous status at all.
      */
@@ -489,7 +489,7 @@ public class EventRegistrationRepository {
      * <p>Pending, confirmed and waiting places are withdrawn, whoever gave them, a question of the
      * appointment included, and whoever waited leaves the waiting list with it, partners' members
      * waiting on it too; a refusal or a denial already
-     * says the member is not coming and stays as it is. The
+     * shows the member is not coming and stays as it is. The
      * rows are kept and marked rather than removed, so whoever runs the appointment can still see who
      * had been down for the day. Nothing is remembered to put back: the member did not give the place
      * up, the day went away, so there is no answer an undo could restore.
@@ -727,7 +727,7 @@ public class EventRegistrationRepository {
 
     /**
      * Finds the members with a standing sign-up, holding a place or waiting on the waiting list, on any
-     * date of an event from one day on. They are the ones to tell when the event changes or is called
+     * date of an event from one day on. They are the ones to notify when the event changes or is called
      * off, since whoever waits may still move up.
      *
      * @param eventId the event ID
@@ -837,7 +837,7 @@ public class EventRegistrationRepository {
      * The members of a station who have said nothing about an event.
      *
      * <p>Saying nothing means having no answer on record. A decline, a place given up and being turned
-     * down all say where the member stands, so none of them is asked again. A refusal taken back leaves
+     * down all show where the member stands, so none of them is asked again. A refusal taken back leaves
      * no answer, and a place the system withdrew because its date went away is no answer of the
      * member's, so both are asked again.
      *
@@ -986,9 +986,9 @@ public class EventRegistrationRepository {
      * Gives everyone named by a question their confirmed place.
      *
      * <p>A place somebody already holds is left exactly as it is, which is what the condition on the
-     * update says: a confirmed registration made by the member themselves stays theirs, so taking
+     * update enforces: a confirmed registration made by the member themselves stays theirs, so taking
      * them out of the question later cannot take away something they did not get from it. Everything
-     * else, pending or refused, is overwritten, because being named says they are taking part.
+     * else, pending or refused, is overwritten, because being named means they are taking part.
      *
      * <p>A name that no longer belongs to anybody in the station is passed over rather than refused.
      * An answer keeps the ids it was written with, so a question can still name somebody who has
@@ -1026,9 +1026,9 @@ public class EventRegistrationRepository {
      * Records that a place held through a question has been given up, for an appointment that has to
      * be signed up for.
      *
-     * <p>The row stays and says so. Somebody taking their own name out of a question of an
+     * <p>The row stays and shows it. Somebody taking their own name out of a question of an
      * appointment they had to sign up for has given up a place, and whoever runs it has to see that
-     * they did rather than find the list one shorter with nothing to say who is missing.
+     * they did rather than find the list one shorter with nothing to show who is missing.
      */
     public int withdrawFromField(int eventId, List<Integer> memberIds, List<LocalDate> dates) {
         if (memberIds.isEmpty()) return 0;

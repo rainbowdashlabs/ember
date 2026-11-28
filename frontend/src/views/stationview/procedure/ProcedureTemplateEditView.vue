@@ -72,7 +72,7 @@ const depSelectedId = ref<number | null>(null)
 
 /** The managing party every procedure started from the template begins with. */
 const party = ref<RestrictionSelection>(emptyRestriction())
-/** The party as last saved, against which an edit is told apart. */
+/** The party as last saved, against which an edit is detected. */
 const savedParty = ref<RestrictionSelection>(emptyRestriction())
 /** Whether the party was changed since it was last saved, so a reload after another change keeps it. */
 const partyEdited = computed(() => !sameRestriction(party.value, savedParty.value))

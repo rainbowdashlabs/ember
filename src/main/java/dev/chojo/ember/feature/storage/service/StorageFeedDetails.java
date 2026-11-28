@@ -15,7 +15,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * What a feed entry says about a station running out of storage: how full it is, and which
+ * What a feed entry shows about a station running out of storage: how full it is, and which
  * categories take the most.
  */
 @Singleton
@@ -44,7 +44,7 @@ public class StorageFeedDetails implements FeedDetailsContributor {
     /**
      * Adds the largest categories of the station the link names by {@code stationId}, biggest first,
      * as one bulleted row. Empty categories are left out, so a station that does not use a feature is
-     * not told about it. A missing id, no usage or a failed lookup adds nothing.
+     * not shown it. A missing id, no usage or a failed lookup adds nothing.
      */
     private void addLargestCategories(FeedDetails details) {
         Integer stationId = details.linkParam("stationId");

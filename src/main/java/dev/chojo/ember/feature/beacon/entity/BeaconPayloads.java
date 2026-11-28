@@ -15,7 +15,7 @@ import java.util.List;
  * What travels between an instance and its beacon.
  *
  * <p>Every payload carries the protocol version, because a beacon and the instances reporting to it
- * run different releases by design and the older of the two has to be able to say so.
+ * run different releases by design and the older of the two has to be able to signal it.
  *
  * <p>The signed payloads also carry when they were issued, a nonce, and the beacon they were meant
  * for. Signing the body alone would leave a captured report replayable, and replayable straight into
@@ -27,9 +27,9 @@ public final class BeaconPayloads {
      * The contract these payloads are written against.
      *
      * <p>Raised to 2 when a fault gained the words it was logged with and a report gained the
-     * context it was written in. Until then a beacon was told a logger name and a count and nothing
+     * context it was written in. Until then a beacon was sent a logger name and a count and nothing
      * else, which named no fault anybody could act on. A beacon still on 1 refuses a delivery from
-     * an instance on 2 and says which of the two is behind, rather than failing on a field it has
+     * an instance on 2 and reports which of the two is behind, rather than failing on a field it has
      * never heard of.
      */
     public static final int PROTOCOL_VERSION = 2;
@@ -156,7 +156,7 @@ public final class BeaconPayloads {
      * @param browser        what they were reading it in
      * @param screenSize     how large the window was, which is half of what a layout fault needs
      * @param roles          what they were allowed to do, so a fault only some people meet can be
-     *                       told from one everybody meets. Rights, never a name
+     *                       distinguished from one everybody meets. Rights, never a name
      * @param recentRequests the calls the screen made before they wrote, each with its query string
      *                       removed the same way the page is
      * @param imageId        the picture that was delivered just before this report, as the beacon
@@ -182,7 +182,7 @@ public final class BeaconPayloads {
      *
      * <p>Its own delivery because a report is capped at what a sentence needs and a picture is
      * thousands of times that, and raising that cap would widen what every other delivery may send.
-     * It carries nothing that says who is in the picture: what was to be covered was covered before
+     * It carries nothing that shows who is in the picture: what was to be covered was covered before
      * it left the instance, and there is no layer here to take off.
      *
      * @param contentType what the bytes are, which a beacon checks against the bytes themselves

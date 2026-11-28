@@ -187,7 +187,7 @@ function signHrefOf(state: StepDocumentState | null): string | null {
   return null
 }
 
-/** What the sign link says, the same for every step: signing in front of a witness, or signing oneself. */
+/** What the sign link shows, the same for every step: signing in front of a witness, or signing oneself. */
 const signLabel = computed(() => hasPermission(StationPermission.DOCUMENT_SIGN_OTHERS)
     ? t('signing.witness.fromTile')
     : t('procedures.document.sign'))
@@ -263,7 +263,7 @@ async function updateNote(item: ProcedureItem, note: string) {
  * Closes the list, or opens it again, and then reads it back. Asks first, unless shift is held.
  *
  * <p>The two are answered for separately. A list the server had already closed, followed by a page
- * that would not refresh, used to say the list would not close, and pressing again reopens it.
+ * that would not refresh, used to show that the list would not close, and pressing again reopens it.
  */
 const resolveLabel = computed(() => detail.value?.procedure.status === ProcedureStatus.OPEN
     ? t('procedures.resolve')

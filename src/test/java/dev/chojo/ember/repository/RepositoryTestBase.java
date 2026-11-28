@@ -993,8 +993,8 @@ public abstract class RepositoryTestBase {
     /**
      * The profile answer core over the shared repositories, with both owners bound.
      *
-     * @param notifier where the station's owner tells its member management of a change
-     * @param eventBus where the association's owner tells the member it wrote to
+     * @param notifier where the station's owner notifies its member management of a change
+     * @param eventBus where the association's owner notifies the member it wrote to
      * @return the core
      */
     protected static ProfileFieldCore newProfileFieldCore(Notifier notifier, DomainEventBus eventBus) {

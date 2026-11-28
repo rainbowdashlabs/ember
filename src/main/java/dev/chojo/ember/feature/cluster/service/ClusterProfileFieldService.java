@@ -190,7 +190,7 @@ public class ClusterProfileFieldService {
      * Writes a question down. Who is asked it is a separate act, as it is for a station's own.
      *
      * <p>A question nobody has been put to reaches nobody until an audience is named, which the screen
-     * says out loud rather than guessing at one.
+     * makes explicit rather than guessing at one.
      */
     public ClusterProfileField create(
             int clusterId,
@@ -533,7 +533,7 @@ public class ClusterProfileFieldService {
     }
 
     /**
-     * Checks a question the association is about to write down, the way every owner's is checked, and says
+     * Checks a question the association is about to write down, the way every owner's is checked, and returns
      * what to file it under. An unnamed spacer is numbered among the association's own questions.
      */
     private String checkedName(int clusterId, @Nullable String name, FieldType fieldType, ProfileFieldConfig config) {

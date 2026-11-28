@@ -56,7 +56,7 @@ import java.util.Optional;
  * station certificate, and the revocation data of the timestamp service's certificates.
  *
  * <p>Each step that cannot be completed leaves the seal one level lower instead of failing, and the
- * result says which level it reached: without a timestamp it is {@code BASELINE-B}, and with a
+ * result shows which level it reached: without a timestamp it is {@code BASELINE-B}, and with a
  * timestamp whose revocation data could not be fetched it is {@code BASELINE-T}. {@link #lift} takes
  * such a document further later, and {@link #renew} covers its timestamps with a new one before their
  * certificates run out ({@code BASELINE-LTA}).
@@ -122,7 +122,7 @@ public class PdfSealer {
 
     /**
      * Seals a PDF document at {@code BASELINE-B} without asking any timestamp service, for a document
-     * that says on its face that no service answered when it was sealed a moment before.
+     * that shows on its face that no service answered when it was sealed a moment before.
      *
      * @param pdf   the document to seal
      * @param key   the private key of the first certificate in {@code chain}

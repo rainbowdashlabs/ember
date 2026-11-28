@@ -36,7 +36,7 @@ import static org.mockito.Mockito.mock;
 
 /**
  * A news entry as a member of its station reads it over HTTP: which station it belongs to, and
- * whether it is kept to part of that station, which is what the lock beside its title says.
+ * whether it is kept to part of that station, which is what the lock beside its title shows.
  */
 class NewsEntryRoutesTest extends BlockReferenceTestBase {
     private static LocalRouteServer server;

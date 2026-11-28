@@ -25,7 +25,7 @@ import java.util.UUID;
  * Reading and writing the messages of a conversation: a page of them, one of them, writing,
  * changing and deleting one's own.
  *
- * <p>Every change is told to the people in the conversation as a signal naming the message, which
+ * <p>Every change is announced to the people in the conversation as a signal naming the message, which
  * their pages then fetch through {@link #one}.
  */
 @Singleton
@@ -103,7 +103,7 @@ public class MessageService {
 
     /**
      * Writes a message. A direct conversation either side had put away comes back to both, and the
-     * writer has read everything up to their own message. The others are told, and pushed to where
+     * writer has read everything up to their own message. The others are notified, and pushed to where
      * they want it.
      *
      * @param accountId       the writer

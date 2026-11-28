@@ -45,7 +45,7 @@ import java.util.Objects;
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
- * Routes for the flows a station's movements walk, and for the bindings that say which flow applies
+ * Routes for the flows a station's movements walk, and for the bindings that define which flow applies
  * to which owner and purpose.
  *
  * <p>Configuring flows is a manager's job, so the whole surface sits behind one permission. Which
@@ -299,7 +299,7 @@ public class MovementFlowRoutes implements Routes {
     }
 
     /**
-     * Says whether the chain waits for the member to confirm a piece they received, or confirms it for them
+     * Returns whether the chain waits for the member to confirm a piece they received, or confirms it for them
      * as soon as a movement reaches that step.
      */
     @OpenApi(
@@ -452,11 +452,11 @@ public class MovementFlowRoutes implements Routes {
     }
 
     /**
-     * Says what writing this chain again would do, without doing any of it.
+     * Shows what writing this chain again would do, without doing any of it.
      *
      * <p>What is asked before the restore is asked for. A chain written again takes the movements
      * standing on it with it, and where one of them lands is a question the preset answers only where
-     * it says once what the old step said. The rest are for somebody to answer, and this is the page
+     * it gives one answer for what the old step was. The rest are for somebody to answer, and this is the page
      * they answer on.
      */
     @OpenApi(
@@ -478,9 +478,9 @@ public class MovementFlowRoutes implements Routes {
     }
 
     /**
-     * Writes a chain again as the preset for its combination says it goes.
+     * Writes a chain again as the preset for its combination defines it.
      *
-     * <p>The body says where the movements the preset does not answer for are to land, and a chain
+     * <p>The body defines where the movements the preset does not answer for are to land, and a chain
      * whose movements it does answer for is written again with no body at all, which is what keeps
      * the one-click case one click.
      *
@@ -596,9 +596,9 @@ public class MovementFlowRoutes implements Routes {
      * @param skipMemberReceipt whether the member's confirmation of a received piece is confirmed for them
      *                          as soon as a movement reaches it, rather than waited for
      * @param problem        what stops this chain from being walked, or null when nothing does. A
-     *                       chain under construction says so here rather than only when somebody
+     *                       chain under construction shows it here rather than only when somebody
      *                       tries to use it, and it is named rather than worded so the reader is
-     *                       told in their own language
+     *                       shown in their own language
      */
     public record FlowResponse(
             int id,

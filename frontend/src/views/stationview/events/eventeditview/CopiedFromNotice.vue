@@ -10,7 +10,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import {useEventRoutes} from '@/composables/useEventRoutes'
 
 /**
- * Says above the editor which appointment a new one is copied from, with a way back to it, and what
+ * Shows above the editor which appointment a new one is copied from, with a way back to it, and what
  * the copy leaves behind, so nobody looks for the sign-ups of the original in it.
  */
 const props = defineProps<{

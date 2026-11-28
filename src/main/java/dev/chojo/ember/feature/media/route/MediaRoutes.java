@@ -200,8 +200,8 @@ public class MediaRoutes implements Routes {
      * Takes a file into the library.
      *
      * <p>A file too big for the instance and a station out of room are the sender's to act on and
-     * say so. Anything else that goes wrong while the bytes are being kept is Ember's: it used to
-     * be answered as a bad request, which told somebody whose file was perfectly good to go and
+     * are answered as such. Anything else that goes wrong while the bytes are being kept is Ember's: it used to
+     * be answered as a bad request, which sent somebody whose file was perfectly good off to
      * fix it.
      */
     @OpenApi(

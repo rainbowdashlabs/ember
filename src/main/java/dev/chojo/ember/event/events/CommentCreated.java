@@ -21,13 +21,13 @@ import org.jspecify.annotations.Nullable;
  * @param commentId       the comment
  * @param parentCommentId the comment it answers, {@code null} for a top-level comment
  * @param parentAuthorId  the author of the answered comment as a member here, {@code null} when
- *                        there is nobody to tell
+ *                        there is nobody to notify
  * @param authorMemberId  the author as a member here, {@code null} when they are not one
  * @param authorName      the name the notification shows as the author
  * @param preview         the excerpt of the comment the notification shows
- * @param alsoTold        who is told about every comment on the target besides, {@code null} for
+ * @param alsoTold        who is notified of every comment on the target besides, {@code null} for
  *                        nobody; the author is left out of them
- * @param toldOfNewThread who is told that a new top-level comment was written, {@code null} for
+ * @param toldOfNewThread who is notified that a new top-level comment was written, {@code null} for
  *                        nobody or for a reply; the author and the members it mentions by name are
  *                        already left out of them
  */

@@ -33,8 +33,8 @@ import java.util.List;
  *
  * <p>A list is signed by the authority that issued the certificates it names, with the algorithm its
  * certificates use, and carries the authority key identifier, so a reader matches it to the authority
- * even after a renewal left two of them with the same name, and a CRL number, so a reader can tell the
- * newer of two lists apart. Every entry carries the date the key was revoked and its reason code.
+ * even after a renewal left two of them with the same name, and a CRL number, so a reader can identify the
+ * newer of two lists. Every entry carries the date the key was revoked and its reason code.
  * Entries are never dropped once the certificate has expired: a document sealed with the key stays
  * checkable for as long as anyone holds it, and the lists stay small.
  */

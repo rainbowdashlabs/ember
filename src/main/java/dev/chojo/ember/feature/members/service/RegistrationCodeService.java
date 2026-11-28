@@ -41,7 +41,7 @@ public class RegistrationCodeService {
 
     /**
      * A code of the station. A code of another station is not found, the same as one that is gone,
-     * so its number says nothing about whether it exists elsewhere.
+     * so its number shows nothing about whether it exists elsewhere.
      *
      * @param stationId the station asking
      * @param id        the code

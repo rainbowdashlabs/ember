@@ -148,7 +148,7 @@ const {running: creating, failure: createFailure, run: runCreateKind} = useAsync
  *
  * <p>A refusal stays beside the picker rather than passing as a toast: the form around it goes on to
  * save without a kind, and somebody who missed a message that lasted three seconds has no way of
- * telling that from a form that simply did not ask.
+ * distinguishing that from a form that simply did not ask.
  */
 async function commitPendingKind() {
   if (creating.value || !pendingIcon.value) return

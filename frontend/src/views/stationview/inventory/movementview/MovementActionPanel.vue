@@ -76,7 +76,7 @@ const props = defineProps<{
    * with it, so it is confirmed rather than looked for again, and another piece may still be chosen.
    */
   promisedItemId?: number | null
-  /** That piece in words, for the line that says which one is meant. */
+  /** That piece in words, for the line that shows which one is meant. */
   promisedItemName?: string | null
   /**
    * Where the piece the member handed in is, which decides what calling off asks: whether to give it
@@ -114,7 +114,7 @@ const note = ref('')
 const giveBack = ref(true)
 const planWayBack = ref(false)
 
-/** What calling off asks about the handed-in piece, or nothing where it is not the station's to say. */
+/** What calling off asks about the handed-in piece, or nothing where it is not the station's to decide. */
 const callOffAsks = computed(() => props.step.actionable && props.forMember ? props.oldPiece ?? null : null)
 
 function callOff() {
@@ -159,7 +159,7 @@ watch(() => props.promisedItemId, id => {
  * Leaving the form goes back to the piece the movement promised, where it names one.
  *
  * <p>Opening the form fills the size in from what the exchange asked for and leaves it editable: what
- * an association sends is not always what was asked for, and the record has to be able to say so.
+ * an association sends is not always what was asked for, and the record has to be able to show that.
  */
 function toggleRecording() {
   recording.value = !recording.value

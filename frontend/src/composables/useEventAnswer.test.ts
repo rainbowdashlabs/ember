@@ -174,7 +174,7 @@ describe('useEventAnswer', () => {
 
     /**
      * A sign-up the server took, followed by a list that would not come back, is not a sign-up that
-     * failed. Saying it was sends a member who already holds a place to take a second one.
+     * failed. Reporting that it was sends a member who already holds a place to take a second one.
      */
     it('tells a list that would not refresh apart from an answer that was refused', async () => {
         const failure = ref<Failure | null>(null)

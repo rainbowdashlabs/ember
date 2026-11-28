@@ -109,7 +109,7 @@ function openCreateModal() {
  *
  * <p>The two are answered for separately, and this is the case where running them together costs
  * the most: a catalogue the server had already written, followed by a list that would not come
- * back, said the catalogue had not been written, and the reader wrote a second one of the same name.
+ * back, showed that the catalogue had not been written, and the reader wrote a second one of the same name.
  */
 async function createCatalog() {
   if (!createName.value.trim()) return

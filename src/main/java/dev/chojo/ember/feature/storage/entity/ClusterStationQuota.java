@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  * What a cluster granted one of its stations.
  *
  * <p>Kept apart from the instance's own numbers on the station row on purpose. Two parties writing one column
- * means neither can tell what the other did, and the pool ends up adding up a number nobody handed out. A
+ * means neither can know what the other did, and the pool ends up adding up a number nobody handed out. A
  * station with no row of this kind has been granted nothing, which is not the same as having been granted
  * nothing in particular: a null dimension inside a row falls back to the cluster's defaults.
  *

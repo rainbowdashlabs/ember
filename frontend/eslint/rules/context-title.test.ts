@@ -12,7 +12,7 @@ import rule, {isConstantTitle, viewContentTitle, writesItsOwnHead} from './conte
 import {parseComponent} from './sfc.mjs'
 
 /**
- * Telling a title that can name what a page shows from one that never could.
+ * Distinguishing a title that can name what a page shows from one that never could.
  *
  * @vitest-environment node
  *
@@ -73,7 +73,7 @@ describe('a title that says which thing', () => {
         expect(isConstantTitle(bound("t('pages.quiz-catalog-detail.title')"))).toBe(true)
     })
 
-    /** A title written out rather than bound cannot change, whatever it happens to say. */
+    /** A title written out rather than bound cannot change, whatever it happens to read. */
     it('calls a written out title a constant whatever is in it', () => {
         expect(isConstantTitle(titleOf('<template><ViewContent title="Fragenkatalog"/></template>')!)).toBe(true)
     })

@@ -189,7 +189,7 @@ public class InventoryService {
      * Updates everything about an inventory except the picture it is drawn with, which is left as it
      * stands.
      *
-     * <p>A caller that knows nothing about pictures is not saying there should be none. Renaming an
+     * <p>A caller that knows nothing about pictures is not asking for there to be none. Renaming an
      * inventory or changing what it holds leaves the shape and the colour alone.
      *
      * @param id            the inventory ID
@@ -254,11 +254,11 @@ public class InventoryService {
     }
 
     /**
-     * Makes every item say what the inventory's new type says about its owner.
+     * Makes every item show what the inventory's new type defines about its owner.
      *
      * <p>The type used to judge only new arrivals, so switching an inventory left the items inside
-     * saying the old owner, and the next exchange replacement was refused by the very inventory it
-     * was coming home to. Switching is an operator saying whose gear this is, so it is now said on
+     * showing the old owner, and the next exchange replacement was refused by the very inventory it
+     * was coming home to. Switching is an operator saying whose gear this is, so it is now written on
      * the items as well: internal writes the station onto them, external writes the body above it,
      * and mixed holds both kinds and rewrites nothing. Borrowed gear keeps its owner throughout,
      * because a loan is not the station's to re-declare.
@@ -641,8 +641,8 @@ public class InventoryService {
      * The body above the station that keeps this inventory, when there is one.
      *
      * <p>A station recording gear it does not own means the one body above it: there is no second
-     * candidate to choose between, so nothing asks. Without this the row says "somebody above us owns
-     * this" and cannot say who, the association's own chains never reach it, and the station ends up
+     * candidate to choose between, so nothing asks. Without this the row shows "somebody above us owns
+     * this" and cannot show who, the association's own chains never reach it, and the station ends up
      * standing in for a body that is right there and could have answered for itself.
      *
      * @param inventoryId the inventory the gear goes into
@@ -660,8 +660,8 @@ public class InventoryService {
      * Refuses an owner the inventory was not made to hold.
      *
      * <p>This is the one job the inventory's type still has. It used to stand in for the owner of every
-     * item in it, which is where the mixed-inventory bug came from; now the item says who owns it and the
-     * type only says which owners may be written down here. An inventory of the station's own things holds
+     * item in it, which is where the mixed-inventory bug came from; now the item shows who owns it and the
+     * type only defines which owners may be written down here. An inventory of the station's own things holds
      * nothing borrowed, one of borrowed things holds nothing of the station's own, and a mixed one is the
      * only place both may stand.
      *
@@ -674,13 +674,7 @@ public class InventoryService {
                 .findById(inventoryId)
                 .map(Inventory::inventoryType)
                 .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_FOR_OWNER_CHECK::raise);
-        boolean fits =
-                switch (type) {
-                    case MIXED -> true;
-                    case INTERNAL -> ownerKind == ItemOwner.STATION;
-                    case EXTERNAL -> ownerKind == ItemOwner.CLUSTER;
-                };
-        if (!fits) {
+        if (!type.holds(ownerKind)) {
             throw (ownerKind == ItemOwner.STATION
                             ? InventoryRefusal.INVENTORY_HOLDS_NO_STATION_GEAR
                             : InventoryRefusal.INVENTORY_HOLDS_NO_ASSOCIATION_GEAR)
@@ -702,7 +696,7 @@ public class InventoryService {
     /**
      * Refuses a group of stations that is not the association's whose inventory this is.
      *
-     * <p>A requirement naming a group is an association saying where it applies, so the group has to be
+     * <p>A requirement naming a group is an association setting where it applies, so the group has to be
      * one the same association filed. A station writing its own requirement names none, and passes here
      * without a query.
      */
@@ -1075,7 +1069,7 @@ public class InventoryService {
      *
      * <p>Holding is not owning: a station may move, check or report a cluster's gear, but renaming, resizing
      * or deleting it is the owner's account of what it is. The owner arrives here as a station request, so
-     * {@code actingClusterId} says whether the caller is the body the gear belongs to. A borrowed piece is
+     * {@code actingClusterId} shows whether the caller is the body the gear belongs to. A borrowed piece is
      * always its lender's. Gear of a body that does not use Ember stays editable, or a wrong record could
      * never be put right.
      *
@@ -1118,7 +1112,7 @@ public class InventoryService {
     }
 
     /**
-     * What a station has to show for its people: its own requirements and the cluster's, each saying which
+     * What a station has to show for its people: its own requirements and the cluster's, each showing which
      * it is and what it asks for.
      *
      * @param stationId the station reading them

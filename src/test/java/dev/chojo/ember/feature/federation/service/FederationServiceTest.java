@@ -392,7 +392,7 @@ class FederationServiceTest extends RepositoryTestBase {
         stationRepo.delete(stationJ.id());
     }
 
-    /** A request between two stations here tells the asked one, and its answer tells the asking one. */
+    /** A request between two stations here notifies the asked one, and its answer notifies the asking one. */
     @Test
     @Order(82)
     void aLocalRequestAndItsAnswersAreToldToBothStations() {

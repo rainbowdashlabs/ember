@@ -35,7 +35,7 @@ const props = defineProps<{
     people: AnswerablePerson<K>[]
     /** The questions the event asks. Empty when it asks none, and ignored when declining. */
     fields: EventRegistrationField[]
-    /** Whether this dialog is saying yes. Saying no needs no answers. */
+    /** Whether this dialog is answering yes. Answering no needs no answers. */
     attending: boolean
     busy?: boolean
     error?: string

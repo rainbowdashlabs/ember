@@ -86,7 +86,7 @@ public class AccountLinkService {
     }
 
     /**
-     * @param clock what tells the time, so a test can look at a request whose time is up
+     * @param clock what provides the time, so a test can look at a request whose time is up
      */
     public AccountLinkService(
             AccountLinkRepository repository,

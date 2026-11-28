@@ -59,7 +59,7 @@ import static org.mockito.Mockito.verify;
 
 /**
  * What a comment on a board ticket does, pinned over the real routes, services and storage: who
- * reads, writes, changes and removes it, how the activity lists it and whom it tells.
+ * reads, writes, changes and removes it, how the activity lists it and whom it notifies.
  */
 class TicketCommentBehaviourTest extends RepositoryTestBase {
     private static final DomainEventBus BUS = mock(DomainEventBus.class);

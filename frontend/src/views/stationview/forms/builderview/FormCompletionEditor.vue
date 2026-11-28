@@ -15,9 +15,9 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 
 /**
- * What the form says once it is sent, and where it offers to go on to: "Thanks, see you on Saturday"
- * and a link to the event, say. Left empty, the general thanks stays. A link that cannot be offered is
- * said so at once, while it is typed, rather than by a save that fails.
+ * What the form shows once it is sent, and where it offers to go on to: "Thanks, see you on Saturday"
+ * and a link to the event, for example. Left empty, the general thanks stays. A link that cannot be offered is
+ * flagged at once, while it is typed, rather than by a save that fails.
  */
 const message = defineModel<string>('message', { required: true })
 const link = defineModel<string>('link', { required: true })

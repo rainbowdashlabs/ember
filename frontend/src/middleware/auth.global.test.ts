@@ -22,6 +22,9 @@ const state = vi.hoisted(() => ({
     navigations: [] as unknown[],
     admin: false,
     sessionLoaded: false,
+    sessionStation: null as string | null,
+    memberOf: [] as string[],
+    sessionCluster: null as string | null,
     sessionLoads: 0,
     clusters: [] as {uid: string}[],
     clustersLoaded: false,
@@ -39,15 +42,17 @@ const state = vi.hoisted(() => ({
     markingFails: false,
 }))
 
-mockNuxtImport('navigateTo', () => (target: unknown) => {
-    state.navigations.push(target)
+mockNuxtImport('navigateTo', () => (target: unknown, options?: object) => {
+    state.navigations.push(options ? {to: target, ...options} : target)
     return target
 })
 
-vi.mock('~/api/storage', () => ({
-    getItem: (key: string) => state.store.get(key) ?? null,
-    removeItem: (key: string) => {
-        state.store.delete(key)
+vi.mock('~/util/tabPlace', () => ({
+    tabStationId: () => state.store.get('station_id') ?? null,
+    tabClusterId: () => state.store.get('cluster_id') ?? null,
+    forgetTabPlaces: () => {
+        state.store.delete('station_id')
+        state.store.delete('cluster_id')
     },
 }))
 
@@ -79,6 +84,8 @@ vi.mock('~/composables/useSession', () => ({
             state.sessionLoaded = true
         },
         isAdmin: () => state.admin,
+        sessionStationId: {value: state.sessionStation},
+        sessionClusterId: {value: state.sessionCluster},
         clear: () => {
             state.sessionCleared++
         },
@@ -95,6 +102,7 @@ vi.mock('~/composables/useCluster', () => ({
         clusterList: {value: state.clusters},
         setActiveCluster: (uid: string) => {
             state.activeCluster = uid
+            state.store.set('cluster_id', uid)
         },
     }),
 }))
@@ -126,6 +134,9 @@ vi.mock('~/composables/useStations', () => ({
             state.store.set('station_id', stationId)
         },
         soleStationId: async () => state.soleStation,
+        loaded: {value: true},
+        load: async () => {},
+        stationList: {value: state.memberOf.map(stationId => ({stationId}))},
     }),
 }))
 
@@ -165,7 +176,7 @@ describe('auth route guard', () => {
      *
      * <p>Every gate below reads an unknown address as a page somebody may not see, so an anonymous
      * visitor mistyping one was sent to the login screen carrying the bad address as their redirect.
-     * The page that exists to explain a wrong address never got to say anything.
+     * The page that exists to explain a wrong address never got to show anything.
      */
     it('sends a browser without a session cookie to the login, with the way back', async () => {
         state.carriesSession = false
@@ -191,6 +202,9 @@ describe('auth route guard', () => {
         state.firstStationNeeded = false
         state.soleStation = null
         state.sessionLoaded = false
+        state.sessionStation = null
+        state.memberOf = [STATION, '22222222-2222-4222-a222-222222222222']
+        state.sessionCluster = null
         state.sessionLoads = 0
         state.clusters = []
         state.clustersLoaded = false
@@ -331,7 +345,9 @@ describe('auth route guard', () => {
 
         await run(route('/station/dashboard/overview'))
 
-        expect(state.navigations).toEqual([])
+        expect(state.navigations).toEqual([
+            {to: {path: '/station/dashboard/overview', query: {station: STATION}, hash: undefined}, replace: true},
+        ])
         expect(state.activeStation).toBe(STATION)
     })
 
@@ -365,7 +381,7 @@ describe('auth route guard', () => {
         state.store.set('station_id', STATION)
         idleForAnHour()
 
-        await run(route('/station/requirements'))
+        await run(route('/station/requirements', {station: STATION}))
 
         expect(state.navigations).toEqual([])
     })
@@ -404,7 +420,7 @@ describe('auth route guard', () => {
         state.store.set('station_id', STATION)
         localStorage.setItem('ember_last_activity', String(Date.now() - 1000))
 
-        await run(route('/station/dashboard/overview'))
+        await run(route('/station/dashboard/overview', {station: STATION}))
 
         expect(state.navigations).toEqual([])
         expect(Number(localStorage.getItem('ember_last_activity'))).toBeGreaterThan(Date.now() - 1000)
@@ -479,6 +495,83 @@ describe('auth route guard', () => {
         expect(state.navigations).toEqual([])
     })
 
+    describe('naming the place in the address', () => {
+        const OTHER = '22222222-2222-4222-a222-222222222222'
+
+        it('adds the station of the tab to an address that names none', async () => {
+            state.store.set('station_id', STATION)
+
+            await run(route('/station/events/upcoming', {view: 'list'}))
+
+            expect(state.navigations).toEqual([
+                {to: {path: '/station/events/upcoming', query: {view: 'list', station: STATION}, hash: undefined}, replace: true},
+            ])
+        })
+
+        it('leaves an address that names the station of the tab alone', async () => {
+            state.store.set('station_id', STATION)
+
+            await run(route('/station/events/upcoming', {station: STATION}))
+
+            expect(state.navigations).toEqual([])
+            expect(state.activeStation).toBeNull()
+        })
+
+        /** The menus, the permissions and what the screens hold were answered for the other station. */
+        it('loads the page anew when a link leads to another station than the session was answered for', async () => {
+            state.store.set('station_id', STATION)
+            state.sessionStation = STATION
+
+            await run(route('/station/events/upcoming', {station: OTHER}))
+
+            expect(state.activeStation).toBe(OTHER)
+            expect(state.navigations).toEqual([{to: `/station/events/upcoming?station=${OTHER}`, external: true}])
+        })
+
+        it('moves a tab whose session is not loaded yet without loading the page again', async () => {
+            state.store.set('station_id', STATION)
+
+            await run(route('/station/events/upcoming', {station: OTHER}))
+
+            expect(state.activeStation).toBe(OTHER)
+            expect(state.navigations).toEqual([])
+        })
+
+        /** A copied address can name a station the reader does not belong to, or no longer does. */
+        it('drops a station the account does not belong to and keeps the tab where it is', async () => {
+            state.store.set('station_id', STATION)
+
+            await run(route('/station/events/upcoming', {station: 'somebody-elses', view: 'list'}))
+
+            expect(state.activeStation).toBeNull()
+            expect(state.navigations).toEqual([
+                {to: {path: '/station/events/upcoming', query: {view: 'list'}, hash: undefined}, replace: true},
+            ])
+        })
+
+        it('adds the cluster of the tab to a cluster address that names none', async () => {
+            state.clusters = [{uid: 'c1'}]
+            state.store.set('cluster_id', 'c1')
+
+            await run(route('/cluster/stations'))
+
+            expect(state.navigations).toEqual([
+                {to: {path: '/cluster/stations', query: {cluster: 'c1'}, hash: undefined}, replace: true},
+            ])
+        })
+
+        it('loads the page anew when a link leads to another cluster than the session was answered for', async () => {
+            state.clusters = [{uid: 'c1'}, {uid: 'c2'}]
+            state.store.set('cluster_id', 'c1')
+            state.sessionCluster = 'c1'
+
+            await run(route('/cluster/stations', {cluster: 'c2'}))
+
+            expect(state.activeCluster).toBe('c2')
+            expect(state.navigations).toEqual([{to: '/cluster/stations?cluster=c2', external: true}])
+        })
+    })
+
     it('ignores an association in the link the reader may not act for', async () => {
         state.store.set('station_id', STATION)
         state.clusters = [{uid: 'c1'}]
@@ -492,7 +585,7 @@ describe('auth route guard', () => {
         it('notes a navigation that is let through', async () => {
             state.store.set('station_id', STATION)
 
-            await run(route('/station/events/upcoming'))
+            await run(route('/station/events/upcoming', {station: STATION}))
 
             expect(state.remembered).toEqual(['/station/events/upcoming'])
         })

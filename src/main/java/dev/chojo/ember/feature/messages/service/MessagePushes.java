@@ -27,14 +27,14 @@ import java.util.Set;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
- * New messages as pushes: who gets one, and what it says to each of them.
+ * New messages as pushes: who gets one, and what it shows each of them.
  *
  * <p>Everybody taking part gets one for whom the message counts as unread and who can use messages,
  * so not the writer, nobody who muted the conversation or blocked the writer, and no ward whose
  * guardian has not allowed messages; and not whoever has Ember open right now, since an open window
  * already shows the message. That last one is known
  * only to the node holding the reader's stream, so the pushes are queued right after the message
- * rather than in the statement that writes it. What a push says is written when it goes out: the
+ * rather than in the statement that writes it. What a push shows is written when it goes out: the
  * conversation by the name this reader knows it under, the writer and the text, and nothing once any
  * of those no longer holds, the reader read it, or the instance switched messages off. A failure to
  * queue costs only the pushes: the message was written and is not sent again.
@@ -71,7 +71,7 @@ public class MessagePushes {
 
     /**
      * Queues a new message as a push to the devices of everybody who should get one. Never throws,
-     * since the message is written already and a writer told otherwise would send it twice.
+     * since the message is written already and a writer given a failure would send it twice.
      *
      * @param conversation the conversation
      * @param authorId     the writer, who gets none
@@ -90,11 +90,11 @@ public class MessagePushes {
     }
 
     /**
-     * What a push about a message says to one reader.
+     * What a push about a message shows one reader.
      *
      * @param messageId the message
      * @param readerId  the reader's account
-     * @return the push, empty when there is nothing left to say to them
+     * @return the push, empty when there is nothing left to show them
      */
     public Optional<MessagePush> forReader(int messageId, int readerId) {
         if (!instance.messagesEnabled()) return Optional.empty();

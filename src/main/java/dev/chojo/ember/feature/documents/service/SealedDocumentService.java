@@ -225,7 +225,7 @@ public class SealedDocumentService {
     }
 
     /**
-     * What is said about a sealed document as it is filed.
+     * What is known about a sealed document as it is filed.
      *
      * @param memberIds the members it is about, fixed from then on
      * @param title     what it is called

@@ -23,7 +23,7 @@ import type {Failure} from '@/util/failure'
  * <p>The column is not an extra: a checklist without one is refused outright, so asking for it here
  * is the difference between landing on a usable grid and landing on an error. The description the
  * ordinary create dialog carries stays, because a list made from a sign-up sheet is exactly the kind
- * that wants a note saying which occurrence it came from.
+ * that wants a note recording which occurrence it came from.
  *
  * <p>The choice between a copy and a list that follows the occurrence is the one thing that changes
  * what happens after it is made, so it is asked here rather than discovered later on a screen whose

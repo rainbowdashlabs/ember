@@ -123,7 +123,7 @@ const visibleEntries = computed(() => {
  * Whether this list names its people one by one instead of describing them.
  *
  * <p>A list built that way is a snapshot: the refresh resolves the same names again, so nobody who
- * joined the group, gained the tag or signed up afterwards can ever arrive through it. Saying so
+ * joined the group, gained the tag or signed up afterwards can ever arrive through it. Showing that
  * next to the button is the difference between a list somebody trusts and one they think is keeping
  * itself up to date.
  */
@@ -139,7 +139,7 @@ const frozenMemberSet = computed(() => {
 /**
  * Whether this list is tied to one date of an appointment rather than to a description of
  * people. The reference is cleared when the appointment is deleted, so a list that used to follow
- * one keeps every row and simply stops saying that it follows anything.
+ * one keeps every row and simply stops showing that it follows anything.
  */
 const followsEvent = computed(() => detail.value?.source != null)
 
@@ -298,7 +298,7 @@ const pageFailure = computed(() => rowFailure.value
  */
 const pageTitle = computed(() => detail.value?.name || t('pages.checklist-detail.title'))
 
-/** Once the name is the title, the line under it is where the list says what it is for. */
+/** Once the name is the title, the line under it is where the list shows what it is for. */
 const pageSubtitle = computed(() => detail.value?.description || t('pages.checklist-detail.subtitle'))
 
 </script>

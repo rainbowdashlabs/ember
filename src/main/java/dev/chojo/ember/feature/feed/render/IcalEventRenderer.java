@@ -45,8 +45,8 @@ import java.util.Optional;
  *
  * <p>The renderer enriches each event with category, recurrence type, registration
  * deadline/limit/status, per-managed-member registration breakdown, a link back to the
- * web UI, and the location of the event (extracted from the first non-empty
- * {@link FieldType#LOCATION} field).
+ * web UI, and the location of the event: the place question marked as the calendar's location, else
+ * the first answered {@link FieldType#LOCATION} field.
  *
  * <p>It is also responsible for the personal visibility rules - see
  * {@link #isVisibleForFeed(StationEvent, Context)}.
@@ -143,6 +143,7 @@ public class IcalEventRenderer {
      * @return the entries, none for a series that falls on no date at all
      */
     public List<VEvent> render(StationEvent event, Context ctx) {
+        if (ctx.reader() == Reader.PUBLIC) return renderPublic(event, ctx);
         var altogether = ctx.calendar().noticeAltogether(event);
         String summary = altogether.isPresent() ? cancelledPrefix(ctx.locale()) + event.name() : event.name();
         var entry = EventRecurrence.entryOf(event, summary, ctx.calendar());
@@ -161,7 +162,7 @@ public class IcalEventRenderer {
 
         var fields = eventFieldService.findByEvent(
                 event.id(), ctx.calendar().dateInView(event).orElse(null));
-        var location = AppointmentField.firstLocation(fields);
+        var location = AppointmentField.calendarLocation(fields);
         if (location != null) {
             vevent.add(new Location(location));
         }
@@ -171,12 +172,10 @@ public class IcalEventRenderer {
         vevent.add(new Url(URI.create(deepLink)));
 
         if (ctx.verbose()) {
-            String description = buildDescription(event, fields, deepLink, altogether, ctx);
+            String description = buildDescription(event, fields, location, deepLink, altogether, ctx);
             if (!description.isBlank()) vevent.add(new Description(description));
         } else {
-            String text = event.description();
-            String description = (text != null ? text.trim() + "\n\n" : "") + deepLink;
-            vevent.add(new Description(description.stripTrailing()));
+            vevent.add(new Description(compactDescription(event, fields, location, deepLink)));
         }
 
         var entries = new ArrayList<VEvent>();
@@ -185,7 +184,36 @@ public class IcalEventRenderer {
         return entries;
     }
 
-    /** The overrides for the dates of a series called off one by one, each saying why. */
+    /**
+     * The entries the public calendar carries: name, text, category and whether it is off, nothing
+     * that only members may read and no link into the application.
+     */
+    private List<VEvent> renderPublic(StationEvent event, Context ctx) {
+        var entry = EventRecurrence.entryOf(event, event.name(), ctx.calendar());
+        if (entry.isEmpty()) return List.of();
+        var vevent = entry.get();
+        vevent.add(new Uid(EventRecurrence.uidOf(event)));
+        if (ctx.calendar().cancelledAltogether(event)) {
+            vevent.add(ImmutableStatus.VEVENT_CANCELLED);
+        }
+        String description = event.description();
+        if (description != null && !description.isBlank()) {
+            vevent.add(new Description(description));
+        }
+        if (event.categoryId() != null) {
+            var cat = ctx.categoryMap().get(event.categoryId());
+            if (cat != null) vevent.add(new Categories(cat.name()));
+        }
+        var entries = new ArrayList<VEvent>();
+        entries.add(vevent);
+        for (var cancellation : ctx.calendar().cancelledDates(event)) {
+            EventRecurrence.cancelledDateOf(event, cancellation.eventDate(), event.name(), ctx.calendar())
+                    .ifPresent(entries::add);
+        }
+        return entries;
+    }
+
+    /** The overrides for the dates of a series called off one by one, each showing why. */
     private List<VEvent> cancelledDates(StationEvent event, Context ctx) {
         String summary = cancelledPrefix(ctx.locale()) + event.name();
         var overrides = new ArrayList<VEvent>();
@@ -200,13 +228,32 @@ public class IcalEventRenderer {
     }
 
     /**
-     * The verbose description. Location fields are left out, since they already sit on the location
-     * property; member fields show the names the reader knows rather than internal ids; and a trailing
-     * link opens the source in clients that show no URL.
+     * The compact description: the appointment's own text, the places the location property does not
+     * carry, and the link back, each as a paragraph of its own.
+     */
+    private static String compactDescription(
+            StationEvent event, List<AppointmentField> fields, @Nullable String location, String deepLink) {
+        var paragraphs = new ArrayList<String>();
+        String text = event.description();
+        if (text != null && !text.isBlank()) paragraphs.add(text.trim());
+        var places = AppointmentField.otherPlaces(fields, location).stream()
+                .map(place -> place.name() + ": " + place.value().trim())
+                .toList();
+        if (!places.isEmpty()) paragraphs.add(String.join("\n", places));
+        paragraphs.add(deepLink);
+        return String.join("\n\n", paragraphs);
+    }
+
+    /**
+     * The verbose description. The place already on the location property is left out, while any
+     * other place, such as the venue beside the meeting point, is listed like every other field;
+     * member fields show the names the reader knows rather than internal ids; and a trailing link
+     * opens the source in clients that show no URL.
      */
     private String buildDescription(
             StationEvent event,
             List<AppointmentField> fields,
+            @Nullable String location,
             String deepLink,
             Optional<CancellationNotice> altogether,
             Context ctx) {
@@ -227,8 +274,9 @@ public class IcalEventRenderer {
         appendLine(sb, ctx.locale(), "label.eventType", typeLabel);
 
         for (var field : fields) {
-            if (field.fieldType() == FieldType.LOCATION) continue;
+            if (ctx.reader() == Reader.STATION && field.fieldType().namesMembers()) continue;
             if (field.value() == null || field.value().isBlank()) continue;
+            if (field.fieldType() == FieldType.LOCATION && field.value().trim().equals(location)) continue;
             String value = eventFieldService.displayValue(field);
             if (value.isBlank()) continue;
             sb.append(field.name()).append(": ").append(value).append("\n");
@@ -247,6 +295,11 @@ public class IcalEventRenderer {
             Integer registrationLimit = event.registrationLimit();
             if (registrationLimit != null) {
                 appendLine(sb, ctx.locale(), "label.limit", registrationLimit.toString());
+            }
+            if (ctx.reader() == Reader.STATION) {
+                String linkLabel = notificationText.resolveLocalized(ctx.locale(), "ical", "label.link", null);
+                sb.append("\n").append(linkLabel).append(": ").append(deepLink);
+                return sb.toString().stripTrailing();
             }
             var status = ctx.ownerStatusByEvent().get(event.id());
             String statusLabel = notificationText.resolveLocalized(
@@ -331,8 +384,9 @@ public class IcalEventRenderer {
      * @param ownerStatusByEvent    the feed owner's registration status per event id
      * @param managedStatusByEvent  list of managed-member registrations per event id (name +
      *                              status), in display-name order
-     * @param calendar              the station's calendar, which places each series and names the
+     * @param calendar              the station's calendar, which places each series and defines the
      *                              dates its breaks take out
+     * @param reader                who the feed is for, which decides what an entry carries
      */
     public record Context(
             Station station,
@@ -342,7 +396,59 @@ public class IcalEventRenderer {
             Map<Integer, EventCategory> categoryMap,
             Map<Integer, RegistrationStatus> ownerStatusByEvent,
             Map<Integer, List<ManagedRegistration>> managedStatusByEvent,
-            StationCalendar calendar) {}
+            StationCalendar calendar,
+            Reader reader) {
+
+        /** The context of a member's personal feed. */
+        public Context(
+                Station station,
+                String locale,
+                String baseUrl,
+                boolean verbose,
+                Map<Integer, EventCategory> categoryMap,
+                Map<Integer, RegistrationStatus> ownerStatusByEvent,
+                Map<Integer, List<ManagedRegistration>> managedStatusByEvent,
+                StationCalendar calendar) {
+            this(
+                    station,
+                    locale,
+                    baseUrl,
+                    verbose,
+                    categoryMap,
+                    ownerStatusByEvent,
+                    managedStatusByEvent,
+                    calendar,
+                    Reader.MEMBER);
+        }
+
+        /**
+         * The context of a feed that belongs to no member: a station calendar feed or the public
+         * calendar. It carries no sign-up state.
+         */
+        public static Context withoutMember(
+                Station station,
+                String locale,
+                String baseUrl,
+                boolean verbose,
+                Map<Integer, EventCategory> categoryMap,
+                StationCalendar calendar,
+                Reader reader) {
+            return new Context(station, locale, baseUrl, verbose, categoryMap, Map.of(), Map.of(), calendar, reader);
+        }
+    }
+
+    /** Who a feed is for, which decides what its entries carry. */
+    public enum Reader {
+        /** A member's personal feed: everything, with the sign-up state of the member and their household. */
+        MEMBER,
+        /**
+         * A station calendar feed for a shared calendar: the appointment with its link into the application,
+         * but no sign-up state and no names of people.
+         */
+        STATION,
+        /** The public calendar: name, text, category and whether it is off, nothing more. */
+        PUBLIC
+    }
 
     /**
      * Registration of a managed member (e.g. a guardian's child) for the event.

@@ -48,7 +48,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class InventoryRepository {
     private static final String INVENTORY_COLUMNS =
-            "id, station_id, name, inventory_type, has_sizes, homogeneous, borrowed, icon, color";
+            "id, station_id, name, inventory_type, has_sizes, homogeneous, borrowed, icon, color, picture_key";
     private static final String INVENTORY_SIZE_COLUMNS = "id, inventory_id, label, position, note";
     private static final String INVENTORY_ITEM_COLUMNS =
             "id, inventory_id, internal_id, name, size_id, art_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, owner_station_id, loan_request_item_id, custody, custody_station_id, custody_partner_station_id, custody_movement_id, container_id";
@@ -85,7 +85,7 @@ public class InventoryRepository {
      * The inventories of a station with the figures the overview shows beside each.
      *
      * <p>What is counted is the stock, the same list the inventory itself opens on, so the number on
-     * the tile and the rows behind it cannot say different things.
+     * the tile and the rows behind it cannot show different things.
      */
     public List<InventorySummary> findSummariesByStation(int stationId) {
         return query(
@@ -191,7 +191,7 @@ public class InventoryRepository {
     }
 
     /**
-     * Creates a new inventory for a station, saying whether it is the station's shelf for gear
+     * Creates a new inventory for a station, marking whether it is the station's shelf for gear
      * belonging to somebody else.
      *
      * @param stationId     the station ID
@@ -226,6 +226,20 @@ public class InventoryRepository {
                         .bind("color", glyph.color()),
                 Inventory.map(),
                 INVENTORY_COLUMNS);
+    }
+
+    /**
+     * Sets the storage key of an inventory's photo.
+     *
+     * @param id         the inventory
+     * @param pictureKey the new key, or {@code null} for no photo
+     * @return whether the inventory was there to change
+     */
+    public boolean setPictureKey(int id, @Nullable String pictureKey) {
+        return query("UPDATE inventory SET picture_key = :picture_key WHERE id = :id;")
+                .single(call().bind("id", id).bind("picture_key", pictureKey))
+                .update()
+                .changed();
     }
 
     /**
@@ -282,10 +296,10 @@ public class InventoryRepository {
      * sits on is called. The owning body is written and cleared together with the kind, because
      * only cluster-owned rows may name one.
      *
-     * @param inventoryId    the inventory whose items are re-said
+     * @param inventoryId    the inventory whose items are rewritten
      * @param ownerKind      the owner the inventory holds gear of from now on
      * @param ownerClusterId the owning body when it runs on this instance, only ever set for CLUSTER
-     * @return how many items now say something new
+     * @return how many items now show something new
      */
     public int restampOwners(int inventoryId, ItemOwner ownerKind, @Nullable Integer ownerClusterId) {
         return query("""
@@ -594,7 +608,7 @@ public class InventoryRepository {
      * The stock of an inventory: what the station actually holds of it.
      *
      * <p>A piece on its way to its owner is at neither end, and a piece its owner has taken back is
-     * at the other one. Counting either as stock says the station has something it cannot lay a hand
+     * at the other one. Counting either as stock shows that the station has something it cannot lay a hand
      * on, and every figure drawn from the list inherits that. Where such a piece is instead is the
      * movement carrying it, which the overview lists, and the association's own screens for what has
      * gone home.
@@ -900,13 +914,13 @@ public class InventoryRepository {
      *
      * <p>The assignment alone decides. A piece handed in for an exchange leaves the list at that
      * moment and a replacement joins it when it is handed over, which is what the member experiences
-     * and therefore what the list should say. What is between the two is a movement, and the
+     * and therefore what the list should show. What is between the two is a movement, and the
      * movements of a member are read as movements.
      *
      * <p>The join is for a piece they are holding while something still runs on it, at either end: the
      * one they asked to swap, which is still on them until the station takes it, and the one handed to
      * them, which the chain may still be waiting for them to confirm. The row names the movement so it
-     * can say where that stands and why the exchange button is missing. The distinct keeps an item that
+     * can show where that stands and why the exchange button is missing. The distinct keeps an item that
      * somehow reached two movements to one line.
      *
      * @param memberId the member
@@ -1505,7 +1519,7 @@ public class InventoryRepository {
     }
 
     /**
-     * Sets or clears the container an item is physically placed in. A container says where in the
+     * Sets or clears the container an item is physically placed in. A container shows where in the
      * store an item is, not who has it, so this leaves the custody alone. An item a member holds
      * has to be taken back first, which the custody service does before it calls this.
      *

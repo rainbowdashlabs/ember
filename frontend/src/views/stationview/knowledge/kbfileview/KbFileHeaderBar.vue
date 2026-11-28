@@ -62,7 +62,7 @@ const canShareLink = computed(() => props.isKbPublic && !props.isFederated)
  * Which one action stays a button of its own, which here changes with the file rather than being
  * fixed: a file from a partner station is read in order to be taken over, a text file of one's own
  * is opened in order to be written in, and a presentation or a PDF is opened in order to be shown.
- * A file that is none of those, an image say, offers its download instead, and one that is not even
+ * A file that is none of those, an image for example, offers its download instead, and one that is not even
  * downloadable leaves the menu standing alone.
  */
 const primary = computed(() => {

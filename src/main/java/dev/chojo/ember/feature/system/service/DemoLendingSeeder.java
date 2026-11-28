@@ -237,7 +237,7 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
     }
 
     /**
-     * Puts a whole inventory on offer to every partner, which is what a demo station has to say
+     * Puts a whole inventory on offer to every partner, which a demo station has to do
      * before anything of it can be found: sharing is opt-in and an unshared shelf is invisible.
      */
     private void offerToPartners(int stationId, int inventoryId) {

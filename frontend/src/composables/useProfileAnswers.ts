@@ -47,7 +47,7 @@ export interface ProfileAnswersPort {
  * the wrong table.
  *
  * <p>The save sends every answer this reader may write, not only the ones changed: the server skips what
- * did not change and records the rest. Which ones were touched is kept for the screen to say whether
+ * did not change and records the rest. Which ones were touched is kept for the screen to show whether
  * there is anything to save.
  *
  * @param port where this screen reads and writes the answers

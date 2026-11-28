@@ -15,7 +15,7 @@ test.describe('Update check', () => {
     /**
      * What version an instance runs is exactly what somebody hunting unpatched instances is looking
      * for, so it is not answered to ordinary members. The story asks as one and expects to be
-     * refused rather than told.
+     * refused rather than answered.
      */
     test('an ordinary member is not told which version the instance runs', async ({memberPage: page}) => {
         const response = await page.request.get('/api/v1/system/update', {headers: await apiHeaders(page)})
@@ -24,7 +24,7 @@ test.describe('Update check', () => {
     })
 
     /**
-     * Whoever administers a station is told, and is told what this instance actually runs even where
+     * Whoever administers a station is informed, and sees what this instance actually runs even where
      * the check has never reached GitHub. An instance with no way out reports no update rather than
      * failing, which is the ordinary state behind a firewall.
      */

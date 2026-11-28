@@ -17,10 +17,10 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *
  * @param id             the message, which also orders the conversation
  * @param conversationId the conversation it was written in
- * @param author         who wrote it, or did what a system line says; null once that account is deleted
+ * @param author         who wrote it, or did what a system line shows; null once that account is deleted
  * @param content        the text, empty once deleted and for most system lines
  * @param replyToId      the message it answers, or null
- * @param systemKind     what a system line says, or null for a written message
+ * @param systemKind     what a system line shows, or null for a written message
  * @param subject        whom a system line is about, or null
  * @param createdAt      when it was written
  * @param editedAt       when its author last changed it, or null

@@ -56,7 +56,7 @@ export function registrationStatsColumns(t: (key: string) => string): TableColum
 }
 
 /**
- * The columns for answers that need no decision: the member and when they declined. The ranking says
+ * The columns for answers that need no decision: the member and when they declined. The ranking shows
  * nothing about somebody who is not coming, so it is left out.
  */
 export function declinedColumns(t: (key: string) => string): TableColumn<RankedRegistration>[] {

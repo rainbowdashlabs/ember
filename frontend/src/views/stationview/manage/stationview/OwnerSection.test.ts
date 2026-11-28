@@ -27,7 +27,7 @@ vi.mock('@/api', () => ({
  *
  * <p>The list is built from the station administrator permission, and it used to be built from a
  * permission called MANAGER, which is a user type and not a permission at all. Nothing matched, so a
- * station with two administrators offered neither and said there was nobody to hand it to, which
+ * station with two administrators offered neither and showed that there was nobody to hand it to, which
  * left the owner with no way out of their own station.
  */
 describe('OwnerSection', () => {

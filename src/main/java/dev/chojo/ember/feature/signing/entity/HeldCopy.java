@@ -11,7 +11,7 @@ import java.time.Instant;
 
 /**
  * Whether this installation holds exactly the checked file among its sealed documents, compared byte for
- * byte by SHA-256. Says nothing about which station, which document, its title or the people it concerns.
+ * byte by SHA-256. Reveals nothing about which station, which document, its title or the people it concerns.
  *
  * @param held      whether a sealed document here has a version with exactly these bytes
  * @param sealedAt  when that version was filed, the first one when several match; null when none is held

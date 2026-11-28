@@ -319,7 +319,7 @@ class AttendanceTemplateArchiveTest extends RepositoryTestBase {
         assertTrue(service.findTemplateById(template).isEmpty());
     }
 
-    /** Deletes the template row outright, the way only a mistake would, and says whether it went. */
+    /** Deletes the template row outright, the way only a mistake would, and returns whether it went. */
     private static boolean deletesQuietly(int id) {
         try {
             return SqlSupport.deleteById("attendance_template", id);

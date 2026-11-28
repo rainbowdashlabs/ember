@@ -7,6 +7,8 @@ import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 import {AxiosError, type AxiosResponse, type InternalAxiosRequestConfig} from 'axios'
 import client from './client'
 import {acceptStorage, getItem, setItem} from './storage'
+import {chooseTabCluster, chooseTabStation} from '@/util/tabPlace'
+import {changesMade} from '@/util/countRefreshState'
 
 /** Sets or removes the readable cookie the server puts beside the session. */
 function carrySession(token: string | null) {
@@ -41,6 +43,7 @@ describe('a refused session', () => {
 
     beforeEach(() => {
         localStorage.clear()
+        sessionStorage.clear()
         acceptStorage(undefined, [])
         setItem('station_id', 'stale-station')
         carrySession('stale')
@@ -102,7 +105,7 @@ describe('a refused session', () => {
 })
 
 /**
- * Every change carries the token from the readable cookie, so the server can tell it came from this
+ * Every change carries the token from the readable cookie, so the server can verify it came from this
  * page; a read never needs it, and without a session there is nothing to send.
  *
  * @vitest-environment happy-dom
@@ -144,5 +147,99 @@ describe('the request token', () => {
         await client.post('/anything')
 
         expect(sent?.headers['X-CSRF-Token']).toBeUndefined()
+    })
+})
+
+/**
+ * Every request names the station and the cluster of its own tab. Another tab moving to another
+ * station changes where a new tab starts, never what this tab sends.
+ *
+ * @vitest-environment happy-dom
+ */
+describe('the station a request names', () => {
+    const originalAdapter = client.defaults.adapter
+    let sent: InternalAxiosRequestConfig | null = null
+
+    beforeEach(() => {
+        localStorage.clear()
+        sessionStorage.clear()
+        client.defaults.adapter = (config: InternalAxiosRequestConfig) => {
+            sent = config
+            return Promise.resolve({status: 200, statusText: 'OK', data: {}, headers: {}, config} as AxiosResponse)
+        }
+    })
+
+    afterEach(() => {
+        client.defaults.adapter = originalAdapter
+    })
+
+    it('is the one of the tab after another tab moved elsewhere', async () => {
+        chooseTabStation('station-of-this-tab')
+        chooseTabCluster('cluster-of-this-tab')
+        setItem('station_id', 'station-of-another-tab')
+        setItem('cluster_id', 'cluster-of-another-tab')
+
+        await client.post('/anything')
+
+        expect(sent?.headers['X-Station-Id']).toBe('station-of-this-tab')
+        expect(sent?.headers['X-Cluster-Id']).toBe('cluster-of-this-tab')
+    })
+
+    it('is the last chosen one in a tab that has none of its own yet', async () => {
+        setItem('station_id', 'chosen-last')
+
+        await client.get('/anything')
+
+        expect(sent?.headers['X-Station-Id']).toBe('chosen-last')
+    })
+})
+
+/**
+ * Which answers move the sidebar counters: a successful write of any kind, never a read and never a
+ * refused write.
+ *
+ * @vitest-environment happy-dom
+ */
+describe('the counters after a request', () => {
+    const originalAdapter = client.defaults.adapter
+
+    function answering(status: number) {
+        client.defaults.adapter = (config: InternalAxiosRequestConfig) => {
+            const response = {status, statusText: '', data: {}, headers: {}, config} as AxiosResponse
+            return status < 400
+                ? Promise.resolve(response)
+                : Promise.reject(new AxiosError('refused', 'ERR_BAD_REQUEST', config, null, response))
+        }
+    }
+
+    afterEach(() => {
+        client.defaults.adapter = originalAdapter
+    })
+
+    it.each(['post', 'put', 'patch', 'delete'] as const)('move after a successful %s', async (method) => {
+        answering(200)
+        const before = changesMade().value
+
+        await client.request({url: '/anything', method})
+
+        expect(changesMade().value).toBe(before + 1)
+    })
+
+    it('stay after a read', async () => {
+        answering(200)
+        const before = changesMade().value
+
+        await client.get('/anything')
+
+        expect(changesMade().value).toBe(before)
+    })
+
+    it('stay after a refused write', async () => {
+        answering(409)
+        const before = changesMade().value
+
+        await expect(client.post('/anything')).rejects.toBeInstanceOf(AxiosError)
+
+        expect(changesMade().value).toBe(before)
     })
 })

@@ -21,7 +21,7 @@ import java.util.List;
  * {@link FieldType}. Serialised as JSONB in {@code inventory_field_definition.config}.
  *
  * <p>The kind is written under the shared type name, so a choice is {@code CHOICE}. Settings
- * written before the names were shared say {@code ENUM}, and those are still read.
+ * written before the names were shared hold {@code ENUM}, and those are still read.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "kind")
 @JsonSubTypes({

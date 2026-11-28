@@ -19,7 +19,7 @@ import java.time.Instant;
 /**
  * Creates a new appointment straight into an event group.
  *
- * <p>An appointment created on its own tells the people it is meant for that it exists. A part
+ * <p>An appointment created on its own notifies the people it is meant for that it exists. A part
  * created from the event group does not: the event group is what people sign up for, and an event group with four
  * days would otherwise announce itself four times, each time as a loose appointment.
  */

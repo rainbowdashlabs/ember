@@ -39,7 +39,7 @@ const props = defineProps<{
   defaultRecipient?: string
   testing?: boolean
   /**
-   * What the last test of this entry said, shown here rather than at the top of the page: with a
+   * What the last test of this entry found, shown here rather than at the top of the page: with a
    * list of providers the answer belongs to the one that was asked.
    */
   testResult?: {ok: boolean; message: string} | null

@@ -56,7 +56,7 @@ public class MemberViewService {
     }
 
     /**
-     * The same, saying whether the member still owes answers to the profile questions.
+     * The same, returning whether the member still owes answers to the profile questions.
      *
      * @param member the member
      * @return the member as the register shows it

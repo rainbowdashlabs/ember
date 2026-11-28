@@ -727,7 +727,7 @@ class ProcedureRoutesTest {
         assertEquals(403, answer.code());
     }
 
-    /** A check step is not asked for, which tells the editor so. */
+    /** A check step is not asked for, which lets the editor know. */
     @Test
     void aCheckStepIsNotAskedAgain() {
         when(repository.findItemDependencies(PROCEDURE)).thenReturn(List.of());

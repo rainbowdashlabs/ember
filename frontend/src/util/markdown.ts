@@ -36,7 +36,7 @@ export function renderMarkdown(markdown: string | null | undefined): string {
  *
  * <p>For a row in a list, where the description is a hint at what the entry is rather than the entry
  * itself. Printed as markdown source it showed its own asterisks and hashes; rendered in full it
- * turned a row into a page. The text is what markdown was going to say, cut at a word.
+ * turned a row into a page. The text is what markdown was going to render, cut at a word.
  *
  * <p>It comes back as text, never as markup, so the caller prints it and nothing of what an organiser
  * wrote can act as HTML. Where there is no browser to read the rendering with, the source is

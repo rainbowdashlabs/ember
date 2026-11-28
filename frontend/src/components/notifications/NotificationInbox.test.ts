@@ -43,10 +43,9 @@ async function inboxWith(
         acknowledge: vi.fn(acknowledged),
         acknowledgeAll: vi.fn(async () => {}),
     }
-    const onChanged = vi.fn()
-    const view = mount(NotificationInbox, {props: {api, onChanged}, global: {plugins: [router]}})
+    const view = mount(NotificationInbox, {props: {api}, global: {plugins: [router]}})
     await flushPromises()
-    return {view, api, onChanged}
+    return {view, api}
 }
 
 /**
@@ -70,29 +69,14 @@ describe('NotificationInbox', () => {
         expect(rows[1]!.element.closest('a')).toBeNull()
     })
 
-    it('tells whoever counts when something was marked read', async () => {
-        const {view, api, onChanged} = await inboxWith([waiting(1, 'cluster-applications')])
+    it('marks a notice read when it is opened', async () => {
+        const {view, api} = await inboxWith([waiting(1, 'cluster-applications')])
 
         await view.find('[data-testid="notification-entry"]').trigger('click')
         await flushPromises()
 
         expect(api.acknowledge).toHaveBeenCalledWith(1)
-        expect(onChanged).toHaveBeenCalledTimes(1)
         expect(view.findAll('[data-testid="notification-entry"]')).toHaveLength(0)
-    })
-
-    it('still tells whoever counts when the server answers after the notice led away from the inbox', async () => {
-        let answer = () => {}
-        const {view, onChanged} = await inboxWith(
-            [waiting(1, 'cluster-applications')],
-            () => new Promise<void>(resolve => { answer = resolve }))
-
-        await view.find('[data-testid="notification-entry"]').trigger('click')
-        view.unmount()
-        answer()
-        await flushPromises()
-
-        expect(onChanged).toHaveBeenCalledTimes(1)
     })
 
     it('lists the read ones below only once asked, without a button to mark them read', async () => {

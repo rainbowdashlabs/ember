@@ -177,7 +177,8 @@ test.describe('Guardian', () => {
 
         const strangerId = await managerPage.evaluate(async managedIds => {
             const response = await fetch('/api/v1/station-members', {
-                headers: {'X-Station-Id': window.localStorage.getItem('station_id') ?? ''},
+                headers: {'X-Station-Id': window.sessionStorage.getItem('tab_station_id')
+                    ?? window.localStorage.getItem('station_id') ?? ''},
             })
             const members = await response.json()
             const stranger = (Array.isArray(members) ? members : members.content ?? [])

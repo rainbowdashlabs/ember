@@ -3,6 +3,6 @@
       <h2>Willkommen, {{ name }}!</h2>
       <p>Bitte bestätige deine E-Mail-Adresse, indem du auf den folgenden Button klickst:</p>
       <div class="btn-wrap"><a class="btn" href="{{ url }}">E-Mail bestätigen</a></div>
-      <p class="hint">Dieser Link ist 24 Stunden gültig.</p>
+      <p class="hint">Dieser Link verfällt nach {{ validFor }}.</p>
       <p class="hint">Falls du dieses Konto nicht erstellt hast, kannst du diese E-Mail ignorieren.</p>
 {% endblock %}

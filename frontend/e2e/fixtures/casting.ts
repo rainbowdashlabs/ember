@@ -24,7 +24,7 @@ interface MemberRow {
  * <p>The passkey parts are ordinary members in the order their ids were handed out, which no story
  * can move. The shared roles, the guardians and their charges stay out: a story that ends one of
  * these sessions on purpose must not end one somebody else holds, and a guardian story re-addressing
- * a charge ends that charge's sessions. The loner is of the second seeded station, told apart by its
+ * a charge ends that charge's sessions. The loner is of the second seeded station, distinguished by its
  * suffix, so signing them out reaches nobody the rest of the run acts as.
  *
  * @param request    an unauthenticated context, for the demo listings

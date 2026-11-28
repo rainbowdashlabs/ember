@@ -18,7 +18,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 /**
  * A device asking one that is already signed in to vouch for it: the asking device holds the poll
  * secret, an old, signed-in one confirms the code, and the poll that follows hands over a token that
- * may be spent exactly once on whatever {@link #purpose} says. The hashes never leave the database;
+ * may be spent exactly once on whatever {@link #purpose} defines. The hashes never leave the database;
  * what travels is only ever the raw value each side already holds.
  *
  * @param purpose what approving this buys, which every guarded update must name
@@ -34,7 +34,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param matchNumber the number the requesting screen shows and the approving screen asks for
  * @param matchChoices the six numbers the approval screen offers, in the order it offers them
  * @param rejectedAt when the approving screen picked the wrong number, which ends the request
- * @param stepUpCategory what the step-up was demanded for, so the approval screen can say, and the
+ * @param stepUpCategory what the step-up was demanded for, so the approval screen can show, and the
  *         only thing an approval answers
  * @param claimTokenIssued whether the one-time token was already handed out; it is delivered exactly
  *         once, on the first poll after the approval

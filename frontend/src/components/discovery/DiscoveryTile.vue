@@ -25,7 +25,7 @@ import type {DiscoveryEntry} from '@/api/generated/schema'
 
 /**
  * One station on the discovery page, drawn the same way whether it lives on this instance or on another
- * one: only the host line under the name tells them apart.
+ * one: only the host line under the name distinguishes them.
  *
  * <p>In the list a station with a place on the map offers to be shown there. Chosen on the map, the tile
  * is drawn `large` below it and offers to be closed instead.

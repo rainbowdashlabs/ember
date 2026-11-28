@@ -200,6 +200,51 @@ public class InventoryTagRepository {
     }
 
     /**
+     * Puts tags on several items at once, leaving the tags they already carry. One statement, so
+     * either every item gets every tag or none does.
+     *
+     * @param itemIds   the items
+     * @param stationId the station the tags have to belong to; ids of another station's tags are ignored
+     * @param tagIds    the tags to add
+     */
+    public void addTagsToItems(Collection<Integer> itemIds, int stationId, Collection<Integer> tagIds) {
+        if (itemIds.isEmpty() || tagIds.isEmpty()) return;
+        query("""
+                INSERT INTO inventory_item_tag(item_id, tag_id)
+                SELECT i.item_id, t.id
+                FROM unnest(:item_ids) AS i(item_id)
+                         CROSS JOIN inventory_tag t
+                WHERE t.id = ANY (:tag_ids) AND t.station_id = :station_id
+                ON CONFLICT DO NOTHING;""")
+                .single(call().bind("item_ids", List.copyOf(itemIds), PostgreSqlTypes.INTEGER)
+                        .bind("tag_ids", List.copyOf(tagIds), PostgreSqlTypes.INTEGER)
+                        .bind("station_id", stationId))
+                .insert();
+    }
+
+    /**
+     * Takes tags off several items at once, in one statement.
+     *
+     * @param itemIds   the items
+     * @param stationId the station the tags have to belong to; ids of another station's tags are ignored
+     * @param tagIds    the tags to remove
+     */
+    public void removeTagsFromItems(Collection<Integer> itemIds, int stationId, Collection<Integer> tagIds) {
+        if (itemIds.isEmpty() || tagIds.isEmpty()) return;
+        query("""
+                DELETE FROM inventory_item_tag it
+                USING inventory_tag t
+                WHERE it.tag_id = t.id
+                  AND t.station_id = :station_id
+                  AND t.id = ANY (:tag_ids)
+                  AND it.item_id = ANY (:item_ids);""")
+                .single(call().bind("item_ids", List.copyOf(itemIds), PostgreSqlTypes.INTEGER)
+                        .bind("tag_ids", List.copyOf(tagIds), PostgreSqlTypes.INTEGER)
+                        .bind("station_id", stationId))
+                .delete();
+    }
+
+    /**
      * The items carrying a tag of this name at any of the named stations, across every inventory
      * those stations keep. Names are matched in their merged form, so a station spelling the tag
      * differently still contributes its items.
@@ -249,7 +294,7 @@ public class InventoryTagRepository {
     }
 
     /**
-     * How many items carry each of a station's tags, so the tag list can say what it is worth.
+     * How many items carry each of a station's tags, so the tag list can show what it is worth.
      *
      * @param stationId the station
      * @return tag id to the number of items carrying it, holding only the tags that are used

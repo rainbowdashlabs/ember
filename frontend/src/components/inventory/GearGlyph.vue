@@ -19,7 +19,7 @@ import type {Glyph} from '@/util/glyph'
  * because what is rendered is an SVG path on a 512 unit box, so eighteen units is a hairline at any
  * size.
  *
- * <p>A row that paints its own background says so through {@code surface}, which is the only way the
+ * <p>A row that paints its own background signals that through {@code surface}, which is the only way the
  * outline can be right for a hovered or highlighted row.
  */
 const props = defineProps<{

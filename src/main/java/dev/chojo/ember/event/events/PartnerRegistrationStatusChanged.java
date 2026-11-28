@@ -13,7 +13,7 @@ import java.time.Instant;
 
 /**
  * This station decided about a partner station's member on one date of an appointment, or the member
- * moved up from the waiting list. Published once the change is kept, so the partner can be told.
+ * moved up from the waiting list. Published once the change is kept, so the partner can be notified.
  *
  * @param stationId      the station holding it, which decided
  * @param registrationId the partner's registration

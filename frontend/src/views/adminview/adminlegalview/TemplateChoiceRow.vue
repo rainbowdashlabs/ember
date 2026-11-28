@@ -16,7 +16,7 @@ import type {TemplateSection} from '@/api/generated/schema'
  * One section on offer, described well enough to choose it.
  *
  * The file name alone is not enough: five of the shipped sections are called something like
- * `05-mailversand-…`, and which one belongs in the document depends on what it says. So the row
+ * `05-mailversand-…`, and which one belongs in the document depends on what it contains. So the row
  * leads with the heading the section carries, and its text can be read here rather than after
  * loading it and finding out.
  */

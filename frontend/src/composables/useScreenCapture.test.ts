@@ -116,7 +116,7 @@ describe('captureScreen', () => {
     })
 
     /**
-     * A play that is interrupted rejects with a media abort. It says nothing anybody can act on and
+     * A play that is interrupted rejects with a media abort. It shows nothing anybody can act on and
      * must not escape: left alone it reaches the global handler and is filed as a fault in the
      * product, which is how a cancelled screenshot turned into an error report.
      */
@@ -131,7 +131,7 @@ describe('captureScreen', () => {
         expect(picture, 'a frame can still be there after the play was cut short').not.toBeNull()
     })
 
-    /** Turning the prompt down is an answer, and is told apart from something going wrong. */
+    /** Turning the prompt down is an answer, and is distinguished from something going wrong. */
     it('says a refusal is a refusal', async () => {
         vi.stubGlobal('navigator', {
             mediaDevices: {
@@ -145,7 +145,7 @@ describe('captureScreen', () => {
         expect(refused).toBe(true)
     })
 
-    /** Anything else is a failure, which is a different thing to say to somebody. */
+    /** Anything else is a failure, which is a different thing to show somebody. */
     it('tells a failure apart from a refusal', async () => {
         vi.stubGlobal('navigator', {
             mediaDevices: {

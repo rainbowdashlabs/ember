@@ -20,10 +20,10 @@ vi.mock('@/api/client', () => ({
 }))
 
 /**
- * What the instance says it changed.
+ * What the instance reports it changed.
  *
  * <p>The entries come from the instance rather than from GitHub, which is the whole point of the
- * page: an installation with no way out can still say what it changed, and nobody has to leave an
+ * page: an installation with no way out can still show what it changed, and nobody has to leave an
  * address somewhere else to read it. What the page decides on its own is which version is the one
  * being run.
  */
@@ -77,7 +77,7 @@ describe('PatchNotesView', () => {
         expect(versions[1]!.find('[data-testid="changelog-current"]').exists()).toBe(false)
     })
 
-    /** A build off a branch says more than the numbers, and the changelog is keyed by the numbers. */
+    /** A build off a branch shows more than the numbers, and the changelog is keyed by the numbers. */
     it('finds the running version in what a branch build reports', async () => {
         get.mockResolvedValue({data: {version: '26.17.0 main-1a2b3c4 @ 2026-09-15 10:00'}})
 
@@ -95,7 +95,7 @@ describe('PatchNotesView', () => {
         expect(view.text()).toContain('konnten nicht geladen werden')
     })
 
-    /** An instance that cannot say which version it runs still shows what the versions brought. */
+    /** An instance that cannot report which version it runs still shows what the versions brought. */
     it('shows the entries even where the version is not known', async () => {
         get.mockRejectedValue(new Error('nope'))
 

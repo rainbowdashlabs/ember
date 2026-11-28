@@ -119,7 +119,7 @@ export interface KbItem {
     /** Rich text the search results show under the title. */
     snippet?: string
     /**
-     * Where the entry leads, said as an address so the tile can be the link it is. Absent when the
+     * Where the entry leads, given as an address so the tile can be the link it is. Absent when the
      * entry cannot be opened, which also removes the pointer cursor.
      */
     to?: RouteLocationRaw | null
@@ -208,7 +208,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
     /**
      * The badge naming the level an entry leaves the reader with. Only someone whose station
      * permission would let them edit gets it: for everyone else read-only is the normal state and
-     * saying so on every entry says nothing, while for an editor it is the reason the edit action
+     * marking it on every entry shows nothing, while for an editor it is the reason the edit action
      * is missing.
      */
     function levelLabel(level: KbAccessLevel | undefined): string | undefined {

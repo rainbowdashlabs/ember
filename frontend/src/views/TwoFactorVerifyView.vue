@@ -96,7 +96,7 @@ function handleWebAuthn() {
  *
  * <p>A request answered 401 on this screen clears the session cookie without redirecting, because
  * the two-factor screen counts as a public path. Walking on regardless put the reader on a page
- * that immediately bounced them back to the login screen with nothing said, which reads as the
+ * that immediately bounced them back to the login screen with nothing shown, which reads as the
  * second factor having silently failed. Going there directly, keeping where they were headed, is
  * the honest version of the same outcome.
  */

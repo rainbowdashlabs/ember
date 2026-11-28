@@ -12,7 +12,7 @@ import java.time.Instant;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * A note somebody left on a question while training, saying that something about it is wrong, out
+ * A note somebody left on a question while training, marking that something about it is wrong, out
  * of date or ambiguous.
  *
  * <p>The reporter's name travels with the note so whoever maintains the catalog can ask back. It is

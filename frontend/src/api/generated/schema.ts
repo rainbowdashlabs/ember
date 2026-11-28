@@ -14415,6 +14415,220 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/calendar-feeds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the station's calendar feeds */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalendarFeedResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a station calendar feed */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CalendarFeedRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalendarFeedResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calendar-feeds/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a station calendar feed */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CalendarFeedRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalendarFeedResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete a station calendar feed */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calendar-feeds/{id}/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give a station calendar feed a new address */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalendarFeedResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/checklist": {
         parameters: {
             query?: never;
@@ -33807,6 +34021,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/lending/pictures/{stationUid}/{pictureKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The photo a partner station shows offered gear with */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    pictureKey: string;
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federated/my-registrations": {
         parameters: {
             query?: never;
@@ -34604,6 +34866,75 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/feed/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the categories the current user's calendar feed leaves out */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HiddenCategories"];
+                    };
+                };
+            };
+        };
+        /** Set the categories the current user's calendar feed leaves out */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["HiddenCategories"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HiddenCategories"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -37452,6 +37783,129 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventories/{inventoryId}/arts/{artId}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The photo of a kind */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    artId: number;
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Give a kind a new photo, shown on its pieces before the inventory's */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    artId: number;
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": string;
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PictureResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Take a kind's photo away */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    artId: number;
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventories/{inventoryId}/fields": {
         parameters: {
             query?: never;
@@ -37743,6 +38197,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventories/{inventoryId}/item-tags/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put words on and take words off many things of one inventory at once */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ItemTagsBatchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ItemTagsResponse"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventories/{inventoryId}/items": {
         parameters: {
             query?: never;
@@ -37853,6 +38367,126 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventories/{inventoryId}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The photo of an inventory */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Give an inventory a new photo */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": string;
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PictureResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Take an inventory's photo away */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -39913,6 +40547,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory-items/{itemId}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The photo a piece is shown with: its kind's, otherwise its inventory's */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    itemId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory-items/{itemId}/tags": {
         parameters: {
             query?: never;
@@ -40057,6 +40738,53 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["OwnerAboveResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory-pictures/{pictureKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A photo of one of this station's inventories or kinds, by its key */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    pictureKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -45936,6 +46664,15 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
                 /** @description Conflict */
                 409: {
                     headers: {
@@ -45947,6 +46684,62 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/invite-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find people of this instance by name to invite into the station */
+        get: {
+            parameters: {
+                query: {
+                    q: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CandidateResponse"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -57482,6 +58275,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/station-feed/{token}/events.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a station calendar feed */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description iCal calendar. Cache-Control: public, max-age=3600 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/calendar": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/station/{stationUid}/blog": {
         parameters: {
             query?: never;
@@ -62098,6 +62938,64 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/session/preferences/findable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the own account may be found by its name from every station of this instance */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Findable"];
+                    };
+                };
+            };
+        };
+        /** Choose whether the own account may be found by its name from every station of this instance */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FindablePreference"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -70449,6 +71347,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/waiting-lists/{id}/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record how far the reader was shown a waiting list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListSeenRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/waiting-lists/{id}/visible-fields": {
         parameters: {
             query?: never;
@@ -71273,10 +72211,14 @@ export interface components {
             artName: string | null;
             /** Format: int32 */
             availableCount: number;
+            color: string | null;
             distanceKm: number | null;
+            homogeneous: boolean;
+            icon: string | null;
             /** Format: int32 */
             inventoryId: number;
             inventoryName: string;
+            pictureKey: string | null;
             /** Format: uuid */
             stationId: string;
             stationName: string;
@@ -71874,6 +72816,21 @@ export interface components {
             /** Format: int64 */
             tiles: number;
         };
+        CalendarFeedRequest: {
+            hiddenCategories?: number[] | null;
+            level?: components["schemas"]["StationFeedLevel"] | null;
+            name?: string | null;
+        };
+        CalendarFeedResponse: {
+            createdAt: string;
+            hiddenCategories: number[];
+            /** Format: int32 */
+            id: number;
+            level: components["schemas"]["StationFeedLevel"];
+            name: string;
+            polledAt: string | null;
+            token: string;
+        };
         CalloutConfig: {
             title?: string;
             variant?: components["schemas"]["CalloutVariant"];
@@ -71900,6 +72857,17 @@ export interface components {
         };
         CancelRequest: {
             reason?: string | null;
+        };
+        CandidateResponse: {
+            /** Format: uuid */
+            accountUid: string;
+            alreadyAsked: boolean;
+            alreadyHere: boolean;
+            because: components["schemas"]["FindableBecause"];
+            declinedLately: boolean;
+            firstName: string;
+            lastName: string;
+            through: string | null;
         };
         CanEditResponse: {
             canEdit: boolean;
@@ -72927,6 +73895,7 @@ export interface components {
             /** Format: int32 */
             memberId?: number | null;
             notes?: string | null;
+            owner?: components["schemas"]["ItemOwner"] | null;
             /** Format: int32 */
             sizeId?: number | null;
         };
@@ -74261,6 +75230,7 @@ export interface components {
             continues: components["schemas"]["EventLink"] | null;
         };
         EventQuestionSettings: {
+            calendarLocation: boolean;
             defaultValue?: string;
             description?: string;
             /** Format: int32 */
@@ -74923,6 +75893,14 @@ export interface components {
         };
         /** @enum {string} */
         FilterTableType: "MEMBERS" | "EVENTS" | "INVENTORY" | "ATTENDANCE" | "NEWS" | "FORMS" | "QUIZ";
+        Findable: {
+            findable: boolean;
+        };
+        /** @enum {string} */
+        FindableBecause: "SHARED_STATION" | "SHARED_ASSOCIATION" | "OPTED_IN";
+        FindablePreference: {
+            findable?: boolean | null;
+        };
         FirstStationRequest: {
             name?: string;
         };
@@ -75592,6 +76570,9 @@ export interface components {
             /** Format: int32 */
             timeoutSeconds: number;
         };
+        HiddenCategories: {
+            hiddenCategories: number[] | null;
+        };
         HistoryResponse: {
             corrected: boolean;
             givenOut: components["schemas"]["Instant"];
@@ -75793,6 +76774,7 @@ export interface components {
             id: number;
             inventoryType: components["schemas"]["InventoryType"];
             name: string;
+            pictureKey: string | null;
             /** Format: uuid */
             stationId: string;
         };
@@ -75806,6 +76788,7 @@ export interface components {
             mergeKey: string;
             name: string;
             note: string;
+            pictureKey: string | null;
             /** Format: int32 */
             position: number;
         };
@@ -75901,6 +76884,7 @@ export interface components {
             id: number;
             inventoryType: components["schemas"]["InventoryType"];
             name: string;
+            pictureKey: string | null;
             sizes: components["schemas"]["InventorySize"][];
             /** Format: uuid */
             stationId: string;
@@ -76111,6 +77095,8 @@ export interface components {
             userType?: string;
         };
         InviteRequest: {
+            /** Format: uuid */
+            accountUid?: string | null;
             email?: string;
             firstName?: string;
             lastName?: string;
@@ -76246,6 +77232,11 @@ export interface components {
             ownerKind?: components["schemas"]["ItemOwner"] | null;
             /** Format: int32 */
             sizeId?: number | null;
+        };
+        ItemTagsBatchRequest: {
+            add?: string[] | null;
+            itemIds?: number[] | null;
+            remove?: string[] | null;
         };
         ItemTagsRequest: {
             names?: string[];
@@ -76672,7 +77663,7 @@ export interface components {
             name?: string;
         };
         /** @enum {string} */
-        LinkOrigin: "IMPORT" | "INVITE" | "ASSOCIATION_INVITE";
+        LinkOrigin: "IMPORT" | "INVITE" | "NAME_INVITE" | "ASSOCIATION_INVITE";
         LinkPrompt: {
             associationName: string | null;
             createdAt: components["schemas"]["Instant"];
@@ -78288,6 +79279,7 @@ export interface components {
             elsewhere: boolean;
             id: string;
             key: string;
+            ready: boolean;
             state: components["schemas"]["OnboardingTaskState"];
             subject: string | null;
             /** Format: int32 */
@@ -78792,6 +79784,9 @@ export interface components {
             title: string;
             updatedAt: components["schemas"]["Instant"];
         };
+        PictureResponse: {
+            pictureKey: string;
+        };
         PlaceAnswer: {
             place: components["schemas"]["StationPlace"] | null;
         };
@@ -79137,6 +80132,7 @@ export interface components {
             /** Format: int32 */
             movementId: number | null;
             notes: string;
+            owner: components["schemas"]["ItemOwner"];
             requestedAt: components["schemas"]["Instant"];
             /** Format: int32 */
             sizeId: number | null;
@@ -81517,10 +82513,14 @@ export interface components {
         };
         ShareDetail: {
             artName: string | null;
+            color: string | null;
+            homogeneous: boolean;
+            icon: string | null;
             inventoryName: string | null;
             itemInternalId: string | null;
             itemName: string | null;
             partners: components["schemas"]["SharePartner"][];
+            pictureKey: string | null;
             share: components["schemas"]["InventoryShare"];
         };
         SharedEvent: {
@@ -81974,6 +82974,8 @@ export interface components {
             /** Format: uuid */
             stationUid: string;
         };
+        /** @enum {string} */
+        StationFeedLevel: "PUBLIC" | "MEMBERS" | "ALL";
         StationFile: {
             contentHash: string;
             defaultAltText: string | null;
@@ -82107,7 +83109,7 @@ export interface components {
             stationName: string;
         };
         /** @enum {string} */
-        StationModule: "INVENTORY" | "NEWS" | "EVENTS" | "ATTENDANCE" | "FORMS" | "LOST_AND_FOUND" | "WAITING_LIST" | "QUIZ" | "KNOWLEDGE_BASE" | "TEST_PROTOCOL" | "BOARDS" | "PROCEDURES" | "DOCUMENTS" | "INVENTORY_MOVEMENTS" | "INVENTORY_LENDING" | "INVENTORY_PROCUREMENT" | "INVENTORY_SELF_CHECKS" | "INVENTORY_CHECKS";
+        StationModule: "INVENTORY" | "NEWS" | "EVENTS" | "ATTENDANCE" | "FORMS" | "LOST_AND_FOUND" | "WAITING_LIST" | "QUIZ" | "KNOWLEDGE_BASE" | "TEST_PROTOCOL" | "BOARDS" | "PROCEDURES" | "DOCUMENTS" | "INVENTORY_MOVEMENTS" | "INVENTORY_LENDING" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECKS" | "INVENTORY_MEMBER_CHECKS" | "INVENTORY_SELF_CHECKS" | "INVENTORY_CONTAINER_CHECKS";
         StationPage: {
             /** Format: int32 */
             containerId: number | null;
@@ -82135,7 +83137,7 @@ export interface components {
             visibility: components["schemas"]["PageVisibility"];
         };
         /** @enum {string} */
-        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_TEMPLATE_EDIT" | "DOCUMENT_SIGN_OTHERS" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_CATALOG_SHARE" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_SHARE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "MESSAGE_CHAT_EDIT" | "MESSAGE_CHAT_MODERATE" | "MESSAGE_CHAT_MANAGE" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
+        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_CALENDAR_FEEDS" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_TEMPLATE_EDIT" | "DOCUMENT_SIGN_OTHERS" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_CATALOG_SHARE" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_SHARE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "MESSAGE_CHAT_EDIT" | "MESSAGE_CHAT_MODERATE" | "MESSAGE_CHAT_MANAGE" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
         StationPermissionsRequest: {
             permissions?: string[];
         };
@@ -82346,7 +83348,7 @@ export interface components {
         /** @enum {string} */
         StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
         /** @enum {string} */
-        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_SIGNATURE" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "IMAGE_DOCUMENT_TEMPLATE_PICTURE" | "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
+        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_SIGNATURE" | "IMAGE_LOST_AND_FOUND" | "IMAGE_INVENTORY" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "IMAGE_DOCUMENT_TEMPLATE_PICTURE" | "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO" | "IMAGE_PARTNER_LENDING";
         StorageQuotaPreset: {
             /** Format: int64 */
             board: number;
@@ -83628,6 +84630,10 @@ export interface components {
             /** Format: int32 */
             testingGroupId?: number | null;
         };
+        WaitingListSeenRequest: {
+            /** Format: int32 */
+            upToEntryId?: number;
+        };
         WaitingListVisibleFieldsRequest: {
             fieldIds?: number[] | null;
         };
@@ -83964,6 +84970,8 @@ export type BulkSetRequest = components['schemas']['BulkSetRequest'];
 export type BulkSetResponse = components['schemas']['BulkSetResponse'];
 export type BulkTagsRequest = components['schemas']['BulkTagsRequest'];
 export type CacheStats = components['schemas']['CacheStats'];
+export type CalendarFeedRequest = components['schemas']['CalendarFeedRequest'];
+export type CalendarFeedResponse = components['schemas']['CalendarFeedResponse'];
 export type CalloutConfig = components['schemas']['CalloutConfig'];
 export type CalloutVariant = components['schemas']['CalloutVariant'];
 export type CancellationCause = components['schemas']['CancellationCause'];
@@ -83971,6 +84979,7 @@ export type CancellationNotice = components['schemas']['CancellationNotice'];
 export type CancelledEventDate = components['schemas']['CancelledEventDate'];
 export type CancelMovementRequest = components['schemas']['CancelMovementRequest'];
 export type CancelRequest = components['schemas']['CancelRequest'];
+export type CandidateResponse = components['schemas']['CandidateResponse'];
 export type CanEditResponse = components['schemas']['CanEditResponse'];
 export type CapabilityRequest = components['schemas']['CapabilityRequest'];
 export type CapabilityType = components['schemas']['CapabilityType'];
@@ -84391,6 +85400,9 @@ export type FillInResponse = components['schemas']['FillInResponse'];
 export type FillInTheBlank = components['schemas']['FillInTheBlank'];
 export type FillInTheBlankView = components['schemas']['FillInTheBlankView'];
 export type FilterTableType = components['schemas']['FilterTableType'];
+export type Findable = components['schemas']['Findable'];
+export type FindableBecause = components['schemas']['FindableBecause'];
+export type FindablePreference = components['schemas']['FindablePreference'];
 export type FirstStationRequest = components['schemas']['FirstStationRequest'];
 export type FirstStationStatus = components['schemas']['FirstStationStatus'];
 export type FlowPreview = components['schemas']['FlowPreview'];
@@ -84490,6 +85502,7 @@ export type HeldReportRequest = components['schemas']['HeldReportRequest'];
 export type HeroBannerConfig = components['schemas']['HeroBannerConfig'];
 export type HibpConfigRequest = components['schemas']['HibpConfigRequest'];
 export type HibpConfigResponse = components['schemas']['HibpConfigResponse'];
+export type HiddenCategories = components['schemas']['HiddenCategories'];
 export type HistoryResponse = components['schemas']['HistoryResponse'];
 export type HourlyStats = components['schemas']['HourlyStats'];
 export type HourlyTotal = components['schemas']['HourlyTotal'];
@@ -84570,6 +85583,7 @@ export type ItemNameCount = components['schemas']['ItemNameCount'];
 export type ItemNumberValue = components['schemas']['ItemNumberValue'];
 export type ItemOwner = components['schemas']['ItemOwner'];
 export type ItemRequest = components['schemas']['ItemRequest'];
+export type ItemTagsBatchRequest = components['schemas']['ItemTagsBatchRequest'];
 export type ItemTagsRequest = components['schemas']['ItemTagsRequest'];
 export type ItemTagsResponse = components['schemas']['ItemTagsResponse'];
 export type ItemTextValue = components['schemas']['ItemTextValue'];
@@ -84936,6 +85950,7 @@ export type PermissionNode = components['schemas']['PermissionNode'];
 export type PermissionsByMember = components['schemas']['PermissionsByMember'];
 export type PickerEvent = components['schemas']['PickerEvent'];
 export type PickerPage = components['schemas']['PickerPage'];
+export type PictureResponse = components['schemas']['PictureResponse'];
 export type PlaceAnswer = components['schemas']['PlaceAnswer'];
 export type PlaceDraft = components['schemas']['PlaceDraft'];
 export type Placeholder = components['schemas']['Placeholder'];
@@ -85366,6 +86381,7 @@ export type StationDetail = components['schemas']['StationDetail'];
 export type StationDigest = components['schemas']['StationDigest'];
 export type StationEvent = components['schemas']['StationEvent'];
 export type StationFailedMails = components['schemas']['StationFailedMails'];
+export type StationFeedLevel = components['schemas']['StationFeedLevel'];
 export type StationFile = components['schemas']['StationFile'];
 export type StationFileFolder = components['schemas']['StationFileFolder'];
 export type StationFileTag = components['schemas']['StationFileTag'];
@@ -85597,6 +86613,7 @@ export type WaitingListPublicStatus = components['schemas']['WaitingListPublicSt
 export type WaitingListRegisterRequest = components['schemas']['WaitingListRegisterRequest'];
 export type WaitingListRegistrationStatus = components['schemas']['WaitingListRegistrationStatus'];
 export type WaitingListRequest = components['schemas']['WaitingListRequest'];
+export type WaitingListSeenRequest = components['schemas']['WaitingListSeenRequest'];
 export type WaitingListVisibleFieldsRequest = components['schemas']['WaitingListVisibleFieldsRequest'];
 export type WaitingListVisitor = components['schemas']['WaitingListVisitor'];
 export type WaitingListWithCount = components['schemas']['WaitingListWithCount'];
@@ -86086,6 +87103,12 @@ export const FilterTableType = {
     QUIZ: "QUIZ",
 } as const;
 
+export const FindableBecause = {
+    OPTED_IN: "OPTED_IN",
+    SHARED_ASSOCIATION: "SHARED_ASSOCIATION",
+    SHARED_STATION: "SHARED_STATION",
+} as const;
+
 export const FontOrigin = {
     ASSOCIATION: "ASSOCIATION",
     BUILT_IN: "BUILT_IN",
@@ -86291,6 +87314,7 @@ export const LinkOrigin = {
     ASSOCIATION_INVITE: "ASSOCIATION_INVITE",
     IMPORT: "IMPORT",
     INVITE: "INVITE",
+    NAME_INVITE: "NAME_INVITE",
 } as const;
 
 export const LinkStatus = {
@@ -87069,6 +88093,12 @@ export const StationDigest = {
     MENTIONS: "MENTIONS",
 } as const;
 
+export const StationFeedLevel = {
+    ALL: "ALL",
+    MEMBERS: "MEMBERS",
+    PUBLIC: "PUBLIC",
+} as const;
+
 export const StationModule = {
     ATTENDANCE: "ATTENDANCE",
     BOARDS: "BOARDS",
@@ -87077,7 +88107,9 @@ export const StationModule = {
     FORMS: "FORMS",
     INVENTORY: "INVENTORY",
     INVENTORY_CHECKS: "INVENTORY_CHECKS",
+    INVENTORY_CONTAINER_CHECKS: "INVENTORY_CONTAINER_CHECKS",
     INVENTORY_LENDING: "INVENTORY_LENDING",
+    INVENTORY_MEMBER_CHECKS: "INVENTORY_MEMBER_CHECKS",
     INVENTORY_MOVEMENTS: "INVENTORY_MOVEMENTS",
     INVENTORY_PROCUREMENT: "INVENTORY_PROCUREMENT",
     INVENTORY_SELF_CHECKS: "INVENTORY_SELF_CHECKS",
@@ -87111,6 +88143,7 @@ export const StationPermission = {
     DOCUMENT_SIGN_OTHERS: "DOCUMENT_SIGN_OTHERS",
     DOCUMENT_TEMPLATE_EDIT: "DOCUMENT_TEMPLATE_EDIT",
     EVENTS_FEDERATE: "EVENTS_FEDERATE",
+    EVENT_CALENDAR_FEEDS: "EVENT_CALENDAR_FEEDS",
     EVENT_EDIT: "EVENT_EDIT",
     EVENT_INTERNAL: "EVENT_INTERNAL",
     EVENT_MANAGER: "EVENT_MANAGER",
@@ -87288,11 +88321,13 @@ export const StorageCategory = {
     IMAGE_AVATAR: "IMAGE_AVATAR",
     IMAGE_DISCOVERY_LOGO: "IMAGE_DISCOVERY_LOGO",
     IMAGE_DOCUMENT_TEMPLATE_PICTURE: "IMAGE_DOCUMENT_TEMPLATE_PICTURE",
+    IMAGE_INVENTORY: "IMAGE_INVENTORY",
     IMAGE_KB_FILE_PICTURE: "IMAGE_KB_FILE_PICTURE",
     IMAGE_KB_ICON: "IMAGE_KB_ICON",
     IMAGE_KB_IMAGE: "IMAGE_KB_IMAGE",
     IMAGE_LOGO_FRAGMENT: "IMAGE_LOGO_FRAGMENT",
     IMAGE_LOST_AND_FOUND: "IMAGE_LOST_AND_FOUND",
+    IMAGE_PARTNER_LENDING: "IMAGE_PARTNER_LENDING",
     IMAGE_QUIZ_QUESTION: "IMAGE_QUIZ_QUESTION",
     IMAGE_SIGNATURE: "IMAGE_SIGNATURE",
     IMAGE_STATION_LOGO: "IMAGE_STATION_LOGO",

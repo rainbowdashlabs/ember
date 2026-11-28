@@ -272,6 +272,140 @@ class IcalEventRendererTest {
         assertTrue(description.contains("/station/events/10"));
     }
 
+    /** A shared calendar carries the appointment and its link, but nobody's sign-up and no names. */
+    @Test
+    void aStationFeedLeavesOutSignUpStateAndNames() {
+        var event = registrationRequiredEvent(12, Instant.now().plusSeconds(86_400));
+        var leader = new AppointmentField(
+                3,
+                12,
+                "Leitung",
+                FieldType.MEMBER,
+                EventQuestionSettings.parse("{}"),
+                "Mara Muster",
+                0,
+                false,
+                null,
+                false);
+        var topic = new AppointmentField(
+                4, 12, "Thema", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Übung", 1, false, null, false);
+        when(eventFieldService.findByEvent(eq(12), any())).thenReturn(List.of(leader, topic));
+        var shared = IcalEventRenderer.Context.withoutMember(
+                station,
+                "de",
+                "https://ember.example.com",
+                true,
+                Map.of(),
+                calendar(List.of()),
+                IcalEventRenderer.Reader.STATION);
+
+        var ve = renderer.render(event, shared).getFirst();
+        String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
+
+        assertTrue(description.contains("Thema: Übung"));
+        assertTrue(description.contains("registrationRequired"));
+        assertFalse(description.contains("Mara Muster"), "a member field names a person");
+        assertFalse(description.contains("label.status"), "a shared calendar has no own sign-up");
+        assertTrue(description.contains("/station/events/12"));
+        assertTrue(ve.getProperty("URL").isPresent());
+    }
+
+    /** The public calendar carries name, text and category, and nothing that leads into the application. */
+    @Test
+    void thePublicCalendarCarriesNoLinkAndNoFields() {
+        var event = simpleEvent(13);
+        var place = new AppointmentField(
+                5,
+                13,
+                "Ort",
+                FieldType.LOCATION,
+                EventQuestionSettings.parse("{}"),
+                "Marktplatz 1",
+                0,
+                true,
+                null,
+                true);
+        when(eventFieldService.findByEvent(eq(13), any())).thenReturn(List.of(place));
+        var open = IcalEventRenderer.Context.withoutMember(
+                station, "de", "", false, Map.of(), calendar(List.of()), IcalEventRenderer.Reader.PUBLIC);
+
+        var ve = renderer.render(event, open).getFirst();
+
+        assertTrue(ve.getProperty("URL").isEmpty());
+        assertTrue(ve.getProperty("LOCATION").isEmpty());
+        assertEquals(event.name(), ve.getProperty("SUMMARY").orElseThrow().getValue());
+    }
+
+    /**
+     * With a venue and a meeting point, the calendar shows the meeting point and lists the venue in
+     * the description under its own name, so neither place is lost.
+     */
+    @Test
+    void namesTheMeetingPointAndListsTheVenue() {
+        var event = simpleEvent(11);
+        var venue = new AppointmentField(
+                1, 11, "Ort", FieldType.LOCATION, EventQuestionSettings.empty(), "Gerätehaus", 0, true, null, true);
+        var meeting = new AppointmentField(
+                2,
+                11,
+                "Treffpunkt",
+                FieldType.LOCATION,
+                EventQuestionSettings.parse("{\"calendarLocation\":true}"),
+                "Bahnhof",
+                1,
+                true,
+                null,
+                true);
+        when(eventFieldService.findByEvent(eq(11), any())).thenReturn(List.of(venue, meeting));
+
+        var ve = renderer.render(event, ctx(Map.of(), Map.of())).getFirst();
+
+        assertEquals(
+                "Bahnhof",
+                ve.getProperty("LOCATION")
+                        .map(Location.class::cast)
+                        .orElseThrow()
+                        .getValue());
+        String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
+        assertTrue(description.contains("Ort: Gerätehaus"), "the venue is kept in the description");
+        assertFalse(description.contains("Treffpunkt: Bahnhof"), "the meeting point has the property");
+    }
+
+    /** A compact entry shows the meeting point and keeps the venue in its short description. */
+    @Test
+    void aCompactEntryKeepsTheVenueToo() {
+        var event = simpleEvent(12);
+        var venue = new AppointmentField(
+                1, 12, "Ort", FieldType.LOCATION, EventQuestionSettings.empty(), "Gerätehaus", 0, true, null, true);
+        var meeting = new AppointmentField(
+                2,
+                12,
+                "Treffpunkt",
+                FieldType.LOCATION,
+                EventQuestionSettings.parse("{\"calendarLocation\":true}"),
+                "Bahnhof",
+                1,
+                true,
+                null,
+                true);
+        when(eventFieldService.findByEvent(eq(12), any())).thenReturn(List.of(venue, meeting));
+
+        var ctx = new IcalEventRenderer.Context(
+                station, "en", "https://ember.example.com", false, Map.of(), Map.of(), Map.of(), calendar(List.of()));
+
+        var ve = renderer.render(event, ctx).getFirst();
+
+        assertEquals(
+                "Bahnhof",
+                ve.getProperty("LOCATION")
+                        .map(Location.class::cast)
+                        .orElseThrow()
+                        .getValue());
+        String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
+        assertTrue(description.contains("Ort: Gerätehaus"), "the venue is kept in the description");
+        assertTrue(description.contains("/station/events/12"));
+    }
+
     @Test
     void rendersCancelledEventWithPrefixAndStatus() {
         var event = cancelledEvent(11, "Schlechtes Wetter");
@@ -376,6 +510,44 @@ class IcalEventRendererTest {
         assertTrue(ve.getProperty("EXDATE").orElseThrow().toString().contains("TZID=Europe/Berlin"));
     }
 
+    /**
+     * A one-time appointment is written on the station's clock at the offset its own date has, so a
+     * summer evening and a winter evening both read as six o'clock rather than as the time in UTC.
+     */
+    @Test
+    void aOneOffIsWrittenOnTheStationClockInSummerAndWinter() {
+        var summer = series(30, StationEvent.EventType.ONE_TIME, null, Instant.parse("2026-07-01T16:00:00Z"), null);
+        var winter = series(31, StationEvent.EventType.ONE_TIME, null, Instant.parse("2026-12-01T17:00:00Z"), null);
+
+        var summerEntry =
+                EventRecurrence.entryOf(summer, "Dienst", calendar(List.of())).orElseThrow();
+        var winterEntry =
+                EventRecurrence.entryOf(winter, "Dienst", calendar(List.of())).orElseThrow();
+
+        assertEquals(
+                "DTSTART;TZID=Europe/Berlin:20260701T180000",
+                summerEntry.getProperty("DTSTART").orElseThrow().toString().strip());
+        assertEquals(
+                "DTEND;TZID=Europe/Berlin:20260701T200000",
+                summerEntry.getProperty("DTEND").orElseThrow().toString().strip());
+        assertEquals(
+                "DTSTART;TZID=Europe/Berlin:20261201T180000",
+                winterEntry.getProperty("DTSTART").orElseThrow().toString().strip());
+    }
+
+    /** A station whose clock is a fixed offset keeps its one-time appointments in UTC. */
+    @Test
+    void aOneOffOnAFixedOffsetStaysInUtc() {
+        var event = series(32, StationEvent.EventType.ONE_TIME, null, Instant.parse("2026-07-01T16:00:00Z"), null);
+
+        var entry = EventRecurrence.entryOf(event, "Dienst", new StationCalendar(ZoneOffset.UTC, List.of()))
+                .orElseThrow();
+
+        assertEquals(
+                "DTSTART:20260701T160000Z",
+                entry.getProperty("DTSTART").orElseThrow().toString().strip());
+    }
+
     /** A feed carries the definition of the station's clock its entries are written on. */
     @Test
     void theStationClockHasADefinitionForTheCalendar() {
@@ -425,7 +597,7 @@ class IcalEventRendererTest {
 
     /**
      * A date of a series called off on its own reaches the calendar as an override of that date,
-     * marked cancelled and saying why, and the series itself stays as it was.
+     * marked cancelled and showing why, and the series itself stays as it was.
      */
     @Test
     void aCancelledDateOfASeriesIsAnOverrideMarkedCancelled() {

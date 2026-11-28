@@ -101,7 +101,7 @@ export function useResultView(formId: Ref<number>, enabled: Ref<boolean>) {
         return group.label || group.key
     }
 
-    /** The groups as the charts draw them, or null when there are more than colours to tell them apart. */
+    /** The groups as the charts draw them, or null when there are more than colours to distinguish them. */
     const series = computed<GroupSeries[] | null>(() => {
         const answer = narrowed.value
         if (!answer || !grouping.value) return null

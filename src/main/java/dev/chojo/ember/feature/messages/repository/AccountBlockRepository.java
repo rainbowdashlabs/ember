@@ -14,7 +14,7 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * Who blocked whom for messages. A block is one-sided and the blocked account is never told.
+ * Who blocked whom for messages. A block is one-sided and the blocked account is never notified.
  */
 @Singleton
 public class AccountBlockRepository {

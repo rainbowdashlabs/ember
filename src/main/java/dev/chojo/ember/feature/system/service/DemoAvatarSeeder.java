@@ -40,7 +40,7 @@ import javax.imageio.ImageIO;
  *
  * <p>Nobody is left out. A drawn picture is fetched where the machine can reach the internet and
  * cached on disk, and where it cannot, one is painted here from the initials. A demo whose lists show
- * a grey circle on half their rows says nothing about how Ember looks in use.
+ * a grey circle on half their rows shows nothing about how Ember looks in use.
  */
 @Singleton
 public class DemoAvatarSeeder implements DemoSeeder {

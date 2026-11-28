@@ -18,7 +18,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells a station's owner that the cluster has let them go.
+ * Notifies a station's owner that the cluster has let them go.
  */
 @Singleton
 public class ClusterStationReleasedHandler implements DomainEventHandler<ClusterStationReleased> {

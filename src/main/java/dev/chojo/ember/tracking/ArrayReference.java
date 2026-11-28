@@ -7,7 +7,7 @@ package dev.chojo.ember.tracking;
 
 /**
  * An array column whose elements are ids of rows in another table. The database cannot hold a foreign
- * key on the elements of an array, so the schema does not say this and the tracking file has to.
+ * key on the elements of an array, so the schema does not record this and the tracking file has to.
  *
  * <p>A station transfer gives the rows of {@code refTable} new ids, and the import moves every element
  * to the id its row got on the destination. An element whose row did not arrive is left out.

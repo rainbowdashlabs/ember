@@ -35,7 +35,7 @@ export interface CastMember {
     firstName: string
     lastName: string
     stationId?: string
-    /** What they were cast for, so a failure says which part is missing rather than which id. */
+    /** What they were cast for, so a failure shows which part is missing rather than which id. */
     part: string
 }
 

@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.notifications.entity;
 /**
  * Whether a notification is written again while an identical one is still unread.
  *
- * <p>Every sender says which, so a reminder that is meant to repeat and a notice that is meant to
+ * <p>Every sender declares which, so a reminder that is meant to repeat and a notice that is meant to
  * arrive once cannot be mistaken for each other.
  */
 public enum Delivery {

@@ -14,19 +14,19 @@ import io.javalin.http.HttpStatus;
  * the highest number here and in {@link RetiredRefusals}.
  */
 public enum LegalRefusal implements Refusal {
-    /** Consent written down without saying which version of the terms was agreed to. */
+    /** Consent written down without indicating which version of the terms was agreed to. */
     CONSENT_VERSION_MISSING(
             1, HttpStatus.BAD_REQUEST, "Say which version of the terms was agreed to, so nothing was written down"),
 
-    /** Consent given without saying which version of the consent text was clicked through. */
+    /** Consent given without indicating which version of the consent text was clicked through. */
     LEGAL_CONSENT_VERSION_MISSING(
             2, HttpStatus.BAD_REQUEST, "Say which version of the consent text was agreed to, so nothing was saved"),
 
-    /** Consent given without saying which version of the privacy policy was clicked through. */
+    /** Consent given without indicating which version of the privacy policy was clicked through. */
     LEGAL_PRIVACY_VERSION_MISSING(
             3, HttpStatus.BAD_REQUEST, "Say which version of the privacy policy was agreed to, so nothing was saved"),
 
-    /** Consent given without saying which version of the terms of service was clicked through. */
+    /** Consent given without indicating which version of the terms of service was clicked through. */
     LEGAL_TERMS_VERSION_MISSING(
             4, HttpStatus.BAD_REQUEST, "Say which version of the terms of service was agreed to, so nothing was saved"),
 

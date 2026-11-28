@@ -11,7 +11,7 @@ import {browserRef, browserShallowRef} from '@/util/browserState'
  *
  * <p>A group cannot answer that alone. Several match at once whenever one group's prefix is a prefix of
  * another's, and the association's first group is declared `/cluster`, which every cluster route begins
- * with: it was therefore lit on every page of the panel, which is the one group that says nothing about
+ * with: it was therefore lit on every page of the panel, which is the one group that shows nothing about
  * where you are. The rule that settles it is the ordinary one a router uses, longest match wins, and
  * applying it needs the groups to know about each other.
  *

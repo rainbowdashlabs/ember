@@ -12,7 +12,7 @@ const HOLDING_STATUSES: ReadonlySet<string> = new Set(['APPROVED', 'LENT'])
  *
  * <p>A loan holds its pieces from its approval until its end date has passed, which is how the station
  * is refused for acting on one. A loan whose end date is behind it holds nothing, whatever its status
- * still says.
+ * still shows.
  *
  * @param loans the loans of an inventory, as the lending screen lists them
  * @param today the day to read them on, as an ISO date

@@ -96,7 +96,7 @@ public enum SystemRefusal implements Refusal {
     /** A kind of legal document named in a path that is not one this instance keeps. */
     LEGAL_DOCUMENT_KIND_UNKNOWN(20, HttpStatus.BAD_REQUEST, "That is not a kind of legal document kept here"),
 
-    /** The figures for one endpoint asked for without saying which endpoint. */
+    /** The figures for one endpoint asked for without indicating which endpoint. */
     ENDPOINT_NOT_NAMED(21, HttpStatus.BAD_REQUEST, "Name the method and the path of the endpoint you want"),
 
     /** A table written to in the data tracking inspector that it keeps no record of. */
@@ -130,7 +130,7 @@ public enum SystemRefusal implements Refusal {
 
     /**
      * A sitemap asked for a station that is not here, or that puts nothing in public. One code
-     * deliberately: the two are told apart by nobody but a stranger counting stations, and this
+     * deliberately: the two are distinguished by nobody but a stranger counting stations, and this
      * answer is public.
      */
     SITEMAP_NOT_HERE(31, HttpStatus.NOT_FOUND, "There is no sitemap here"),
@@ -143,7 +143,7 @@ public enum SystemRefusal implements Refusal {
 
     /**
      * A settings change whose configuration file could not be written. The change is taken back,
-     * so the instance keeps running on what the file says.
+     * so the instance keeps running on what the file defines.
      */
     SETTINGS_NOT_SAVED(
             34,

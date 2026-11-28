@@ -14,7 +14,7 @@ const NBSP = String.fromCodePoint(0xa0)
  * <p>The browser and the server clean with the same sanitiser over different DOMs, so both test
  * files register the same cases and a difference between the two sides fails one of them.
  *
- * @param side the name the cases are grouped under, saying where they run
+ * @param side the name the cases are grouped under, showing where they run
  */
 export function describeMarkdownRendering(side: string): void {
     describe(`renderMarkdown ${side}`, () => {

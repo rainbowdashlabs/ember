@@ -10,10 +10,10 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import type {InventoryItem} from '@/api/generated/schema'
 
 /**
- * The pieces on offer to move, each saying what will happen to its size.
+ * The pieces on offer to move, each showing what will happen to its size.
  *
  * <p>The size list belongs to the inventory being left, so a piece keeps a size of the same name in
- * the new list and arrives without one where there is none. Saying so before the move is what stops
+ * the new list and arrives without one where there is none. Showing this before the move is what stops
  * the loss being a surprise afterwards.
  */
 const props = defineProps<{

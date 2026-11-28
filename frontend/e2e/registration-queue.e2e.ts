@@ -195,7 +195,7 @@ test.describe('Nachrückliste', () => {
     /**
      * Refusing a sign-up that already holds a place gives that place away, so the page asks first.
      * Turning the question down leaves the place where it was; saying yes refuses the sign-up and a
-     * message says so.
+     * message shows that.
      */
     test('refusing a confirmed sign-up asks first', async ({managerPage: page}) => {
         const appointment = await limitedAppointment(page, 3)
@@ -276,7 +276,7 @@ test.describe('Nachrückliste', () => {
             }
 
             await rows.click()
-            await expect(page).toHaveURL(new RegExp(`/station/events/groups/${groupId}$`))
+            await expect(page).toHaveURL(new RegExp(`/station/events/groups/${groupId}(\\?[^#]*)?$`))
         } finally {
             await page.request.delete(`/api/v1/events/groups/${groupId}`, {headers})
             for (const part of parts) await page.request.delete(`/api/v1/events/${part}`, {headers})

@@ -27,7 +27,7 @@ function linesOf(row: ReturnType<typeof mount>) {
 /**
  * A guardian answers a form for themselves and for each member in their care, and has to see for whom
  * an answer is already on file. The list used to show one button for the reader alone, so a ward's
- * answer never showed and a missing one could not be told apart.
+ * answer never showed and a missing one could not be distinguished.
  */
 describe('AvailableFormRow', () => {
   const household = [

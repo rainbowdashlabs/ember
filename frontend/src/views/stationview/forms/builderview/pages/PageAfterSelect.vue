@@ -16,12 +16,12 @@ import type { PageChoice } from '../pageChoice'
  * or to the end, which sends the form.
  *
  * <p>Only pages further down are offered. A form can then never loop, every path ends, and nobody
- * has to be told their form goes round in circles.
+ * has to be warned that their form goes round in circles.
  */
 const props = defineProps<{
   /** The pages further down, the only ones a page may lead to. */
   further: PageChoice[]
-  /** What the first entry says, which is "the next page" for a page and "otherwise" for an answer. */
+  /** What the first entry shows, which is "the next page" for a page and "otherwise" for an answer. */
   defaultLabel: string
 }>()
 

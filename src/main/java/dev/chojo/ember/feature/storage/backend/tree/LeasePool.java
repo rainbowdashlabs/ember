@@ -212,7 +212,7 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
     }
 
     /**
-     * Gives the slot of a failed open back and says whether it hit the server's limit rather than an
+     * Gives the slot of a failed open back and reports whether it hit the server's limit rather than an
      * outage, which is the case when another tree it opened still works.
      */
     private boolean openFailedBelowTheServersLimit() {

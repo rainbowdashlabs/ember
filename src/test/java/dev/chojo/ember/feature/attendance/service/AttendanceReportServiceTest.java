@@ -108,7 +108,7 @@ class AttendanceReportServiceTest extends RepositoryTestBase {
                 "exact");
     }
 
-    /** The heading says which user types the report covers in the station's words, not the database's. */
+    /** The heading shows which user types the report covers in the station's words, not the database's. */
     @Test
     void theFilterNamesUserTypesInTheStationsLanguage() {
         var report = service.buildReport(
@@ -134,7 +134,7 @@ class AttendanceReportServiceTest extends RepositoryTestBase {
 
     /**
      * Setting up beforehand and clearing away afterwards are not part of the two hours an appointment
-     * is scheduled for, and whoever did them was there for longer than the sheet says. A sheet naming
+     * is scheduled for, and whoever did them was there for longer than the sheet shows. A sheet naming
      * no worth of its own counts the clock it was given, both ends past its own included, and the
      * report prints those times rather than the sheet's.
      */
@@ -194,7 +194,7 @@ class AttendanceReportServiceTest extends RepositoryTestBase {
         assertEquals(1.5, line.entries().getFirst().hours());
     }
 
-    /** A weekend counts what it is worth rather than its nights, and says which days it ran over. */
+    /** A weekend counts what it is worth rather than its nights, and shows which days it ran over. */
     @Test
     void aWeekendCountsItsWorthAndCarriesBothDates() {
         int sessionId = sheet("Weekend", FRIDAY, FRIDAY.plus(2, ChronoUnit.DAYS), 960, null, null);

@@ -37,8 +37,8 @@ const steps = computed(() => {
 })
 
 /**
- * How this provider is told to report back. A provider Ember cannot receive reports from has no
- * steps, and the section says so rather than staying silent about it.
+ * How this provider is set up to report back. A provider Ember cannot receive reports from has no
+ * steps, and the section shows that rather than staying silent about it.
  */
 const webhookSteps = computed(() => {
   const out: string[] = []

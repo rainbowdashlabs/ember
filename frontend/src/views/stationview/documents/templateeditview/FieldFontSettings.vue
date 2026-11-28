@@ -15,7 +15,7 @@ import {FONT_STYLES, printedStyle, reachedFamily} from '@/components/documents/f
 
 /**
  * The font a text field prints in: a family of uploaded fonts a field can embed, or the default font,
- * and its style. A style the family lacks prints in its regular one, which the choice says.
+ * and its style. A style the family lacks prints in its regular one, which the choice shows.
  */
 const field = defineModel<PdfField>({required: true})
 

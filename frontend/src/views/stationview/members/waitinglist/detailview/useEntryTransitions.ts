@@ -11,7 +11,6 @@ import { describeFailure, type Failure } from '@/util/failure'
 import { StationPermission, type InvitationRecipients, type WaitingListEntryWithScore } from '@/api/generated/schema'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useSession } from '@/composables/useSession'
-import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { TELLS_THE_FAMILY, type PendingTransition, type TransitionKind } from './entryTransitions'
 
 /**
@@ -36,7 +35,6 @@ export function useEntryTransitions(
   const { t } = useI18n()
   const router = useRouter()
   const { hasPermission } = useSession()
-  const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
   const pending = shallowRef<PendingTransition | null>(null)
   const message = ref('')
@@ -70,7 +68,7 @@ export function useEntryTransitions(
   /**
    * Carries the move out, then fetches the list again.
    *
-   * <p>The fetch is caught on its own. Joining creates a member, and a reader told that joining failed
+   * <p>The fetch is caught on its own. Joining creates a member, and a reader shown that joining failed
    * when only the list failed to refresh joins the same applicant a second time and gets two of them.
    */
   const { running, failure: transitionFailure, run: confirm } = useAsyncAction(async () => {
@@ -81,7 +79,6 @@ export function useEntryTransitions(
 
     if (kind === 'join') {
       const result = await waitingList.moveToJoined(listId.value, entryId)
-      refreshSidebarCounts()
       pending.value = null
       if (result.memberId && hasPermission(StationPermission.MEMBER_EDIT)) {
         router.push({name: 'members-edit', params: {id: result.memberId}})
@@ -100,7 +97,6 @@ export function useEntryTransitions(
     }
 
     pending.value = null
-    refreshSidebarCounts()
     try {
       entries.value = await waitingList.listEntries(listId.value)
     } catch (e) {

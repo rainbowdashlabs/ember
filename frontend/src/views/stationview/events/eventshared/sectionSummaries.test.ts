@@ -13,7 +13,7 @@ const t = (key: string, values?: Record<string, unknown>) => values ? `${key} ${
 
 const nobody = {mode: 'AND' as const, userTypes: [], groupIds: [], tagIds: [], memberIds: []}
 
-/** A closed section says what it holds, and that nothing is set where nothing is. */
+/** A closed section shows what it holds, and that nothing is set where nothing is. */
 describe('sectionSummaries', () => {
     it('says nothing is set for an empty section', () => {
         expect(remindersSummary([], t)).toBe('formSections.nothingSet')

@@ -18,7 +18,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells the cluster that a request it was about to answer is gone.
+ * Notifies the cluster that a request it was about to answer is gone.
  */
 @Singleton
 public class ClusterApplicationWithdrawnHandler implements DomainEventHandler<ClusterApplicationWithdrawn> {

@@ -29,7 +29,7 @@ import java.util.Optional;
 /**
  * Writes every storage event to the history of whoever owns the storage: a station, an association or the
  * instance. Storage is written as its {@link BackendSummary}, so no credential reaches the history, only a
- * fingerprint that tells a rotation apart.
+ * fingerprint that marks a rotation.
  *
  * <p>A move an association decided for one of its stations is written to both histories. A probe repeated
  * by the same actor for the same owner with the same outcome within {@value #PROBE_DEDUPE_SECONDS} seconds
@@ -64,7 +64,7 @@ public class StorageBackendAuditService {
     }
 
     /**
-     * A change refused before anything was written, with the reason the person asking was told.
+     * A change refused before anything was written, with the reason the person asking was given.
      *
      * @param refused the refusal they were given
      */
@@ -80,7 +80,7 @@ public class StorageBackendAuditService {
                 refusal.code() + ": " + refusal.message());
     }
 
-    /** @param errorOrNull the reason, as the person asking was told it */
+    /** @param errorOrNull the reason, as the person asking was given it */
     public void recordProbe(Actor actor, Owner owner, StorageAuditOutcome outcome, @Nullable String errorOrNull) {
         StorageAuditAction action =
                 outcome == StorageAuditOutcome.OK ? StorageAuditAction.PROBE_OK : StorageAuditAction.PROBE_FAILED;

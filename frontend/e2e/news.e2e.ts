@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {below, lastSegment} from './fixtures/address'
 import {test, expect, apiHeaders, pageAsThrowaway, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 import {cast} from './fixtures/cast'
@@ -33,7 +34,7 @@ async function writeArticle(page: Page, title: string, body: string): Promise<st
     await page.getByText(title).first().click()
     await page.waitForURL(/\/station\/news\/\d+/)
     const detailUrl = page.url()
-    await page.goto(`${detailUrl}/edit`)
+    await page.goto(below(detailUrl, 'edit'))
     return detailUrl
 }
 
@@ -78,7 +79,7 @@ test.describe('News', () => {
         await page.getByText(article).first().click()
         await page.waitForURL(/\/station\/news\/\d+/)
 
-        const editUrl = `${page.url()}/edit`
+        const editUrl = below(page.url(), 'edit')
         await page.goto(editUrl)
         await page.getByRole('switch').first().click()
         await page.getByRole('button', {name: /Speichern/}).last().click()
@@ -108,7 +109,7 @@ test.describe('News', () => {
         await page.getByText(article).first().click()
         await page.waitForURL(/\/station\/news\/\d+/)
 
-        await page.goto(`${page.url()}/edit`)
+        await page.goto(below(page.url(), 'edit'))
         await page.getByPlaceholder('Titel der Neuigkeit').fill(renamed)
         await page.getByRole('button', {name: /Speichern/}).last().click()
 
@@ -134,7 +135,7 @@ test.describe('News', () => {
         await expect(page.getByText(SEEDED_FILE).first()).toBeVisible()
         await page.getByRole('button', {name: /Speichern/}).last().click()
 
-        await page.waitForURL(/\/station\/news$/)
+        await page.waitForURL(/\/station\/news(\?[^#]*)?$/)
 
         await page.goto(detailUrl)
         const download = page.getByRole('link', {name: new RegExp(SEEDED_FILE)})
@@ -167,7 +168,7 @@ test.describe('News', () => {
      * saved. An author who knows they are writing a long piece should not have to write it plain,
      * save it, and convert it: whether an entry happens to exist yet is not a reason to withhold
      * the editor. The story switches before saving and reads the entry back, where the text has to
-     * have survived a switch the server was told about only afterwards.
+     * have survived a switch the server was notified of only afterwards.
      */
     test('an article is switched to the page editor before it is saved', async ({managerPage: page}) => {
         const article = unique('Langbericht')
@@ -186,13 +187,13 @@ test.describe('News', () => {
         await expect(page.getByText(written).first()).toBeVisible()
 
         await page.getByRole('button', {name: /Speichern|Veröffentlichen|Erstellen/}).last().click()
-        await page.waitForURL(/\/station\/news$/)
+        await page.waitForURL(/\/station\/news(\?[^#]*)?$/)
 
         await page.getByText(article).first().click()
         await page.waitForURL(/\/station\/news\/\d+/)
         await expect(page.getByText(written).first()).toBeVisible()
 
-        await page.goto(`${page.url()}/edit`)
+        await page.goto(below(page.url(), 'edit'))
         await expect(page.getByText(written).first()).toBeVisible()
         await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}), 'a block entry no longer offers the switch')
             .toHaveCount(0)
@@ -217,12 +218,12 @@ test.describe('News', () => {
             await page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}).click()
             await page.getByRole('button', {name: /Speichern|Veröffentlichen|Erstellen/}).last().click()
 
-            await page.waitForURL(/\/station\/news$/)
+            await page.waitForURL(/\/station\/news(\?[^#]*)?$/)
             await expect(page.getByText(article).first()).toBeVisible()
 
             await page.getByText(article).first().click()
             await page.waitForURL(/\/station\/news\/\d+/)
-            await page.goto(`${page.url()}/edit`)
+            await page.goto(below(page.url(), 'edit'))
             await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}), 'created as a block entry')
                 .toHaveCount(0)
         })
@@ -259,7 +260,7 @@ test.describe('News', () => {
             await expect(managerPage.getByText(words)).toHaveCount(0)
         })
 
-    /** A comment its author changed says so, the same as under an appointment or a wiki article. */
+    /** A comment its author changed shows that, the same as under an appointment or a wiki article. */
     test('a changed comment is marked as edited', async ({managerPage}) => {
         const headers = await apiHeaders(managerPage)
         const newsId = await articleByApi(managerPage, unique('Geändert'))
@@ -303,7 +304,7 @@ test.describe('News', () => {
 
                 await memberPage.goto('/station/dashboard/overview')
                 await memberPage.getByTestId('notification-entry').filter({hasText: removed}).click()
-                await memberPage.waitForURL(new RegExp(`/station/news/${removedId}$`))
+                await memberPage.waitForURL(new RegExp(`/station/news/${removedId}(\\?[^#]*)?$`))
 
                 await managerPage.request.delete(`/api/v1/news/${removedId}`, {
                     headers: await apiHeaders(managerPage),
@@ -331,7 +332,7 @@ async function articleByApi(page: Page, title: string): Promise<number> {
 
 /** The number a news detail address ends in. */
 function idOf(detailUrl: string): string {
-    return detailUrl.split('/').pop() as string
+    return lastSegment(detailUrl)
 }
 
 /** The notice announcing one particular article, read or not, or nothing where there is none. */

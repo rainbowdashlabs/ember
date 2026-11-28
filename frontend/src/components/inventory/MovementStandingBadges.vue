@@ -15,7 +15,7 @@ import {useMovementStanding, type StandingOf} from '@/composables/useMovementSta
  *
  * <p>The same badges on a movement's row and on the piece of gear it runs on, so the two cannot drift
  * apart. The step being waited on is never shown here: it has not happened yet, and wearing its label
- * would say a piece had been taken in while it is still on the member.
+ * would show a piece had been taken in while it is still on the member.
  */
 const props = defineProps<{
   movement: StandingOf

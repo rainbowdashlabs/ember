@@ -39,13 +39,13 @@ import java.util.TreeSet;
  * has, and whatever still pointed at that Tuesday kept pointing at it.
  *
  * <p>A one-off appointment is one occasion whichever day it falls on, so what is filed against it
- * moves along to the new day; telling them the new time is left to the save that moved it. A series
+ * moves along to the new day; notifying them of the new time is left to the save that moved it. A series
  * is many occasions, and a date it leaves is an occasion that no longer happens: the places still held on it
- * are withdrawn, their members and whoever looks after them are told, with the next date the series
+ * are withdrawn, their members and whoever looks after them are notified, with the next date the series
  * now falls on, and the answers, reminder records and cancellation filed against it go. The same holds for a series
  * whose end moved closer and for a one-off appointment that became a series or the other way round.
  * Dates the appointment still falls on are left exactly as they are, and so is a place already given
- * up or turned down, which says the member is not coming either way.
+ * up or turned down, which shows the member is not coming either way.
  *
  * <p>A date a series gave away to an appointment of its own is not a date it left: what was filed
  * against it went along to that appointment, and anything still found there is left alone.
@@ -98,8 +98,8 @@ public class EventMoveService {
 
     /**
      * Withdraws the places held from today on that an appointment does not fall on, for an appointment
-     * that just took over dates of another one and may not fall on all of them. Nobody is told yet:
-     * the caller tells them with {@link #tellDropped} once what it writes is saved.
+     * that just took over dates of another one and may not fall on all of them. Nobody is notified yet:
+     * the caller notifies them with {@link #tellDropped} once what it writes is saved.
      *
      * @param event the appointment as it now stands
      * @return the places withdrawn
@@ -110,7 +110,7 @@ public class EventMoveService {
     }
 
     /**
-     * Tells the members whose places were withdrawn, and whoever looks after them, that their date
+     * Notifies the members whose places were withdrawn, and whoever looks after them, that their date
      * went away, with the next date the appointment falls on.
      *
      * @param event     the appointment as it now stands
@@ -135,8 +135,8 @@ public class EventMoveService {
     }
 
     /**
-     * Moves the registrations and answers of a one-off appointment to its new day. Telling the people
-     * holding a place when it now starts is {@link EventChangeNotifier}'s, once the whole save landed.
+     * Moves the registrations and answers of a one-off appointment to its new day. Notifying the people
+     * holding a place of when it now starts is {@link EventChangeNotifier}'s, once the whole save landed.
      */
     private void carryOneOffDate(StationEvent before, StationEvent after, StationCalendar calendar, LocalDate today) {
         LocalDate from = calendar.ruleOf(before).map(OccurrenceRule::first).orElse(null);
@@ -180,7 +180,7 @@ public class EventMoveService {
     }
 
     /**
-     * Tells a member, and everyone who answers for them, the way every other word about a
+     * Notifies a member, and everyone who answers for them, the way every other word about a
      * registration reaches a household. The member is named in the message, because a guardian has
      * to know which of their children it is about.
      */

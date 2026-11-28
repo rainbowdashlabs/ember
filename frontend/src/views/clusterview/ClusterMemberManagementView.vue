@@ -55,7 +55,7 @@ const config = useMemberListConfig(port)
  * Whose row offers nothing, and why.
  *
  * <p>An association's member manager may not touch a station's owner, and may not touch their own
- * membership of any station in the association. Both are refused by the server; saying so here means
+ * membership of any station in the association. Both are refused by the server; showing that here means
  * nobody has to find out by pressing something.
  */
 function blockedReason(memberId: number): string {
@@ -67,11 +67,11 @@ function blockedReason(memberId: number): string {
 }
 
 /**
- * Which stations somebody belongs to, which a station's own list never has to say.
+ * Which stations somebody belongs to, which a station's own list never has to show.
  *
  * <p>Silent once the reader has narrowed to one station: every row would then repeat the same word.
  * All of them rather than the one this row came from, because the search returns one row per
- * membership and somebody at two stations is two rows that would otherwise never say so.
+ * membership and somebody at two stations is two rows that would otherwise never show it.
  */
 function stationNameOf(memberId: number): string {
   if (stationUid.value) return ''

@@ -19,7 +19,7 @@ const props = withDefaults(defineProps<{
    * the slider carries it with `-value` appended.
    */
   id?: string
-  /** What a screen reader says for the value where the number alone means nothing, such as a width. */
+  /** What a screen reader announces for the value where the number alone means nothing, such as a width. */
   valueText?: string
 }>(), {
   min: 0,

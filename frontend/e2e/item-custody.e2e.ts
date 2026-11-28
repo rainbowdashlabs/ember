@@ -19,7 +19,7 @@ import {test, expect, apiHeaders} from './fixtures/auth'
  * theirs.
  *
  * The store is the story's as well as the piece, because what these stories ask afterwards is what the
- * station's lists say. Asked of the shared store, the answer carries whatever the rest of the suite
+ * station's lists show. Asked of the shared store, the answer carries whatever the rest of the suite
  * happens to be doing in it at that moment.
  */
 async function ownGear(page: Page, headers: Record<string, string>, label: string) {
@@ -233,10 +233,10 @@ test.describe('Item custody', () => {
     })
 
     /**
-     * ITM-12 - A container says where in the store, not who has it.
+     * ITM-12 - A container shows where in the store, not who has it.
      *
      * Shelving something is not handing it to anybody: the station still holds it, and the container only
-     * says which shelf.
+     * shows which shelf.
      */
     test('shelving gear leaves its custody alone', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)

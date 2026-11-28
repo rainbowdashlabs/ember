@@ -11,6 +11,7 @@ import {unique} from './fixtures/unique'
 import {pickMemberByName} from './fixtures/memberMenu'
 import {must} from './fixtures/must'
 import {cast} from './fixtures/cast'
+import {ONE_PIXEL_PNG} from './fixtures/pictures'
 
 /**
  * The lost and found, end to end: reporting a find, giving it a picture, claiming it, taking that
@@ -21,12 +22,6 @@ import {cast} from './fixtures/cast'
  * would each be reading the other's arithmetic.
  */
 test.describe.configure({mode: 'serial'})
-
-/** A real picture, small enough to write out here: a single opaque pixel. */
-const ONE_PIXEL_PNG = Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-    'base64',
-)
 
 const LIST = '/station/lost-and-found'
 
@@ -107,7 +102,7 @@ async function guardianOfTheStation(request: APIRequestContext): Promise<DemoAcc
     return guardian
 }
 
-/** How many claimed items the sidebar says are waiting to be handed over. */
+/** How many claimed items the sidebar shows are waiting to be handed over. */
 async function waitingCount(page: Page): Promise<number> {
     const response = await page.request.get('/api/v1/sidebar-counts', {headers: await apiHeaders(page)})
     expect(response.ok(), 'the sidebar counts can be read').toBeTruthy()
@@ -189,7 +184,7 @@ test.describe('Lost and found', () => {
 
     /**
      * A file that is not a picture never reaches the server: the browser has to read it to make it
-     * smaller, and what it cannot read it says so about, rather than paying for an upload that ends
+     * smaller, and what it cannot read is flagged, rather than paying for an upload that ends
      * in a refusal nobody can act on.
      */
     test('a file that is not a picture is refused with a reason', async ({managerPage: page}) => {
@@ -265,7 +260,7 @@ test.describe('Lost and found', () => {
 
     /**
      * A card whose picture will not load used to leave a blank space where an entry without a
-     * picture gets a placeholder, so the reader could not tell the two apart.
+     * picture gets a placeholder, so the reader could not distinguish the two.
      */
     test('a card whose picture cannot be shown says so instead of standing empty',
         async ({managerPage: page}) => {
@@ -352,8 +347,8 @@ test.describe('Lost and found', () => {
     })
 
     /**
-     * Two people at the same station at the same time, because that is the only way to tell what a
-     * role sees from what a role is told it sees. Whoever looks after the lost and found sees every
+     * Two people at the same station at the same time, because that is the only way to distinguish what a
+     * role sees from what a role is led to think it sees. Whoever looks after the lost and found sees every
      * entry; everybody else sees what is still free and what they claimed themselves.
      */
     test('an ordinary member sees only what is free and what is theirs', async ({browser, request, managerPage}) => {
@@ -393,7 +388,7 @@ test.describe('Lost and found', () => {
 
     /**
      * A parent collecting a glove for their child. The claim has to land on the child, which is
-     * what the picker in the dialog is for, and the entry has to say the child's name afterwards.
+     * what the picker in the dialog is for, and the entry has to show the child's name afterwards.
      */
     test('a guardian claims a find for somebody in their care', async ({browser, request, managerPage}) => {
         const guardianPage = await pageAsThrowaway(browser, request, [], await guardianOfTheStation(request))
@@ -463,7 +458,7 @@ test.describe('Lost and found', () => {
     })
 
     /**
-     * Reporting tells the station and claiming tells the people who look after the lost and found.
+     * Reporting notifies the station and claiming notifies the people who look after the lost and found.
      * The notice is followed by pressing it rather than by reading its address, because a link
      * naming a page the application does not have goes nowhere only when somebody actually presses
      * it. Claiming then withdraws the announcement about that one find and leaves the rest standing.
@@ -487,7 +482,7 @@ test.describe('Lost and found', () => {
 
                 await memberPage.goto('/station/dashboard/overview')
                 await memberPage.getByText(followed).first().click()
-                await expect(memberPage).toHaveURL(new RegExp(`${LIST}$`))
+                await expect(memberPage).toHaveURL(new RegExp(`${LIST}(\\?[^#]*)?$`))
                 await expect(card(memberPage, followed)).toBeVisible()
 
                 await card(memberPage, claimedItem)

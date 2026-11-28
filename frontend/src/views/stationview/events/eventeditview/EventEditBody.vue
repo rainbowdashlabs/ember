@@ -56,7 +56,7 @@ const props = defineProps<{
   currentTemplateFields: AttendanceTemplateField[]
   fieldDefaults: Map<number, FieldDefaultValue>
   partners: PartnerResponse[]
-  /** What the share card says about an applied template's share it could not take over as it was. */
+  /** What the share card shows about an applied template's share it could not take over as it was. */
   federationNote?: string
   /** Whether the appointment is a part of an event group, which owns its sign-up, audiences and sharing. */
   eventGroupPart?: boolean

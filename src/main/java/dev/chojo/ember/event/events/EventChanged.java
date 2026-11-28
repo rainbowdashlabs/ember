@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * An appointment has moved, been renamed, or had its series shortened.
  *
- * <p>Until this existed, changing an appointment announced nothing at all: nobody was told, and
+ * <p>Until this existed, changing an appointment announced nothing at all: nobody was notified, and
  * nothing keyed to a date was cleaned up, which is why a moved appointment left sign-ups on a day it
  * no longer falls on and fired reminders for it. Anything that has to react to a move has to be able
  * to hear about one first.

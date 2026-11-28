@@ -137,7 +137,7 @@ class QuizCatalogTemplateTest {
         assertEquals(List.of(QuizQuestionType.values()).stream().sorted().toList(), shown);
     }
 
-    /** The mapping the format panel tells people to use for the example sheet. */
+    /** The mapping the format panel asks people to use for the example sheet. */
     private static CsvMappings templateMappings() {
         return new CsvMappings(
                 "Frage",

@@ -346,7 +346,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A page that says nothing about itself leaves the URL as the name rather than an empty entry.
+     * A page that shows nothing about itself leaves the URL as the name rather than an empty entry.
      */
     @Test
     @Order(52)

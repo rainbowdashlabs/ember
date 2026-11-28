@@ -25,7 +25,7 @@ const props = defineProps<{
   fields: EventRegistrationField[]
   /** What this member answered, where they answered anything. */
   answers?: EventRegistrationFieldValue[]
-  /** The waiting list of the date, which says where a member waiting on it stands. */
+  /** The waiting list of the date, which shows where a member waiting on it stands. */
   queue?: QueueEntry[]
 }>()
 

@@ -23,7 +23,7 @@ public class MailProviderEntry {
 
     /**
      * How the connection to the relay is secured. Empty in a file written before the choice had
-     * three values, in which case {@link #ssl} still says what was meant.
+     * three values, in which case {@link #ssl} still shows what was meant.
      */
     private SmtpEncryption encryption = null;
 

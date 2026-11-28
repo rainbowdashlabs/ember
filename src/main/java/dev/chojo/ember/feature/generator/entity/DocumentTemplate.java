@@ -39,7 +39,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param language         the language its documents are written in
  * @param issuerId         the member of the station who issues its documents, or null where it names
  *                         nobody, for a template of an association, and once that member was deleted
- * @param issuerFunction   what the issuer does at the station, or null where nothing is said
+ * @param issuerFunction   what the issuer does at the station, or null where nothing is set
  * @param version          counts up with every change
  * @param createdAt        when it was created
  * @param updatedAt        when it was last changed

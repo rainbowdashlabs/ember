@@ -49,7 +49,7 @@ import static org.mockito.Mockito.mock;
 
 /**
  * A notification written for somebody is queued as a push to their devices in the same statement,
- * where they want that type pushed, and the push says what the inbox says and opens what the
+ * where they want that type pushed, and the push shows what the inbox shows and opens what the
  * notification is about.
  */
 class NotificationPushTest extends RepositoryTestBase {

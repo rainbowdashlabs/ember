@@ -176,7 +176,7 @@ describe('EventRegistrationActions', () => {
         expect(actions.find('[data-testid="decline-registration"]').exists()).toBe(false)
     })
 
-    /** A full appointment that takes sign-ups as they come puts the next one on the waiting list, and says so. */
+    /** A full appointment that takes sign-ups as they come puts the next one on the waiting list, and shows that. */
     it('offers the waiting list on a full date', async () => {
         const people = answerableMembers(1, {1: [SELF]}, SELF, [], 'Ich')
         const actions = await mountSuspended(EventRegistrationActions, {

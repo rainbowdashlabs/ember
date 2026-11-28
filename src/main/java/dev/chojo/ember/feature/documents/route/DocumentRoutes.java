@@ -77,16 +77,30 @@ public class DocumentRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/documents", this::listStation, StationPermission.DOCUMENT_READ, StationModule.DOCUMENTS);
+        routes.get(
+                prefix + "/documents",
+                this::listStation,
+                StationPermission.DOCUMENT_READ,
+                StationPermission.DOCUMENT_READ_MEMBER,
+                StationModule.DOCUMENTS);
         routes.post(
                 prefix + "/documents",
                 this::uploadForStation,
                 StationPermission.DOCUMENT_EDIT,
                 StationModule.DOCUMENTS);
-        routes.get(prefix + "/documents/ids", this::listIds, StationPermission.DOCUMENT_READ, StationModule.DOCUMENTS);
+        routes.get(
+                prefix + "/documents/ids",
+                this::listIds,
+                StationPermission.DOCUMENT_READ,
+                StationPermission.DOCUMENT_READ_MEMBER,
+                StationModule.DOCUMENTS);
         routes.post(prefix + "/documents/prune", this::prune, StationPermission.LOGIN, StationModule.DOCUMENTS);
         routes.get(
-                prefix + "/documents/tags", this::listTags, StationPermission.DOCUMENT_READ, StationModule.DOCUMENTS);
+                prefix + "/documents/tags",
+                this::listTags,
+                StationPermission.DOCUMENT_READ,
+                StationPermission.DOCUMENT_READ_MEMBER,
+                StationModule.DOCUMENTS);
         routes.put(
                 prefix + "/documents/{id}/tags",
                 this::setTags,
@@ -168,7 +182,7 @@ public class DocumentRoutes implements Routes {
     }
 
     /**
-     * Reads what is said about an upload and files it.
+     * Reads what is sent about an upload and files it.
      *
      * <p>Shared by the two ways in: onto a member, and into the store without anybody attached.
      */
@@ -197,10 +211,12 @@ public class DocumentRoutes implements Routes {
      * member however the request asks for one. The search is what makes this more than tidiness. It
      * runs against what was read out of the documents, so a listing that reached a member document
      * would answer whether a word appears in it, which is the content of the document rather than
-     * the name on it.
+     * the name on it. Without the permission for the station's paperwork it is the other way round:
+     * only the documents that name somebody.
      */
     private DocumentFilter storeFilter(Context ctx, StationSession session) {
         boolean readsMemberDocuments = session.hasPermission(StationPermission.DOCUMENT_READ_MEMBER);
+        boolean readsStationDocuments = session.hasPermission(StationPermission.DOCUMENT_READ);
         String search = ctx.queryParam("search");
         if (search != null && search.isBlank()) search = null;
         return new DocumentFilter(
@@ -209,6 +225,7 @@ public class DocumentRoutes implements Routes {
                 readsMemberDocuments,
                 !readsMemberDocuments
                         || ctx.queryParamAsClass("unbound", Boolean.class).getOrDefault(false),
+                !readsStationDocuments,
                 readsMemberDocuments
                         && ctx.queryParamAsClass("departed", Boolean.class).getOrDefault(false));
     }

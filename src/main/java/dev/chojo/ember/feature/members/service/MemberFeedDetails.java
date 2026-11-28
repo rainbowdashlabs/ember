@@ -14,7 +14,7 @@ import jakarta.inject.Singleton;
 import java.time.LocalDate;
 
 /**
- * What a feed entry says about members: an expiring profile value, a group somebody was added to,
+ * What a feed entry shows about members: an expiring profile value, a group somebody was added to,
  * and a profile field that changed.
  */
 @Singleton

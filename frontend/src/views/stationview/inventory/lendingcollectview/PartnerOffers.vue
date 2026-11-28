@@ -8,11 +8,13 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import PieceThumb from '@/components/inventory/PieceThumb.vue'
 import type {AvailableInventoryEntry} from '@/api/generated/schema'
+import {offerLook} from '@/util/offerLook'
 
 defineProps<{
   offers: AvailableInventoryEntry[]
-  /** Why an empty answer is empty, which the browse call says and the screen repeats. */
+  /** Why an empty answer is empty, which the browse call reports and the screen repeats. */
   emptyReason: string | null
 }>()
 
@@ -37,6 +39,7 @@ const {t} = useI18n()
         class="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50"
         data-testid="partner-offer"
     >
+      <PieceThumb v-bind="offerLook(offer)"/>
       <span class="text-sm">{{ offer.artName ?? offer.inventoryName }}</span>
       <InfoBadge>{{ t('lendingCollect.freeCount', {count: offer.availableCount}) }}</InfoBadge>
       <span class="text-xs text-(--text-muted)">{{ offer.stationName }}</span>

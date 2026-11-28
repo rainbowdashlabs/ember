@@ -848,7 +848,7 @@ public class EventGroupRoutes implements Routes {
             @Nullable Instant startTime,
             @Nullable Instant endTime) {}
 
-    /** @param reason why the event group is called off, as told to the people signed up, or null */
+    /** @param reason why the event group is called off, as shown to the people signed up, or null */
     public record EventGroupCancelRequest(@Nullable String reason) {}
 
     /**

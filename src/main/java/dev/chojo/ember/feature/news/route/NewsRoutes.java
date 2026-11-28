@@ -566,7 +566,7 @@ public class NewsRoutes implements Routes {
 
     /**
      * Which comments a station reads under an entry. Under a system entry every station is talking
-     * at once, and what one station says is its own business: a station is shown its own part of
+     * at once, and what one station writes is its own business: a station is shown its own part of
      * the conversation. A station entry is read by that station alone, so there is nothing to
      * separate.
      */
@@ -1020,7 +1020,7 @@ public class NewsRoutes implements Routes {
      * API response representing a news article with resolved author information.
      *
      * <p>{@code rows} are the blocks as written, for the editor. {@code describedRows} are the same
-     * blocks as a reader sees them, with a picture the entry says nothing about carrying the words
+     * blocks as a reader sees them, with a picture the entry does not describe carrying the words
      * of its media file. Keeping the two apart is what stops a save from writing those words into
      * the entry.
      */

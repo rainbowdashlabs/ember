@@ -17,7 +17,7 @@ import java.util.UUID;
 /**
  * The documents a partner station's appointment asks the members of this station to sign. Signing owns them;
  * a registration at a partner only asks for them, and a withdrawal lets the open ones go. An appointment without
- * registrations offers them on its page instead, and signing one says the member will come.
+ * registrations offers them on its page instead, and signing one means the member will come.
  */
 public interface PartnerAppointmentSignatures {
 
@@ -89,7 +89,7 @@ public interface PartnerAppointmentSignatures {
 
     /**
      * Takes on the documents a partner's appointment without registrations offers for a member on a date, the
-     * same way as a registration does, so the reader can sign them; signing says the member will come. Offering
+     * same way as a registration does, so the reader can sign them; signing means the member will come. Offering
      * again while they stand asked for or signed asks nothing twice.
      *
      * @param session           the reader: the member, or a guardian of theirs

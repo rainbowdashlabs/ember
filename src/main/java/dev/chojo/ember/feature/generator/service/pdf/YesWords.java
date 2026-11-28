@@ -13,7 +13,7 @@ import java.util.Set;
 /**
  * When a filled-in text counts as yes, which is what ticks a check field or a check box.
  *
- * <p>A text says yes when it holds anything but the word for no. A yes or no question is filled in as
+ * <p>A text means yes when it holds anything but the word for no. A yes or no question is filled in as
  * its word ("Ja", "Nein"), so a check field bound to it is ticked exactly where the answer is yes; a
  * field bound to anything else is ticked where the member has that value at all, for example an
  * allergy written in the profile. A check the person generating answers prints as a ticked or an empty
@@ -31,7 +31,7 @@ public final class YesWords {
 
     /**
      * @param filled a text with its placeholders filled in
-     * @return whether it says yes
+     * @return whether it means yes
      */
     public static boolean saysYes(String filled) {
         String text = filled.strip();

@@ -43,7 +43,7 @@ const props = withDefaults(defineProps<{
   members?: MemberOption[]
   min?: number
   max?: number
-  /** What a number steps by, which is what tells a measurement from a count. */
+  /** What a number steps by, which is what distinguishes a measurement from a count. */
   step?: number
   maxLength?: number
   disabled?: boolean

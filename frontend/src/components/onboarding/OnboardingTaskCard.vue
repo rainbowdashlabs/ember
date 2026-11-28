@@ -22,15 +22,15 @@ import {OnboardingTaskState, type OnboardingLevel, type OnboardingTaskView} from
 /**
  * What Ember still asks of the reader, on the level it asks it.
  *
- * On the station and the instance the list is shared, so it also says who settled a task: a
+ * On the station and the instance the list is shared, so it also shows who settled a task: a
  * colleague arriving later can see whose decision they are looking at, and take a skipped one back
  * up.
  *
- * A task that teaches how Ember works and was passed over on another station of the same person says
+ * A task that teaches how Ember works and was passed over on another station of the same person shows
  * so, since nothing on this station explains why it is not open.
  *
  * Who may see a level is not decided here. The card asks for it, and somebody who may not have it
- * is told so by the request rather than by a second permission check that could disagree with the
+ * learns so from the request rather than by a second permission check that could disagree with the
  * first: the card then simply has nothing to show and draws nothing.
  */
 const props = defineProps<{
@@ -38,7 +38,9 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
-const {status, load, start, skip, discard, resume, confirm} = useOnboardingTasks()
+const {
+  status, load, start, skip, discard, resume, confirm, shownOf, hiddenOnPageOf, lastCardOnPage,
+} = useOnboardingTasks()
 
 const tasks = computed(() => status.value[props.level]?.tasks ?? [])
 const open = computed(() => tasks.value.filter(task => task.state === OnboardingTaskState.OPEN))
@@ -47,11 +49,20 @@ const skipped = computed(() => tasks.value.filter(task => task.state === Onboard
 const shared = computed(() => props.level !== 'MEMBER')
 
 /**
+ * The tasks this card lists. A page shows only a few at once, the station's before the reader's
+ * own, and nothing that still waits for another step; the rest follow as these are settled.
+ */
+const shown = computed(() => shownOf(props.level))
+
+/** How many tasks wait after the shown ones, shown once, on the last card of the page. */
+const hidden = computed(() => (lastCardOnPage(props.level) ? hiddenOnPageOf(props.level) : 0))
+
+/**
  * Whether anything here still asks something of the reader.
  *
  * <p>An open task does, and so does a skipped one: it waits to be taken back up or thrown away. A
  * task that is done or thrown away asks nothing, and the card used to stay on the dashboard for
- * those too, so somebody who had settled every one of them kept a panel that only said so.
+ * those too, so somebody who had settled every one of them kept a panel that only showed that.
  */
 const anythingLeft = computed(() => open.value.length > 0 || skipped.value.length > 0)
 const logo = computed(() => emberGuide(open.value.length === 0 ? 'cheer' : 'plain'))
@@ -126,7 +137,7 @@ onMounted(() => load(props.level))
     </div>
 
     <ul class="space-y-3">
-      <li v-for="task in open" :key="task.id" :data-testid="`onboarding-task-${task.id}`"
+      <li v-for="task in shown" :key="task.id" :data-testid="`onboarding-task-${task.id}`"
           class="space-y-1 border-t border-(--border) pt-3 first:border-0 first:pt-0">
         <div class="font-medium">{{ title(task) }}</div>
         <MutedText tag="p" size="sm">{{ body(task) }}</MutedText>
@@ -146,6 +157,14 @@ onMounted(() => load(props.level))
         </ButtonRow>
       </li>
     </ul>
+
+    <MutedText v-if="open.length > 0 && shown.length === 0" tag="p" size="sm" data-testid="onboarding-waiting">
+      {{ t('onboarding.card.waitingForOther') }}
+    </MutedText>
+
+    <MutedText v-if="hidden > 0" tag="p" size="sm" data-testid="onboarding-later">
+      {{ hidden === 1 ? t('onboarding.card.laterOne') : t('onboarding.card.later', {count: hidden}) }}
+    </MutedText>
 
     <div v-if="skipped.length > 0" class="space-y-2 border-t border-(--border) pt-3">
       <MutedText tag="p" size="sm">{{ t('onboarding.card.skippedTitle') }}</MutedText>

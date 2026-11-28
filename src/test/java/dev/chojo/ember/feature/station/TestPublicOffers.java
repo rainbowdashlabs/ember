@@ -18,7 +18,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
- * Stubs what a mocked {@link PublicStationInfoService} says a station offers, for one station and for
+ * Stubs what a mocked {@link PublicStationInfoService} reports a station offers, for one station and for
  * many at once alike.
  */
 public final class TestPublicOffers {

@@ -41,7 +41,7 @@ function entries(count: number, from: number): GeneratedDocumentEntry[] {
 }
 
 /**
- * The log arrives a page at a time, and older pages are added on request. Each row says how the
+ * The log arrives a page at a time, and older pages are added on request. Each row shows how the
  * signatures on its document stand, and opens the request or the step that asks.
  */
 describe('GeneratedView', () => {

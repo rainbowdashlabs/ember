@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
  * The one intake every uploaded file passes, whoever hands it over.
  *
  * <p>Manual uploads used to skip what only the mail import checked: the station's own limit for one
- * file, its room left, and what the bytes say they are.
+ * file, its room left, and what the bytes show they are.
  */
 class DocumentIntakeTest {
     private static final int STATION = 3;
@@ -98,7 +98,7 @@ class DocumentIntakeTest {
         assertRefused(DocumentRefusal.DOCUMENT_UPLOAD_NO_ROOM, () -> take("a.pdf", "application/pdf", PDF));
     }
 
-    /** The bytes decide what a file is, wherever they can tell. */
+    /** The bytes decide what a file is, wherever they allow it. */
     @Test
     void theBytesDecideWhatAFileIs() {
         assertEquals("application/pdf", take("scan", "image/png", PDF));
@@ -112,7 +112,7 @@ class DocumentIntakeTest {
     }
 
     /**
-     * Bytes that say nothing keep the declared type, unless that type is one the bytes would have shown:
+     * Bytes that show nothing keep the declared type, unless that type is one the bytes would have shown:
      * then the file is kept as plain bytes and never shown inline as something it is not.
      */
     @Test

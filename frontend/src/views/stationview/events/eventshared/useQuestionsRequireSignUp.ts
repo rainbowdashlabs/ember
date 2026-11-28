@@ -10,7 +10,7 @@ import {computed, watch, type Ref} from 'vue'
  *
  * <p>The questions stay on the form whether sign-up is on or not, so they are found where they are
  * looked for. Adding the first one switches sign-up on, and while any is asked, sign-up cannot be
- * switched off: the form says why instead of hiding the questions again. Sign-up switched off from
+ * switched off: the form shows why instead of hiding the questions again. Sign-up switched off from
  * elsewhere while questions are asked, such as by a template applied to the form, is switched back on.
  *
  * @param asksQuestions        whether any question is asked: on the form, or by the template a batch is made from

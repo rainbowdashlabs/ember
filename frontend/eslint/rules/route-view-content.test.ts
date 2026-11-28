@@ -10,7 +10,7 @@ import vueParser from 'vue-eslint-parser'
 import rule from './route-view-content.mjs'
 
 /**
- * Whether the header over a page can say anything is decided by the view the page renders and the
+ * Whether the header over a page can show anything is decided by the view the page renders and the
  * components it hands its template to, so the rule follows them as the page would.
  *
  * @vitest-environment node

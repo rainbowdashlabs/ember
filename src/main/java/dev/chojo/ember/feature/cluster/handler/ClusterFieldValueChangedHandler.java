@@ -17,7 +17,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells a member that somebody at their cluster filled something in about them.
+ * Notifies a member that somebody at their cluster filled something in about them.
  *
  * <p>Addressed to the member themselves rather than to their station's managers: the managers see it in the
  * ordinary change list, which this write goes into like any other, while the member has no other way of

@@ -19,7 +19,7 @@ import SizeBadge from '@/components/badge/SizeBadge.vue'
 import type {NamedPiece} from '@/api/inventory'
 
 /**
- * Saying that a piece of gear cannot be found.
+ * Reporting that a piece of gear cannot be found.
  *
  * <p>It is not a request and nobody answers it: the item counts as missing from the moment it is
  * submitted, and it can be marked found again. Asking for a replacement is a separate act the station

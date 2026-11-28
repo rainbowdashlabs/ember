@@ -34,7 +34,7 @@ const {t} = useI18n()
 
 const TYPING_PAUSE_MS = 300
 
-/** A format and what the server said about it. */
+/** A format and what the server reported about it. */
 interface CheckedFormat {
   pattern: string
   answer: DateFormatCheck

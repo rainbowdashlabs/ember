@@ -27,9 +27,9 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * The one way to tell people something.
+ * The one way to notify people about something.
  *
- * <p>The audience says who, the delivery says whether an identical unread notification suppresses
+ * <p>The audience decides who, the delivery decides whether an identical unread notification suppresses
  * this one, and one statement writes every row. Preferences, the people who left and the actor are
  * applied inside that statement, and the unique index on unread keys makes "once while unread" hold
  * when two requests send the same notification at the same moment.
@@ -98,7 +98,7 @@ public class Notifier {
 
     /**
      * Writes a station notification to everybody it reaches at a station that has its module. Nobody at a
-     * station that switched the module off is told, so nothing waits there to show up later.
+     * station that switched the module off is notified, so nothing waits there to show up later.
      */
     private int notifyStation(
             StationAudience audience, NotificationType type, NotificationData data, Delivery delivery) {

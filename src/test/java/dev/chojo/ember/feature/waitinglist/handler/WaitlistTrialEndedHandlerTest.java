@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-/** A trial the family ends leaves nothing on the list, so whoever looks after the lists is told. */
+/** A trial the family ends leaves nothing on the list, so whoever looks after the lists is notified. */
 class WaitlistTrialEndedHandlerTest {
 
     private Notifier notifier;

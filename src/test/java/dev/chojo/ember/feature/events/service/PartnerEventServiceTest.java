@@ -60,7 +60,7 @@ class PartnerEventServiceTest extends EventFederationTestBase {
     }
 
     /**
-     * A partner on this instance is told what it was given, exactly as one across the network is.
+     * A partner on this instance is notified of what it was given, exactly as one across the network is.
      *
      * <p>Both stations keep a record of the other, and everything the host writes hangs off the
      * host's. Read through the visitor's, which is the one the visitor's own screens carry, the host
@@ -322,8 +322,8 @@ class PartnerEventServiceTest extends EventFederationTestBase {
 
     /**
      * What the other station recorded is carried back rather than assumed. An appointment that asks
-     * for no confirmation accepts at once, and telling our own member they are waiting would be
-     * telling them something nobody said.
+     * for no confirmation accepts at once, and notifying our own member they are waiting would be
+     * notifying them of something nobody said.
      */
     @Test
     @Order(91)
@@ -367,7 +367,7 @@ class PartnerEventServiceTest extends EventFederationTestBase {
                 stationA.id(), stationC.uid(), 2, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1)));
     }
 
-    /** A partner elsewhere that does not answer a confirmation or an undo is told in this station's words. */
+    /** A partner elsewhere that does not answer a confirmation or an undo is notified in this station's words. */
     @Test
     @Order(93)
     void aPartnerElsewhereThatDoesNotAnswerIsNamedInTheFeaturesWords() {

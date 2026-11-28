@@ -91,7 +91,7 @@ public class DemoRunContext {
     }
 
     /**
-     * The first station, which is what an instance-wide seeder means when it says "the demo station".
+     * The first station, which is what an instance-wide seeder means by "the demo station".
      *
      * <p>Only the seeders that run after the station band ask for it, so asking before is a mistake
      * in the seeding order and refused as one.

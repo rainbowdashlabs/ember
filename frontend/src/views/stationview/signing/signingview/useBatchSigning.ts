@@ -64,7 +64,7 @@ export function picturesOf(pictures: SigningPictures): BatchPicture[] {
  * One signing act over every chosen field of the reader, from the start to the outcome.
  *
  * <p>A start binds the chosen fields and what was typed for them, and is kept on the server for a few
- * minutes, spent by the first confirmation whether it passes or not. So the start that told the screen
+ * minutes, spent by the first confirmation whether it passes or not. So the start that let the screen know
  * which proofs the signer may give is reused only while it is unspent, fresh and still for the same
  * fields; anything else leads to a new start, made in the same press that confirms, without the signer
  * seeing it. A passkey prompt the signer closes sends nothing and spends nothing.
@@ -91,7 +91,7 @@ export interface SigningActEnds {
 
 /**
  * One signing act from the start to the outcome, wherever it starts and completes: the reader's own fields
- * in one go, or a field signed in front of a witness. A start is reused as {@link useBatchSigning} says.
+ * in one go, or a field signed in front of a witness. A start is reused as {@link useBatchSigning} describes.
  *
  * @param ends where the act starts and completes
  */
@@ -101,7 +101,7 @@ export function useSigningAct(ends: SigningActEnds) {
     const spent = ref(false)
     const outcome = ref<BatchCompleteResponse | null>(null)
 
-    /** Starts the act, which tells which proofs are taken. */
+    /** Starts the act, which reports which proofs are taken. */
     async function prepare(): Promise<BatchStartResponse> {
         const boundTo = ends.boundTo()
         const started = await ends.start()

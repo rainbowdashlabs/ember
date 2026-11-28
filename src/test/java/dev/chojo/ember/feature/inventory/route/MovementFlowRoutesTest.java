@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Whether a chain waits for the member's receipt, read and saved over HTTP: the chains carry it, and only a
- * chain of the caller's own station can be told otherwise.
+ * chain of the caller's own station can be set otherwise.
  */
 class MovementFlowRoutesTest {
     private static final int STATION = 3;

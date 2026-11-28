@@ -52,7 +52,7 @@ public class ItemMovementRepository {
      * The movements of a station that are still running, newest first.
      *
      * <p>What a screen asking which pieces are spoken for reads. The closed ones are most of a station's
-     * history and say nothing about that.
+     * history and show nothing about that.
      *
      * @param stationId the station
      * @return its open movements
@@ -427,7 +427,7 @@ public class ItemMovementRepository {
     }
 
     /**
-     * One movement still walking a chain, said in the few things a list has to show about it.
+     * One movement still walking a chain, reduced to the few things a list has to show about it.
      *
      * @param id            the movement
      * @param currentStepId the step it stands on, or {@code null} where the step it stood on has gone

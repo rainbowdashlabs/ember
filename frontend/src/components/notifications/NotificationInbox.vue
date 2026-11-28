@@ -22,23 +22,20 @@ import {useNotificationInbox} from '@/composables/useNotificationInbox'
  * dashboard, an association member's on the association's notifications page. Below them, a button
  * lists the read ones among the most recent, to open again.
  *
- * <p>Whose inbox it is comes in as the api; everything else is the same for both. `onChanged` runs
- * after something was marked read, for the counters beside the menu entries. It is a prop rather
- * than an event because opening a notice leaves this page before the server has answered, and an
- * unmounted component's events are dropped, which left the counters standing.
+ * <p>Whose inbox it is comes in as the api; everything else is the same for both. The counters
+ * beside the menu entries follow by themselves once a notice is marked read, also when that lands
+ * after opening it has left this page.
  */
 const props = defineProps<{
   api: NotificationInboxApi
   /** Where the gear in the header leads, or nothing where the settings are on the same page. */
   settings?: RouteLocationRaw | null
-  /** Runs once something was marked read, also when that lands after the inbox has left the page. */
-  onChanged?: () => void
 }>()
 
 const {t} = useI18n()
 const router = useRouter()
 const {notifications, earlier, loading, load, loadEarlier, acknowledge, acknowledgeAll} =
-    useNotificationInbox(props.api, () => props.onChanged?.())
+    useNotificationInbox(props.api)
 
 function openSettings() {
   if (props.settings) router.push(props.settings)

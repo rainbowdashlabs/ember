@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -23,7 +23,7 @@ import type {
   MovementResponse,
   ProcurementResponse,
 } from '@/api/generated/schema'
-import { inventory, inventoryArts, inventoryContainers, movements, stationMembers, procurement } from '@/api'
+import { inventory, inventoryArts, inventoryContainers, inventoryPictures, movements, stationMembers, procurement } from '@/api'
 import { piecesOnOpenMovements } from '@/util/movementPieces'
 import { piecesHeldByLoans } from '@/util/loanHolds'
 import { todayIsoDate } from '@/util/format'
@@ -36,6 +36,7 @@ import DetailHeader from './detailview/DetailHeader.vue'
 import DetailLoadedContent from './detailview/DetailLoadedContent.vue'
 import DetailViewModals from './detailview/DetailViewModals.vue'
 import { useItemTable } from './itemtable/useItemTable'
+import { useItemSelection } from './itemtable/useItemSelection'
 import { memberDisplayName } from '@/views/stationview/members/listview/useMemberData'
 
 const routes = useInventoryRoutes()
@@ -83,6 +84,15 @@ function itemAssignedName(item: InventoryItem): string {
   return member ? memberDisplayName(member) : `#${item.assignedTo}`
 }
 
+function itemArtName(item: InventoryItem): string {
+  if (!item.artId) return ''
+  return arts.value.find(art => art.id === item.artId)?.name ?? ''
+}
+
+/** The pieces ticked for a change to all of them, kept across a reload and pruned to what is left. */
+const selection = useItemSelection()
+watch(items, current => selection.keepOnly(current.map(item => item.id)))
+
 const itemTable = useItemTable({
   inventoryId: () => inventoryId.value,
   items: () => items.value,
@@ -91,15 +101,21 @@ const itemTable = useItemTable({
   isMixed: () => detail.value?.inventoryType === InventoryType.MIXED,
   sizeLabel: itemSizeLabel,
   assignedName: itemAssignedName,
+  artName: itemArtName,
 })
 
 /**
- * The inventory's own name at the head of the page, because "Inventar-Details" says nothing about
+ * The inventory's own name at the head of the page, because "Inventar-Details" shows nothing about
  * which one is open: it is the same word above every stock screen, and it is what the tab, the
  * history and a bookmark all end up carrying. The word stands until the inventory has arrived, and
  * where it could not be fetched at all.
  */
 const pageTitle = computed(() => detail.value?.name || t('pages.inventory-detail.title'))
+
+/** The inventory's photo for the head of the page, where it has one. */
+const inventoryPictureSrc = computed(() => detail.value?.pictureKey
+    ? inventoryPictures.inventoryPictureUrl(detail.value.id, detail.value.pictureKey, 256)
+    : null)
 
 const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 const canProcure = computed(() =>
@@ -268,15 +284,16 @@ function goEdit() { router.push({ name: routes.edit, params: { id: inventoryId.v
         :homogeneous="detail?.homogeneous ?? true"
         :art-count="detail?.homogeneous === false ? arts.length : null"
         :can-edit="permissions.canEdit"
+        :picture-src="inventoryPictureSrc"
         @back="goBack"
         @edit="goEdit"
       />
 
-      <Spinner v-if="loading" size="lg" />
+      <Spinner v-if="loading && !detail" size="lg" />
       <FailureAlert :failure="failure"/>
 
       <DetailLoadedContent
-        v-if="!loading && detail"
+        v-if="detail"
         :detail="detail"
         :items="items"
         :arts="arts"
@@ -292,7 +309,9 @@ function goEdit() { router.push({ name: routes.edit, params: { id: inventoryId.v
         :all-size-stats="allSizeStats"
         :permissions="permissions"
         :item-table="itemTable"
+        :selection="selection"
         v-on="actions"
+        @batch-changed="loadData"
       />
 
       <DetailViewModals

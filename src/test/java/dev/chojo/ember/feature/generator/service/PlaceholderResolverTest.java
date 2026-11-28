@@ -228,7 +228,11 @@ class PlaceholderResolverTest extends RepositoryTestBase {
     @Test
     void theTimesOfAnAppointmentTakeTheFormatsWithATimeOfDay() {
         var event = new GenerationContext.EventFacts(
-                "Berlin Marathon", Instant.parse("2026-09-27T07:00:00Z"), Instant.parse("2026-09-27T14:00:00Z"), null);
+                "Berlin Marathon",
+                Instant.parse("2026-09-27T07:00:00Z"),
+                Instant.parse("2026-09-27T14:00:00Z"),
+                null,
+                null);
 
         var values = resolver.resolve(
                         station.id(),
@@ -322,7 +326,11 @@ class PlaceholderResolverTest extends RepositoryTestBase {
     @Test
     void anAppointmentFillsItsKeysWhereADocumentIsGeneratedForOne() {
         var event = new GenerationContext.EventFacts(
-                "Berlin Marathon", Instant.parse("2026-09-27T07:00:00Z"), Instant.parse("2026-09-27T14:00:00Z"), null);
+                "Berlin Marathon",
+                Instant.parse("2026-09-27T07:00:00Z"),
+                Instant.parse("2026-09-27T14:00:00Z"),
+                null,
+                null);
 
         var resolved = resolver.resolve(
                 station.id(),
@@ -334,6 +342,26 @@ class PlaceholderResolverTest extends RepositoryTestBase {
         assertEquals("Berlin Marathon", resolved.values().get("event.name"));
         assertEquals("27.09.2026 09:00", resolved.values().get("event.start"));
         assertEquals(List.of("event.location"), resolved.missing());
+    }
+
+    @Test
+    void anAppointmentNamesItsVenueAndItsMeetingPointApart() {
+        var event = new GenerationContext.EventFacts(
+                "Sommerfest",
+                Instant.parse("2026-07-04T10:00:00Z"),
+                Instant.parse("2026-07-04T18:00:00Z"),
+                "Festwiese",
+                "Gerätehaus");
+
+        var resolved = resolver.resolve(
+                station.id(),
+                lena.id(),
+                Set.of("event.location", "event.meetingPoint"),
+                DocumentLanguage.DE,
+                new GenerationContext(manager.id(), event, DocumentIssuer.NONE));
+
+        assertEquals("Festwiese", resolved.values().get("event.location"));
+        assertEquals("Gerätehaus", resolved.values().get("event.meetingPoint"));
     }
 
     @Test

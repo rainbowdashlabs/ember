@@ -17,8 +17,8 @@ import type {AttachmentPort} from './eventOwnerPorts'
  * edited already exists, and a file that only lands when the form is saved is a file somebody
  * believes they attached. Picking one happens in the media library, so nothing is uploaded here.
  *
- * <p>A change that could not be written is said so and taken back off the screen. What the switch
- * shows is a claim about who may read the file, and a screen saying "kept back" over a file that is
+ * <p>A change that could not be written is reported and taken back off the screen. What the switch
+ * shows is a claim about who may read the file, and a screen showing "kept back" over a file that is
  * still open to everyone is worse than no screen at all.
  *
  * <p>What went wrong is kept described rather than as the name of the step that failed. The name

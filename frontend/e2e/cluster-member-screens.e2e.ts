@@ -3,7 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeededCluster} from './fixtures/auth'
+import {
+    test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeededCluster, actForCluster,
+} from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
 import {must} from './fixtures/must'
 import {demoSignIn, sessionHeaders} from './fixtures/session'
@@ -95,12 +97,12 @@ test.describe('Cluster member screens', () => {
      *
      * The note was drawn unconditionally, so narrowing to one station left every row repeating the same
      * word. And the search returns one row per membership, so somebody at two stations of the
-     * association was two rows that never said they were the same person.
+     * association was two rows that never showed they were the same person.
      *
      * Taking somebody on whose address already has an account only asks that account to be linked, so
      * the person accepts the second station's request before both rows are the same person.
      *
-     * The narrowing is retried until the screen says so rather than until the box holds the value: the
+     * The narrowing is retried until the screen shows that rather than until the box holds the value: the
      * page is server rendered, and a change fired before Vue is listening sets the box and nothing else.
      * Each attempt goes back through "every station" first, because picking a value the box already
      * holds fires nothing at all and the retry would then be no retry.
@@ -124,7 +126,7 @@ test.describe('Cluster member screens', () => {
             await acceptLinkRequest(browser, email, `${own.name} Zweite`)
 
             await page.goto('/cluster/members')
-            await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+            await actForCluster(page, own.uid)
             await page.goto('/cluster/members')
             await expect(page.getByTestId('app-shell')).toBeVisible()
 
@@ -192,7 +194,7 @@ test.describe('Cluster member screens', () => {
      *
      * The roster refused every address without an account behind it, so the one body that cannot walk
      * up to a person and hand them a login was the association. It asks the address first, as it always
-     * did, and nothing beyond it until the server has said nobody has that address.
+     * did, and nothing beyond it until the server has reported nobody has that address.
      */
     test('the association takes on somebody with no account yet', async ({browser, request}) => {
         const account = await clusterAccountWith(request, 'CLUSTER_ADMINISTRATOR')
@@ -250,7 +252,7 @@ test.describe('Cluster member screens', () => {
         await expect(row).toBeVisible({timeout: 15000})
         await row.getByRole('link', {name: 'Details'}).click()
 
-        await expect(page).toHaveURL(/\/cluster\/members\/\d+$/)
+        await expect(page).toHaveURL(/\/cluster\/members\/\d+(\?[^#]*)?$/)
         await expect(page.getByRole('heading', {name: 'Angaben', exact: true})).toBeVisible({timeout: 15000})
         await page.context().close()
     })
@@ -266,7 +268,7 @@ test.describe('Cluster member screens', () => {
         const page = await clusterPage(browser, request, account)
 
         await page.goto('/cluster/members/manage')
-        await expect(page).toHaveURL(/\/cluster\/members$/)
+        await expect(page).toHaveURL(/\/cluster\/members(\?[^#]*)?$/)
 
         await page.context().close()
     })
@@ -349,7 +351,7 @@ test.describe('Cluster member screens', () => {
         const row = page.getByTestId('member-row').first()
         await expect(row).toBeVisible({timeout: 15000})
         await row.getByRole('link', {name: 'Details'}).click()
-        await expect(page).toHaveURL(/\/cluster\/members\/\d+$/)
+        await expect(page).toHaveURL(/\/cluster\/members\/\d+(\?[^#]*)?$/)
 
         const panel = page.getByTestId('cluster-member-documents')
         await expect(panel).toBeVisible({timeout: 15000})

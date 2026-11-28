@@ -42,10 +42,10 @@ import java.util.Set;
  * list of people asked for different reasons, and building them apart would give two column pickers,
  * two opinions about who may read an address, and two places to fix when a question is added.
  *
- * <p>The cutting happens here and nowhere else. A caller says which people and which columns; what
+ * <p>The cutting happens here and nowhere else. A caller passes which people and which columns; what
  * the reader is actually allowed to read is worked out from their own permissions through
  * {@link ProfileFieldScopes}, and a column they may not read is dropped rather than emptied. A column
- * of blanks tells a room that something was withheld about these people in particular, which is worse
+ * of blanks shows a room that something was withheld about these people in particular, which is worse
  * than not offering the column at all.
  */
 @Singleton
@@ -238,7 +238,7 @@ public class MemberTableService {
     /**
      * The question an age counts from, pointed at by id where the field carries one.
      *
-     * <p>The name is the older way of saying it and is still what an untouched field carries.
+     * <p>The name is the older way of referring to it and is still what an untouched field carries.
      * Renaming the question it counted from used to empty the age, which is why the id is preferred.
      */
     private static @Nullable ProfileField ageSourceOf(ProfileField field, Map<Integer, ProfileField> readable) {
@@ -317,7 +317,7 @@ public class MemberTableService {
     }
 
     /**
-     * How old somebody is, counted the way the question says to count it.
+     * How old somebody is, counted the way the question defines to count it.
      *
      * <p>A station that asks how old its people are on the last day of the year is asking who turns
      * old enough this year, which is a different question from who is old enough today.
@@ -336,7 +336,7 @@ public class MemberTableService {
     }
 
     /**
-     * What a membership says about somebody without anybody having asked a question.
+     * What a membership shows about somebody without anybody having asked a question.
      *
      * <p>These are not guarded by the field scopes, because they are not the station's questions: a
      * reader who may see the person at all may see their name and what kind of member they are. The

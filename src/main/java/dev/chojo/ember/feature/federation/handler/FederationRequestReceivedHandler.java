@@ -18,7 +18,7 @@ import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-/** Tells whoever manages a station's federation that another station asked to become its partner. */
+/** Notifies whoever manages a station's federation that another station asked to become its partner. */
 @Singleton
 public class FederationRequestReceivedHandler implements DomainEventHandler<FederationRequestReceived> {
     private final Notifier notifier;

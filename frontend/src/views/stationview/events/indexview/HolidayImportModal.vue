@@ -48,7 +48,7 @@ const germanStates = [
 
 /**
  * The school holidays come from a public directory outside Ember, so a failure here is that
- * service being unreachable and never a fault in Ember worth reporting. The alert says which
+ * service being unreachable and never a fault in Ember worth reporting. The alert shows which
  * service could not be reached and offers no report.
  */
 const {running: loading, failure, run: importHolidays} = useAsyncAction(async () => {

@@ -121,7 +121,7 @@ export function accountParams(view: AccountTableView): AccountFilterParams {
 
 /**
  * The view a table state stands for with every filter it holds, whether or not its column shows:
- * what an address set, before the table has had a say.
+ * what an address set, before the table has had any influence.
  */
 export function viewOfState(state: DataTableState): AccountTableView {
     const keys = new Set([...state.filters.keys(), ...state.empties])

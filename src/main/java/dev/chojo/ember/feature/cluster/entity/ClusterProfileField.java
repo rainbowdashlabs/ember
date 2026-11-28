@@ -26,9 +26,9 @@ import java.util.Optional;
  * @param name            the label
  * @param fieldType       what kind of answer it takes
  * @param config          the same settings a station field carries
- * @param required        whether an answer is expected, unless an audience says otherwise
+ * @param required        whether an answer is expected, unless an audience decides otherwise
  * @param readonly        whether only the member management may write the answer, for everybody asked it
- * @param width           how much of a row it takes, unless an audience says otherwise
+ * @param width           how much of a row it takes, unless an audience decides otherwise
  * @param stationReadonly whether the people at the station may only read the answer
  * @param keepOnArchive   whether the answer survives the member being marked as having left
  * @param stationGroupId  the group of stations it is asked of, or {@code null} for every station under the

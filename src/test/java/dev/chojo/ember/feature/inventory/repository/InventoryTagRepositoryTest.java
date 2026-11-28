@@ -265,7 +265,7 @@ class InventoryTagRepositoryTest extends RepositoryTestBase {
     /**
      * A word reaches the station's own gear and nothing else. An inventory holding both owners can
      * be offered whole, and the pieces belonging to the body above the station stay at home anyway:
-     * the offer says what a station is willing to lend, never what is the station's to lend.
+     * the offer shows what a station is willing to lend, never what is the station's to lend.
      */
     @Test
     void aWordDoesNotReachGearTheStationDoesNotOwn() {

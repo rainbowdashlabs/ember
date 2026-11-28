@@ -347,8 +347,8 @@ class MemberNameResolverTest {
     /**
      * With a name to be called by, the four forms stop being the same name.
      *
-     * <p>This is the whole feature in one test: the board says Max, a member list says who that is,
-     * the attendance sheet says Maximilian, and a mail greets him as Max.
+     * <p>This is the whole feature in one test: the board shows Max, a member list shows who that is,
+     * the attendance sheet shows Maximilian, and a mail greets him as Max.
      */
     @Test
     void aNicknameSeparatesTheFourForms() {

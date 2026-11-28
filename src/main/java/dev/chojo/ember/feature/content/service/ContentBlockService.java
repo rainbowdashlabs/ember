@@ -137,7 +137,7 @@ public class ContentBlockService {
 
     /**
      * Deletes the container and its blocks. The container is the owned side of the relation, so
-     * whatever owned it has to say so: the reference points the wrong way for the database to
+     * whatever owned it has to ask for it: the reference points the wrong way for the database to
      * clean up on its own, and a container nobody deletes is a row that accumulates forever.
      */
     public void delete(@Nullable Integer containerId) {
@@ -188,7 +188,7 @@ public class ContentBlockService {
 
     /**
      * Rows as they are kept outside a container, each row with its lines between columns and each cell
-     * with what it says and who it is shown to.
+     * with what it holds and who it is shown to.
      *
      * @param rows the rows as an author sent them
      * @return the same rows as the records pages are read into, without ids

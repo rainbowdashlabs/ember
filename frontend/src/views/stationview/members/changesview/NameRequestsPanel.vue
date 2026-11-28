@@ -20,7 +20,7 @@ import {describeFailure, type Failure} from '@/util/failure'
  * or denies them. Shows nothing while nobody waits.
  *
  * <p>A request decided meanwhile at another station of the same member is gone from the list after
- * the refusal that tells so, since the list is read again then.
+ * the refusal that reports it, since the list is read again then.
  */
 const {t} = useI18n()
 

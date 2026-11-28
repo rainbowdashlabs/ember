@@ -43,8 +43,8 @@ public class AttendanceAudienceService {
     }
 
     /**
-     * Whom a sheet expects: what it was told when it was started, or its template's user types and
-     * groups where it was told nothing.
+     * Whom a sheet expects: what it was set up with when it was started, or its template's user types and
+     * groups where it was given nothing.
      *
      * @param session the sheet
      * @return the audience that decides who stands on it

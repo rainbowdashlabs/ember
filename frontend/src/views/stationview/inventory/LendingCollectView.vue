@@ -106,7 +106,7 @@ const sendFailure = ref<Failure | null>(null)
  *
  * <p>One request per station means a failure halfway leaves the stations before it already asked. The
  * server answering the fourth request knows nothing of the three that went through, so the count is
- * kept here and said out loud: a reader who presses send again otherwise asks three stations twice for
+ * kept here and shown: a reader who presses send again otherwise asks three stations twice for
  * the same gear, and somebody at each of them has to work out which of the two to refuse.
  */
 async function send() {

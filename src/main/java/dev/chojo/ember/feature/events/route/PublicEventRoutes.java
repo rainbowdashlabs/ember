@@ -11,13 +11,15 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventDateCancellation;
-import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
+import dev.chojo.ember.feature.events.service.PublicCalendar;
+import dev.chojo.ember.feature.feed.render.CalendarFeeds;
+import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
@@ -30,16 +32,6 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import net.fortuna.ical4j.model.Calendar;
-import net.fortuna.ical4j.model.component.VEvent;
-import net.fortuna.ical4j.model.property.Categories;
-import net.fortuna.ical4j.model.property.Description;
-import net.fortuna.ical4j.model.property.ProdId;
-import net.fortuna.ical4j.model.property.Uid;
-import net.fortuna.ical4j.model.property.XProperty;
-import net.fortuna.ical4j.model.property.immutable.ImmutableCalScale;
-import net.fortuna.ical4j.model.property.immutable.ImmutableStatus;
-import net.fortuna.ical4j.model.property.immutable.ImmutableVersion;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -47,7 +39,6 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -61,6 +52,7 @@ public class PublicEventRoutes implements Routes {
     private final EventFieldService eventFieldService;
     private final OccurrenceCalendar occurrenceCalendar;
     private final StationService stationService;
+    private final IcalEventRenderer icalRenderer;
 
     @Inject
     public PublicEventRoutes(
@@ -68,12 +60,14 @@ public class PublicEventRoutes implements Routes {
             EventCategoryService categoryService,
             EventFieldService eventFieldService,
             OccurrenceCalendar occurrenceCalendar,
-            StationService stationService) {
+            StationService stationService,
+            IcalEventRenderer icalRenderer) {
         this.crudService = crudService;
         this.categoryService = categoryService;
         this.eventFieldService = eventFieldService;
         this.occurrenceCalendar = occurrenceCalendar;
         this.stationService = stationService;
+        this.icalRenderer = icalRenderer;
     }
 
     @Override
@@ -110,27 +104,9 @@ public class PublicEventRoutes implements Routes {
         var station = resolveStation(ctx);
         var categoryMap = categoryMap(station.id());
         var publicEvents = crudService.findByStation(station.id()).stream()
-                .filter(e -> isEventPublic(e, categoryMap))
+                .filter(e -> PublicCalendar.shows(e, categoryMap))
                 .toList();
         return new PublicEventData(station, categoryMap, publicEvents);
-    }
-
-    /**
-     * Whether an event belongs on the station's public page, which anybody on the internet can read.
-     *
-     * <p>An event that not even every member may know about never does, whatever the flag says. The
-     * flag is a tri-state whose middle value inherits from the category, so without this an event
-     * dropped into a public category would be published by a setting nobody made for it.
-     */
-    private boolean isEventPublic(StationEvent event, Map<Integer, EventCategory> categoryMap) {
-        if (event.restricted()) return false;
-        Boolean isPublic = event.isPublic();
-        if (isPublic != null) return isPublic;
-        if (event.categoryId() != null) {
-            var cat = categoryMap.get(event.categoryId());
-            return cat != null && cat.isPublic();
-        }
-        return false;
     }
 
     @OpenApi(
@@ -186,7 +162,7 @@ public class PublicEventRoutes implements Routes {
 
         var categoryMap = categoryMap(station.id());
 
-        if (!isEventPublic(event, categoryMap)) throw EventRefusal.PUBLIC_EVENT_NOT_HERE.raise();
+        if (!PublicCalendar.shows(event, categoryMap)) throw EventRefusal.PUBLIC_EVENT_NOT_HERE.raise();
 
         var fields = eventFieldService
                 .findByEvent(id, occurrenceCalendar.dateInView(event).orElse(null))
@@ -243,48 +219,17 @@ public class PublicEventRoutes implements Routes {
     private void icalFeed(Context ctx) {
         var data = loadPublicEvents(ctx);
 
-        var calendar = new Calendar();
-        calendar.add(new ProdId("-//Ember//Public Calendar//DE"));
-        calendar.add(ImmutableVersion.VERSION_2_0);
-        calendar.add(ImmutableCalScale.GREGORIAN);
-        calendar.add(new XProperty("X-WR-CALNAME", data.station().name()));
-
         var stationCalendar = occurrenceCalendar.forStation(data.station().id());
-        EventRecurrence.timeZoneOf(stationCalendar.zone()).ifPresent(calendar::add);
+        var calendar = CalendarFeeds.frame("Public Calendar", data.station().name(), stationCalendar.zone());
+        var renderContext = IcalEventRenderer.Context.withoutMember(
+                data.station(), "", "", false, data.categoryMap(), stationCalendar, IcalEventRenderer.Reader.PUBLIC);
         for (var event : data.publicEvents()) {
-            buildVEvent(event, data.categoryMap(), stationCalendar).ifPresent(calendar::add);
-            for (var cancellation : stationCalendar.cancelledDates(event)) {
-                EventRecurrence.cancelledDateOf(event, cancellation.eventDate(), event.name(), stationCalendar)
-                        .ifPresent(calendar::add);
-            }
+            icalRenderer.render(event, renderContext).forEach(calendar::add);
         }
 
         ctx.contentType("text/calendar; charset=utf-8");
         ctx.header("Content-Disposition", "attachment; filename=\"calendar.ics\"");
         ctx.result(calendar.toString());
-    }
-
-    private Optional<VEvent> buildVEvent(
-            StationEvent event, Map<Integer, EventCategory> categoryMap, StationCalendar stationCalendar) {
-        var entry = EventRecurrence.entryOf(event, event.name(), stationCalendar);
-        if (entry.isEmpty()) return Optional.empty();
-        var vevent = entry.get();
-        vevent.add(new Uid(EventRecurrence.uidOf(event)));
-        if (stationCalendar.cancelledAltogether(event)) {
-            vevent.add(ImmutableStatus.VEVENT_CANCELLED);
-        }
-
-        String description = event.description();
-        if (description != null && !description.isBlank()) {
-            vevent.add(new Description(description));
-        }
-        if (event.categoryId() != null) {
-            var cat = categoryMap.get(event.categoryId());
-            if (cat != null) {
-                vevent.add(new Categories(cat.name()));
-            }
-        }
-        return Optional.of(vevent);
     }
 
     /** The dates of a series from today on that were called off one by one, earliest first. */

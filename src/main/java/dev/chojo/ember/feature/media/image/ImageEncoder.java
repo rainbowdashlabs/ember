@@ -19,7 +19,7 @@ import java.io.IOException;
  * <p>PNG and JPEG go through Thumbnailator, JPEG at quality 0.85. WebP goes through the {@code cwebp}
  * binary at quality 88, high enough that the small text of a drawn page stays sharp, because no Java
  * image writer for it is on the classpath; where the host has no
- * {@code cwebp}, WebP is not written at all and {@link #writes} says so. A GIF is never written: a GIF
+ * {@code cwebp}, WebP is not written at all and {@link #writes} shows this. A GIF is never written: a GIF
  * is kept as it came, since writing one again keeps only its first frame.
  */
 @Singleton

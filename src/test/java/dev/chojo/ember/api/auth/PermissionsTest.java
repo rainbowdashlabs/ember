@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api.auth;
 
+import dev.chojo.ember.feature.station.entity.StationModule;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumMap;
@@ -41,6 +42,29 @@ class PermissionsTest {
         assertTrue(expanded.contains(StationPermission.PROTOCOL_MANAGER));
         assertTrue(expanded.contains(StationPermission.PROTOCOL_TESTER));
         assertTrue(expanded.contains(StationPermission.STATION_FEDERATION));
+    }
+
+    /**
+     * Movements and inventory checks create the pieces they need in their own steps, so neither lets
+     * its holder create the association's pieces anywhere else. Creating items still does.
+     */
+    @Test
+    void movementsAndChecksDoNotCreateExternalPieces() {
+        assertFalse(StationPermission.INVENTORY_MOVEMENTS.includes(StationPermission.INVENTORY_CREATE_EXTERNAL));
+        assertFalse(StationPermission.INVENTORY_CHECK.includes(StationPermission.INVENTORY_CREATE_EXTERNAL));
+        assertTrue(StationPermission.INVENTORY_CREATE.includes(StationPermission.INVENTORY_CREATE_EXTERNAL));
+        assertTrue(StationPermission.INVENTORY_MANAGER.includes(StationPermission.INVENTORY_CREATE_EXTERNAL));
+    }
+
+    @Test
+    void calendarFeedsComeWithEventManagementAndGoWithTheEventsModule() {
+        assertTrue(StationPermission.expand(EnumSet.of(StationPermission.EVENT_MANAGER))
+                .contains(StationPermission.EVENT_CALENDAR_FEEDS));
+        assertTrue(StationPermission.expand(EnumSet.of(StationPermission.STATION_ADMINISTRATOR))
+                .contains(StationPermission.EVENT_CALENDAR_FEEDS));
+        assertFalse(StationPermission.expand(
+                        EnumSet.of(StationPermission.STATION_ADMINISTRATOR), EnumSet.of(StationModule.EVENTS))
+                .contains(StationPermission.EVENT_CALENDAR_FEEDS));
     }
 
     @Test
@@ -83,7 +107,7 @@ class PermissionsTest {
     /**
      * Every permission has to answer with all of its children, whoever asks and whenever they ask.
      * The answer used to be gathered into the very set that was handed out, so anybody asking
-     * during that moment was told a manager holds two of their seven rights, and the session built
+     * during that moment saw that a manager holds two of their seven rights, and the session built
      * from it looked exactly like rights that had been taken away.
      */
     @Test
@@ -198,7 +222,7 @@ class PermissionsTest {
      *
      * <p>Creating and the manager role itself were withheld once, on the reasoning that the manager role
      * carries lending. It also carries defining a kind of gear and throwing one away, so the association
-     * could do neither and the screen that says it defines its gear opened with a refusal. Nobody else
+     * could do neither and the screen that shows it defines its gear opened with a refusal. Nobody else
      * stands on this station, so there is nothing here to keep from its owner.
      */
     @Test

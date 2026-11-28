@@ -139,7 +139,7 @@ const {
 /**
  * Every name on the sheet that is still open, in the order the sheet reads.
  *
- * <p>A member the template expects who has no entry yet belongs here as much as one whose entry says
+ * <p>A member the template expects who has no entry yet belongs here as much as one whose entry shows
  * nothing: both are names nobody has decided about, and leaving the first kind out is what emptied
  * the walk and took its button off the screen.
  */
@@ -233,7 +233,7 @@ async function loadEventContext(eventId: number | null) {
  * Doing something to the sheet and then reading it back, which are two things and not one.
  *
  * <p>Every one of these wrote a mark and then fetched the sheet again inside the same attempt, so a
- * mark that really was recorded, followed by a read that failed, said the mark had failed. On an
+ * mark that really was recorded, followed by a read that failed, showed that the mark had failed. On an
  * attendance sheet that is the costly direction to get wrong: the reader marks the same person a
  * second time, or worse, writes down on paper that somebody was absent.
  *

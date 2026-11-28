@@ -32,7 +32,7 @@ const props = defineProps<{
   item: DatedEvent
   /**
    * Whether the row is on the past tab, which decides which of the two dates it is about. Every row
-   * carries both, so the tab and not the data says which one the reader came for.
+   * carries both, so the tab and not the data decides which one the reader came for.
    */
   isPast: boolean
   /** What kind of appointment this is, absent where it was put in no category. */
@@ -55,8 +55,8 @@ const eventRoutes = useEventRoutes()
 const recurring = computed(() => isRecurringEvent(props.item.event.eventType))
 
 /**
- * What the row says about when the appointment happens: a series says which day of the week it
- * takes, a one-off says its date, and both say the hours. A one-off running over several days says
+ * What the row shows about when the appointment happens: a series shows which day of the week it
+ * takes, a one-off shows its date, and both show the hours. A one-off running over several days shows
  * both of its ends instead, each with its clock.
  */
 const when = computed(() => {
@@ -75,8 +75,8 @@ const typeLabel = computed(() => t(eventTypeLabelKey(props.item.event.eventType)
 const shownDate = computed(() => props.isPast ? props.item.previousDate : props.item.nextDate)
 
 /**
- * What a series says about its own dates. A one-off already writes its date where the hours are, so
- * saying it twice would only add noise.
+ * What a series shows about its own dates. A one-off already writes its date where the hours are, so
+ * writing it twice would only add noise.
  */
 const dateNote = computed(() => {
   if (!recurring.value || !shownDate.value) return ''

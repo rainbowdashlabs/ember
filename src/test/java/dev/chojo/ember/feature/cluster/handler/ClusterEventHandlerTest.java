@@ -156,7 +156,7 @@ class ClusterEventHandlerTest extends RepositoryTestBase {
                         eq(Delivery.EVERY_TIME));
     }
 
-    /** A quota handed back to the instance carries no figure, and still has to say something. */
+    /** A quota handed back to the instance carries no figure, and still has to show something. */
     @Test
     void aChangedQuotaReachesWhoeverRunsTheStation() {
         reset(notifier);

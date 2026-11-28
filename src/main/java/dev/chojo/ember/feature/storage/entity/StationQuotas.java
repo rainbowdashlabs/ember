@@ -8,9 +8,9 @@ package dev.chojo.ember.feature.storage.entity;
 /**
  * What one station may keep, resolved: every dimension with its number and where the number came from.
  *
- * <p>Resolved rather than raw, because three parties can have a say and the answer to "how much may this
+ * <p>Resolved rather than raw, because three parties can weigh in and the answer to "how much may this
  * station keep" is one number rather than three nullable ones. The origin travels with it so a screen can
- * tell a granted number from an inherited one, which is the difference somebody looking at it needs.
+ * distinguish a granted number from an inherited one, which is the difference somebody looking at it needs.
  *
  * @param stationId the station
  * @param authority who pays for its storage, and therefore what stands behind an unset dimension

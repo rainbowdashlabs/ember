@@ -352,7 +352,7 @@ class SealVerificationRoutesTest extends RepositoryTestBase {
     /**
      * The answer to an upload the server refuses while it is still being sent. The server answers and
      * closes the connection with the rest of the body on its way; now and then the client meets the
-     * closed connection before it has read the answer and reports one without an answer. That says
+     * closed connection before it has read the answer and reports one without an answer. That implies
      * nothing about the server, so the upload is sent again, at most three times, and every answer that
      * does arrive is checked as it is.
      */

@@ -11,6 +11,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import ItemFact from './ItemFact.vue'
 import {
@@ -32,8 +33,10 @@ const props = withDefaults(
       assignedMemberIdentity: PersonIdentity | null
       /** What kind of thing this piece is, or null when nobody has said, which is the ordinary state. */
       artName?: string | null
+      /** The tags the piece carries, empty for most pieces. */
+      tagNames?: string[]
     }>(),
-    {artName: null},
+    {artName: null, tagNames: () => []},
 )
 
 const {t} = useI18n()
@@ -48,8 +51,8 @@ const custodyLabel = computed(() =>
     props.item.custody ? t(`itemDetail.custodyValues.${props.item.custody}`) : '-')
 
 /**
- * Names the owner. A Träger reads the same whether or not it uses Ember, because telling the two apart
- * says nothing the reader can act on.
+ * Names the owner. A Träger reads the same whether or not it uses Ember, because distinguishing the two
+ * shows nothing the reader can act on.
  */
 const ownerLabel = computed(() =>
   props.item.ownerKind === ItemOwner.CLUSTER ? t('itemDetail.ownerCluster') : t('itemDetail.ownerStation'))
@@ -62,6 +65,11 @@ const ownerLabel = computed(() =>
     </ItemFact>
     <ItemFact v-if="props.artName" :label="t('inventory.art.field')">
       <span>{{ props.artName }}</span>
+    </ItemFact>
+    <ItemFact v-if="props.tagNames.length > 0" :label="t('inventory.tag.field')">
+      <span class="flex flex-wrap gap-1">
+        <SecondaryBadge v-for="name in props.tagNames" :key="name">{{ name }}</SecondaryBadge>
+      </span>
     </ItemFact>
     <ItemFact v-if="props.sizes.length > 0" :label="t('itemDetail.size')">
       <span>{{ sizeLabel(props.item.sizeId) }}</span>

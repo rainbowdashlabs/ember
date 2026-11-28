@@ -92,7 +92,7 @@ public record QuestionLimits(
      * Reads the stored column.
      *
      * @param json the column
-     * @return the limits, none where the column says nothing readable
+     * @return the limits, none where the column holds nothing readable
      */
     public static QuestionLimits parse(String json) {
         return QuestionConfigs.parse(json, QuestionLimits.class, NONE);

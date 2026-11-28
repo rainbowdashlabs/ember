@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:6a842cf88d37c773e11644619d734841754b44bda6772fe650b540a4cc5932dc",
-  "generatedAt": "2026-11-25T00:07:29Z",
+  "schemaHash": "sha256:c43ba525f0c54575d9b7c47ec6acb8b589a2a1274ca4288eb0c62c15a13a2fd3",
+  "generatedAt": "2026-11-28T12:33:11Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -991,7 +991,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "How the request came about: IMPORT when a station import found the account by its address, INVITE when a member manager of a station invited that address, ASSOCIATION_INVITE when an association administrator added that address to the association."
+          "description": "How the request came about: IMPORT when a station import found the account by its address, INVITE when a member manager of a station invited that address, NAME_INVITE when a member manager of a station found the account by its name, ASSOCIATION_INVITE when an association administrator added that address to the association."
         },
         {
           "name": "created_at",
@@ -1142,7 +1142,7 @@
     "account_preference": {
       "feature": "account",
       "scope": "USER",
-      "tableHash": "sha256:ee9b99a7a4ea99acd8f760db24b41f5c626b80a7118ba79e993bc8805f14423e",
+      "tableHash": "sha256:d43978f9b69e06c0e3ad3b9277ef386118efc11795d343e250c5169d93d8b9ab",
       "columns": [
         {
           "name": "account_id",
@@ -1157,6 +1157,13 @@
           "nullable": false,
           "verified": true,
           "description": "How the sidebar lists its sections: SECTIONS shows one section at a time, TREE shows every section at once and opens them in place."
+        },
+        {
+          "name": "findable_by_name",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether member managers of any station of this instance may find the account by its name to invite it. Without it, only managers who share a station or an association with the account find it."
         }
       ],
       "foreignKeys": [
@@ -1190,7 +1197,7 @@
           }
         ]
       },
-      "description": "How an account likes the app laid out, on every device it signs in on. A row exists once the account changed something; an account without one sees the defaults."
+      "description": "An account's own choices that follow it to every device: how the app is laid out and whether it can be found by name. A row exists once the account changed something; an account without one has the defaults."
     },
     "account_session": {
       "feature": "account",
@@ -9783,7 +9790,7 @@
     "equipment_procurement": {
       "feature": "inventory",
       "scope": "STATION",
-      "tableHash": "sha256:b1d2378db18f4b89dbec071d27185cac4a6310dc6d77e6c8f2713b449d8f9f51",
+      "tableHash": "sha256:9ace3155af7eee7ecbb286c320fb98338290a55249f6ae44dd2bdbef49a2b00f",
       "columns": [
         {
           "name": "id",
@@ -9847,6 +9854,13 @@
           "nullable": true,
           "verified": true,
           "description": "The swap waiting for this order to bring its replacement, while it stands on the step that names it. NULL for an order of its own; cleared when the swap closes, moves to another step or chain, or has its arrival named before the order arrives. At most one open order per swap."
+        },
+        {
+          "name": "owner_kind",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Who owns the piece the procurement brings, for a mixed inventory only: STATION for the station, CLUSTER for the association above it. Null for an inventory whose type already settles the owner, and for orders placed before the choice existed."
         }
       ],
       "foreignKeys": [
@@ -17496,7 +17510,7 @@
     "inventory": {
       "feature": "inventory",
       "scope": "STATION",
-      "tableHash": "sha256:4544d129f89487cf54caa6dafccad4373d777537e1e9b109b266401b6e98574b",
+      "tableHash": "sha256:3ec6c00bdae0cbc8247c00ab0f74bf5337c445924e79f2cf83ffc65b372aded6",
       "columns": [
         {
           "name": "id",
@@ -17560,6 +17574,13 @@
           "nullable": true,
           "verified": true,
           "description": "The colour that picture is drawn in, as #rrggbb, or null for the muted neutral. The colour sits on the glyph and never behind text, so it is never the thing a word has to be read against."
+        },
+        {
+          "name": "picture_key",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Storage key of the inventory's picture in the inventory pictures category, or NULL for none. Every upload gets a new key, so a cached old picture is never served for a new one."
         }
       ],
       "foreignKeys": [
@@ -17587,7 +17608,7 @@
       "description": "An inventory collection within a station (e.g. uniforms, tools)."
     },
     "inventory_art": {
-      "tableHash": "sha256:7444b75bbed51f1431557426e6e5c16ca241a76db4e9e8a752a241f95bd661da",
+      "tableHash": "sha256:9402ee7f60d9525f4753d61118f2ae0ac4dd78ebf300ee637dff570eaaf9eb71",
       "columns": [
         {
           "name": "id",
@@ -17644,6 +17665,13 @@
           "nullable": true,
           "verified": true,
           "description": "The colour that picture is drawn in, as #rrggbb, or null to fall back to the inventory."
+        },
+        {
+          "name": "picture_key",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Storage key of the kind's picture in the inventory pictures category, or NULL for none. A piece of the kind shows this picture before its inventory's. Every upload gets a new key."
         }
       ],
       "foreignKeys": [
@@ -30969,6 +30997,155 @@
       },
       "description": "Applications to create a new station (admin approval workflow)."
     },
+    "station_calendar_feed": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:923e4c9321309f07d251952f524410f6cea9320f65bfb5dbe01366edccb082b8",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Identifies the feed."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the station whose appointments the feed shows."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The feed's name, shown in the station's list and as the calendar name."
+        },
+        {
+          "name": "token",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Unique access token in the feed address (32-byte SecureRandom, URL-safe Base64). Renewing it ends the old address."
+        },
+        {
+          "name": "level",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Up to which visibility the feed shows appointments: PUBLIC as the public calendar, MEMBERS every unrestricted appointment, ALL also the restricted ones."
+        },
+        {
+          "name": "created_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "References the member who created the feed, NULL once that member is gone."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the feed was created."
+        },
+        {
+          "name": "polled_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When a calendar last fetched the feed, NULL while nothing has."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "created_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "The address token is a secret of this installation; a transferred feed would clone a working address, so the receiving station creates its own feeds"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "created_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "created_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the feed for the station, who created it unlinked"
+          }
+        ]
+      },
+      "description": "A calendar subscription of the station for a shared calendar, such as a screen in the station or the calendar of the command staff. It belongs to no member, carries no sign-up state and shows every appointment up to its level."
+    },
+    "station_calendar_feed_hidden_category": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:cb3230b9a4207ea1aa86a3e6ccb3642cfc0089f6ab939994444e127d918abec2",
+      "columns": [
+        {
+          "name": "feed_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the station calendar feed."
+        },
+        {
+          "name": "category_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the event category the feed leaves out."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "category_id",
+          "refTable": "event_category",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "feed_id",
+          "refTable": "station_calendar_feed",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Follows the station calendar feed, which is not transferred"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Which categories a station feed leaves out, no personal data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Which categories a station feed leaves out, no personal data"
+      },
+      "description": "The categories a station calendar feed leaves out. Appointments of every other category and those without a category stay in the feed."
+    },
     "station_disabled_module": {
       "feature": "station",
       "scope": "STATION",
@@ -33999,6 +34176,65 @@
       },
       "description": "Per-StationUserType 2FA enforcement. Role-based mandate is derived at runtime, not stored here."
     },
+    "user_feed_hidden_category": {
+      "feature": "members",
+      "scope": "USER",
+      "tableHash": "sha256:9c646483c9d57ccb32fa4279c47d7465234f14d961ee6da022a43bab77791837",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the station member whose personal feed leaves the category out."
+        },
+        {
+          "name": "category_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the event category the feed leaves out."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "category_id",
+          "refTable": "event_category",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Follows the member's personal feed token, which is not transferred"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          }
+        ]
+      },
+      "description": "The categories a member's personal calendar feed leaves out. Keyed by member rather than by token, so renewing the address keeps the choice. Appointments the member or a member in their care signed up for stay in the feed whatever their category."
+    },
     "user_feed_token": {
       "feature": "members",
       "scope": "USER",
@@ -35162,6 +35398,72 @@
         ]
       },
       "description": "Invite codes for joining a waiting list."
+    },
+    "waiting_list_seen": {
+      "feature": "waitinglist",
+      "scope": "USER",
+      "tableHash": "sha256:4271dbf744be4d5f321e5ca47c14e0fafd43ee9d6d0700f0cefb17a2974797cc",
+      "columns": [
+        {
+          "name": "list_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the waiting list."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the station member who looked at the list."
+        },
+        {
+          "name": "seen_up_to",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The highest entry id the member was shown on the list. Entries with a higher id count as new for them. An id rather than a time, because the creation time of an entry can be set back by hand."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "list_id",
+          "refTable": "waiting_list",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A member's reading position on the sidebar; opening the list sets it again"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          }
+        ]
+      },
+      "description": "How far a member has looked at a waiting list. The sidebar counts the waiting entries the member has not been shown yet."
     },
     "waitlist_verification_token": {
       "feature": "waitinglist",

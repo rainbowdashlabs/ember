@@ -67,7 +67,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
     private static final Instant ARRIVED = Instant.parse("2026-09-10T08:15:00Z");
 
     /** The whole store, hidden documents included. */
-    private static final DocumentFilter EVERYTHING = new DocumentFilter(List.of(), null, true, false, false);
+    private static final DocumentFilter EVERYTHING = new DocumentFilter(List.of(), null, true, false, false, false);
 
     @BeforeAll
     static void setup() {
@@ -183,7 +183,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
 
     /**
      * Filing under nobody is the ordinary outcome of this feature, not a failure: the mail comes from the
-     * office and says nothing about whom it concerns.
+     * office and shows nothing about whom it concerns.
      */
     @Test
     @Order(1)
@@ -210,7 +210,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A document with no uploader would show an empty one and say nothing, so where it came from is
+     * A document with no uploader would show an empty one and give no hint, so where it came from is
      * written onto the document itself and outlives the log.
      */
     @Test
@@ -297,7 +297,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
         assertEquals(MailImportOutcome.TOO_SMALL, outcome);
     }
 
-    /** A part refused before it was fetched has no bytes to judge, and says so rather than crashing. */
+    /** A part refused before it was fetched has no bytes to judge, and shows that rather than crashing. */
     @Test
     @Order(8)
     void somethingNeverFetchedIsRecordedAsTooLarge() {
@@ -345,7 +345,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
 
         assertEquals(MailImportOutcome.IMPORTED, outcome);
         var filed = memberDocumentRepo.findByStation(
-                station.id(), new DocumentFilter(List.of(memberId), null, true, false, false), "simple", 20, 0);
+                station.id(), new DocumentFilter(List.of(memberId), null, true, false, false, false), "simple", 20, 0);
         assertTrue(filed.stream().anyMatch(document -> "Attest Anna Weber".equals(document.title())));
     }
 

@@ -103,12 +103,12 @@ watch(sheetFieldIds, ids => fieldDefaults.keepOnly(ids))
 
 /**
  * What the editor itself turned down, as opposed to what the server did. An end before its own
- * start is the reader's own typing, so it is said plainly and never offered as a bug to report.
+ * start is the reader's own typing, so it is shown plainly and never offered as a bug to report.
  */
 const refused = ref('')
 const registrationFields = ref<RegistrationFieldDefinition[]>([])
 
-/** What the share card says about the applied template's share it could not take over as it was. */
+/** What the share card shows about the applied template's share it could not take over as it was. */
 const federationNote = ref('')
 
 /**
@@ -119,9 +119,9 @@ const templateFiles = ref<EventAttachment[]>([])
 const {message: templateAppliedMessage, flash: flashTemplateApplied} = useFlashMessage(3000)
 
 /**
- * What the appointment was called when the editor opened, which is what the head of the page says
+ * What the appointment was called when the editor opened, which is what the head of the page shows
  * while it is being changed. The field itself is not read, so the tab does not rewrite itself on
- * every keystroke, and a new appointment has no name to say.
+ * every keystroke, and a new appointment has no name to show.
  */
 const openedName = ref('')
 
@@ -245,11 +245,11 @@ const joinsGroup = computed(() =>
 /**
  * Saves the appointment and everything that hangs off it.
  *
- * <p>The appointment itself goes first, because the parts after it read what it now says: the
+ * <p>The appointment itself goes first, because the parts after it read what it now holds: the
  * attendance sheet the field defaults and the ties of its questions are checked against. A change of
- * every date tells the people it concerns with that first save. A change of one date, or of one date
+ * every date notifies the people it concerns with that first save. A change of one date, or of one date
  * and the ones after it, is saved into a new appointment, which the parts are then saved against, and
- * tells once all of them have landed. A new appointment is created once and changed by a save tried
+ * notifies once all of them have landed. A new appointment is created once and changed by a save tried
  * again; the files added before it existed go on last, behind the template's, which the server hangs
  * on it with the creation.
  *
@@ -298,7 +298,7 @@ async function writeEvent(choice: SaveChoice | null): Promise<number> {
 
 /**
  * Sends the notice of an appointment a change was saved into. A notice that does not go through is
- * not worth keeping the editor open for: a moved start is told on its own a few minutes later.
+ * not worth keeping the editor open for: a moved start is notified on its own a few minutes later.
  */
 async function tellLater(id: number, notice: ChangeNotice) {
   try {
@@ -324,7 +324,7 @@ const changedParts = computed<EventChangePart[]>(() => {
   return parts
 })
 
-/** The parts a notice can name, as they stood when the editor opened, to tell what changed since. */
+/** The parts a notice can name, as they stood when the editor opened, to find what changed since. */
 const opened = ref<ReturnType<typeof snapshotOf> | null>(null)
 const attachmentsChanged = ref(false)
 const openedRecurring = ref(false)
@@ -343,7 +343,7 @@ const openedDate = computed(() => typeof route.query.date === 'string' ? route.q
 
 const saveChoice = useSaveChoice(() => eventId.value, () => form.buildPayload(), () => changedParts.value, t)
 
-/** Whether the appointment has a date from today on, which is when saving asks what to tell. */
+/** Whether the appointment has a date from today on, which is when saving asks what to announce. */
 async function hasDatesAhead(id: number): Promise<boolean> {
   const next = await events.getNextDate(id).catch(() => null)
   return next != null && next >= todayIsoDate()

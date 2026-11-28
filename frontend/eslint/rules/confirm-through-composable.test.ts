@@ -8,7 +8,7 @@ import {vueRuleTester} from './rule-tester'
 
 /**
  * A confirmation has to be opened through the composables that let shift skip it, unless it asks every
- * time on purpose and says so.
+ * time on purpose and marks it so.
  *
  * @vitest-environment node
  */

@@ -100,10 +100,10 @@ const receiptSkippable = computed(() =>
         step.actor === StepActor.MEMBER && step.custodyAfter === ItemCustody.WITH_MEMBER))
 
 /**
- * What is worth saying about a chain besides its name.
+ * What is worth showing about a chain besides its name.
  *
  * <p>The purpose is one of them only where the combination is not shown, since that line already
- * carries it and a card need not say the same thing twice.
+ * carries it and a card need not show the same thing twice.
  */
 const marks = computed(() =>
     [

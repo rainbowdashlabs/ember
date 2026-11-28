@@ -31,13 +31,13 @@ import type {MemberLike} from '@/components/input/select/memberOption'
 type BoundMember = MemberLike & {formerAt?: string | null}
 
 /**
- * A document, open: what it says, whom it belongs to, and the words it is filed under.
+ * A document, open: what it contains, whom it belongs to, and the words it is filed under.
  *
  * <p>Whom it concerns is decided here rather than at the upload, because that is usually noticed
  * while reading it, and it is a set rather than a list to add to: somebody put on it by mistake
  * has to come off again. A sealed document is locked: it offers neither removing nor choosing its
  * members, and lists its sealed versions instead, each to save on its own. Where signatures were asked
- * for, it says how they stand, and a reader who looks after them sees each field and settles it there.
+ * for, it shows how they stand, and a reader who looks after them sees each field and settles it there.
  */
 const modelValue = defineModel<boolean>({required: true})
 
@@ -61,7 +61,7 @@ const props = withDefaults(defineProps<{
   focusRecord?: number | null
   /** Whether the reader looks after the signatures asked for on the document. */
   manageSignatures?: boolean
-  /** Told after the signatures on the document changed, so the list behind can show it. */
+  /** Called after the signatures on the document changed, so the list behind can show it. */
   onSignaturesChanged?: () => void
 }>(), {
   allMembers: undefined,

@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -64,7 +65,7 @@ public class AuthService {
      * first: rotate its password, or put a reachable address on the account. Either one is done
      * without proving anything a second time, so it is a short-lived credential and deliberately
      * does not follow the session length: how long somebody stays signed in on their own machine
-     * has nothing to say about how long that may lie around.
+     * has no bearing on how long that may lie around.
      */
     private static final int FORCED_STEP_MINUTES = 30;
 
@@ -210,11 +211,9 @@ public class AuthService {
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(accountId, TokenType.VERIFY_EMAIL);
             accountRepository.createToken(
-                    accountId,
-                    token,
-                    TokenType.VERIFY_EMAIL,
-                    Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
-            emailService.sendVerificationEmail(email, firstName, token, mailLocaleService.forAccount(accountId));
+                    accountId, token, TokenType.VERIFY_EMAIL, Instant.now().plus(verifyTokenValidity()));
+            emailService.sendVerificationEmail(
+                    email, firstName, token, verifyTokenValidity(), mailLocaleService.forAccount(accountId));
         }
 
         log.info("Account registered via self-registration: account {} ({})", accountId, email);
@@ -250,13 +249,11 @@ public class AuthService {
         accountRepository.deleteTokensByAccountAndType(accountId, TokenType.SET_PASSWORD);
         String token = generateToken();
         accountRepository.createToken(
-                accountId,
-                token,
-                TokenType.SET_PASSWORD,
-                Instant.now().plus(authConfig.setupTokenDays(), ChronoUnit.DAYS));
+                accountId, token, TokenType.SET_PASSWORD, Instant.now().plus(setupTokenValidity()));
         String locale = mailLocaleService.forAccount(accountId);
         for (var recipient : recipients) {
-            emailService.sendPasswordSetupEmail(recipient.email(), recipient.name(), token, locale);
+            emailService.sendPasswordSetupEmail(
+                    recipient.email(), recipient.name(), token, setupTokenValidity(), locale);
         }
         return true;
     }
@@ -429,7 +426,7 @@ public class AuthService {
      * @param outcome why the password was refused, or {@link SetPasswordOutcome#OK}
      * @param login   what follows the password: a session, or the second factor still to come. Null
      *                where the password was refused, and where it was accepted but the account
-     *                cannot be signed in yet, which leaves the sign-in form to say why.
+     *                cannot be signed in yet, which leaves the sign-in form to show why.
      */
     public record SetPasswordResult(
             SetPasswordOutcome outcome, @Nullable LoginResult login) {}
@@ -449,7 +446,7 @@ public class AuthService {
         /** Token does not exist, has the wrong type, or its account is gone. */
         TOKEN_INVALID,
         /**
-         * The link was real and its time is up. Told apart from an unknown one because the two need
+         * The link was real and its time is up. Distinguished from an unknown one because the two need
          * different words: an expired invitation is somebody's to reissue, an unknown link is a
          * typing mistake or a link that has already been used.
          */
@@ -537,7 +534,7 @@ public class AuthService {
      * Sets the password of an account on behalf of somebody entitled to do so, without the detour
      * over an invitation link. Whether they are entitled is the caller's to establish; the rotation
      * itself is held to the same standard as the account holder's own, and everybody the account is
-     * written to is told, which for a member without an address of their own is their guardians.
+     * written to is notified, which for a member without an address of their own is their guardians.
      * On a passwordless instance an account without a password is refused one here, which is what
      * keeps the guardian's screen offering the QR code instead.
      *
@@ -579,7 +576,7 @@ public class AuthService {
      * right to do so the caller has established.
      *
      * <p>Like any password set on somebody's behalf it ends every session, link and trusted device
-     * of the account, and tells everybody the account is written to. Unlike one, it is not held to
+     * of the account, and notifies everybody the account is written to. Unlike one, it is not held to
      * the breach corpus: it was drawn at random a moment ago and is replaced at the first sign-in,
      * which is where the password the person chooses is held to it. The hash, the demand to choose a
      * new one and the deadline are written in one statement, so there is no moment in which the
@@ -639,10 +636,11 @@ public class AuthService {
                 account.id(),
                 token,
                 TokenType.RESET_PASSWORD,
-                Instant.now().plus(authConfig.resetTokenHours(), ChronoUnit.HOURS));
+                Instant.now().plus(Duration.ofHours(authConfig.resetTokenHours())));
         String locale = mailLocaleService.forAccount(account.id());
         for (var recipient : recipients) {
-            emailService.sendPasswordResetEmail(recipient.email(), recipient.name(), token, locale);
+            emailService.sendPasswordResetEmail(
+                    recipient.email(), recipient.name(), token, Duration.ofHours(authConfig.resetTokenHours()), locale);
         }
         log.info("Password reset requested for account {} ({})", account.id(), identifier);
     }
@@ -678,9 +676,13 @@ public class AuthService {
                 accountId,
                 token,
                 TokenType.RESET_PASSWORD,
-                Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
+                Instant.now().plus(Duration.ofHours(authConfig.passwordTokenHours())));
         emailService.sendPasswordResetEmail(
-                account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id()));
+                account.email(),
+                account.firstName(),
+                token,
+                Duration.ofHours(authConfig.passwordTokenHours()),
+                mailLocaleService.forAccount(account.id()));
         return true;
     }
 
@@ -715,12 +717,13 @@ public class AuthService {
         String token = generateToken();
         accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.VERIFY_EMAIL);
         accountRepository.createToken(
-                account.id(),
-                token,
-                TokenType.VERIFY_EMAIL,
-                Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
+                account.id(), token, TokenType.VERIFY_EMAIL, Instant.now().plus(verifyTokenValidity()));
         emailService.sendVerificationEmail(
-                account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id()));
+                account.email(),
+                account.firstName(),
+                token,
+                verifyTokenValidity(),
+                mailLocaleService.forAccount(account.id()));
         log.info("Verification mail resent for account {}", account.id());
         return true;
     }
@@ -782,11 +785,11 @@ public class AuthService {
     }
 
     /**
-     * The same, with the box from the login screen that says this machine may keep the session for
+     * The same, with the box from the login screen that lets this machine keep the session for
      * the long duration rather than the short one.
      *
      * <p>A password sign-in that is switched off is only reported after the password proved out:
-     * answering earlier would tell a guesser which accounts exist. The breach check runs
+     * answering earlier would show a guesser which accounts exist. The breach check runs
      * asynchronously and fails open.
      */
     public LoginResult login(
@@ -882,14 +885,14 @@ public class AuthService {
      * who proved anything was at the other device: this one meets step-up like any other session the
      * moment it wants something sensitive, and may answer that by asking the same device again.
      *
-     * <p>It also does not complete a half-finished account. Signing in from a borrowed laptop says
+     * <p>It also does not complete a half-finished account. Signing in from a borrowed laptop shows
      * nothing about whether somebody finished their setup, and the ordinary sign-in paths are where
      * that is decided.
      *
      * <p>The refusals are the ones every sign-in makes, and an account owing a password change is
      * refused outright rather than handed the token for it. An ordinary sign-in earns that token by
      * typing the old password; this one was vouched for from across the room, and the token would let
-     * the borrowed machine set the account's password. The approval says the account holder is
+     * the borrowed machine set the account's password. The approval shows the account holder is
      * present, not that the account is in a state to be used.
      *
      * @param accountId whose session it becomes, which is not always who approved it
@@ -1204,7 +1207,7 @@ public class AuthService {
      * Rotates an account's password, having checked the new one against the policy and the old one
      * against the stored hash.
      *
-     * <p>Each way this can fail is named, because the caller has to say which one happened. Telling
+     * <p>Each way this can fail is named, because the caller has to report which one happened. Informing
      * somebody their current password is wrong when what the policy turned down was the password
      * they were trying to move to sends them to reset a password that was never the problem.
      *
@@ -1279,7 +1282,7 @@ public class AuthService {
 
         String requestId = UUID.randomUUID().toString();
         String metadata = requestId + "|" + newEmail;
-        Instant expiresAt = Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS);
+        Instant expiresAt = Instant.now().plus(verifyTokenValidity());
         String mailLocale = mailLocaleService.forAccount(accountId);
 
         String claimToken = generateToken();
@@ -1289,13 +1292,13 @@ public class AuthService {
             String releaseToken = generateToken();
             accountRepository.createToken(accountId, releaseToken, TokenType.EMAIL_CHANGE_RELEASE, metadata, expiresAt);
             emailService.sendEmailChangeReleaseRequest(
-                    account.email(), account.firstName(), newEmail, releaseToken, mailLocale);
+                    account.email(), account.firstName(), newEmail, releaseToken, verifyTokenValidity(), mailLocale);
         } else {
             log.info("Address change for account {} asks only the new address: the old one has no reader", accountId);
         }
 
         emailService.sendEmailChangeClaimRequest(
-                newEmail, account.firstName(), account.email(), claimToken, mailLocale);
+                newEmail, account.firstName(), account.email(), claimToken, verifyTokenValidity(), mailLocale);
         log.info("Email change requested for account {}: {} -> {}", accountId, account.email(), newEmail);
         return EmailChangeResult.WAITING;
     }
@@ -1567,7 +1570,7 @@ public class AuthService {
      *
      * @param trustedDevice whether the person signing in vouched for this machine, which is what
      *                      decides between the long session length and the short one. Deliberately
-     *                      separate from {@code deviceTrustId}: that one says the second factor may
+     *                      separate from {@code deviceTrustId}: that one records that the second factor may
      *                      be skipped here, and nobody ticking a box to stay signed in means to say
      *                      that as well.
      */
@@ -1666,5 +1669,13 @@ public class AuthService {
          * Both halves confirmed but the requested email is now taken by another account.
          */
         DUPLICATE
+    }
+
+    private Duration verifyTokenValidity() {
+        return Duration.ofHours(authConfig.verifyTokenHours());
+    }
+
+    private Duration setupTokenValidity() {
+        return Duration.ofDays(authConfig.setupTokenDays());
     }
 }

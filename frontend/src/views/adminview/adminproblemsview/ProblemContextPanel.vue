@@ -24,7 +24,7 @@ import {describeFailure, type Failure} from '@/util/failure'
  * <p>It is read when the problem is opened and again whenever another occurrence or the thread switch
  * is chosen; only the answer to the latest choice is shown, and a choice that fails shows no lines
  * rather than the ones of the choice before. An occurrence is chosen by its time, which stays put while
- * the problem keeps happening. Where nothing was kept, it says why rather than showing an empty box.
+ * the problem keeps happening. Where nothing was kept, it shows why rather than an empty box.
  */
 const props = defineProps<{
   problemId: number
@@ -58,7 +58,7 @@ async function load() {
 
 watch([at, allThreads], load, {immediate: true})
 
-/** When the occurrence the lines are around happened, as the last answer says. */
+/** When the occurrence the lines are around happened, as the last answer shows. */
 const shownAt = computed(() => context.value?.occurrences[context.value.occurrence]?.occurredAt ?? null)
 
 /** Lines were found, but the problem's own line is not among them: it was never written to the log. */

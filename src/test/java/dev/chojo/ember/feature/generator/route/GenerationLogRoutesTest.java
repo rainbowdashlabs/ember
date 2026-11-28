@@ -26,7 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * The list of generated documents over HTTP: it says who has which document, so it needs the right to
+ * The list of generated documents over HTTP: it shows who has which document, so it needs the right to
  * read the documents of members, and it lists the reader's own station.
  */
 class GenerationLogRoutesTest {

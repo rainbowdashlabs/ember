@@ -20,7 +20,7 @@ import {expirySettingsOf, ExpiryStates, readExpiry} from '@/util/expiry'
  */
 const props = defineProps<{
   value: unknown
-  /** The field's settings, which say how many days ahead a date counts as running out. */
+  /** The field's settings, which define how many days ahead a date counts as running out. */
   config?: FieldSettings | null
 }>()
 

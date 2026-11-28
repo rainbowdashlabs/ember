@@ -32,6 +32,8 @@ import static org.mockito.Mockito.when;
  */
 public final class TestUploads {
     private static final String BOUNDARY = "ember-test-boundary";
+    private static final String FILE_FIELD = "file";
+    private static final String FILE_TYPE = "application/octet-stream";
     private static final byte[] FORM_TAIL = ("\r\n--" + BOUNDARY + "--\r\n").getBytes(StandardCharsets.UTF_8);
     private static final byte[] PDF_HEADER = "%PDF-".getBytes(StandardCharsets.US_ASCII);
 
@@ -88,9 +90,25 @@ public final class TestUploads {
      * @return what turns a request into the upload
      */
     public static Consumer<Request.Builder> multipart(String fileName, byte[] data, Map<String, String> fields) {
-        byte[] body = multipartBody(fileName, data, fields);
+        byte[] body = multipartBody(FILE_FIELD, fileName, FILE_TYPE, data, fields);
         return builder -> builder.header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
                 .post(HttpRequest.BodyPublishers.ofByteArray(body));
+    }
+
+    /**
+     * One file put under a field name and a declared type of the route's choosing, as a picture form
+     * replaces a photo.
+     *
+     * @param field    the form field the file is sent in
+     * @param fileName the name it is uploaded under
+     * @param type     the type it is declared as
+     * @param data     its bytes
+     * @return what turns a request into the upload
+     */
+    public static Consumer<Request.Builder> multipartPut(String field, String fileName, String type, byte[] data) {
+        byte[] body = multipartBody(field, fileName, type, data, Map.of());
+        return builder -> builder.header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
+                .put(HttpRequest.BodyPublishers.ofByteArray(body));
     }
 
     /**
@@ -101,7 +119,7 @@ public final class TestUploads {
      * @return what turns a request into the upload
      */
     public static Consumer<Request.Builder> chunkedMultipart(String fileName, byte[] data) {
-        byte[] body = multipartBody(fileName, data, Map.of());
+        byte[] body = multipartBody(FILE_FIELD, fileName, FILE_TYPE, data, Map.of());
         return builder -> builder.header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
                 .post(HttpRequest.BodyPublishers.ofInputStream(() -> new ByteArrayInputStream(body)));
     }
@@ -115,7 +133,7 @@ public final class TestUploads {
      * @return what turns a request into the upload
      */
     public static Consumer<Request.Builder> streamedMultipart(String fileName, long size) {
-        long length = formHead(fileName, Map.of()).length + size + FORM_TAIL.length;
+        long length = formHead(FILE_FIELD, fileName, FILE_TYPE, Map.of()).length + size + FORM_TAIL.length;
         return builder -> builder.header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
                 .post(HttpRequest.BodyPublishers.fromPublisher(
                         HttpRequest.BodyPublishers.ofInputStream(() -> streamedBody(fileName, size)), length));
@@ -123,12 +141,12 @@ public final class TestUploads {
 
     /**
      * The same streamed upload, sent the way a careful client sends a large one: it announces its length and
-     * waits for the server to say go on ({@code Expect: 100-continue}) before sending the body.
+     * waits for the server to signal go on ({@code Expect: 100-continue}) before sending the body.
      *
      * <p>That is what makes a refusal by the announced length readable every time. A server that refuses
      * before reading answers at once and closes the connection; a client still busy sending the body may
      * see the connection drop before it reads the answer, and fail without one. A client that waits sends
-     * nothing until told to, so it is reading when the answer comes.
+     * nothing until signalled to, so it is reading when the answer comes.
      *
      * @param address  where the upload goes
      * @param fileName the name it is uploaded under
@@ -136,7 +154,7 @@ public final class TestUploads {
      * @return the request
      */
     public static HttpRequest announcedUpload(URI address, String fileName, long size) {
-        long length = formHead(fileName, Map.of()).length + size + FORM_TAIL.length;
+        long length = formHead(FILE_FIELD, fileName, FILE_TYPE, Map.of()).length + size + FORM_TAIL.length;
         return HttpRequest.newBuilder(address)
                 .expectContinue(true)
                 .header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
@@ -159,26 +177,27 @@ public final class TestUploads {
 
     private static InputStream streamedBody(String fileName, long size) {
         return new SequenceInputStream(Collections.enumeration(List.of(
-                new ByteArrayInputStream(formHead(fileName, Map.of())),
+                new ByteArrayInputStream(formHead(FILE_FIELD, fileName, FILE_TYPE, Map.of())),
                 new ByteArrayInputStream(PDF_HEADER),
                 new Zeros(size - PDF_HEADER.length),
                 new ByteArrayInputStream(FORM_TAIL))));
     }
 
-    private static byte[] multipartBody(String fileName, byte[] data, Map<String, String> fields) {
+    private static byte[] multipartBody(
+            String field, String fileName, String type, byte[] data, Map<String, String> fields) {
         var body = new ByteArrayOutputStream();
-        body.writeBytes(formHead(fileName, fields));
+        body.writeBytes(formHead(field, fileName, type, fields));
         body.writeBytes(data);
         body.writeBytes(FORM_TAIL);
         return body.toByteArray();
     }
 
-    private static byte[] formHead(String fileName, Map<String, String> fields) {
+    private static byte[] formHead(String field, String fileName, String type, Map<String, String> fields) {
         var head = new StringBuilder();
         fields.forEach((name, value) -> head.append("--" + BOUNDARY + "\r\nContent-Disposition: form-data; name=\""
                 + name + "\"\r\n\r\n" + value + "\r\n"));
-        head.append("--" + BOUNDARY + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + fileName
-                + "\"\r\nContent-Type: application/octet-stream\r\n\r\n");
+        head.append("--" + BOUNDARY + "\r\nContent-Disposition: form-data; name=\"" + field + "\"; filename=\""
+                + fileName + "\"\r\nContent-Type: " + type + "\r\n\r\n");
         return head.toString().getBytes(StandardCharsets.UTF_8);
     }
 

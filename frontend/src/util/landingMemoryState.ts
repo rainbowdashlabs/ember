@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {getItem, removeItem, setItem} from '@/api/storage'
+import {tabClusterId, tabStationId} from '@/util/tabPlace'
 import type {AccountInfo} from '@/api/generated/schema'
 import {sessionState} from '@/util/sessionState'
 
@@ -73,11 +74,11 @@ function write(memory: LandingMemory): void {
 function areaOf(path: string): Omit<LandingMemory, 'account'> | null {
     if (path === '/admin' || path.startsWith('/admin/')) return {area: 'admin'}
     if (path === '/cluster' || path.startsWith('/cluster/')) {
-        const clusterUid = getItem('cluster_id')
+        const clusterUid = tabClusterId()
         return {area: 'cluster', ...(clusterUid ? {clusterUid} : {})}
     }
     if (path === '/station' || path.startsWith('/station/')) {
-        const stationId = getItem('station_id')
+        const stationId = tabStationId()
         return stationId ? {area: 'station', stationId} : null
     }
     return null

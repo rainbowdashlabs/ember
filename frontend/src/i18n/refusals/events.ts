@@ -100,7 +100,7 @@ export default {
     'E-064': 'Der erste und der letzte Tag der Liste müssen beide ein Datum sein',
     'E-065': 'Ein Termin braucht einen Namen',
     'E-066': 'Ein Termin braucht eine Anfangs- und eine Endzeit',
-    'E-067': 'Ein Termin muss sagen, ob er einmal stattfindet oder wiederkehrt',
+    'E-067': 'Bei einem Termin muss feststehen, ob er einmal stattfindet oder wiederkehrt',
     'E-068': 'Mehrere Termine auf einmal anzulegen braucht mindestens einen davon',
     'E-069': 'Die Terminliste ließ sich nicht in ein Blatt umwandeln. Ein erneuter Versuch kann klappen',
     'E-070': 'Ein Termin, der nur für einen Teil der Wache gedacht ist, '
@@ -268,4 +268,8 @@ export default {
     'E-239': 'Plätze können nur einer Partnerwache gegeben werden, mit der geteilt wird',
     'E-240': 'Diese Partnerwache entscheidet ihre Anmeldungen für diese Terminreihe selbst',
     'E-241': 'Diese Wache entscheidet die Anmeldungen für diese Terminreihe',
+    'E-242': 'Nur ein Ort kann der Ort im Kalender sein, es wurde nichts gespeichert',
+    'E-243': 'Nur ein Ort kann der Ort im Kalender sein, die Vorlage wurde nicht gespeichert',
+    'E-244': 'Nur ein Ort kann der Ort im Kalender sein, die Terminreihe wurde nicht gespeichert',
+    'E-245': 'Nur ein Ort kann der Ort im Kalender sein, es wurde kein Termin angelegt',
 }

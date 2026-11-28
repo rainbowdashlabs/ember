@@ -7,7 +7,7 @@ import {DeadlineAnchor, DeadlineKind, EventType, type DateDeadlines, type Statio
 import {formatDateTime, formatWeekdayDate, shiftIsoDate, stationDayOf} from '@/util/format'
 import {MINUTES_PER_DAY, MINUTES_PER_HOUR} from '@/views/stationview/events/eventshared/registrationDeadline'
 
-/** The sentences an announcement can say about an event, each filled from one of its settings. */
+/** The sentences an announcement can carry about an event, each filled from one of its settings. */
 export type AnnouncementSentence =
     | 'cancelled'
     | 'cancelledBecause'
@@ -31,14 +31,14 @@ export type Say = (sentence: AnnouncementSentence, values?: Record<string, strin
 /**
  * What an event block does not show, written out as sentences: whether it is off, and how signing up
  * works. Each sentence stands only where the setting behind it is set, so an event without
- * registration says nothing about registering.
+ * registration carries nothing about registering.
  *
- * <p>A called-off event says so first, with its reason where one was given, and nothing about
+ * <p>A called-off event is shown as such first, with its reason where one was given, and nothing about
  * signing up for something that no longer takes place.
  *
  * <p>The deadline is named as the moment the server works out for the date of {@link deadlineDay}.
  * Only a series announced without a date, whose relative deadline falls differently for every date,
- * has it said as the rule itself. The minimum is checked at midnight at the start of the day the
+ * has it given as the rule itself. The minimum is checked at midnight at the start of the day the
  * server names, so the last day it can be reached on is the day before that one.
  *
  * @param event     the event being announced

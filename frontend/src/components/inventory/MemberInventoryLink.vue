@@ -18,7 +18,7 @@ import type {PersonIdentity} from '@/util/personIdentity'
  *
  * <p>A name that leads somewhere is painted like everything else that leads somewhere, and a name
  * carrying its group's colour keeps that colour: the group is the one thing about a person a list is
- * allowed to say in colour, and it outranks the link.
+ * allowed to show in colour, and it outranks the link.
  *
  * <p>A linked name opens no member card: the whole name is the link, so a press on it belongs there.
  */

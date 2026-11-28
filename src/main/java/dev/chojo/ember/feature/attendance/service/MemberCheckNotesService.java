@@ -42,18 +42,18 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * What is worth saying about a member while they are standing in front of you.
+ * What is worth showing about a member while they are standing in front of you.
  *
  * <p>An attendance check is the one moment in the week when the person and whoever keeps the
  * equipment are in the same room, so it is where a swap waiting on a handover or an uncollected find
  * can actually be dealt with rather than remembered. These notes carry no decision of their own:
- * they say what is outstanding, and two of them can be acted on where the reader is allowed to.
+ * they show what is outstanding, and two of them can be acted on where the reader is allowed to.
  *
  * <p>Everything here is read for a whole sheet at once. The walk steps through every name on it, and
  * a read per name is fifty round trips on a tablet in a hall.
  *
  * <p>What a reader may not see is left out here rather than sent and hidden. Taking an attendance
- * says nothing about being allowed to know what somebody swapped or lost, so each note is answered
+ * does not mean being allowed to know what somebody swapped or lost, so each note is answered
  * only to a reader holding what that note's own feature asks of anybody else.
  */
 @Singleton
@@ -124,8 +124,8 @@ public class MemberCheckNotesService {
      * Swaps standing at the member, by member.
      *
      * <p>Only a swap the member has the piece of, or one whose next step hands them a piece, is
-     * anything to say to somebody standing in front of you. A swap whose piece is on the shelf or in
-     * the post is between the station and the owner until it comes back, and saying it here reads as
+     * anything to report to somebody standing in front of you. A swap whose piece is on the shelf or in
+     * the post is between the station and the owner until it comes back, and showing it here reads as
      * work for a member who has nothing to do with it.
      *
      * <p>Read for the station in one go rather than a member at a time, because working out where a
@@ -273,7 +273,7 @@ public class MemberCheckNotesService {
      * either, since the chain decides that when this one is acknowledged.
      *
      * @param movementId    the movement
-     * @param purpose       what it is for, which is what says whether a piece is coming or going
+     * @param purpose       what it is for, which is what decides whether a piece is coming or going
      * @param stepId        the step it stands on, which is what an acknowledgement names
      * @param stepLabel     the words that step carries
      * @param stepActor     whose turn it is
@@ -281,7 +281,7 @@ public class MemberCheckNotesService {
      * @param replacementItemId the piece set aside for the member, where one is already named. Carried
      *     because the movement knows it: asking whoever runs the check to pick it out again, from a
      *     sheet of names, would be asking them a question the movement has already answered
-     * @param inventoryName what it is out of, for saying which movement this is
+     * @param inventoryName what it is out of, for showing which movement this is
      * @param itemName      the piece this step is about, which is the one arriving where the step
      *     brings one and the one they are holding otherwise
      * @param itemSize      the size written on that piece, or null where its inventory keeps no sizes

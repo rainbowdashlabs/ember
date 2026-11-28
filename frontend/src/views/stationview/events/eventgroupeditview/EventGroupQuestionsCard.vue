@@ -17,7 +17,7 @@ import type {RegistrationFieldDefinition} from '@/api/generated/schema'
 const questions = defineModel<RegistrationFieldDefinition[]>({required: true})
 
 defineProps<{
-  /** Inside the event group's form: a folded section saying how many questions are asked. */
+  /** Inside the event group's form: a folded section showing how many questions are asked. */
   compact?: boolean
 }>()
 

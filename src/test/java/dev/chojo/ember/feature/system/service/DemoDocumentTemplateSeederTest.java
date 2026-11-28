@@ -152,7 +152,7 @@ class DemoDocumentTemplateSeederTest extends DemoTestBase {
         assertFalse(advanced.contains("dienstags"), advanced);
     }
 
-    /** A child's gender follows the first name, so Lena's certificate says "sie" and Tim's "er". */
+    /** A child's gender follows the first name, so Lena's certificate reads "sie" and Tim's "er". */
     @Test
     void thePronounFollowsTheFirstName() {
         var station = run.primaryStation();

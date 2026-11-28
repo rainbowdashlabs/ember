@@ -74,7 +74,7 @@ public enum BeaconRefusal implements Refusal {
     /** A delivery of figures written to a protocol version newer than this beacon reads. */
     BEACON_INTAKE_PROTOCOL_TOO_NEW(22, HttpStatus.BAD_REQUEST, Sentences.BEACON_PROTOCOL_TOO_NEW),
 
-    /** A delivery to the beacon that does not say when it was sent or carries no one-time number. */
+    /** A delivery to the beacon that does not show when it was sent or carries no one-time number. */
     BEACON_DELIVERY_ENVELOPE_INCOMPLETE(
             23, HttpStatus.BAD_REQUEST, "A delivery has to say when it was sent and carry a one-time number"),
 

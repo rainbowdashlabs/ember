@@ -396,7 +396,7 @@ public class StorageQuotaService {
         return new ResolvedQuota(instanceDefault, QuotaOrigin.INSTANCE_DEFAULT);
     }
 
-    /** What a station nobody has said anything about may keep, which is what the instance configuration says. */
+    /** What a station nobody has said anything about may keep, which is what the instance configuration defines. */
     private StationQuotas instanceDefaults(int stationId) {
         return new StationQuotas(
                 stationId,
@@ -414,8 +414,12 @@ public class StorageQuotaService {
         return switch (category) {
             case KB_FILES -> quota.kb().bytes();
             case BOARD_ATTACHMENTS -> quota.board().bytes();
-            case IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE, IMAGE_LOGO_FRAGMENT ->
-                quota.images().bytes();
+            case IMAGE_LOST_AND_FOUND,
+                    IMAGE_INVENTORY,
+                    IMAGE_QUIZ_QUESTION,
+                    IMAGE_KB_ICON,
+                    IMAGE_KB_IMAGE,
+                    IMAGE_LOGO_FRAGMENT -> quota.images().bytes();
             case MEDIA_FILES, MEDIA_IMAGES -> quota.pages().bytes();
             case MEMBER_DOCUMENTS,
                     MOVEMENT_DOCUMENTS,
@@ -434,6 +438,7 @@ public class StorageQuotaService {
                     MAP_TILE_CACHE,
                     DEMO_AVATAR,
                     IMAGE_DISCOVERY_LOGO,
+                    IMAGE_PARTNER_LENDING,
                     INSTANCE_MEDIA_FILES,
                     INSTANCE_FONTS -> Long.MAX_VALUE;
         };

@@ -12,7 +12,7 @@ const global = {stubs: {'font-awesome-icon': true}}
 
 /**
  * Inside the appointment form the reminders are only the button and what it does: no heading, and no
- * line saying none are set.
+ * line showing none are set.
  */
 describe('EventReminderEditor', () => {
     it('says nothing but the button and its explanation in compact form', () => {

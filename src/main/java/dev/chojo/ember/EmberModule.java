@@ -191,6 +191,7 @@ import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.federation.service.FederationVersionBroadcaster;
 import dev.chojo.ember.feature.federation.service.LendingFeedDetails;
+import dev.chojo.ember.feature.federation.service.LendingPictureService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
 import dev.chojo.ember.feature.federation.transport.FederationServer;
@@ -199,6 +200,7 @@ import dev.chojo.ember.feature.federation.transport.RoutingFederationTransport;
 import dev.chojo.ember.feature.feed.render.FeedDetailsContributor;
 import dev.chojo.ember.feature.feed.route.FeedMetricsRoutes;
 import dev.chojo.ember.feature.feed.route.FeedTokenRoutes;
+import dev.chojo.ember.feature.feed.route.StationCalendarFeedRoutes;
 import dev.chojo.ember.feature.feed.route.StationFeedUseRoutes;
 import dev.chojo.ember.feature.feed.route.UserFeedRoutes;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
@@ -238,6 +240,7 @@ import dev.chojo.ember.feature.inventory.route.InventoryArtRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryContainerRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryFieldDefinitionRoutes;
+import dev.chojo.ember.feature.inventory.route.InventoryPictureRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryTagRoutes;
 import dev.chojo.ember.feature.inventory.route.ItemOwnerRoutes;
@@ -282,6 +285,7 @@ import dev.chojo.ember.feature.members.handler.AudienceDisplayHandler;
 import dev.chojo.ember.feature.members.handler.AudienceRuleHandler;
 import dev.chojo.ember.feature.members.handler.MemberDisplayChangedHandler;
 import dev.chojo.ember.feature.members.handler.MembersAddedToGroupHandler;
+import dev.chojo.ember.feature.members.route.InviteCandidateRoutes;
 import dev.chojo.ember.feature.members.route.ManagedMemberRoutes;
 import dev.chojo.ember.feature.members.route.MemberCardRoutes;
 import dev.chojo.ember.feature.members.route.MemberGroupRoutes;
@@ -557,6 +561,7 @@ public class EmberModule extends AbstractModule {
         Multibinder<Routes> routesBinder = Multibinder.newSetBinder(binder(), Routes.class);
         routesBinder.addBinding().to(AuthRoutes.class);
         routesBinder.addBinding().to(MemberRoutes.class);
+        routesBinder.addBinding().to(InviteCandidateRoutes.class);
         routesBinder.addBinding().to(NameChangeRoutes.class);
         routesBinder.addBinding().to(AccountLinkRoutes.class);
         routesBinder.addBinding().to(MemberLinkRoutes.class);
@@ -671,6 +676,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(InventoryContainerRoutes.class);
         routesBinder.addBinding().to(InventoryFieldDefinitionRoutes.class);
         routesBinder.addBinding().to(InventoryArtRoutes.class);
+        routesBinder.addBinding().to(InventoryPictureRoutes.class);
         routesBinder.addBinding().to(InventoryTagRoutes.class);
         routesBinder.addBinding().to(FederatedInventoryTagRoutes.class);
         routesBinder.addBinding().to(RemoteInventoryTagRoutes.class);
@@ -752,6 +758,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(StationFeedUseRoutes.class);
         routesBinder.addBinding().to(OnboardingRoutes.class);
         routesBinder.addBinding().to(UserFeedRoutes.class);
+        routesBinder.addBinding().to(StationCalendarFeedRoutes.class);
         routesBinder.addBinding().to(FeedMetricsRoutes.class);
         routesBinder.addBinding().to(EventCommentRoutes.class);
         routesBinder.addBinding().to(NoteRoutes.class);
@@ -929,6 +936,7 @@ public class EmberModule extends AbstractModule {
         federationServers.addBinding().to(TestProtocolService.class);
         federationServers.addBinding().to(NewsFederationService.class);
         federationServers.addBinding().to(LendingService.class);
+        federationServers.addBinding().to(LendingPictureService.class);
         federationServers.addBinding().to(EventPartnerRegistrationService.class);
         federationServers.addBinding().to(EventCommentFederation.class);
         federationServers.addBinding().to(PartnerEventService.class);
@@ -962,6 +970,7 @@ public class EmberModule extends AbstractModule {
 
         Multibinder<TaskSource> taskSources = Multibinder.newSetBinder(binder(), TaskSource.class);
         taskSources.addBinding().to(PageHitRecorder.class);
+        taskSources.addBinding().to(LendingPictureService.class);
         taskSources.addBinding().to(OutgoingPairRequestService.class);
         taskSources.addBinding().to(StationTrafficRecorder.class);
         taskSources.addBinding().to(UsageSnapshotTask.class);
@@ -1200,7 +1209,7 @@ public class EmberModule extends AbstractModule {
      * them is a reason to lose the process.
      *
      * <p>Bounded, because the other thing that refuses a connection is an address or a password
-     * that is simply wrong, and an instance that hung on that forever would say less than one that
+     * that is simply wrong, and an instance that hung on that forever would show less than one that
      * stops and shows the refusal. Every attempt is logged, so a wait is visible while it lasts.
      */
     private static DataSource openPool(Supplier<DataSource> open) {

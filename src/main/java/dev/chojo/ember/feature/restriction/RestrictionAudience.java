@@ -85,7 +85,7 @@ public record RestrictionAudience(
 
     /**
      * This audience with each user type, group, tag and member named once, as it is stored: a member
-     * named twice would otherwise be told twice.
+     * named twice would otherwise be notified twice.
      *
      * @return the audience without repeats
      */

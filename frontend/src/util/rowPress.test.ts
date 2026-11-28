@@ -7,7 +7,7 @@ import {describe, expect, it} from 'vitest'
 import {pressedAControl} from './rowPress'
 
 /**
- * Telling a press on the row from a press on something sitting in it.
+ * Distinguishing a press on the row from a press on something sitting in it.
  *
  * @vitest-environment happy-dom
  *

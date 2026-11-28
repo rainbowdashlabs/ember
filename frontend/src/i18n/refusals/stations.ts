@@ -100,4 +100,5 @@ export default {
     'S-082': 'Diese Wache ist schon eingerichtet, es wurde niemand erinnert',
     'S-083': 'Diese Wache hat noch keine Verwaltung, die erinnert werden könnte. Trag zuerst eine ein',
     'S-084': 'Die Verwaltung wurde erst vor wenigen Minuten erinnert, es ging keine zweite E-Mail raus',
+    'S-085': 'Dieser Schritt wartet noch auf einen früheren, es wurde nichts geändert',
 }

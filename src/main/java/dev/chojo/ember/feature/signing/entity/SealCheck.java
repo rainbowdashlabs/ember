@@ -19,7 +19,7 @@ import java.util.List;
  * certificates for others, so the validator alone could pass a stranger's seal. The {@link #indication()}
  * therefore never passes a signature that is neither issued here nor recognised as a partner's: such a
  * signature reads {@code INDETERMINATE} with {@code NOT_ISSUED_HERE}, unless the validator found it failed,
- * which stays failed. The validator's own verdict is kept beside it. A partner's seal that passes says so
+ * which stays failed. The validator's own verdict is kept beside it. A partner's seal that passes shows that
  * by {@link #partner()}, never by {@link #issuedHere()}.
  *
  * @param signer          the certificate the signature was made with; null when the document does not
@@ -48,7 +48,7 @@ import java.util.List;
  *                        annotations, or anything the validator cannot name. Validation material and
  *                        document timestamps added later are not such a change
  * @param revocation      what the revocation list of the issuing authority, this installation's or the
- *                        partner's last one taken in, says about the signer's certificate
+ *                        partner's last one taken in, shows about the signer's certificate
  * @param timestamps      the timestamps inside the signature, proving when it existed
  */
 public record SealCheck(

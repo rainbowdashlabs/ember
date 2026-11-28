@@ -18,7 +18,7 @@ import {moveWithin} from '@/util/reorder'
  * and the change is only handed on when the pointer is let go: a drag across six questions would
  * otherwise be six writes, five of which nobody meant.
  *
- * <p>A field is told apart by itself rather than by an id, since not every form numbers its questions
+ * <p>A field is distinguished by itself rather than by an id, since not every form numbers its questions
  * before they are saved; the list handed in keeps its entries for as long as a drag lasts.
  *
  * @param fields the form as it currently stands

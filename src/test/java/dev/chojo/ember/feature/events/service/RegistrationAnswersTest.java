@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * What a registration question takes today beyond what the question service tests already say, how
+ * What a registration question takes today beyond what the question service tests already show, how
  * a registration keeps the answer and how the registration table prints it.
  *
  * <p>Written down before the field types are brought together, so that every later change can show

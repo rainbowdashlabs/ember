@@ -128,7 +128,7 @@ test.describe('Event files', () => {
     /**
      * What an event keeps back is absent for a reader without the right, not merely unmarked.
      *
-     * <p>Both files hang on the same event at the same time, so the story tells an omission from an
+     * <p>Both files hang on the same event at the same time, so the story distinguishes an omission from an
      * empty panel: the open one is there for the member, the internal one is not, and asking for it
      * by its own address is refused rather than answered differently from the list.
      */

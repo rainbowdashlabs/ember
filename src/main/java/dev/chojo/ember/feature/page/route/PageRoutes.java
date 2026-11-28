@@ -318,7 +318,7 @@ public class PageRoutes implements Routes {
      *
      * <p>A copy that fails because the page went away between the check and the copy is the only
      * refusal here. Everything else that can go wrong is Ember's, and is left to be answered as
-     * such: catching it all and calling it a miss told the reader their page was gone when it was
+     * such: catching it all and calling it a miss showed the reader that their page was gone when it was
      * sitting there and the copy had broken.
      */
     @OpenApi(

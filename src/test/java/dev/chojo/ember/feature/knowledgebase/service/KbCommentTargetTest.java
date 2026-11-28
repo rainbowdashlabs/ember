@@ -33,7 +33,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Comments on a knowledge base file belong to the station owning the file, are removed by others
- * only with the knowledge manager right, and tell the thread only when written here.
+ * only with the knowledge manager right, and notify the thread only when written here.
  */
 class KbCommentTargetTest {
     private static final int STATION = 4;

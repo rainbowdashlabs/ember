@@ -15,7 +15,7 @@ import {QUOTA_FIELD_KEYS, QUOTA_FIELD_LABELS, SIZE_UNITS, type QuotaFields} from
  *
  * <p>One control for both owners: a tier at the instance, and a tier, the defaults or one station's grant at
  * an association. A field left empty means that dimension is not being decided here, which only an
- * association can say.
+ * association can decide.
  */
 const fields = defineModel<QuotaFields>('fields', {required: true})
 

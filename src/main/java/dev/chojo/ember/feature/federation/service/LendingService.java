@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
+import dev.chojo.ember.feature.federation.entity.SharePolicy;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteAvailability;
@@ -208,7 +209,7 @@ public class LendingService implements FederationServer {
      * @param owningUid the station asked for the gear
      * @param eventId   the appointment the request was collected for, or {@code null}
      * @param eventDate the date of that appointment, or {@code null}
-     * @param occasion  what to tell the owning station the request is for
+     * @param occasion  what to show the owning station the request is for
      * @param lines     what is asked for
      */
     public LendingRequest createRequest(
@@ -467,7 +468,7 @@ public class LendingService implements FederationServer {
     /**
      * Sets one piece of gear aside for a lending request, by hand.
      *
-     * <p>This is the path a person drives, so it says no out loud. The automatic path cannot, and
+     * <p>This is the path a person drives, so it refuses out loud. The automatic path cannot, and
      * quietly passes over what it may not lend instead.
      *
      * @param requestItemId  the line of the request being filled
@@ -597,7 +598,7 @@ public class LendingService implements FederationServer {
      * Hands the gear over, which is where a borrowed piece becomes a thing at the borrower.
      *
      * <p>Two rows come out of one radio and they are different sentences. The owner's row is the
-     * truth about the thing and now says which partner has it; the borrower's row is the truth about
+     * truth about the thing and now shows which partner has it; the borrower's row is the truth about
      * where it is this fortnight, and it goes away again when the gear does.
      *
      * @param requestId the lending request
@@ -656,7 +657,7 @@ public class LendingService implements FederationServer {
     }
 
     /**
-     * Moves a request on as one of its two stations, and tells the other one.
+     * Moves a request on as one of its two stations, and notifies the other one.
      *
      * <p>The change is made here, with its consequences for the gear, the station's own note in the
      * thread and the notice to the other station's managers, and then handed to the other station.
@@ -666,7 +667,7 @@ public class LendingService implements FederationServer {
      * @param requestId     the request
      * @param stationId     the station moving it on
      * @param status        where it moves to
-     * @param systemMessage what the station's thread says about it
+     * @param systemMessage what the station's thread shows about it
      * @param reason        why, where it was declined, or {@code null}
      * @return {@code true} when the request moved
      */
@@ -741,7 +742,7 @@ public class LendingService implements FederationServer {
     }
 
     /**
-     * Hands the pieces set aside over to the borrowing station, line by line. The owner's rows say
+     * Hands the pieces set aside over to the borrowing station, line by line. The owner's rows show
      * which partner has them; a borrower on this instance gets its copies written here, and one on
      * another instance writes them itself from the pieces listed in the answer.
      *
@@ -848,7 +849,7 @@ public class LendingService implements FederationServer {
     /**
      * Word from the partner station that it wrote on a request, passed on to this station's managers.
      *
-     * <p>A partner on this instance has told them itself when it wrote the message, so only word
+     * <p>A partner on this instance has notified them itself when it wrote the message, so only word
      * from another instance is passed on.
      *
      * @param partner the partnership the word arrived on
@@ -868,7 +869,7 @@ public class LendingService implements FederationServer {
      *
      * <p>Being a partner of this station is not the same as being a party to one of its lending
      * negotiations. Without asking whose request it is, one partner would read what this station
-     * said to another: what was asked for, what was refused, and when.
+     * sent to another: what was asked for, what was refused, and when.
      *
      * @param partner the partnership the request arrived on
      * @param uid     the request's identity between the two stations
@@ -951,9 +952,9 @@ public class LendingService implements FederationServer {
     /**
      * Finds available inventory across all active federation partners, with parallel fetching.
      *
-     * <p>An empty answer says which of two situations it is, and no more than that. Listing the
+     * <p>An empty answer shows which of two situations it is, and no more than that. Listing the
      * inventories that were held back would be the more helpful search and the wrong product: it
-     * would tell another station what you own and which of it you are deliberately keeping.
+     * would reveal to another station what you own and which of it you are deliberately keeping.
      */
     public AvailableInventoryResult findAvailableInventory(
             int stationId, @Nullable String query, @Nullable LocalDate dateFrom, LocalDate dateTo) {
@@ -1033,7 +1034,7 @@ public class LendingService implements FederationServer {
      * <p><b>This filters, it never throws.</b> The status change is already committed by the time it
      * runs and there is nothing holding the two together, so a refusal here would turn one piece the
      * station may not lend into a rejected call on an approval that has already happened, with the
-     * partner never told. A line that cannot be filled is left empty for somebody to fill by hand.
+     * partner never notified. A line that cannot be filled is left empty for somebody to fill by hand.
      *
      * <p>What may be filled in is the owning station's own gear, whichever way the line names it: the
      * requesting side chooses both the inventory and, where it wants one piece in particular, the
@@ -1095,7 +1096,7 @@ public class LendingService implements FederationServer {
     /**
      * Whether one named piece is still there to be promised over a window.
      *
-     * <p>Ownership says a station may lend a piece; it does not say the piece is here. Gear already at
+     * <p>Ownership means a station may lend a piece; it does not mean the piece is here. Gear already at
      * a partner, in the post or set aside for another date is owned all the same, and promising it
      * a second time is how one radio is lent twice.
      *
@@ -1169,7 +1170,11 @@ public class LendingService implements FederationServer {
                     entry.stationId(),
                     entry.stationName(),
                     entry.availableCount(),
-                    distance));
+                    distance,
+                    entry.pictureKey(),
+                    entry.icon(),
+                    entry.color(),
+                    entry.homogeneous()));
         }
         decorated.sort(Comparator.comparing(
                 AvailableInventoryEntry::distanceKm, Comparator.nullsLast(Comparator.naturalOrder())));
@@ -1196,7 +1201,11 @@ public class LendingService implements FederationServer {
                         partner.partnerStationId(),
                         name,
                         entry.availableCount(),
-                        null))
+                        null,
+                        entry.pictureKey(),
+                        entry.icon(),
+                        entry.color(),
+                        entry.homogeneous()))
                 .toList();
         return new PartnerAvailability(entries, answer.offersAnything());
     }
@@ -1221,11 +1230,55 @@ public class LendingService implements FederationServer {
         if (dateFrom != null && isBlocked(lendingStationId, null, null, dateFrom, dateTo)) {
             return new RemoteAvailability(List.of(), true);
         }
+        var entries = offeredGroups(lendingStationId, policy, null, query, dateFrom, dateTo).stream()
+                .map(group -> new RemoteAvailableEntry(
+                        group.inventory().id(),
+                        group.inventory().name(),
+                        group.artId(),
+                        group.artName(),
+                        group.count(),
+                        group.pictureKey(),
+                        group.icon(),
+                        group.color(),
+                        group.inventory().homogeneous()))
+                .toList();
+        return new RemoteAvailability(entries, true);
+    }
 
+    /**
+     * Whether a partner may see a photo: it belongs to an inventory or a kind with something on offer
+     * to the partner right now, whatever the day, and is the photo that offer is shown with. Only the
+     * inventory holding the key is looked at.
+     *
+     * @param partner    the partnership the question arrived on
+     * @param pictureKey the key asked for
+     * @return whether the photo may be sent
+     */
+    public boolean isPictureOffered(ServingPartner partner, String pictureKey) {
+        int lendingStationId = partner.servingStationId();
+        var inventoryId = artRepository.inventoryOfPicture(lendingStationId, pictureKey);
+        if (inventoryId.isEmpty()) return false;
+        var policy = shareService.policyFor(lendingStationId, partner.askingStationUid());
+        if (!policy.offersAnything()) return false;
+        return offeredGroups(lendingStationId, policy, inventoryId.get(), null, null, null).stream()
+                .anyMatch(group -> pictureKey.equals(group.pictureKey()));
+    }
+
+    /**
+     * What a station has free to offer under a policy, counted per inventory and kind, of one
+     * inventory where {@code onlyInventory} is given.
+     */
+    private List<OfferedGroup> offeredGroups(
+            int lendingStationId,
+            SharePolicy policy,
+            @Nullable Integer onlyInventory,
+            @Nullable String query,
+            @Nullable LocalDate dateFrom,
+            @Nullable LocalDate dateTo) {
         var lender = lenderAt(lendingStationId);
-        var entries = new ArrayList<RemoteAvailableEntry>();
-        var inventories = inventoryRepository.findByStation(lendingStationId);
-        for (var inv : inventories) {
+        var groups = new ArrayList<OfferedGroup>();
+        for (var inv : inventoryRepository.findByStation(lendingStationId)) {
+            if (onlyInventory != null && inv.id() != onlyInventory) continue;
             if (query != null && !query.isBlank()) {
                 if (!inv.name().toLowerCase().contains(query.toLowerCase())) {
                     continue;
@@ -1251,20 +1304,47 @@ public class LendingService implements FederationServer {
             }
             for (var group : perArt.entrySet()) {
                 Integer artId = group.getKey();
-                entries.add(new RemoteAvailableEntry(
-                        inv.id(),
-                        inv.name(),
-                        artId,
-                        artId == null
-                                ? null
-                                : artRepository
-                                        .findById(artId)
-                                        .map(InventoryArt::name)
-                                        .orElse(null),
-                        group.getValue()));
+                InventoryArt art =
+                        artId == null ? null : artRepository.findById(artId).orElse(null);
+                groups.add(new OfferedGroup(inv, artId, art, group.getValue()));
             }
         }
-        return new RemoteAvailability(entries, true);
+        return groups;
+    }
+
+    /**
+     * One inventory, or one kind of it, with how many of its pieces are on offer. It is shown with the
+     * kind's photo and icon where the kind has them, otherwise the inventory's. The kind's id stays
+     * even where the kind itself could not be read, as it did before.
+     */
+    private record OfferedGroup(
+            Inventory inventory,
+            @Nullable Integer artId,
+            @Nullable InventoryArt art,
+            int count) {
+        @Nullable
+        String artName() {
+            return art == null ? null : art.name();
+        }
+
+        @Nullable
+        String pictureKey() {
+            return firstNamed(art == null ? null : art.pictureKey(), inventory.pictureKey());
+        }
+
+        @Nullable
+        String icon() {
+            return firstNamed(art == null ? null : art.icon(), inventory.icon());
+        }
+
+        @Nullable
+        String color() {
+            return firstNamed(art == null ? null : art.color(), inventory.color());
+        }
+
+        private static @Nullable String firstNamed(@Nullable String first, @Nullable String second) {
+            return first != null && !first.isBlank() ? first : second;
+        }
     }
 
     /**
@@ -1298,6 +1378,11 @@ public class LendingService implements FederationServer {
      *
      * @param artId   the kind counted, or {@code null} where the row counts a whole inventory
      * @param artName what that kind is called, or {@code null}
+     * @param pictureKey  the key of the photo it is shown with at the partner, to ask for through this
+     *                    instance, or {@code null} for none
+     * @param icon        the icon it is drawn with, or {@code null} for the plain shape
+     * @param color       the colour of that icon, or {@code null}
+     * @param homogeneous whether the partner's inventory holds one thing in many copies
      *
      * @param distanceKm great-circle distance from the searching station to the offering
      *                   station, or {@code null} when either side hasn't published
@@ -1312,7 +1397,11 @@ public class LendingService implements FederationServer {
             UUID stationId,
             String stationName,
             int availableCount,
-            @Nullable Double distanceKm) {}
+            @Nullable Double distanceKm,
+            @Nullable String pictureKey,
+            @Nullable String icon,
+            @Nullable String color,
+            boolean homogeneous) {}
 
     /**
      * The browse answer, with the reason an empty one is empty.
@@ -1324,7 +1413,7 @@ public class LendingService implements FederationServer {
             List<AvailableInventoryEntry> entries, @Nullable EmptyReason emptyReason) {}
 
     /**
-     * The two situations an empty browse answer can mean. It says nothing finer on purpose: which
+     * The two situations an empty browse answer can mean. It shows nothing finer on purpose: which
      * inventories a station holds back is its own business, and naming them would defeat the point
      * of holding them back.
      */

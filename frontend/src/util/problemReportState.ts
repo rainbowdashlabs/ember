@@ -9,7 +9,7 @@ import {browserRef} from '@/util/browserState'
 /**
  * What a report is about, where it was opened from something that failed rather than from the button.
  *
- * @param summary   what the reader saw go wrong, in their terms, so the report says it even where they
+ * @param summary   what the reader saw go wrong, in their terms, so the report shows it even where they
  *                  describe it differently
  * @param technical the server's own answer, which the reader cannot write and an operator needs
  */

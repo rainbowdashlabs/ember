@@ -10,7 +10,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import type {AnnouncementDraft} from './announcementPrefill'
 
 /**
- * What an entry written from an appointment says about itself.
+ * What an entry written from an appointment shows about itself.
  *
  * <p>Three things the author cannot see from the text alone. Which occurrence is being announced,
  * because a weekly appointment has no single date and the draft was written about exactly one of

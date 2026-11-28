@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 /**
- * Checks for the bytes a file format starts with, which say what a file is whatever it is called.
+ * Checks for the bytes a file format starts with, which show what a file is whatever it is called.
  */
 public final class ByteSignature {
 

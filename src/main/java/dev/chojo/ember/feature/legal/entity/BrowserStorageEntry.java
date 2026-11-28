@@ -9,7 +9,7 @@ package dev.chojo.ember.feature.legal.entity;
  * One value the application keeps in the browser, as declared in {@code browser_storage.json}
  * and rendered into the generated storage disclosure of the privacy policy and the consent text.
  *
- * @param key       the literal local storage key as used by the frontend, or the cookie's name
+ * @param key       the literal storage key as used by the frontend, or the cookie's name
  * @param kind      where the value lives; absent in the catalog means local storage
  * @param necessity how far the application depends on the value
  * @param retention how long the value stays in the browser
@@ -30,6 +30,10 @@ public record BrowserStorageEntry(
          * The browser's local storage, which only the frontend reads and writes.
          */
         LOCAL_STORAGE,
+        /**
+         * The browser's session storage, which belongs to one tab and is gone when that tab is closed.
+         */
+        SESSION_STORAGE,
         /**
          * A cookie the server sets. It travels with every request to this site.
          */
@@ -74,6 +78,10 @@ public record BrowserStorageEntry(
         /**
          * Stays for the period the user chose to trust the device, or until they remove it.
          */
-        UNTIL_TRUST_ENDS
+        UNTIL_TRUST_ENDS,
+        /**
+         * Removed on sign-out, and gone at the latest when the browser tab is closed.
+         */
+        UNTIL_TAB_CLOSES
     }
 }

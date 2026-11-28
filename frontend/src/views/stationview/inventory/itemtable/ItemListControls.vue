@@ -22,12 +22,18 @@ defineProps<{
   /** Whether this screen offers writing a whole inventory down at once. The association's does not. */
   showIntake?: boolean
   showSearch: boolean
+  /** Whether many pieces may be changed at once here, which offers the select mode. */
+  showSelect?: boolean
+  /** Whether the select mode is on. */
+  selecting?: boolean
 }>()
 
 const emit = defineEmits<{
   quickAssign: []
   add: []
   intake: []
+  toggleSelect: []
+  selectAllShown: []
 }>()
 
 const { t } = useI18n()
@@ -54,4 +60,22 @@ const { t } = useI18n()
     <TextInput :model-value="table.search" :placeholder="t('inventory.edit.searchItems')" class="flex-1" @update:model-value="table.searchFor($event ?? '')"/>
     <TableColumnPicker :table="table"/>
   </div>
+  <ButtonRow v-if="showSelect" align="end">
+    <SecondaryButton
+        v-if="selecting"
+        :icon="['fas', 'check-double']"
+        data-testid="items-select-shown"
+        @click="emit('selectAllShown')"
+    >
+      {{ t('inventory.batch.selectShown') }}
+    </SecondaryButton>
+    <SecondaryButton
+        :icon="['fas', selecting ? 'xmark' : 'list-check']"
+        :aria-pressed="selecting"
+        data-testid="items-select-mode"
+        @click="emit('toggleSelect')"
+    >
+      {{ selecting ? t('inventory.batch.stop') : t('inventory.batch.start') }}
+    </SecondaryButton>
+  </ButtonRow>
 </template>

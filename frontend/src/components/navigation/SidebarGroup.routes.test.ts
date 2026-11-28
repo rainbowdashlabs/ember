@@ -93,7 +93,7 @@ function literal(attributes: string, name: string): string | null {
 }
 
 /**
- * What one group's entries say, which is what it reads off them at runtime: where an entry leads, and
+ * What one group's entries define, which is what it reads off them at runtime: where an entry leads, and
  * what a subsection nested in it declares. A subsection's own entries are not in that set, because a
  * group holds the subsection, not the subsection's contents.
  */

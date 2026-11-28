@@ -26,7 +26,7 @@ interface StationGroup {
 /**
  * What one station offers another, seen from both ends at once.
  *
- * <p>Sharing is opt-in, and an opt-in can only be shown by two stations together: one says what it
+ * <p>Sharing is opt-in, and an opt-in can only be shown by two stations together: one shows what it
  * offers and the other looks and finds it, or does not. Driven from one side it proves nothing,
  * because the side that decides is not the side that looks.
  */

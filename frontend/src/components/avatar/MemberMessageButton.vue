@@ -18,7 +18,7 @@ import {describeFailure, FailureKind} from '@/util/failure'
  * The card shows it only where the reader may write to them: not on the reader's own card, not for
  * somebody without messages or who blocked the reader, and not for a member of another station.
  *
- * <p>A refusal the request client already reports, as it does with a denied request, is not told
+ * <p>A refusal the request client already reports, as it does with a denied request, is not shown
  * a second time.
  */
 const props = defineProps<{

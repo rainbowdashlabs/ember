@@ -26,7 +26,7 @@ import java.util.LinkedHashMap;
  * @param ttl      how long the push service keeps it for a browser that is offline
  */
 public record PushMessage(String title, String body, String url, String topicKey, Duration ttl) {
-    /** How long a push waits for an offline browser when nothing says otherwise. */
+    /** How long a push waits for an offline browser when nothing else is set. */
     public static final Duration DEFAULT_TTL = Duration.ofDays(1);
 
     private static final int TOPIC_CHARS = 32;

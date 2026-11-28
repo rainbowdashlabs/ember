@@ -62,8 +62,7 @@ public enum StationPermission implements RouteRole {
     /**
      * Grants access to all attendance actions.
      */
-    ATTENDANCE_MANAGER(
-            StationModule.ATTENDANCE, ATTENDANCE_EDIT, ATTENDANCE_CONFIGURE, ATTENDANCE_EXPORT, ATTENDANCE_READ),
+    ATTENDANCE_MANAGER(StationModule.ATTENDANCE, ATTENDANCE_EDIT, ATTENDANCE_CONFIGURE, ATTENDANCE_EXPORT),
 
     /**
      * Allows creating new inventory items of type {@link InventoryType#EXTERNAL}
@@ -87,8 +86,11 @@ public enum StationPermission implements RouteRole {
 
     /**
      * Allows managing the inventory exchanges.
+     *
+     * <p>Recording a piece that arrives in a movement needs nothing more: the movement's own step
+     * records it. Creating the association's pieces anywhere else is {@link #INVENTORY_CREATE_EXTERNAL}.
      */
-    INVENTORY_MOVEMENTS(StationModule.INVENTORY_MOVEMENTS, INVENTORY_CREATE_EXTERNAL, INVENTORY_READ),
+    INVENTORY_MOVEMENTS(StationModule.INVENTORY_MOVEMENTS, INVENTORY_READ),
 
     /**
      * Allows managing inventory procurements.
@@ -101,8 +103,10 @@ public enum StationPermission implements RouteRole {
      *
      * <p>Belongs to the inventory as a whole rather than to one of its parts, because it serves both kinds
      * of check: switching off the station's checks leaves the review of self-checks to whoever holds it.
+     * The piece a correction puts in place of a wrong one is created by the check itself, so creating
+     * pieces anywhere else is not part of this.
      */
-    INVENTORY_CHECK(StationModule.INVENTORY, INVENTORY_CREATE_EXTERNAL),
+    INVENTORY_CHECK(StationModule.INVENTORY),
 
     /**
      * Allows creating new inventory lending requests and managing outgoing requests.
@@ -138,12 +142,10 @@ public enum StationPermission implements RouteRole {
             StationModule.INVENTORY,
             INVENTORY_ASSIGN,
             INVENTORY_CHECK,
-            INVENTORY_CREATE,
             INVENTORY_EDIT,
             INVENTORY_MOVEMENTS,
             INVENTORY_LENDING_MANAGER,
             INVENTORY_PROCUREMENT,
-            INVENTORY_READ,
             INVENTORY_STORAGE),
 
     /**
@@ -182,10 +184,24 @@ public enum StationPermission implements RouteRole {
     EVENTS_FEDERATE(StationModule.EVENTS, EVENT_EDIT),
 
     /**
+     * Allows managing the station's calendar feeds: subscriptions for shared calendars that belong to
+     * no member and show the appointments up to a chosen visibility.
+     *
+     * <p>Granted by {@link #EVENT_MANAGER}, and grantable on its own to somebody who should look after the
+     * feeds without managing appointments.
+     */
+    EVENT_CALENDAR_FEEDS(StationModule.EVENTS),
+
+    /**
      * Allows managing events
      */
     EVENT_MANAGER(
-            StationModule.EVENTS, EVENTS_FEDERATE, EVENT_REGISTRATION, EVENT_MANAGE_TEMPLATE, EVENT_MANAGE_CATEGORY),
+            StationModule.EVENTS,
+            EVENTS_FEDERATE,
+            EVENT_REGISTRATION,
+            EVENT_MANAGE_TEMPLATE,
+            EVENT_MANAGE_CATEGORY,
+            EVENT_CALENDAR_FEEDS),
 
     /**
      * Allows reading the station's document store.
@@ -200,10 +216,10 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows reading the documents that name a member.
      *
-     * <p>Implies {@link #DOCUMENT_READ}: whoever may read the paperwork of a person may read the
-     * paperwork of the station.
+     * <p>The station's own paperwork is {@link #DOCUMENT_READ} and not part of this. Both open the
+     * store; each lists only what it reaches.
      */
-    DOCUMENT_READ_MEMBER(StationModule.DOCUMENTS, DOCUMENT_READ),
+    DOCUMENT_READ_MEMBER(StationModule.DOCUMENTS),
 
     /**
      * Allows filing documents into the store and editing what is there.
@@ -211,7 +227,7 @@ public enum StationPermission implements RouteRole {
     DOCUMENT_EDIT(StationModule.DOCUMENTS, DOCUMENT_READ),
 
     /**
-     * Allows saying which members a document names, and everything that follows from it.
+     * Allows indicating which members a document names, and everything that follows from it.
      *
      * <p>Implies {@link #DOCUMENT_READ_MEMBER}, and that is what keeps the store honest rather than a
      * convenience. Whether a document names a member decides who may read it, so a permission to
@@ -247,11 +263,11 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows reading all member data.
      *
-     * <p>Implies {@link #DOCUMENT_READ_MEMBER}, because reading member paperwork is what this
-     * permission bought before documents had permissions of their own, and taking that away from a
-     * role that holds only this would be a regression nobody asked for.
+     * <p>Reading a member's documents is {@link #DOCUMENT_READ_MEMBER} and not part of this: an address
+     * and a medical certificate are different things to be allowed to read. Whoever held this before
+     * the two were apart was given both, so nobody lost anything.
      */
-    MEMBER_READ(DOCUMENT_READ_MEMBER),
+    MEMBER_READ,
 
     /**
      * Allows creating and editing member notes.
@@ -281,14 +297,18 @@ public enum StationPermission implements RouteRole {
 
     /**
      * Allows putting documents on one's own profile. Reading them needs no permission at all: they
-     * are the member's own. Putting them on somebody else's profile is {@link #MEMBER_EDIT}.
+     * are the member's own. Putting them on somebody else's profile is {@link #DOCUMENT_EDIT_MEMBER}.
      */
     MEMBER_SELF_UPLOAD,
 
     /**
-     * Allows editing and create members.
+     * Allows editing and creating members.
+     *
+     * <p>Managing their documents, generating documents for them and asking them to sign is
+     * {@link #DOCUMENT_EDIT_MEMBER} and not part of this. Whoever held this before the two were apart
+     * was given both, so nobody lost anything.
      */
-    MEMBER_EDIT(MEMBER_READ, MEMBER_SELF_UPLOAD, DOCUMENT_EDIT_MEMBER),
+    MEMBER_EDIT(MEMBER_READ, MEMBER_SELF_UPLOAD),
 
     /**
      * Allows configuring the member fields config.
@@ -512,7 +532,7 @@ public enum StationPermission implements RouteRole {
     /**
      * Knowledgebase management
      */
-    KNOWLEDGE_MANAGER(StationModule.KNOWLEDGE_BASE, KNOWLEDGE_EDIT, KNOWLEDGE_FEDERATE),
+    KNOWLEDGE_MANAGER(StationModule.KNOWLEDGE_BASE, KNOWLEDGE_FEDERATE),
 
     /**
      * Allows opening, renaming, closing and reopening the station's chats and deciding who sees them.

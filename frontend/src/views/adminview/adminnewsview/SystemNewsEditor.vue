@@ -47,7 +47,7 @@ const title = ref('')
 const contentMarkdown = ref('')
 const userTypes = ref<string[]>([])
 /**
- * Whether saving notifies people. Off again for every entry opened: people were told when it went
+ * Whether saving notifies people. Off again for every entry opened: people were notified when it went
  * out, and a second notice for a fixed typo is what makes notifications worth ignoring.
  */
 const notifyMembers = ref(false)
@@ -92,7 +92,7 @@ function toggleUserType(userType: string) {
  * Switches to the page editor, carrying what is already written into a first block.
  *
  * <p>An entry that exists is switched by the server, which is what records the change. One that
- * does not exist yet is switched here, into the shape the server would have produced, and told to
+ * does not exist yet is switched here, into the shape the server would have produced, and sent to
  * the server as soon as saving gives it an id.
  */
 function enableBlocks() {

@@ -83,7 +83,7 @@ const completionLinkLabel = ref('')
  * The last link after sending that can be offered, which is the one the settings save with.
  *
  * <p>The settings save while they are typed, and a link is not one until it is typed out: saving
- * "htt" would be refused, and with it the title typed in the same breath. The editor says beside the
+ * "htt" would be refused, and with it the title typed in the same breath. The editor shows beside the
  * field that the link is not one yet, and the other settings go on saving.
  */
 const offerableLink = ref('')
@@ -268,7 +268,7 @@ const limits = useInstantSave(
       })
     })
 
-/** True while anything is on its way to the server, so the page can say so rather than look idle. */
+/** True while anything is on its way to the server, so the page can show it rather than look idle. */
 const savingSettings = computed(() => settings.saving.value || limits.saving.value)
 const settingsFailed = computed(() => settings.failed.value || limits.failed.value)
 
@@ -311,8 +311,8 @@ async function saveForm(): Promise<number> {
 
 /**
  * How far the form reaches is set on its own, because it is not part of the form's own settings: it
- * says who can get to the form rather than what the form asks. An internal form has no reach at all
- * and the server refuses to be told about one.
+ * is about who can get to the form rather than what the form asks. An internal form has no reach at all
+ * and the server refuses to take any setting for one.
  */
 async function saveVisibility(id: number) {
   if (purpose.value === FormPurpose.INTERNAL) return
@@ -324,11 +324,11 @@ async function saveVisibility(id: number) {
  *
  * <p>Waiting for the save would mean showing an address that does not exist yet, or showing nothing
  * where somebody has just asked for a link. What the link opens still follows the last save, which
- * is what the note beside it says.
+ * is what the note beside it shows.
  *
  * <p>A form keeps the one link it was given. Opening it to everybody and closing it again leaves
  * that link alone, so a link already handed out still works afterwards; ending it is the button
- * that says so and nothing else.
+ * made for exactly that and nothing else.
  */
 watch(visibility, async now => {
   const id = formId.value
@@ -361,7 +361,7 @@ async function saveQuestions(id: number) {
 /**
  * What the reader's last action ran into, kept apart from what the page failed to load. A save that
  * was refused and a form that never arrived call for different things, and one line holding whichever
- * happened last told them neither.
+ * happened last showed them neither.
  */
 const actionFailure = ref<Failure | null>(null)
 

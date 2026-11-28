@@ -11,7 +11,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {ApplicationStatus, type StationApplication} from '@/api/generated/schema'
 
-/** What can be done with one application: a waiting one is accepted or denied, a denied one says why. */
+/** What can be done with one application: a waiting one is accepted or denied, a denied one shows why. */
 defineProps<{
   app: StationApplication
   processing: boolean

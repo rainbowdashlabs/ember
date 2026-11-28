@@ -16,7 +16,7 @@ import jakarta.inject.Singleton;
 import java.util.Map;
 
 /**
- * What a feed entry says about a procedure: its name, who acted on it, and from the procedure itself
+ * What a feed entry shows about a procedure: its name, who acted on it, and from the procedure itself
  * how far along it is.
  */
 @Singleton

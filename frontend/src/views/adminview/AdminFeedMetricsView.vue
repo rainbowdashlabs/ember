@@ -68,7 +68,7 @@ const dailyTotals = computed(() => days.value.map(day =>
 ))
 
 /** Aggregate response-time histogram across the entire window. The five bins each become
- *  a single bar so a single glance tells the team whether the feed is mostly fast. */
+ *  a single bar so a single glance shows the team whether the feed is mostly fast. */
 const histogramTotals = computed(() => {
   const sum = (key: keyof FeedMetricDaily) =>
       daily.value.reduce((acc, r) => acc + (r[key] as number), 0)

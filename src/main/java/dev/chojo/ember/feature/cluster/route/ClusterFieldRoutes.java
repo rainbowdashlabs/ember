@@ -306,7 +306,7 @@ public class ClusterFieldRoutes implements Routes {
 
     /**
      * The type a request names, where it is one a profile question can have at all. Whether an
-     * association may ask it is the service's to say, since it names the one it may not.
+     * association may ask it is the service's to decide, since it names the one it may not.
      */
     private static FieldType parseType(String raw) {
         if (raw == null || raw.isBlank()) return FieldType.TEXT;

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-/** What a page says about itself to a search engine and to whatever draws a preview of its link. */
+/** What a page reports about itself to a search engine and to whatever draws a preview of its link. */
 export interface SocialMeta {
     /** The page's own headline. The site name is added behind it here. */
     title: string
@@ -18,7 +18,7 @@ export interface SocialMeta {
  * One tag, named the standard way or the OpenGraph way.
  *
  * <p>Written as one shape or the other rather than as both optional, because the head accepts a
- * choice between several kinds of tag and cannot tell which one is meant by a shape where every key
+ * choice between several kinds of tag and cannot determine which one is meant by a shape where every key
  * might be missing: it settles on the first kind, which declares the document's character set, and
  * refuses everything here for not being one.
  */

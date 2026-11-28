@@ -14,13 +14,14 @@ import {createSessionInfo} from '@/test/mocks/factories'
 const listMovements = vi.fn()
 const listOpen = vi.fn()
 const listInventories = vi.fn()
+const ownerAbove = vi.fn()
 
 vi.mock('@/api', () => ({
     inventory: {
         listInventories: (...args: unknown[]) => listInventories(...args),
         listItems: vi.fn(),
         listSizes: vi.fn(),
-        ownerAbove: vi.fn().mockResolvedValue(null),
+        ownerAbove: (...args: unknown[]) => ownerAbove(...args),
     },
     stationMembers: {listMembers: vi.fn().mockResolvedValue([])},
     movements: {listMovements: (...args: unknown[]) => listMovements(...args)},
@@ -41,6 +42,7 @@ describe('OverviewView', () => {
         listInventories.mockResolvedValue([])
         listMovements.mockResolvedValue([])
         listOpen.mockResolvedValue([])
+        ownerAbove.mockResolvedValue(null)
     })
 
     afterEach(() => sessionWriter().setInfo(null))
@@ -71,5 +73,33 @@ describe('OverviewView', () => {
         expect(listMovements).not.toHaveBeenCalled()
         expect(listOpen).not.toHaveBeenCalled()
         expect(listInventories).toHaveBeenCalled()
+    })
+
+    it('offers to ask the association for a piece where it keeps its gear in Ember', async () => {
+        sessionWriter().setInfo(createSessionInfo())
+        ownerAbove.mockResolvedValue('Kreisfeuerwehrverband')
+
+        const view = await settled()
+
+        const panel = view.find('[data-testid="request-from-owner"]')
+        expect(panel.exists()).toBe(true)
+        expect(panel.text()).toContain('Kreisfeuerwehrverband')
+        expect(view.find('[data-testid="request-note-down"]').exists()).toBe(false)
+    })
+
+    it('offers to note a request down where the association is outside Ember and orders may be placed', async () => {
+        sessionWriter().setInfo(createSessionInfo({permissions: ['LOGIN', 'INVENTORY_PROCUREMENT']}))
+
+        const view = await settled()
+
+        expect(view.find('[data-testid="request-note-down"]').exists()).toBe(true)
+    })
+
+    it('offers nothing where the association is outside Ember and no order may be placed', async () => {
+        sessionWriter().setInfo(createSessionInfo())
+
+        const view = await settled()
+
+        expect(view.find('[data-testid="request-from-owner"]').exists()).toBe(false)
     })
 })

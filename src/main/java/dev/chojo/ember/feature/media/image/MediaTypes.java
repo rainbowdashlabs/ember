@@ -57,7 +57,7 @@ public final class MediaTypes {
     }
 
     /**
-     * The type a stored file is served as: what its sidecar recorded, unless that says nothing, in
+     * The type a stored file is served as: what its sidecar recorded, unless that shows nothing, in
      * which case its extension decides. A WebP copy is always served as WebP, whatever the sidecar of
      * an older build wrote beside it.
      *

@@ -19,7 +19,7 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol } from '@/api'
 import { describeFailure } from '@/util/failure'
-import { getItem } from '@/api/storage'
+import { tabStationId } from '@/util/tabPlace'
 import { StationPermission, type TestProtocol, type TestProtocolSection, type TestProtocolItem } from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
 import DragList from '@/components/input/DragList.vue'
@@ -43,7 +43,7 @@ const { hasPermission, loaded } = useSession()
 
 const isFederated = computed(() => {
   if (!proto.value) return false
-  const currentStationId = getItem('station_id')
+  const currentStationId = tabStationId()
   return currentStationId != null && String(proto.value.stationId) !== currentStationId
 })
 
@@ -81,7 +81,7 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
  * Writes one change, then reads the protocol back.
  *
  * <p>The two are answered for separately. A section the server had already stored, followed by a
- * page that would not refresh, used to say the section had been refused, and a reader told that
+ * page that would not refresh, used to show that the section had been refused, and a reader shown that
  * adds it a second time.
  *
  * <p>The protocol stays on screen while it is read back. Taking it away for the moment of the reload

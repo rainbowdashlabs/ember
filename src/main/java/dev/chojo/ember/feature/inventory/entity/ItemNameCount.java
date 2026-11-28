@@ -10,7 +10,7 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 /**
  * One name written on the pieces of an inventory, and how many pieces carry it.
  *
- * <p>What the tidying screen reads. Six rows saying {@code Funkgerät blau} and one saying
+ * <p>What the tidying screen reads. Six rows showing {@code Funkgerät blau} and one showing
  * {@code Funkgerät organge} is the shape that shows somebody where the typo is, which no list of
  * eighteen pieces does.
  *

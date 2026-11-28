@@ -11,7 +11,7 @@ import type {TimestampCheck} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 /**
- * Everything the check says about one timestamp: when, by which service, whether that service is
+ * Everything the check shows about one timestamp: when, by which service, whether that service is
  * one this installation trusts by its pinned root, and the verdict on the stamp itself.
  */
 withDefaults(defineProps<{

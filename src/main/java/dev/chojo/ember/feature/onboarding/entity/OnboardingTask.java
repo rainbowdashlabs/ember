@@ -17,6 +17,10 @@ import java.util.Set;
 /**
  * Everything Ember asks somebody to do as their first steps, in the order it asks.
  *
+ * <p>Some tasks wait for others ({@link #prerequisites()}): inviting members before mail goes out
+ * sends invitations that never arrive. The order here already puts a task after what it waits for,
+ * so the first few ready tasks are the ones worth doing next.
+ *
  * <p>A derived task reads its answer from the data and cannot be ticked off by hand, so it comes
  * back on its own when the thing behind it is undone. A task that is not derived is one Ember cannot
  * see, such as a bookmark, or a decision whose outcome is indistinguishable from the default.
@@ -32,7 +36,7 @@ import java.util.Set;
 public enum OnboardingTask {
     /**
      * A walk past the areas of the station that are on for the reader. It comes first because it
-     * says where the later tasks happen.
+     * shows where the later tasks happen.
      */
     TOUR("member.tour", OnboardingLevel.MEMBER, false),
     /**
@@ -52,7 +56,7 @@ public enum OnboardingTask {
     /**
      * Read rather than derived, because it explains a difference rather than asking for an answer.
      * Deriving it from an answer having been given made the walk end in a sign-up nobody had asked
-     * for, and settled the task for anybody who had once answered anything without ever telling them
+     * for, and settled the task for anybody who had once answered anything without ever showing them
      * what the two kinds of appointment are.
      */
     EVENT_ANSWER("member.eventAnswer", OnboardingLevel.MEMBER, false, StationModule.EVENTS),
@@ -80,18 +84,18 @@ public enum OnboardingTask {
             Audience.only(StationUserType.GUARDIAN),
             StationModule.EVENTS),
 
-    STATION_GROUPS("station.groups", OnboardingLevel.STATION, true),
     STATION_MAIL("station.mail", OnboardingLevel.STATION, true),
+    STATION_MEMBER_TYPES("station.memberTypes", OnboardingLevel.STATION, false),
+    STATION_GROUPS("station.groups", OnboardingLevel.STATION, true),
+    STATION_INVITES("station.invites", OnboardingLevel.STATION, true),
     STATION_BRANDING("station.branding", OnboardingLevel.STATION, true),
     STATION_FIRST_EVENT("station.firstEvent", OnboardingLevel.STATION, true, StationModule.EVENTS),
     STATION_KB_SEED("station.kbSeed", OnboardingLevel.STATION, true, StationModule.KNOWLEDGE_BASE),
     STATION_FEDERATION("station.federation", OnboardingLevel.STATION, true),
-    STATION_INVITES("station.invites", OnboardingLevel.STATION, true),
-    STATION_MEMBER_TYPES("station.memberTypes", OnboardingLevel.STATION, false),
 
     INSTANCE_OWN_ACCOUNT("instance.ownAccount", OnboardingLevel.INSTANCE, true),
-    INSTANCE_LEGAL("instance.legal", OnboardingLevel.INSTANCE, true),
     INSTANCE_MAIL("instance.mail", OnboardingLevel.INSTANCE, true),
+    INSTANCE_LEGAL("instance.legal", OnboardingLevel.INSTANCE, true),
     INSTANCE_FIRST_STATION("instance.firstStation", OnboardingLevel.INSTANCE, true),
     INSTANCE_STATION_REGISTRATION("instance.stationRegistration", OnboardingLevel.INSTANCE, false),
     INSTANCE_SECURITY("instance.security", OnboardingLevel.INSTANCE, false),
@@ -189,6 +193,33 @@ public enum OnboardingTask {
         return switch (this) {
             case TOUR, EVENT_ANSWER, ABSENCE, BOOKMARK, WIKI, QUIZ, PUSH -> true;
             default -> false;
+        };
+    }
+
+    /**
+     * The tasks of the same level this one waits for. It is ready once each of them is done, passed
+     * over or thrown away, or is not asked of this reader at all. A task about a member in somebody's
+     * care waits for the task about the same member.
+     */
+    public Set<OnboardingTask> prerequisites() {
+        return switch (this) {
+            case PROFILE_FIELDS, NOTIFICATIONS, EVENT_ANSWER, WIKI, QUIZ -> Set.of(TOUR);
+            case PUSH -> Set.of(NOTIFICATIONS);
+            case CALENDAR_FEED -> Set.of(EVENT_ANSWER);
+            case ABSENCE -> Set.of(TOUR, EVENT_ANSWER);
+            case BOOKMARK -> Set.of(TOUR, PUSH);
+            case GUARDIAN_USERNAME, GUARDIAN_EVENT_ANSWER -> Set.of(GUARDIAN_PROFILE);
+            case GUARDIAN_LOGIN -> Set.of(GUARDIAN_USERNAME);
+            case GUARDIAN_PASSWORD -> Set.of(GUARDIAN_LOGIN);
+            case STATION_INVITES -> Set.of(STATION_MAIL, STATION_MEMBER_TYPES);
+            case STATION_FIRST_EVENT -> Set.of(STATION_GROUPS);
+            case STATION_FEDERATION -> Set.of(STATION_INVITES);
+            case INSTANCE_MAIL, INSTANCE_SECURITY, INSTANCE_STORAGE, INSTANCE_OPERATIONS ->
+                Set.of(INSTANCE_OWN_ACCOUNT);
+            case INSTANCE_LEGAL -> Set.of(INSTANCE_MAIL);
+            case INSTANCE_FIRST_STATION -> Set.of(INSTANCE_MAIL, INSTANCE_LEGAL);
+            case INSTANCE_STATION_REGISTRATION -> Set.of(INSTANCE_FIRST_STATION);
+            default -> Set.of();
         };
     }
 

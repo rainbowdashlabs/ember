@@ -313,13 +313,13 @@ public class MovementRoutes implements Routes {
     /**
      * Writes down the piece that just arrived and was never here before.
      *
-     * <p>Only where nobody else could have named it: a body that keeps its gear on this instance says
+     * <p>Only where nobody else could have named it: a body that keeps its gear on this instance specifies
      * what it sends when it sends it, and letting the station invent a second row for the same piece
      * would give one thing two records. Where the owner is outside Ember there is nothing to pick
      * from, and this is the only way the chain gets past the step that asks which piece came.
      *
      * <p>It lands in the inventory the movement is about and is owned by whoever that inventory
-     * says it holds gear of; only a mixed inventory leaves the answer to the piece that left.
+     * holds gear of; only a mixed inventory leaves the answer to the piece that left.
      */
     private InventoryItem recordArrival(ItemMovement movement, NewItemRequest request) {
         if (movement.inventoryId() == null) {
@@ -443,8 +443,8 @@ public class MovementRoutes implements Routes {
      * Puts a movement where somebody says it should have been, by saying where its pieces are.
      *
      * <p>Not a status to write, because a movement has none: where it stands is read off its pieces. A
-     * correction therefore says what is true of them, and the chain follows to whichever step that world
-     * has not reached. The log keeps the reason and says it was corrected rather than walked.
+     * correction therefore records what is true of them, and the chain follows to whichever step that world
+     * has not reached. The log keeps the reason and records that it was corrected rather than walked.
      */
     @OpenApi(
             path = "/api/v1/movements/{id}/correct",
@@ -474,7 +474,7 @@ public class MovementRoutes implements Routes {
     }
 
     /**
-     * What moving this movement onto the chain it belongs on would come to, said before it is done.
+     * What moving this movement onto the chain it belongs on would come to, shown before it is done.
      *
      * <p>Asked rather than assumed, because the step it stands on and the steps of the other chain do
      * not line up on their own and a guess would put somebody's gear a stage further on than it is.
@@ -667,7 +667,7 @@ public class MovementRoutes implements Routes {
                 movementService.openOrderOf(movement.id()).orElse(null));
     }
 
-    /** What the piece that set out is called, which is how a list of movements says which jacket this is. */
+    /** What the piece that set out is called, which is how a list of movements shows which jacket this is. */
     private String itemName(Integer itemId) {
         if (itemId == null) return null;
         return inventoryService.findItemById(itemId).map(InventoryItem::name).orElse(null);
@@ -682,7 +682,7 @@ public class MovementRoutes implements Routes {
                 .orElse(null);
     }
 
-    /** The first of the two that says anything, which is how a chosen answer beats a fallback. */
+    /** The first of the two that carries anything, which is how a chosen answer beats a fallback. */
     private String firstWritten(String chosen, String fallback) {
         return chosen != null ? chosen : fallback;
     }
@@ -889,7 +889,7 @@ public class MovementRoutes implements Routes {
             @Nullable String inventoryName,
             /** Whose gear that inventory holds, which is the shelf a replacement may be taken off. */
             @Nullable InventoryType inventoryType,
-            /** The step being waited on, which is what pressing the row's button says has happened. */
+            /** The step being waited on, which is what pressing the row's button signals has happened. */
             @Nullable String currentStepLabel,
             /** Where it stands: the last step whose words are already true, or null at the beginning. */
             @Nullable String reachedStepLabel,
@@ -905,10 +905,10 @@ public class MovementRoutes implements Routes {
             @Nullable String oldSizeName,
             @Nullable String newSizeName,
             Instant createdAt,
-            /** When it last moved, which is what says whether a row has gone quiet. */
+            /** When it last moved, which is what shows whether a row has gone quiet. */
             Instant updatedAt,
             @Nullable Instant closedAt,
-            /** Why it was refused or taken back, which the reason it was started does not say. */
+            /** Why it was refused or taken back, which the reason it was started does not show. */
             @Nullable String closeReason,
             /**
              * Whether the body that owns the gear can answer for itself here. Where it cannot, the
@@ -917,7 +917,7 @@ public class MovementRoutes implements Routes {
             boolean ownerAnswersHere,
             /** The association that owns the gear, by name, or null where the station owns it. */
             @Nullable String ownerName,
-            /** That association's stable identity, which is how a screen tells one body's gear from another's. */
+            /** That association's stable identity, so a screen can distinguish one body's gear from another's. */
             @Nullable String ownerClusterId,
             /**
              * What the piece that set out is called. A member reading their movements has one question
@@ -946,7 +946,7 @@ public class MovementRoutes implements Routes {
             boolean actionable,
             /**
              * The arriving piece. An issue has one from the start where it was promised, and an exchange
-             * gains one halfway; a row that named only what left says nothing at all about either.
+             * gains one halfway; a row that named only what left shows nothing at all about either.
              */
             @Nullable Integer incomingItemId,
             @Nullable String incomingItemName,

@@ -5,7 +5,7 @@
  */
 import {ItemCustody, ItemOwner, type ItemChoice} from '@/api/generated/schema'
 
-/** What a piece has to say for itself to be counted, which a full piece and a picker's piece both do. */
+/** What a piece has to show for itself to be counted, which a full piece and a picker's piece both do. */
 type CountedPiece = Pick<ItemChoice, 'custody' | 'ownerKind' | 'artId' | 'inventoryId'>
 
 /**

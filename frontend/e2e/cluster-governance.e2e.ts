@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders, clustersOf} from './fixtures/auth'
+import {test, expect, apiHeaders, clustersOf, actForCluster} from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
 import {allSections, sidebar, sidebarEntry} from './fixtures/sidebar'
 
@@ -19,7 +19,7 @@ test.describe('Cluster governance', () => {
     /**
      * CLS-17 - A denied module disappears at the station.
      *
-     * Nothing the station put in it is deleted, and the toggle it used to flip says who took it away.
+     * Nothing the station put in it is deleted, and the toggle it used to flip shows who took it away.
      */
     test('a denied module disappears at the station', async ({adminPage: page, browser, request}) => {
         const own = await ownCluster(page, browser, request, 'Modulverband')
@@ -47,7 +47,7 @@ test.describe('Cluster governance', () => {
      * CLS-104 - A module denied for one group is denied there and nowhere else.
      *
      * The denial list was association-wide because there was nothing finer to key it to, and the
-     * association's own document said so. Station groups are that finer thing. Not every station of an
+     * association's own document showed that. Station groups are that finer thing. Not every station of an
      * association does the same work, so not every station has to lose the same module. The station in
      * the filing loses it and the one beside it does not, which is the whole of the claim.
      */
@@ -68,7 +68,7 @@ test.describe('Cluster governance', () => {
             expect(filed.ok(), `and put one station in it (${await filed.text()})`).toBeTruthy()
 
             await page.goto('/cluster/modules')
-            await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+            await actForCluster(page, own.uid)
             await page.goto('/cluster/modules')
             await expect(page.getByTestId('cluster-module-switches')).toBeVisible({timeout: 15000})
 
@@ -133,7 +133,7 @@ test.describe('Cluster governance', () => {
      * CLS-19 - A locked look and feel cannot be changed at the station.
      *
      * The lock is the whole of it: an unlocked setting the cluster handed down is a starting point the
-     * station may still move, and the screen has to tell the two apart. The station then sends its own
+     * station may still move, and the screen has to distinguish the two. The station then sends its own
      * colours anyway, which a screen cannot stop and the server must.
      */
     test('a locked look and feel cannot be changed at the station', async ({adminPage: page, browser, request}) => {
@@ -193,7 +193,7 @@ test.describe('Cluster governance', () => {
         expect(pooled.ok()).toBeTruthy()
 
         await page.goto('/cluster/storage')
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+        await actForCluster(page, own.uid)
         await page.goto('/cluster/storage')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
@@ -212,7 +212,7 @@ test.describe('Cluster governance', () => {
         await expect(row).toContainText('2.0 GiB')
     })
 
-    /** CLS-21 - Quota beyond the pool is refused, and says the pool is the limit. */
+    /** CLS-21 - Quota beyond the pool is refused, and shows the pool is the limit. */
     test('quota beyond the pool is refused', async ({adminPage: page, browser, request}) => {
         const own = await ownCluster(page, browser, request, 'Grenzverband')
         const headers = await apiHeaders(page)

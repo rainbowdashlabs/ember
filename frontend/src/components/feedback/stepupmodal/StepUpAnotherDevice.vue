@@ -56,7 +56,7 @@ async function start() {
   }
 }
 
-/** One ask, saying whether the wait goes on. */
+/** One ask, showing whether the wait goes on. */
 async function poll(): Promise<PollOutcome> {
   if (phase.value !== 'waiting') return 'stop'
   const result = await passkeys.stepUpDevicePoll(pollSecret.value)
@@ -77,7 +77,7 @@ async function poll(): Promise<PollOutcome> {
 
 const {start: startPolling, stop: stopPolling, throttled} = useBackingOffPoll(poll)
 
-/** Why the wait ended, which for a wrong number has to say so or nobody knows to start again. */
+/** Why the wait ended, which for a wrong number has to show that or nobody knows to start again. */
 const failureMessage = computed(() => {
   if (phase.value === 'rejected') return t('passkeys.device.rejected')
   if (phase.value === 'expired') return t('twoFactor.stepUp.anotherDevice.expired')

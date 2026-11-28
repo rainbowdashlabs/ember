@@ -27,7 +27,7 @@ async function mountStep(document: Partial<StepDocumentView>, dependencyMet = tr
     }})
 }
 
-/** A document step says where its document stands and offers the reader's ways on from there. */
+/** A document step shows where its document stands and offers the reader's ways on from there. */
 describe('ProcedureStepDocument', () => {
     it('names the document and how many fields are done while it waits', async () => {
         const view = await mountStep({state: state('WAITING', 5), signHref: '/station/signing/5', signLabel: 'Jetzt unterschreiben'})

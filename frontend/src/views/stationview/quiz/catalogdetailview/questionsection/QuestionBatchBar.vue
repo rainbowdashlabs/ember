@@ -13,7 +13,7 @@ import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
 /**
- * The bar over a selection of questions. Selecting and unselecting stay in sight, since they say
+ * The bar over a selection of questions. Selecting and unselecting stay in sight, since they show
  * what the bar acts on; the actions are a row, with setting the points the one it is opened for.
  */
 defineProps<{

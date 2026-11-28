@@ -13,7 +13,7 @@ import type {StationModule} from '@/api/generated/schema'
 
 /**
  * Every module of the station with its switch. A module the cluster switched off is shown as locked
- * rather than simply off, and says who locked it. A part of a module sits under it and is shown off,
+ * rather than simply off, and shows who locked it. A part of a module sits under it and is shown off,
  * and cannot be switched, while the module itself is off.
  */
 const props = defineProps<{

@@ -33,7 +33,7 @@ import java.util.Optional;
 import java.util.function.UnaryOperator;
 
 /**
- * What a knowledge-base file says: its stored text body, the binary payload behind an upload, the
+ * What a knowledge-base file holds: its stored text body, the binary payload behind an upload, the
  * rendered markdown, and the version history that lets an edit be traced back and undone.
  *
  * <p>Only the first version of a file holds its full text; every later version stores a diff
@@ -70,7 +70,7 @@ public class KbContentService {
      * Reads the text body of a file.
      *
      * <p>A rich article's body is projected from its blocks again on every read, and stored when it
-     * came out different. The projection also carries what the media library says about each
+     * came out different. The projection also carries what the media library holds about each
      * picture, and that can change without anybody touching the article, so the stored copy would
      * otherwise keep the old words until the next edit. No version is recorded for that refresh,
      * because nobody edited the article.
@@ -266,8 +266,8 @@ public class KbContentService {
     }
 
     /**
-     * The blocks of a rich article as a reader sees them: a picture the article says nothing about
-     * carries what its media file says. Only for reading; the editor gets {@link #loadBlocks}, or
+     * The blocks of a rich article as a reader sees them: a picture the article has nothing about
+     * carries what its media file holds. Only for reading; the editor gets {@link #loadBlocks}, or
      * saving would write the file's words into the article for good.
      */
     public List<ContentRow> describedBlocks(KbFile file) {
@@ -296,7 +296,7 @@ public class KbContentService {
 
     /**
      * Deletes the blocks of an article. The container is the owned side, so whatever deletes the
-     * article has to say so.
+     * article has to declare it.
      */
     public void deleteBlocks(KbFile file) {
         blocks.delete(file.containerId());

@@ -28,11 +28,11 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 /**
- * Telling a member that the guardian who looks after them switched signing in on or off.
+ * Letting a member know that the guardian who looks after them switched signing in on or off.
  *
  * <p>The mail waits a few minutes rather than leaving with the switch. A guardian who flicks the
  * toggle by accident and flicks it straight back should reach nobody at all, and that can only be
- * known once the waiting time has passed. What waits is the state to announce; which mail says it is
+ * known once the waiting time has passed. What waits is the state to announce; which mail announces it is
  * decided here, from the account as it stands when the wait is over.
  *
  * <p>An account that has never been claimed is sent the password-setup mail instead of a notice,
@@ -77,7 +77,7 @@ public class ManagedLoginNoticeService {
     }
 
     /**
-     * Notes that signing in was switched, so the member is told once the waiting time has passed.
+     * Notes that signing in was switched, so the member is notified once the waiting time has passed.
      *
      * <p>A member has at most one change waiting. Switching back to what was true before the wait
      * started drops it and sends nothing, which is what makes an accidental toggle silent.
@@ -114,7 +114,7 @@ public class ManagedLoginNoticeService {
     }
 
     /**
-     * Says what is true of the member now, rather than what was true when the switch was flicked:
+     * Reports what is true of the member now, rather than what was true when the switch was flicked:
      * the waiting time is long enough for somebody else to have changed it again.
      */
     private void announce(int memberId) {

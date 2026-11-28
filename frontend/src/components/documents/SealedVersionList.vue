@@ -17,7 +17,7 @@ import {downloadAuthed} from '@/util/downloadAuthed'
 import {formatDateTime, formatSize} from '@/util/format'
 
 /**
- * What a sealed document says about its seal: that it is locked, and every sealed version it holds,
+ * What a sealed document shows about its seal: that it is locked, and every sealed version it holds,
  * newest first, the one it serves marked current and the earlier ones with the date they were
  * superseded. Each version can be saved on its own where the door serves versions, so an earlier state
  * of the signatures stays at hand. The hash is shortened; it names the file, it is not meant to be read in
@@ -42,7 +42,7 @@ const props = withDefaults(defineProps<{
 
 const {t} = useI18n()
 
-/** The first characters of a hash, enough to tell two versions apart at a glance. */
+/** The first characters of a hash, enough to distinguish two versions at a glance. */
 function shortHash(sha256: string): string {
   return sha256.slice(0, 12)
 }

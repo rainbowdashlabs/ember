@@ -55,7 +55,7 @@ import static org.mockito.Mockito.verify;
 
 /**
  * What a comment on a news entry does today, pinned over the real routes, service and storage: who
- * reads, writes, changes and removes it, how it is listed and counted, and whom it tells.
+ * reads, writes, changes and removes it, how it is listed and counted, and whom it notifies.
  */
 class NewsCommentBehaviourTest extends RepositoryTestBase {
     private static final DomainEventBus BUS = mock(DomainEventBus.class);

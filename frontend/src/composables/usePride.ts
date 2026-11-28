@@ -19,7 +19,7 @@ function isPrideMonth(): boolean {
  * <p>The flag looks the same however it was switched on. Reading the month here instead of whether
  * the flag is showing gave an instance that turned it on itself the gradient clipped into the
  * letters, and only June and July the flag behind them, so the setting appeared to do something
- * other than what it says.
+ * other than what it promises.
  */
 export function usePride() {
     const forcePrideFlag = useState('usePride.forced', () => false)

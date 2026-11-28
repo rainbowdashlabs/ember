@@ -17,7 +17,7 @@ import java.util.Locale;
  * How a station's stored timezone and locale turn into the values an export or a report formats with.
  *
  * <p>Both fields are free text a station wrote, so both can be unusable, and every caller answers that the
- * same way: fall back and say so. Kept in one place because a station whose timezone stops parsing should
+ * same way: fall back and report it. Kept in one place because a station whose timezone stops parsing should
  * not print times one way in the attendance report and another in the inventory list.
  */
 public final class StationFormat {
@@ -73,9 +73,9 @@ public final class StationFormat {
      * The language a station's documents are built in, which is German or English and nothing else,
      * because those are the two every template ships in.
      *
-     * <p>English is asked for, never arrived at: a station that has said nothing about its language
+     * <p>English is asked for, never arrived at: a station that has set nothing for its language
      * gets German, which is the language of the people using this and of the interface they pressed
-     * the button in. A station wanting its documents in English says so by setting its locale.
+     * the button in. A station wanting its documents in English does so by setting its locale.
      *
      * @param station the station, or {@code null} when it could not be loaded
      * @return {@code de} or {@code en}

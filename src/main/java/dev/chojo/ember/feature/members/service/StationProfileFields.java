@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
  * A station as the owner of its own profile questions.
  *
  * <p>Its questions are put to kinds of member and to its own groups, their answers live in
- * {@code profile_field_value}, and a change is told to the station's member management.
+ * {@code profile_field_value}, and a change is reported to the station's member management.
  */
 @Singleton
 public class StationProfileFields implements ProfileFieldOwner {
@@ -182,7 +182,7 @@ public class StationProfileFields implements ProfileFieldOwner {
     }
 
     /**
-     * Tells the station's member management, apart from whoever made the change, whatever owner asked the
+     * Notifies the station's member management, apart from whoever made the change, whatever owner asked the
      * questions: a change the association made lands on the station's member as well.
      */
     @Override

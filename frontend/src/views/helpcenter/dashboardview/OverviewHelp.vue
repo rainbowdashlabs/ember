@@ -48,6 +48,7 @@ const activeView = ref('')
 
     <HelpSection :title="t('helpCenter.dashboard.onboardingTitle')">
       <p>{{ t('helpCenter.dashboard.onboardingText') }}</p>
+      <p>{{ t('helpCenter.dashboard.onboardingOrder') }}</p>
       <p>{{ t('helpCenter.dashboard.onboardingGuide') }}</p>
       <p>{{ t('helpCenter.dashboard.onboardingFinish') }}</p>
       <p>{{ t('helpCenter.dashboard.onboardingInstall') }}</p>

@@ -5,6 +5,7 @@
  */
 import client from './client'
 import type {
+    CandidateResponse,
     InviteRequest,
     IssuedOneTimePassword,
     MemberCard,
@@ -20,6 +21,15 @@ import type {
     UpdateAccountResponse,
 } from './generated/schema'
 
+/**
+ * The people of this instance the reader may invite by name whose name holds every word of the search:
+ * people sharing a station or an association with them, and people who chose to be findable.
+ */
+export async function searchInviteCandidates(search: string): Promise<CandidateResponse[]> {
+    const res = await client.get<CandidateResponse[]>('/members/invite-candidates', {params: {q: search}})
+    return res.data
+}
+
 export async function invite(data: InviteRequest): Promise<MemberInviteResponse> {
     const res = await client.post<MemberInviteResponse>('/members/invite', data)
     return res.data
@@ -28,7 +38,7 @@ export async function invite(data: InviteRequest): Promise<MemberInviteResponse>
 /**
  * Changes an account's address, sign-in name and register name.
  *
- * <p>The answer's `emailChange` says what became of an address given in the same call: null when
+ * <p>The answer's `emailChange` shows what became of an address given in the same call: null when
  * the address was left alone, COMMITTED when it is already the account's, WAITING when a link still
  * has to be clicked.
  */
@@ -62,7 +72,7 @@ export async function resetPassword(data: ResetPasswordRequest): Promise<Message
 
 /**
  * Onboards a member again: every passkey disabled, every session ended, a fresh setup link where
- * mail about the account already goes. The answer says whether a setup mail could go out; when not,
+ * mail about the account already goes. The answer shows whether a setup mail could go out; when not,
  * the QR code in the room is the way.
  */
 export async function onboardAgain(accountId: number): Promise<OnboardAgainResponse> {

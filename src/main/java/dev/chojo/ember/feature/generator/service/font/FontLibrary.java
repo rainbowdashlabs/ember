@@ -121,7 +121,7 @@ public class FontLibrary {
     }
 
     /**
-     * Which family the templates of an owner print in for a family name, which says which owner's file
+     * Which family the templates of an owner print in for a family name, which shows which owner's file
      * they would read.
      *
      * @param owner  the station or the association that keeps the templates

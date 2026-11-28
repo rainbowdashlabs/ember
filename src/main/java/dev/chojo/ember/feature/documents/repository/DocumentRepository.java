@@ -177,7 +177,7 @@ public class DocumentRepository {
      *
      * <p>The station is asked for as well as the member, because a binding is a row and a row can
      * name a member of another station. A document of one station never belongs on the record of
-     * somebody at another, whatever the bindings say.
+     * somebody at another, whatever the bindings define.
      *
      * @param stationId     the station the documents belong to
      * @param includeHidden whether the ones kept from the member themselves are listed too
@@ -304,6 +304,8 @@ public class DocumentRepository {
                 .addIf(!filter.includeHidden(), "AND NOT d.hidden")
                 .addIf(filter.unboundOnly(), """
                         AND NOT EXISTS (SELECT 1 FROM member_document_member m2 WHERE m2.document_id = d.id)""")
+                .addIf(filter.boundOnly(), """
+                        AND EXISTS (SELECT 1 FROM member_document_member m3 WHERE m3.document_id = d.id)""")
                 .addIf(filter.departedOnly(), """
                         AND EXISTS (SELECT 1 FROM member_document_member gone WHERE gone.document_id = d.id)
                         AND NOT EXISTS (SELECT 1
@@ -472,7 +474,7 @@ public class DocumentRepository {
      *
      * <p>A kept document that lost its last link would name nobody, and a document naming nobody is the
      * station's own paperwork, readable far more widely than what was filed about one person. The name
-     * keeps it what it was: somebody's paperwork, with somebody to say whose.
+     * keeps it what it was: somebody's paperwork, with somebody to show whose.
      *
      * @param memberId the member about to be deleted
      * @return how many links became a name

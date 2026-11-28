@@ -19,7 +19,7 @@ import jakarta.inject.Singleton;
 
 import java.util.Map;
 
-/** Tells whoever looks after the waiting lists that an invitation has been answered. */
+/** Notifies whoever looks after the waiting lists that an invitation has been answered. */
 @Singleton
 public class WaitlistInvitationAnsweredHandler implements DomainEventHandler<WaitlistInvitationAnswered> {
     private final Notifier notifier;

@@ -185,7 +185,7 @@ class SelfDeliveryTest {
      * A refusal is an answer, not an exception.
      *
      * <p>The intake turns away anything it does not like, and whoever is reporting a problem is not
-     * the person to be told about it: saying no here lets the caller fall back to the way everything
+     * the person to hear about it: answering no here lets the caller fall back to the way everything
      * went before rather than failing the report.
      */
     @Test

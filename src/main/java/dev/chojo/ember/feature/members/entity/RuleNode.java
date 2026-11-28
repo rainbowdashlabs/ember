@@ -158,7 +158,7 @@ public record RuleNode(
 
     /**
      * Whether a check of this tree names nothing any more that it could read, because the group, tag or field it
-     * asked about was deleted underneath it. Such a rule cannot say who belongs, so it is not run.
+     * asked about was deleted underneath it. Such a rule cannot show who belongs, so it is not run.
      */
     public boolean lostATarget() {
         return checks().stream().anyMatch(RuleNode::lostItsTarget);

@@ -312,7 +312,7 @@ public class EventRegistrationService {
         if (!updated) return false;
         log.info("Accepted registration {}", id);
         registrationRepository.findById(id).ifPresent(registration -> {
-            announce(registration.eventId(), registration.memberId(), RegistrationStatus.ACCEPTED);
+            announceDecision(registration.eventId(), registration.memberId(), RegistrationStatus.ACCEPTED);
             recorded(registration);
         });
         return true;
@@ -448,14 +448,14 @@ public class EventRegistrationService {
      *
      * @param eventId   the appointment
      * @param eventDate the date
-     * @return the registrations of this station's members who moved up, to be told once the change is kept
+     * @return the registrations of this station's members who moved up, to be notified once the change is kept
      */
     public List<EventRegistration> fillLocked(int eventId, LocalDate eventDate) {
         return places.fill(eventId, eventDate);
     }
 
     /**
-     * Tells this station's members who moved up, once the change is kept.
+     * Notifies this station's members who moved up, once the change is kept.
      *
      * @param moved the registrations as stored
      */
@@ -601,7 +601,7 @@ public class EventRegistrationService {
     }
 
     /**
-     * Moves a registration to a new status and announces the change.
+     * Moves a registration to the status whoever runs the appointment decided on, and tells the member.
      *
      * @param id     the registration ID
      * @param status the new status
@@ -623,7 +623,7 @@ public class EventRegistrationService {
         }
         log.info("Updated registration {} status to {}", id, status);
         registrationRepository.findById(id).ifPresent(registration -> {
-            announce(registration.eventId(), registration.memberId(), status);
+            announceDecision(registration.eventId(), registration.memberId(), status);
             recorded(registration);
         });
         if (before.status() == RegistrationStatus.ACCEPTED && status != RegistrationStatus.ACCEPTED) {
@@ -638,7 +638,7 @@ public class EventRegistrationService {
      * <p>Only a confirmed place can be taken back, and taking one back is what whoever runs the
      * event has to react to. Everything else is somebody answering the question they were asked, so
      * it declines. Both mean the member will not be there and every count treats them alike; they
-     * are kept apart so the list and the notification can say which of the two happened.
+     * are kept apart so the list and the notification can show which of the two happened.
      *
      * <p>An appointment that expects everybody has no place to give up, so a "no" there always
      * declines. A withdrawal on it is a refusal taken back and reads as coming, so writing one for a
@@ -678,13 +678,13 @@ public class EventRegistrationService {
      *
      * <p>The row is kept and marked, whether or not the place had been confirmed. Taking a place back
      * is a thing somebody did, and whoever runs the appointment has to be able to see that they did
-     * it: a removed row leaves the list one shorter than it was with nothing to say who is missing
+     * it: a removed row leaves the list one shorter than it was with nothing to show who is missing
      * from it, and a place given up before anybody got round to confirming it is still a place given
      * up. Signing up again is unaffected, because a registration is written over its own row where
      * one already stands for that member on that day.
      *
      * <p>What is written is always WITHDRAWN and never a decline, so the list and the notification can
-     * say that a place was given up rather than that somebody declined. Either is an answer: whoever
+     * show that a place was given up rather than that somebody declined. Either is an answer: whoever
      * gives up a place is not asked again before the deadline. What they had answered outlives the
      * refusal by exactly the window it can be taken back in, because an undo handing back a
      * registration with its questions blank would be worse than none.
@@ -801,7 +801,7 @@ public class EventRegistrationService {
     /**
      * Writes a member's registration for one part of an event group with the status of their event group
      * sign-up, tied to that sign-up. A place an appointment field already holds for the member is
-     * only tied, not rewritten: the field decides it. Nobody is told here; the event group tells its
+     * only tied, not rewritten: the field decides it. Nobody is notified here; the event group notifies its
      * people once for all its parts, and whoever keeps a record of the date learns of it through
      * {@link #recordedAll} once the writes are kept.
      *
@@ -832,7 +832,7 @@ public class EventRegistrationService {
 
     /**
      * Moves the registration for one part of an event group to a new status, as the event group sign-up moved.
-     * A place an appointment field holds keeps its status. Nobody is told here either.
+     * A place an appointment field holds keeps its status. Nobody is notified here either.
      *
      * @param registration the registration
      * @param status       the new status
@@ -860,7 +860,7 @@ public class EventRegistrationService {
     }
 
     /**
-     * Tells whoever keeps a record of the dates what registrations written for an event group say now.
+     * Notifies whoever keeps a record of the dates of what registrations written for an event group show now.
      * Called once the writes are kept, so nobody hears of a write that was undone.
      *
      * @param written the registrations as stored
@@ -870,7 +870,7 @@ public class EventRegistrationService {
     }
 
     /**
-     * Tells whoever runs the event that a place has fallen free, where one actually has, and moves the
+     * Notifies whoever runs the event that a place has fallen free, where one actually has, and moves the
      * first in line on the waiting list up into it.
      *
      * <p>What is announced is decided by the place that was held and not by the word written over it:
@@ -891,7 +891,7 @@ public class EventRegistrationService {
     }
 
     /**
-     * Moves people up from the waiting list of a date into the places that are free, and tells them.
+     * Moves people up from the waiting list of a date into the places that are free, and notifies them.
      *
      * @param eventId   the appointment
      * @param eventDate the date
@@ -908,7 +908,7 @@ public class EventRegistrationService {
 
     /**
      * Moves people up on every date of an appointment from one day on that has a waiting list, after
-     * its limit was raised or removed, and tells them.
+     * its limit was raised or removed, and notifies them.
      *
      * @param eventId the appointment
      * @param from    the first date looked at
@@ -929,7 +929,7 @@ public class EventRegistrationService {
     }
 
     /**
-     * Tells the members who moved up from the waiting list, saying so plainly where the date starts in
+     * Notifies the members who moved up from the waiting list, with a plain notice where the date starts in
      * less than a day, and whoever keeps a record of the date.
      */
     private void movedUp(List<EventRegistration> moved) {
@@ -945,7 +945,8 @@ public class EventRegistrationService {
                             RegistrationStatus.ACCEPTED,
                             null,
                             true,
-                            places.startsWithinADay(event, registration.eventDate()))));
+                            places.startsWithinADay(event, registration.eventDate()),
+                            false)));
             recorded(registration);
         }
     }
@@ -968,7 +969,7 @@ public class EventRegistrationService {
     }
 
     /**
-     * Tells whoever cares that a registration changed, naming the member so the message means
+     * Notifies whoever cares that a registration changed, naming the member so the message means
      * something to somebody who is not that member.
      */
     private void announce(int eventId, int memberId, RegistrationStatus status) {
@@ -979,7 +980,18 @@ public class EventRegistrationService {
     }
 
     /**
-     * Tells a member that somebody else put them on the waiting list, with their place in line.
+     * Notifies the member that whoever runs the appointment accepted or denied their registration.
+     * Nobody else hears of it: the one who decided knows, and the registration list shows it.
+     */
+    private void announceDecision(int eventId, int memberId, RegistrationStatus status) {
+        eventRepository
+                .findById(eventId)
+                .ifPresent(event -> eventBus.publish(EventRegistrationStatusChanged.decision(
+                        event.stationId(), event.id(), event.name(), memberId, nameResolver.called(memberId), status)));
+    }
+
+    /**
+     * Notifies a member that somebody else put them on the waiting list, with their place in line.
      *
      * @param registration the registration, which waits on the list
      * @param rank         its place in line
@@ -996,11 +1008,12 @@ public class EventRegistrationService {
                         RegistrationStatus.QUEUED,
                         rank,
                         false,
+                        false,
                         false)));
     }
 
     /**
-     * Tells whoever keeps a record of the date what a registration says now that it was written,
+     * Notifies whoever keeps a record of the date of what a registration shows now that it was written,
      * read back as it was stored.
      *
      * @param registrationId the registration just written
@@ -1010,9 +1023,9 @@ public class EventRegistrationService {
     }
 
     /**
-     * Tells whoever keeps a record of the date what a registration says now that it was written.
+     * Notifies whoever keeps a record of the date of what a registration shows now that it was written.
      *
-     * <p>Every answer is told, whoever gave it and whatever it says, because an attendance sheet
+     * <p>Every answer is reported, whoever gave it and whatever it shows, because an attendance sheet
      * opened for the date before the answer came in would otherwise only learn of it when somebody
      * fills it in from the appointment by hand.
      *

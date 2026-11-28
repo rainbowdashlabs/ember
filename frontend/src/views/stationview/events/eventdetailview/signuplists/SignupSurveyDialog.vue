@@ -20,7 +20,7 @@ import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
 import type {Failure} from '@/util/failure'
 
 /**
- * Names the survey before it is made, and says plainly what it will and will not be yet.
+ * Names the survey before it is made, and shows plainly what it will and will not be yet.
  *
  * <p>A survey is not usable the moment it opens. It is created as a draft with no questions in it,
  * the people it is meant for are set in a second step, and nothing reaches any of them until it is

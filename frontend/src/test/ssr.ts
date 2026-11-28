@@ -51,7 +51,7 @@ export async function renderRequest(render: () => VNodeChild): Promise<string> {
 /**
  * Gives the app the Nuxt instance a server request would have.
  *
- * <p>Nuxt's own flags say browser in every test environment, so creating the instance looks for the
+ * <p>Nuxt's own flags show browser in every test environment, so creating the instance looks for the
  * payload a server left in the page. There is no page here and no payload to find; the lookup is
  * answered with nothing, and the window it needed is gone again before anything renders.
  */

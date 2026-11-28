@@ -331,7 +331,7 @@ public class EventPartnerRegistrationService implements FederationServer {
         tellPartner(registration.eventId(), id, status, null);
     }
 
-    /** Announces a decision about a partner's member once it is kept, so the partner is told. */
+    /** Announces a decision about a partner's member once it is kept, so the partner is notified. */
     private void tellPartner(
             int eventId, int registrationId, RegistrationStatus status, @Nullable Integer queuePosition) {
         var changedAt = Instant.now();
@@ -574,8 +574,8 @@ public class EventPartnerRegistrationService implements FederationServer {
      *
      * <p>Two instances keep two clocks, and a window either could measure is a window neither agrees
      * on. The row lives here, so this station's stamp decides and the partner only asks. A partner
-     * whose clock is minutes out gets this station's answer either way, and its member is told what
-     * this station said.
+     * whose clock is minutes out gets this station's answer either way, and its member sees what
+     * this station answered.
      *
      * @return true where the place was restored, false where the window had closed
      */
@@ -689,7 +689,7 @@ public class EventPartnerRegistrationService implements FederationServer {
      *
      * <p>The same two questions are asked here as at home: is this appointment shared with the
      * partner asking, and is the file one it hands out at all. A file kept back is answered as absent
-     * rather than refused, so asking for one by id says no more than asking for a file that is gone.
+     * rather than refused, so asking for one by id reveals no more than asking for a file that is gone.
      *
      * @param partner      the partnership the request arrived on
      * @param eventId      the appointment
@@ -738,7 +738,7 @@ public class EventPartnerRegistrationService implements FederationServer {
      *
      * <p>Whether it is still possible is this station's to answer, because this station holds the
      * row and the clock that measures the window. A refusal here is not a failure: it means the
-     * few minutes have passed, and the partner tells its member so.
+     * few minutes have passed, and the partner notifies its member of it.
      */
     private void serveUndoWithdrawal(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
@@ -754,9 +754,9 @@ public class EventPartnerRegistrationService implements FederationServer {
      * the partner's places but on a date every place of which is taken, the member goes onto the
      * waiting list and moves up like anybody else.
      *
-     * <p>Two refusals, and they say different things. Without an arrangement the partner is asking for
+     * <p>Two refusals, and they mean different things. Without an arrangement the partner is asking for
      * something it was never given, which is forbidden. With one, but with its places already filled,
-     * the answer is that there is no room, which is an ordinary thing to be told and not a fault.
+     * the answer is that there is no room, which is an ordinary thing to hear and not a fault.
      */
     private void serveConfirmOwn(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {

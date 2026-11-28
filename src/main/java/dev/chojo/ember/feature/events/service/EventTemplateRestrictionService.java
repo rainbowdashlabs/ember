@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Who an event template says its appointments are for, and who may know about them.
+ * Who an event template defines its appointments are for, and who may know about them.
  *
  * <p>Neither audience is a restriction on the template: nobody attends a template. They are what
  * every appointment written from it starts with, so that a station whose appointments are for the

@@ -51,7 +51,7 @@ const pendingName = ref<OwnNameChange | null>(null)
  * Stores the account details, then reads them back.
  *
  * <p>The read is answered for separately: details that were stored and a page that then failed to
- * refresh used to report a refused save, and a reader told that types the change in again.
+ * refresh used to report a refused save, and a reader shown that types the change in again.
  */
 async function saveAccount() {
   failure.value = null
@@ -73,7 +73,7 @@ async function saveAccount() {
   await loadPendingName()
 }
 
-/** Reads the name the reader asked for and that still waits, so the page says so after any visit. */
+/** Reads the name the reader asked for and that still waits, so the page shows that after any visit. */
 async function loadPendingName() {
   try {
     pendingName.value = await members.getOwnNameChange()
@@ -105,7 +105,7 @@ async function saveNickname() {
   await reloadAfterSave()
 }
 
-/** Reads the page back after a save that already landed, and says so where it cannot. */
+/** Reads the page back after a save that already landed, and reports it where it cannot. */
 async function reloadAfterSave() {
   try {
     await load()

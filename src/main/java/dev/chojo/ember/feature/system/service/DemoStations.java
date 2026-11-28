@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * The stations the demo builds in full, and the only place that says how many there are.
+ * The stations the demo builds in full, and the only place that defines how many there are.
  *
  * <p>Two of them, the same station twice: one answering to the demo association and one answering to
  * nobody. Every feature has two answers, one for each, and a demo carrying only the first can show only

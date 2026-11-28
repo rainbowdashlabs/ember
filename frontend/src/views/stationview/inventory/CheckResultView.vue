@@ -33,7 +33,7 @@ const {config: detail, loading, failure} = useConfigPanel<EnrichedCheckDetail | 
 })
 
 /**
- * Whose result is being read, at the head of the page, so two of them open at once are told apart
+ * Whose result is being read, at the head of the page, so two of them open at once are distinguished
  * in the tab and in the history. The plain wording stands where the page was opened without a name
  * to show.
  */

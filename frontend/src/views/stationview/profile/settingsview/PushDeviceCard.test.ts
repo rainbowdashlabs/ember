@@ -42,7 +42,7 @@ async function card() {
 
 /**
  * The card asks nothing of the browser until pressed, then registers this device under its name, and
- * says plainly where the browser cannot do it.
+ * shows plainly where the browser cannot do it.
  */
 describe('PushDeviceCard', () => {
     beforeEach(() => {

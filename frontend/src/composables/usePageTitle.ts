@@ -17,9 +17,9 @@ import {pageModuleKeys, titleWithModule} from '@/util/pageModule'
  *
  * <p>The tab reads the page, then the parts of the product it belongs to, then the product: a ticket
  * is "GEM-4 Löschzug melden - Boards - Ember", and an association's appointment is
- * "Sommerfest - Termine - Verband - Ember", which is what tells it apart from the station's own
+ * "Sommerfest - Termine - Verband - Ember", which is what distinguishes it from the station's own
  * appointment page drawn by the very same view. A dozen tabs on one installation are otherwise a
- * row of names with nothing saying which is a ticket and which is a member, and the same string is
+ * row of names with nothing showing which is a ticket and which is a member, and the same string is
  * what a bookmark and a history entry keep. The last part comes from the template in `app.vue`.
  */
 export function usePageTitle() {

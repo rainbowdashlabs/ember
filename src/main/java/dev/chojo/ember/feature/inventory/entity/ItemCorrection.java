@@ -22,7 +22,7 @@ import java.util.Optional;
  *                     record had them holding nothing
  * @param pickedItemId a piece already in the free stock, or {@code null} to make a new one
  * @param sizeId       the size of the new piece, or {@code null} in an inventory without sizes
- * @param ownerKind    who owns the new piece, which only a mixed inventory has to be told
+ * @param ownerKind    who owns the new piece, which only a mixed inventory has to be given
  * @param internalId   the number on the new piece, or {@code null} where it carries none
  * @param metadata     the inventory's own fields for the new piece
  */

@@ -51,7 +51,7 @@ const props = withDefaults(defineProps<{
    * station's own surveys keep the screens they always had.
    *
    * <p>Without this the two shared one address, so editing a contact form lit up the surveys entry
-   * in the menu and put the reader at an address that said the form lived somewhere it does not.
+   * in the menu and put the reader at an address that placed the form somewhere it does not live.
    */
   createRouteName?: string
   editRouteName?: string

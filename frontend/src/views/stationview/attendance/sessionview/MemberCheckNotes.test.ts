@@ -94,8 +94,8 @@ describe('MemberCheckNotes', () => {
     })
 
     /**
-     * Being told a swap is waiting and being allowed to move it on are different rights. Without the
-     * second the note still says what is happening, and offers no button.
+     * Seeing that a swap is waiting and being allowed to move it on are different rights. Without the
+     * second the note still shows what is happening, and offers no button.
      */
     it('shows a swap without a button to a reader who may not move it', () => {
         const wrapper = mount(MemberCheckNotes, {props: {notes: notes({swaps: [handOver()]})}, ...i18n})
@@ -137,7 +137,7 @@ describe('MemberCheckNotes', () => {
         expect(sizeless.find('[data-testid="note-swap"]').text()).toContain('Einsatzjacke 04')
     })
 
-    /** A handover whose replacement nobody has picked says so instead of offering a step that refuses. */
+    /** A handover whose replacement nobody has picked shows that instead of offering a step that refuses. */
     it('says so where the replacement has not been picked', () => {
         const wrapper = mount(MemberCheckNotes, {
             props: {canManageSwap: true, notes: notes({swaps: [handOver({replacementItemId: null})]})},
@@ -150,7 +150,7 @@ describe('MemberCheckNotes', () => {
 
     /**
      * A reader who may see a swap but not move it reads where it stands and presses nothing. Which
-     * step it is stays on the row either way, since that is what says what is about to happen.
+     * step it is stays on the row either way, since that is what shows what is about to happen.
      */
     it('names the step without a button where the reader may not move it', () => {
         const wrapper = mount(MemberCheckNotes, {
@@ -190,7 +190,7 @@ describe('MemberCheckNotes', () => {
 
     /**
      * The sheet is worked through at speed with the member in the room, and a movement removed by a
-     * mis-press cannot be got back, so the press asks first and says which piece it is about.
+     * mis-press cannot be got back, so the press asks first and shows which piece it is about.
      */
     it('asks before calling a swap off, and names the piece when it does', async () => {
         const wrapper = mount(MemberCheckNotes, {

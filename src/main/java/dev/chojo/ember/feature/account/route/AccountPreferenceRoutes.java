@@ -43,9 +43,26 @@ public class AccountPreferenceRoutes implements Routes {
      */
     public record SidebarPreference(@Nullable SidebarMode sidebar) {}
 
+    /**
+     * Whether member managers of any station of this instance may find the account by its name to invite
+     * it. Managers who share a station or an association with the account find it either way.
+     *
+     * @param findable whether it may be found
+     */
+    public record FindablePreference(@Nullable Boolean findable) {}
+
+    /**
+     * Whether the own account may be found by its name from every station of this instance.
+     *
+     * @param findable whether it may be found
+     */
+    public record Findable(boolean findable) {}
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.put(prefix + "/session/preferences/sidebar", this::setSidebar, StationPermission.LOGIN);
+        routes.get(prefix + "/session/preferences/findable", this::findable, StationPermission.LOGIN);
+        routes.put(prefix + "/session/preferences/findable", this::setFindable, StationPermission.LOGIN);
     }
 
     @OpenApi(
@@ -59,6 +76,30 @@ public class AccountPreferenceRoutes implements Routes {
         var mode = ctx.bodyAsClass(SidebarPreference.class).sidebar();
         if (mode == null) throw BodyRefusal.BODY_DOES_NOT_MATCH.raise();
         preferences.setSidebar(UserSession.from(ctx).accountId(), mode);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/session/preferences/findable",
+            methods = HttpMethod.GET,
+            summary = "Whether the own account may be found by its name from every station of this instance",
+            tags = {"Session"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Findable.class)))
+    private void findable(Context ctx) {
+        ctx.json(new Findable(preferences.findableByName(UserSession.from(ctx).accountId())));
+    }
+
+    @OpenApi(
+            path = "/api/v1/session/preferences/findable",
+            methods = HttpMethod.PUT,
+            summary = "Choose whether the own account may be found by its name from every station of this instance",
+            tags = {"Session"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FindablePreference.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void setFindable(Context ctx) {
+        var findable = ctx.bodyAsClass(FindablePreference.class).findable();
+        if (findable == null) throw BodyRefusal.BODY_DOES_NOT_MATCH.raise();
+        preferences.setFindableByName(UserSession.from(ctx).accountId(), findable);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 }

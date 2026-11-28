@@ -49,7 +49,7 @@ function overview(shown: EventGroupDetail) {
   return mount(EventGroupOverview, {props: {detail: shown}, global: {stubs: {EventGroupFields: true, RowLink: {template: '<a><slot/></a>'}}}})
 }
 
-/** The overview says how the places for people stand and how each part's own places stand. */
+/** The overview shows how the places for people stand and how each part's own places stand. */
 describe('EventGroupOverview places', () => {
   it('says how the places for people stand, with whoever waits', () => {
     const shown = overview(detail(10, 4, 2, [part(11)]))
@@ -58,7 +58,7 @@ describe('EventGroupOverview places', () => {
     expect(shown.find('[data-testid="event-group-waiting"]').exists()).toBe(false)
   })
 
-  /** Without a people limit the count of sign-ups stands alone, and whoever waits is said beside it. */
+  /** Without a people limit the count of sign-ups stands alone, and whoever waits is shown beside it. */
   it('names the waiting count beside the sign-ups where no people limit is set', () => {
     const shown = overview(detail(null, 4, 3, [part(11)]))
 

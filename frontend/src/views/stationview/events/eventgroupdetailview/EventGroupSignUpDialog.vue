@@ -44,7 +44,7 @@ import {formatDateTime} from '@/util/format'
 
 /**
  * Signs somebody up for an event group, or changes the parts they chose: every part as a box, grouped by
- * set with the set's minimum beside it. Saving stays off while a set is short, and the dialog says
+ * set with the set's minimum beside it. Saving stays off while a set is short, and the dialog shows
  * which one and by how much. A part called off cannot be newly chosen; one already held stays. A
  * part that already took place stays as it is. A new sign-up also answers the event group's questions;
  * those are changed on their own afterwards.
@@ -54,7 +54,7 @@ import {formatDateTime} from '@/util/format'
  *
  * <p>A block with a maximum takes no further part once it holds that many, and a block of exactly one
  * reads as a choice between alternatives: ticking one part takes the other off. A part whose places
- * are all taken says so; choosing it puts the whole sign-up on the waiting list, which the dialog says
+ * are all taken is marked so; choosing it puts the whole sign-up on the waiting list, which the dialog shows
  * before it is sent. A sign-up already accepted cannot add a full part, so such a part stays off.
  *
  * <p>Whoever runs events signing somebody else up may break the rules: the shortfalls and the excess
@@ -71,7 +71,7 @@ const props = withDefaults(defineProps<{
   entry: EventGroupSignUp
   /** Whether whoever runs events signs somebody up, which passes the rules and parts already past. */
   override?: boolean
-  /** Where the sign-up goes; an event group of this station unless a partner's event group page says otherwise. */
+  /** Where the sign-up goes; an event group of this station unless a partner's event group page sets another. */
   port?: EventGroupSignUpPort
 }>(), {
   override: false,
@@ -112,7 +112,7 @@ const fullDate = useFullDateChoice()
 /**
  * Whether a new sign-up as chosen would wait on the waiting list rather than get its places at once.
  * A sign-up already standing keeps where it stands when its parts change, and whoever runs events is
- * asked instead of told.
+ * asked instead of informed.
  */
 const waits = computed(() => !changing.value && !props.override
     && choiceWaits(props.detail.eventGroup, props.detail.parts, chosen.value))

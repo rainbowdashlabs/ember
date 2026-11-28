@@ -18,14 +18,13 @@ import {useSession} from '@/composables/useSession'
  */
 const props = defineProps<{
   memberId: number
-  canEdit: boolean
   allMembers: MemberWithName[]
 }>()
 
 const {t} = useI18n()
 const {hasPermission, isModuleEnabled} = useSession()
 
-const canGenerate = computed(() =>
+const managesDocuments = computed(() =>
     isModuleEnabled(StationModule.DOCUMENTS) && hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
 const generating = ref(false)
 const filed = ref(0)
@@ -33,7 +32,7 @@ const filed = ref(0)
 
 <template>
   <div class="space-y-4">
-    <div v-if="canGenerate" class="flex justify-end">
+    <div v-if="managesDocuments" class="flex justify-end">
       <PrimaryButton :icon="['fas', 'file-circle-plus']" data-testid="document-generate-open" @click="generating = true">
         {{ t('documentTemplates.generateOpen') }}
       </PrimaryButton>
@@ -41,9 +40,9 @@ const filed = ref(0)
     <MemberDocumentsPanel
         :key="filed"
         :member-id="props.memberId"
-        :can-upload="canEdit"
-        :can-edit="canEdit"
-        :manage-signatures="canGenerate"
+        :can-upload="managesDocuments"
+        :can-edit="managesDocuments"
+        :manage-signatures="managesDocuments"
         :all-members="allMembers"
     />
     <GenerateDocumentModal v-if="generating" v-model="generating" :member-id="props.memberId" @filed="filed++"/>

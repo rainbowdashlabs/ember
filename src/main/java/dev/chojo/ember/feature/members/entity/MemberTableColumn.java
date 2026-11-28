@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.jspecify.annotations.Nullable;
 
 /**
- * One column a station asked for, named by what it points at rather than by what it says.
+ * One column a station asked for, named by what it points at rather than by what it shows.
  *
  * <p>No label is kept. A field renamed after a selection was saved would otherwise go on being
  * printed under its old name, and how a date is shown is the field's own business: a birth date

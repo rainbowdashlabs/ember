@@ -15,7 +15,7 @@ import PlaceholderPicker from './PlaceholderPicker.vue'
 /**
  * The placeholder picker behind a button, for a place too narrow to show it open, such as a field on
  * a PDF or the title of a template. It closes once a placeholder is picked, unless shift was held, so
- * several go in one after another; a line under the picker says so.
+ * several go in one after another; a line under the picker shows that.
  */
 defineProps<{
   placeholders: Placeholder[]

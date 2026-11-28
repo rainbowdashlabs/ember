@@ -29,7 +29,7 @@ const PDF_TYPE = 'application/pdf'
 /** Where the service worker answers a saved file, matching the path in {@code public/sw.js}. */
 const WORKER_SAVE_PATH = '/save-file/'
 
-/** How long the worker has to say it holds the bytes before the blob address is used instead. */
+/** How long the worker has to report it holds the bytes before the blob address is used instead. */
 const WORKER_REPLY_TIMEOUT_MS = 2_000
 
 /** How far a save got, which is the only way a caller can know the reader was left with nothing. */
@@ -38,7 +38,7 @@ export const SaveResult = {
     DONE: 'DONE',
     /** The reader closed the share sheet without choosing, which is an answer and not a failure. */
     DISMISSED: 'DISMISSED',
-    /** Neither route works in this browser, so the reader has nothing and has not been told. */
+    /** Neither route works in this browser, so the reader has nothing and has not been informed. */
     UNAVAILABLE: 'UNAVAILABLE',
 } as const
 
@@ -56,7 +56,7 @@ export type SaveResultName = (typeof SaveResult)[keyof typeof SaveResult]
  * <p>A reader who closes the sheet has chosen, and nothing more happens. A sheet that refuses the
  * file has not been chosen against, most often because the press that would have opened it has since
  * expired, so the download link is tried instead: the answer at a desk, in a phone's own browser and
- * in an installed app, and no answer only where a browser is embedded in another app. Saying which
+ * in an installed app, and no answer only where a browser is embedded in another app. Reporting which
  * of the three happened is this function's job, because the alternative is the button that does
  * nothing and explains nothing.
  */
@@ -90,7 +90,7 @@ async function downloadInstead(blob: Blob, filename: string): Promise<SaveResult
  * Opens the document in the browser's own viewer, for the browser that was going to do that anyway.
  *
  * <p>Firefox on Android renders a PDF itself, and decides that a file is one by the ending of its
- * name whatever it has been told the bytes are. Asked to save one it therefore opens it, in a window
+ * name whatever the bytes are declared to be. Asked to save one it therefore opens it, in a window
  * beside the one that asked, and an installed app has nowhere to put such a window: the reader loses
  * the page they were on and never sees the document. Opened on purpose, the same viewer arrives with
  * its own saving in it, which is the journey the browser's own window has always taken.
@@ -108,7 +108,7 @@ async function openInBrowsersViewer(blob: Blob, filename: string): Promise<SaveR
  * worker to answer it.
  *
  * <p>Bytes fetched from an address are handled by every browser the same way; bytes handed over as a
- * blob address are handled only by the ones that guess kindly. Waits to be told the worker is
+ * blob address are handled only by the ones that guess kindly. Waits for word that the worker is
  * holding them, because a worker is started on being spoken to and a fetch sent before it has heard
  * finds nothing there.
  */

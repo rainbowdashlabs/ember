@@ -135,7 +135,7 @@ public class EventFieldDefaultService {
      * <p>What an appointment writes into a field of the attendance sheet lands there as the answer,
      * so it is measured against that field: a choice has to be one the sheet offers. Only a value
      * typed here is measured; the ones that carry a property of the appointment across, its name or
-     * its date, are whatever the appointment says.
+     * its date, are whatever the appointment holds.
      *
      * @throws RefusalResponse naming the field and what is wrong with the value
      */

@@ -20,13 +20,13 @@ public enum PasskeyRefusal implements Refusal {
     /**
      * A sign-in vouched for by another device that did not end in a session. One code and one
      * sentence for a claim nobody ever handed out, a claim already spent, and an account the
-     * sign-in was then refused for: telling them apart would say whether a guessed claim was real
+     * sign-in was then refused for: distinguishing them would reveal whether a guessed claim was real
      * and what state the account behind it is in.
      */
     DEVICE_SIGN_IN_NOT_GRANTED(
             2, HttpStatus.UNAUTHORIZED, "That sign-in could not be completed. Ask the other device again"),
 
-    /** A device asking whether it has been let in yet without saying which request it is. */
+    /** A device asking whether it has been let in yet without indicating which request it is. */
     DEVICE_POLL_SECRET_MISSING(3, HttpStatus.BAD_REQUEST, Sentences.REQUEST_INCOMPLETE),
 
     /** A passkey being made on a new device without the permission the handshake hands over. */
@@ -34,7 +34,7 @@ public enum PasskeyRefusal implements Refusal {
 
     /**
      * A permission to make a passkey on a new device that is unknown, has run out or has already
-     * been spent. One code deliberately: telling them apart would say which guesses were once real.
+     * been spent. One code deliberately: distinguishing them would reveal which guesses were once real.
      */
     DEVICE_ENROLMENT_NOT_BEGUN(5, HttpStatus.UNAUTHORIZED, Sentences.PASSKEY_ENROLMENT_REFUSED),
 
@@ -52,7 +52,7 @@ public enum PasskeyRefusal implements Refusal {
 
     /**
      * An enrolment link that names nobody. One code for unknown, run out and already spent, because
-     * this is the one place that would otherwise say a name, and guessing must earn nothing.
+     * this is the one place that would otherwise reveal a name, and guessing must earn nothing.
      */
     ENROLMENT_LINK_UNKNOWN(9, HttpStatus.NOT_FOUND, Sentences.ENROLMENT_LINK_NOT_GOOD),
 
@@ -113,7 +113,7 @@ public enum PasskeyRefusal implements Refusal {
      * A passwordless sign-in that did not work, for every reason it does not work: an unknown
      * passkey, a signature that did not verify, a passkey that may not sign in, an address nobody
      * has confirmed. One code and one sentence deliberately, because anybody grinding this endpoint
-     * must be told the same thing every time or it becomes a list of who has a passkey here.
+     * must get the same answer every time or it becomes a list of who has a passkey here.
      */
     PASSKEY_SIGN_IN_REFUSED(
             25, HttpStatus.UNAUTHORIZED, "Signing in with that passkey did not work. Try another way in"),

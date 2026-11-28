@@ -28,7 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Where a station moving to another instance stands, and the destination saying it is done.
+ * Where a station moving to another instance stands, and the destination reporting it is done.
  */
 class TransferRoutesTest {
     private final StationExportService exports = mock(StationExportService.class);

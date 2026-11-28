@@ -18,7 +18,7 @@ import java.util.Optional;
  * <p>Who is asked it is not here. A field used to carry its audience, so the same question put to two
  * kinds of member was two rows with two answers, and a manager, who is asked the team's questions as
  * well as their own, saw it twice. The audiences live in {@link ProfileFieldAssignment} now, and this
- * says only what the question is.
+ * shows only what the question is.
  *
  * @param id            the field identifier
  * @param stationId     the station this field belongs to
@@ -29,7 +29,7 @@ import java.util.Optional;
  *                      audience
  * @param readonly      whether only the member management may write the answer. The question's own,
  *                      for everybody asked it: who may write an answer is a property of the question
- *                      rather than something one audience is told and another is not.
+ *                      rather than something one audience is given and another is not.
  * @param width         how much of a row the question takes: {@code full}, {@code half} or
  *                      {@code third}, null meaning the whole row. An assignment may override it for
  *                      its own audience, because the same question sits on forms of different shapes.

@@ -30,8 +30,8 @@ import java.util.Optional;
  * Comments on a board ticket.
  *
  * <p>They are read by whoever may view the ticket's board and written by whoever may edit it. Only
- * their author changes them; their author or a board manager removes them. Every comment tells the
- * ticket's watchers and whoever it mentions, wherever it was written from; a reply does not tell the
+ * their author changes them; their author or a board manager removes them. Every comment notifies the
+ * ticket's watchers and whoever it mentions, wherever it was written from; a reply does not notify the
  * author of the answered comment on its own.
  */
 @Singleton

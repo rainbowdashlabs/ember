@@ -15,7 +15,7 @@ import java.util.Objects;
  *
  * <p>One shape for all three ways it travels: served to a partner, fetched from a partner over
  * HTTP, and handed over directly between two stations on the same instance. The three used to be
- * three identical records, so anything added to what a shared appointment says had to be added
+ * three identical records, so anything added to what a shared appointment carries had to be added
  * three times, and forgetting one of them left the same appointment reading differently depending
  * on where the partner lives.
  *

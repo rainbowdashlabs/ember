@@ -186,7 +186,7 @@ class MovementRoutesTest {
     }
 
     /**
-     * Calling off says what becomes of the piece that set out: given back unless kept, and a way back
+     * Calling off decides what becomes of the piece that set out: given back unless kept, and a way back
      * planned only where asked for.
      */
     @Test

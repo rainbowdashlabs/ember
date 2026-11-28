@@ -103,7 +103,7 @@ class OnboardingTaskRepositoryTest extends RepositoryTestBase {
         assertTrue(find(elsewhere, "member.wiki").isEmpty());
     }
 
-    /** A tick says the person knows the thing, which a later word on another station does not undo. */
+    /** A tick shows the person knows the thing, which a later word on another station does not undo. */
     @Test
     void aTickOnAnotherStationOutweighsALaterWord() {
         repository.markForMember(otherMember.id(), "member.bookmark", "CONFIRMED");

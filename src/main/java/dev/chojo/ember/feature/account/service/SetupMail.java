@@ -8,9 +8,9 @@ package dev.chojo.ember.feature.account.service;
 /**
  * Whether the mail that lets somebody claim a new account leaves with the account.
  *
- * <p>Entering people and telling them about it are two acts that do not always belong to the same
- * afternoon. A whole year group is written down before the term starts and told in September; a
- * single member is entered while they stand at the desk and told once their address has been checked.
+ * <p>Entering people and notifying them about it are two acts that do not always belong to the same
+ * afternoon. A whole year group is written down before the term starts and notified in September; a
+ * single member is entered while they stand at the desk and notified once their address has been checked.
  * The mail is sent by hand afterwards from the member list, which mints a fresh link at that moment,
  * so nothing runs out in between.
  *

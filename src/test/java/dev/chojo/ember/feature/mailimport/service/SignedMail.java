@@ -46,7 +46,7 @@ final class SignedMail {
     /**
      * The same message with a signature of that domain in front of it.
      *
-     * @param domain what goes into {@code d=}, which need not be the domain the message says it is from
+     * @param domain what goes into {@code d=}, which need not be the domain the message claims it is from
      * @param source the message as it stands, which the signature is taken over byte for byte
      */
     static byte[] signedBy(String domain, byte[] source) throws Exception {

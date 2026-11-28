@@ -3,6 +3,6 @@
       <h2>Welcome, {{ name }}!</h2>
       <p>Please verify your email address by clicking the button below:</p>
       <div class="btn-wrap"><a class="btn" href="{{ url }}">Verify Email</a></div>
-      <p class="hint">This link expires in 24 hours.</p>
+      <p class="hint">This link expires in {{ validFor }}.</p>
       <p class="hint">If you did not create this account, you can ignore this email.</p>
 {% endblock %}

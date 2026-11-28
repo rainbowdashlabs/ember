@@ -231,7 +231,7 @@ class MailboxReaderTest {
      * it and keep what it read before.
      *
      * <p>The last message is the one removed because the test server renumbers the others at once, where
-     * a real one waits until it has told this session. Removing one from the middle would have the test
+     * a real one waits until it has informed this session. Removing one from the middle would have the test
      * server hand the next message over under the removed one's number.
      */
     @Test
@@ -432,7 +432,7 @@ class MailboxReaderTest {
         }
     }
 
-    /** Nothing here can honestly say whether a signature holds over bytes it had to rebuild itself. */
+    /** Nothing here can honestly confirm whether a signature holds over bytes it had to rebuild itself. */
     @Test
     void aMessageTheServerCannotHandBackUnalteredHasNoSourceToCheck() throws Exception {
         var local = new MimeMessage(Session.getInstance(new Properties()));

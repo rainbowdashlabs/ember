@@ -65,8 +65,8 @@ describe('useConfirmAction', () => {
   })
 
   /**
-   * Somebody clearing out twenty rows knows what the question says by the third one. Holding shift
-   * says they have read it.
+   * Somebody clearing out twenty rows knows what the question asks by the third one. Holding shift
+   * shows they have read it.
    */
   it('acts at once while shift is held, without asking', async () => {
     const done: string[] = []
@@ -80,7 +80,7 @@ describe('useConfirmAction', () => {
     expect(done, 'and it happened').toEqual(['Helm'])
   })
 
-  /** The page's alert says what went wrong, and an open dialog over it hid it. */
+  /** The page's alert shows what went wrong, and an open dialog over it hid it. */
   it('closes the question when the action is refused, and says why', async () => {
     const action = refusedActionOn()
 

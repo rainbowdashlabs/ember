@@ -69,6 +69,16 @@ class BrowserStorageServiceTest {
     }
 
     @Test
+    void valuesOfOneTabAreMarkedAsSessionStorage() {
+        String german = service.toMarkdown("de");
+        String english = service.toMarkdown("en");
+
+        assertTrue(german.contains("**`tab_station_id`** (Sitzungsspeicher des Tabs) - "), german);
+        assertTrue(english.contains("**`tab_cluster_id`** (session storage of the tab) - "), english);
+        assertTrue(english.contains("at most until you close the tab"), english);
+    }
+
+    @Test
     void anEntryWithoutAKindLivesInLocalStorage() {
         var entry = new BrowserStorageEntry("key", null, BrowserStorageEntry.Necessity.COMFORT, null, null);
         assertEquals(BrowserStorageEntry.Kind.LOCAL_STORAGE, entry.kind());

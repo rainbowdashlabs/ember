@@ -11,7 +11,7 @@ import {byValue} from '@/composables/useSortable'
 import {useDataTable} from '@/composables/useDataTable'
 import {checkerName, formatDate, isLockedByMe, isLockedByOther, memberName} from './memberHelpers'
 
-/** What the status column can say about a member's check. A member checked and free says nothing. */
+/** What the status column can show about a member's check. A member checked and free shows nothing. */
 export const CheckStatus = {
     LOCKED: 'locked',
     MINE: 'mine',

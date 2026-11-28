@@ -436,12 +436,12 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     public record PublicBrowseResponse(@Nullable KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}
 
     /**
-     * What a public wiki says about the station behind it.
+     * What a public wiki shows about the station behind it.
      *
      * <p>The timezone is what a date in an article is written on. Neither the server that renders the
      * page nor the browser that renders it again stands where the reader does, so a date put on
      * whichever clock wrote it comes out differently in the two copies; the station's clock is the one
-     * both can be told to use.
+     * both can be set to use.
      */
     public record PublicKbInfo(String stationName, String stationUid, String stationTimezone) {}
 

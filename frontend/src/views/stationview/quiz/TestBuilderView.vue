@@ -229,9 +229,9 @@ async function saveSections(id: number) {
  * Writes the test, then its sections and who may sit it.
  *
  * <p>The test itself is answered for separately from what follows it. A new test the server had
- * already written, followed by sections it would not take, used to say the whole save had failed,
- * and a reader told that presses save again and ends up with two tests of the same name. What it
- * says now is that the test exists and is missing its sections.
+ * already written, followed by sections it would not take, used to show that the whole save had failed,
+ * and a reader shown that presses save again and ends up with two tests of the same name. What it
+ * shows now is that the test exists and is missing its sections.
  */
 async function save() {
   failure.value = null

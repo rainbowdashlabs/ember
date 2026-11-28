@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.OccurrenceWindows;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.service.EmailService;
-import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
@@ -31,9 +30,10 @@ import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
- * What an invitation to come and look says, and writing it to whoever can be written to: the
+ * What an invitation to come and look carries, and writing it to whoever can be written to: the
  * invitation itself, other dates replacing it, the start of the trial and being taken off the list.
  * All four go to the same people, so all four are written here.
  *
@@ -42,10 +42,10 @@ import java.util.Locale;
  * collecting, and "the date does not suit" in particular is about a date that has to be on screen.
  *
  * <p><b>Where "wo" comes from.</b> An appointment has no place of its own. A station that wants one
- * on the invitation says so in one of two ways it already has, and this reads them in that order: a
+ * on the invitation sets it in one of two ways it already has, and this reads them in that order: a
  * field of type location on the appointment, which is how a one-off meeting point is named, and
  * otherwise the station's postal address, which is an opt-in of its own. When neither is there the
- * invitation says nothing about where, rather than guessing at an address the station never
+ * invitation shows nothing about where, rather than guessing at an address the station never
  * published.
  */
 @Singleton
@@ -145,7 +145,7 @@ public class WaitlistInvitationMessage {
     }
 
     /**
-     * Tells everybody on the entry who left an address that the trial has begun.
+     * Notifies everybody on the entry who left an address that the trial has begun.
      *
      * @param message what the station wrote to them, empty for nothing
      */
@@ -167,13 +167,13 @@ public class WaitlistInvitationMessage {
     }
 
     /**
-     * Tells everybody on the entry who left an address that the station has taken them off the list.
+     * Notifies everybody on the entry who left an address that the station has taken them off the list.
      *
      * <p>Read before the entry is deleted and sent after, since the addresses go with the entry.
      *
      * @param recipients  the addresses as they were before the entry went
      * @param message     what the station wrote to them, empty for nothing
-     * @param duringTrial whether a running trial ended with it, which the mail says in its own words
+     * @param duringTrial whether a running trial ended with it, which the mail puts in its own words
      */
     public void sendRemoved(List<Recipient> recipients, Station station, String message, boolean duringTrial) {
         String language = StationFormat.languageOf(station);
@@ -198,7 +198,7 @@ public class WaitlistInvitationMessage {
     }
 
     /**
-     * One offered date in one line, as the station and the family are told it, or empty when its
+     * One offered date in one line, as the station and the family receive it, or empty when its
      * appointment is gone.
      */
     public String summary(Station station, WaitingListInvitation.OfferedDate date) {
@@ -242,11 +242,11 @@ public class WaitlistInvitationMessage {
     }
 
     /**
-     * What the invitation can say about the dates it offers, all of it already written out for a
+     * What the invitation can show about the dates it offers, all of it already written out for a
      * reader.
      *
      * <p>A date whose appointment has since been deleted is left out rather than failing the whole
-     * invitation: the person still has to be told they are invited, and to the dates that remain.
+     * invitation: the person still has to be notified that they are invited, and to the dates that remain.
      */
     public WaitlistInvitationDetails describe(Station station, @Nullable WaitingListInvitation invitation) {
         if (invitation == null) return WaitlistInvitationDetails.NONE;
@@ -278,13 +278,10 @@ public class WaitlistInvitationMessage {
                 + format.format(LocalTime.from(event.endTime().atZone(zone)));
     }
 
+    /** Where to come: the place the calendar shows, else the station's own address. */
     private String location(StationEvent event, Station station, LocalDate date) {
-        return eventFieldRepository.findShownOn(event.id(), date).stream()
-                .filter(field -> field.fieldType() == FieldType.LOCATION)
-                .map(AppointmentField::value)
-                .filter(value -> value != null && !value.isBlank())
-                .map(String::trim)
-                .findFirst()
+        return Optional.ofNullable(
+                        AppointmentField.calendarLocation(eventFieldRepository.findShownOn(event.id(), date)))
                 .orElseGet(() -> postalAddress(station));
     }
 

@@ -515,7 +515,7 @@ class StationServiceTest extends RepositoryTestBase {
      * A readable address another station already answers to is a collision, so it is refused as one.
      *
      * <p>The refusal is asserted by name rather than only by status, because the name is what reaches
-     * the reader's screen and what the frontend decides on. It used to be told apart by comparing the
+     * the reader's screen and what the frontend decides on. It used to be distinguished by comparing the
      * English sentence, which broke the moment anybody reworded it.
      */
     @Test
@@ -628,7 +628,7 @@ class StationServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
-    /** A part of a module or the whole module denied by the cluster is off, whatever the station says. */
+    /** A part of a module or the whole module denied by the cluster is off, whatever the station sets. */
     @Test
     @Order(64)
     void aClusterDenialReachesPartsOfAModule() {
@@ -640,6 +640,10 @@ class StationServiceTest extends RepositoryTestBase {
         clusterRepo.setDeniedModules(cluster.id(), null, Set.of(StationModule.INVENTORY_SELF_CHECKS));
         assertFalse(service.isModuleEnabled(member.id(), StationModule.INVENTORY_SELF_CHECKS));
         assertTrue(service.isModuleEnabled(member.id(), StationModule.INVENTORY_CHECKS));
+
+        clusterRepo.setDeniedModules(cluster.id(), null, Set.of(StationModule.INVENTORY_CHECKS));
+        assertFalse(service.isModuleEnabled(member.id(), StationModule.INVENTORY_CONTAINER_CHECKS));
+        assertFalse(service.isModuleEnabled(member.id(), StationModule.INVENTORY_SELF_CHECKS));
 
         stationRepo.setDisabledModules(home.id(), Set.of(StationModule.INVENTORY_LENDING));
         assertEquals(Set.of(StationModule.INVENTORY_LENDING), service.findClusterStationDisabledModules(cluster.id()));

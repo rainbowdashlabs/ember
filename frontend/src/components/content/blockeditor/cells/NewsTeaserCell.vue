@@ -25,7 +25,7 @@ import {findEmbeddedNews, type FoundNews} from '../embeddedNewsLookup'
  * as long as every member may read them. A draft or an entry kept to part of the station is never
  * drawn.
  *
- * <p>The block calls the entry unavailable only when there is none to name or the lookup says there
+ * <p>The block calls the entry unavailable only when there is none to name or the lookup finds there
  * is no such entry here. While it is being read, or when reading it failed for another reason, it
  * shows nothing rather than claim the entry is gone.
  */

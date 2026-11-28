@@ -13,9 +13,9 @@ import java.time.ZoneId;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * How the stretch of time a document covers is said out loud.
+ * How the stretch of time a document covers is spelled out.
  *
- * <p>This is what tells two exports of the same report apart in a folder, so it has to be the way a
+ * <p>This is what distinguishes two exports of the same report in a folder, so it has to be the way a
  * reader would name the period themselves, in their own language.
  */
 class DocumentPeriodTest {

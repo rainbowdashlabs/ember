@@ -187,7 +187,7 @@ public class StationMemberRepository {
      * Finds a member of a station by the name on their account, ignoring case and outer spaces.
      *
      * <p>What an import falls back on when a row carries no address. Two people of that name at one
-     * station cannot be told apart by anything the row holds, so the first is answered and the row is
+     * station cannot be distinguished by anything the row holds, so the first is answered and the row is
      * taken to be about somebody already here: importing the same list twice should leave one of
      * each, and inventing a second Max Müller because the list came round again is the worse mistake.
      *
@@ -412,7 +412,7 @@ public class StationMemberRepository {
      * @param stationOwner whether they are their station's owner, which a cluster manager may not touch
      * @param stationNames every station of this association the person behind the row belongs to, because
      *                     the search returns one row per membership and somebody at two stations is
-     *                     otherwise two rows that never say they are the same person
+     *                     otherwise two rows that never show they are the same person
      */
     public record ClusterMemberRow(
             int id,
@@ -570,7 +570,7 @@ public class StationMemberRepository {
 
     /**
      * Resolves member IDs to the names a reader knows them by, in one round trip. Former members are
-     * included: a field someone filled in last year still has to say who filled it. IDs that no longer
+     * included: a field someone filled in last year still has to show who filled it. IDs that no longer
      * resolve are simply absent from the map, so the caller decides what to show in their place.
      */
     public Map<Integer, String> findDisplayNames(List<Integer> memberIds) {
@@ -871,7 +871,7 @@ public class StationMemberRepository {
      * The guardians of a member who are still at the station.
      *
      * <p>A guardian who has left is nobody's guardian any more, the same as a ward who has left is
-     * nobody's ward in {@link #findManaged(int)}: they are neither told about the member nor listed
+     * nobody's ward in {@link #findManaged(int)}: they are neither notified about the member nor listed
      * as looking after them.
      *
      * <p>They come in the order the member page sets, the first guardian first, which is the order

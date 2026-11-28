@@ -30,10 +30,14 @@ import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventGroupPartDates;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
+import dev.chojo.ember.feature.feed.repository.StationCalendarFeedRepository;
+import dev.chojo.ember.feature.feed.service.FeedCategoryFilter;
+import dev.chojo.ember.feature.feed.service.StationCalendarFeedService;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TemplateSigning;
@@ -157,7 +161,10 @@ class DemoPhotoConsentSeederTest extends DemoTestBase {
                 events.restriction(),
                 new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility),
                 events.registration(),
-                clock);
+                clock,
+                new StationCalendarFeedService(
+                        new StationCalendarFeedRepository(),
+                        new FeedCategoryFilter(new EventCategoryService(eventCategoryRepo))));
     }
 
     private static DemoPhotoConsentSeeder seeder() {
@@ -435,7 +442,7 @@ class DemoPhotoConsentSeederTest extends DemoTestBase {
                 "registration is still open");
         assertEquals(
                 DemoEventSeeder.BUERGERFEST_PLACE,
-                AppointmentField.firstLocation(eventFieldRepo.findByEventOn(festival.id(), day)));
+                AppointmentField.venue(eventFieldRepo.findByEventOn(festival.id(), day)));
         assertEquals(
                 List.of(consentId()),
                 requirementRepo.forEvent(festival.id()).stream()

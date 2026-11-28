@@ -467,11 +467,11 @@ class EventServicesTest extends RepositoryTestBase {
     }
 
     /**
-     * Giving a place back is something somebody did, and the list has to be able to say who.
+     * Giving a place back is something somebody did, and the list has to be able to show who.
      *
      * <p>An unconfirmed place used to be removed outright on the reasoning that nothing had been
      * granted yet, which left whoever runs the appointment with a list one shorter than it was and
-     * nothing at all to say who had dropped out of it. Both are kept now, and signing up again writes
+     * nothing at all to show who had dropped out of it. Both are kept now, and signing up again writes
      * over the same row rather than being turned away by it. The kept row is also what an undo has to
      * put back, so the story carries on into one.
      */
@@ -1027,7 +1027,7 @@ class EventServicesTest extends RepositoryTestBase {
         }
     }
 
-    /** An appointment the reader may not even see is not named, since that would say it exists. */
+    /** An appointment the reader may not even see is not named, since that would show it exists. */
     @Test
     @Order(795)
     void openingsLeaveOutWhatTheReaderCannotSee() {
@@ -1851,7 +1851,7 @@ class EventServicesTest extends RepositoryTestBase {
     /**
      * A series gives one date a week going back and stops on the day it was written.
      *
-     * <p>Nothing in a recurrence rule says when it started, so a weekly appointment answers for its
+     * <p>Nothing in a recurrence rule shows when it started, so a weekly appointment answers for its
      * weekday on every date there has ever been. Going forward that never shows. Going back, without
      * the floor, it would hand out a drill every week since the epoch.
      */
@@ -3117,7 +3117,7 @@ class EventServicesTest extends RepositoryTestBase {
     }
 
     /**
-     * A series that ends stops turning up, and says so in one way at a time.
+     * A series that ends stops turning up, and shows that in one way at a time.
      *
      * <p>Before this, a repeating appointment ran for ever and the only way to end it was to delete
      * it on the day, which nobody remembers to do.

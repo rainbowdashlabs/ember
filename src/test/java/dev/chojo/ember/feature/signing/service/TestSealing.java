@@ -94,13 +94,13 @@ public final class TestSealing implements AutoCloseable {
     /**
      * A sealer of signing states as
      * {@link #stateSealer(DocumentRepository, DocumentService, StationRepository, MemberNameResolver)} builds
-     * it, telling the given follow-up of every state it files.
+     * it, notifying the given follow-up of every state it files.
      *
      * @param documents       the member documents
      * @param documentService their files
      * @param stations        the stations
      * @param names           names the issuer of a document signed for them at generation
-     * @param followUp        what is told of every state filed
+     * @param followUp        what is reported of every state filed
      * @return the sealer
      */
     public static SigningStateSealer stateSealer(

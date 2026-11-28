@@ -25,7 +25,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Tells the members holding a place that an appointment was called off, and whoever looks after them.
+ * Notifies the members holding a place that an appointment was called off, and whoever looks after them.
  *
  * <p>For one date that is whoever holds a place on that date and nobody else: a place on another date
  * of the series still stands. For a whole series it is whoever holds a place on any date from today
@@ -74,7 +74,7 @@ public class EventCancelledHandler implements DomainEventHandler<EventCancelled>
                 Delivery.EVERY_TIME);
     }
 
-    /** A part of an event group called off as a whole, whose people the event group tells once. */
+    /** A part of an event group called off as a whole, whose people the event group notifies once. */
     private boolean partOfCancelledEventGroup(int eventId) {
         return eventGroupRepository
                 .findPart(eventId)

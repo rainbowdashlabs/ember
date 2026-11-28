@@ -60,7 +60,7 @@ async function appointment(
 
 test.describe('Appointment equipment', () => {
     /**
-     * The whole idea in one walk: an appointment says what it needs, and the panel answers for the
+     * The whole idea in one walk: an appointment shows what it needs, and the panel answers for the
      * date rather than in general, naming where the pieces would come from.
      */
     test('an appointment says what it needs and the panel answers for that date',
@@ -96,7 +96,7 @@ test.describe('Appointment equipment', () => {
 
     /**
      * The number beside the kind is what makes the count something other than a guess, and asking for
-     * more than there is says so on the spot and is written down all the same.
+     * more than there is shows that on the spot and is written down all the same.
      */
     test('the dialogue says how many there are and reports asking for more without refusing it',
         async ({managerPage: page}) => {
@@ -191,7 +191,7 @@ test.describe('Appointment equipment', () => {
     /**
      * The collecting screen is reached from an appointment, and that is what fixes the occurrence the
      * request is for. Opened without one it used to offer a button that could never do anything and
-     * said nothing about why.
+     * showed nothing about why.
      */
     test('collecting without an occurrence says so rather than offering a button that cannot act',
         async ({managerPage: page}) => {

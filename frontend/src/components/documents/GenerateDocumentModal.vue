@@ -54,7 +54,7 @@ import {showToast} from '@/util/toast'
  * the station can be picked for this one document; the preview follows the choice.
  *
  * <p>Where the template asks the person generating something, its questions are shown with what each
- * suggests for the member, a check ticked where the member's data says yes. The preview follows the
+ * suggests for the member, a check ticked where the member's data shows yes. The preview follows the
  * answers, and they go with the document when it is filed. While an answer is outside its question's
  * limits, the preview keeps what it last drew and nothing can be filed.
  *

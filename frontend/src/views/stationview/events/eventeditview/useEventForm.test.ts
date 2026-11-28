@@ -200,11 +200,11 @@ function original(overrides: Partial<StationEvent> = {}): StationEvent {
     }
 }
 
-/** A field of the original, a plain line unless a test says otherwise. */
+/** A field of the original, a plain line unless a test overrides it. */
 function field(overrides: Partial<AppointmentField> = {}): AppointmentField {
     return {
         attendanceFieldId: null,
-        config: {perDate: false, selfRegistration: false, required: false, managersOnly: false},
+        config: {perDate: false, selfRegistration: false, required: false, managersOnly: false, calendarLocation: false},
         eventId: 17,
         fieldType: FieldType.TEXT,
         id: 30,

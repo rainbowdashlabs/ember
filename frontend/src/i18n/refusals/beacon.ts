@@ -34,7 +34,7 @@ export default {
     'BC-020': 'Das ist kein Schlüssel',
     'BC-021': 'Eine Bildsendung kam ohne Bild an',
     'BC-022': BEACON_PROTOCOL_TOO_NEW,
-    'BC-023': 'Eine Sendung muss sagen, wann sie verschickt wurde, und eine Einmalnummer tragen',
+    'BC-023': 'Eine Sendung muss ihren Versandzeitpunkt und eine Einmalnummer tragen',
     'BC-024': BEACON_PROTOCOL_TOO_NEW,
     'BC-025': 'Diese Sendung wurde zu weit vor oder nach jetzt verschickt',
     'BC-026': 'Diese Sendung war an ein anderes Beacon gerichtet',

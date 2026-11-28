@@ -48,7 +48,7 @@ async function picker(modelValue: string | null, audience?: BlockAudience) {
 
 /**
  * The news block picker asks the server for the station's entries by title, a few at a time, offers
- * more where the server says there are more, and offers what the block's readers may all read: on a
+ * more where the server signals there are more, and offers what the block's readers may all read: on a
  * page the public blog, in an article every entry every member may read.
  */
 describe('NewsSearchPicker', () => {

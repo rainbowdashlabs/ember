@@ -8,7 +8,7 @@ import {mountSuspended} from '@nuxt/test-utils/runtime'
 import RepeatEndField from './RepeatEndField.vue'
 
 /**
- * A last day and a number of times are two ways of saying the same thing, and the backend refuses
+ * A last day and a number of times are two ways of expressing the same thing, and the backend refuses
  * both at once. Which is why choosing one here clears the other rather than leaving it standing.
  */
 describe('RepeatEndField', () => {

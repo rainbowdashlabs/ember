@@ -99,7 +99,7 @@ public record LetterPage(
     }
 
     /**
-     * Reads the stored column, answering the defaults where it says nothing readable.
+     * Reads the stored column, answering the defaults where it holds nothing readable.
      *
      * @param json the column
      * @return the page

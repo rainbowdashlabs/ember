@@ -27,7 +27,7 @@ import java.util.Set;
  * <p>The core decides: which answers are written, how they are measured and recorded, when a definition
  * is fit to be written down. An owner only answers questions about itself: which tables hold its
  * questions and answers, which of its questions reach a station, what it offers, which refusal codes it
- * speaks, and who it tells about a change. One implementation per {@link FieldOrigin}, bound by origin.
+ * speaks, and who it notifies about a change. One implementation per {@link FieldOrigin}, bound by origin.
  */
 public interface ProfileFieldOwner {
 
@@ -120,7 +120,7 @@ public interface ProfileFieldOwner {
     List<OwnedProfileField> ofType(FieldType type);
 
     /**
-     * Tells whoever this owner tells about a change to a member's answers.
+     * Notifies whoever this owner notifies about a change to a member's answers.
      *
      * @param member     whose answers changed
      * @param author     the author's membership at the member's station, or {@code null} where they have none

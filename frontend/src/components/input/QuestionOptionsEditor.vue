@@ -21,7 +21,7 @@ import {moveWithin} from '@/util/reorder'
  * cannot be misread, and the order is the reader's, so it is moved the way every other list in Ember
  * is moved.
  *
- * <p>An option is a word by default and anything else where a feature says so: a quiz option carries
+ * <p>An option is a word by default and anything else where a feature asks for it: a quiz option carries
  * whether it is the right answer, and an equipment option carries the value stored beside the label.
  * Those live in the slots beside the text rather than in four copies of the list around them.
  */
@@ -30,7 +30,7 @@ const options = defineModel<T[]>({required: true})
 const props = defineProps<{
   label?: string
   hint?: string
-  /** What the button that adds a row says, where the plain wording does not fit. */
+  /** What the button that adds a row shows, where the plain wording does not fit. */
   addLabel?: string
   /** The words of an option, where an option is more than its words. */
   textOf?: (option: T) => string

@@ -138,7 +138,7 @@ function headerButton(page: Page, name: string) {
  */
 test.describe('Knowledge base', () => {
     /**
-     * A file says what it is for underneath its name, and that line is written where it is read.
+     * A file shows what it is for underneath its name, and that line is written where it is read.
      * The story checks it after a reload, since a description that does not survive one was never
      * saved. Its pen is the one on the description line, not the only Bearbeiten on the page.
      */
@@ -241,7 +241,7 @@ test.describe('Knowledge base', () => {
     /**
      * A station can put a page of its wiki in front of everybody. The story marks a file public and
      * then reads the public wiki with no session at all - which is the only way to know that the
-     * mark means what it says.
+     * mark means what it promises.
      *
      * <p>It is marked from the article's own visibility dialog, not from its properties. Who may see
      * a thing is not a property of the thing the way its name is, and it has a place of its own.
@@ -271,7 +271,7 @@ test.describe('Knowledge base', () => {
      *
      * <p>Restoring an old version is withheld afterwards, and the story asserts that where a reader
      * meets it: what is stored is derived from the blocks, so putting an old body back would leave
-     * the article saying one thing and built from another. Reading an old version still works.
+     * the article showing one thing and built from another. Reading an old version still works.
      */
     test('an article switched to the page editor keeps its text and stops offering a revert',
         async ({managerPage: page}) => {
@@ -452,7 +452,7 @@ test.describe('Knowledge base', () => {
      * A search reaches an article without walking the folders above it, so it is the one place a
      * reader can meet an entry that browsing would never have shown them. Two articles share a word
      * that appears nowhere else, one of them behind a folder only the team may open: the same
-     * search has to find one and say nothing at all about the other, neither its name nor the
+     * search has to find one and show nothing at all about the other, neither its name nor the
      * excerpt around the word.
      *
      * The searched word carries no punctuation, because the search splits on it: a name built the

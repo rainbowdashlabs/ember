@@ -12,7 +12,6 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NotificationInbox from '@/components/notifications/NotificationInbox.vue'
 import {stationInbox} from '@/api/notifications'
 import {getFeedStatus} from '@/api/feedToken'
-import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import type {FeedStatusResponse} from '@/api/generated/schema'
 
 /**
@@ -21,7 +20,6 @@ import type {FeedStatusResponse} from '@/api/generated/schema'
  */
 const {t} = useI18n()
 const router = useRouter()
-const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const feedStatus = ref<FeedStatusResponse | null>(null)
 
@@ -42,8 +40,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <NotificationInbox :api="stationInbox" :settings="{ name: 'profile-notifications' }"
-                     @changed="refreshSidebarCounts">
+  <NotificationInbox :api="stationInbox" :settings="{ name: 'profile-notifications' }">
     <template #before-list>
       <InfoContainer v-if="showFeedCta" class="flex items-center justify-between gap-3 py-2 px-3">
         <div class="flex items-center gap-2">

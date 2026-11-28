@@ -68,7 +68,7 @@ class CsvWriterTest {
         assertEquals("A;B\n1;\n", csv);
     }
 
-    /** A cell padded with spaces would come back trimmed, which quietly changes what it said. */
+    /** A cell padded with spaces would come back trimmed, which quietly changes what it held. */
     @Test
     void spaceAtTheEdgeOfACellIsKept() {
         String csv = CsvWriter.write(List.of("A"), List.of(List.of(" 12 ")), CsvWriter.Separator.SEMICOLON);

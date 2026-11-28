@@ -54,7 +54,7 @@ public class MessageSignals implements TaskSource {
     }
 
     /**
-     * Takes in a newly opened stream and tells it that it is ready, which is how the page knows the
+     * Takes in a newly opened stream and signals to it that it is ready, which is how the page knows the
      * stream gets through.
      *
      * @param accountId the account the tab is signed in as
@@ -81,7 +81,7 @@ public class MessageSignals implements TaskSource {
     /**
      * Sends a signal to every open stream of the given accounts.
      *
-     * @param accountIds the accounts to tell
+     * @param accountIds the accounts to notify
      * @param event      the signal
      */
     public void publish(Collection<Integer> accountIds, MessageEvent event) {
@@ -97,7 +97,7 @@ public class MessageSignals implements TaskSource {
      *
      * @param conversationId the conversation
      * @param event          the signal
-     * @param alsoTell       accounts to tell besides, such as somebody who just left
+     * @param alsoTell       accounts to notify besides, such as somebody who just left
      */
     public void publishTo(int conversationId, MessageEvent event, Collection<Integer> alsoTell) {
         List<Integer> told = new ArrayList<>(alsoTell);

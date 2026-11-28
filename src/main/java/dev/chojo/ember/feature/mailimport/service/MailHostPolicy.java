@@ -20,7 +20,7 @@ import java.util.Optional;
  * <p>Connecting a mailbox is a station setting rather than an operator one, so without this a station
  * manager could aim it at loopback or an address inside the deployment and read back from the connection
  * test whether anything answered there. The same check the storage backends use answers that, and it is
- * asked twice: once as the mailbox is written, so somebody setting one up is told straight away, and
+ * asked twice: once as the mailbox is written, so somebody setting one up learns of it straight away, and
  * again as the connection is opened, which covers a row written before this existed and a name that
  * resolves somewhere else the second time.
  *

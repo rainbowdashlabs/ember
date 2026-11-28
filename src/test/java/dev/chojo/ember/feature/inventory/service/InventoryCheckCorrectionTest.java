@@ -157,7 +157,7 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
 
     /**
      * Gear kept for a body that does not use Ember has no store to go back to. Leaving the row behind
-     * would leave a piece nobody owns and nobody can ever tidy up, and the correction says exactly that
+     * would leave a piece nobody owns and nobody can ever tidy up, and the correction shows exactly that
      * the member never held it.
      */
     @Test

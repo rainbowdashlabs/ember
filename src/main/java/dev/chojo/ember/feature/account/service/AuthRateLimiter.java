@@ -25,7 +25,7 @@ import java.util.Optional;
  * SHA-256 hash of the lowercased email or the numeric account id. The most-recently
  * exhausted bucket's retry-after wins; the caller sees a single seconds value.
  *
- * <p>An address is a poor way to tell people apart, because an office reaches the internet as one.
+ * <p>An address is a poor way to distinguish people, because an office reaches the internet as one.
  * Where the request carries something better, that is the real limit and the address is only a
  * backstop: the account a device handshake names, and the poll secret a waiting device already
  * holds. The three address-keyed device buckets are configurable for exactly that reason, under
@@ -220,7 +220,7 @@ public class AuthRateLimiter {
      * Throttles opening a device request, by the account it names and by the address it came from.
      *
      * <p>The account is the real limit and the address is a backstop. Keyed on the address alone
-     * this could not tell a shared office from one machine grinding, and it was the office that
+     * this could not distinguish a shared office from one machine grinding, and it was the office that
      * lost: a handful of requests between everybody behind one router, refilling one every three
      * minutes. Keyed on who is signing in, twenty people at twenty desks are twenty buckets.
      *

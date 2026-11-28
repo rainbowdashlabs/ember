@@ -30,8 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * The state a reader is told about a self-registration question, measured against what the toggle
- * then does with the same reader: a question said to be open must be accepted, one said not to be
+ * The state a reader is shown about a self-registration question, measured against what the toggle
+ * then does with the same reader: a question shown to be open must be accepted, one shown not to be
  * must be refused.
  */
 class EventFieldSelfRegistrationStateTest extends RepositoryTestBase {

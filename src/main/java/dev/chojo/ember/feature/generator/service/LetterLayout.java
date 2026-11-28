@@ -174,7 +174,7 @@ final class LetterLayout {
     }
 
     /**
-     * What the signer of each signature field of a member's letter confirms, where its line says so.
+     * What the signer of each signature field of a member's letter confirms, where its line carries one.
      *
      * @param letter the letter
      * @param view   what of the letter the member sees

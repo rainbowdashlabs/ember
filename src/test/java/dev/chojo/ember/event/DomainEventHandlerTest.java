@@ -145,7 +145,7 @@ class DomainEventHandlerTest {
                 id, STATION_ID, UUID.randomUUID(), id, false, null, "Member " + id, StationUserType.MEMBER, null);
     }
 
-    /** Verifies the notifier was asked once to tell exactly this audience this type. */
+    /** Verifies the notifier was asked once to notify exactly this audience of this type. */
     private void verifyTold(Audience audience, NotificationType type, Delivery delivery) {
         verify(notifier).notify(eq(audience), eq(type), any(NotificationData.class), eq(delivery));
     }
@@ -1081,7 +1081,7 @@ class DomainEventHandlerTest {
     }
 
     /**
-     * An owner that does not run here cannot be told anything, so the station that stands in for it
+     * An owner that does not run here cannot be notified of anything, so the station that stands in for it
      * is who hears. Nothing is addressed to a party that could never receive it.
      */
     @Test
@@ -1099,7 +1099,7 @@ class DomainEventHandlerTest {
     }
 
     /**
-     * An owner that is a cluster on this instance can be told, and is the only party that can answer
+     * An owner that is a cluster on this instance can be notified, and is the only party that can answer
      * the step. The station hears nothing: it has nothing to do but wait.
      */
     @Test
@@ -1119,7 +1119,7 @@ class DomainEventHandlerTest {
     }
 
     /**
-     * A chain that ends with nobody at either end tells nobody. It is the one case where the right
+     * A chain that ends with nobody at either end notifies nobody. It is the one case where the right
      * answer is silence rather than a fallback recipient.
      */
     @Test
@@ -1171,7 +1171,7 @@ class DomainEventHandlerTest {
     }
 
     /**
-     * Being told that something is coming is a different sentence from being asked to acknowledge a step,
+     * Being notified that something is coming is a different sentence from being asked to acknowledge a step,
      * so it reaches the station as its own message and lands on the movement carrying it.
      */
     @Test

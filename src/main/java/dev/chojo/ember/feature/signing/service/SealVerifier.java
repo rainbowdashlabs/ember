@@ -81,7 +81,7 @@ import javax.security.auth.x500.X500Principal;
 
 /**
  * Checks the seals and timestamps of a PDF somebody holds, against this installation's authorities, and
- * says whether the installation holds exactly that file.
+ * reports whether the installation holds exactly that file.
  *
  * <p><b>Trust.</b> The EU DSS validator runs with exactly three kinds of trusted certificates: every
  * authority of this installation, active and retired, every authority pinned for a federation partner of
@@ -98,7 +98,7 @@ import javax.security.auth.x500.X500Principal;
  * <p><b>Partners.</b> A seal is a partner's only when its chain ends in an authority pinned for a
  * partnership with a station and its certificate names that very station; a partner's authority vouches
  * for no other station of that installation. Such a seal is answered with the partner beside the verdict
- * and never as issued here, so a reader is always told whose seal it is. A document a partner sends is
+ * and never as issued here, so a reader always sees whose seal it is. A document a partner sends is
  * checked by {@link PartnerSealValidator}, against that partner's authorities alone.
  *
  * <p><b>Offline.</b> Nothing is fetched. The verifier is built without online sources and without an
@@ -106,7 +106,7 @@ import javax.security.auth.x500.X500Principal;
  * installation's authorities, read from the database (and signed anew there when it is older than a
  * day, as for any reader of the published list), and the last list taken in for each partner authority.
  * A list that cannot be signed because the authority's key does not open is left out, and the signer's
- * revocation status then says unknown.
+ * revocation status then shows unknown.
  *
  * <p><b>What is answered.</b> Small records of what a reader can check themselves: certificates by
  * subject, serial number and fingerprint, the validator's indications, levels and times. Nothing of the
@@ -558,7 +558,7 @@ public class SealVerifier {
     /**
      * Turns the validator's reports of one file into the records a reader gets.
      *
-     * @param fileLength           the file's length, to tell whether a revision runs to its end
+     * @param fileLength           the file's length, to decide whether a revision runs to its end
      * @param reports              the validator's reports
      * @param authorities          the authorities the check trusted
      * @param timestampFingerprints the fingerprints of the pinned timestamp roots

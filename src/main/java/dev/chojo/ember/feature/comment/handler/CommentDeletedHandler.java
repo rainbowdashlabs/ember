@@ -33,7 +33,7 @@ public class CommentDeletedHandler implements DomainEventHandler<CommentDeleted>
      * <p>The page survives the comment, so matching on the page would sweep up every notification
      * written under it. The match names the comment instead, and every notification that names a
      * comment is about that comment: it quotes an excerpt that is now gone and opens on a spot that
-     * no longer says anything, whether the removal left a placeholder behind or not.
+     * no longer shows anything, whether the removal left a placeholder behind or not.
      *
      * <p>Notifications written before comments had an address of their own name only the page, so
      * nothing here reaches them. They still open on something that exists, and any match wide

@@ -356,7 +356,7 @@ export async function acknowledgeContactResponse(formId: number, responseId: num
  * The answers to a form, as a spreadsheet or as a sheet.
  *
  * <p>Built on the server from the same columns for both, so a printed copy and a pasted one cannot
- * say different things.
+ * show different things.
  */
 export async function exportResponses(
     formId: number,

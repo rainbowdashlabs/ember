@@ -10,7 +10,6 @@ import {apiErrorStatus} from '@/util/apiError'
 import {showToast} from '@/util/toast'
 import type {AnyEvent} from '@/api/events'
 import type {EventRegistrationFieldValue, EventRegistrationField} from '@/api/generated/schema'
-import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useRegistrationSigningStep} from '@/composables/useRegistrationSigningStep'
 import {useFullDateChoice} from '@/composables/useFullDateChoice'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -53,7 +52,6 @@ export function useEventAnswer(
     failure: Ref<Failure | null>,
 ) {
     const {t} = useI18n()
-    const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
     /** Which answer is in flight, as `event-date-member`, so one row can show it turning. */
     const registering = ref<string | null>(null)
@@ -80,8 +78,8 @@ export function useEventAnswer(
     /**
      * Why an answer was refused, in the terms the member can act on.
      *
-     * <p>A refusal the member can do something about is told apart from a failure they cannot. The
-     * server answers a closed list with a plain refusal, and saying only that something went wrong
+     * <p>A refusal the member can do something about is distinguished from a failure they cannot. The
+     * server answers a closed list with a plain refusal, and showing only that something went wrong
      * leaves somebody pressing the same button again: the caller passes the words for that case, and
      * they name whoever can still help. Those words win, and everything around them, what sort of
      * failure it was and what to do next, still comes from the failure itself. It is marked as
@@ -100,7 +98,7 @@ export function useEventAnswer(
      * Carries out an answer, and only then reloads what the screen shows.
      *
      * <p>The two are answered for separately. An answer the server had already taken, followed by a
-     * list that would not come back, used to say the answer had been refused, and a member told that
+     * list that would not come back, used to report the answer as refused, and a member who read that
      * presses the same button again. An earlier refusal in the same gesture is left standing, because
      * a guardian answering for three children has to see the one that did not land.
      */
@@ -114,7 +112,6 @@ export function useEventAnswer(
 
         try {
             await afterChange()
-            refreshSidebarCounts()
         } catch (e) {
             if (!failure.value) failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
         }
@@ -186,7 +183,7 @@ export function useEventAnswer(
      * Gives the parked answer for everybody it was confirmed for, one request each.
      *
      * <p>All of them together are one gesture, so the first refusal is still readable after the rest
-     * have gone through: a guardian answering for two children is told when only one of them landed.
+     * have gone through: a guardian answering for two children sees when only one of them landed.
      */
     async function confirmAnswerPrompt(answers: { key: number; fields: EventRegistrationFieldValue[] }[]) {
         const prompt = answerPrompt.value
@@ -220,7 +217,7 @@ export function useEventAnswer(
      *
      * <p>The offer rides a toast rather than the row it came from: by the time somebody realises they
      * pressed the wrong one they have often scrolled past it, and the row may not be on the page at
-     * all any more. How long it stands is the server's to say, so the toast lasts exactly as long as
+     * all any more. How long it stands is the server's to decide, so the toast lasts exactly as long as
      * the answer it was given.
      */
     async function withdrawRegistration(regId: number) {
@@ -239,7 +236,7 @@ export function useEventAnswer(
     }
 
     /**
-     * Putting a withdrawal back. Past the window the server refuses, and the member is told the place
+     * Putting a withdrawal back. Past the window the server refuses, and the member sees that the place
      * is not theirs to take back any more rather than left wondering whether the press landed.
      */
     async function undoWithdrawal(regId: number) {

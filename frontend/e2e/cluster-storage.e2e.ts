@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Page} from '@playwright/test'
-import {test, expect, apiHeaders} from './fixtures/auth'
+import {test, expect, apiHeaders, actForCluster} from './fixtures/auth'
 import {ownCluster, type OwnCluster} from './fixtures/cluster'
 
 const MIB = 1024 * 1024
@@ -12,7 +12,7 @@ const GIB = 1024 * MIB
 
 /**
  * The room an association hands out: its tiers, its defaults, what each station was granted, and what the
- * instance may still say about a station that answers to somebody else.
+ * instance may still decide about a station that answers to somebody else.
  *
  * Every story builds an association of its own with a station under it. Room reaches every member station at
  * once and the pool is one number for all of them, so handing some out on the seeded association would move
@@ -28,7 +28,7 @@ test.describe('Cluster storage', () => {
      */
     async function storageScreen(page: Page, own: OwnCluster) {
         await page.goto('/cluster/storage')
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+        await actForCluster(page, own.uid)
         await page.goto('/cluster/storage')
         await expect(page.getByTestId('app-shell')).toBeVisible()
     }
@@ -41,7 +41,7 @@ test.describe('Cluster storage', () => {
         expect(pooled.ok()).toBeTruthy()
     }
 
-    /** One row of the station table, told from the association's own store by the station's name. */
+    /** One row of the station table, distinguished from the association's own store by the station's name. */
     function stationRow(page: Page, name: string) {
         return page.getByTestId('storage-station-row').filter({hasText: name})
     }
@@ -52,7 +52,7 @@ test.describe('Cluster storage', () => {
      * A tier is made on the association's screen and handed to two stations at once, and both rows then name
      * it and carry its numbers. The instance's tiers are a different set entirely: an association has to be
      * able to express a step the instance never thought of. The second station is named without the word
-     * the fixture's station carries, so the two rows can be told apart by name.
+     * the fixture's station carries, so the two rows can be distinguished by name.
      */
     test('the association keeps its own tiers', async ({adminPage: page, browser, request}) => {
         const own = await ownCluster(page, browser, request, 'Stufenverband')
@@ -89,7 +89,7 @@ test.describe('Cluster storage', () => {
     /**
      * CLS-78 - The pool refuses a promise the association cannot keep.
      *
-     * On the screen rather than through the endpoint, because being told why is the whole of it: the refusal
+     * On the screen rather than through the endpoint, because seeing why is the whole of it: the refusal
      * has to name the pool and what is already out of it, or the person handing room out has no way to know
      * what would fit.
      */
@@ -113,7 +113,7 @@ test.describe('Cluster storage', () => {
     })
 
     /**
-     * CLS-79 - A station on the association's defaults says so.
+     * CLS-79 - A station on the association's defaults shows that.
      *
      * The number a station lives on is worth nothing without whose word it is on: the same 1 GiB means "this
      * is what we give everybody" until somebody grants it, and after that it means "this is what we gave you".
@@ -145,7 +145,7 @@ test.describe('Cluster storage', () => {
      * CLS-80 - The instance stops overriding a station under an association.
      *
      * The instance's lever on an association is the pool it grants it, and inside that pool the association
-     * decides. A number set here would change nothing anybody can see, so the screen says who decides instead
+     * decides. A number set here would change nothing anybody can see, so the screen shows who decides instead
      * of offering an edit that does nothing.
      */
     test('the instance does not override a station under an association', async ({adminPage: page, browser, request}) => {
@@ -172,7 +172,7 @@ test.describe('Cluster storage', () => {
     /**
      * CLS-81 - A released station keeps nothing.
      *
-     * The room went with the membership. What the instance says about the station stands again, and the
+     * The room went with the membership. What the instance defines for the station stands again, and the
      * association has the room back to hand to somebody else.
      */
     test('a released station keeps nothing', async ({adminPage: page, browser, request}) => {

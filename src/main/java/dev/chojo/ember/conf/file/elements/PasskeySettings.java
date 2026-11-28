@@ -14,7 +14,7 @@ import java.util.Locale;
  * How far this instance goes with passkeys, at {@code auth.passkeys}.
  *
  * <p>The configured mode is not always the mode in force: a demo instance and an instance whose
- * rpId fell back to {@code localhost} are held at {@link Mode#OFF} whatever this says. That
+ * rpId fell back to {@code localhost} are held at {@link Mode#OFF} whatever this sets. That
  * decision lives with the service that answers for the effective mode, not here.
  */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})

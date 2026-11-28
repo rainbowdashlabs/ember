@@ -699,7 +699,7 @@ public class EventRoutes implements Routes {
     }
 
     /**
-     * What saving the editor's draft would tell, for the save dialog to show before anything is saved.
+     * What saving the editor's draft would send, for the save dialog to show before anything is saved.
      */
     @OpenApi(
             path = "/api/v1/events/{id}/change-notice/preview",
@@ -722,7 +722,7 @@ public class EventRoutes implements Routes {
     }
 
     /**
-     * Tells the people an appointment that took over dates of another one concerns, once the editor
+     * Notifies the people an appointment that took over dates of another one concerns, once the editor
      * saved every part of it: a moved start always, and the change where the editor chose to.
      */
     @OpenApi(
@@ -794,7 +794,7 @@ public class EventRoutes implements Routes {
      * Writes both audiences of an event from a create or update request.
      *
      * <p>An absent selection clears the audience rather than leaving the old one standing: the
-     * editor always sends what it holds, and a request that omits an audience is saying it is empty.
+     * editor always sends what it holds, and a request that omits an audience means it is empty.
      * The combination mode is only touched where a selection came with one, because that is the only
      * case in which the caller has an opinion about it.
      */
@@ -1064,7 +1064,7 @@ public class EventRoutes implements Routes {
      *                        changed; none means every date. Only one date, and one date and those
      *                        after it, save into a new appointment, whose id the answer carries
      * @param changeNotice    what the editor chose to tell the people the appointment concerns, read
-     *                        only when every date is changed; a save into a new appointment tells
+     *                        only when every date is changed; a save into a new appointment notifies
      *                        them through that appointment's change notice once every part is saved
      */
     public record EventRequest(
@@ -1171,11 +1171,12 @@ public class EventRoutes implements Routes {
 
         /** The field as every appointment of the batch asks it; what is left out reads as a plain line. */
         BatchFieldEntry toEntry() {
+            var type = Objects.requireNonNullElse(fieldType, FieldType.TEXT);
             return new BatchFieldEntry(
                     name,
-                    Objects.requireNonNullElse(fieldType, FieldType.TEXT),
+                    type,
                     Objects.requireNonNullElse(config, EventQuestionSettings.empty())
-                            .organisers(),
+                            .organisers(type),
                     Boolean.TRUE.equals(overview),
                     attendanceFieldId);
         }

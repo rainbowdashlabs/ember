@@ -58,7 +58,7 @@ import java.util.UUID;
  * station.
  *
  * <p><b>Validity.</b> The authority holds for {@value #AUTHORITY_YEARS} years: it is the anchor readers
- * pin, and replacing it means every reader has to be told a new fingerprint, so it is meant to outlive
+ * pin, and replacing it means every reader has to be given a new fingerprint, so it is meant to outlive
  * many station keys. A station certificate holds for {@value #STATION_YEARS} years, short enough that a
  * key is not in use for a decade and long enough that rotation stays a rare event; it never outlasts
  * the authority that issued it. Both start an hour in the past, so a reader whose clock runs slightly

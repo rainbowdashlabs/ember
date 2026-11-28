@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
 import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.feed.service.PersonalFeedFilterService;
 import dev.chojo.ember.feature.feed.service.PersonalFeedService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
@@ -109,7 +110,8 @@ class UserFeedRoutesIntegrationTest {
                 mock(NotificationFeedRenderer.class),
                 memberNameResolver,
                 mock(OccurrenceCalendar.class),
-                mock(ModuleAvailability.class));
+                mock(ModuleAvailability.class),
+                mock(PersonalFeedFilterService.class));
         harness = RouteHarness.serving(
                 new UserFeedRoutes(feeds, new FeedRateLimiter(clock), mock(FeedMetricsService.class)));
 

@@ -14,7 +14,7 @@ import java.util.Objects;
  * What an expiry date field does, with every setting its configuration leaves out filled in.
  *
  * <p>The configuration keeps each of these optional, so a field written by a template, by an older
- * screen or by hand says only what it wants different. This is the one place that says what the
+ * screen or by hand carries only what it wants different. This is the one place that defines what the
  * rest means; the browser holds the same defaults beside its copy of the state rule.
  *
  * @param warnFromDays     how many days before the date its value shows as running out
@@ -30,10 +30,10 @@ public record ExpirySettings(
         @Nullable Integer repeatEveryDays,
         boolean remindMember,
         boolean remindManagement) {
-    /** How close a date is when it starts to show, where the field does not say. */
+    /** How close a date is when it starts to show, where the field sets none. */
     public static final int DEFAULT_WARN_FROM_DAYS = 30;
 
-    /** When the reminders go out, where the field does not say. */
+    /** When the reminders go out, where the field sets none. */
     public static final List<Integer> DEFAULT_REMINDER_DAYS = List.of(30, 7);
 
     /**

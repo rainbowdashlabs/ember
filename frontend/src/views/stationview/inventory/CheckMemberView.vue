@@ -54,7 +54,7 @@ const {config: state, loading, failure, reload: loadData} = useConfigPanel<Membe
 const check = useMemberCheck(memberId, state, failure)
 
 /**
- * Whose gear is being checked, at the head of the page, so two checks open at once are told apart
+ * Whose gear is being checked, at the head of the page, so two checks open at once are distinguished
  * in the tab and in the history. The plain wording stands while the check is being set up and where
  * it could not be started at all.
  */
@@ -194,7 +194,7 @@ async function applyCorrection(payload: CorrectItemRequest) {
 }
 
 /**
- * Steps the walk back onto the piece it just left, taking off what was said about it.
+ * Steps the walk back onto the piece it just left, taking off what was recorded about it.
  *
  * <p>Nothing has been sent yet while a check is being walked, so a decision is still the walker's
  * to change. Only the one step back is offered: the list behind the walk is where a check is
@@ -234,7 +234,7 @@ const unassign = useConfirmAction<number>({
  * per slot rather than per item, since there is no item to name.
  *
  * <p>Only what was actually marked is sent. A check walked halfway through is worth recording for the
- * pieces it did look at, and a piece nobody looked at keeps whatever the last check said about it
+ * pieces it did look at, and a piece nobody looked at keeps whatever the last check recorded about it
  * rather than being written down as anything.
  */
 function collectResults(current: MemberCheckState): CheckItemResult[] {
@@ -258,9 +258,9 @@ function collectResults(current: MemberCheckState): CheckItemResult[] {
 /**
  * Records the walk, then moves on to whoever is next.
  *
- * <p>The two are caught apart. Once the check is recorded it is recorded, and a walker told that
+ * <p>The two are caught apart. Once the check is recorded it is recorded, and a walker shown that
  * saving failed walks the whole member again. What can still go wrong after that is only finding the
- * next person, which is said as what it is and leaves the reader on a page that is already done.
+ * next person, which is reported as what it is and leaves the reader on a page that is already done.
  */
 const {running: submitting, run: submit} = useAsyncAction(async () => {
   if (!state.value) return

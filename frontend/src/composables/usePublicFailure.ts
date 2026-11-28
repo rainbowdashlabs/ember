@@ -15,13 +15,13 @@ import {describeFailure, FailureKind, type Failure} from '@/util/failure'
  * leaves the reader unable to tell a broken application from something that was simply taken down, and
  * the two call for opposite things. The distinction drawn here is exactly that one.
  *
- * <p>Where the server says the thing is not there, the page says so as a plain fact and offers no bug
+ * <p>Where the server reports the thing is not there, the page shows that as a plain fact and offers no bug
  * report, because there is nothing to report and nobody the reader could report it to. Everything else
  * keeps the description it arrived with, so a dropped connection reads as a dropped connection and a
- * server that fell over still offers the way to say so.
+ * server that fell over still offers the way to report it.
  *
  * @param loadError the rejection a fetch left behind, or nothing where it succeeded
- * @param notFound  keys for the sentence and the guidance used when the server says it is gone
+ * @param notFound  keys for the sentence and the guidance used when the server reports it is gone
  * @return the failure to render, or nothing while there is none
  */
 export function usePublicFailure(

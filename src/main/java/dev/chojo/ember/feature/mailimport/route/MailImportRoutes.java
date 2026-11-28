@@ -44,9 +44,9 @@ import java.util.List;
  *
  * <p>Two permissions, because they are two different rights. Connecting a mailbox is a mail setting and
  * takes the station's mail permission, the same as the sending side. Writing a rule puts files into the
- * document store and says which member they land on, so it takes the permission for member paperwork as
+ * document store and decides which member they land on, so it takes the permission for member paperwork as
  * well: the right to connect a mailbox is not the right to file documents with it. The log is readable
- * with document read, since it says what arrived and from whom rather than what is in it.
+ * with document read, since it shows what arrived and from whom rather than what is in it.
  *
  * <p>The whole feature rides on the documents module. Module off, no import and no page.
  */
@@ -259,7 +259,7 @@ public class MailImportRoutes implements Routes {
      *
      * <p>Reporting the folders is the point rather than a nicety: the commonest mistake in setting one of
      * these up is a folder spelled the way the person says it rather than the way the provider does, and a
-     * test that only said "connected" would not catch it.
+     * test that only showed "connected" would not catch it.
      */
     @OpenApi(
             path = "/api/v1/station/mail-import/mailboxes/{id}/test",
@@ -476,10 +476,10 @@ public class MailImportRoutes implements Routes {
     }
 
     /**
-     * What the operator decided, so the page can say why it will not let somebody ask for one minute.
+     * What the operator decided, so the page can show why it will not let somebody ask for one minute.
      *
      * @param canStorePasswords whether an encryption key is configured at all. Without one a mailbox
-     *                          cannot be saved, and the page says so rather than storing a password in
+     *                          cannot be saved, and the page shows that rather than storing a password in
      *                          the clear
      */
     public record InstanceSettingsResponse(

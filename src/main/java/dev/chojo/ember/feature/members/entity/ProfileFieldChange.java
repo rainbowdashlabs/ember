@@ -28,7 +28,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param requiresAcknowledgement whether this change needs to be acknowledged by a manager
  * @param changedByName           the display name of the person who made the change
  * @param fieldName               the name of the changed profile field
- * @param fieldType               the type of the changed profile field, which says how its values read
+ * @param fieldType               the type of the changed profile field, which shows how its values read
  * @param acknowledgements        the list of acknowledgements for this change
  * @param memberName              the display name of the member whose field was changed
  */

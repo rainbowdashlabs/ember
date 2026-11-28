@@ -22,7 +22,7 @@ const {t} = useI18n()
 const props = defineProps<{
   request: DeviceRequestResponse
   wantsSignIn: boolean
-  /** Set while the server has asked this device to slow down, so the wait can say why. */
+  /** Set while the server has asked this device to slow down, so the wait can show why. */
   throttled?: boolean
 }>()
 

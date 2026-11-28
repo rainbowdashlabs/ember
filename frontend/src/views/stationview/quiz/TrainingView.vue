@@ -108,7 +108,7 @@ function setFillGap(gapIndex: number, value: string) {
  * Gathers the questions of every chosen catalogue and starts.
  *
  * <p>Catalogues that hold no training questions are not a fault: the reader picked them and can
- * pick others, so that is said plainly and no report is offered for it.
+ * pick others, so that is shown plainly and no report is offered for it.
  */
 async function startTraining() {
   if (selectedCatalogIds.value.size === 0) return

@@ -96,17 +96,34 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
     const position = computed(() => steps.value.indexOf(step.value) + 1)
     const total = computed(() => steps.value.length)
 
+    /** Whether a Träger above this station keeps its gear in Ember, and so can be asked for a piece. */
+    const ownerInEmber = ref(false)
+
     /**
      * The purposes a station can start.
      *
-     * <p>Every station has a Träger above it, whether or not that Träger uses Ember, so a request is always
-     * offered. Where the Träger is outside Ember, the station confirms its steps standing in for it.
+     * <p>A request goes to the Träger above, so it is offered only where that Träger uses Ember. A station
+     * without one orders what it lacks as a procurement instead.
      */
-    const purposes = computed<MovementPurpose[]>(() =>
-        [MovementPurpose.ISSUE, MovementPurpose.RETURN, MovementPurpose.EXCHANGE, MovementPurpose.REQUEST])
+    const purposes = computed<MovementPurpose[]>(() => [
+        MovementPurpose.ISSUE,
+        MovementPurpose.RETURN,
+        MovementPurpose.EXCHANGE,
+        ...(ownerInEmber.value ? [MovementPurpose.REQUEST] : []),
+    ])
 
+    /**
+     * Fetches the inventories, and whether a request can go anywhere where the reader picks the purpose.
+     * A wizard opened with its purpose given never asks, so it does not fetch that.
+     */
     async function load() {
-        inventories.value = await inventory.listInventories()
+        const asksPurpose = !(prefill().skip ?? []).includes('purpose')
+        const [loaded, owner] = await Promise.all([
+            inventory.listInventories(),
+            asksPurpose ? inventory.ownerAbove() : Promise.resolve(null),
+        ])
+        inventories.value = loaded
+        ownerInEmber.value = owner !== null
     }
 
     /**
@@ -134,7 +151,7 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
     }
 
     /**
-     * The size a swap asks for unless told otherwise: the one the piece handed in has. Most swaps replace
+     * The size a swap asks for unless set otherwise: the one the piece handed in has. Most swaps replace
      * a worn or broken piece with the same thing, so the reader only touches the size when it changes.
      */
     function sizeOfTheSwappedPiece(): number | null {

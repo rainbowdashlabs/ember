@@ -24,7 +24,7 @@ import {MailRuleAction, MailTitleSource, type RuleResponse} from '@/api/generate
  * Writing a rule.
  *
  * <p>A rule cannot be saved without a sender, because an empty filter reads naturally as "everything" and
- * here that would be an open door left open by saying nothing.
+ * here that would be an open door left open by showing nothing.
  */
 const props = defineProps<{
   /** The rule being changed, or null when one is being written. */

@@ -24,8 +24,9 @@ import LendingShareButton from '@/components/lending/LendingShareButton.vue'
 import InventoryFieldsPanel from '@/components/inventory/InventoryFieldsPanel.vue'
 import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
+import InventoryPictureField from '@/components/inventory/InventoryPictureField.vue'
 import {glyphFor} from '@/util/glyph'
-import {inventoryArts} from '@/api'
+import {inventoryArts, inventoryPictures} from '@/api'
 import type {ArtStock, InventoryArt, InventoryType} from '@/api/generated/schema'
 import {isLendableInventory} from '@/api/inventory'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
@@ -80,8 +81,8 @@ async function load() {
 }
 
 /**
- * Fetches the list again after a kind was written, and says so as a stale screen rather than a
- * failed write. The write is already through at this point, and a reader told otherwise saves twice.
+ * Fetches the list again after a kind was written, and reports it as a stale screen rather than a
+ * failed write. The write is already through at this point, and a reader shown otherwise saves twice.
  */
 async function refreshAfterWrite() {
   try {
@@ -105,8 +106,37 @@ function openEdit(art: InventoryArt) {
   artName.value = art.name
   artNote.value = art.note
   artIcon.value = art.icon ?? null
+  artPictureKey.value = art.pictureKey ?? null
   artColor.value = art.color ?? null
   showModal.value = true
+}
+
+/** The photo of the kind open in the dialog, saved on its own the moment it is picked. */
+const artPictureKey = ref<string | null>(null)
+const artPictureSrc = computed(() => editingArt.value && artPictureKey.value
+    ? inventoryPictures.artPictureUrl(props.inventoryId, editingArt.value.id, artPictureKey.value, 256)
+    : null)
+
+/** The kind a photo was sent for, so an answer arriving after the dialog moved on stays with its kind. */
+const pictureArtId = ref<number | null>(null)
+
+function uploadArtPicture(file: File): Promise<string> {
+  const art = editingArt.value
+  if (!art) return Promise.reject(new Error('no kind open'))
+  pictureArtId.value = art.id
+  return inventoryPictures.uploadArtPicture(props.inventoryId, art.id, file)
+}
+
+async function removeArtPicture(): Promise<void> {
+  const art = editingArt.value
+  if (!art) return
+  pictureArtId.value = art.id
+  await inventoryPictures.removeArtPicture(props.inventoryId, art.id)
+}
+
+function artPictureChanged(pictureKey: string | null) {
+  if (editingArt.value?.id === pictureArtId.value) artPictureKey.value = pictureKey
+  void refreshAfterWrite()
 }
 
 async function saveArt() {
@@ -213,6 +243,13 @@ watch(() => props.inventoryId, load, {immediate: true})
         <SaveButton :disabled="!artName.trim()" :action="saveArt"/>
       </div>
       <template v-if="editingArt">
+        <InventoryPictureField
+            :hint="t('inventory.picture.artHint')"
+            :remove="removeArtPicture"
+            :src="artPictureSrc"
+            :upload="uploadArtPicture"
+            @changed="artPictureChanged"
+        />
         <hr class="border-(--bg-accent)"/>
         <InventoryFieldsPanel :inventory-id="props.inventoryId" :art-id="editingArt.id"/>
       </template>

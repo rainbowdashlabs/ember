@@ -43,7 +43,7 @@ function checkChanges() {
  * Fetches the note, where there is one.
  *
  * <p>Every failure used to be read as there being no note yet, which is only true when the server
- * says so. A note that exists but could not be fetched left an empty box in front of somebody who
+ * answers so. A note that exists but could not be fetched left an empty box in front of somebody who
  * then typed into it and saved, writing over what was already there without ever seeing it.
  */
 const {loading, failure} = useAsyncLoader(async () => {

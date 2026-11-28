@@ -108,7 +108,7 @@ public class SessionGate {
 
     /**
      * Clears what is left of a session in a browser whose request reaches a route that needs one without
-     * a session token: the readable cookie still tells the page it is signed in, so it never shows the
+     * a session token: the readable cookie still signals to the page that it is signed in, so it never shows the
      * sign-in again. That happens when the session cookie is gone or could not be read while the
      * readable one stayed.
      *

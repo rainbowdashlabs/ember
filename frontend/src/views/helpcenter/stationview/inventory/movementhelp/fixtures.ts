@@ -12,7 +12,7 @@ import {
     type MovementResponse,
 } from '@/api/generated/schema'
 
-/** An open movement of a station's own piece, with no turn taken yet beyond what the fields say. */
+/** An open movement of a station's own piece, with no turn taken yet beyond what the fields show. */
 function movement(fields: Pick<MovementResponse, 'id' | 'purpose' | 'itemName' | 'inventoryName' | 'memberName'> & Partial<MovementResponse>): MovementResponse {
     return {
         actionable: false, belongsOnAnotherFlow: false, orderId: null, closedAt: null, closeReason: null, color: null,

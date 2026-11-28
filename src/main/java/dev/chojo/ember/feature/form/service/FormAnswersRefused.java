@@ -13,9 +13,9 @@ import org.jspecify.annotations.Nullable;
 import java.util.List;
 
 /**
- * Answers to a form refused for what they said, with one refusal per question it was about.
+ * Answers to a form refused for what they contain, with one refusal per question it was about.
  *
- * <p>A form that could not be sent used to say so in one joined English sentence naming the
+ * <p>A form that could not be sent used to report so in one joined English sentence naming the
  * questions by their titles, attached to nothing. Each problem now names its question and the page
  * it stands on, with a code of its own, so the fill screen can open that page and mark the question.
  */
@@ -34,7 +34,7 @@ public class FormAnswersRefused extends RefusalResponse {
     }
 
     /**
-     * The same problems, refused under the given refusal. Every place answers are taken from says it
+     * The same problems, refused under the given refusal. Every place answers are taken from reports it
      * in its own code, while what was wrong with them is found in one place.
      *
      * @param refusal what refuses the answers as a whole where they were sent

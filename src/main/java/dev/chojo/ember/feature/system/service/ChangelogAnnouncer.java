@@ -18,13 +18,13 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Tells the managers of every station that their instance has been updated, and what that brought.
+ * Notifies the managers of every station that their instance has been updated, and what that brought.
  *
  * <p>An update is something that happens to people who did not ask for it and often did not do it:
  * the evening after, a screen is different and nobody said why. One entry in the news, written by
  * the instance itself, is what turns that into something that was announced.
  *
- * <p>It is said once per version, not once per start, so the version that was announced is written
+ * <p>It is announced once per version, not once per start, so the version that was announced is written
  * down. What that mark makes possible is the whole of the behaviour worth stating:
  *
  * <ul>
@@ -33,9 +33,9 @@ import java.util.Optional;
  *       down in silence, so that a new instance does not open with the history of releases it was
  *       born with.</li>
  *   <li>An older version is a deliberate step back by an operator, who does not need every station
- *       told about it.</li>
+ *       notified about it.</li>
  *   <li>A version the changelog does not name is a development build. An entry with an empty body
- *       says less than nothing.</li>
+ *       shows less than nothing.</li>
  * </ul>
  */
 @Singleton
@@ -67,7 +67,7 @@ public class ChangelogAnnouncer {
     }
 
     /**
-     * Lets a test say what this instance is running, which is otherwise baked into the jar.
+     * Lets a test set what this instance is running, which is otherwise baked into the jar.
      *
      * @param currentVersion the version this instance runs
      */
@@ -85,9 +85,9 @@ public class ChangelogAnnouncer {
     }
 
     /**
-     * Says what this start has to say, if anything, and writes down where the instance now stands.
+     * Announces what this start has to announce, if anything, and writes down where the instance now stands.
      *
-     * @return the entry that was written, or empty where there was nothing to say
+     * @return the entry that was written, or empty where there was nothing to announce
      */
     public Optional<String> announce() {
         if (!config.announceUpdates()) return Optional.empty();
@@ -119,7 +119,7 @@ public class ChangelogAnnouncer {
     }
 
     /**
-     * What the entry says: the version's own notes, and the way to everything before them.
+     * What the entry contains: the version's own notes, and the way to everything before them.
      */
     private String body(String notes) {
         return notes + "\n\n[Das vollständige Änderungsprotokoll](/patch-notes)";

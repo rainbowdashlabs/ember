@@ -204,7 +204,7 @@ const selection = useKbSelection(items, currentFolderId)
 
 /**
  * The folder standing open, at the head of the page. "Wiki" is true of every folder in it and so
- * tells a reader nothing about where they are, and it is what the tab and a bookmark end up
+ * shows a reader nothing about where they are, and it is what the tab and a bookmark end up
  * carrying. A caller naming its own title (the association's copy of this screen) keeps it, and the
  * word stands at the top of the wiki, where no folder is open.
  */

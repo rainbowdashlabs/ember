@@ -139,13 +139,13 @@ class DocumentRepositoryTest extends RepositoryTestBase {
 
     private static List<Document> byStation(String search) {
         return memberDocumentRepo.findByStation(
-                station.id(), new DocumentFilter(List.of(), search, true, false, false), "simple", 50, 0);
+                station.id(), new DocumentFilter(List.of(), search, true, false, false, false), "simple", 50, 0);
     }
 
     @Test
     @Order(7)
     void theStoreIsNarrowedToOneMember() {
-        var filter = new DocumentFilter(List.of(memberId), null, true, false, false);
+        var filter = new DocumentFilter(List.of(memberId), null, true, false, false, false);
         var mine = memberDocumentRepo.findByStation(station.id(), filter, "simple", 50, 0);
 
         assertTrue(mine.stream().allMatch(document -> memberDocumentRepo.isBoundTo(document.id(), memberId)));
@@ -236,12 +236,24 @@ class DocumentRepositoryTest extends RepositoryTestBase {
         stationMemberRepo.setFormer(archived.id(), true);
 
         var departed = memberDocumentRepo.idsByStation(
-                station.id(), new DocumentFilter(List.of(), null, true, false, true), "simple");
+                station.id(), new DocumentFilter(List.of(), null, true, false, false, true), "simple");
 
         assertTrue(departed.contains(ofArchived.id()), "an archived member's document");
         assertTrue(departed.contains(byStation("Verpflichtung").getFirst().id()), "a deleted member's document");
         assertFalse(departed.contains(ofBoth.id()), "not one that is still somebody's here");
         assertFalse(departed.contains(byStation("Satzung").getFirst().id()), "nor the station's own paperwork");
+    }
+
+    /** A reader who may not see the station's own paperwork gets only the documents that name somebody. */
+    @Test
+    @Order(12)
+    void theStoreIsNarrowedToTheDocumentsThatNameSomebody() {
+        var bound = memberDocumentRepo.idsByStation(
+                station.id(), new DocumentFilter(List.of(), null, true, false, true, false), "simple");
+
+        assertFalse(bound.isEmpty(), "member documents are listed");
+        assertFalse(bound.contains(byStation("Satzung").getFirst().id()), "the station's own paperwork is not");
+        assertTrue(bound.stream().noneMatch(memberDocumentRepo::hasNoMembers), "nothing that names nobody");
     }
 
     /** The uploader is named by membership at the station, or by the account of an association manager. */

@@ -207,7 +207,7 @@ public class TwoFactorRepository {
      * @param signIn whether this credential may start a sign-in on its own
      * @param secondFactor whether this credential is asked for after a password
      * @param discoverable what the {@code credProps} extension reported at creation, or
-     *         {@code null} when the authenticator did not say
+     *         {@code null} when the authenticator did not report
      * @param userVerified whether user verification was performed at creation
      */
     public void createWebAuthn(
@@ -574,7 +574,7 @@ public class TwoFactorRepository {
     /**
      * Stamps the session as freshly proved, recording what it was proved with. The kind matters as
      * much as the time: a route that must rest on somebody proving themselves at the keyboard has to
-     * be able to tell that apart from a session another device vouched for.
+     * be able to distinguish that from a session another device vouched for.
      */
     public boolean setTwoFactorVerified(int sessionId, StepUpProof proof, @Nullable StepUpCategory category) {
         return query("""

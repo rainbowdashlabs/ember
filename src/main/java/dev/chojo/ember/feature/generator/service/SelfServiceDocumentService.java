@@ -43,7 +43,7 @@ import java.util.stream.Stream;
  * that member or look after them. The wait is the template's, whoever keeps it. Three things refuse a
  * document that is offered, each with words of its own: data the template needs and the profile does
  * not hold (the message names it, so it can be filled in first), a template generated for the same
- * member within its wait (the message says from when), and a station that keeps no documents.
+ * member within its wait (the message shows from when), and a station that keeps no documents.
  *
  * <p>Only documents generated here count towards the wait; one a manager filed does not keep the
  * member from generating their own.

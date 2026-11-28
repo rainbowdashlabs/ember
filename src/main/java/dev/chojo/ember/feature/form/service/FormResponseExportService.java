@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  *
  * <p>They could only be had as a spreadsheet before, and that spreadsheet was assembled in the
  * browser, which made it the one export with no server side at all. Both formats are drawn here now
- * from one set of columns, so a printed copy and a pasted one say the same thing.
+ * from one set of columns, so a printed copy and a pasted one show the same thing.
  *
  * <p>The table is the same shape the member list and the registration list use, which is why this
  * needs no layout of its own: one question is one column, one submission is one row.
@@ -96,7 +96,7 @@ public class FormResponseExportService {
      *
      * <p>Answers are written as their options' labels, never as the keys they are stored by. A form
      * with more than one page gets a column naming the pages each response went through, so a cell left
-     * empty because its question was never reached can be told from one left empty on purpose.
+     * empty because its question was never reached can be distinguished from one left empty on purpose.
      *
      * <p>Where members answered, their user type, groups and age on the day of answering follow the
      * name, so a spreadsheet can be pivoted by the same things the results view groups by. A form

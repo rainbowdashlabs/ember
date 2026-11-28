@@ -4,12 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Page} from '@playwright/test'
-import {test, expect, apiHeaders} from './fixtures/auth'
+import {test, expect, apiHeaders, actForCluster} from './fixtures/auth'
 import {ownCluster, type OwnCluster} from './fixtures/cluster'
 import {openSection, sidebar} from './fixtures/sidebar'
 
 /**
- * What an association is told, under the bell in its own menu.
+ * What an association is notified of, under the bell in its own menu.
  *
  * The association's notices used to be written and never shown: the station's inbox reads the station's feed,
  * and nothing read the association's. A station asking to join is the notice every association gets first, so
@@ -22,7 +22,7 @@ test.describe('Cluster notifications', () => {
     /** One of the association's screens, entered the way the switcher enters it. */
     async function clusterScreen(page: Page, own: OwnCluster, path: string) {
         await page.goto(path)
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+        await actForCluster(page, own.uid)
         await page.goto(path)
         await expect(page.getByTestId('app-shell')).toBeVisible()
     }
@@ -62,7 +62,7 @@ test.describe('Cluster notifications', () => {
             }).toPass({timeout: 30_000})
 
             await bell(page).click()
-            await expect(page).toHaveURL(/\/cluster\/notifications$/)
+            await expect(page).toHaveURL(/\/cluster\/notifications(\?[^#]*)?$/)
 
             const notice = page.getByTestId('notification-entry')
                 .filter({hasText: `${own.stationName} möchte dem Verband beitreten`})
@@ -70,11 +70,12 @@ test.describe('Cluster notifications', () => {
             await expect(notice).toContainText('Neue Beitrittsanfrage')
 
             await notice.click()
-            await expect(page).toHaveURL(/\/cluster\/applications$/)
+            await expect(page).toHaveURL(/\/cluster\/applications(\?[^#]*)?$/)
             await expect(page.getByText(own.stationName, {exact: true}), 'the request waits on the page it opened')
                 .toBeVisible()
 
             await openSection(page, 'Verband')
+            await page.waitForURL(url => !url.pathname.endsWith('/cluster/applications'))
             await expect(bell(page), 'and opening it read it').toHaveAccessibleName('Benachrichtigungen')
             await page.reload()
             await expect(bell(page), 'which the server remembers').toHaveAccessibleName('Benachrichtigungen')

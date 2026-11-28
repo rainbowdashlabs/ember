@@ -49,7 +49,7 @@ export function documentChanged(storedId: number | null | undefined, chosen: Ste
 }
 
 /**
- * The fields a step's save carries about its document: its kind where {@link documentChanged} says it is
+ * The fields a step's save carries about its document: its kind where {@link documentChanged} indicates it is
  * sent, nothing otherwise.
  *
  * @param storedId as for {@link documentChanged}

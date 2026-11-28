@@ -25,12 +25,12 @@ import TidyActions from './tidyartsview/TidyActions.vue'
 /**
  * Tidying the names written on the pieces into kinds.
  *
- * <p>Eighteen rows say nothing. Six names with a six, a five, a four and three ones say where the
+ * <p>Eighteen rows show nothing. Six names with a six, a five, a four and three ones show where the
  * typo is, and that is what this screen shows first.
  *
  * <p>It does more than hand out kinds, because handing out a kind on its own corrects nothing
  * anybody can see: the name is what every list, both exports and the notification texts read, so
- * {@code Funkgerät organge} would go on reading {@code Funkgerät organge} under a heading that says
+ * {@code Funkgerät organge} would go on reading {@code Funkgerät organge} under a heading that reads
  * otherwise. Merging therefore rewrites the names of the pieces it merges. That is a destructive
  * edit, which is why it belongs to somebody choosing it here and never to a migration.
  */
@@ -64,8 +64,8 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
 })
 
 /**
- * Which inventory is being tidied, at the head of the page, so two of them open at once are told
- * apart in the tab and in the history. The plain wording stands while it loads and where the
+ * Which inventory is being tidied, at the head of the page, so two of them open at once are
+ * distinguished in the tab and in the history. The plain wording stands while it loads and where the
  * inventory could not be fetched.
  */
 const pageTitle = computed(() => (detail.value?.name

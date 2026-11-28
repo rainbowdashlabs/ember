@@ -11,7 +11,7 @@ import SharedPageView from './SharedPageView.vue'
 /**
  * A link that no longer opens a page is the ordinary end of a shared link: it was replaced, the page
  * was taken back, or the station closed its pages. The reader holds nothing but the link, so the page
- * has to say that in words they can act on rather than report a fault nobody can name.
+ * has to show that in words they can act on rather than report a fault nobody can name.
  */
 describe('SharedPageView', () => {
     it('says the link leads nowhere when the server knows no page behind it', async () => {
@@ -26,6 +26,6 @@ describe('SharedPageView', () => {
         const wrapper = await mountSuspended(SharedPageView, {route: '/s/zurueckgezogen'})
 
         expect(wrapper.text()).toContain('Dieser Link führt nirgendwo mehr hin.')
-        expect(wrapper.text()).not.toContain('Ember kann nicht sagen was')
+        expect(wrapper.text()).not.toContain('der Grund ist nicht bekannt')
     })
 })

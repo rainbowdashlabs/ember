@@ -10,10 +10,10 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 
 /**
- * Says that an open movement carries a piece, and leads to that movement.
+ * Shows that an open movement carries a piece, and leads to that movement.
  *
  * <p>A promised piece sits on the shelf looking free, and one on its way looks like nothing at all.
- * The badge stands where a lent-out piece says to whom, so the reader sees why the piece is not
+ * The badge stands where a lent-out piece shows to whom, so the reader sees why the piece is not
  * theirs to hand out and where to find out more.
  */
 const props = defineProps<{

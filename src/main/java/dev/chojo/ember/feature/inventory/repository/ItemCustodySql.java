@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 /**
- * The one place that says which items belong to a station's lists.
+ * The one place that defines which items belong to a station's lists.
  *
  * <p>A station used to see the items in its own inventories, which was the same question as
  * ownership because an inventory belonged to exactly one station and a row never left it. Custody
@@ -57,7 +57,7 @@ public final class ItemCustodySql {
      *
      * <p>Being written down in an inventory is not the same as being there. Gear the body above the
      * station owns and has taken back rests with its owner, and the row stays where it is because the
-     * history of the piece hangs on it; counting that row as stock says the station has something
+     * history of the piece hangs on it; counting that row as stock shows that the station has something
      * that went back to the association last month. Which station to ask about is the one the
      * inventory belongs to, so this needs no bind of its own.
      *

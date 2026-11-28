@@ -54,7 +54,11 @@ export default defineConfig({
      * entirely; until the suite does that, the first visit to a page must not read as a failure.
      */
     expect: {timeout: 15_000},
-    retries: process.env.CI ? 1 : 0,
+    /**
+     * No retry inside a run. A failed story is rerun afterwards with a single worker instead, by the
+     * script that runs a group, which tells a story that loses a race apart from one that is wrong.
+     */
+    retries: 0,
     /**
      * Four against the built server it normally uses, two against a dev server, which compiles
      * each route on demand from a single process and falls behind under more.
@@ -89,9 +93,13 @@ export default defineConfig({
          * whatever zone the machine running the suite is in.
          */
         timezoneId: STATION_TIMEZONE,
-        trace: 'on-first-retry',
+        /**
+         * A trace and a video for a story that fails again on its rerun, which is the one somebody
+         * has to read. The first run records none, so a flake costs nothing.
+         */
+        trace: process.env.E2E_RERUN ? 'retain-on-failure' : 'off',
         screenshot: 'only-on-failure',
-        video: 'on-first-retry',
+        video: process.env.E2E_RERUN ? 'retain-on-failure' : 'off',
     },
 
     projects: [

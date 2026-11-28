@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * An opened stream is held open, told it is ready, hears its account's signals, and leaves the hub
+ * An opened stream is held open, signalled that it is ready, hears its account's signals, and leaves the hub
  * when the tab closes.
  */
 class MessageEventRoutesTest {

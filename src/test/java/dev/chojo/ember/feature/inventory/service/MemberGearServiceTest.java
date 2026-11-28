@@ -90,7 +90,7 @@ class MemberGearServiceTest {
                         new MemberInventoryEntry(item(2, null), 40), new MemberInventoryEntry(item(null, null), null)));
         when(inventory.findById(INVENTORY))
                 .thenReturn(Optional.of(new Inventory(
-                        INVENTORY, 3, "Jacken", InventoryType.INTERNAL, false, false, false, null, null)));
+                        INVENTORY, 3, "Jacken", InventoryType.INTERNAL, false, false, false, null, null, null)));
         when(inventory.findSizes(INVENTORY)).thenReturn(List.of(new InventorySize(2, INVENTORY, "M", 0, null)));
 
         var items = service.heldBy(MEMBER);

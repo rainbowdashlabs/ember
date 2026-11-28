@@ -206,7 +206,7 @@ class EventChangeNotifierTest extends RepositoryTestBase {
                 null);
     }
 
-    /** Saves a change of the whole appointment the way the route does and tells afterwards. */
+    /** Saves a change of the whole appointment the way the route does and notifies afterwards. */
     private StationEvent changeWhole(StationEvent before, String description, long laterByHours, ChangeNotice notice) {
         var after = scope.save(
                 before,

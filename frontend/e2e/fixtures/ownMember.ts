@@ -27,13 +27,13 @@ export interface OwnMember {
  * writing to what a story made itself: re-addressing somebody ends their sessions, re-onboarding
  * them ends them too, and renaming them is read by whoever is asserting a name elsewhere. A story
  * doing any of that to a seeded person does it to whoever else is acting as them, in another worker,
- * with nothing on screen to say why that story failed.
+ * with nothing on screen to show why that story failed.
  *
  * <p>The station is the one the caller is acting for, so the new member is reachable from the same
  * screens the story is already on. They are noted down for removal when the story ends.
  *
  * @param page  a page signed in as somebody who may enter members
- * @param label what the person is for, which goes into the name so a leftover says who made it
+ * @param label what the person is for, which goes into the name so a leftover shows who made it
  */
 export async function ownMember(page: Page, label: string): Promise<OwnMember> {
     const headers = await apiHeaders(page)

@@ -101,7 +101,7 @@ describe('useMemberManagers', () => {
 
     /**
      * The member kind is only written for somebody being created as a guardian. Attaching a person
-     * who is already at the station says nothing about what they are, and a helper or a member of
+     * who is already at the station shows nothing about what they are, and a helper or a member of
      * the team put in charge of a child keeps their own kind.
      */
     it('leaves the kind of an existing member alone when one is attached', async () => {

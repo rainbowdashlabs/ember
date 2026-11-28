@@ -40,4 +40,7 @@ const {t} = useI18n()
     <AppIcon :icon="['fas', 'link']" class="h-4 w-4"/>
     <span class="sr-only">{{ t('eventFields.attendanceLink') }}: {{ attendanceName }}</span>
   </span>
+  <span v-else class="invisible inline-flex p-2" aria-hidden="true">
+    <span class="h-4 w-4"/>
+  </span>
 </template>

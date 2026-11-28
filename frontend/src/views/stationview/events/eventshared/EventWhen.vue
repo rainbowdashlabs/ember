@@ -13,7 +13,7 @@ import {formatDaySpan, formatWeekdayDate} from '@/util/format'
  * When an appointment falls, written above its name.
  *
  * <p>A list of appointments is read by date before it is read by name: somebody scanning it wants to
- * know what is on Saturday, not where the drill is. One that runs over more than one day says both
+ * know what is on Saturday, not where the drill is. One that runs over more than one day shows both
  * ends, each with its own clock, and carries the calendar icon, because a single date would be a
  * lie about it.
  */

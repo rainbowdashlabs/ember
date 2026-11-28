@@ -98,7 +98,7 @@ public class StationStorageBackendService {
      *
      * <p>A station under an association may be standing on the association's storage, and may have been
      * put there by somebody else. A station manager wondering why an upload failed should not have to ask
-     * who to ask, so the answer says what is behind the station, on whose word, and what is still theirs
+     * who to ask, so the answer shows what is behind the station, on whose word, and what is still theirs
      * to do.
      *
      * @param stationId the station

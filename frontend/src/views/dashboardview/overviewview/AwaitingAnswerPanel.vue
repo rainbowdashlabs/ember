@@ -22,7 +22,7 @@ import {formatWeekdayDate} from '@/util/format'
  * <p>One row per event and date, naming who still owes an answer, because a household usually answers the
  * same way for everyone and reading the event once is how somebody decides that. Every date of a
  * series that is still waiting has a row of its own, and each row names its date so two of them can
- * be told apart.
+ * be distinguished.
  *
  * <p>The row leads to the event on that date, where both answers are offered: signing up, or signing
  * off, which stops the reminders as well.
@@ -59,7 +59,7 @@ const soonest = computed(() => Math.min(
     Number.MAX_SAFE_INTEGER))
 const anything = computed(() => awaiting.value.length + awaitingGroups.value.length > 0)
 
-/** Loads the panel, which says nothing when it cannot load rather than breaking the page. */
+/** Loads the panel, which shows nothing when it cannot load rather than breaking the page. */
 async function loadData() {
   const [entries, cats, open] = await Promise.all([
     events.listAwaitingAnswer().catch(() => []),

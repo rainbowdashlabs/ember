@@ -47,8 +47,8 @@ export function inventoryTypeBadge(type?: string | null): Component {
 /**
  * The badge for who owns one particular piece.
  *
- * <p>Separate from the inventory's own badge on purpose. The inventory says which owners it may hold,
- * and in a mixed one that is "both", which says nothing about the row in front of you. Who owns the
+ * <p>Separate from the inventory's own badge on purpose. The inventory defines which owners it may hold,
+ * and in a mixed one that is "both", which shows nothing about the row in front of you. Who owns the
  * piece is the half that decides where it goes and who has to confirm it.
  */
 export function itemOwnerBadge(ownerKind?: string | null): Component {

@@ -21,7 +21,7 @@ vi.mock('@/composables/useSession', () => ({
  * What the panel asks the picker for when a step wants to know which piece arrived.
  *
  * <p>The filters live in the picker and the answers live in the movement, so this is about the wire
- * between them: a panel that knows whose gear it is about and does not say so leaves the picker
+ * between them: a panel that knows whose gear it is about and does not pass that on leaves the picker
  * offering every piece the station has, which is how somebody else's jacket gets handed over.
  */
 
@@ -76,7 +76,7 @@ describe('MovementActionPanel', () => {
         expect(picker.props('excludeSpokenFor'), 'nothing another movement has promised').toBe(true)
     })
 
-    /** The button says what pressing it makes true, which is the step's own words. */
+    /** The button shows what pressing it makes true, which is the step's own words. */
     it('names the step on the button that answers it', () => {
         const wrapper = panel()
 

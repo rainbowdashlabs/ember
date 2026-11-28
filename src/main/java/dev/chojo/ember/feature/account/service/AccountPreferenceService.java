@@ -27,4 +27,20 @@ public class AccountPreferenceService {
     public void setSidebar(int accountId, SidebarMode mode) {
         preferences.setSidebar(accountId, mode);
     }
+
+    /**
+     * @param accountId the account
+     * @return whether member managers of any station of this instance may find it by its name
+     */
+    public boolean findableByName(int accountId) {
+        return preferences.findableByName(accountId);
+    }
+
+    /**
+     * @param accountId the account
+     * @param findable  whether member managers of any station of this instance may find it by its name
+     */
+    public void setFindableByName(int accountId, boolean findable) {
+        preferences.setFindableByName(accountId, findable);
+    }
 }

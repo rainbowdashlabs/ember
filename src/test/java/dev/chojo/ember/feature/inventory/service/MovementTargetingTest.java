@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  *
  * <p>The cases worth holding are the ones a wrong answer sends down the wrong chain: a piece that names
  * its owner outright, a movement that names only what is arriving, a mixed inventory where only the
- * piece can say, and the difference between a movement with a member and one about the store.
+ * piece can decide, and the difference between a movement with a member and one about the store.
  */
 class MovementTargetingTest extends RepositoryTestBase {
     private static final AtomicInteger CODES = new AtomicInteger();

@@ -176,7 +176,7 @@ test.describe('Losing a piece of the association gear', () => {
 
         await clusterView.goto(`/cluster/inventory/movement/${waiting.movementId}`)
         await expect(clusterView, 'the association opens the movement rather than being sent elsewhere')
-            .toHaveURL(new RegExp(`/cluster/inventory/movement/${waiting.movementId}$`))
+            .toHaveURL(new RegExp(`/cluster/inventory/movement/${waiting.movementId}(\\?[^#]*)?$`))
         await expect(clusterView.getByTestId('loss-report')).toBeVisible({timeout: 15000})
         await expect(clusterView.getByTestId('loss-report-manager-note')).toContainText(managerNote)
         await expect(clusterView.getByTestId('loss-report-member-note')).toContainText('Aus der Tasche gefallen')
@@ -280,7 +280,7 @@ test.describe('Losing a piece of the association gear', () => {
      * CLS-52e - A guardian reports for the person they act for.
      *
      * The same screen, the other tab. The note records the guardian as its author acting for the member,
-     * so the trail says who actually wrote it. The gear lives at the manager's own station, since gear
+     * so the trail shows who actually wrote it. The gear lives at the manager's own station, since gear
      * at another station is not the guardian's to report, and is reported from the charge's tab.
      */
     test('a guardian reports a loss for the person they act for', async ({

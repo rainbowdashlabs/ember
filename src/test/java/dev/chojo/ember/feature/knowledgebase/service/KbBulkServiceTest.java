@@ -147,7 +147,7 @@ class KbBulkServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The point of naming refusals: a reader who marked twenty entries is told which one stayed
+     * The point of naming refusals: a reader who marked twenty entries sees which one stayed
      * behind rather than being sent to walk their own selection looking for it.
      */
     @Test
@@ -175,7 +175,7 @@ class KbBulkServiceTest extends RepositoryTestBase {
 
     /**
      * Past the point where a message stays readable the result stops naming entries, but the total
-     * still says how many there were, so the count never disagrees with what happened.
+     * still shows how many there were, so the count never disagrees with what happened.
      */
     @Test
     void aVeryLongListOfRefusalsStopsNamingButKeepsCounting() {

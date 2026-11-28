@@ -20,19 +20,19 @@ public enum FederationRefusal implements Refusal {
     /** A handshake from another instance whose enrollment signature was not accepted. */
     HANDSHAKE_SIGNATURE_NOT_GOOD(2, HttpStatus.FORBIDDEN, "That handshake signature was not accepted"),
 
-    /** A partner registering a callback without saying where it is to be called. */
+    /** A partner registering a callback without indicating where it is to be called. */
     WEBHOOK_ADDRESS_MISSING(3, HttpStatus.BAD_REQUEST, "Give the address the partner is to be called back on"),
 
     /** A callback address a partner named that this instance will not call. */
     WEBHOOK_ADDRESS_NOT_ALLOWED(4, HttpStatus.BAD_REQUEST, Sentences.FEDERATION_ADDRESS_NOT_PUBLIC),
 
-    /** A partner polling for changes without saying which moment to start from. */
+    /** A partner polling for changes without indicating which moment to start from. */
     SYNC_SINCE_MISSING(5, HttpStatus.BAD_REQUEST, "Say which moment the changes are wanted from"),
 
     /** A moment a partner polled from that does not read as a moment. */
     SYNC_SINCE_NOT_A_MOMENT(6, HttpStatus.BAD_REQUEST, "The moment the changes were asked from is not a moment"),
 
-    /** A station announcing it has moved without saying where it has moved to. */
+    /** A station announcing it has moved without indicating where it has moved to. */
     ANNOUNCED_HOST_MISSING(7, HttpStatus.BAD_REQUEST, "Give the address the station has moved to"),
 
     /** A new address a moved station announced that this instance will not call. */
@@ -48,7 +48,7 @@ public enum FederationRefusal implements Refusal {
      * A pairing request that is not here, or one addressed to another station.
      *
      * <p>One code for both on purpose. The lookup asks about every request on the instance, so
-     * telling them apart would say that a request exists between two stations the reader may not
+     * distinguishing them would reveal that a request exists between two stations the reader may not
      * see.
      */
     PAIR_REQUEST_NOT_HERE_TO_ACCEPT(11, HttpStatus.NOT_FOUND, Sentences.PAIR_REQUEST_NOT_HERE),
@@ -75,7 +75,7 @@ public enum FederationRefusal implements Refusal {
      *
      * <p>One code for every route that loads one, and for the access check behind them. The lookup
      * asks about every request on the instance, and the check that follows is what narrows it to
-     * the borrowing and the owning station. Giving each route its own code would say that the
+     * the borrowing and the owning station. Giving each route its own code would reveal that the
      * request exists between two stations the reader is no part of, which is the one thing the
      * shared answer withholds.
      */
@@ -97,11 +97,11 @@ public enum FederationRefusal implements Refusal {
     LENDING_BLOCK_SPAN_MISSING(
             23, HttpStatus.BAD_REQUEST, "Give the first and the last day the gear is held back, so nothing was saved"),
 
-    /** An offer written without saying whether the gear goes out or is held back. */
+    /** An offer written without indicating whether the gear goes out or is held back. */
     SHARE_GRANT_MISSING(
             24, HttpStatus.BAD_REQUEST, "Say whether the gear goes on offer or is held back, so nothing was saved"),
 
-    /** An offer written without saying who it reaches. */
+    /** An offer written without indicating who it reaches. */
     SHARE_SCOPE_MISSING(
             25,
             HttpStatus.BAD_REQUEST,
@@ -188,7 +188,7 @@ public enum FederationRefusal implements Refusal {
 
     /**
      * An inventory an offer is written on that is not here, or is not this station's. One code for
-     * both: telling them apart would say that another station keeps an inventory under that number.
+     * both: distinguishing them would reveal that another station keeps an inventory under that number.
      */
     SHARE_INVENTORY_NOT_HERE(45, HttpStatus.NOT_FOUND, Sentences.INVENTORY_NOT_HERE),
 
@@ -311,7 +311,14 @@ public enum FederationRefusal implements Refusal {
     PAIR_STATUS_NOT_HERE(73, HttpStatus.NOT_FOUND, "No request to federate from that station is known here"),
 
     /** A request to federate that a station would send to a station with its own identity. */
-    PAIR_REQUEST_TO_OWN_STATION(74, HttpStatus.BAD_REQUEST, "A station cannot federate with itself");
+    PAIR_REQUEST_TO_OWN_STATION(74, HttpStatus.BAD_REQUEST, "A station cannot federate with itself"),
+
+    /**
+     * A photo of a partner's gear asked for that is not among what the partner offers the asking
+     * station, or a partner that does not lend to it. One answer for both, so nothing is learned about
+     * gear that is not offered.
+     */
+    LENDING_PICTURE_NOT_OFFERED(75, HttpStatus.NOT_FOUND, "That photo is not part of what is offered to your station");
 
     private final Definition definition;
 

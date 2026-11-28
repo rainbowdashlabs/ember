@@ -31,7 +31,7 @@ const NOTHING_DECIDED: Dimensions = {
   imagesBytes: null, pagesBytes: null, perFileBytes: null, perImageBytes: null,
 }
 
-/** What the association's overview says about one station, in the shape the shared table reads. */
+/** What the association's overview shows about one station, in the shape the shared table reads. */
 function asRow(room: StationRoomResponse): StorageRoomRow {
   const quota = room.resolved.total.bytes
   return {

@@ -39,7 +39,7 @@ const textConfig = computed<TextConfig | null>(() => (props.field.config.kind ==
 const numberConfig = computed<NumberConfig | null>(() => (props.field.config.kind === 'NUMBER' ? props.field.config : null))
 const enumConfig = computed<EnumConfig | null>(() => (props.field.config.kind === 'CHOICE' ? props.field.config : null))
 
-/** A long answer is a text field the station marked as one, which no other feature says separately. */
+/** A long answer is a text field the station marked as one, which no other feature marks separately. */
 const answerType = computed(() => (textConfig.value?.multiline ? FieldType.LONG_TEXT : props.field.fieldType))
 
 const asText = computed(() => (value.value == null ? '' : String(value.value)))

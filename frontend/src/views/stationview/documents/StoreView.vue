@@ -35,7 +35,7 @@ import {describeFailure} from '@/util/failure'
 
 /**
  * The document store of the station: everything that was ever put in, whether it belongs to
- * somebody or to nobody, a page at a time and searchable by what the documents say.
+ * somebody or to nobody, a page at a time and searchable by what the documents contain.
  *
  * <p>Whoever may file documents for members also generates them here from a template: for one member,
  * opened in the store once filed, or for many at once in a background run, followed below the list.
@@ -45,6 +45,7 @@ const {hasPermission} = usePermissions()
 
 const canEdit = computed(() => hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
 const readsMembers = computed(() => hasPermission(StationPermission.DOCUMENT_READ_MEMBER))
+const readsStationDocuments = computed(() => hasPermission(StationPermission.DOCUMENT_READ))
 
 const documents = ref<MemberDocumentResponse[]>([])
 const total = ref(0)
@@ -66,7 +67,7 @@ const opened = ref<MemberDocumentResponse | null>(null)
 /** The document just generated here, opened as soon as the list that holds it arrives. */
 const awaitedDocument = ref<number | null>(null)
 
-/** How many documents a page holds, which the store answers with rather than being told. */
+/** How many documents a page holds, which the store answers with rather than being given. */
 const pageSize = 24
 const pages = computed(() => Math.max(Math.ceil(total.value / pageSize), 1))
 
@@ -162,7 +163,7 @@ reload()
  * Puts a document in the store.
  *
  * <p>The window is closed whatever happens, because the reason it failed is shown on the page behind
- * it. A file the station is not allowed to keep is the ordinary refusal here and the server says so in
+ * it. A file the station is not allowed to keep is the ordinary refusal here and the server reports it in
  * its own words, which is no use to anybody reading it through a dialog that is covering it.
  */
 async function upload(upload: DocumentUpload) {
@@ -186,7 +187,7 @@ function open(document: MemberDocumentResponse) {
 /**
  * Shows a document generated from the store: the first page, where the newest document stands, and
  * the document itself opened on it. A filter that leaves the document out leaves it closed; the dialog
- * has already said it was filed.
+ * has already shown that it was filed.
  */
 async function showFiled(documentId: number) {
   awaitedDocument.value = documentId
@@ -204,7 +205,7 @@ watch(documents, list => {
 /**
  * Runs a change to one document and catches the list up afterwards.
  *
- * <p>Caught apart: by the time the list is fetched again the change is written, and a reader told that
+ * <p>Caught apart: by the time the list is fetched again the change is written, and a reader shown that
  * removing a document failed removes it again, on a document that is already gone.
  */
 async function act(action: Promise<unknown>) {
@@ -268,6 +269,7 @@ async function selectAll() {
           :can-upload="canEdit"
           :can-generate="canEdit"
           :reads-members="readsMembers"
+          :reads-station-documents="readsStationDocuments"
           @search-input="onSearch"
           @upload="showUpload = true"
           @generate="showGenerate = true"

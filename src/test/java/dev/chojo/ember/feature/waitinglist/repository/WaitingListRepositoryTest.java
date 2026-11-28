@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.events.entity.RegistrationDeadline;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
@@ -171,7 +172,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     /**
      * A new invitation counts as mailed now, which is where its weekly reminders count from; other
-     * dates start that count again and forget that the station was told the dates had run out, and
+     * dates start that count again and forget that the station was notified that the dates had run out, and
      * taking the invitation back forgets both.
      */
     @Test
@@ -846,5 +847,52 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                                 new WaitingListInvitation.OfferedDate(0, eventId, first, LocalTime.of(17, 45)),
                                 new WaitingListInvitation.OfferedDate(1, eventId, second, null))));
         return entry;
+    }
+
+    /**
+     * The sidebar counts the waiting entries a member has not been shown: all of a list they never
+     * opened, then only those above what they were shown, for them alone.
+     */
+    @Test
+    void countsOnlyTheEntriesAMemberWasNotShownYet() {
+        var list =
+                waitingListRepo.create(stationId, "Seen List", "", null, 180, null, null, 5, false, true, null, null);
+        var first = entryOn(list.id());
+        var second = entryOn(list.id());
+        var reader = memberNamed("wl-seen-reader@test.com");
+        var other = memberNamed("wl-seen-other@test.com");
+
+        assertEquals(
+                2, waitingListRepo.countUnseenEntries(stationId, reader.id()), "a list never opened counts in full");
+
+        waitingListRepo.markSeen(list.id(), reader.id(), second.id());
+        assertEquals(0, waitingListRepo.countUnseenEntries(stationId, reader.id()), "opening it clears it");
+        assertEquals(2, waitingListRepo.countUnseenEntries(stationId, other.id()), "for the reader only");
+
+        entryOn(list.id());
+        assertEquals(1, waitingListRepo.countUnseenEntries(stationId, reader.id()), "a later entry is new again");
+
+        waitingListRepo.markSeen(list.id(), reader.id(), first.id());
+        assertEquals(1, waitingListRepo.countUnseenEntries(stationId, reader.id()), "an older look does not move back");
+
+        waitingListRepo.markSeen(list.id(), other.id(), Integer.MAX_VALUE);
+        var fourth = entryOn(list.id());
+        assertEquals(1, waitingListRepo.countUnseenEntries(stationId, other.id()), "a look past the list is capped");
+
+        waitingListRepo.updateEntryStatus(fourth.id(), WaitingListEntryStatus.JOINED);
+        assertEquals(0, waitingListRepo.countUnseenEntries(stationId, other.id()), "only waiting entries count");
+
+        stationMemberRepo.delete(reader.id());
+        stationMemberRepo.delete(other.id());
+    }
+
+    private WaitingListEntry entryOn(int listId) {
+        return waitingListRepo.createEntry(
+                listId, "Max", "", "", "seen@test.com", UUID.randomUUID().toString(), "", null);
+    }
+
+    private StationMember memberNamed(String email) {
+        var account = accountRepo.create(email, "Seen", "Reader");
+        return stationMemberRepo.create(stationId, account.id());
     }
 }

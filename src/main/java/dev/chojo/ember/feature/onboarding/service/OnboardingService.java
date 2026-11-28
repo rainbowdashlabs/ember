@@ -204,13 +204,27 @@ public class OnboardingService {
      *
      * <p>A task that carries across stations is taken up again on all of them: a mark left on
      * another station would otherwise settle it again the moment the local one is gone.
+     *
+     * <p>A task still waiting for another can be neither ticked off nor passed over, so a page left
+     * open from before cannot settle a step that is not shown any more.
+     *
+     * @param current the level's tasks as they stand for the reader, before this mark
      */
-    public void mark(OnboardingLevel level, String taskId, OnboardingTaskState state, int memberId, int accountId) {
+    public void mark(
+            OnboardingLevel level,
+            String taskId,
+            OnboardingTaskState state,
+            int memberId,
+            int accountId,
+            OnboardingStatus current) {
         OnboardingTask task = OnboardingTask.byKey(keyOf(taskId))
                 .filter(candidate -> candidate.level() == level)
                 .orElseThrow(StationRefusal.ONBOARDING_TASK_UNKNOWN::raise);
         if (state == OnboardingTaskState.DONE && task.derived()) {
             throw StationRefusal.ONBOARDING_TASK_FINISHES_ITSELF.raise();
+        }
+        if (state != OnboardingTaskState.OPEN && heldBack(current, taskId)) {
+            throw StationRefusal.ONBOARDING_TASK_NOT_YET.raise();
         }
         String stored =
                 switch (state) {
@@ -241,9 +255,9 @@ public class OnboardingService {
     }
 
     /**
-     * A dismissed task stays dismissed, whatever its data would now say.
+     * A dismissed task stays dismissed, whatever its data would now show.
      *
-     * @param elsewhere whether the marks are the reader's own from another station, which is said
+     * @param elsewhere whether the marks are the reader's own from another station, which is shown
      *                  rather than passed off as a mark left here
      */
     private OnboardingTaskView view(
@@ -276,7 +290,8 @@ public class OnboardingService {
                 !task.derived(),
                 mark == null ? null : actorName(mark, task.level()),
                 mark == null ? null : mark.changedAt(),
-                elsewhere);
+                elsewhere,
+                true);
     }
 
     private boolean memberTaskDone(OnboardingTask task, StationMember member, StationUserType userType) {
@@ -395,6 +410,12 @@ public class OnboardingService {
         Map<String, OnboardingMark> byKey = new HashMap<>();
         for (OnboardingMark mark : marks) byKey.put(mark.taskKey(), mark);
         return byKey;
+    }
+
+    private static boolean heldBack(OnboardingStatus current, String taskId) {
+        return current.tasks().stream()
+                .anyMatch(
+                        view -> view.id().equals(taskId) && view.state() == OnboardingTaskState.OPEN && !view.ready());
     }
 
     private static String keyOf(String taskId) {

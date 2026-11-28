@@ -33,7 +33,7 @@ import static dev.chojo.ember.feature.station.transfer.WireValues.asString;
  * those members.
  *
  * <p>On a passwordless target instance no hash is installed at all, and the count of skipped
- * rows is said out loud rather than swallowed: those members are onboarded again on this side,
+ * rows is reported rather than swallowed: those members are onboarded again on this side,
  * which is what the import's own re-onboarding mails set going.
  */
 @Singleton

@@ -58,7 +58,7 @@ describe('ReportCard', () => {
         expect(view.find('[data-testid="problem-report-held"]').exists()).toBe(false)
     })
 
-    /** An instance that passes nothing on has nothing to say about it, so it says nothing. */
+    /** An instance that passes nothing on has nothing to show about it, so it shows nothing. */
     it('says neither where the instance forwards nothing', () => {
         const view = card({forwardState: null})
 

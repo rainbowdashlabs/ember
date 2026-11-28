@@ -58,7 +58,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
 /**
  * The person by name at the head of the page, because "Mitglied" stands above every one of them and
  * is what the tab, the history and a bookmark carry. The plain word stands until the profile has
- * arrived, and where it could not be fetched at all; the line underneath says what the page is for.
+ * arrived, and where it could not be fetched at all; the line underneath shows what the page is for.
  */
 const pageTitle = computed(() => name.value || t('pages.cluster-member-detail.title'))
 

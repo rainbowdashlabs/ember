@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
- * The one way storage is told apart from its secrets, for the screens and for the history alike.
+ * The one way storage is separated from its secrets, for the screens and for the history alike.
  *
  * <p>Two stores keep storage: a row of encrypted configuration for a station or an association, and the
  * configuration file for the instance. Both are read back through here, so neither can show a field the

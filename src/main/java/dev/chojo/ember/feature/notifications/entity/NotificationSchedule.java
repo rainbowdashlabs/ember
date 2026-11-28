@@ -15,10 +15,10 @@ import java.util.List;
 /**
  * When the notifications a station has gathered are mailed out.
  *
- * <p>A station says the times of day it wants to be written to rather than how long its notifications
- * should be gathered for. Seven in the morning means seven in the morning: a length of time says only
+ * <p>A station sets the times of day it wants to be written to rather than how long its notifications
+ * should be gathered for. Seven in the morning means seven in the morning: a length of time gives only
  * "no more often than", and leaves the arrival drifting with whenever the server was last restarted.
- * Asking for hourly mail is the same thing said twenty-four times, so there is one rule here and not
+ * Asking for hourly mail is the same thing written out twenty-four times, so there is one rule here and not
  * two.
  *
  * <p>Nothing about this is a decision about who is written to. It answers one question, for a station
@@ -82,7 +82,7 @@ public final class NotificationSchedule {
      * or yesterday.
      *
      * <p>Yesterday is looked at as well, because a station asking only for seven in the morning is
-     * still owed that mail at one in the following morning, and looking only at today would say no
+     * still owed that mail at one in the following morning, and looking only at today would show no
      * time has passed and hold its notifications until seven came round again.
      */
     private static Instant latestPassed(List<LocalTime> sendTimes, ZoneId zone, Instant now) {
@@ -104,7 +104,7 @@ public final class NotificationSchedule {
         return best;
     }
 
-    /** The times a station asking for hourly mail holds, which is the same rule said twenty-four times. */
+    /** The times a station asking for hourly mail holds, which is the same rule written out twenty-four times. */
     public static List<LocalTime> everyHour() {
         return java.util.stream.IntStream.range(0, 24)
                 .mapToObj(hour -> LocalTime.of(hour, 0))

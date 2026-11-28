@@ -16,10 +16,10 @@ import type {AttendanceSession} from '@/api/generated/schema'
 import {formatDateTime, instantToLocalInput} from '@/util/format'
 
 /**
- * What the sheet itself says: what it is called, when it ran, and what being there is worth.
+ * What the sheet itself shows: what it is called, when it ran, and what being there is worth.
  *
  * <p>The times are the sheet's own even where an appointment stands behind it, since an appointment
- * hands them down once and a sheet that started late or ran long has to be able to say so. Where
+ * hands them down once and a sheet that started late or ran long has to be able to show it. Where
  * they no longer match the appointment, the appointment's own times are offered back rather than
  * quietly restored.
  */
@@ -50,7 +50,7 @@ const eventTimesDiffer = computed(() =>
     && (props.eventStartTime !== props.session.startTime || props.eventEndTime !== props.session.endTime),
 )
 
-/** An empty field means the sheet's times decide again, which is what most sheets say. */
+/** An empty field means the sheet's times decide again, which is what most sheets show. */
 function onCountedHours(value: number | string | undefined) {
   const hours = typeof value === 'string' ? Number(value.trim() || Number.NaN) : value
   emit('updateCountedHours', hours === undefined || Number.isNaN(hours) || hours < 0 ? null : hours)

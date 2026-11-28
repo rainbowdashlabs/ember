@@ -58,7 +58,7 @@ export function answerLoss(counts: QuestionAnswerCount[], removals: Removals): A
  * <p>Saving the questions removes every stored question that is no longer in the list, and the
  * answers given to it go with it. Removing an option of a question that stays takes that option out
  * of every answer that chose, ranked or rated it. Both are right when somebody means it and a loss
- * nobody can undo when they do not, so where the save would lose anything the editor is told how
+ * nobody can undo when they do not, so where the save would lose anything the editor is shown how
  * much, in one question for the whole save, and asked first. Removing what nobody answered asks
  * nothing.
  *
@@ -72,7 +72,7 @@ export function useAnswerLossConsent() {
   const lostOptionSelections = ref(0)
   let settle: ((accepted: boolean) => void) | null = null
 
-  /** What the dialog says, naming only the kinds of loss the save actually has. */
+  /** What the dialog shows, naming only the kinds of loss the save actually has. */
   const message = computed(() => {
     if (lostOptionSelections.value === 0) return t('forms.removedQuestionsLoseAnswers', {count: lostAnswers.value})
     if (lostAnswers.value === 0) return t('forms.removedOptionsLoseSelections', {count: lostOptionSelections.value})

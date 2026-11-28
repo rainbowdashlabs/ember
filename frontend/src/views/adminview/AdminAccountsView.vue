@@ -22,7 +22,7 @@ import AccountDetailModal from './adminaccountsview/AccountDetailModal.vue'
 
 /**
  * Every account of the instance, searched, filtered, sorted and paged on the server. The table's own
- * sort and filter dialogs say what the server is asked for, and the address carries the filters, so
+ * sort and filter dialogs show what the server is asked for, and the address carries the filters, so
  * a link can open the list already filtered. A row opens the account with what can be done to it:
  * the mail it waits for, a one-time password, a reset of its second factor, retiring its password.
  * The opened account stays open when a reload after an action leaves it off the filtered page; it

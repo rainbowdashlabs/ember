@@ -9,8 +9,8 @@ import java.net.URI;
 
 /**
  * Where an authority's revocation list is published: below the installation's public base address,
- * named by the authority certificate's serial number, which never changes and tells the authorities
- * apart after a renewal. Station certificates carry this address as their CRL distribution point, so
+ * named by the authority certificate's serial number, which never changes and distinguishes the authorities
+ * after a renewal. Station certificates carry this address as their CRL distribution point, so
  * it has to stay stable for as long as any of them is checked; the route that serves the list takes
  * {@link #ROUTE} from here.
  */

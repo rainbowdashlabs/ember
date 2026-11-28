@@ -41,7 +41,7 @@ class MailProviderBlockRepositoryTest extends RepositoryTestBase {
     }
 
     /**
-     * A block belongs to the list it was learned on. A station finding its own relay refused says
+     * A block belongs to the list it was learned on. A station finding its own relay refused shows
      * nothing about the instance's, which is a different account at a different service.
      */
     @Test

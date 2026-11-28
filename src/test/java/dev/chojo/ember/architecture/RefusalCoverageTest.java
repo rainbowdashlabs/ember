@@ -37,7 +37,7 @@ public class RefusalCoverageTest {
      * The responses that are not failures and are therefore none of this rule's business.
      *
      * <p>{@link NoContentResponse} is a {@code 204} and {@link RedirectResponse} a {@code 3xx}:
-     * neither says anything went wrong, so neither owes the reader a sentence or a code.
+     * neither shows anything went wrong, so neither owes the reader a sentence or a code.
      */
     private static final Set<String> NOT_REFUSALS =
             Set.of(NoContentResponse.class.getName(), RedirectResponse.class.getName());
@@ -97,7 +97,7 @@ public class RefusalCoverageTest {
      * replace, and it hides which of a hundred lines produced it.
      *
      * <p>Most of these sit after a write that already succeeded, where the honest sentence is that
-     * the change was saved and could not be read back. A bare throw cannot say that either.
+     * the change was saved and could not be read back. A bare throw cannot show that either.
      */
     @Test
     void noRouteEmptiesAnOptionalWithoutSayingWhy() {

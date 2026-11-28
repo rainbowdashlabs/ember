@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.signing.service;
 
 /**
- * Told once a new sealed state of a request was filed, outside the transaction that filed it, so what the
+ * Notified once a new sealed state of a request was filed, outside the transaction that filed it, so what the
  * state has to reach beyond this installation can be sent on.
  */
 @FunctionalInterface

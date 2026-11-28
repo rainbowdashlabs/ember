@@ -221,7 +221,7 @@ public class SelfCheckRoutes implements Routes {
 
     /**
      * One task with the name of whoever it is about, because a guardian's list holds several and
-     * names alone tell them apart.
+     * names alone distinguish them.
      */
     private SelfCheckSummary toSummary(SelfCheck task) {
         String memberName = Objects.requireNonNullElse(names.called(task.memberId()), "");

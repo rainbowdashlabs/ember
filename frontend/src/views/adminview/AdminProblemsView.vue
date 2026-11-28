@@ -42,7 +42,7 @@ const levelOptions = computed(() => [
     {value: ProblemLevel.WARN, label: t('adminProblems.warnings')},
 ])
 
-/** What an empty list says: the all clear for open faults is the summary's, the rest is said here. */
+/** What an empty list shows: the all clear for open faults is the summary's, the rest is shown here. */
 const emptyText = computed(() => {
     if (state.value !== ProblemState.OPEN || level.value != null) return t('adminProblems.noneInState')
     return refusals.value ? t('adminProblems.noRefusals') : ''

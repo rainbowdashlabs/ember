@@ -122,7 +122,7 @@ const canEditItem = computed(() => (canEdit.value || isManager.value) && !ownedE
 /**
  * Handing it out, shelving it, reporting it missing and finding it again.
  *
- * <p>Ownership has nothing to say about these, because they are facts about where the thing is rather than
+ * <p>Ownership has no bearing on these, because they are facts about where the thing is rather than
  * the owner's account of what it is. A station holding an association's jacket hands it to a member and
  * reports it missing exactly as it does with its own, and the server allows all of it.
  */
@@ -174,7 +174,7 @@ async function reloadItem() {
  * Reads the handover list again after the piece changed hands.
  *
  * <p>Caught apart from the change itself, because by the time this runs the piece has already moved.
- * Saying that handing it over failed would send the reader to do it a second time.
+ * Reporting that handing it over failed would send the reader to do it a second time.
  */
 async function refreshHistory() {
   try {

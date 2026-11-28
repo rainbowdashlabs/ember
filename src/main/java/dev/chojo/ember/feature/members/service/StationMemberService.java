@@ -410,7 +410,7 @@ public class StationMemberService {
     }
 
     /**
-     * Says that a guardian link of a member changed. The station's chats may take guardians in, and a
+     * Signals that a guardian link of a member changed. The station's chats may take guardians in, and a
      * member who has a guardian somewhere may use messages only once a guardian allowed it, which
      * holds at every station of their account.
      */

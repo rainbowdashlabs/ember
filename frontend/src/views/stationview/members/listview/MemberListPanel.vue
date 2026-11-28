@@ -15,7 +15,7 @@ import type {RosterMember} from './useMemberData'
 
 /**
  * The member list, drawn from a configuration: the tabs, the filters above the table, the table
- * and the export. A screen says which configuration it is drawing and nothing else.
+ * and the export. A screen supplies which configuration it is drawing and nothing else.
  */
 const props = defineProps<{
   config: MemberListConfig

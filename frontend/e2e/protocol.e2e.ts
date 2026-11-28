@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {below} from './fixtures/address'
 import type {Page} from '@playwright/test'
 import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
@@ -42,7 +43,7 @@ async function startRun(page: Page, sheet: string): Promise<string> {
     await page.keyboard.press('Escape')
 
     await page.getByRole('button', {name: 'Neuer Prüfungslauf'}).last().click()
-    await page.waitForURL(/\/station\/protocols\/runs\/\d+\/plan$/)
+    await page.waitForURL(/\/station\/protocols\/runs\/\d+\/plan(\?[^#]*)?$/)
     return run
 }
 
@@ -54,7 +55,7 @@ async function createRun(page: Page, sheet: string): Promise<string> {
     const run = await startRun(page, sheet)
 
     await page.getByRole('button', {name: 'Ohne Prüfer weiter'}).click()
-    await page.waitForURL(/\/station\/protocols\/runs\/\d+$/)
+    await page.waitForURL(/\/station\/protocols\/runs\/\d+(\?[^#]*)?$/)
     await expect(page.getByText(run).first()).toBeVisible()
     return run
 }
@@ -75,7 +76,7 @@ test.describe('Protocols', () => {
 
         await expect(page.getByRole('button', {name: 'Wie beim letzten Mal'})).toBeVisible()
         await page.getByRole('button', {name: 'Speichern'}).click()
-        await page.waitForURL(/\/station\/protocols\/runs\/\d+$/)
+        await page.waitForURL(/\/station\/protocols\/runs\/\d+(\?[^#]*)?$/)
         await expect(page.getByRole('button', {name: 'Prüfer planen'})).toBeVisible()
     })
 
@@ -99,7 +100,7 @@ test.describe('Protocols', () => {
         await page.keyboard.press('Escape')
 
         await page.getByRole('button', {name: 'Speichern'}).click()
-        await page.waitForURL(/\/station\/protocols\/runs\/\d+$/)
+        await page.waitForURL(/\/station\/protocols\/runs\/\d+(\?[^#]*)?$/)
         await expect(page.getByRole('button', {name: 'Prüfen'}).first()).toBeVisible()
     })
 
@@ -118,7 +119,7 @@ test.describe('Protocols', () => {
     test('the evaluation of a run downloads as a PDF', async ({managerPage: page}) => {
         await createRun(page, await createSheet(page))
 
-        await page.goto(`${page.url()}/evaluation`)
+        await page.goto(below(page.url(), 'evaluation'))
 
         const download = page.waitForEvent('download')
         await page.getByRole('button', {name: 'Tabelle als PDF'}).click()

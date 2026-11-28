@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, useId, watch} from 'vue'
+import {computed, ref, useId, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -15,9 +15,10 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import InventoryKindField from '@/components/inventory/InventoryKindField.vue'
 import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
+import InventoryPictureField from '@/components/inventory/InventoryPictureField.vue'
 import {switchRefusal} from '@/api/inventory'
 import {InventoryType, type InventoryDetail, type SwitchBlocker} from '@/api/generated/schema'
-import {inventory} from '@/api'
+import {inventory, inventoryPictures} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
 import SwitchRefusalAlert from './SwitchRefusalAlert.vue'
 
@@ -40,6 +41,14 @@ const editHasSizes = ref(props.detail.hasSizes ?? false)
 const editIcon = ref<string | null>(props.detail.icon ?? null)
 const editColor = ref<string | null>(props.detail.color ?? null)
 
+/** The photo as it stands; it is saved on its own the moment it is picked, apart from the form. */
+const pictureKey = ref<string | null>(props.detail.pictureKey ?? null)
+const pictureSrc = computed(() => pictureKey.value
+    ? inventoryPictures.inventoryPictureUrl(props.detail.id, pictureKey.value, 256)
+    : null)
+const uploadPicture = (file: File) => inventoryPictures.uploadInventoryPicture(props.detail.id, file)
+const removePicture = () => inventoryPictures.removeInventoryPicture(props.detail.id)
+
 /** A collection keeps no size list, so the one control follows the other. */
 watch(editHomogeneous, value => {
   if (!value) editHasSizes.value = false
@@ -50,11 +59,11 @@ const blockers = ref<SwitchBlocker[]>([])
 const refusalMessage = ref('')
 
 /**
- * Writes the settings back, and tells the reader apart from the two ways it can fail.
+ * Writes the settings back, and distinguishes the two ways it can fail.
  *
  * <p>A refused change of kind names what is in the way, so it belongs beside the control that was
  * refused rather than as one more line at the top of the page. Everything else goes up as a described
- * failure, so the page can say what the server said and offer a report where it is ours to fix.
+ * failure, so the page can show what the server answered and offer a report where it is ours to fix.
  */
 async function saveSettings() {
   blockers.value = []
@@ -102,6 +111,14 @@ async function saveSettings() {
     </div>
 
     <GearIconPicker v-model:icon="editIcon" v-model:color="editColor" allow-no-icon/>
+
+    <InventoryPictureField
+        :hint="t('inventory.picture.inventoryHint')"
+        :remove="removePicture"
+        :src="pictureSrc"
+        :upload="uploadPicture"
+        @changed="pictureKey = $event"
+    />
 
     <InventoryKindField v-model="editHomogeneous"/>
 

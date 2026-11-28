@@ -49,7 +49,7 @@ public record AttendanceFieldConfig(
     }
 
     /**
-     * What this field says about the question it asks, as everything that measures one reads it.
+     * What this field shows about the question it asks, as everything that measures one reads it.
      *
      * <p>The starting value is the one a sheet made now would start at, so a date field that starts
      * at today is measured as the date it will hold rather than as the word that stands for it.

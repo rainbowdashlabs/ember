@@ -58,7 +58,7 @@ const noLinesKept = computed(() => props.kind === 'problem' && withContext.value
     && (payload.value as ProblemPayload).context == null)
 
 /**
- * The instance took nothing because its queue is full, which is a wait rather than a fault. Saying so
+ * The instance took nothing because its queue is full, which is a wait rather than a fault. Showing so
  * without offering a bug report is the point: nothing here is broken and nothing needs reporting.
  */
 function notQueued() {
@@ -120,10 +120,10 @@ watch(withContext, () => {
 })
 
 /**
- * Sends it, and says so only where the instance took it.
+ * Sends it, and shows that only where the instance took it.
  *
  * <p>What comes back is how many were queued, and that is nought when the queue is already full. A
- * dialog that closed on "sent" either way would tell an operator their report had gone when it had
+ * dialog that closed on "sent" either way would show an operator their report had gone when it had
  * been dropped on the floor.
  */
 /**

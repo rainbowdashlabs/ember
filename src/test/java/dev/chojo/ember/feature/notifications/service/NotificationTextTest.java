@@ -63,7 +63,7 @@ class NotificationTextTest {
     }
 
     /**
-     * A change notice names the changed parts in the reader's language and in one order, says the new
+     * A change notice names the changed parts in the reader's language and in one order, shows the new
      * start only where it moved, and carries the editor's note as its detail.
      */
     @Test

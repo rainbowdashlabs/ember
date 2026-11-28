@@ -125,7 +125,7 @@ public class GdprDeletionService {
      * for a deleted member: what was not kept goes, and what was kept for the record keeps their name.
      * Without it every document naming only this member was left naming nobody, which makes it the
      * station's own paperwork. The name outlasts the erasure on purpose, since the record it is kept for
-     * has to say whom it is about.
+     * has to show whom it is about.
      *
      * <p>Their gear is put in order before anything is erased: open movements close and every piece
      * comes off their record (see {@link LeavingMemberGear}). Refusing, as marking somebody former does,

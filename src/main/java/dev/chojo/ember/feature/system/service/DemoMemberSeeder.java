@@ -130,7 +130,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
      * manage them, because reading and notes are separate rights and a team where everyone holds the
      * whole bundle never shows the difference. He also collects signatures in person, as the trainer
      * with a tablet at a training evening does. The date of birth is one question put to four audiences:
-     * only member management writes it by default, and the two audiences that may are told so on their
+     * only member management writes it by default, and the two audiences that may see so on their
      * own row. The first guardian and the first beginner are left with incomplete profiles.
      */
     public SeedResult seed(int stationId, String passwordHash, DemoStationProfile profile, Random rng) {
@@ -154,6 +154,12 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 .orElseThrow();
         var memberRead = stationMemberRepository
                 .findPermissionByName(StationPermission.MEMBER_READ)
+                .orElseThrow();
+        var memberDocumentsRead = stationMemberRepository
+                .findPermissionByName(StationPermission.DOCUMENT_READ_MEMBER)
+                .orElseThrow();
+        var memberDocumentsEdit = stationMemberRepository
+                .findPermissionByName(StationPermission.DOCUMENT_EDIT_MEMBER)
                 .orElseThrow();
         var signOthers = stationMemberRepository
                 .findPermissionByName(StationPermission.DOCUMENT_SIGN_OTHERS)
@@ -339,11 +345,13 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), memberRead.id());
+                stationMemberRepository.grantPermission(m.id(), memberDocumentsRead.id());
                 stationMemberRepository.grantPermission(m.id(), signOthers.id());
             } else {
                 stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), memberMgmt.id());
+                stationMemberRepository.grantPermission(m.id(), memberDocumentsEdit.id());
             }
             memberGroupRepository.addMember(groupBetreuer.id(), m.id());
             betreuerMembers.add(m);

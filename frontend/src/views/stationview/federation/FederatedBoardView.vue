@@ -103,7 +103,7 @@ const board = computed(() => boardDetail.value?.board ?? null)
  */
 const pageTitle = computed(() => board.value?.name || t('pages.federated-board-view.title'))
 
-/** Once the name is the title, the line under it is what says whose board this is. */
+/** Once the name is the title, the line under it is what shows whose board this is. */
 const pageSubtitle = computed(() => boardDetail.value?.stationName
     || t('pages.federated-board-view.subtitle'))
 

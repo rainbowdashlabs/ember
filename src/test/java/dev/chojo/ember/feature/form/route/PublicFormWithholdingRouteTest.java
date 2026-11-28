@@ -45,7 +45,7 @@ import static org.mockito.Mockito.mock;
 
 /**
  * A public form that is not taking answers hands out its title and its state, and nothing of how it
- * asks: no pages, no questions with their branches, and not what it says once it is sent.
+ * asks: no pages, no questions with their branches, and not what it shows once it is sent.
  */
 class PublicFormWithholdingRouteTest extends RepositoryTestBase {
     private static FormService formService;

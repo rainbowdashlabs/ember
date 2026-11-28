@@ -201,7 +201,7 @@ export const STATION_NAV: Entry[] = [
             {kind: 'page', key: 'documents-own', label: 'sidebar.ownDocuments', icon: 'file', to: '/station/documents'},
             {kind: 'page', key: 'documents-self-service', label: 'sidebar.documentSelfService', icon: 'file-circle-plus', to: '/station/documents/self-service'},
             {kind: 'page', key: 'documents-witness-signing', label: 'sidebar.witnessSigning', icon: 'signature', to: '/station/signing/witness', visible: can(StationPermission.DOCUMENT_SIGN_OTHERS)},
-            {kind: 'page', key: 'documents-store', label: 'sidebar.documentStore', icon: 'box-archive', to: '/station/documents/store', visible: can(StationPermission.DOCUMENT_READ)},
+            {kind: 'page', key: 'documents-store', label: 'sidebar.documentStore', icon: 'box-archive', to: '/station/documents/store', visible: canAny(StationPermission.DOCUMENT_READ, StationPermission.DOCUMENT_READ_MEMBER)},
             {kind: 'page', key: 'documents-templates', label: 'sidebar.documentTemplates', icon: 'file-signature', to: '/station/documents/templates', visible: can(StationPermission.DOCUMENT_TEMPLATE_EDIT)},
             {kind: 'page', key: 'documents-generated', label: 'sidebar.generatedDocuments', icon: 'clock-rotate-left', to: '/station/documents/generated', visible: can(StationPermission.DOCUMENT_READ_MEMBER)},
             {kind: 'page', key: 'documents-fonts', label: 'sidebar.documentFonts', icon: 'font', to: '/station/documents/fonts', visible: can(StationPermission.DOCUMENT_TEMPLATE_EDIT)},
@@ -224,8 +224,8 @@ export const STATION_NAV: Entry[] = [
             {
                 kind: 'group', key: 'inventory-checks', label: 'sidebar.inventoryCheck', icon: 'clipboard-check', prefix: ['/station/inventory/checks'], visible: both(runs(StationModule.INVENTORY_CHECKS), can(StationPermission.INVENTORY_CHECK)),
                 children: [
-                    {kind: 'page', key: 'inventory-check-member-overview', label: 'sidebar.inventoryCheckMember', icon: 'user-check', to: '/station/inventory/checks/member'},
-                    {kind: 'page', key: 'inventory-check-container-overview', label: 'sidebar.inventoryCheckContainer', icon: 'box-open', to: '/station/inventory/checks/container'},
+                    {kind: 'page', key: 'inventory-check-member-overview', label: 'sidebar.inventoryCheckMember', icon: 'user-check', to: '/station/inventory/checks/member', visible: runs(StationModule.INVENTORY_MEMBER_CHECKS)},
+                    {kind: 'page', key: 'inventory-check-container-overview', label: 'sidebar.inventoryCheckContainer', icon: 'box-open', to: '/station/inventory/checks/container', visible: runs(StationModule.INVENTORY_CONTAINER_CHECKS)},
                 ],
             },
             {
@@ -270,6 +270,7 @@ export const STATION_NAV: Entry[] = [
             {kind: 'page', key: 'events-registrations', label: 'sidebar.pendingRegistrations', icon: 'clipboard-list', to: '/station/events/registrations', badge: ({counts}) => counts.pendingRegistrations, visible: can(StationPermission.EVENT_REGISTRATION)},
             {kind: 'page', key: 'events', label: 'sidebar.manageEvents', icon: 'gears', to: '/station/events', onboarding: 'nav.events', visible: can(StationPermission.EVENT_EDIT)},
             {kind: 'page', key: 'event-categories', label: 'sidebar.eventCategories', icon: 'folder-plus', to: '/station/events/categories', visible: can(StationPermission.EVENT_MANAGE_CATEGORY)},
+            {kind: 'page', key: 'event-calendar-feeds', label: 'sidebar.eventCalendarFeeds', icon: 'calendar-plus', to: '/station/events/calendar-feeds', visible: can(StationPermission.EVENT_CALENDAR_FEEDS)},
             {kind: 'page', key: 'event-templates', label: 'sidebar.eventTemplates', icon: 'clipboard-list', to: '/station/events/templates', visible: can(StationPermission.EVENT_MANAGE_TEMPLATE)},
         ],
     },

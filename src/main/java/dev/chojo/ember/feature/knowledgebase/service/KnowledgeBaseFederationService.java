@@ -580,7 +580,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
     /**
      * How far outside this station an entry would be read once it sat in a target folder.
      *
-     * <p>Its own share decides where it has one, because sharing an entry says something about that
+     * <p>Its own share decides where it has one, because sharing an entry shows something about that
      * entry. Where it has none, the nearest shared folder above the target decides, which is what
      * sharing a folder means.
      *
@@ -663,7 +663,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
     }
 
     /**
-     * Says which stations one entry is for, replacing whatever it said before.
+     * Sets which stations one entry is for, replacing whatever it set before.
      *
      * <p>The old share goes only once the new one exists. A refusal in between, which the folder rule can
      * raise, would otherwise leave the entry shared with nobody: not what anybody asked for, and invisible
@@ -685,7 +685,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
     }
 
     /**
-     * Says who one entry is for, replacing whatever it said before, including saying nobody.
+     * Sets who one entry is for, replacing whatever it set before, including setting nobody.
      *
      * <p>Not being shared at all is a state of its own and the one most entries of a station are in. It is
      * not the same as being shared with an empty list of stations, and a screen that could only choose
@@ -725,7 +725,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
     /**
      * The entries this station shares with named stations rather than with every partner.
      *
-     * <p>An entry shared with everybody reaches past this station but says nothing about who: it is
+     * <p>An entry shared with everybody reaches past this station but shows nothing about who: it is
      * simply out there, which is not the same thing as being aimed. Only an aimed one is marked.
      *
      * @param stationId the station whose shares these are
@@ -765,7 +765,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * The shares of one station that reach one reader.
      *
      * <p>A share for everybody reaches every partner. A share naming stations reaches the ones named, which
-     * is how an association says an entry is for some of its stations and not the rest.
+     * is how an association marks an entry as for some of its stations and not the rest.
      *
      * @param servingStationId  the station whose shares these are
      * @param readingPartnerId  the partnership the reader arrives on, or {@code null} to ignore the aim
@@ -853,7 +853,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * are standing in.
      *
      * <p>It stops at the outermost share rather than at the owning station's root. What lies above that is
-     * not shared, and naming it in a trail would say more about the other station's wiki than it agreed to.
+     * not shared, and naming it in a trail would reveal more about the other station's wiki than it agreed to.
      */
     private List<RemoteKbFolderSummary> trailTo(int servingStationId, KbFolder folder, Integer readingPartnerId) {
         var trail = new ArrayList<RemoteKbFolderSummary>();
@@ -950,7 +950,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * @param servingStationId the station whose knowledge base was searched
      * @param readingPartnerId the partnership the reader arrives on, as the serving station keeps it
      * @param hits             the unfiltered matches
-     * @return the matches the reader may be told about
+     * @return the matches the reader may see
      */
     private List<KbSearchResult> sharedHits(int servingStationId, Integer readingPartnerId, List<KbSearchResult> hits) {
         if (hits.isEmpty()) return List.of();
@@ -1123,7 +1123,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
 
     /**
      * Stores a comment a federated member wrote on one of this station's files and caches their
-     * display name for later renders. A comment from a partner tells nobody here, which the file's
+     * display name for later renders. A comment from a partner notifies nobody here, which the file's
      * comment target decides.
      */
     public Comment createRemoteComment(
@@ -1152,7 +1152,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
 
     /**
      * Updates a comment a federated member wrote on one of this station's files, after verifying
-     * they are its author. An edit from a partner tells nobody here, as its comment did not either.
+     * they are its author. An edit from a partner notifies nobody here, as its comment did not either.
      */
     public Comment updateRemoteComment(FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
         var comment = requireRemoteCommentAuthor(

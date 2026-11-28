@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 import java.util.UUID;
 
 /**
- * An association carrying one of its stations' files to where its decision says they belong, on demand. The
+ * An association carrying one of its stations' files to where its decision places them, on demand. The
  * move is written to the storage history by the move itself, once every check has passed.
  */
 @Singleton

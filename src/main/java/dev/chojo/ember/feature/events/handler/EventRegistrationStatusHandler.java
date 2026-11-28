@@ -20,10 +20,10 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells a member that their registration changed, every time, and the event managers once while
- * they have not read the last word about it. Moving up from the waiting list and being put on it are
- * told to the member only: the managers did it themselves or the list did it on its own, and the
- * registration list shows it.
+ * Notifies a member that their registration changed, every time, and the event managers once while
+ * they have not read the last word about it. Moving up from the waiting list, being put on it, and
+ * being accepted or denied are sent to the member only: the managers did it themselves or the list
+ * did it on its own, and the registration list shows it.
  */
 @Singleton
 public class EventRegistrationStatusHandler implements DomainEventHandler<EventRegistrationStatusChanged> {
@@ -57,7 +57,7 @@ public class EventRegistrationStatusHandler implements DomainEventHandler<EventR
                 NotificationType.EVENT_REGISTRATION_STATUS,
                 data,
                 Delivery.EVERY_TIME);
-        if (event.movedUp() || event.newStatus() == RegistrationStatus.QUEUED) return;
+        if (event.movedUp() || event.decided() || event.newStatus() == RegistrationStatus.QUEUED) return;
         notifier.notify(
                 StationAudience.holders(event.stationId(), StationPermission.EVENT_MANAGER)
                         .except(event.memberId()),

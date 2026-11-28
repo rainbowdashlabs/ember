@@ -113,7 +113,7 @@ public class ExpiryReminderService implements TaskSource {
     /**
      * An expiry date field, the station's or the association's.
      *
-     * @param origin  whose field it is, which also says which numbering its id belongs to
+     * @param origin  whose field it is, which also shows which numbering its id belongs to
      * @param id      the field
      * @param name    its label
      * @param config  its settings
@@ -164,7 +164,7 @@ public class ExpiryReminderService implements TaskSource {
     }
 
     /**
-     * Settles every member of one field owing a reminder, each on their own, then tells member management
+     * Settles every member of one field owing a reminder, each on their own, then notifies member management
      * about everyone who was reminded. A member whose reminder fails stays owed and is left out of
      * management's reminder, without costing the members settled before or after them theirs.
      */
@@ -253,7 +253,7 @@ public class ExpiryReminderService implements TaskSource {
     }
 
     /**
-     * Tells the member, where they can sign in, and whoever looks after them. The member's copy leads to
+     * Notifies the member, where they can sign in, and whoever looks after them. The member's copy leads to
      * their own profile; a guardian's leads to the page for the member in their care.
      */
     private void remindMember(ExpiryField field, DueMember due) {
@@ -287,11 +287,11 @@ public class ExpiryReminderService implements TaskSource {
     }
 
     /**
-     * Tells member management once which members became due for one field, naming the first few and
+     * Notifies member management once which members became due for one field, naming the first few and
      * counting all of them. A station's management is led to its member list narrowed to the field's
      * dates running out; an association's to its own member list, which has no column for the answers.
      *
-     * <p>Both are told on every sweep that has members due, even while an earlier reminder is unread:
+     * <p>Both are notified on every sweep that has members due, even while an earlier reminder is unread:
      * a later reminder about the same members reads the same as the first, carrying no date, and must
      * still go out.
      */

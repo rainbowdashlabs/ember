@@ -18,8 +18,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Tells everybody whose sign-up held or waited for a place that a whole event group was called off, once
- * for the event group. The parts called off with it tell nobody on their own.
+ * Notifies everybody whose sign-up held or waited for a place that a whole event group was called off, once
+ * for the event group. The parts called off with it notify nobody on their own.
  */
 @Singleton
 public class EventGroupCancelledHandler implements DomainEventHandler<EventGroupCancelled> {

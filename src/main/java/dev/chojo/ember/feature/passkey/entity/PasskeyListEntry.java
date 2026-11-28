@@ -19,8 +19,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * through the same code path.
  *
  * @param secondFactor whether the member also opted this credential into the password path
- * @param credentialId the authenticator's credential id, which the browser needs to tell its
- *         own store which credentials still exist after a removal
+ * @param credentialId the authenticator's credential id, which the browser needs to let its
+ *         own store know which credentials still exist after a removal
  * @param userHandle the account's stable user handle, for the same signal
  */
 public record PasskeyListEntry(

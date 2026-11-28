@@ -62,7 +62,7 @@ const cards = computed<FlowResponse[]>(() =>
  * the one in the way.
  *
  * <p>The change and the reading back afterwards are caught apart, because once the first is through the
- * change is made and only the screen is behind. Saying otherwise sends the reader to make it twice.
+ * change is made and only the screen is behind. Showing otherwise sends the reader to make it twice.
  */
 async function run(action: () => Promise<unknown>, flowId?: number) {
   busy.value = true

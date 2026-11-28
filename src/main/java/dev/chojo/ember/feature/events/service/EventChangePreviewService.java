@@ -24,9 +24,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
- * Says what saving an appointment would tell, before anything is saved: how many people the change
- * would be told to if the editor chose to tell them, whether the start moves, and how many people
- * holding a place would be told the new time in any case.
+ * Reports what saving an appointment would send, before anything is saved: how many people the change
+ * would be sent to if the editor chose to notify them, whether the start moves, and how many people
+ * holding a place would be notified of the new time in any case.
  *
  * <p>It reads the appointment as it stands and the draft the editor is about to save, and writes
  * nothing. The dates it looks at are the ones the save would touch: from today on for every date, the
@@ -52,7 +52,7 @@ public class EventChangePreviewService {
     }
 
     /**
-     * What saving the draft to the dates the scope names would tell.
+     * What saving the draft to the dates the scope names would send.
      *
      * @param current the appointment as it stands
      * @param draft   the appointment as the editor is about to save it

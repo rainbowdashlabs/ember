@@ -22,7 +22,7 @@ import java.util.UUID;
  *
  * <p>A blocked person can no longer start a direct conversation with the blocker, add them to a
  * group or write to them directly. In a group they share, their messages are folded away for the
- * blocker and their reactions are not shown. They are never told.
+ * blocker and their reactions are not shown. They are never notified.
  */
 @Singleton
 public class BlockService {

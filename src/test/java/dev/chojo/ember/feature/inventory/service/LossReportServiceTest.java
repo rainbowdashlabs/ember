@@ -231,7 +231,7 @@ class LossReportServiceTest extends RepositoryTestBase {
     /**
      * A station connected to no association in Ember still has one, which just does not use Ember. Its gear
      * is reported missing like any other, the station filing the report standing in for it, and since the
-     * association has said nothing here about what it wants, the report needs nothing beyond itself.
+     * association has set nothing here about what it wants, the report needs nothing beyond itself.
      */
     @Test
     void theStationReportsALossToAnAssociationOutsideEmber() {

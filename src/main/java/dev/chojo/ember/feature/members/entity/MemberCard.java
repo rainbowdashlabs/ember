@@ -20,7 +20,7 @@ import java.util.List;
  * <p>A former member's card names them and nothing more: their relations ended when they left.
  *
  * @param identity the member, with the display details a name is drawn with
- * @param name     the name that says who somebody is and what they are called at once
+ * @param name     the name that shows who somebody is and what they are called at once
  * @param former   whether the member has left the station
  * @param parents  the members looking after them
  * @param children the members they look after

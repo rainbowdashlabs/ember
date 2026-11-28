@@ -26,7 +26,7 @@ import java.util.UUID;
  * @param signIn            whether this credential may start a sign-in on its own
  * @param secondFactor      whether this credential is asked for after a password
  * @param discoverable      what the {@code credProps} extension reported at creation, or
- *                          {@code null} when the authenticator did not say
+ *                          {@code null} when the authenticator did not report
  * @param userVerified      whether user verification was performed at creation
  * @param keyStamp          the timestamp over the public key, or {@code null} while it has none
  */

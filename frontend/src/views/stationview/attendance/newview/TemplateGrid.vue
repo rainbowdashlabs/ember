@@ -12,8 +12,8 @@ import type {TemplateDetail} from '@/api/generated/schema'
 import {StationUserTypeLabels} from '@/api/types'
 
 /**
- * The templates a sheet can be started from, each saying whom it enters and what it asks, so the
- * choice is not made from memory. One that enters nobody says so.
+ * The templates a sheet can be started from, each showing whom it enters and what it asks, so the
+ * choice is not made from memory. One that enters nobody shows that.
  */
 const props = defineProps<{
   templates: TemplateDetail[]

@@ -97,7 +97,7 @@ function stationMidnightOf(moment: Date, timeZone: string, daysBack = 0): Date {
  *
  * @param rule            the deadline rule
  * @param occurrenceStart the start of the date
- * @param timeZone        the station's IANA zone, which says where midnight is
+ * @param timeZone        the station's IANA zone, which shows where midnight is
  * @returns the closing moment, or null when sign-up does not close or the rule is incomplete
  */
 export function closesAt(rule: RegistrationDeadline, occurrenceStart: Date | string, timeZone: string): Date | null {
@@ -121,7 +121,7 @@ export function deadlineRuleOf(value: Partial<RegistrationDeadline> | null | und
     return {kind: value.kind, at: value.at ?? null, offsetMinutes: value.offsetMinutes ?? null, anchor: value.anchor ?? null}
 }
 
-/** Whether two rules say the same, whatever objects hold them. */
+/** Whether two rules mean the same, whatever objects hold them. */
 export function sameRule(a: RegistrationDeadline | null, b: RegistrationDeadline | null): boolean {
     if (!a || !b) return a === b
     return a.kind === b.kind && a.at === b.at && a.offsetMinutes === b.offsetMinutes && a.anchor === b.anchor

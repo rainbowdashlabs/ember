@@ -28,7 +28,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 /**
  * The self-check task, its answers, and the losses and exchanges raised beside them.
  *
- * <p>There are no transactions here, so every statement that moves a task or a row along says in
+ * <p>There are no transactions here, so every statement that moves a task or a row along shows in
  * its {@code WHERE} clause which state it is moving from, and the caller reads the row count to
  * find out whether it was the one that moved it. Two reviewers settling the last row at the same
  * moment therefore write one check between them rather than two.
@@ -430,7 +430,7 @@ public class SelfCheckRepository {
     }
 
     /**
-     * Writes down a report that is not to go out yet, because the answer it hangs on says the record
+     * Writes down a report that is not to go out yet, because the answer it hangs on shows that the record
      * it names is wrong.
      *
      * <p>The words and the wanted size are kept here rather than where they will end up, because

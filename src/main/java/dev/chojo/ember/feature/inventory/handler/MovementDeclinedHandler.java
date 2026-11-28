@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Tells both ends that a movement was refused.
+ * Lets both ends know that a movement was refused.
  *
  * <p>Everybody who was part of it hears, rather than only whoever was next: a refusal ends the chain
  * and puts the item back where it came from, and the member who asked needs to see the reason where

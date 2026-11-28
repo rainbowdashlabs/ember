@@ -13,7 +13,7 @@ import {useFontSamples} from '@/composables/useFontSamples'
  * A line of sample text in a family, as a picture the server draws, so a list of families needs none of
  * their files; only the template editor loads those. The glyphs are black on a transparent ground and
  * turned light in the dark theme.
- * Nothing shows where no screen above says where samples are drawn, or where the picture cannot be had.
+ * Nothing is drawn where no screen above provides a place to draw samples from, or where the picture cannot be had.
  */
 const props = withDefaults(defineProps<{
   /** The family, or null for the default font. */

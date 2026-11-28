@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
  * <p>The request is signed by the station and by this instance, sent, and written down only once the
  * other instance has taken it, so a request that never arrived is never shown as waiting. The other
  * instance's refusal reaches the person who sent it under its own name; an instance that predates
- * these requests is told apart from one that refused, because only the second can be asked again.
+ * these requests is distinguished from one that refused, because only the second can be asked again.
  *
  * <p>Where a request stands is asked in the background, never while somebody waits: when the
  * federation page opens, for the requests not asked about for a while, and on a schedule for every
@@ -327,7 +327,7 @@ public class OutgoingPairRequestService implements TaskSource {
 
     /**
      * The refusal the asking person is shown for a request the other instance did not take: the one
-     * its reason stands for where it named one, and otherwise what the failure says about the other
+     * its reason stands for where it named one, and otherwise what the failure shows about the other
      * instance. A route it does not have is an instance that predates these requests.
      */
     static Refusal refusalFor(Delivery delivery) {

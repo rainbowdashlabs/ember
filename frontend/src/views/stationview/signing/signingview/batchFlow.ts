@@ -89,7 +89,7 @@ function cared(field: OpenSignatureResponse): string {
 }
 
 /**
- * Who signs a field, said short, as the overview and the check list it: the reader themselves, the reader
+ * Who signs a field, put short, as the overview and the check list it: the reader themselves, the reader
  * for a child, or the child in person.
  *
  * @param field the field

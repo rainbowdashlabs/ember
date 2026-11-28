@@ -30,12 +30,22 @@ function task(overrides: Partial<OnboardingTaskView> = {}): OnboardingTaskView {
         actorName: null,
         changedAt: null,
         elsewhere: false,
+        ready: true,
         ...overrides,
     }
 }
 
-function status(tasks: OnboardingTaskView[]): OnboardingStatus {
-    return {level: 'MEMBER', tasks, open: tasks.length, done: 0, skipped: 0}
+function status(tasks: OnboardingTaskView[], level: OnboardingStatus['level'] = 'MEMBER'): OnboardingStatus {
+    return {level, tasks, open: tasks.length, done: 0, skipped: 0}
+}
+
+function numbered(count: number, overrides: Partial<OnboardingTaskView> = {}): OnboardingTaskView[] {
+    const keys = ['member.tour', 'member.profile', 'member.notifications', 'member.push', 'member.eventAnswer']
+    return keys.slice(0, count).map(key => task({id: key, key, ...overrides}))
+}
+
+function shownIds(wrapper: Awaited<ReturnType<typeof mountCard>>): string[] {
+    return wrapper.findAll('[data-testid^="onboarding-task-member"]').map(item => item.attributes('data-testid') ?? '')
 }
 
 async function mountCard(tasks: OnboardingTaskView[]) {
@@ -99,5 +109,67 @@ describe('OnboardingTaskCard', () => {
         ])
 
         expect(wrapper.find('[data-testid="onboarding-task-elsewhere"]').text()).toBe('auf einer anderen Wache')
+    })
+
+    it('shows three tasks at most and counts the rest', async () => {
+        const wrapper = await mountCard(numbered(5))
+
+        expect(shownIds(wrapper)).toEqual([
+            'onboarding-task-member.tour',
+            'onboarding-task-member.profile',
+            'onboarding-task-member.notifications',
+        ])
+        expect(wrapper.find('[data-testid="onboarding-later"]').text()).toBe('Danach warten noch 2 Schritte.')
+    })
+
+    it('never shows a task that still waits for another, and counts it with the rest', async () => {
+        const wrapper = await mountCard([
+            task({id: 'member.tour', key: 'member.tour'}),
+            task({id: 'member.profile', key: 'member.profile', ready: false}),
+        ])
+
+        expect(shownIds(wrapper)).toEqual(['onboarding-task-member.tour'])
+        expect(wrapper.find('[data-testid="onboarding-later"]').text()).toBe('Danach wartet noch ein Schritt.')
+    })
+
+    it('leaves the free places to the station first', async () => {
+        onboardingState().onboardingStatus.value = {
+            STATION: status([
+                task({id: 'station.mail', key: 'station.mail'}),
+                task({id: 'station.memberTypes', key: 'station.memberTypes'}),
+            ], 'STATION'),
+        }
+        const wrapper = await mountCard(numbered(3))
+
+        expect(shownIds(wrapper)).toEqual(['onboarding-task-member.tour'])
+        expect(wrapper.find('[data-testid="onboarding-later"]').text()).toBe('Danach warten noch 2 Schritte.')
+    })
+
+    it('shows that it goes on later when the station takes every place', async () => {
+        onboardingState().onboardingStatus.value = {
+            STATION: status([
+                task({id: 'station.mail', key: 'station.mail'}),
+                task({id: 'station.memberTypes', key: 'station.memberTypes'}),
+                task({id: 'station.groups', key: 'station.groups'}),
+            ], 'STATION'),
+        }
+        const wrapper = await mountCard(numbered(2))
+
+        expect(shownIds(wrapper)).toEqual([])
+        expect(wrapper.find('[data-testid="onboarding-waiting"]').exists()).toBe(true)
+        expect(wrapper.find('[data-testid="onboarding-later"]').text()).toBe('Danach warten noch 2 Schritte.')
+    })
+
+    it('shows no count of later tasks on the station card above the reader\'s own', async () => {
+        onboardingState().onboardingStatus.value = {MEMBER: status(numbered(4))}
+        getTasks.mockResolvedValueOnce(status([task({id: 'station.mail', key: 'station.mail'})], 'STATION'))
+        const wrapper = mount(OnboardingTaskCard, {
+            props: {level: 'STATION'},
+            global: {stubs: {LayeredEmberLogo: true}},
+        })
+        await flushPromises()
+
+        expect(wrapper.find('[data-testid="onboarding-task-station.mail"]').exists()).toBe(true)
+        expect(wrapper.find('[data-testid="onboarding-later"]').exists()).toBe(false)
     })
 })

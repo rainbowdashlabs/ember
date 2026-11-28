@@ -34,9 +34,9 @@ import java.util.TreeSet;
  * Keeps the registration list in step with the people an appointment's questions name.
  *
  * <p>Somebody named in a question that asks for members is taking part in the appointment, and this
- * is what says so everywhere else: they stand on the list, they are counted, and the appointment
+ * is what shows that everywhere else: they stand on the list, they are counted, and the appointment
  * reaches their calendar. The place is confirmed the moment they are named, whatever the appointment
- * says about confirming registrations, because being named is the decision and there is nobody left
+ * defines about confirming registrations, because being named is the decision and there is nobody left
  * to make it a second time.
  *
  * <p>It is a place they cannot give back from the list, and the way off is out of the question that
@@ -200,7 +200,7 @@ public class EventFieldRegistrationService {
     }
 
     /**
-     * Tells whoever runs the appointment that somebody who was down for it is not any more, once per
+     * Notifies whoever runs the appointment that somebody who was down for it is not any more, once per
      * member however many of its dates they came off.
      */
     private void announceFreedPlace(StationEvent event, int memberId) {

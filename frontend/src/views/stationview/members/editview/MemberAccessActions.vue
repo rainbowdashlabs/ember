@@ -78,7 +78,7 @@ async function issueCode() {
 }
 
 /**
- * Takes the code back once it has been read out, and says nothing when that fails: the code dies with
+ * Takes the code back once it has been read out, and shows nothing when that fails: the code dies with
  * its five minutes either way, so there is nothing for the reader to do about it.
  */
 async function revokeCode() {

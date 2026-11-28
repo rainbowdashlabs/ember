@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
@@ -57,12 +58,15 @@ class ProcurementRoutesTest {
         var members = mock(StationMemberService.class);
         var names = mock(MemberNameResolver.class);
         var inventories = mock(InventoryService.class);
-        var forMara = new Procurement(1, STATION, INVENTORY, MEMBER_ID, 2, "L", Instant.EPOCH, null, null);
-        var forTheStore = new Procurement(2, STATION, INVENTORY, null, null, "", Instant.EPOCH, null, null);
+        var forMara = new Procurement(1, STATION, INVENTORY, MEMBER_ID, 2, "L", Instant.EPOCH, null, null, null);
+        var forTheStore = new Procurement(2, STATION, INVENTORY, null, null, "", Instant.EPOCH, null, null, null);
         when(procurements.findByStation(STATION)).thenReturn(List.of(forMara, forTheStore));
-        when(procurements.create(anyInt(), anyInt(), any(), any(), any())).thenReturn(forMara);
-        when(procurements.create(STATION, 99, null, null, null))
+        when(procurements.create(anyInt(), anyInt(), any(), any(), any(), any()))
+                .thenReturn(forMara);
+        when(procurements.create(STATION, 99, null, null, null, null))
                 .thenThrow(InventoryRefusal.INVENTORY_NOT_HERE_ON_PROCUREMENT.raise());
+        when(procurements.ownerOf(any())).thenReturn(ItemOwner.STATION);
+        when(procurements.ownerOf(any(), any())).thenReturn(ItemOwner.STATION);
         when(members.findById(MEMBER_ID))
                 .thenReturn(Optional.of(new StationMember(
                         MEMBER_ID,
@@ -77,7 +81,7 @@ class ProcurementRoutesTest {
         when(names.called(MEMBER_ID)).thenReturn("Mara");
         when(inventories.findById(INVENTORY))
                 .thenReturn(Optional.of(new Inventory(
-                        INVENTORY, STATION, "Jacken", InventoryType.INTERNAL, true, false, false, null, null)));
+                        INVENTORY, STATION, "Jacken", InventoryType.INTERNAL, true, false, false, null, null, null)));
         when(inventories.findSizes(INVENTORY)).thenReturn(List.of(new InventorySize(2, INVENTORY, "L", 0, null)));
         when(procurements.findById(1)).thenReturn(Optional.of(forMara));
         when(procurements.issueFromStock(eq(1), eq(77), any()))
@@ -97,6 +101,7 @@ class ProcurementRoutesTest {
             assertEquals("Jacken", listed.path(0).path("inventoryName").asString());
             assertEquals("L", listed.path(0).path("sizeLabel").asString());
             assertEquals("", listed.path(1).path("memberName").asString());
+            assertEquals("STATION", listed.path(0).path("owner").asString());
             assertEquals(
                     201,
                     client.post(PREFIX + "/procurement", body("{\"inventoryId\": %d}".formatted(INVENTORY)), buyer)
@@ -115,7 +120,7 @@ class ProcurementRoutesTest {
     void aSwapIsOrderedForOverHttpOnlyByWhoeverMayOrder() {
         var procurements = mock(ProcurementService.class);
         var inventories = mock(InventoryService.class);
-        var forTheSwap = new Procurement(4, STATION, INVENTORY, null, null, "Zu klein", Instant.EPOCH, null, 31);
+        var forTheSwap = new Procurement(4, STATION, INVENTORY, null, null, "Zu klein", Instant.EPOCH, null, 31, null);
         when(procurements.createForSwap(STATION, 31)).thenReturn(forTheSwap);
         when(procurements.createForSwap(STATION, 32)).thenThrow(InventoryRefusal.MOVEMENT_REPLACEMENT_IN_STOCK.raise());
         when(procurements.waitingSwapOf(forTheSwap))

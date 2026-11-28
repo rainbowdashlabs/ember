@@ -18,7 +18,7 @@ import org.jspecify.annotations.Nullable;
  * @param inventoryId   the inventory it was about
  * @param inventoryName that inventory's name, for the reader
  * @param reason        why it was refused, in the words of whoever refused, or {@code null} where they gave none
- * @param actorMemberId who refused, so they are not told about their own doing
+ * @param actorMemberId who refused, so they are not notified of their own doing
  */
 public record MovementDeclined(
         int stationId,

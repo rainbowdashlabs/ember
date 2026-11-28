@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -119,9 +120,9 @@ public record AppointmentField(
     }
 
     /**
-     * The same question, telling the reader asking whether they may put themselves into it.
+     * The same question, showing the reader asking whether they may put themselves into it.
      *
-     * @param state what the reader may do, or null to say nothing
+     * @param state what the reader may do, or null to show nothing
      * @return the question with that state
      */
     public AppointmentField withSelfRegistration(@Nullable SelfRegistration state) {
@@ -141,11 +142,11 @@ public record AppointmentField(
     }
 
     /**
-     * The same member field of an event group on one of its appointments, telling the reader asking
+     * The same member field of an event group on one of its appointments, showing the reader asking
      * whether they stand in it for the whole group.
      *
      * @param inWholeGroup whether they do
-     * @return the field with that said
+     * @return the field with that applied
      */
     public AppointmentField withReaderInWholeGroup(boolean inWholeGroup) {
         return new AppointmentField(
@@ -187,20 +188,71 @@ public record AppointmentField(
     }
 
     /**
-     * Where an appointment takes place: the first location question it answers.
+     * The place a calendar shows for an appointment: where people meet, which is the answered place
+     * question marked as the calendar's location, and otherwise the first place question answered.
      *
      * @param fields the questions of the appointment, in their order
-     * @return the place, trimmed, or null where no location question is answered
+     * @return the place, trimmed, or null where no place question is answered
      */
-    public static @Nullable String firstLocation(List<AppointmentField> fields) {
-        for (var field : fields) {
-            if (field.fieldType() == FieldType.LOCATION
-                    && field.value() != null
-                    && !field.value().isBlank()) {
-                return field.value().trim();
-            }
-        }
-        return null;
+    public static @Nullable String calendarLocation(List<AppointmentField> fields) {
+        var answered = answeredPlaces(fields);
+        return meetingPoint(answered)
+                .or(() -> answered.stream().findFirst())
+                .map(field -> field.value().trim())
+                .orElse(null);
+    }
+
+    /**
+     * Where an appointment takes place: the first answered place question that is not where people
+     * meet, and the meeting point only where it is the one place answered.
+     *
+     * @param fields the questions of the appointment, in their order
+     * @return the place, trimmed, or null where no place question is answered
+     */
+    public static @Nullable String venue(List<AppointmentField> fields) {
+        var answered = answeredPlaces(fields);
+        var meetingPoint = meetingPoint(answered);
+        return answered.stream()
+                .filter(field ->
+                        meetingPoint.map(point -> point.id() != field.id()).orElse(true))
+                .findFirst()
+                .or(() -> meetingPoint)
+                .map(field -> field.value().trim())
+                .orElse(null);
+    }
+
+    /**
+     * The answered place questions other than the one a calendar shows, each with its name, so an
+     * entry that shows one place can still list the rest.
+     *
+     * @param fields   the questions of the appointment, in their order
+     * @param location the place the entry shows, or null where it shows none
+     * @return the other places, in their order
+     */
+    public static List<AppointmentField> otherPlaces(List<AppointmentField> fields, @Nullable String location) {
+        return answeredPlaces(fields).stream()
+                .filter(field -> !field.value().trim().equals(location))
+                .toList();
+    }
+
+    /**
+     * The answered place marked as where people meet. An appointment's own mark wins over the one its
+     * event group hands down, since the appointment chose it for itself.
+     */
+    private static Optional<AppointmentField> meetingPoint(List<AppointmentField> answered) {
+        var marked = answered.stream()
+                .filter(field -> field.config().calendarLocation())
+                .toList();
+        return marked.stream().filter(field -> !field.inherited()).findFirst().or(() -> marked.stream()
+                .findFirst());
+    }
+
+    private static List<AppointmentField> answeredPlaces(List<AppointmentField> fields) {
+        return fields.stream()
+                .filter(field -> field.fieldType() == FieldType.LOCATION
+                        && field.value() != null
+                        && !field.value().isBlank())
+                .toList();
     }
 
     /**

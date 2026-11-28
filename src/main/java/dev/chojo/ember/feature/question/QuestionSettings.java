@@ -60,7 +60,7 @@ public record QuestionSettings(
         return required(false);
     }
 
-    /** The settings of a question that only says whether it has to be answered. */
+    /** The settings of a question that only defines whether it has to be answered. */
     public static QuestionSettings required(boolean required) {
         return new QuestionSettings(required, null, List.of(), null, null, null, null, null, null, null);
     }

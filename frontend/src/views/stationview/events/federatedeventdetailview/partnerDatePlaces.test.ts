@@ -17,7 +17,7 @@ function detail(datePlaces: RemoteDatePlaces | null, requiresConfirmation = fals
     }
 }
 
-/** What the places a partner counted say about signing up for the date a sign-up is filed under. */
+/** What the places a partner counted show about signing up for the date a sign-up is filed under. */
 describe('partnerDateState', () => {
     it('reads a date whose places are all taken as full, where a sign-up waits', () => {
         expect(partnerDateState(detail({date: '2026-12-01', limit: 2, taken: 2, waiting: 0}), '2026-12-01'))

@@ -6,6 +6,7 @@
 import {MADE_BY_A_STORY} from './fixtures/cluster'
 import {
     test, expect, enterCluster, clustersOf, theSeededCluster, apiHeaders, demoAccounts, pageAsThrowaway,
+    actForCluster,
 } from './fixtures/auth'
 import {activeSidebarGroup, allSections, sidebarEntry} from './fixtures/sidebar'
 import {must} from './fixtures/must'
@@ -49,7 +50,7 @@ test.describe('Cluster', () => {
         await expect(page.getByRole('button', {name: 'Verband'}).first()).toBeVisible()
 
         await page.getByRole('button', {name: 'Verband'}).first().click()
-        await page.waitForURL(/\/cluster$/)
+        await page.waitForURL(/\/cluster(\?[^#]*)?$/)
 
         await expect(page.getByText(cluster.name).first()).toBeVisible()
     })
@@ -90,7 +91,7 @@ test.describe('Cluster', () => {
     test('the cluster space is refused without membership', async ({memberPage: page}) => {
         await page.goto('/cluster')
 
-        await expect(page).not.toHaveURL(/\/cluster$/)
+        await expect(page).not.toHaveURL(/\/cluster(\?[^#]*)?$/)
     })
 
     /**
@@ -101,7 +102,7 @@ test.describe('Cluster', () => {
      *
      * The directory carries the cluster's name as the heading its stations are gathered under, and the
      * dashboard as the tile for the cluster itself, so the name is looked for among the stations only.
-     * Waiting for that tile also says the page has loaded, without which an empty page would pass.
+     * Waiting for that tile also shows the page has loaded, without which an empty page would pass.
      */
     test('the home station is invisible everywhere a station is listed', async ({adminPage: page}) => {
         const cluster = await theSeededCluster(page)
@@ -125,7 +126,7 @@ test.describe('Cluster', () => {
      *
      * Writing for a cluster leaves a byline on that station so an article can name its author. CLS-6 asks
      * that the shell is invisible in the directory, the sitemap and the picker; this asks the other half,
-     * that it never turns up in the list of stations an account is told are theirs.
+     * that it never turns up in the list of stations an account sees as theirs.
      */
     test('the home station is in nobody\'s list of their own stations', async ({adminPage: page}) => {
         const cluster = await theSeededCluster(page)
@@ -168,13 +169,13 @@ test.describe('Cluster', () => {
         expect(mine.length).toBeGreaterThan(1)
         expect(mine.map(cluster => cluster.name)).toContain(name)
 
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), second.uid)
+        await actForCluster(page, second.uid)
         await page.goto('/cluster/stations')
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByText('Jugendfeuerwehr Nordstadt')).toHaveCount(0)
 
         const first = await theSeededCluster(page)
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), first.uid)
+        await actForCluster(page, first.uid)
         await page.goto('/cluster/stations')
         await expect(page.getByText('Jugendfeuerwehr Nordstadt')).toBeVisible()
     })
@@ -199,7 +200,7 @@ test.describe('Cluster', () => {
         await page.getByRole('button', {name: 'Alles erlauben'}).click()
         await page.getByText(`${clusterOnly!.firstName} ${clusterOnly!.lastName}`).first().click()
 
-        await page.waitForURL(/\/cluster$/)
+        await page.waitForURL(/\/cluster(\?[^#]*)?$/)
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
         const cluster = must((await clustersOf(page))[0], 'a cluster this account acts for')
@@ -227,7 +228,7 @@ test.describe('Cluster', () => {
      * A group decided for itself whether it was active by a prefix written beside it, and in ten places
      * that prefix and the entries in the group disagreed. The association's first group is declared
      * `/cluster`, which every route in the panel begins with, so the one group always lit was the one
-     * saying nothing about where you are. Nothing anywhere asserted on highlighting until this.
+     * showing nothing about where you are. Nothing anywhere asserted on highlighting until this.
      */
     test('the sidebar lights the group the page belongs to and no other', async ({adminPage: page}) => {
         await page.goto('/cross-station')
@@ -252,7 +253,7 @@ test.describe('Cluster', () => {
      *
      * The association handed somebody a right called Wikiverwaltung over a screen it called Wissen, and
      * buried that screen with the news and the calendar under a group whose only effect was one more
-     * click. The station has said Wiki and shown all three at the top level all along.
+     * click. The station has listed Wiki and shown all three at the top level all along.
      */
     test('the wiki is named Wiki and sits at the top level', async ({adminPage: page}) => {
         await page.goto('/cross-station')
@@ -267,7 +268,7 @@ test.describe('Cluster', () => {
         }
 
         await sidebarEntry(page, 'Wiki').click()
-        await expect(page).toHaveURL(/\/cluster\/knowledge$/)
+        await expect(page).toHaveURL(/\/cluster\/knowledge(\?[^#]*)?$/)
         await expect(activeSidebarGroup(page)).toHaveText(/Wiki/)
     })
 })

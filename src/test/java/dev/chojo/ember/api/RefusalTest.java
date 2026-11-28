@@ -123,7 +123,7 @@ class RefusalTest {
     }
 
     /**
-     * The status is how the reader is told whose problem this is, so a refusal that answers with a
+     * The status is how the reader learns whose problem this is, so a refusal that answers with a
      * success or a redirect would leave the question unanswered.
      */
     @Test
@@ -211,6 +211,7 @@ class RefusalTest {
                         MailImportRefusal.MAILBOX_NOT_HERE_AFTER_SAVE,
                         MailImportRefusal.MAILBOX_RULE_NOT_HERE_AFTER_SAVE,
                         InventoryRefusal.INVENTORY_TAG_NOT_HERE_AFTER_CHANGE,
+                        InventoryRefusal.INVENTORY_PICTURE_NOT_PROCESSED,
                         ClusterRefusal.CLUSTER_INVENTORY_TAG_NOT_HERE_AFTER_CHANGE,
                         EventRefusal.APPOINTMENT_DATE_ANSWER_NOT_HERE_AFTER_SAVE,
                         EventRefusal.APPOINTMENT_FIELD_NOT_HERE_AFTER_SELF_REGISTRATION,
@@ -300,7 +301,7 @@ class RefusalTest {
     }
 
     /**
-     * A refusal a screen has to tell apart from its neighbours is matched on its name, so the name
+     * A refusal a screen has to distinguish from its neighbours is matched on its name, so the name
      * is the part that must not move. These are the ones something outside this repository reads.
      */
     @Test
@@ -311,8 +312,8 @@ class RefusalTest {
     }
 
     /**
-     * Sitting a paper is the one place where being told something worked when it did not costs a
-     * candidate the whole exam, so both refusals there say what became of the answers.
+     * Sitting a paper is the one place where learning that something worked when it did not costs a
+     * candidate the whole exam, so both refusals there show what became of the answers.
      */
     @Test
     void theExamRefusalsSayWhatBecameOfTheAnswers() {

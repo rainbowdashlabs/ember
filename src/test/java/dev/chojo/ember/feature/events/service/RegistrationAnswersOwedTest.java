@@ -42,7 +42,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 /**
- * Who owes an answer to a registration question, and who is told so.
+ * Who owes an answer to a registration question, and who is notified.
  *
  * <p>A member named in an appointment field is registered by being named, and owes the answers like
  * anybody who registered themselves.
@@ -138,7 +138,7 @@ class RegistrationAnswersOwedTest extends RepositoryTestBase {
 
     /**
      * Naming a member in an appointment field registers them, and a required question added
-     * afterwards is theirs to answer: they are told, and the registration stays short of the answer.
+     * afterwards is theirs to answer: they are notified, and the registration stays short of the answer.
      */
     @Test
     void aMemberNamedInAFieldOwesTheAnswers() {
@@ -164,7 +164,7 @@ class RegistrationAnswersOwedTest extends RepositoryTestBase {
 
     /**
      * A question whose answer only the organisers see is still asked of the member, so a required one
-     * added afterwards is owed like any other and the member is told.
+     * added afterwards is owed like any other and the member is notified.
      */
     @Test
     void aQuestionOnlyManagersSeeIsStillOwedByTheMember() {

@@ -18,7 +18,7 @@ import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-/** Tells whoever manages a station's federation how the station it asked answered. */
+/** Notifies whoever manages a station's federation how the station it asked answered. */
 @Singleton
 public class FederationRequestAnsweredHandler implements DomainEventHandler<FederationRequestAnswered> {
     private final Notifier notifier;

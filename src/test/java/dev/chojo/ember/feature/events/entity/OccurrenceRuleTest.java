@@ -266,7 +266,7 @@ class OccurrenceRuleTest {
         assertEquals("FREQ=WEEKLY;BYDAY=WE", rule.calendarRule().orElseThrow());
     }
 
-    /** The calendar file says the end too, or a subscribed calendar repeats it for ever. */
+    /** The calendar file carries the end too, or a subscribed calendar repeats it for ever. */
     @Test
     void theRuleForACalendarCarriesTheEnd() {
         assertEquals(

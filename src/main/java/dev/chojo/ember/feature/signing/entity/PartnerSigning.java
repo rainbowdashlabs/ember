@@ -28,7 +28,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
  * @param eventDate        the date
  * @param remoteTemplateId the document, by the id of its template there
  * @param templateVersion  the version of that template
- * @param announcedAt      when the partner was told the document is asked for here, or null
+ * @param announcedAt      when the partner was notified that the document is asked for here, or null
  * @param deliveredSha256  the newest sealed copy the partner took, or null
  * @param deliveryAttempts how many times in a row sending failed
  */

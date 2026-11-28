@@ -6,10 +6,10 @@
 package dev.chojo.ember.api.refusal;
 
 /**
- * The sentences more than one refusal says.
+ * The sentences more than one refusal uses.
  *
  * <p>Several sites refuse for the same reason in different places, and each needs its own code
- * while saying the same thing. Written out at each constant the wording drifts: one of them is
+ * while giving the same message. Written out at each constant the wording drifts: one of them is
  * reworded, the others are not, and the same failure reads two ways. Named here it cannot.
  */
 final class Sentences {

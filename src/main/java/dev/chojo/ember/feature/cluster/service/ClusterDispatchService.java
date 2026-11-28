@@ -82,7 +82,7 @@ public class ClusterDispatchService {
      * <p>Sending gear out starts on the association's own step: it posts, and the station confirms what
      * arrived. A station's own preset for gear from a body above it begins at the station instead, which
      * would have the consignment arrive the moment it was sent and never be in the post at all. So the
-     * association needs a chain of its own before it can send anything, and it says so plainly rather than
+     * association needs a chain of its own before it can send anything, and that is reported plainly rather than
      * refusing the first step for a reason nobody could act on.
      *
      * @param clusterId the association
@@ -97,7 +97,7 @@ public class ClusterDispatchService {
     }
 
     /**
-     * What an inventory is called, so a piece on the dispatch screen says which one it comes out of.
+     * What an inventory is called, so a piece on the dispatch screen shows which one it comes out of.
      *
      * @param inventoryId the inventory
      * @return its name, or an empty string when it is gone

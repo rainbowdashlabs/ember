@@ -18,7 +18,7 @@ async function mountSection(signUpHeld: boolean) {
   })
 }
 
-/** A template that asks questions keeps its sign-up on, and says why. */
+/** A template that asks questions keeps its sign-up on, and shows why. */
 describe('TemplateSignUpSection', () => {
   it('holds sign-up on while the template asks questions and says why', async () => {
     const held = await mountSection(true)

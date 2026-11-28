@@ -106,7 +106,7 @@ async function saveProviders() {
 }
 
 /**
- * Tries the stored provider rather than what is on screen, so the result says something about what
+ * Tries the stored provider rather than what is on screen, so the result shows something about what
  * would actually carry the post. Anything unsaved has to be saved first to be tried.
  */
 const testingPosition = ref<number | null>(null)

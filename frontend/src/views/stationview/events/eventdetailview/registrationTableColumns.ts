@@ -20,7 +20,7 @@ export interface DrawnRow<Extra> extends DrawnCells {
 
 /**
  * The one string that stands for a column, unique across the three kinds: the kind, and then either
- * the builtin's name or the question's id. The server is told the columns, never these strings.
+ * the builtin's name or the question's id. The server is sent the columns, never these strings.
  */
 export function keyOf(column: MemberTableHeader | ColumnChoice): string {
     if (column.kind === 'BUILTIN') return `b:${column.key}`

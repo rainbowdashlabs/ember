@@ -26,8 +26,8 @@ import static dev.chojo.ember.feature.system.service.DemoLetterBlocks.userType;
 
 /**
  * The photo consent the demo's citizens' festival, the {@value DemoEventSeeder#BUERGERFEST}, asks every
- * participant to bring: a letter in German that names the appointment, its day, time and place, says which photos and videos are taken there and where
- * they are published, and that consenting is voluntary and can be withdrawn at any time for the future.
+ * participant to bring: a letter in German that names the appointment, its day, time and place, shows which photos
+ * and videos are taken there and where they are published, and that consenting is voluntary and can be withdrawn at any time for the future.
  *
  * <p>The participant signs it, and so does every guardian of a young member, whose lines and the sentence
  * about them are printed only for the members of the youth fire brigade. The youth warden takes the consent

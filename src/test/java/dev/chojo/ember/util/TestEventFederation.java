@@ -116,11 +116,11 @@ public record TestEventFederation(
 
     /**
      * Builds the services over the given collaborators, announcing decisions about partners' members on the
-     * given bus and telling members through the given notifier.
+     * given bus and notifying members through the given notifier.
      *
      * @param parts    the collaborators
      * @param eventBus where the host announces its decisions about partners' members
-     * @param notifier how the partner side tells its members
+     * @param notifier how the partner side notifies its members
      * @return the services
      */
     public static TestEventFederation of(Parts parts, DomainEventBus eventBus, Notifier notifier) {

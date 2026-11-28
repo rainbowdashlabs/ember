@@ -155,7 +155,7 @@ public class EventRepository {
     /**
      * Resolves an event of the station by its public UUID, when every reader of the given audience
      * may see it: kept to nobody in particular, and for the public also on the public calendar (its
-     * own public flag, or its category's where it names none). Empty for anything else, never told
+     * own public flag, or its category's where it names none). Empty for anything else, never distinguished
      * apart. Used to draw an event block and to check one on the way in.
      */
     public Optional<StationEvent> findOpenByUid(int stationId, BlockAudience audience, UUID publicUid) {
@@ -411,10 +411,10 @@ public class EventRepository {
     }
 
     /**
-     * Says when a repeating event stops repeating, as a last day or as a number of times.
+     * Sets when a repeating event stops repeating, as a last day or as a number of times.
      *
      * <p>Written on its own rather than as two more arguments of the general update, which every
-     * caller that has nothing to say about repetition would have to carry.
+     * caller that has no repetition to set would have to carry.
      *
      * @param id    the event
      * @param until the last day it may fall on, or null
@@ -436,7 +436,7 @@ public class EventRepository {
     }
 
     /**
-     * Says whether an appointment is on the public calendar, which creating one leaves to its category.
+     * Sets whether an appointment is on the public calendar, which creating one leaves to its category.
      *
      * @param id       the event
      * @param isPublic true or false, or null to follow the category
@@ -476,7 +476,7 @@ public class EventRepository {
 
     /**
      * Notes that the people holding a place on an appointment that just took over dates of another one
-     * are still to be told about it.
+     * are still to be notified about it.
      *
      * @param id the appointment that took over
      */
@@ -487,11 +487,11 @@ public class EventRepository {
     }
 
     /**
-     * Takes the telling of an appointment that took over dates on, once: whoever comes first tells,
-     * and everybody after finds nothing left to tell.
+     * Takes the notifying of an appointment that took over dates on, once: whoever comes first notifies,
+     * and everybody after finds nothing left to notify.
      *
      * @param id the appointment
-     * @return true where it was still to be told and is now taken on
+     * @return true where it was still to be notified and is now taken on
      */
     public boolean claimChangeNotice(int id) {
         return query("""
@@ -502,7 +502,7 @@ public class EventRepository {
     }
 
     /**
-     * The appointments that took over dates and were not told about within a grace period after.
+     * The appointments that took over dates and were not notified about within a grace period after.
      *
      * @param grace how long the editor has to send the notice before it is sent without them
      * @return the appointments' ids, oldest first

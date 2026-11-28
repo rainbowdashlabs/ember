@@ -16,6 +16,7 @@ import {parseFieldConfig} from '@/api/profileFields'
 import {
   StationPermission,
   StationUserType,
+  type CandidateResponse,
   type IssuedOneTimePassword,
   type MemberGroup,
   type MemberWithName,
@@ -46,6 +47,8 @@ const issueOneTimePassword = ref(true)
 const oneTimePassword = ref<IssuedOneTimePassword | null>(null)
 const oneTimePasswordFailure = ref<Failure | null>(null)
 const linkPending = ref(false)
+/** Somebody of this instance found by name, who is asked to link their account rather than invited by address. */
+const found = ref<CandidateResponse | null>(null)
 
 const {sessionInfo, hasPermission} = useSession()
 
@@ -58,7 +61,7 @@ const offerOneTimePassword = computed(() =>
 
 /** Whether this member is handed a one-time password, in which case no setup mail is queued for them. */
 const handsOverOneTimePassword = computed(() =>
-  canLogin.value && offerOneTimePassword.value && issueOneTimePassword.value)
+  !found.value && canLogin.value && offerOneTimePassword.value && issueOneTimePassword.value)
 const allFields = ref<ProfileField[]>([])
 const fieldValues = ref<Map<number, string>>(new Map())
 const allGroups = ref<MemberGroup[]>([])
@@ -203,20 +206,22 @@ let accountMade = false
  * Creates the member from everything the wizard collected, which is one button and several writes.
  *
  * <p>The account comes first, and once it is there the rest, the kind, the answers, the groups and the
- * guardians, is added to a person who already exists. A reader told plainly that creating failed starts
+ * guardians, is added to a person who already exists. A reader shown plainly that creating failed starts
  * the wizard again and is refused for an address that is now taken, with a half-filled member left in
- * the roll and nothing said about it. Where the account is in, the screen says so and sends them to the
+ * the roll and nothing shown about it. Where the account is in, the screen shows that and sends them to the
  * member's own page to finish it.
  */
 const {running: saving, failure: createFailure, run: createAccount, clearError: clearCreateError} = useAsyncAction(async () => {
   failure.value = null
   accountMade = false
-  const invited = await members.invite({
-    email: canLogin.value ? email.value : undefined,
-    firstName: firstName.value,
-    lastName: lastName.value,
-    sendSetupMail: sendSetupMail.value && !handsOverOneTimePassword.value,
-  })
+  const invited = found.value
+    ? await members.invite({accountUid: found.value.accountUid})
+    : await members.invite({
+      email: canLogin.value ? email.value : undefined,
+      firstName: firstName.value,
+      lastName: lastName.value,
+      sendSetupMail: sendSetupMail.value && !handsOverOneTimePassword.value,
+    })
 
   accountMade = true
   linkPending.value = invited.linkPending
@@ -268,6 +273,7 @@ function startOver() {
   oneTimePassword.value = null
   oneTimePasswordFailure.value = null
   linkPending.value = false
+  found.value = null
   fieldValues.value = new Map()
   selectedGroupIds.value = new Set()
   selectedManagerIds.value = new Set()
@@ -302,6 +308,7 @@ function startOver() {
           v-model:email="email"
           v-model:first-name="firstName"
           v-model:last-name="lastName"
+          v-model:found="found"
           :scope-fields="scopeFields"
           :field-values="fieldValues"
           :all-groups="offeredGroups"

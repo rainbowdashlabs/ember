@@ -51,7 +51,7 @@ const token = route.query.token as string
  * What the link is worth, asked before the form is drawn.
  *
  * <p>Otherwise somebody types a password twice into a form that was never going to be accepted, and
- * is told only afterwards. While the answer is still coming nothing is shown but the spinner: a form
+ * is informed only afterwards. While the answer is still coming nothing is shown but the spinner: a form
  * that appears and is then taken away reads worse than one that arrives a moment late.
  *
  * <p>The question is a courtesy. Where it cannot be answered at all the form is drawn anyway and the
@@ -96,7 +96,7 @@ onMounted(async () => {
  * chose ten seconds earlier. What it does not stand in for is a second factor: an account that has
  * one is sent to give it, exactly as signing in would, nor for an address the instance can write
  * to, which an administrator carrying none is sent to give first. An answer with none of the three
- * leaves the sign-in form to say what is still missing, which is where an unverified address is
+ * leaves the sign-in form to show what is still missing, which is where an unverified address is
  * explained.
  */
 const {running: loading, error: submitError, run: runSetPassword} = useAsyncAction(async () => {

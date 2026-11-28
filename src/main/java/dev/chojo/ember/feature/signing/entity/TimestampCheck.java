@@ -12,7 +12,7 @@ import java.time.Instant;
 /**
  * One timestamp found in a checked document, inside a signature or on its own.
  *
- * @param time            when the timestamp service says the stamped data existed; null when the
+ * @param time            when the timestamp service attests that the stamped data existed; null when the
  *                        timestamp could not be read
  * @param authority       the timestamp service's certificate; null when the timestamp does not carry it
  * @param pinnedAuthority whether its chain ends in one of the timestamp service roots this installation

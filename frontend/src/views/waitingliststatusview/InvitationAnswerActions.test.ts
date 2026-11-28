@@ -33,7 +33,7 @@ function invitation(appointments: WaitingListPublicAppointment[], noDatesLeft: b
 }
 
 /**
- * Once every offered date is over, the family cannot come to one: the page says the station sends new
+ * Once every offered date is over, the family cannot come to one: the page shows that the station sends new
  * dates, and only saying no is left to answer.
  */
 describe('the answer page without dates left', () => {

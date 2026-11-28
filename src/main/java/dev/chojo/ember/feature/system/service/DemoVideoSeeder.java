@@ -62,7 +62,7 @@ import javax.imageio.ImageIO;
  * The states the explainer videos need to show, put there on purpose rather than left to chance.
  *
  * <p>Most of what the demo holds is seeded with a fixed random seed, which makes it the same after every
- * reset but says nothing about who ends up with what. A video that has to show a running exchange cannot
+ * reset but decides nothing about who ends up with what. A video that has to show a running exchange cannot
  * work with "somebody has one": it has to be the person the camera is logged in as. The same goes for the
  * three states an absence can be in, and for a deadline close enough that the reminder is worth showing.
  *
@@ -225,7 +225,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
 
     /**
      * One exchange on each of the stages a manager moves them through, because the stages only explain
-     * themselves side by side. A list where everything says the same thing teaches nothing.
+     * themselves side by side. A list where everything shows the same thing teaches nothing.
      *
      * <p>Only the station's own gear is used: a step on an association's piece belongs to its owner,
      * and a Betreuer acknowledging it is refused. A piece without a free replacement beside it is
@@ -502,7 +502,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
     }
 
     /**
-     * A drawing for every item in the lost-and-found, because a page of grey placeholders says nothing
+     * A drawing for every item in the lost-and-found, because a page of grey placeholders shows nothing
      * about a page that is meant to help somebody recognise their own jacket.
      *
      * <p>Drawn rather than shipped: a handful of strokes costs nothing, survives a repository that keeps

@@ -18,7 +18,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A request is answered by the account it concerns or by somebody in that account's care: a
  * member signed in by their guardian has no password and no passkey, so the guardian is the only one
- * who can answer a demand made of them. Everybody else is told nothing, which is exactly what a
+ * who can answer a demand made of them. Everybody else is shown nothing, which is exactly what a
  * wrong code already earns, so the answer cannot be read as "this code exists".
  */
 @Singleton
@@ -51,7 +51,7 @@ public class DeviceApprovalGuards {
      *
      * <p>A guardian may be answering for themselves or for a child, and the two look identical
      * otherwise. Naming them is what lets a guardian refuse a code that is not the one somebody beside
-     * them just asked for. Their own request says nothing, because there is nothing to tell apart.
+     * them just asked for. Their own request shows nothing, because there is nothing to distinguish.
      *
      * @param accountId the account reading the request
      * @return the name of whoever raised the step-up, or null

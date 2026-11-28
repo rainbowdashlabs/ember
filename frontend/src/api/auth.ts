@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {isStorageDenied, removeItem} from './storage'
+import {forgetTabPlaces} from '@/util/tabPlace'
+import {isStorageDenied} from './storage'
 import type {
     ChangePasswordRequest,
     EmailChangeResponse,
@@ -44,7 +45,7 @@ export async function confirmEmailChange(data: TokenRequest): Promise<EmailChang
 
 /**
  * Whether a sign-in answer is a finished session rather than a step still owed. The session itself
- * arrived as a cookie the page cannot read; the answer only says that it did.
+ * arrived as a cookie the page cannot read; the answer only shows that it did.
  */
 export function startedSession(res: LoginResponse): boolean {
     return !!res.expiresAt && !res.passwordChangeRequired && !res.addressRequired && !res.twoFactorRequired
@@ -69,8 +70,7 @@ export async function demoLogin(email: string): Promise<LoginResponse> {
 /** Ends the session the cookie names; the server clears the cookie with its answer. */
 export async function logout(): Promise<MessageResponse> {
     const res = await client.post<MessageResponse>('/auth/logout')
-    removeItem('station_id')
-    removeItem('cluster_id')
+    forgetTabPlaces()
     return res.data
 }
 

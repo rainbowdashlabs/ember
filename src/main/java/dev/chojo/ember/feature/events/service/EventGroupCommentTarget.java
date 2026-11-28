@@ -27,9 +27,9 @@ import java.util.Optional;
  * Comments on an event group, which work as those on an appointment do.
  *
  * <p>They are read and written by whoever may open the event group in its own station. Only their
- * author changes them; their author or an appointment manager removes them. A reply tells the
- * author of the answered comment and a comment tells whoever it mentions. A new top-level comment,
- * from here or from a partner station, tells the appointment managers; a partner's comment tells
+ * author changes them; their author or an appointment manager removes them. A reply notifies the
+ * author of the answered comment and a comment notifies whoever it mentions. A new top-level comment,
+ * from here or from a partner station, notifies the appointment managers; a partner's comment notifies
  * nobody else.
  */
 @Singleton

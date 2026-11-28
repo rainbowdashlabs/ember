@@ -23,7 +23,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
  * What every version of this instance brought.
  *
  * <p>Read from the instance, not from GitHub out of the reader's browser: an installation with no
- * way out can still say what it changed, and nobody has to leave an address somewhere else to read
+ * way out can still show what it changed, and nobody has to leave an address somewhere else to read
  * what their own instance does. The version being run is marked, because the question behind the
  * page is usually "what changed for us", not "what has been released".
  */
@@ -32,7 +32,7 @@ const {t} = useI18n()
 const entries = ref<ChangelogEntry[]>([])
 const currentVersion = ref('')
 
-/** The numbers alone, which is what a version heading carries; a build off a branch says more. */
+/** The numbers alone, which is what a version heading carries; a build off a branch shows more. */
 function versionNumber(version: string): string {
     return version.trim().split(' ')[0]?.replace(/^v/, '') ?? ''
 }

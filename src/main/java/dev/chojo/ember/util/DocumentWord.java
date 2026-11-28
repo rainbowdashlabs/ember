@@ -53,7 +53,7 @@ public enum DocumentWord {
      * What a kind of member is called, for a name built around one.
      *
      * <p>Returns the token itself for anything unrecognised, which is better in a filename than
-     * nothing at all and says plainly that a kind has been added without being given a word.
+     * nothing at all and shows plainly that a kind has been added without being given a word.
      */
     public static String forUserType(String userType, String language) {
         return switch (userType == null ? "" : userType) {
@@ -79,7 +79,7 @@ public enum DocumentWord {
      *
      * <p>Anything that is not English is German, which is the same way round as everywhere else a
      * language is chosen here: English is asked for by name and German is what a station gets when it
-     * has said nothing.
+     * has chosen nothing.
      *
      * @param language {@code de} or {@code en}, as {@code StationFormat.languageOf} answers
      */

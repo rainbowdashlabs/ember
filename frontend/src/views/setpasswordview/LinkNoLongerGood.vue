@@ -12,9 +12,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import type {TokenStatus} from '@/api/generated/schema'
 
 /**
- * What to say instead of a form nobody could submit.
+ * What to show instead of a form nobody could submit.
  *
- * <p>An expired link is not a mistake the reader made, and telling them only that something is
+ * <p>An expired link is not a mistake the reader made, and showing them only that something is
  * invalid leaves them re-clicking the same mail. What happened, and who can put it right: for an
  * invitation that is whoever invited them, because only a station can send another; for a reset it
  * is the reader themselves, who can ask for a new one on the spot.

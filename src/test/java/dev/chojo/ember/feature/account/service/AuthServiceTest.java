@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.ArgumentCaptor;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -420,7 +421,8 @@ class AuthServiceTest extends RepositoryTestBase {
 
         var mailed = ArgumentCaptor.forClass(String.class);
         verify(emailService)
-                .sendPasswordResetEmail(eq("forgot-flow@test.com"), anyString(), mailed.capture(), anyString());
+                .sendPasswordResetEmail(
+                        eq("forgot-flow@test.com"), anyString(), mailed.capture(), any(Duration.class), anyString());
         String link = mailed.getValue();
 
         assertEquals(
@@ -449,13 +451,15 @@ class AuthServiceTest extends RepositoryTestBase {
         service.requestPasswordReset("Capital-Reset@Test.com");
 
         verify(emailService)
-                .sendPasswordResetEmail(eq("capital-reset@test.com"), anyString(), anyString(), anyString());
+                .sendPasswordResetEmail(
+                        eq("capital-reset@test.com"), anyString(), anyString(), any(Duration.class), anyString());
         accountRepo.delete(capitalised.id());
     }
 
     /**
      * An invitation waits for the evening somebody next reads their mail, a reset does not. The two
-     * links are therefore given their own lifetimes, and the setup one is the long one.
+     * links are therefore given their own lifetimes, and the setup one is the long one. Each mail
+     * carries the lifetime its own link has, so the text in it is the one the link keeps to.
      */
     @Test
     @Order(18)
@@ -468,9 +472,19 @@ class AuthServiceTest extends RepositoryTestBase {
         var setupMail = ArgumentCaptor.forClass(String.class);
         var resetMail = ArgumentCaptor.forClass(String.class);
         verify(emailService)
-                .sendPasswordSetupEmail(eq("setup-window@test.com"), anyString(), setupMail.capture(), anyString());
+                .sendPasswordSetupEmail(
+                        eq("setup-window@test.com"),
+                        anyString(),
+                        setupMail.capture(),
+                        eq(Duration.ofDays(30)),
+                        anyString());
         verify(emailService)
-                .sendPasswordResetEmail(eq("setup-window@test.com"), anyString(), resetMail.capture(), anyString());
+                .sendPasswordResetEmail(
+                        eq("setup-window@test.com"),
+                        anyString(),
+                        resetMail.capture(),
+                        eq(Duration.ofHours(1)),
+                        anyString());
 
         var setup = accountRepo.findToken(setupMail.getValue()).orElseThrow().expiresAt();
         var reset = accountRepo.findToken(resetMail.getValue()).orElseThrow().expiresAt();
@@ -499,8 +513,8 @@ class AuthServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A link that ran out and a link that never existed need different words, so the two are told
-     * apart rather than both answered with "invalid". Only then can the page say what happened and
+     * A link that ran out and a link that never existed need different words, so the two are kept
+     * apart rather than both answered with "invalid". Only then can the page show what happened and
      * who can put it right.
      */
     @Test
@@ -567,7 +581,8 @@ class AuthServiceTest extends RepositoryTestBase {
         service.requestPasswordReset("unreachable@import.local");
 
         verify(emailService, never())
-                .sendPasswordResetEmail(eq("unreachable@import.local"), anyString(), anyString(), anyString());
+                .sendPasswordResetEmail(
+                        eq("unreachable@import.local"), anyString(), anyString(), any(Duration.class), anyString());
 
         accountRepo.delete(unreachable.id());
     }
@@ -1214,7 +1229,7 @@ class AuthServiceTest extends RepositoryTestBase {
 
     /**
      * On a demo instance it signs the account in without a password, and an address nobody holds is refused
-     * the way a wrong password is rather than by saying the address is unknown.
+     * the way a wrong password is rather than by showing the address is unknown.
      */
     @Test
     @Order(87)
@@ -1438,7 +1453,7 @@ class AuthServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The approval says the account holder is present. It does not say the account is in a state to
+     * The approval shows the account holder is present. It does not show the account is in a state to
      * be used, so the refusals every other sign-in makes are made here too.
      */
     @Test
@@ -1752,7 +1767,7 @@ class AuthServiceTest extends RepositoryTestBase {
     /**
      * The same instance, seen for the length of one story as one that has no way of sending.
      *
-     * <p>The policy is asked rather than the configuration, so a test says which of the two worlds it
+     * <p>The policy is asked rather than the configuration, so a test shows which of the two worlds it
      * is in by answering that question and putting the answer back afterwards.
      */
     private void withoutAMailServer(Runnable story) {
@@ -1846,8 +1861,9 @@ class AuthServiceTest extends RepositoryTestBase {
 
         var claimToken = ArgumentCaptor.forClass(String.class);
         verify(emailService)
-                .sendEmailChangeClaimRequest(eq(wanted), anyString(), any(), claimToken.capture(), anyString());
-        verify(emailService, never()).sendEmailChangeReleaseRequest(any(), any(), any(), any(), any());
+                .sendEmailChangeClaimRequest(
+                        eq(wanted), anyString(), any(), claimToken.capture(), any(Duration.class), anyString());
+        verify(emailService, never()).sendEmailChangeReleaseRequest(any(), any(), any(), any(), any(), any());
 
         assertEquals(AuthService.EmailChangeResult.COMMITTED, service.confirmEmailChange(claimToken.getValue()));
         assertEquals(
@@ -1870,10 +1886,16 @@ class AuthServiceTest extends RepositoryTestBase {
         var claimToken = ArgumentCaptor.forClass(String.class);
         var releaseToken = ArgumentCaptor.forClass(String.class);
         verify(emailService)
-                .sendEmailChangeClaimRequest(eq(wanted), anyString(), any(), claimToken.capture(), anyString());
+                .sendEmailChangeClaimRequest(
+                        eq(wanted), anyString(), any(), claimToken.capture(), any(Duration.class), anyString());
         verify(emailService)
                 .sendEmailChangeReleaseRequest(
-                        eq(fixture.email()), anyString(), eq(wanted), releaseToken.capture(), anyString());
+                        eq(fixture.email()),
+                        anyString(),
+                        eq(wanted),
+                        releaseToken.capture(),
+                        any(Duration.class),
+                        anyString());
 
         assertEquals(AuthService.EmailChangeResult.WAITING, service.confirmEmailChange(claimToken.getValue()));
         assertEquals(

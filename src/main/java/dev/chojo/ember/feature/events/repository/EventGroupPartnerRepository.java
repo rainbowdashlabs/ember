@@ -90,7 +90,7 @@ public class EventGroupPartnerRepository {
 
     /**
      * Whether a station shares one of its event groups with a partner. An event group not every member of
-     * the station may see is never shared, whatever its share says.
+     * the station may see is never shared, whatever its share defines.
      *
      * @param eventGroupId the event group
      * @param partnerId    the station's record of the partner

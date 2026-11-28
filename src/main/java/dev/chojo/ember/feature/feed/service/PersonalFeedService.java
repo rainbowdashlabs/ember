@@ -12,7 +12,6 @@ import com.rometools.rome.io.SyndFeedOutput;
 import dev.chojo.ember.api.refusal.FeedRefusal;
 import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.feature.events.entity.EventCategory;
-import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
@@ -20,6 +19,7 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.feed.FeedFingerprint;
+import dev.chojo.ember.feature.feed.render.CalendarFeeds;
 import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
 import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
@@ -41,15 +41,9 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import net.fortuna.ical4j.model.Calendar;
-import net.fortuna.ical4j.model.property.ProdId;
-import net.fortuna.ical4j.model.property.XProperty;
-import net.fortuna.ical4j.model.property.immutable.ImmutableCalScale;
-import net.fortuna.ical4j.model.property.immutable.ImmutableVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -70,15 +64,6 @@ import java.util.stream.Collectors;
 @Singleton
 public class PersonalFeedService {
     private static final Logger log = LoggerFactory.getLogger(PersonalFeedService.class);
-
-    /**
-     * Past calendar window: a year back, the same distance the feed reaches forward. A calendar is
-     * as much a record of what happened as a plan of what is coming.
-     */
-    private static final Duration ICAL_WINDOW_PAST = Duration.ofDays(365);
-
-    /** Forward calendar window: covers annual events without unbounded growth on long-running stations. */
-    private static final Duration ICAL_WINDOW_FUTURE = Duration.ofDays(365);
 
     /**
      * Maximum number of notification entries per feed, which is what readers typically surface and
@@ -103,6 +88,7 @@ public class PersonalFeedService {
     private final MemberNameResolver memberNameResolver;
     private final OccurrenceCalendar occurrenceCalendar;
     private final ModuleAvailability modules;
+    private final PersonalFeedFilterService filters;
 
     @Inject
     public PersonalFeedService(
@@ -122,8 +108,10 @@ public class PersonalFeedService {
             NotificationFeedRenderer notificationRenderer,
             MemberNameResolver memberNameResolver,
             OccurrenceCalendar occurrenceCalendar,
-            ModuleAvailability modules) {
+            ModuleAvailability modules,
+            PersonalFeedFilterService filters) {
         this.modules = modules;
+        this.filters = filters;
         this.tokenService = tokenService;
         this.crudService = crudService;
         this.categoryService = categoryService;
@@ -179,8 +167,12 @@ public class PersonalFeedService {
         var eventLatest = crudService.findMaxEventUpdatedAt(station.id());
         var registrationLatest = registrationService.findMaxCreatedAt(memberIds);
         var lastModified = eventLatest.isAfter(registrationLatest) ? eventLatest : registrationLatest;
-        var fingerprint = FeedFingerprint.compute(lastModified, "ics", station.id(), locale, verbose);
-        return new Feed(fingerprint, () -> renderCalendar(member, managed, memberIds, station, locale, verbose));
+        var hiddenCategories = filters.hiddenCategories(member.id());
+        var fingerprint = FeedFingerprint.compute(lastModified, "ics", station.id(), locale, verbose, hiddenCategories);
+        return new Feed(
+                fingerprint,
+                () -> renderCalendar(
+                        member, managed, memberIds, station, locale, verbose, Set.copyOf(hiddenCategories)));
     }
 
     private Rendered renderCalendar(
@@ -189,7 +181,8 @@ public class PersonalFeedService {
             List<Integer> memberIds,
             Station station,
             String locale,
-            boolean verbose) {
+            boolean verbose,
+            Set<Integer> hiddenCategories) {
         var categories = new HashMap<Integer, EventCategory>();
         categoryService.findByStation(station.id()).forEach(category -> categories.put(category.id(), category));
         var ownerStatusByEvent = new HashMap<Integer, RegistrationStatus>();
@@ -204,14 +197,11 @@ public class PersonalFeedService {
                 managedByEvent,
                 occurrenceCalendar.forStation(station.id()));
         var events = eventsInWindow(station.id(), memberIds).stream()
+                .filter(event -> keptByFilter(event, hiddenCategories, ownerStatusByEvent, managedByEvent))
                 .filter(event -> icalRenderer.isVisibleForFeed(event, renderContext))
                 .toList();
-        var calendar = new Calendar();
-        calendar.add(new ProdId("-//Ember//Personal Calendar//DE"));
-        calendar.add(ImmutableVersion.VERSION_2_0);
-        calendar.add(ImmutableCalScale.GREGORIAN);
-        calendar.add(new XProperty("X-WR-CALNAME", station.name()));
-        EventRecurrence.timeZoneOf(renderContext.calendar().zone()).ifPresent(calendar::add);
+        var calendar = CalendarFeeds.frame(
+                "Personal Calendar", station.name(), renderContext.calendar().zone());
         for (var event : events) {
             try {
                 icalRenderer.render(event, renderContext).forEach(calendar::add);
@@ -252,19 +242,25 @@ public class PersonalFeedService {
     }
 
     /**
-     * The household's appointments within a year either way of now, so feeds stay small for
-     * stations with thousands of past entries. A series is kept by its anchor: its rule expands
-     * across the window in the client.
+     * Whether the member's choice of categories to leave out keeps an appointment. One the member or a
+     * member in their care signed up for stays whatever its category, so a commitment never drops out
+     * of the calendar; whether that sign-up still counts is the renderer's to decide.
      */
+    private static boolean keptByFilter(
+            StationEvent event,
+            Set<Integer> hiddenCategories,
+            Map<Integer, RegistrationStatus> ownerStatusByEvent,
+            Map<Integer, List<IcalEventRenderer.ManagedRegistration>> managedByEvent) {
+        Integer category = event.categoryId();
+        if (category == null || !hiddenCategories.contains(category)) return true;
+        return ownerStatusByEvent.containsKey(event.id()) || managedByEvent.containsKey(event.id());
+    }
+
+    /** The household's appointments within the window every calendar feed carries. */
     private List<StationEvent> eventsInWindow(int stationId, List<Integer> memberIds) {
         var now = Instant.now();
-        var windowStart = now.minus(ICAL_WINDOW_PAST);
-        var windowEnd = now.plus(ICAL_WINDOW_FUTURE);
         return crudService.findFilteredForMembers(stationId, memberIds, null, null).stream()
-                .filter(e -> e.isRecurring()
-                        || (e.startTime() != null
-                                && !e.startTime().isBefore(windowStart)
-                                && !e.startTime().isAfter(windowEnd)))
+                .filter(e -> CalendarFeeds.inWindow(e, now))
                 .toList();
     }
 

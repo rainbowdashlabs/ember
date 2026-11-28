@@ -14,7 +14,7 @@ import org.jspecify.annotations.Nullable;
  * <p>The array is handed over as it is, without a copy.
  *
  * @param made   the picture made for this act as it was sent, or null to sign with the saved one
- * @param source how the picture made for this act was made, or null where it does not say
+ * @param source how the picture made for this act was made, or null where it is unknown
  * @param keep   whether the picture made for this act replaces the saved one afterwards; never for a member
  *               signing through another person's account, whose picture is not that person's
  */

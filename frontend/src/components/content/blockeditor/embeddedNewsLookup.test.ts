@@ -28,7 +28,7 @@ function signedInTo(stationId: string) {
 /**
  * How a news block finds its entry: the public blog on every public page and for every reader outside
  * the station, the member lookup only in a news or wiki article and only for a member of the station
- * that owns it. A 404 is "not here"; anything else is a failure that says nothing about the entry.
+ * that owns it. A 404 is "not here"; anything else is a failure that shows nothing about the entry.
  */
 describe('findEmbeddedNews', () => {
     beforeEach(() => {

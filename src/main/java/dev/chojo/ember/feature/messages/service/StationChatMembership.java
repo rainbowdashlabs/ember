@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
  * <p>Membership is kept as rows, because a member's read marker and muting live there, and the rows
  * are brought in line with the audience whenever it may have changed: after a change to the
  * station's people, debounced per station, and once a day for every station, so a change that
- * forgot to say so costs a day at most. Somebody taken in reads the whole history; somebody taken out
+ * failed to signal it costs a day at most. Somebody taken in reads the whole history; somebody taken out
  * loses the chat with it. Neither writes a line into the chat.
  *
  * <p>A closed chat takes nobody new in, but still lets go of whoever left its audience, so somebody
@@ -56,7 +56,7 @@ public class StationChatMembership implements TaskSource {
      */
     static final Duration DEBOUNCE = Duration.ofSeconds(3);
 
-    /** How often every station is reconciled, whether anything said it changed or not. */
+    /** How often every station is reconciled, whether anything reported a change or not. */
     static final Duration SWEEP_INTERVAL = Duration.ofDays(1);
 
     private static final Logger log = LoggerFactory.getLogger(StationChatMembership.class);
@@ -150,7 +150,7 @@ public class StationChatMembership implements TaskSource {
     }
 
     /**
-     * Tells the tabs of everybody in a changed chat, and of everybody taken out of it, so the chat
+     * Notifies the tabs of everybody in a changed chat, and of everybody taken out of it, so the chat
      * appears, disappears or shows its new members without a reload.
      */
     private void tell(MembershipChange change) {

@@ -448,9 +448,9 @@ public class EventCrudService {
     }
 
     /**
-     * Says when a repeating event stops repeating, or takes the end off again.
+     * Sets when a repeating event stops repeating, or takes the end off again.
      *
-     * <p>A last day and a number of times are two ways of saying the same thing, so only one of them
+     * <p>A last day and a number of times are two ways of expressing the same thing, so only one of them
      * is ever set. A one-off appointment has nothing to repeat and is refused rather than quietly
      * given an end nobody would ever see.
      *
@@ -535,7 +535,7 @@ public class EventCrudService {
     }
 
     /**
-     * Who is told when a part leaves its event group by being deleted, for the documents the event group
+     * Who is notified when a part leaves its event group by being deleted, for the documents the event group
      * asks for. Without it, nothing else happens.
      *
      * @param departure what runs as a part leaves

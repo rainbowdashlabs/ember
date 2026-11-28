@@ -25,7 +25,7 @@ const props = defineProps<{
   dayLabel: string
   /** When sign-up for this date closes, as the server sends it; null where it does not close. */
   registrationClosesAt: string | null
-  /** Whether this date was called off, which the tile says and which leaves nothing to decline. */
+  /** Whether this date was called off, which the tile shows and which leaves nothing to decline. */
   cancelled?: boolean
   /** What kind of appointment this is, absent where it was put in no category. */
   category?: EventCategory | null

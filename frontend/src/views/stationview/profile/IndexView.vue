@@ -14,7 +14,6 @@ import {incompleteFields} from '@/util/profileFields'
 import { useSession } from '@/composables/useSession'
 import { useProfileAnswers } from '@/composables/useProfileAnswers'
 import { ownProfileAnswers } from '@/composables/profileAnswerPorts'
-import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import AccountCard from './indexview/AccountCard.vue'
 import IncompleteFieldsAlert from './indexview/IncompleteFieldsAlert.vue'
@@ -24,7 +23,6 @@ import SelfServiceCentreLink from './indexview/SelfServiceCentreLink.vue'
 
 const { t } = useI18n()
 const { sessionInfo } = useSession()
-const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const answers = useProfileAnswers(ownProfileAnswers)
 const {fields, valueOf: getValue, update: setValue} = answers
@@ -61,7 +59,6 @@ async function saveProfile() {
   failure.value = null
   try {
     await answers.save(memberId.value)
-    refreshSidebarCounts()
   } catch (e) {
     failure.value = describeFailure(e, t)
     throw e

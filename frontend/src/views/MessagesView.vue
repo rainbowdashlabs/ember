@@ -13,7 +13,7 @@ import {useSession} from '@/composables/useSession'
 
 /**
  * Messages between people, outside any station. While messages are turned off for the instance the
- * page only says so and asks the server for nothing.
+ * page only shows that and asks the server for nothing.
  */
 const {t} = useI18n()
 const {sessionInfo} = useSession()

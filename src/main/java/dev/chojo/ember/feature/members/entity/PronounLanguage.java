@@ -17,7 +17,7 @@ import java.util.List;
  *
  * @param language the language
  * @param code     how a gender field keys its pronouns in this language
- * @param roles    the roles the language tells apart, each of which takes a word of its own
+ * @param roles    the roles the language distinguishes, each of which takes a word of its own
  * @param male     the pronouns of {@link PronounPreset#MALE}
  * @param female   the pronouns of {@link PronounPreset#FEMALE}
  */

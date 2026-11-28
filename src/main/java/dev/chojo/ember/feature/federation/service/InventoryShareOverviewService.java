@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.feature.federation.entity.InventoryShare;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
@@ -54,20 +55,20 @@ public class InventoryShareOverviewService {
      * @return one entry per share row
      */
     public List<ShareDetail> overview(int stationId) {
-        var inventoryNames = new HashMap<Integer, String>();
+        var inventories = new HashMap<Integer, Inventory>();
         for (var inventory : inventoryRepository.findByStation(stationId)) {
-            inventoryNames.put(inventory.id(), inventory.name());
+            inventories.put(inventory.id(), inventory);
         }
         var partnerNames = partnerNames(stationId);
         return shareService.findShares(stationId).stream()
-                .map(share -> describe(share, inventoryNames, partnerNames))
+                .map(share -> describe(share, inventories, partnerNames))
                 .toList();
     }
 
     private ShareDetail describe(
-            InventoryShare share, Map<Integer, String> inventoryNames, Map<Integer, String> partnerNames) {
-        String inventoryName = null;
-        String artName = null;
+            InventoryShare share, Map<Integer, Inventory> inventories, Map<Integer, String> partnerNames) {
+        Inventory inventory = null;
+        InventoryArt art = null;
         String itemName = null;
         String itemInternalId = null;
         Integer sharedItem = share.itemId();
@@ -77,28 +78,34 @@ public class InventoryShareOverviewService {
             if (item != null) {
                 itemName = item.name();
                 itemInternalId = item.internalId();
-                inventoryName = inventoryNames.get(item.inventoryId());
+                inventory = inventories.get(item.inventoryId());
                 Integer itemArt = item.artId();
-                if (itemArt != null) {
-                    artName = artRepository
-                            .findById(itemArt)
-                            .map(InventoryArt::name)
-                            .orElse(null);
-                }
+                if (itemArt != null) art = artRepository.findById(itemArt).orElse(null);
             }
         } else if (sharedArt != null) {
-            var art = artRepository.findById(sharedArt).orElse(null);
-            if (art != null) {
-                artName = art.name();
-                inventoryName = inventoryNames.get(art.inventoryId());
-            }
+            art = artRepository.findById(sharedArt).orElse(null);
+            if (art != null) inventory = inventories.get(art.inventoryId());
         } else {
-            inventoryName = inventoryNames.get(share.inventoryId());
+            inventory = inventories.get(share.inventoryId());
         }
         var targets = shareService.findTargets(share.id()).stream()
                 .map(partnerId -> new SharePartner(partnerId, partnerNames.getOrDefault(partnerId, UNNAMED)))
                 .toList();
-        return new ShareDetail(share, inventoryName, artName, itemName, itemInternalId, targets);
+        return new ShareDetail(
+                share,
+                inventory != null ? inventory.name() : null,
+                art != null ? art.name() : null,
+                itemName,
+                itemInternalId,
+                firstNamed(art != null ? art.pictureKey() : null, inventory != null ? inventory.pictureKey() : null),
+                firstNamed(art != null ? art.icon() : null, inventory != null ? inventory.icon() : null),
+                firstNamed(art != null ? art.color() : null, inventory != null ? inventory.color() : null),
+                inventory == null || inventory.homogeneous(),
+                targets);
+    }
+
+    private static @Nullable String firstNamed(@Nullable String first, @Nullable String second) {
+        return first != null && !first.isBlank() ? first : second;
     }
 
     private Map<Integer, String> partnerNames(int stationId) {
@@ -113,13 +120,34 @@ public class InventoryShareOverviewService {
         return names;
     }
 
-    /** One row of the overview of everything this station offers. */
+    /**
+     * One row of the overview of everything this station offers.
+     *
+     * <p>The photo and the icon are the ones the shared thing is shown with: its kind's where the kind
+     * has one, otherwise its inventory's. The photo is read by its key.
+     *
+     * @param share          the share row
+     * @param inventoryName  the inventory the shared thing lies in
+     * @param artName        the kind of the shared thing, where it has one
+     * @param itemName       the shared piece, for a share of one piece
+     * @param itemInternalId the piece's own number, for a share of one piece
+     * @param pictureKey     the key of the photo the thing is shown with, or {@code null} for none
+     * @param icon           the icon it is drawn with, or {@code null} for the plain shape
+     * @param color          the colour of that icon, or {@code null}
+     * @param homogeneous    whether the inventory holds one thing in many copies, which decides the plain
+     *                       shape drawn where nobody chose an icon
+     * @param partners       the partners the share is offered to
+     */
     public record ShareDetail(
             InventoryShare share,
             @Nullable String inventoryName,
             @Nullable String artName,
             @Nullable String itemName,
             @Nullable String itemInternalId,
+            @Nullable String pictureKey,
+            @Nullable String icon,
+            @Nullable String color,
+            boolean homogeneous,
             List<SharePartner> partners) {}
 
     /** A partner named by a share, with the name to show for it. */

@@ -12,8 +12,9 @@ import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import InventorySearchPicker from '@/components/input/search/InventorySearchPicker.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import type { Inventory, InventorySize } from '@/api/generated/schema'
+import type { Inventory, InventorySize, ItemOwner } from '@/api/generated/schema'
 import type { MemberLike } from '@/components/input/select/memberOption'
+import ProcurementOwnerField from './ProcurementOwnerField.vue'
 
 /**
  * What is being ordered, and for whom where there is a whom.
@@ -25,6 +26,7 @@ const memberId = defineModel<string>('memberId', {required: true})
 const inventoryId = defineModel<string>('inventoryId', {required: true})
 const sizeId = defineModel<string>('sizeId', {required: true})
 const notes = defineModel<string>('notes', {required: true})
+const owner = defineModel<ItemOwner | ''>('owner', {required: true})
 
 const props = defineProps<{
   inventories: Inventory[]
@@ -32,6 +34,8 @@ const props = defineProps<{
   availableSizes: InventorySize[]
   /** Whether the order is placed for a person, which a station's is and an association's is not. */
   forSomebody: boolean
+  /** Whether the order is asked whose piece it brings, which a station's is and an association's is not. */
+  asksOwner: boolean
 }>()
 
 const emit = defineEmits<{
@@ -48,6 +52,10 @@ const pickedInventory = computed<number | null>({
     emit('inventorySelected')
   },
 })
+
+/** The type of the chosen inventory, which decides whether the order is asked whose piece it brings. */
+const pickedType = computed(() => props.inventories.find(candidate => candidate.id === pickedInventory.value)
+    ?.inventoryType ?? null)
 
 const options = computed(() => props.members.map(fromMember))
 const userTypes = computed(() => userTypesOf(options.value))
@@ -74,6 +82,8 @@ const userTypes = computed(() => userTypesOf(options.value))
       />
     </div>
   </div>
+
+  <ProcurementOwnerField v-if="asksOwner" v-model="owner" :inventory-type="pickedType"/>
 
   <div v-if="availableSizes.length > 0" class="space-y-1">
     <FieldLabel>{{ t('procurement.size') }}</FieldLabel>

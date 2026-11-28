@@ -26,6 +26,8 @@ export interface ItemTableOptions {
   isMixed: () => boolean
   sizeLabel: (item: InventoryItem) => string
   assignedName: (item: InventoryItem) => string
+  /** The name of the kind a piece is sorted into, empty where it has none. */
+  artName?: (item: InventoryItem) => string
 }
 
 export const FIELD_PREFIX = 'field:'
@@ -42,8 +44,11 @@ const HOLDING = {
  * The pieces of one inventory as a table: its fixed columns, one per custom field, and the tags
  * where anything wears one.
  *
- * <p>The fields say what they hold, so a date field filters by day, a choice by its options and a
+ * <p>The fields declare what they hold, so a date field filters by day, a choice by its options and a
  * number by a range, without anybody wiring that per field.
+ *
+ * <p>The search finds a piece by its kind and its tags as well, whether or not their columns are
+ * shown, since that is how a drawer of different things is looked through.
  */
 export function useItemTable(options: ItemTableOptions) {
   const { t } = useI18n()
@@ -166,7 +171,12 @@ export function useItemTable(options: ItemTableOptions) {
     rows: options.items,
     columns,
     rowKey: item => item.id,
-    searchText: item => `${options.sizeLabel(item)} ${options.assignedName(item)}`,
+    searchText: item => [
+      options.sizeLabel(item),
+      options.assignedName(item),
+      options.artName?.(item) ?? '',
+      ...itemTagNames(item),
+    ].join(' '),
     sort: {key: 'name'},
   })
 

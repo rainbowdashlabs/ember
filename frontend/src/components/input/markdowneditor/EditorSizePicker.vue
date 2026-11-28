@@ -19,7 +19,7 @@ import { LARGEST_TEXT_SIZE, pointSize, SMALLEST_TEXT_SIZE } from '@/util/textSiz
  * <p>A size applies as soon as it stands in the field, whether typed or counted with the arrows, after a
  * short pause so typing "12" does not first set the words in 1. Enter closes the panel. An empty field
  * and the reset entry give the words their normal size back. A size that is no whole number within
- * bounds is refused and the field says so. The panel is rendered at the end of the
+ * bounds is refused and the field shows that. The panel is rendered at the end of the
  * page, so the edge of the text field cannot cut it off.
  *
  * <p>The field opens on the size the words are shown in, their own or the one they inherit, so its

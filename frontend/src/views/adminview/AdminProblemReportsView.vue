@@ -17,13 +17,11 @@ import {beacon} from '@/api'
 import {acknowledgeAllReports, acknowledgeReport, deleteReport, listReports} from '@/api/problemReports'
 import type {ProblemReport} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 
 const {t} = useI18n()
-const {refresh: refreshCounts} = useMonitoringCounts()
 
 const includeAcknowledged = ref(false)
 const expandedId = ref<number | null>(null)
@@ -42,9 +40,9 @@ const forwarded = ref('')
 /**
  * Whether reports go to a beacon on their own, and whether one carrying a picture waits first.
  *
- * <p>Read so a row can say which of the three things it is: gone, waiting for somebody here, or
+ * <p>Read so a row can show which of the three things it is: gone, waiting for somebody here, or
  * going nowhere because nothing is forwarded at all. A report that waits looks exactly like one that
- * has been sent unless the screen says otherwise, which is how holding one reads as losing one.
+ * has been sent unless the screen shows otherwise, which is how holding one reads as losing one.
  */
 const forwardsOnItsOwn = ref(false)
 const picturesWaitForReview = ref(false)
@@ -63,9 +61,9 @@ function forward(id: number) {
 }
 
 /**
- * Says it went, and reads the list again so the row says so too.
+ * Reports it went, and reads the list again so the row shows that too.
  *
- * <p>Without the reload the row would go on saying it is waiting for somebody, which is the very
+ * <p>Without the reload the row would go on showing it is waiting for somebody, which is the very
  * thing that made a held report look like a lost one.
  */
 async function onForwarded() {
@@ -97,7 +95,6 @@ async function ack(id: number) {
   if (!includeAcknowledged.value) {
     reports.value = reports.value.filter(r => r.id !== id)
   }
-  void refreshCounts()
 }
 
 async function ackAll() {
@@ -107,7 +104,6 @@ async function ackAll() {
   } else {
     reports.value = reports.value.map(r => ({...r, acknowledged: true}))
   }
-  void refreshCounts()
 }
 
 /** Deletes a report, after asking unless shift is held. */
@@ -116,7 +112,6 @@ const {show: confirmingRemove, requestDelete: remove, confirm: confirmRemove, fa
     removeFailure.value = null
     await deleteReport(id)
     reports.value = reports.value.filter(r => r.id !== id)
-    void refreshCounts()
   },
 })
 

@@ -1,5 +1,50 @@
 # Changelog
 
+## v26.27.0
+
+People who already have an account on this instance can be invited into a station by their name. Inventories and their kinds can carry a photo, which partner stations also see when they borrow. Stations can create calendar subscriptions of their own for shared calendars. First steps arrive three at a time, in the order they build on each other.
+
+### New Features
+
+- **Invite people of this instance by name.** The member wizard finds people who already have an account on this instance by their name and asks them to link it, without anybody knowing their address. People who share a station or an association with the inviting manager can be found, everybody else only after turning on "Findable from every station" under Account → Links.
+- **Photos of inventories and kinds.** An inventory can carry a photo, and a kind can carry one of its own that its pieces show instead. The photo appears on the stock page, on a piece's own page and in the overview of what the station lends. Partner stations see the photo, or otherwise the icon, in their lending list. With a partner on another server this works once both run this version, and lending between the two pauses until then.
+- **Calendar feeds for the station.** A station can create calendar subscriptions for shared calendars such as a screen in the station, each showing appointments up to a chosen visibility (public, all members or everything) and leaving out chosen categories. Event managers manage them under Events → Calendar feeds, and the permission can also be given on its own.
+
+### Improvements
+
+- **Kinds and tags on the inventory pages.** On the stock page, several pieces can be selected and given a kind, or have tags added or removed, in one step. The search of an inventory finds pieces by their kind and their tags, also while those columns are hidden. Free pieces offered for handing out show their kind. A piece's own page shows its tags, and editing the piece changes them.
+- **Icons of inventories and kinds.** The icon of an inventory, a kind or a container type is changed by picking another one, without removing the old one first. The list shows every icon instead of only the first ones. New icons cover furniture, trailers, grills, a bouncy castle and other things for festivals and events. Pieces show their kind's icon where the kind has one.
+- **Appointment maps open on request, with navigation.** A pinned place on an appointment's page shows a map button behind its address, and the map opens only when the button is pressed. Below the map, links start navigation there. Android phones offer their own choice of navigation apps. iPhones and computers get Apple Maps and Google Maps, and the OpenStreetMap link stays.
+- **Any place field as the location in the calendar.** A place field of an appointment, a template or an event group can be marked as the location in the calendar. Only one place field per form carries the mark, and an appointment's own mark wins over the one of its event group.
+- **Meeting point in appointment documents.** Documents for appointments have a new placeholder for the meeting point. The location placeholder keeps showing where the appointment takes place, so photo permissions and similar forms stay as they are.
+- **First steps come three at a time.** The dashboard shows at most three first steps at once, with the station's setup before a person's own. A step that builds on another, such as inviting members after setting up mail, appears once that one is done or skipped.
+- **Procurements fold fulfilled orders and record owners.** The procurement page lists open procurements first. Fulfilled ones sit below in a folded section, most recent first. In a mixed inventory, a procurement records whether it brings the station's piece or the association's. Internal and external inventories settle this by their type.
+- **Member and container checks switch apart.** Inventory checks have two parts of their own on the module page: checking a member's gear and checking a container. A station can keep one and switch the other off. Self-checks are now a part of member checks, since a reviewed self-check is recorded as a member check. Switching off inventory checks or member checks also switches off self-checks.
+- **Personal calendar subscription by category.** The personal calendar subscription can leave out chosen categories under Profile → Settings. Appointments the member or someone in their care is signed up for stay in it.
+- **Permission picker shows what includes what.** An opened area of the permission picker shows its permissions as a tree, each one indented below the permission that includes it. A permission included by several others appears once, with a line naming the others.
+- **Stations side by side in several tabs.** Each browser tab keeps the station and the association it shows, so two stations can be open next to each other. The address of a station page includes its station, so a copied link or a link opened in a new tab opens the same station.
+
+### Changes
+
+- **Calendar subscriptions show the meeting point.** Calendar subscriptions show the marked place as an appointment's location, and otherwise the first place filled in. Existing place fields named meeting point are marked during the update. The venue stays in the description of the entry. Waiting list invitations show the same place.
+- **Requests outside Ember become procurements.** Where the association does not keep its gear in Ember, "Note down request" on the inventory overview records the request as a procurement of the association's piece. It carries the mark "Requested from the association". Requests to the association are offered only where it keeps its gear in Ember. Elsewhere the request chains on the movement chains page are hidden.
+- **Member data and member documents are separate permissions.** "Read members" no longer includes reading member documents. "Edit members" no longer includes managing member documents, generating documents or asking for signatures. During the update, everybody who held a member permission is given the matching document permission, so the two can now be granted separately. "Read member documents" no longer opens the station's own paperwork, which needs "Read documents". Whoever reads only members or member documents therefore sees only documents assigned to a member in the document store.
+- **Inventory checks and movements no longer create items freely.** Running inventory checks or managing movements no longer allows creating the association's items outside those flows. The pieces a check or a movement records itself are still created.
+- **No notice about decisions on sign-ups.** Confirming or turning down a sign-up for an appointment or event group no longer notifies the people who run appointments. The member still gets their notice, and the sign-up list shows the decision.
+- **The waiting list counter shows new entries.** The number beside "Waiting lists" counts the waiting entries a reader has not looked at yet, until they open the list. After the update, every waiting entry counts as new once.
+
+### Fixes
+
+- **A second place was missing from calendar entries.** When an appointment had both a place and a meeting point, calendar subscriptions showed one of them and left the other out entirely. The other place now appears in the description of the entry, in every subscription setting.
+- **Single appointments in calendar subscriptions were written in UTC.** In the personal and the public subscription, one-time appointments were written in UTC, while series already carried the station's timezone. One-time appointments are now written in the station's timezone too, with summer and winter time as the date has them.
+- **Hours on printed attendance sheets had the wrong number format.** In some cases, printed attendance sheets and reports showed hours with a decimal comma for an English station, or with a decimal point for a German one. The hours now follow the station's language, as they already did in the spreadsheet export.
+- **The inventory page jumped back to the top.** After every change to a piece, the whole stock list loaded again and the place in it was lost. The page now stays where it was while it refreshes.
+- **Appointment field lines were out of line.** In the appointment fields of an appointment, a template or an event group, the name, value and type of each line started at different places depending on the field's type. The lines now share fixed columns, so names, values and types stand under each other.
+- **External inventory procurements brought station-owned pieces.** Marking a procurement fulfilled in an inventory that holds only the association's gear created a piece owned by the station. The piece now belongs to the association and stays at the station.
+- **A tab could work in the station chosen in another tab.** With two tabs open in different stations, the older tab in some cases loaded or saved data in the station chosen last in the other tab, while it still showed its own. Each tab now keeps its own station.
+- **Some mails showed the wrong lifetime for their link.** The mails for a password reset, for setting up a new account and for an accepted station application showed a fixed number of hours instead of the lifetime the instance sets. They now show the lifetime the link actually has.
+- **Sidebar counters stayed behind.** The numbers beside the sidebar entries were only read again on some pages and often showed an old state until a reload. They now follow their lists after every change, on every page change, when the tab is shown again and once a minute.
+
 ## v26.26.4
 
 People who already belong to another station of the same instance can be taken in through the member import.

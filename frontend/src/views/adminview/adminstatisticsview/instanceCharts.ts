@@ -120,7 +120,7 @@ export function seriesChart(
  * A ring chart with its slices named on leader lines.
  *
  * <p>Like every chart here it carries an ECharts description for screen readers, which names the
- * series and their values, since the canvas alone says nothing to one.
+ * series and their values, since the canvas alone shows nothing to one.
  *
  * @param title  the heading
  * @param slices the slices with their colours

@@ -9,8 +9,8 @@ package dev.chojo.ember.feature.signing.entity;
  * The legal level of an electronic signature in the sense of the eIDAS regulation, which is what a
  * signature provider can promise and what a kind of document can ask for.
  *
- * <p>Not to be confused with the PAdES baseline of a seal ({@link SealLevel}): that says how much of
- * the material to check a seal later is embedded, this says what the law makes of the person's act.
+ * <p>Not to be confused with the PAdES baseline of a seal ({@link SealLevel}): that shows how much of
+ * the material to check a seal later is embedded, this shows what the law makes of the person's act.
  */
 public enum SignatureLevel {
     /**

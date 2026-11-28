@@ -15,7 +15,7 @@ function field(id: number, fieldType: string, extra: Partial<ExpectedField> = {}
 const blank = () => ''
 
 /**
- * The profile says what is left to fill in, and it has to say the same as the server, which only counts
+ * The profile shows what is left to fill in, and it has to agree with the server, which only counts
  * a question the member can actually write.
  */
 describe('incompleteFields', () => {
@@ -23,7 +23,7 @@ describe('incompleteFields', () => {
         expect(incompleteFields([field(1, FieldType.NUMBER)], blank).map(f => f.id)).toEqual([1])
     })
 
-    /** A field that was a required number before it became an age still says required. */
+    /** A field that was a required number before it became an age still shows required. */
     it('never counts an age, a heading or a gap, which nobody can fill in', () => {
         const fields = [field(1, FieldType.AGE), field(2, FieldType.SECTION), field(3, FieldType.SPACER)]
 

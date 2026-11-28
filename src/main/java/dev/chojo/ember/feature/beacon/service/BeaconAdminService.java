@@ -217,7 +217,7 @@ public class BeaconAdminService {
     }
 
     /**
-     * Passes one report on now, whatever the automatic switch says.
+     * Passes one report on now, whatever the automatic switch sets.
      *
      * <p>The switch governs what leaves on its own; a button is an operator deciding about this one
      * report in front of them. That is also the only way a report written before the switch was
@@ -246,7 +246,7 @@ public class BeaconAdminService {
     }
 
     /**
-     * What this instance is set up to do, so the screens can say so rather than guess.
+     * What this instance is set up to do, so the screens can show it rather than guess.
      *
      * @param enabled     whether anything is sent at all
      * @param url         the beacon being reported to

@@ -190,7 +190,7 @@ describe('useQueueActions', () => {
         expect(api.events.moveRegistrationsToQueue.mock.calls).toEqual([[[4, 2]]])
     })
 
-    /** Any other refusal is said as it is, and nothing is read back. */
+    /** Any other refusal is shown as it is, and nothing is read back. */
     it('says a refusal and reads nothing back', async () => {
         api.events.moveRegistrationInQueue.mockRejectedValue({response: {status: 409, data: {code: 'E-228', error: 'not queued'}}})
         const {actions, failure, reload} = actionsWith()

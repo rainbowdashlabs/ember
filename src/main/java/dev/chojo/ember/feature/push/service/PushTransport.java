@@ -17,7 +17,7 @@ public interface PushTransport {
      * What the push service answered.
      *
      * @param status     the HTTP status, or 0 when the address may not be reached at all
-     * @param retryAfter how long it asked to wait, where it said so
+     * @param retryAfter how long it asked to wait, where it gave one
      */
     record Answer(int status, Duration retryAfter) {
         /** @return whether the push service took the push */

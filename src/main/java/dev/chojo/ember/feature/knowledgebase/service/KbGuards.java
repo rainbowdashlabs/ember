@@ -61,7 +61,7 @@ public final class KbGuards {
 
     /**
      * Reads the caller's access context, carrying the station-wide knowledge rights so the grant
-     * resolution knows what they may do where the tree says nothing.
+     * resolution knows what they may do where the tree shows nothing.
      *
      * <p>A session with station rights but no member row of its own matches no audience, so it
      * carries no memberships rather than failing the request.

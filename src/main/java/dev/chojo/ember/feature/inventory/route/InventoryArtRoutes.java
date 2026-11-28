@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemNameCount;
 import dev.chojo.ember.feature.inventory.service.InventoryArtService;
+import dev.chojo.ember.feature.inventory.service.InventoryPictureService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -50,11 +51,14 @@ public class InventoryArtRoutes implements Routes {
 
     private final InventoryArtService artService;
     private final InventoryService inventoryService;
+    private final InventoryPictureService pictureService;
 
     @Inject
-    public InventoryArtRoutes(InventoryArtService artService, InventoryService inventoryService) {
+    public InventoryArtRoutes(
+            InventoryArtService artService, InventoryService inventoryService, InventoryPictureService pictureService) {
         this.artService = artService;
         this.inventoryService = inventoryService;
+        this.pictureService = pictureService;
     }
 
     @Override
@@ -169,7 +173,9 @@ public class InventoryArtRoutes implements Routes {
         int artId = pathInt(ctx, "artId");
         ownedInventory(inventoryId, StationSession.from(ctx));
         verifyArtInInventory(inventoryId, artId);
+        List<String> pictureKeys = pictureService.keysOfArt(artId);
         if (artService.delete(artId)) {
+            pictureService.removeFiles(StationSession.from(ctx).stationId(), pictureKeys);
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw InventoryRefusal.ITEM_KIND_NOT_DELETED.raise();

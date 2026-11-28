@@ -101,7 +101,7 @@ class KbPresentationServiceTest extends RepositoryTestBase {
 
     /**
      * A conversion that cannot run at all leaves the file marked as failed rather than pending
-     * forever, so a reader is told the rendered version is never coming.
+     * forever, so a reader sees that the rendered version is never coming.
      */
     @Test
     void aConversionThatCannotRunIsMarkedFailed() {

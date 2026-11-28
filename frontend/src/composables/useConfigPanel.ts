@@ -23,7 +23,7 @@ export interface ConfigPanelState<T> {
     error: Ref<string>
     /**
      * The same failure described: what sort it was, what to do about it, and whether it looks like a
-     * fault in Ember worth reporting. Render it with `FailureAlert` and the reader is told all three
+     * fault in Ember worth reporting. Render it with `FailureAlert` and the reader sees all three
      * instead of only that something went wrong.
      */
     failure: Ref<Failure | null>

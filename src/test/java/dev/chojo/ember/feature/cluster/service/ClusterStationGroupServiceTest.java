@@ -151,7 +151,7 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
 
     /**
      * A tag recommended to a group and a stock requirement counting at one both hold the filing in
-     * place, and the screen is told which of them does rather than being handed a failed statement.
+     * place, and the screen is shown which of them does rather than being handed a failed statement.
      */
     @Test
     void aGroupSomethingElseIsKeyedToCannotBeRemoved() {

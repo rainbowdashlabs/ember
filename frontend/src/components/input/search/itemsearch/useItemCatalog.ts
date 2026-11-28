@@ -7,7 +7,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {ItemChipSource} from '@/components/inventory/ItemChip.vue'
 import {containerPathFor} from '@/util/containerPath'
-import {glyphFor} from '@/util/glyph'
+import {pieceGlyph} from '@/util/glyph'
 import {inventory, inventoryArts, inventoryContainers, movements, stationMembers} from '@/api'
 import {piecesOnOpenMovements} from '@/util/movementPieces'
 import type {
@@ -31,7 +31,7 @@ export interface ItemStateBadge {
 
 /**
  * Where a piece is, as the picker words it. A piece with a partner, in the post or back with an owner
- * that is not the station is away, which the row says rather than calling it free.
+ * that is not the station is away, which the row shows rather than calling it free.
  */
 function itemState(item: InventoryItem): ItemState {
     if (item.lostAt) return 'lost'
@@ -127,19 +127,13 @@ export function useItemCatalog(wantedSizeId: () => number | null | undefined, wi
     /**
      * What the piece is, rather than where it is.
      *
-     * <p>Where it is was what the icon used to say, which made a helmet and a jacket with the same member
-     * look alike. That answer is the badge's now, and the picture says what the thing is.
+     * <p>Where it is was what the icon used to show, which made a helmet and a jacket with the same member
+     * look alike. That answer is the badge's now, and the picture shows what the thing is.
      */
     function glyphOf(item: InventoryItem) {
         const art = item.artId != null ? artById.value.get(item.artId) : undefined
         const inv = inventoryById.value.get(item.inventoryId)
-        return glyphFor({
-            artIcon: art?.icon,
-            artColor: art?.color,
-            inventoryIcon: inv?.icon,
-            inventoryColor: inv?.color,
-            homogeneous: inv?.homogeneous,
-        })
+        return pieceGlyph(art, inv)
     }
 
     function hasWantedSize(item: InventoryItem): boolean {

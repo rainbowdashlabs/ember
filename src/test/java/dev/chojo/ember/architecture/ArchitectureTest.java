@@ -176,10 +176,10 @@ public class ArchitectureTest {
             noClasses().that(areRoutes()).should().dependOnClassesThat().resideInAPackage("..repository..");
 
     /**
-     * A shared core is told whose data it touches by an {@link Owner}, and that owner comes from the
+     * A shared core learns whose data it touches from an {@link Owner}, and that owner comes from the
      * session ({@code StationSession.owner()}, {@code UserSession.association(...)},
      * {@code UserSession.instance()}). A route that built one itself would build it from what the
-     * request says, and a caller could then name another station's or association's data.
+     * request carries, and a caller could then name another station's or association's data.
      */
     @ArchTest
     static final ArchRule routesTakeTheirOwnerFromTheSession =

@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * What the evidence a signed document carries says about its signatures, in short, for the verification
+ * What the evidence a signed document carries shows about its signatures, in short, for the verification
  * page. It is read from the attachment as it is; whether the station's seal covers it is what the seals
- * beside it say.
+ * beside it show.
  *
  * @param requestUid    the request for signatures the document belongs to
  * @param contentSha256 SHA-256 of the content every signature binds to, lower-case hexadecimal
@@ -27,7 +27,7 @@ public record EvidenceSummary(
 
     /**
      * @param file the evidence a document carries
-     * @return what it says in short, its fields in a list that cannot change
+     * @return what it shows in short, its fields in a list that cannot change
      */
     public static EvidenceSummary of(SigningEvidenceFile file) {
         return new EvidenceSummary(

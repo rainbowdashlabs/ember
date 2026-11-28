@@ -16,7 +16,7 @@ import type {ProbeResult} from '@/api/generated/schema'
  * Where an owner's files are kept, the same card on the station's, the association's and the instance's
  * storage screen.
  *
- * The first line says where the files are; any further line says what that rests on, such as the default a
+ * The first line shows where the files are; any further line shows what that rests on, such as the default a
  * station falls back to. A storage the owner keeps itself can be tested from here, and the answer is shown
  * beneath it.
  */

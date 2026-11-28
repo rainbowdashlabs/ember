@@ -45,14 +45,14 @@ const busy = ref(false)
 
 /**
  * Whose answers are being gone through, at the head of the page, so a reviewer with several open at
- * once tells them apart in the tab and in the history. The plain wording stands while the review
+ * once distinguishes them in the tab and in the history. The plain wording stands while the review
  * loads and where it could not be fetched.
  */
 const pageTitle = computed(() => (review.value?.memberName
     ? t('pages.inventory-self-check-review.titleNamed', {name: review.value.memberName})
     : t('pages.inventory-self-check-review.title')))
 
-/** The kind of gear one answer is about, which is what a correction has to be told. */
+/** The kind of gear one answer is about, which is what a correction has to carry. */
 function requirementOf(row: SelfCheckReviewRow): RequiredInventoryItem | null {
   return review.value?.required.find(req => req.inventoryId === row.row.inventoryId) ?? null
 }
@@ -63,7 +63,7 @@ function freeStockOf(inventoryId: number): InventoryItem[] {
 
 /**
  * Whether the member could have named a size on this answer, which is what makes the absence of one
- * worth saying. Anywhere else a missing size is not a gap but a question that was never asked.
+ * worth showing. Anywhere else a missing size is not a gap but a question that was never asked.
  */
 function asksForASize(row: SelfCheckReviewRow): boolean {
   const answersAboutAPiece = row.row.answer === SelfCheckAnswer.HAVE_ONE
@@ -80,7 +80,7 @@ function itemLabel(item: InventoryItem, req: RequiredInventoryItem): string {
  * Takes one answer.
  *
  * <p>A refusal from the server lands on the screen rather than being thrown away: two reviewers
- * reaching for the same answer is an ordinary thing to happen, and whoever was second has to be told
+ * reaching for the same answer is an ordinary thing to happen, and whoever was second has to be shown
  * so rather than left looking at a button that appears to do nothing.
  */
 const take = (rowId: number) => runWith(() => selfChecks.takeRow(taskId.value, rowId), {busy})

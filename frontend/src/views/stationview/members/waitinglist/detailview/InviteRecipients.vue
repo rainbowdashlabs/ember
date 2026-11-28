@@ -11,14 +11,14 @@ import type {InvitationRecipients} from '@/api/generated/schema'
 
 /**
  * Where a mail about the entry goes, named before it is sent: the addresses, or plainly that nobody
- * is written to and what happens instead. The invitation says the entry is only marked as invited;
- * another step says what it does in its own words.
+ * is written to and what happens instead. The invitation shows the entry is only marked as invited;
+ * another step shows what it does in its own words.
  */
 const props = defineProps<{
   recipients: InvitationRecipients | null
-  /** What is said when the list writes no mail, the invitation's wording when not given. */
+  /** What is shown when the list writes no mail, the invitation's wording when not given. */
   silentText?: string
-  /** What is said when nobody left an address, the invitation's wording when not given. */
+  /** What is shown when nobody left an address, the invitation's wording when not given. */
   noAddressText?: string
 }>()
 

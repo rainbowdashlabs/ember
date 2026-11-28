@@ -166,7 +166,7 @@ public class PushService {
     }
 
     /**
-     * Which of the account's sign-ins receive pushes, so the list of sign-ins can say so.
+     * Which of the account's sign-ins receive pushes, so the list of sign-ins can show it.
      *
      * @return the device of each sign-in that has one, by sign-in id
      */

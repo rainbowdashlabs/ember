@@ -282,8 +282,8 @@ public class NewsFederationService implements FederationServer {
     }
 
     /**
-     * Stores a comment a partner's member wrote, telling whoever a partner's comment on an entry
-     * tells, which the entry's comment target decides.
+     * Stores a comment a partner's member wrote, notifying whoever a partner's comment on an entry
+     * notifies, which the entry's comment target decides.
      */
     private Comment storePartnerComment(int newsId, CommentWriter writer, NewComment comment) {
         var target = commentService

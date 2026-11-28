@@ -45,6 +45,8 @@ public class RemoteLendingRoutes implements Routes {
                     RemoteLendingStatus.class,
                     Void.class)
             .keepingInStep();
+    public static final FederationEndpoint GET_PICTURE = FederationEndpoint.get(
+            FederationSurface.INVENTORY_LEND, "/remote/lending/pictures/{pictureKey}", RemoteLendingPicture.class);
     public static final FederationEndpoint GET_MESSAGES = FederationEndpoint.getList(
             FederationSurface.INVENTORY_LEND, "/remote/lending/requests/{requestUid}/messages", LendingMessage.class);
     public static final FederationEndpoint MESSAGE_NOTICE = FederationEndpoint.post(
@@ -55,7 +57,7 @@ public class RemoteLendingRoutes implements Routes {
             .keepingInStep();
 
     public static final List<FederationEndpoint> CONTRACT =
-            List.of(GET_AVAILABLE, CREATE_REQUEST, CHANGE_STATUS, GET_MESSAGES, MESSAGE_NOTICE);
+            List.of(GET_AVAILABLE, GET_PICTURE, CREATE_REQUEST, CHANGE_STATUS, GET_MESSAGES, MESSAGE_NOTICE);
 
     private final FederationEndpoints endpoints;
 
@@ -67,6 +69,7 @@ public class RemoteLendingRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         FederationContractBinder.register(routes, prefix, CONTRACT, endpoints, binder -> binder.serve(GET_AVAILABLE)
+                .serve(GET_PICTURE)
                 .serveCreated(CREATE_REQUEST)
                 .serve(CHANGE_STATUS)
                 .serve(GET_MESSAGES)
@@ -77,7 +80,7 @@ public class RemoteLendingRoutes implements Routes {
      * What a station offers the asking partner.
      *
      * @param entries        what is free, counted per inventory and kind of thing
-     * @param offersAnything whether the station offers the partner anything at all, which tells
+     * @param offersAnything whether the station offers the partner anything at all, which distinguishes
      *                       "nothing is shared with you" from "nothing is free just now"
      */
     public record RemoteAvailability(List<RemoteAvailableEntry> entries, boolean offersAnything) {}
@@ -85,15 +88,35 @@ public class RemoteLendingRoutes implements Routes {
     /**
      * One thing a station offers, counted.
      *
-     * @param artId   the kind counted, or {@code null} where the row counts a whole inventory
-     * @param artName what that kind is called, or {@code null}
+     * <p>It is shown with its kind's photo and icon where the kind has them, otherwise its inventory's.
+     *
+     * @param artId       the kind counted, or {@code null} where the row counts a whole inventory
+     * @param artName     what that kind is called, or {@code null}
+     * @param pictureKey  the key of the photo it is shown with, to ask {@link #GET_PICTURE} for, or
+     *                    {@code null} for none
+     * @param icon        the icon it is drawn with, or {@code null} for the plain shape
+     * @param color       the colour of that icon, or {@code null}
+     * @param homogeneous whether the inventory holds one thing in many copies, which decides the plain shape
      */
     public record RemoteAvailableEntry(
             int inventoryId,
             String inventoryName,
             @Nullable Integer artId,
             @Nullable String artName,
-            int availableCount) {}
+            int availableCount,
+            @Nullable String pictureKey,
+            @Nullable String icon,
+            @Nullable String color,
+            boolean homogeneous) {}
+
+    /**
+     * A photo of offered gear. The contract carries only JSON, so the picture travels encoded in it, drawn
+     * small by the lending station before it leaves.
+     *
+     * @param mimeType the type of the picture
+     * @param base64   the picture, Base64 encoded
+     */
+    public record RemoteLendingPicture(String mimeType, String base64) {}
 
     /**
      * A request for gear, as the borrowing station sends it to the lending one.

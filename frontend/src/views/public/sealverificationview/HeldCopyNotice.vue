@@ -12,7 +12,7 @@ import type {HeldCopy} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 /**
- * Whether this installation keeps exactly the checked file, said neutrally either way: a file it does
+ * Whether this installation keeps exactly the checked file, worded neutrally either way: a file it does
  * not keep can still carry a good seal, since a copy may live anywhere.
  */
 const props = defineProps<{

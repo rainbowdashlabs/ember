@@ -183,7 +183,7 @@ public class MovementTargeting {
      * bound to today.
      *
      * <p>A station is free to unbind a combination while a movement of that kind is still walking,
-     * and a row that cannot be read is worse than one that cannot say where it ought to be. The chain
+     * and a row that cannot be read is worse than one that cannot show where it ought to be. The chain
      * it is actually on stands in for the answer then.
      *
      * @param movement the movement
@@ -208,7 +208,7 @@ public class MovementTargeting {
      * The association that owns the gear of a target, where one on this instance does.
      *
      * <p>"The owner" is an abstraction on screen, and somebody holding a pair of gloves cannot tell
-     * from it whose gloves they are. A name can, and the identity tells one body's gear from
+     * from it whose gloves they are. A name can, and the identity distinguishes one body's gear from
      * another's where a replacement is being picked.
      *
      * @param target whose gear it is and which body that is

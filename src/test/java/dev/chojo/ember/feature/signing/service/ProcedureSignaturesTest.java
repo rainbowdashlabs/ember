@@ -224,7 +224,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
     }
 
     /**
-     * The request names the procedure it is asked for, the mail says so, and the reminder a procedure sends
+     * The request names the procedure it is asked for, the mail shows that, and the reminder a procedure sends
      * when it falls due reaches the open fields once more.
      */
     @Test
@@ -252,7 +252,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
         assertEquals(0, signatures.remind(generationId, Instant.now().plusSeconds(60)), "nothing waits any more");
     }
 
-    /** A corrected document keeps the procedure its request named, and a request without one says nothing. */
+    /** A corrected document keeps the procedure its request named, and a request without one shows nothing. */
     @Test
     void aCorrectionKeepsTheProcedureAndAPlainRequestNamesNone() {
         int consent = template("Korrigiert", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
@@ -293,7 +293,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
         assertTrue(closed.getFirst().agreed());
     }
 
-    /** A request a manager withdraws whole, nothing signed on it, closes without agreement, and says so. */
+    /** A request a manager withdraws whole, nothing signed on it, closes without agreement, and shows that. */
     @Test
     void aRequestWithdrawnWholeIsNotAgreed() {
         int consent = template("Zurückgezogen", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
@@ -309,7 +309,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
         assertEquals(manager.id(), closed.getFirst().settledBy());
     }
 
-    /** An agreement confirmed on paper and withdrawn by the guardian afterwards says which document it was. */
+    /** An agreement confirmed on paper and withdrawn by the guardian afterwards shows which document it was. */
     @Test
     void aWithdrawnAgreementNamesItsDocument() {
         int consent = template("Widerruf", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
@@ -418,7 +418,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
     }
 
     /**
-     * Keeps every event of one type it is told of.
+     * Keeps every event of one type it is given.
      *
      * @param type the type
      */

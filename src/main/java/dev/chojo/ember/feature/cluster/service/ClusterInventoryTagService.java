@@ -63,7 +63,7 @@ public class ClusterInventoryTagService {
     }
 
     /**
-     * The words recommended to one station, each saying whether the station already uses it.
+     * The words recommended to one station, each showing whether the station already uses it.
      *
      * @param stationId the station
      * @return the recommendations, empty when the station answers to no association

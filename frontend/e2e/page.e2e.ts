@@ -9,7 +9,7 @@ import {unique} from './fixtures/unique'
 test.describe('Pages', () => {
     /**
      * A page starts as a draft, which is the whole reason the list distinguishes the two: nothing
-     * a manager writes is public until they say so. The story writes one and then says so, through
+     * a manager writes is public until they say so. The story writes one and then publishes it, through
      * the visibility chooser that now holds that decision, and reloads, because a badge that
      * changes only in the open page has published nothing.
      */
@@ -45,7 +45,7 @@ test.describe('Pages', () => {
     /**
      * A public page can carry a poll, and a stranger can answer it. The story answers as nobody at
      * all - no session, the way a visitor arrives - and the page thanks them for it, which is what
-     * says the answer was taken.
+     * shows the answer was taken.
      *
      * Under a full suite the page's question about the station sometimes comes back short and it offers
      * another go, which the story presses as a reader would. A poll's choices are rows to click, and

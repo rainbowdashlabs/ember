@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.LocalDate;
 
 /**
- * What a feed entry says about an appointment: the fields the notification carries, and from the
+ * What a feed entry shows about an appointment: the fields the notification carries, and from the
  * appointment itself when it still exists its times, its recurrence, its registration terms and
  * its custom fields.
  */
@@ -153,7 +153,7 @@ public class EventFeedDetails implements FeedDetailsContributor {
     }
 
     /**
-     * Adds what the appointment the notification links to says about itself. A same-day appointment
+     * Adds what the appointment the notification links to shows about itself. A same-day appointment
      * collapses into one "when" row so the reader reads one fact rather than two; one that spans days
      * keeps a start and an end, each with its own date. Registration terms are surfaced so a member
      * can act on the entry alone, and custom fields are named by the service, because a reader

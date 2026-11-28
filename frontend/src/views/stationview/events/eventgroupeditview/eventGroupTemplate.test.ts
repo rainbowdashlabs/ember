@@ -29,7 +29,7 @@ describe('groupFieldsOf', () => {
     const taken = groupFieldsOf([
       field('Ort'),
       field('Betreuer', {fieldType: 'MEMBER_LIST'}),
-      field('Fahrer', {fieldType: 'MEMBER', config: {perDate: true, required: false, managersOnly: false, selfRegistration: false}}),
+      field('Fahrer', {fieldType: 'MEMBER', config: {perDate: true, required: false, managersOnly: false, selfRegistration: false, calendarLocation: false}}),
       field('Thema', {attendanceFieldId: 3}),
     ], false)
 
