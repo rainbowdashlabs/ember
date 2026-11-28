@@ -4,5 +4,5 @@
       <p>Thank you for registering on the waiting list of <strong>{{ stationName }}</strong>.</p>
       <p>Please confirm your email address to complete your registration:</p>
       <div class="btn-wrap"><a class="btn" href="{{ url }}">Confirm Email</a></div>
-      <p class="hint">This link is valid for 24 hours. After confirmation, your registration will be reviewed by a staff member.</p>
+      <p class="hint">This link expires in {{ validFor }}. After confirmation, your registration will be reviewed by a staff member.</p>
 {% endblock %}

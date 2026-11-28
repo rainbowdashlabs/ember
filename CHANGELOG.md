@@ -39,6 +39,7 @@ People who already have an account on this instance can be invited into a statio
 - **The inventory page jumped back to the top.** After every change to a piece, the whole stock list loaded again and the place in it was lost. The page now stays where it was while it refreshes.
 - **External inventory procurements brought station-owned pieces.** Marking a procurement fulfilled in an inventory that holds only the association's gear created a piece owned by the station. The piece now belongs to the association and stays at the station.
 - **A tab could work in the station chosen in another tab.** With two tabs open in different stations, the older tab in some cases loaded or saved data in the station chosen last in the other tab, while it still showed its own. Each tab now keeps its own station.
+- **Some mails showed the wrong lifetime for their link.** The mails for a password reset, for setting up a new account and for an accepted station application showed a fixed number of hours instead of the lifetime the instance sets. They now show the lifetime the link actually has.
 
 ## v26.26.4
 

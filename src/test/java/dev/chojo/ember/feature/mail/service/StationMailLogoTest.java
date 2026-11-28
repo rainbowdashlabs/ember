@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -77,7 +78,8 @@ class StationMailLogoTest {
 
     private List<Consumer<EmailService>> sends(int station) {
         return List.of(
-                mail -> mail.sendApplicationAcceptedEmail("a@test.com", "Ada", "Wache", "token", "en", station),
+                mail -> mail.sendApplicationAcceptedEmail(
+                        "a@test.com", "Ada", "Wache", "token", Duration.ofDays(30), "en", station),
                 mail -> mail.sendWaitlistRegistrationEmail("a@test.com", "Ada", "token", "Wache", "en", station),
                 mail -> mail.sendWaitlistInvitationEmail(
                         "a@test.com", "Ada", "token", "Wache", "en", station, WaitlistInvitationDetails.NONE),

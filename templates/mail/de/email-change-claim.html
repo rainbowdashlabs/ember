@@ -4,6 +4,6 @@
       <p>Du verschiebst dein Konto von <strong>{{ oldEmail }}</strong> zu dieser E-Mail-Adresse.</p>
       <p>Klicke auf den Button unten, um den Empfang zu bestätigen. Die alte Adresse muss die Freigabe ebenfalls autorisieren, bevor die Änderung wirksam wird.</p>
       <div class="btn-wrap"><a class="btn" href="{{ url }}">Neue E-Mail bestätigen</a></div>
-      <p class="hint">Dieser Link ist 24 Stunden gültig. Werden nicht beide Bestätigungen rechtzeitig geklickt, wird die Änderung verworfen.</p>
+      <p class="hint">Dieser Link verfällt nach {{ validFor }}. Werden nicht beide Bestätigungen rechtzeitig geklickt, wird die Änderung verworfen.</p>
       <p class="hint">Falls du diese Änderung nicht angefordert hast, ignoriere diese Nachricht einfach.</p>
 {% endblock %}

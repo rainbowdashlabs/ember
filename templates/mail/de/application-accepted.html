@@ -4,5 +4,5 @@
       <p>dein Antrag für die Wache <strong>{{ stationName }}</strong> wurde angenommen!</p>
       <p>Dein Konto wurde erstellt. Bitte richte dein Passwort ein, um loszulegen:</p>
       <div class="btn-wrap"><a class="btn-green" href="{{ url }}">Passwort einrichten</a></div>
-      <p class="hint">Der Link ist 72 Stunden gültig.</p>
+      <p class="hint">Der Link verfällt nach {{ validFor }}.</p>
 {% endblock %}

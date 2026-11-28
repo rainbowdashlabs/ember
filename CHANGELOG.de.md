@@ -39,6 +39,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Die Inventarseite sprang nach oben.** Nach jeder Änderung an einem Gegenstand wurde die ganze Liste neu geladen, und die Stelle darin ging verloren. Die Seite bleibt jetzt beim Aktualisieren, wo sie war.
 - **Beschaffungen in externen Inventaren brachten Stücke der Wache.** Wurde eine Beschaffung in einem Inventar, das nur Material des Trägers enthält, als erledigt markiert, entstand ein Stück im Besitz der Wache. Das Stück gehört jetzt dem Träger und bleibt bei der Wache.
 - **Ein Tab konnte in der Wache eines anderen Tabs arbeiten.** Waren zwei Tabs in verschiedenen Wachen offen, lud oder speicherte der ältere Tab in manchen Fällen Daten in der Wache, die im anderen Tab zuletzt gewählt wurde, obwohl er noch seine eigene zeigte. Jeder Tab behält jetzt seine eigene Wache.
+- **Manche Mails zeigten eine falsche Gültigkeit ihres Links.** Die Mails zum Zurücksetzen des Passworts, zum Einrichten eines neuen Kontos und zu einem angenommenen Wachenantrag zeigten eine feste Zahl an Stunden statt der Gültigkeit, die die Instanz festlegt. Sie zeigen jetzt, wie lange der Link tatsächlich gültig ist.
 
 ## v26.26.4
 

@@ -15,8 +15,10 @@ import org.jspecify.annotations.Nullable;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Renders mail templates with Pebble. Templates extend {@code _layout.html} (shared chrome
@@ -74,6 +76,20 @@ public class MailTemplateRenderer {
         if (value == null)
             value = LOCALIZER.get("mail", FALLBACK_LOCALE, "body").get(key);
         return value;
+    }
+
+    /**
+     * A span of time as the mails write it: whole days once it reaches two days and divides into
+     * them, hours otherwise, and never less than one hour. The German wording is dative ("nach 30
+     * Tagen"), so templates place it after "nach", "in" or "innerhalb von".
+     */
+    public String duration(Duration span, String locale) {
+        long hours = Math.max(1, span.toHours());
+        boolean inDays = hours >= 48 && hours % 24 == 0;
+        long count = inDays ? hours / 24 : hours;
+        String key = inDays ? "duration.days" : count == 1 ? "duration.hour" : "duration.hours";
+        String wording = Objects.requireNonNull(body(key, locale), "Mail wording not found: " + key);
+        return wording.replace("{count}", Long.toString(count));
     }
 
     private @Nullable String lookupSubject(String locale, String key) {

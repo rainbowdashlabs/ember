@@ -2,6 +2,6 @@
 {% block body %}
       <h2>Hello {{ name }},</h2>
       <p>You are on the waiting list at <strong>{{ stationName }}</strong>. Please confirm that you are still interested.</p>
-      <p class="warning">If you do not confirm within 30 days, you will be automatically removed from the waiting list.</p>
+      <p class="warning">If you do not confirm within {{ removedIn }}, you will be automatically removed from the waiting list.</p>
       <div class="btn-wrap"><a class="btn-green" href="{{ url }}">Confirm interest</a></div>
 {% endblock %}

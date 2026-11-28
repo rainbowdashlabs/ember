@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -210,11 +211,9 @@ public class AuthService {
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(accountId, TokenType.VERIFY_EMAIL);
             accountRepository.createToken(
-                    accountId,
-                    token,
-                    TokenType.VERIFY_EMAIL,
-                    Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
-            emailService.sendVerificationEmail(email, firstName, token, mailLocaleService.forAccount(accountId));
+                    accountId, token, TokenType.VERIFY_EMAIL, Instant.now().plus(verifyTokenValidity()));
+            emailService.sendVerificationEmail(
+                    email, firstName, token, verifyTokenValidity(), mailLocaleService.forAccount(accountId));
         }
 
         log.info("Account registered via self-registration: account {} ({})", accountId, email);
@@ -250,13 +249,11 @@ public class AuthService {
         accountRepository.deleteTokensByAccountAndType(accountId, TokenType.SET_PASSWORD);
         String token = generateToken();
         accountRepository.createToken(
-                accountId,
-                token,
-                TokenType.SET_PASSWORD,
-                Instant.now().plus(authConfig.setupTokenDays(), ChronoUnit.DAYS));
+                accountId, token, TokenType.SET_PASSWORD, Instant.now().plus(setupTokenValidity()));
         String locale = mailLocaleService.forAccount(accountId);
         for (var recipient : recipients) {
-            emailService.sendPasswordSetupEmail(recipient.email(), recipient.name(), token, locale);
+            emailService.sendPasswordSetupEmail(
+                    recipient.email(), recipient.name(), token, setupTokenValidity(), locale);
         }
         return true;
     }
@@ -639,10 +636,11 @@ public class AuthService {
                 account.id(),
                 token,
                 TokenType.RESET_PASSWORD,
-                Instant.now().plus(authConfig.resetTokenHours(), ChronoUnit.HOURS));
+                Instant.now().plus(Duration.ofHours(authConfig.resetTokenHours())));
         String locale = mailLocaleService.forAccount(account.id());
         for (var recipient : recipients) {
-            emailService.sendPasswordResetEmail(recipient.email(), recipient.name(), token, locale);
+            emailService.sendPasswordResetEmail(
+                    recipient.email(), recipient.name(), token, Duration.ofHours(authConfig.resetTokenHours()), locale);
         }
         log.info("Password reset requested for account {} ({})", account.id(), identifier);
     }
@@ -678,9 +676,13 @@ public class AuthService {
                 accountId,
                 token,
                 TokenType.RESET_PASSWORD,
-                Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
+                Instant.now().plus(Duration.ofHours(authConfig.passwordTokenHours())));
         emailService.sendPasswordResetEmail(
-                account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id()));
+                account.email(),
+                account.firstName(),
+                token,
+                Duration.ofHours(authConfig.passwordTokenHours()),
+                mailLocaleService.forAccount(account.id()));
         return true;
     }
 
@@ -715,12 +717,13 @@ public class AuthService {
         String token = generateToken();
         accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.VERIFY_EMAIL);
         accountRepository.createToken(
-                account.id(),
-                token,
-                TokenType.VERIFY_EMAIL,
-                Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
+                account.id(), token, TokenType.VERIFY_EMAIL, Instant.now().plus(verifyTokenValidity()));
         emailService.sendVerificationEmail(
-                account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id()));
+                account.email(),
+                account.firstName(),
+                token,
+                verifyTokenValidity(),
+                mailLocaleService.forAccount(account.id()));
         log.info("Verification mail resent for account {}", account.id());
         return true;
     }
@@ -1279,7 +1282,7 @@ public class AuthService {
 
         String requestId = UUID.randomUUID().toString();
         String metadata = requestId + "|" + newEmail;
-        Instant expiresAt = Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS);
+        Instant expiresAt = Instant.now().plus(verifyTokenValidity());
         String mailLocale = mailLocaleService.forAccount(accountId);
 
         String claimToken = generateToken();
@@ -1289,13 +1292,13 @@ public class AuthService {
             String releaseToken = generateToken();
             accountRepository.createToken(accountId, releaseToken, TokenType.EMAIL_CHANGE_RELEASE, metadata, expiresAt);
             emailService.sendEmailChangeReleaseRequest(
-                    account.email(), account.firstName(), newEmail, releaseToken, mailLocale);
+                    account.email(), account.firstName(), newEmail, releaseToken, verifyTokenValidity(), mailLocale);
         } else {
             log.info("Address change for account {} asks only the new address: the old one has no reader", accountId);
         }
 
         emailService.sendEmailChangeClaimRequest(
-                newEmail, account.firstName(), account.email(), claimToken, mailLocale);
+                newEmail, account.firstName(), account.email(), claimToken, verifyTokenValidity(), mailLocale);
         log.info("Email change requested for account {}: {} -> {}", accountId, account.email(), newEmail);
         return EmailChangeResult.WAITING;
     }
@@ -1666,5 +1669,13 @@ public class AuthService {
          * Both halves confirmed but the requested email is now taken by another account.
          */
         DUPLICATE
+    }
+
+    private Duration verifyTokenValidity() {
+        return Duration.ofHours(authConfig.verifyTokenHours());
+    }
+
+    private Duration setupTokenValidity() {
+        return Duration.ofDays(authConfig.setupTokenDays());
     }
 }
