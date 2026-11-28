@@ -358,7 +358,10 @@ public enum FederationRefusal implements Refusal {
             86, HttpStatus.BAD_REQUEST, "The piece does not fit this line of the request, so pick one the line offers"),
 
     /** A partner to read the offer through that is not given as a number. */
-    LENDING_PARTNER_NOT_A_NUMBER(87, HttpStatus.BAD_REQUEST, "The partner to look through is not given as a number");
+    LENDING_PARTNER_NOT_A_NUMBER(87, HttpStatus.BAD_REQUEST, "The partner to look through is not given as a number"),
+
+    /** A lending calendar asked for over more than a quarter of a year. */
+    LENDING_CALENDAR_TOO_LONG(88, HttpStatus.BAD_REQUEST, "The calendar shows at most a quarter of a year at once");
 
     private final Definition definition;
 

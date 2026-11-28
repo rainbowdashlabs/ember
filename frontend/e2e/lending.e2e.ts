@@ -263,4 +263,15 @@ test.describe('Lending offer', () => {
         await expect(page.getByTestId('lending-offer-card').first()).toBeVisible()
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
+
+    /**
+     * The calendar draws the requests for the station's gear across its days. The demo lends a radio
+     * to a partner from three days ago until four days ahead, so its bar is in the first four weeks.
+     */
+    test('the lending calendar shows a loan of the station as a bar', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/lending/calendar')
+
+        await expect(page.getByTestId('lending-calendar')).toBeVisible()
+        await expect(page.getByTestId('lending-calendar-bar').first()).toBeVisible()
+    })
 })

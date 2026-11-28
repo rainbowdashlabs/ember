@@ -23,6 +23,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import FloatingPanel from '@/components/feedback/FloatingPanel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import SwatchLegend from '@/components/display/SwatchLegend.vue'
 
 const modalOpen = ref(false)
 const sidePanelOpen = ref(false)
@@ -31,6 +32,11 @@ const floatingText = ref('')
 </script>
 
 <template>
+  <section class="space-y-4">
+    <SectionHeader>Swatch Legend</SectionHeader>
+    <SwatchLegend :entries="[{label: 'Frei', swatch: 'bg-success/25'}, {label: 'Gesperrt', swatch: '', hatched: true}]"/>
+  </section>
+
   <section class="space-y-4">
     <SectionHeader>Progress Bar</SectionHeader>
     <div class="space-y-3">

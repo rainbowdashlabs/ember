@@ -44108,6 +44108,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/lending/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The station's products, the requests for its gear and its block periods over some days */
+        get: {
+            parameters: {
+                query: {
+                    from: string;
+                    to: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LendingCalendar"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/lending/cart": {
         parameters: {
             query?: never;
@@ -73536,6 +73575,35 @@ export interface components {
             /** Format: int64 */
             tiles: number;
         };
+        CalendarBar: {
+            /** Format: int32 */
+            artId: number | null;
+            from: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            inventoryId: number;
+            overdue: boolean;
+            partner: string;
+            /** Format: int32 */
+            quantity: number;
+            /** Format: int32 */
+            requestId: number;
+            status: components["schemas"]["LendingStatus"];
+            to: components["schemas"]["LocalDate"];
+        };
+        CalendarBlock: {
+            /** Format: int32 */
+            artId: number | null;
+            from: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            inventoryId: number | null;
+            /** Format: int32 */
+            itemId: number | null;
+            pieceName: string | null;
+            reason: string;
+            to: components["schemas"]["LocalDate"];
+        };
         CalendarFeedRequest: {
             hiddenCategories?: number[] | null;
             level?: components["schemas"]["StationFeedLevel"] | null;
@@ -73550,6 +73618,21 @@ export interface components {
             name: string;
             polledAt: string | null;
             token: string;
+        };
+        CalendarKind: {
+            /** Format: int32 */
+            artId: number;
+            name: string;
+            /** Format: int32 */
+            pieceCount: number;
+        };
+        CalendarRow: {
+            /** Format: int32 */
+            inventoryId: number;
+            kinds: components["schemas"]["CalendarKind"][];
+            name: string;
+            /** Format: int32 */
+            pieceCount: number;
         };
         CalloutConfig: {
             title?: string;
@@ -78326,6 +78409,11 @@ export interface components {
             legacyTosVersion: string;
             privacyVersion: string;
             tosVersion: string;
+        };
+        LendingCalendar: {
+            bars: components["schemas"]["CalendarBar"][];
+            blocks: components["schemas"]["CalendarBlock"][];
+            rows: components["schemas"]["CalendarRow"][];
         };
         LendingItemRequest: {
             /** Format: int32 */
@@ -85901,8 +85989,12 @@ export type BulkSetRequest = components['schemas']['BulkSetRequest'];
 export type BulkSetResponse = components['schemas']['BulkSetResponse'];
 export type BulkTagsRequest = components['schemas']['BulkTagsRequest'];
 export type CacheStats = components['schemas']['CacheStats'];
+export type CalendarBar = components['schemas']['CalendarBar'];
+export type CalendarBlock = components['schemas']['CalendarBlock'];
 export type CalendarFeedRequest = components['schemas']['CalendarFeedRequest'];
 export type CalendarFeedResponse = components['schemas']['CalendarFeedResponse'];
+export type CalendarKind = components['schemas']['CalendarKind'];
+export type CalendarRow = components['schemas']['CalendarRow'];
 export type CalloutConfig = components['schemas']['CalloutConfig'];
 export type CalloutVariant = components['schemas']['CalloutVariant'];
 export type CancellationCause = components['schemas']['CancellationCause'];
@@ -86567,6 +86659,7 @@ export type LegalFileEntry = components['schemas']['LegalFileEntry'];
 export type LegalImportRequest = components['schemas']['LegalImportRequest'];
 export type LegalImportResponse = components['schemas']['LegalImportResponse'];
 export type LegalVersionsResponse = components['schemas']['LegalVersionsResponse'];
+export type LendingCalendar = components['schemas']['LendingCalendar'];
 export type LendingItemRequest = components['schemas']['LendingItemRequest'];
 export type LendingMessage = components['schemas']['LendingMessage'];
 export type LendingRequest = components['schemas']['LendingRequest'];

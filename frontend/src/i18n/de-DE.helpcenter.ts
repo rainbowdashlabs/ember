@@ -3048,6 +3048,18 @@ volumes:
             statusClosedDesc: 'Abgeschlossen - Der Vorgang ist beendet.',
             tip: 'Neue Ausrüstung von Partnerwachen findest du über „Ausleihen“ in der Seitenleiste. Dort legst du sie in den Warenkorb.',
         },
+        inventoryLendingCalendar: {
+            title: 'Kalender',
+            subtitle: 'Wann welche Ausrüstung verliehen oder gesperrt ist.',
+            whatIs: 'Was zeigt der Kalender?',
+            whatIsText: 'Jedes Inventar, das ihr verleiht, ist eine Zeile. Die Spalten sind Tage, vier Wochen auf einmal. Mit „+“ klappst du die Arten eines Inventars auf.',
+            barsText: 'Jede Anfrage ist ein Balken: umrandet, solange sie offen ist, gefüllt, wenn ihr zugesagt habt, dunkel, solange die Ausrüstung unterwegs ist, und rot, wenn sie überfällig ist. Ein Klick öffnet die Anfrage.',
+            clashText: 'Ein roter Tag zeigt, dass an diesem Tag mehr angefragt und zugesagt ist, als ihr habt.',
+            blockTitle: 'Sperrzeiten',
+            blockText: 'Ziehe mit der Maus über die Tage eines Inventars, um es für diese Zeit zu sperren. Ziehst du über die Daten oben, sperrst du die ganze Wache. Gesperrte Tage sind schraffiert. Die Liste aller Sperrzeiten erreichst du über „Sperrzeiten als Liste“.',
+            exampleTitle: 'So sieht der Kalender aus',
+            tip: 'Ohne Maus trägst du eine Sperrzeit über „Sperrzeit eintragen“ ein.',
+        },
         inventoryLendingOffer: {
             title: 'Angebot',
             subtitle: 'Was eure Wache Partnerwachen anbietet, mit Text und Foto.',

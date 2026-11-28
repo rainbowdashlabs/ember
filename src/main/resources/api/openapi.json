@@ -36082,6 +36082,38 @@
         }
       }
     },
+    "/api/v1/lending/calendar" : {
+      "get" : {
+        "summary" : "The station's products, the requests for its gear and its block periods over some days",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LendingCalendar"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "from",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/lending/cart" : {
       "get" : {
         "summary" : "The station's cart with its lines",
@@ -60373,6 +60405,77 @@
         },
         "required" : [ "bytes", "tiles", "maxBytes" ]
       },
+      "CalendarBar" : {
+        "type" : "object",
+        "properties" : {
+          "requestId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "partner" : {
+            "type" : "string"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/LendingStatus"
+          },
+          "overdue" : {
+            "type" : "boolean"
+          },
+          "from" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "to" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          }
+        },
+        "required" : [ "requestId", "inventoryId", "artId", "partner", "quantity", "status", "overdue", "from", "to" ]
+      },
+      "CalendarBlock" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "pieceName" : {
+            "type" : [ "string", "null" ]
+          },
+          "from" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "to" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "inventoryId", "artId", "itemId", "pieceName", "from", "to", "reason" ]
+      },
       "CalendarFeedRequest" : {
         "type" : "object",
         "properties" : {
@@ -60426,6 +60529,46 @@
           }
         },
         "required" : [ "id", "name", "level", "token", "hiddenCategories", "createdAt", "polledAt" ]
+      },
+      "CalendarKind" : {
+        "type" : "object",
+        "properties" : {
+          "artId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "pieceCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "artId", "name", "pieceCount" ]
+      },
+      "CalendarRow" : {
+        "type" : "object",
+        "properties" : {
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "pieceCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "kinds" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CalendarKind"
+            }
+          }
+        },
+        "required" : [ "inventoryId", "name", "pieceCount", "kinds" ]
       },
       "CalloutConfig" : {
         "type" : "object",
@@ -74432,6 +74575,30 @@
           }
         },
         "required" : [ "privacyVersion", "tosVersion", "consentVersion", "legacyPrivacyVersion", "legacyTosVersion", "legacyConsentVersion" ]
+      },
+      "LendingCalendar" : {
+        "type" : "object",
+        "properties" : {
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CalendarRow"
+            }
+          },
+          "bars" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CalendarBar"
+            }
+          },
+          "blocks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CalendarBlock"
+            }
+          }
+        },
+        "required" : [ "rows", "bars", "blocks" ]
       },
       "LendingItemRequest" : {
         "type" : "object",

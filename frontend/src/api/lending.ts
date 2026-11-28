@@ -15,6 +15,7 @@ import type {
     EnrichedMessage,
     InventoryBlock,
     ItemAssignment,
+    LendingCalendar,
     LendingMessage,
     LendingRequestDetail,
     LendingRequestResponse,
@@ -84,6 +85,12 @@ export async function getCatalog(partnerId?: number): Promise<CatalogProduct[]> 
     const params: Record<string, string> = {}
     if (partnerId != null) params.partnerId = String(partnerId)
     const res = await client.get<CatalogProduct[]>('/lending/catalog', {params})
+    return res.data
+}
+
+/** The station's products, the requests for its gear and its block periods from one day to another. */
+export async function getCalendar(from: string, to: string): Promise<LendingCalendar> {
+    const res = await client.get<LendingCalendar>('/lending/calendar', {params: {from, to}})
     return res.data
 }
 
