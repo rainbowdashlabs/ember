@@ -16,6 +16,7 @@ import {StationModule, StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useStations} from '@/composables/useStations'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
+import {useLiveCounts} from '@/composables/useLiveCounts'
 import {useFederatedBoardBookmarks} from '@/composables/useFederatedBoardBookmarks'
 import OnboardingGuide from '@/components/onboarding/OnboardingGuide.vue'
 import OnboardingResumeButton from '@/components/onboarding/OnboardingResumeButton.vue'
@@ -49,6 +50,7 @@ const {activeStation, activeLogoUrl, currentStationId} = useStations()
 const sessionCurrent = computed(() => loaded.value && sessionStationId.value === currentStationId.value)
 const sessionReady = computed(() => sessionCurrent.value && !loadFailed.value)
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
+useLiveCounts(refreshSidebarCounts, () => sessionReady.value && sessionInfo.value?.member != null)
 const {refresh: refreshBoards} = useSidebarBoards()
 const {refresh: refreshBookmarkedBoards} = useFederatedBoardBookmarks()
 const {

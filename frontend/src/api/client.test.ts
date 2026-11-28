@@ -8,6 +8,7 @@ import {AxiosError, type AxiosResponse, type InternalAxiosRequestConfig} from 'a
 import client from './client'
 import {acceptStorage, getItem, setItem} from './storage'
 import {chooseTabCluster, chooseTabStation} from '@/util/tabPlace'
+import {changesMade} from '@/util/countRefreshState'
 
 /** Sets or removes the readable cookie the server puts beside the session. */
 function carrySession(token: string | null) {
@@ -190,5 +191,55 @@ describe('the station a request names', () => {
         await client.get('/anything')
 
         expect(sent?.headers['X-Station-Id']).toBe('chosen-last')
+    })
+})
+
+/**
+ * Which answers move the sidebar counters: a successful write of any kind, never a read and never a
+ * refused write.
+ *
+ * @vitest-environment happy-dom
+ */
+describe('the counters after a request', () => {
+    const originalAdapter = client.defaults.adapter
+
+    function answering(status: number) {
+        client.defaults.adapter = (config: InternalAxiosRequestConfig) => {
+            const response = {status, statusText: '', data: {}, headers: {}, config} as AxiosResponse
+            return status < 400
+                ? Promise.resolve(response)
+                : Promise.reject(new AxiosError('refused', 'ERR_BAD_REQUEST', config, null, response))
+        }
+    }
+
+    afterEach(() => {
+        client.defaults.adapter = originalAdapter
+    })
+
+    it.each(['post', 'put', 'patch', 'delete'] as const)('move after a successful %s', async (method) => {
+        answering(200)
+        const before = changesMade().value
+
+        await client.request({url: '/anything', method})
+
+        expect(changesMade().value).toBe(before + 1)
+    })
+
+    it('stay after a read', async () => {
+        answering(200)
+        const before = changesMade().value
+
+        await client.get('/anything')
+
+        expect(changesMade().value).toBe(before)
+    })
+
+    it('stay after a refused write', async () => {
+        answering(409)
+        const before = changesMade().value
+
+        await expect(client.post('/anything')).rejects.toBeInstanceOf(AxiosError)
+
+        expect(changesMade().value).toBe(before)
     })
 })

@@ -42,8 +42,8 @@ const NORD: StationFailedMails = {
     causes: [{cause: 'NO_PROVIDER', count: 2}, {cause: 'SPAM', count: 1}],
 }
 
-async function open(onChanged?: () => void) {
-    const view = await mountSuspended(FailedMailsSection, {props: {onChanged}})
+async function open() {
+    const view = await mountSuspended(FailedMailsSection)
     await flushPromises()
     return view
 }
@@ -90,11 +90,10 @@ describe('FailedMailsSection', () => {
         view.unmount()
     })
 
-    it('takes note, sends again and tells whoever counts, then reads the lists again', async () => {
+    it('takes note, sends again, then reads the lists again', async () => {
         getFailedInstanceMails.mockResolvedValue(page([mail({id: 7})]))
         getFailedStationMails.mockResolvedValue([NORD])
-        const onChanged = vi.fn()
-        const view = await open(onChanged)
+        const view = await open()
 
         await view.get('[data-testid="failed-acknowledge"]').trigger('click')
         await flushPromises()
@@ -109,7 +108,6 @@ describe('FailedMailsSection', () => {
         expect(requeueFailedMail).toHaveBeenCalledWith(7)
         expect(acknowledgeStationFailedMails).toHaveBeenCalledWith(NORD)
         expect(acknowledgeAllFailedMails).toHaveBeenCalledWith('2026-11-10T08:05:00Z')
-        expect(onChanged).toHaveBeenCalledTimes(4)
         expect(getFailedInstanceMails).toHaveBeenCalledTimes(5)
         view.unmount()
     })

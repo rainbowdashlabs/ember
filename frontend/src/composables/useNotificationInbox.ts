@@ -18,10 +18,9 @@ import type {NotificationResponse} from '@/api/generated/schema'
  * <p>Read notifications are listed only once asked for. While they are shown, whatever is marked
  * read moves over to them, so the two lists never disagree with the server.
  *
- * @param api      the inbox to read
- * @param onChange called after something was marked read, for the counters that show the unread
+ * @param api the inbox to read
  */
-export function useNotificationInbox(api: NotificationInboxApi, onChange: () => void = () => {}) {
+export function useNotificationInbox(api: NotificationInboxApi) {
     const notifications = ref<NotificationResponse[]>([])
     const loading = ref(true)
     const earlier = ref<NotificationResponse[] | null>(null)
@@ -53,7 +52,6 @@ export function useNotificationInbox(api: NotificationInboxApi, onChange: () => 
         notifications.value = notifications.value.filter(candidate => candidate.id !== id)
         moveToEarlier([entry])
         await api.acknowledge(id)
-        onChange()
     }
 
     /** Marks everything read and empties the list. */
@@ -61,7 +59,6 @@ export function useNotificationInbox(api: NotificationInboxApi, onChange: () => 
         await api.acknowledgeAll()
         moveToEarlier(notifications.value)
         notifications.value = []
-        onChange()
     }
 
     return {

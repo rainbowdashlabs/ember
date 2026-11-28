@@ -19,7 +19,6 @@ import {RegistrationStatus, StationPermission, type EventRegistrationFieldValue,
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import {events, stationMembers as stationMembersApi} from '@/api'
 import {useSession} from '@/composables/useSession'
-import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSignupMemberSet} from '@/composables/useSignupMemberSet'
 import {useConfirmAction} from '@/composables/useConfirmAction'
@@ -68,7 +67,6 @@ const emit = defineEmits<{
 
 const {t, locale} = useI18n()
 const {canManageEvents, hasPermission} = useSession()
-const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const {loadedRegistrations, loadedFederatedRegs, registrations, federatedRegs} =
     useRegistrationsInView(() => props.event, () => props.effectiveDate)
@@ -183,7 +181,6 @@ async function loadRegistrations(afterAction = false) {
 
 async function reloadAndRefresh() {
   await loadRegistrations(true)
-  refreshSidebarCounts()
   emit('changed')
 }
 

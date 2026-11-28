@@ -17,13 +17,11 @@ import {beacon} from '@/api'
 import {acknowledgeAllReports, acknowledgeReport, deleteReport, listReports} from '@/api/problemReports'
 import type {ProblemReport} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 
 const {t} = useI18n()
-const {refresh: refreshCounts} = useMonitoringCounts()
 
 const includeAcknowledged = ref(false)
 const expandedId = ref<number | null>(null)
@@ -97,7 +95,6 @@ async function ack(id: number) {
   if (!includeAcknowledged.value) {
     reports.value = reports.value.filter(r => r.id !== id)
   }
-  void refreshCounts()
 }
 
 async function ackAll() {
@@ -107,7 +104,6 @@ async function ackAll() {
   } else {
     reports.value = reports.value.map(r => ({...r, acknowledged: true}))
   }
-  void refreshCounts()
 }
 
 /** Deletes a report, after asking unless shift is held. */
@@ -116,7 +112,6 @@ const {show: confirmingRemove, requestDelete: remove, confirm: confirmRemove, fa
     removeFailure.value = null
     await deleteReport(id)
     reports.value = reports.value.filter(r => r.id !== id)
-    void refreshCounts()
   },
 })
 

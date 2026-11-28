@@ -16,7 +16,6 @@ import BeaconFaultList from './adminbeaconview/BeaconFaultList.vue'
 import BeaconReportList from './adminbeaconview/BeaconReportList.vue'
 import BeaconMetricsTable from './adminbeaconview/BeaconMetricsTable.vue'
 import {beacon} from '@/api'
-import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
 import type {BeaconFault, BeaconMetricsRow, BeaconReport, BeaconStatus} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
@@ -36,7 +35,6 @@ const props = withDefaults(
 )
 
 const {t} = useI18n()
-const {refresh: refreshCounts} = useMonitoringCounts()
 
 const pageKey = computed(() => ({
   settings: 'admin-beacon',
@@ -94,7 +92,6 @@ async function acknowledgeReport(id: number) {
 function onSaved(stored: BeaconStatus) {
   status.value = stored
   load()
-  void refreshCounts()
 }
 </script>
 

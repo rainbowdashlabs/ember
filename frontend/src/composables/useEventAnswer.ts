@@ -10,7 +10,6 @@ import {apiErrorStatus} from '@/util/apiError'
 import {showToast} from '@/util/toast'
 import type {AnyEvent} from '@/api/events'
 import type {EventRegistrationFieldValue, EventRegistrationField} from '@/api/generated/schema'
-import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useRegistrationSigningStep} from '@/composables/useRegistrationSigningStep'
 import {useFullDateChoice} from '@/composables/useFullDateChoice'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -53,7 +52,6 @@ export function useEventAnswer(
     failure: Ref<Failure | null>,
 ) {
     const {t} = useI18n()
-    const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
     /** Which answer is in flight, as `event-date-member`, so one row can show it turning. */
     const registering = ref<string | null>(null)
@@ -114,7 +112,6 @@ export function useEventAnswer(
 
         try {
             await afterChange()
-            refreshSidebarCounts()
         } catch (e) {
             if (!failure.value) failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
         }

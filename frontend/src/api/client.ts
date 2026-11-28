@@ -7,6 +7,7 @@ import axios, {type AxiosError, type InternalAxiosRequestConfig} from 'axios'
 import {forgetTabPlaces, tabClusterId, tabStationId} from '@/util/tabPlace'
 import {CSRF_HEADER, csrfToken} from './sessionCookie'
 import {showToast} from '@/util/toast'
+import {countsMayHaveChanged} from '@/util/countRefreshState'
 import {reportApiError} from '@/util/devErrorReporter'
 import {requestStepUp, StepUpCancelledError} from '@/util/stepUp'
 import {StepUpProof, type StepUpCategory} from './generated/schema'
@@ -166,6 +167,13 @@ function toastDenied(said: string | undefined): void {
     showToast(said?.trim() ? said : translator.t('failure.DENIED.message'), 'error')
 }
 
+const WRITE_METHODS: ReadonlySet<string> = new Set(['post', 'put', 'patch', 'delete'])
+
+/** Whether a request of this method writes, after which the sidebar counters may have moved. */
+function changesSomething(method: string | undefined): boolean {
+    return method != null && WRITE_METHODS.has(method.toLowerCase())
+}
+
 client.interceptors.request.use((config) => {
     config._startTime = Date.now()
     applyAuthHeaders(config)
@@ -175,6 +183,7 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
     (response) => {
         recordRequest(response.config, response.status)
+        if (changesSomething(response.config.method)) countsMayHaveChanged()
         return response
     },
     (error) => {

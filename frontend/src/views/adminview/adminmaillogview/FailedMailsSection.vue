@@ -33,11 +33,6 @@ import FailedStationMails from './FailedStationMails.vue'
  * warning on the overview and keeps the mail in the log. The section stays out of sight while there is
  * nothing in it; the address `#failed` leads to it.
  */
-const props = defineProps<{
-  /** Called after anything was taken note of or sent again, so counts elsewhere can follow. */
-  onChanged?: () => void
-}>()
-
 const PAGE_SIZE = 25
 
 const {t} = useI18n()
@@ -82,7 +77,6 @@ async function act(action: () => Promise<unknown>, done: string) {
     busy.value = false
   }
   await reload()
-  props.onChanged?.()
 }
 
 async function loadMore() {
