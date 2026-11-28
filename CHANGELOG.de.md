@@ -30,6 +30,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Anfragen ohne Ember werden zu Beschaffungen.** Führt der Träger sein Material nicht in Ember, legt „Anfrage notieren“ in der Inventarübersicht die Anfrage als Beschaffung eines Stücks des Trägers an. Sie trägt den Hinweis „Beim Träger angefragt“. Anfragen an den Träger gibt es nur noch, wenn er sein Material in Ember führt. Sonst sind die Ketten für Anfragen auf der Seite der Abläufe ausgeblendet.
 - **Mitgliederdaten und Mitgliederdokumente sind getrennte Rechte.** „Mitglieder einsehen“ umfasst das Einsehen von Mitgliederdokumenten nicht mehr. „Mitglieder bearbeiten“ umfasst nicht mehr das Verwalten von Mitgliederdokumenten, das Erstellen von Dokumenten und das Anfordern von Unterschriften. Wer ein Mitgliederrecht hatte, bekommt beim Update das passende Dokumentrecht dazu, und beides lässt sich nun getrennt vergeben. „Mitgliederdokumente einsehen“ öffnet die Papiere der Wache nicht mehr, dafür braucht es „Dokumente einsehen“. Wer nur Mitglieder oder Mitgliederdokumente einsehen darf, sieht in der Ablage deshalb nur Dokumente, die einem Mitglied zugeordnet sind.
 - **Inventuren und Vorgänge legen keine Gegenstände mehr frei an.** Wer Inventuren durchführen oder Vorgänge verwalten darf, kann damit allein außerhalb dieser Abläufe keine Gegenstände des Trägers mehr anlegen. Was eine Inventur oder ein Vorgang selbst erfasst, wird weiterhin angelegt.
+- **Keine Benachrichtigung über Entscheidungen zu Anmeldungen.** Wird eine Anmeldung zu einem Termin oder einer Terminreihe bestätigt oder abgelehnt, bekommen die Terminverantwortlichen keine Benachrichtigung mehr. Das Mitglied wird weiterhin benachrichtigt, und die Anmeldeliste zeigt die Entscheidung.
 
 ### Fehlerbehebungen
 
@@ -39,6 +40,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 - **Die Inventarseite sprang nach oben.** Nach jeder Änderung an einem Gegenstand wurde die ganze Liste neu geladen, und die Stelle darin ging verloren. Die Seite bleibt jetzt beim Aktualisieren, wo sie war.
 - **Beschaffungen in externen Inventaren brachten Stücke der Wache.** Wurde eine Beschaffung in einem Inventar, das nur Material des Trägers enthält, als erledigt markiert, entstand ein Stück im Besitz der Wache. Das Stück gehört jetzt dem Träger und bleibt bei der Wache.
 - **Ein Tab konnte in der Wache eines anderen Tabs arbeiten.** Waren zwei Tabs in verschiedenen Wachen offen, lud oder speicherte der ältere Tab in manchen Fällen Daten in der Wache, die im anderen Tab zuletzt gewählt wurde, obwohl er noch seine eigene zeigte. Jeder Tab behält jetzt seine eigene Wache.
+- **Manche Mails zeigten eine falsche Gültigkeit ihres Links.** Die Mails zum Zurücksetzen des Passworts, zum Einrichten eines neuen Kontos und zu einem angenommenen Wachenantrag zeigten eine feste Zahl an Stunden statt der Gültigkeit, die die Instanz festlegt. Sie zeigen jetzt, wie lange der Link tatsächlich gültig ist.
 
 ## v26.26.4
 

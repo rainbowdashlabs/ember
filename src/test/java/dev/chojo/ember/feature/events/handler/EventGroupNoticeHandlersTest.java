@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,7 +51,7 @@ class EventGroupNoticeHandlersTest {
     }
 
     @Test
-    void aDecisionReachesTheMemberAndWhoeverRunsEvents() {
+    void aChangeReachesTheMemberAndWhoeverRunsEvents() {
         new EventGroupRegistrationStatusHandler(notifier)
                 .handle(new EventGroupRegistrationStatusChanged(
                         3, 70, "Jugendflamme 1", 11, "Anna", RegistrationStatus.ACCEPTED));
@@ -103,7 +104,7 @@ class EventGroupNoticeHandlersTest {
     void movingUpAndWaitingReachOnlyTheMember() {
         new EventGroupRegistrationStatusHandler(notifier)
                 .handle(new EventGroupRegistrationStatusChanged(
-                        3, 70, "Jugendflamme 1", 11, "Anna", RegistrationStatus.ACCEPTED, null, true, true));
+                        3, 70, "Jugendflamme 1", 11, "Anna", RegistrationStatus.ACCEPTED, null, true, true, false));
         var movedUp = (NotificationParams.EventRegistrationStatus)
                 sent(NotificationType.EVENT_REGISTRATION_STATUS, 1).params();
         assertTrue(movedUp.movedUp());
@@ -111,9 +112,25 @@ class EventGroupNoticeHandlersTest {
 
         new EventRegistrationStatusHandler(notifier)
                 .handle(new EventRegistrationStatusChanged(
-                        3, 9, "Atemschutz", 12, "Ben", RegistrationStatus.QUEUED, 2, false, false));
+                        3, 9, "Atemschutz", 12, "Ben", RegistrationStatus.QUEUED, 2, false, false, false));
         var waiting = (NotificationParams.EventRegistrationStatus)
                 sent(NotificationType.EVENT_REGISTRATION_STATUS, 2).params();
         assertEquals(2, waiting.queuePosition());
+    }
+
+    /** Whoever accepted or denied a sign-up knows, so only the member hears of it. */
+    @Test
+    void aDecisionReachesOnlyTheMember() {
+        new EventGroupRegistrationStatusHandler(notifier)
+                .handle(EventGroupRegistrationStatusChanged.decision(
+                        3, 70, "Jugendflamme 1", 11, "Anna", RegistrationStatus.ACCEPTED));
+        sent(NotificationType.EVENT_REGISTRATION_STATUS, 1);
+        verify(notifier).notify(eq(StationAudience.member(11)), any(), any(), any(Delivery.class));
+
+        new EventRegistrationStatusHandler(notifier)
+                .handle(EventRegistrationStatusChanged.decision(
+                        3, 9, "Atemschutz", 12, "Ben", RegistrationStatus.DENIED));
+        sent(NotificationType.EVENT_REGISTRATION_STATUS, 2);
+        verify(notifier).notify(eq(StationAudience.member(12)), any(), any(), any(Delivery.class));
     }
 }

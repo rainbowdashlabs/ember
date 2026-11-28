@@ -1,7 +1,7 @@
 {% extends '_layout.html' %}
 {% block body %}
       <h2>Hello {{ name }},</h2>
-      <p class="warning">You will be automatically removed from the waiting list at {{ stationName }} in 2 weeks!</p>
+      <p class="warning">You will be automatically removed from the waiting list at {{ stationName }} in {{ removedIn }}!</p>
       <p>Please confirm your interest now to stay on the waiting list:</p>
       <div class="btn-wrap"><a class="btn-green" href="{{ url }}">Confirm interest now</a></div>
 {% endblock %}

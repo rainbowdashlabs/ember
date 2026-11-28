@@ -38,6 +38,9 @@
     "station-setup-reminder": "{stationName} wartet darauf, eingerichtet zu werden"
   },
   "body": {
-    "twoFactorReset.defaultActor": "einem Administrator"
+    "twoFactorReset.defaultActor": "einem Administrator",
+    "duration.hour": "1 Stunde",
+    "duration.hours": "{count} Stunden",
+    "duration.days": "{count} Tagen"
   }
 }

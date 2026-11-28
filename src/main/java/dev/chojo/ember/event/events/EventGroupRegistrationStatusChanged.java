@@ -21,6 +21,7 @@ import org.jspecify.annotations.Nullable;
  * @param queuePosition the place in line where the registration now waits, or null
  * @param movedUp       whether it moved up from the waiting list into a place that fell free
  * @param shortNotice   whether it moved up less than a day before the start
+ * @param decided       whether whoever runs it accepted or denied it, which they need not hear about
  */
 public record EventGroupRegistrationStatusChanged(
         int stationId,
@@ -31,7 +32,8 @@ public record EventGroupRegistrationStatusChanged(
         RegistrationStatus newStatus,
         @Nullable Integer queuePosition,
         boolean movedUp,
-        boolean shortNotice)
+        boolean shortNotice,
+        boolean decided)
         implements DomainEvent {
     /**
      * A change that is neither a place in line nor a move up.
@@ -48,6 +50,22 @@ public record EventGroupRegistrationStatusChanged(
             int memberId,
             String memberName,
             RegistrationStatus newStatus) {
-        this(stationId, eventGroupId, eventGroupName, memberId, memberName, newStatus, null, false, false);
+        this(stationId, eventGroupId, eventGroupName, memberId, memberName, newStatus, null, false, false, false);
+    }
+
+    /**
+     * Whoever runs it accepted or denied the registration.
+     *
+     * @param newStatus the decision
+     */
+    public static EventGroupRegistrationStatusChanged decision(
+            int stationId,
+            int eventGroupId,
+            String eventGroupName,
+            int memberId,
+            String memberName,
+            RegistrationStatus newStatus) {
+        return new EventGroupRegistrationStatusChanged(
+                stationId, eventGroupId, eventGroupName, memberId, memberName, newStatus, null, false, false, true);
     }
 }

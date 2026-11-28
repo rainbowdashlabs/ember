@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListDeadlines;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
@@ -733,9 +734,10 @@ public class WaitingListRepository {
                 WHERE list_id = :list_id
                   AND status = 'WAITING'
                   AND reminder_sent_at IS NOT NULL
-                  AND reminder_sent_at + INTERVAL '16 days' < now()
-                  AND reminder_sent_at + INTERVAL '17 days' > now();""", WAITING_LIST_ENTRY_READ_COLUMNS)
-                .single(call().bind("list_id", listId))
+                  AND reminder_sent_at + make_interval(days => :warning_day) < now()
+                  AND reminder_sent_at + make_interval(days => :warning_day + 1) > now();""", WAITING_LIST_ENTRY_READ_COLUMNS)
+                .single(call().bind("list_id", listId)
+                        .bind("warning_day", (int) WaitingListDeadlines.removalWarningDay()))
                 .map(WaitingListEntry.map())
                 .all();
     }
@@ -748,8 +750,9 @@ public class WaitingListRepository {
                 WHERE list_id = :list_id
                   AND status = 'WAITING'
                   AND reminder_sent_at IS NOT NULL
-                  AND reminder_sent_at + INTERVAL '30 days' < now();""", WAITING_LIST_ENTRY_READ_COLUMNS)
-                .single(call().bind("list_id", listId))
+                  AND reminder_sent_at + make_interval(days => :grace_days) < now();""", WAITING_LIST_ENTRY_READ_COLUMNS)
+                .single(call().bind("list_id", listId)
+                        .bind("grace_days", (int) WaitingListDeadlines.CONFIRMATION_GRACE.toDays()))
                 .map(WaitingListEntry.map())
                 .all();
     }
@@ -948,9 +951,9 @@ public class WaitingListRepository {
                 INSERT
                 INTO
                     waitlist_verification_token
-                    (token, list_id, firstname, lastname, email, guardians, field_values, notes, consent_proof)
+                    (token, list_id, firstname, lastname, email, guardians, field_values, notes, consent_proof, expires_at)
                 VALUES
-                    (:token, :list_id, :firstname, :lastname, :email, :guardians::JSONB, :field_values::JSONB, :notes, :consent_proof::JSONB)
+                    (:token, :list_id, :firstname, :lastname, :email, :guardians::JSONB, :field_values::JSONB, :notes, :consent_proof::JSONB, :expires_at)
                 RETURNING %s;""".formatted(WAITLIST_VERIFICATION_TOKEN_COLUMNS),
                 call().bind("token", token)
                         .bind("list_id", listId)
@@ -960,7 +963,11 @@ public class WaitingListRepository {
                         .bind("guardians", WaitlistVerificationToken.guardiansToJson(guardians))
                         .bind("field_values", WaitlistVerificationToken.fieldValuesToJson(fieldValues))
                         .bind("notes", notes)
-                        .bind("consent_proof", consent.toJson()),
+                        .bind("consent_proof", consent.toJson())
+                        .bind(
+                                "expires_at",
+                                Instant.now().plus(WaitingListDeadlines.VERIFICATION_VALIDITY),
+                                INSTANT_TIMESTAMP),
                 WaitlistVerificationToken.map(),
                 WAITLIST_VERIFICATION_TOKEN_COLUMNS);
     }

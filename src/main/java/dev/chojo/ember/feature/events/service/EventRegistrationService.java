@@ -312,7 +312,7 @@ public class EventRegistrationService {
         if (!updated) return false;
         log.info("Accepted registration {}", id);
         registrationRepository.findById(id).ifPresent(registration -> {
-            announce(registration.eventId(), registration.memberId(), RegistrationStatus.ACCEPTED);
+            announceDecision(registration.eventId(), registration.memberId(), RegistrationStatus.ACCEPTED);
             recorded(registration);
         });
         return true;
@@ -601,7 +601,7 @@ public class EventRegistrationService {
     }
 
     /**
-     * Moves a registration to a new status and announces the change.
+     * Moves a registration to the status whoever runs the appointment decided on, and tells the member.
      *
      * @param id     the registration ID
      * @param status the new status
@@ -623,7 +623,7 @@ public class EventRegistrationService {
         }
         log.info("Updated registration {} status to {}", id, status);
         registrationRepository.findById(id).ifPresent(registration -> {
-            announce(registration.eventId(), registration.memberId(), status);
+            announceDecision(registration.eventId(), registration.memberId(), status);
             recorded(registration);
         });
         if (before.status() == RegistrationStatus.ACCEPTED && status != RegistrationStatus.ACCEPTED) {
@@ -945,7 +945,8 @@ public class EventRegistrationService {
                             RegistrationStatus.ACCEPTED,
                             null,
                             true,
-                            places.startsWithinADay(event, registration.eventDate()))));
+                            places.startsWithinADay(event, registration.eventDate()),
+                            false)));
             recorded(registration);
         }
     }
@@ -979,6 +980,17 @@ public class EventRegistrationService {
     }
 
     /**
+     * Notifies the member that whoever runs the appointment accepted or denied their registration.
+     * Nobody else hears of it: the one who decided knows, and the registration list shows it.
+     */
+    private void announceDecision(int eventId, int memberId, RegistrationStatus status) {
+        eventRepository
+                .findById(eventId)
+                .ifPresent(event -> eventBus.publish(EventRegistrationStatusChanged.decision(
+                        event.stationId(), event.id(), event.name(), memberId, nameResolver.called(memberId), status)));
+    }
+
+    /**
      * Notifies a member that somebody else put them on the waiting list, with their place in line.
      *
      * @param registration the registration, which waits on the list
@@ -995,6 +1007,7 @@ public class EventRegistrationService {
                         nameResolver.called(registration.memberId()),
                         RegistrationStatus.QUEUED,
                         rank,
+                        false,
                         false,
                         false)));
     }
