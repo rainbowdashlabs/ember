@@ -263,11 +263,12 @@ public class LendingCartService {
 
     private CheckoutResult send(int stationId, int memberId, String memberName, List<LendingCartLine> lines) {
         LendingCart cart = cart(stationId);
-        if (cart.dateFrom() == null) throw FederationRefusal.LENDING_FIRST_DAY_MISSING.raise();
+        LocalDate dateFrom = cart.dateFrom();
+        if (dateFrom == null) throw FederationRefusal.LENDING_FIRST_DAY_MISSING.raise();
         if (check(stationId, cart, lines).stream().anyMatch(check -> check.state() != CartLineState.FREE)) {
             throw FederationRefusal.LENDING_CART_NOT_FREE.raise();
         }
-        LocalDate dateTo = Objects.requireNonNullElse(cart.dateTo(), cart.dateFrom());
+        LocalDate dateTo = Objects.requireNonNullElse(cart.dateTo(), dateFrom);
         var sent = new ArrayList<LendingRequest>();
         var failed = new ArrayList<String>();
         var notesMissing = new ArrayList<String>();
@@ -277,7 +278,7 @@ public class LendingCartService {
                 request = lendingService.createRequest(
                         stationId,
                         entry.getKey(),
-                        cart.dateFrom(),
+                        dateFrom,
                         dateTo,
                         memberId,
                         null,

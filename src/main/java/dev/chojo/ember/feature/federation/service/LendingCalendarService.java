@@ -74,11 +74,13 @@ public class LendingCalendarService {
                     request.requestingStationUid(), uid -> lendingService.stationName(uid, stationId));
             boolean overdue = LendingReturnService.isOverdue(request, today);
             for (var line : lendingService.findRequestItems(request.id())) {
-                if (line.inventoryId() == null) continue;
+                Integer inventoryId = line.inventoryId();
+                if (inventoryId == null) continue;
+                Integer artId = line.artId();
                 bars.add(new CalendarBar(
                         request.id(),
-                        line.inventoryId(),
-                        line.artId() != null ? line.artId() : pieces.artOf(line.itemId()),
+                        inventoryId,
+                        artId != null ? artId : pieces.artOf(line.itemId()),
                         partner,
                         line.quantity(),
                         request.status(),

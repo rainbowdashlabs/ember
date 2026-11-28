@@ -34,6 +34,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -115,7 +116,12 @@ public class LendingCartRoutes implements Routes {
     private void setDetails(Context ctx) {
         int stationId = StationSession.from(ctx).stationId();
         var body = ctx.bodyAsClass(CartDetails.class);
-        service.setDetails(stationId, body.dateFrom(), body.dateTo(), body.occasion(), body.note());
+        service.setDetails(
+                stationId,
+                body.dateFrom(),
+                body.dateTo(),
+                Objects.requireNonNullElse(body.occasion(), ""),
+                Objects.requireNonNullElse(body.note(), ""));
         ctx.json(view(stationId));
     }
 

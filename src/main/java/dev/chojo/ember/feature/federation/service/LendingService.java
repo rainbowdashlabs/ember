@@ -558,9 +558,11 @@ public class LendingService implements FederationServer {
      * where the line counts a kind.
      */
     static boolean fitsLine(LendingRequestItem line, InventoryItem item) {
-        if (line.itemId() != null) return line.itemId() == item.id();
+        Integer itemId = line.itemId();
+        if (itemId != null) return itemId == item.id();
         if (!Objects.equals(line.inventoryId(), item.inventoryId())) return false;
-        return line.artId() == null || line.artId().equals(item.artId());
+        Integer artId = line.artId();
+        return artId == null || artId.equals(item.artId());
     }
 
     /**

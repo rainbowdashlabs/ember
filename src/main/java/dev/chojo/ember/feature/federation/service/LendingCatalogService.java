@@ -399,7 +399,7 @@ public class LendingCatalogService implements FederationServer {
      * @return one entry per day
      */
     public RemoteProductDays findProductDays(
-            int stationId, UUID partnerStationUid, int inventoryId, String month, @Nullable Integer itemId) {
+            int stationId, UUID partnerStationUid, int inventoryId, @Nullable String month, @Nullable Integer itemId) {
         YearMonth asked = month(month);
         FederationPartner partner = lendingPartner(stationId, partnerStationUid);
         var request = RemoteLendingRoutes.GET_PRODUCT_DAYS
@@ -587,7 +587,8 @@ public class LendingCatalogService implements FederationServer {
     }
 
     private static double rankOf(OfferedStock stock) {
-        return stock.match() == null ? 0 : stock.match().rank();
+        InventoryMatch match = stock.match();
+        return match == null ? 0 : match.rank();
     }
 
     private static int positionOf(Map<Integer, InventoryArt> arts, @Nullable Integer artId) {
