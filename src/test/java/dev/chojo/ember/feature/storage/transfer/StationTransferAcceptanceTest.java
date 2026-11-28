@@ -38,10 +38,12 @@ import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteLendingStatus;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.LendingUidClashes;
 import dev.chojo.ember.feature.federation.service.MovedStationSwitchover;
 import dev.chojo.ember.feature.federation.service.PartnersLeftBehind;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
@@ -1280,7 +1282,15 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                         new EquipmentNeedRepository(),
                         eventRepo,
                         occurrenceCalendar));
-        assertTrue(lendingService.markReturned(arrived.loanRequestId(), destinationId));
+        var ownerRow = new FederationRepository()
+                .findPartners(destinationId).stream()
+                        .filter(partner -> elsewhere.equals(partner.partnerStationId()))
+                        .findFirst()
+                        .orElseThrow();
+        lendingService.serveStatus(
+                new ServingPartner(ownerRow, elsewhere),
+                lending.findRequestById(arrived.loanRequestId()).orElseThrow().uid(),
+                new RemoteLendingStatus(LendingStatus.RETURNED, null));
 
         assertEquals(List.of(), inventoryRepo.findBorrowedItems(destinationId), "the borrowed copy went home");
     }

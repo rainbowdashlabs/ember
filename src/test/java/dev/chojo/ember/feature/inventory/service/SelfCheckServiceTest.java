@@ -139,6 +139,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                 null,
                 "");
         var line = lending.addRequestItem(request.id(), partnerStock.id(), source.id(), null, 1, null);
+        lending.approveRequest(request.id(), otherStation.id());
         lending.assignItem(request.id(), line.id(), source.id(), otherStation.id());
         lending.markLent(request.id(), otherStation.id());
         return borrowedGearService.borrowedAt(station.id()).getFirst().item();

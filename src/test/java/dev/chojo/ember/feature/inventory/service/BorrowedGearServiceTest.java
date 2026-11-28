@@ -281,6 +281,7 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
                 null,
                 "");
         var line = lending.addRequestItem(request.id(), inventoryId, item.id(), null, 1, null);
+        assertTrue(lending.approveRequest(request.id(), owner.id()));
         lending.assignItem(request.id(), line.id(), item.id(), owner.id());
         assertTrue(lending.markLent(request.id(), owner.id()));
         return request.id();
