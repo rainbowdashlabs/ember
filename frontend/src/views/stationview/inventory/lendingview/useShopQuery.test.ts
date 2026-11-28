@@ -52,4 +52,17 @@ describe('useShopQuery', () => {
         await flushPromises()
         expect(router.currentRoute.value.query).toEqual({station: 'own'})
     })
+
+    it('sets both days in one step, a missing last day dropping the old one', async () => {
+        const {router, state} = await shopAt('/station/inventory/lending?station=own&from=2030-06-01&to=2030-06-03')
+
+        state.setDays('2030-06-12', '')
+        await flushPromises()
+        expect(router.currentRoute.value.query).toEqual({station: 'own', from: '2030-06-12'})
+
+        state.setDays('2030-06-12', '2030-06-14')
+        await flushPromises()
+        expect(state.dateFrom.value).toBe('2030-06-12')
+        expect(state.dateTo.value).toBe('2030-06-14')
+    })
 })

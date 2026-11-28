@@ -91,6 +91,8 @@ export interface InventoryRoutes {
     lendingBlocksCreate?: string
     lendingCreate?: string
     lendingRequest?: string
+    /** One partner product of the lending shop. */
+    lendingProduct?: string
     /** What the station currently puts on offer to its partners. Absent at an association for the same reason. */
     lendingShares?: string
 }
@@ -124,6 +126,7 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     lendingBlocksCreate: 'inventory-lending-blocks-create',
     lendingCreate: 'inventory-lending-create',
     lendingRequest: 'inventory-lending-request',
+    lendingProduct: 'inventory-lending-product',
     lendingShares: 'inventory-lending-shares',
 }
 

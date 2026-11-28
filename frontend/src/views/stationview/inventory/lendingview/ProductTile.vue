@@ -5,9 +5,9 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
+import type {RouteLocationRaw} from 'vue-router'
 import {useI18n} from 'vue-i18n'
-import AuthImage from '@/components/display/AuthImage.vue'
-import GearGlyph from '@/components/inventory/GearGlyph.vue'
+import PieceThumb from '@/components/inventory/PieceThumb.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {ProductSummary} from '@/api/generated/schema'
@@ -17,6 +17,8 @@ import {offerLook} from '@/util/offerLook'
 /** One partner product as a tile of the lending shop: its photo or icon, what it offers and where it is. */
 const props = defineProps<{
   summary: ProductSummary
+  /** The address of the product page, carrying the shop's days and filters along. */
+  link: RouteLocationRaw
 }>()
 
 const {t} = useI18n()
@@ -46,14 +48,10 @@ const distance = computed(() => props.summary.distanceKm == null
 </script>
 
 <template>
-  <article class="flex h-full flex-col overflow-hidden rounded-theme border border-(--border) bg-(--bg)"
-           data-testid="lending-product-tile">
+  <RouterLink :to="link" class="flex h-full flex-col overflow-hidden rounded-theme border border-(--border) bg-(--bg)
+                transition-colors hover:border-primary focus-visible:border-primary" data-testid="lending-product-tile">
     <div class="flex aspect-[4/3] items-center justify-center bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
-      <AuthImage v-if="pictureSrc" :src="pictureSrc" alt="" class="h-full w-full object-cover">
-        <template #error><GearGlyph :glyph="glyph" size="lg"/></template>
-        <template #loading><GearGlyph :glyph="glyph" size="lg"/></template>
-      </AuthImage>
-      <GearGlyph v-else :glyph="glyph" size="lg"/>
+      <PieceThumb :picture-src="pictureSrc" :glyph="glyph" fit="cover"/>
     </div>
     <div class="flex flex-1 flex-col gap-1 p-3">
       <SubHeader class="leading-tight">{{ product.name }}</SubHeader>
@@ -69,5 +67,5 @@ const distance = computed(() => props.summary.distanceKm == null
         <span class="text-xs text-(--text-muted)">{{ distance }}</span>
       </div>
     </div>
-  </article>
+  </RouterLink>
 </template>

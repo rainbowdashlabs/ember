@@ -24,6 +24,7 @@ function freshQuery() {
 
 let query = freshQuery()
 vi.mock('./useShopQuery', () => ({useShopQuery: () => query}))
+vi.mock('vue-router', () => ({useRoute: () => ({query: {station: 'own'}})}))
 
 const i18n = createI18n({
     legacy: false,
@@ -85,6 +86,9 @@ describe('ShopSection', () => {
 
         expect(listProducts).toHaveBeenCalledWith({q: 'funk', from: '2030-06-12', to: undefined})
         expect(names(wrapper)).toEqual(['Zelt', 'Bänke'])
+        expect(wrapper.findComponent(ProductTile).props('link')).toEqual({
+            name: 'inventory-lending-product', params: {stationId: 'b', inventoryId: 4}, query: {station: 'own'},
+        })
         expect(wrapper.find('[data-testid="lending-shop-today-hint"]').exists()).toBe(false)
     })
 

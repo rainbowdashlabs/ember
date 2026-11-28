@@ -12,6 +12,8 @@ import * as lending from '@/api/lending'
 import type {ProductSummary} from '@/api/generated/schema'
 import type {LendingEmptyReasonName} from '@/api/lending'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
+import {useRoute} from 'vue-router'
 import ShopFilters from './ShopFilters.vue'
 import ProductTile from './ProductTile.vue'
 import {useShopQuery} from './useShopQuery'
@@ -88,6 +90,17 @@ const emptyMessage = computed(() => {
   return t('lending.noAvailable')
 })
 
+const routes = useInventoryRoutes()
+const route = useRoute()
+
+function productLink(summary: ProductSummary) {
+  return {
+    name: routes.lendingProduct,
+    params: {stationId: summary.stationId, inventoryId: summary.product.inventoryId},
+    query: route.query,
+  }
+}
+
 const countLine = computed(() => shown.value.length === 1
     ? t('lendingShop.countOne')
     : t('lendingShop.count', {count: shown.value.length}))
@@ -108,7 +121,7 @@ const countLine = computed(() => shown.value.length === 1
       <MutedText tag="p" class="mb-2">{{ countLine }}</MutedText>
       <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         <li v-for="summary in shown" :key="`${summary.stationId}-${summary.product.inventoryId}`">
-          <ProductTile :summary="summary"/>
+          <ProductTile :summary="summary" :link="productLink(summary)"/>
         </li>
       </ul>
     </AsyncSection>

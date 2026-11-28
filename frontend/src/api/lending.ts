@@ -18,7 +18,9 @@ import type {
     LendingRequestDetail,
     LendingRequestResponse,
     LentOutItem,
+    ProductDetail,
     ProductList,
+    RemoteProductDays,
     SetShareRequest,
     ShareDetail,
     ShareSetting,
@@ -52,6 +54,27 @@ export async function listProducts(options?: { q?: string; from?: string; to?: s
     if (options?.from) params.from = options.from
     if (options?.to) params.to = options.to
     const res = await client.get<ProductList>('/federated/lending/products', {params})
+    return res.data
+}
+
+/** One product of a lending partner with its kinds, single pieces and where the gear is kept. */
+export async function getProduct(
+    stationUid: string, inventoryId: number, options?: { from?: string; to?: string },
+): Promise<ProductDetail> {
+    const params: Record<string, string> = {}
+    if (options?.from) params.from = options.from
+    if (options?.to) params.to = options.to
+    const res = await client.get<ProductDetail>(`/federated/lending/products/${stationUid}/${inventoryId}`, {params})
+    return res.data
+}
+
+/** What is free of a partner's product on each day of a month, as `yyyy-MM`; of one piece where given. */
+export async function getProductDays(
+    stationUid: string, inventoryId: number, month: string, itemId?: number,
+): Promise<RemoteProductDays> {
+    const params: Record<string, string> = {month}
+    if (itemId != null) params.itemId = String(itemId)
+    const res = await client.get<RemoteProductDays>(`/federated/lending/products/${stationUid}/${inventoryId}/days`, {params})
     return res.data
 }
 

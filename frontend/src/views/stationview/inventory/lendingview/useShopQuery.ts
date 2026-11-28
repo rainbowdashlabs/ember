@@ -4,7 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
 import {useRouteQueryRef} from '@/composables/useRouteQueryRef'
+import {withoutKey} from '@/util/record'
 
 /** The orders the shop offers: the partners' own (best match or nearest first) or by name. */
 export type ShopSort = 'best' | 'name'
@@ -24,5 +26,17 @@ export function useShopQuery() {
         get: () => (sortRaw.value === 'name' ? 'name' : 'best'),
         set: value => { sortRaw.value = value },
     })
-    return {dateFrom, dateTo, search, station, sort}
+    const route = useRoute()
+    const router = useRouter()
+
+    /**
+     * Sets both days in one step. Two writes of one tick would each start from the address as it was
+     * and the second would undo the first.
+     */
+    function setDays(from: string, to: string) {
+        const others = withoutKey(withoutKey(route.query, 'from'), 'to')
+        void router.replace({query: {...others, ...(from ? {from} : {}), ...(to ? {to} : {})}})
+    }
+
+    return {dateFrom, dateTo, search, station, sort, setDays}
 }

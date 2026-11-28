@@ -40,7 +40,10 @@ function summary(overrides: Partial<ProductSummary['product']> = {}, distanceKm:
 }
 
 function tile(value: ProductSummary) {
-    return mount(ProductTile, {props: {summary: value}, global: {plugins: [i18n]}})
+    return mount(ProductTile, {
+        props: {summary: value, link: '/station/inventory/lending/product/x/7'},
+        global: {plugins: [i18n], stubs: {RouterLink: {template: '<a><slot/></a>'}}},
+    })
 }
 
 /** A tile shows what the product offers, why a search found it, and where it is. */

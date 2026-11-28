@@ -31,12 +31,18 @@ const props = withDefaults(defineProps<{
   moreLabel?: string
 }>(), {html: '', maxHeight: 'max-h-44', moreLabel: ''})
 
+const emit = defineEmits<{
+  /** Whether the body is cut, each time it is measured. */
+  measured: [cut: boolean]
+}>()
+
 const body = ref<HTMLElement | null>(null)
 const cut = ref(false)
 
 function measure() {
   const element = body.value
   cut.value = !!element && element.scrollHeight > element.clientHeight + 1
+  emit('measured', cut.value)
 }
 
 onMounted(measure)
