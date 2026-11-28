@@ -18,6 +18,7 @@ import type {
     LendingRequestDetail,
     LendingRequestResponse,
     LentOutItem,
+    ProductList,
     SetShareRequest,
     ShareDetail,
     ShareSetting,
@@ -41,6 +42,16 @@ export type ShareTarget = 'inventory' | 'art' | 'item'
 
 export async function getLentOutByInventory(inventoryId: number): Promise<LentOutItem[]> {
     const res = await client.get<LentOutItem[]>(`/lending/inventory/${inventoryId}/lent-out`)
+    return res.data
+}
+
+/** What every lending partner offers, one product per inventory; best match first where something was searched. */
+export async function listProducts(options?: { q?: string; from?: string; to?: string }): Promise<ProductList> {
+    const params: Record<string, string> = {}
+    if (options?.q) params.q = options.q
+    if (options?.from) params.from = options.from
+    if (options?.to) params.to = options.to
+    const res = await client.get<ProductList>('/federated/lending/products', {params})
     return res.data
 }
 
