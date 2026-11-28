@@ -82,7 +82,7 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
 }, {autoLoad: false, errorMessageKey: 'lending.loadError'})
 
 async function loadAvailableItems() {
-  if (!detail.value || detail.value.request.request.status !== LendingStatus.APPROVED || !detail.value.request.isOwner) return
+  if (!detail.value?.request.allowedSteps.includes(LendingStatus.LENT)) return
   loadingItems.value = true
   try {
     availableItems.value = await lending.getAvailableItems(requestId)
@@ -226,7 +226,7 @@ function handleClose() {
       <ReturnCheckPanel v-if="checkingReturn" :request-id="detail.request.request.id" @done="returnChecked" @cancel="checkingReturn = false"/>
       <BorrowAgainPanel v-if="canBorrowAgain" :request-id="detail.request.request.id"/>
       <LendingItemAssignment
-          v-if="detail.request.isOwner && detail.request.request.status === LendingStatus.APPROVED"
+          v-if="detail.request.allowedSteps.includes(LendingStatus.LENT)"
           :loading="loadingItems"
           :available-items="availableItems"
           :selected-item-ids="selectedItemIds"
@@ -241,6 +241,7 @@ function handleClose() {
           @send="handleSendMessage"/>
     </template>
 
-    <DeclineRequestModal v-model="showDeclineModal" :busy="answering" :failure="actionFailure" @decline="handleDecline"/>
+    <DeclineRequestModal v-model="showDeclineModal" :withdraw="!detail?.request.isOwner" :busy="answering" :failure="actionFailure"
+                         @decline="handleDecline"/>
   </ViewContent>
 </template>

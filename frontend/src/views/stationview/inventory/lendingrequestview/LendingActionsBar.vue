@@ -25,29 +25,30 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+/** Whether the viewing station may take the step to this status now, as the server allows it. */
+function may(detail: LendingRequestDetail, next: LendingStatus): boolean {
+  return detail.request.allowedSteps.includes(next)
+}
 </script>
 
 <template>
   <ButtonRow class="mb-4">
-    <template v-if="detail.request.isOwner">
-      <SuccessButton v-if="detail.request.request.status === LendingStatus.REQUESTED" :icon="['fas', 'check']" @click="emit('approve')">
-        {{ t('lending.approve') }}
-      </SuccessButton>
-      <ErrorButton v-if="detail.request.request.status === LendingStatus.REQUESTED" :icon="['fas', 'xmark']" @click="emit('decline')">
-        {{ t('lending.decline') }}
-      </ErrorButton>
-    </template>
-    <template v-if="detail.request.request.status === LendingStatus.LENT">
-      <PrimaryButton v-if="detail.request.isOwner" :icon="['fas', 'clipboard-check']" data-testid="lending-start-return-check"
-                     @click="emit('checkReturn')">
-        {{ t('lendingReturn.start') }}
-      </PrimaryButton>
-      <SecondaryButton v-if="detail.request.isOwner && detail.request.overdue" :icon="['fas', 'bell']" data-testid="lending-remind"
-                       @click="emit('remind')">
-        {{ t('lendingReturn.remind') }}
-      </SecondaryButton>
-    </template>
-    <SecondaryButton v-if="detail.request.request.status === LendingStatus.RETURNED" @click="emit('close')">
+    <SuccessButton v-if="may(detail, LendingStatus.APPROVED)" :icon="['fas', 'check']" @click="emit('approve')">
+      {{ t('lending.approve') }}
+    </SuccessButton>
+    <ErrorButton v-if="may(detail, LendingStatus.DECLINED)" :icon="['fas', 'xmark']" data-testid="lending-decline" @click="emit('decline')">
+      {{ detail.request.isOwner ? t('lending.decline') : t('lending.withdraw') }}
+    </ErrorButton>
+    <PrimaryButton v-if="may(detail, LendingStatus.RETURNED)" :icon="['fas', 'clipboard-check']" data-testid="lending-start-return-check"
+                   @click="emit('checkReturn')">
+      {{ t('lendingReturn.start') }}
+    </PrimaryButton>
+    <SecondaryButton v-if="may(detail, LendingStatus.RETURNED) && detail.request.overdue" :icon="['fas', 'bell']" data-testid="lending-remind"
+                     @click="emit('remind')">
+      {{ t('lendingReturn.remind') }}
+    </SecondaryButton>
+    <SecondaryButton v-if="may(detail, LendingStatus.CLOSED)" @click="emit('close')">
       {{ t('lending.close') }}
     </SecondaryButton>
   </ButtonRow>

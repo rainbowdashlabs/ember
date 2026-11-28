@@ -38,6 +38,7 @@ const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': {},
 
 function entry(id: number, isOwner: boolean, status: LendingStatus): LendingRequestResponse {
     return {
+        allowedSteps: isOwner && status === 'REQUESTED' ? ['APPROVED', 'DECLINED'] : [],
         isOwner, overdue: false, itemSummary: '', owningStationName: 'Nord', requestingStationName: 'Süd',
         request: {
             id, status, requestedDateFrom: '2099-01-01', requestedDateTo: null, createdAt: '2030-01-01T00:00:00Z',

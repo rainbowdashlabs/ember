@@ -78501,6 +78501,7 @@ export interface components {
             requestId: number;
         };
         LendingRequestResponse: {
+            allowedSteps: components["schemas"]["LendingStatus"][];
             isOwner: boolean;
             itemSummary: string;
             overdue: boolean;

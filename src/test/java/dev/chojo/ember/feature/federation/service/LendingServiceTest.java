@@ -313,8 +313,10 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void assignItem() {
-        assertTrue(service.assignItem(requestOf(requestItemId), requestItemId, itemIdA, stationA.id()));
-        assertEquals(List.of(itemIdA), lendingRepo.findAssignedItems(requestItemId));
+        int line = lineOn(stationA, inventoryIdA, itemIdA);
+        assertTrue(service.assignItem(requestOf(line), line, itemIdA, stationA.id()));
+        assertEquals(List.of(itemIdA), lendingRepo.findAssignedItems(line));
+        lendingRepo.updateRequestStatus(requestOf(line), LendingStatus.CLOSED);
     }
 
     @Test
@@ -473,7 +475,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 "");
         service.addRequestItem(req2.id(), inventoryIdA, itemIdA, null, 1, null);
 
-        assertTrue(service.approveRequest(req.id(), stationB.id()));
+        assertTrue(service.approveRequest(req.id(), stationA.id()));
     }
 
     @Test
@@ -997,13 +999,13 @@ class LendingServiceTest extends RepositoryTestBase {
         var laterLine =
                 lendingRepo.addRequestItem(later, inv.id(), null, null, 1, null).id();
 
+        assertTrue(service.approveRequest(later, stationA.id()));
+        assertNull(assignedItemOf(later, laterLine), "filling it by itself passes the held radio over");
+
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.assignItem(requestOf(laterLine), laterLine, radio.id(), stationA.id()));
         assertEquals(InventoryRefusal.CUSTODY_PIECE_SET_ASIDE_FOR_A_LOAN, refused.refusal());
-
-        assertTrue(service.approveRequest(later, stationA.id()));
-        assertNull(assignedItemOf(later, laterLine), "filling it by itself passes the held radio over");
 
         assertTrue(
                 service.assignItem(requestOf(firstLine), firstLine, radio.id(), stationA.id()),
@@ -1027,6 +1029,7 @@ class LendingServiceTest extends RepositoryTestBase {
         int request = requestOn(stationA);
         var kindLine = lendingRepo.addRequestItem(request, inv.id(), null, radios.id(), 1, null);
         var pieceLine = lendingRepo.addRequestItem(request, inv.id(), charger.id(), null, 1, null);
+        lendingRepo.updateRequestStatus(request, LendingStatus.APPROVED);
 
         assertEquals(
                 List.of(radio.id()),
@@ -1155,7 +1158,7 @@ class LendingServiceTest extends RepositoryTestBase {
 
     /** A request from stationB to the given owner, written straight to the repository. */
     private static int requestOn(Station owner) {
-        return lendingRepo
+        int id = lendingRepo
                 .createRequest(
                         stationB.uid(),
                         owner.uid(),
@@ -1166,12 +1169,15 @@ class LendingServiceTest extends RepositoryTestBase {
                         null,
                         "")
                 .id();
+        return id;
     }
 
-    /** One line of such a request, for tests that only need something to assign against. */
+    /** One line of an agreed request, for tests that only need something to assign against. */
     private static int lineOn(Station owner, Integer inventoryId, Integer itemId) {
+        int request = requestOn(owner);
+        lendingRepo.updateRequestStatus(request, LendingStatus.APPROVED);
         return lendingRepo
-                .addRequestItem(requestOn(owner), inventoryId, itemId, null, 1, null)
+                .addRequestItem(request, inventoryId, itemId, null, 1, null)
                 .id();
     }
 
@@ -1355,7 +1361,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 .isEmpty());
         assertTrue(service.markLent(request.id(), stationA.id()));
         assertTrue(service.markReturned(request.id(), stationA.id()));
-        assertTrue(service.closeRequest(request.id(), stationA.id()));
+        lendingRepo.updateRequestStatus(request.id(), LendingStatus.CLOSED);
     }
 
     /** A share aimed at named partners reaches only those, and the row still beats the one above it. */
@@ -1401,7 +1407,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 .findAssignedItems(
                         service.findRequestItems(request.id()).getFirst().id())
                 .isEmpty());
-        assertTrue(service.closeRequest(request.id(), stationA.id()));
+        lendingRepo.updateRequestStatus(request.id(), LendingStatus.CLOSED);
     }
 
     /**
@@ -1428,7 +1434,7 @@ class LendingServiceTest extends RepositoryTestBase {
         assertTrue(service.approveRequest(request.id(), stationA.id()));
         assertEquals(1, lendingRepo.findAssignedItems(line.id()).size());
 
-        assertTrue(service.closeRequest(request.id(), stationA.id()));
+        lendingRepo.updateRequestStatus(request.id(), LendingStatus.CLOSED);
         equipmentNeedRepo.deleteByEvent(event.id());
         eventRepo.delete(event.id());
     }
@@ -1460,7 +1466,7 @@ class LendingServiceTest extends RepositoryTestBase {
         assertTrue(service.approveRequest(request.id(), stationA.id()));
         assertTrue(lendingRepo.findAssignedItems(line.id()).isEmpty());
 
-        assertTrue(service.closeRequest(request.id(), stationA.id()));
+        lendingRepo.updateRequestStatus(request.id(), LendingStatus.CLOSED);
     }
 
     /** A partner is not offered a piece another loan holds, since lending it would be refused. */
@@ -1759,7 +1765,7 @@ class LendingServiceTest extends RepositoryTestBase {
                         List.of(new LendingService.RequestLine(77, null, null, 1, null))));
         assertEquals(before, service.findRequestsByStation(stationA.id()).size());
 
-        assertTrue(service.closeRequest(request.id(), stationA.id()));
+        lendingRepo.updateRequestStatus(request.id(), LendingStatus.CLOSED);
         federationRepo.deletePartner(row.id());
     }
 
@@ -1801,6 +1807,7 @@ class LendingServiceTest extends RepositoryTestBase {
         lendingRepo.assignItem(line.id(), second.id());
         when(httpClient.canSign(stationA.id())).thenReturn(true);
         when(httpClient.post(any(), any(), any(), any(), eq(stationA.id()))).thenReturn(true);
+        lendingRepo.updateRequestStatus(copy.id(), LendingStatus.APPROVED);
 
         assertTrue(service.markLent(copy.id(), stationA.id()));
 
@@ -1850,6 +1857,7 @@ class LendingServiceTest extends RepositoryTestBase {
         var ropes = lendingRepo.addRequestItem(request.id(), null, null, null, 2, null);
         var pump = lendingRepo.addRequestItem(request.id(), null, null, null, 1, null);
         lendingRepo.labelItems(request.id(), List.of("Seile", "Pumpe"));
+        lendingRepo.updateRequestStatus(request.id(), LendingStatus.APPROVED);
         var asking = new ServingPartner(row, elsewhere);
 
         service.serveStatus(
@@ -1876,20 +1884,14 @@ class LendingServiceTest extends RepositoryTestBase {
                         .map(piece -> piece.item().loanRequestItemId())
                         .sorted((left, right) -> Integer.compare(right, left))
                         .toList());
-        when(httpClient.canSign(stationA.id())).thenReturn(true);
-        when(httpClient.post(any(), any(), any(), any(), eq(stationA.id()))).thenReturn(true);
+        var notTheBorrowers =
+                assertThrows(RefusalResponse.class, () -> service.markReturned(request.id(), stationA.id()));
+        assertEquals(FederationRefusal.LENDING_NOT_THE_OWNING_STATION, notTheBorrowers.refusal());
 
-        assertTrue(service.markReturned(request.id(), stationA.id()));
+        service.serveStatus(asking, uid, new RemoteLendingRoutes.RemoteLendingStatus(LendingStatus.RETURNED, null));
 
         assertTrue(inventoryRepo.findBorrowedItems(stationA.id()).stream()
                 .noneMatch(piece -> piece.loanRequestId() == request.id()));
-        verify(httpClient)
-                .post(
-                        eq("https://lending-elsewhere.example.com"),
-                        pathIs("/remote/lending/requests/" + uid + "/status"),
-                        any(),
-                        eq(elsewhere),
-                        eq(stationA.id()));
         federationRepo.deletePartner(row.id());
     }
 
@@ -1915,6 +1917,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 "Übung");
         lendingRepo.addRequestItem(request.id(), null, null, null, 1, null);
         lendingRepo.labelItems(request.id(), List.of("Leiter"));
+        lendingRepo.updateRequestStatus(request.id(), LendingStatus.APPROVED);
 
         service.serveStatus(
                 new ServingPartner(row, elsewhere),
@@ -1942,5 +1945,192 @@ class LendingServiceTest extends RepositoryTestBase {
     /** The request a line belongs to. */
     private static int requestOf(int requestItemId) {
         return lendingRepo.findRequestItem(requestItemId).orElseThrow().requestId();
+    }
+
+    /**
+     * The borrowing station withdraws an agreed request before the handover, but neither station can
+     * close or call off gear that is out, and nothing is agreed twice.
+     */
+    @Test
+    @Order(611)
+    void aLoanMovesOnlyAlongItsSteps() {
+        var withdrawn = service.createRequest(
+                stationB.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(1),
+                memberB.id(),
+                null,
+                null,
+                "");
+        assertTrue(service.approveRequest(withdrawn.id(), stationA.id()));
+        assertTrue(service.declineRequest(withdrawn.id(), stationB.id(), "Termin entfällt"));
+        assertTrue(lendingRepo.findMessagesByRequest(withdrawn.id()).stream()
+                .anyMatch(message -> message.message().equals("Anfrage zurückgezogen: Termin entfällt")));
+        assertEquals(
+                LendingStatus.DECLINED,
+                service.findRequest(withdrawn.id()).orElseThrow().status());
+
+        var lent = service.createRequest(
+                stationB.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(1),
+                memberB.id(),
+                null,
+                null,
+                "");
+        assertTrue(service.approveRequest(lent.id(), stationA.id()));
+        assertTrue(service.markLent(lent.id(), stationA.id()));
+        assertEquals(
+                FederationRefusal.LENDING_STEP_NOT_ALLOWED,
+                assertThrows(RefusalResponse.class, () -> service.closeRequest(lent.id(), stationB.id()))
+                        .refusal());
+        assertEquals(
+                FederationRefusal.LENDING_STEP_NOT_ALLOWED,
+                assertThrows(RefusalResponse.class, () -> service.declineRequest(lent.id(), stationB.id(), null))
+                        .refusal());
+        assertEquals(
+                FederationRefusal.LENDING_STEP_NOT_ALLOWED,
+                assertThrows(RefusalResponse.class, () -> service.approveRequest(lent.id(), stationA.id()))
+                        .refusal());
+        assertEquals(
+                LendingStatus.LENT, service.findRequest(lent.id()).orElseThrow().status());
+        lendingRepo.updateRequestStatus(lent.id(), LendingStatus.CLOSED);
+
+        int unagreed = lineOn(stationA, inventoryIdA, null);
+        lendingRepo.updateRequestStatus(requestOf(unagreed), LendingStatus.REQUESTED);
+        assertEquals(
+                FederationRefusal.LENDING_REQUEST_NOT_APPROVED,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.assignItem(requestOf(unagreed), unagreed, itemIdA, stationA.id()))
+                        .refusal(),
+                "gear is put against an agreed request only, whichever path asks");
+    }
+
+    /** A partner elsewhere cannot call off gear that is out, however the change arrives. */
+    @Test
+    @Order(612)
+    void aPartnerElsewhereCannotCallOffGearThatIsOut() {
+        UUID elsewhere = UUID.randomUUID();
+        var row = partnerElsewhere(elsewhere);
+        var request = lendingRepo.createRequest(
+                UUID.randomUUID(),
+                elsewhere,
+                stationA.uid(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(1),
+                null,
+                null,
+                null,
+                "");
+        lendingRepo.updateRequestStatus(request.id(), LendingStatus.LENT);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.serveStatus(
+                        new ServingPartner(row, elsewhere),
+                        request.uid(),
+                        new RemoteLendingRoutes.RemoteLendingStatus(LendingStatus.DECLINED, null)));
+
+        assertEquals(FederationRefusal.LENDING_STEP_NOT_ALLOWED, refused.refusal());
+        assertEquals(
+                LendingStatus.LENT,
+                service.findRequest(request.id()).orElseThrow().status());
+        lendingRepo.updateRequestStatus(request.id(), LendingStatus.CLOSED);
+        federationRepo.deletePartner(row.id());
+    }
+
+    /**
+     * A step the lending station elsewhere reports catches the copy up over a step whose message never
+     * arrived, and the gear handed over is written down all the same.
+     */
+    @Test
+    @Order(613)
+    void aCopyCatchesUpWithTheLendingStationElsewhere() {
+        UUID elsewhere = UUID.randomUUID();
+        var row = partnerElsewhere(elsewhere);
+        UUID uid = UUID.randomUUID();
+        var request = lendingRepo.createRequest(
+                uid,
+                stationA.uid(),
+                elsewhere,
+                LocalDate.now(),
+                LocalDate.now().plusDays(1),
+                memberA.id(),
+                null,
+                null,
+                "");
+        lendingRepo.addRequestItem(request.id(), null, null, null, 1, null);
+        lendingRepo.labelItems(request.id(), List.of("Leiter"));
+
+        service.serveStatus(
+                new ServingPartner(row, elsewhere),
+                uid,
+                new RemoteLendingRoutes.RemoteLendingStatus(
+                        LendingStatus.LENT,
+                        null,
+                        List.of(new RemoteLendingRoutes.RemoteLendingPiece(0, "L-1", "Leiter 1"))));
+
+        assertEquals(
+                LendingStatus.LENT,
+                service.findRequest(request.id()).orElseThrow().status());
+        assertEquals(
+                1,
+                inventoryRepo.findBorrowedItems(stationA.id()).stream()
+                        .filter(piece -> piece.loanRequestId() == request.id())
+                        .count());
+        service.serveStatus(
+                new ServingPartner(row, elsewhere),
+                uid,
+                new RemoteLendingRoutes.RemoteLendingStatus(LendingStatus.CLOSED, null));
+
+        assertEquals(
+                LendingStatus.CLOSED,
+                service.findRequest(request.id()).orElseThrow().status(),
+                "a close from the lending station passes over a return whose message never came");
+        assertEquals(
+                0,
+                inventoryRepo.findBorrowedItems(stationA.id()).stream()
+                        .filter(piece -> piece.loanRequestId() == request.id())
+                        .count());
+        federationRepo.deletePartner(row.id());
+    }
+
+    /**
+     * Withdrawing from a lending station elsewhere asks it first: when it cannot be reached, nothing is
+     * withdrawn here either.
+     */
+    @Test
+    @Order(614)
+    void aWithdrawElsewhereWaitsForTheLendingStation() {
+        UUID elsewhere = UUID.randomUUID();
+        var row = partnerElsewhere(elsewhere);
+        var request = lendingRepo.createRequest(
+                UUID.randomUUID(),
+                stationA.uid(),
+                elsewhere,
+                LocalDate.now(),
+                LocalDate.now().plusDays(1),
+                memberA.id(),
+                null,
+                null,
+                "");
+        lendingRepo.updateRequestStatus(request.id(), LendingStatus.APPROVED);
+        when(httpClient.canSign(stationA.id())).thenReturn(true);
+        when(httpClient.post(any(), any(), any(), any(), eq(stationA.id()))).thenReturn(false);
+
+        assertThrows(RefusalResponse.class, () -> service.declineRequest(request.id(), stationA.id(), null));
+        assertEquals(
+                LendingStatus.APPROVED,
+                service.findRequest(request.id()).orElseThrow().status());
+
+        when(httpClient.post(any(), any(), any(), any(), eq(stationA.id()))).thenReturn(true);
+        assertTrue(service.declineRequest(request.id(), stationA.id(), null));
+        assertEquals(
+                LendingStatus.DECLINED,
+                service.findRequest(request.id()).orElseThrow().status());
+        federationRepo.deletePartner(row.id());
     }
 }

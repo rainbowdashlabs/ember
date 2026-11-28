@@ -3203,7 +3203,7 @@ volumes:
             whatIsText: 'Hier siehst du alle Details einer einzelnen Ausleih-Anfrage: welche Ausrüstung, welcher Zeitraum, welche Wache und den aktuellen Status.',
             actionsTitle: 'Was kann ich tun?',
             actionApprove: 'Annehmen - Du stimmst der Anfrage zu. Die Ausrüstung wird für diesen Zeitraum reserviert.',
-            actionDecline: 'Ablehnen - Du lehnst die Anfrage ab. Die andere Wache wird benachrichtigt.',
+            actionDecline: 'Ablehnen - Du lehnst die Anfrage ab. Die andere Wache wird benachrichtigt. Die anfragende Wache kann ihre Anfrage bis zur Übergabe mit „Zurückziehen“ selbst zurücknehmen. Ist die Ausrüstung übergeben, geht es nur noch über „Rückgabe prüfen“ weiter.',
             actionLent: 'Als verliehen markieren - Du bestätigst, dass die Ausrüstung übergeben wurde.',
             actionReturned: 'Rückgabe prüfen - Die verleihende Wache trägt ein, dass die Ausrüstung zurückgekommen ist, und wie.',
             chatTitle: 'Chat',

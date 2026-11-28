@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -129,6 +130,21 @@ class LendingRequestViewServiceTest {
                 refusal(() -> service.requireParty(4, STATION)));
     }
 
+    /** Only the borrowing side withdraws as a borrower; the lending side's decline is a manager's. */
+    @Test
+    void onlyTheBorrowingSideWithdraws() {
+        when(lending.findRequest(1)).thenReturn(Optional.of(request(1, HERE, PARTNER, LendingStatus.APPROVED, null)));
+        when(lending.findRequest(2)).thenReturn(Optional.of(request(2, PARTNER, HERE, LendingStatus.APPROVED, null)));
+        when(lending.findRequest(3))
+                .thenReturn(Optional.of(request(3, PARTNER, STRANGER, LendingStatus.APPROVED, null)));
+
+        assertEquals(1, service.requireBorrower(1, STATION).id());
+        assertEquals(GeneralRefusal.ROUTE_PERMISSION_MISSING, refusal(() -> service.requireBorrower(2, STATION)));
+        assertEquals(
+                FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS,
+                refusal(() -> service.requireBorrower(3, STATION)));
+    }
+
     @Test
     void onlyTheOwnerActsOnARequest() {
         when(lending.findRequest(1)).thenReturn(Optional.of(request(1, HERE, PARTNER, LendingStatus.LENT, null)));
@@ -167,20 +183,21 @@ class LendingRequestViewServiceTest {
         when(lending.buildItemSummary(anyInt())).thenReturn("2 Zelte");
         var past = LocalDate.of(2020, 1, 3);
 
-        var overdue = service.describe(request(1, PARTNER, HERE, LendingStatus.LENT, past), STATION);
+        var overdue = service.describe(request(1, PARTNER, HERE, LendingStatus.LENT, past), STATION, true);
         assertTrue(overdue.overdue());
         assertTrue(overdue.isOwner());
         assertEquals("Station " + PARTNER, overdue.requestingStationName());
         assertEquals("2 Zelte", overdue.itemSummary());
 
-        assertFalse(service.describe(request(2, PARTNER, HERE, LendingStatus.APPROVED, past), STATION)
+        assertFalse(service.describe(request(2, PARTNER, HERE, LendingStatus.APPROVED, past), STATION, true)
                 .overdue());
-        assertFalse(service.describe(request(3, HERE, PARTNER, LendingStatus.RETURNED, past), STATION)
+        assertFalse(service.describe(request(3, HERE, PARTNER, LendingStatus.RETURNED, past), STATION, true)
                 .overdue());
-        assertTrue(service.describe(request(4, HERE, PARTNER, LendingStatus.LENT, null), STATION)
+        assertTrue(service.describe(request(4, HERE, PARTNER, LendingStatus.LENT, null), STATION, true)
                 .overdue());
-        assertFalse(service.describe(request(5, HERE, PARTNER, LendingStatus.LENT, LocalDate.of(2999, 1, 1)), STATION)
-                .overdue());
+        assertFalse(
+                service.describe(request(5, HERE, PARTNER, LendingStatus.LENT, LocalDate.of(2999, 1, 1)), STATION, true)
+                        .overdue());
     }
 
     @Test

@@ -373,7 +373,10 @@ public enum FederationRefusal implements Refusal {
             "The return check has to answer for every piece of the loan, and only for those"),
 
     /** A reminder for gear whose last day has not passed. */
-    LENDING_NOT_OVERDUE(91, HttpStatus.CONFLICT, "The gear is not overdue yet");
+    LENDING_NOT_OVERDUE(91, HttpStatus.CONFLICT, "The gear is not overdue yet"),
+
+    /** A step a lending request cannot take from where it is, or one another change got to first. */
+    LENDING_STEP_NOT_ALLOWED(92, HttpStatus.CONFLICT, "The lending request cannot take this step from where it is");
 
     private final Definition definition;
 

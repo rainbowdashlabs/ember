@@ -107,7 +107,7 @@ class LendingReturnServiceTest {
         when(lending.stationName(any(), anyInt())).thenReturn("Süd");
         stationService = mock(StationService.class);
         custody = mock(ItemCustodyService.class);
-        when(lending.markReturnedFromLent(41, STATION)).thenReturn(true);
+        when(lending.markReturned(41, STATION)).thenReturn(true);
         service = new LendingReturnService(
                 lending, repository, inventories, inventoryService, stations, stationService, custody);
     }
@@ -125,7 +125,7 @@ class LendingReturnServiceTest {
                         new PieceCheck(8, ReturnState.MISSING, null)));
 
         InOrder order = inOrder(lending, inventoryService);
-        order.verify(lending).markReturnedFromLent(41, STATION);
+        order.verify(lending).markReturned(41, STATION);
         order.verify(inventoryService).markLost(eq(8), contains("Süd"), eq(MEMBER));
         verify(lending)
                 .sendMessage(
@@ -167,7 +167,7 @@ class LendingReturnServiceTest {
                                 () -> service.checkReturn(
                                         request(LendingStatus.APPROVED), STATION, MEMBER, "Nora", List.of()))
                         .refusal());
-        verify(lending, never()).markReturnedFromLent(anyInt(), anyInt());
+        verify(lending, never()).markReturned(anyInt(), anyInt());
     }
 
     /** A missing piece that cannot be marked lost stops the check before anything is taken back. */
@@ -187,13 +187,13 @@ class LendingReturnServiceTest {
                         List.of(
                                 new PieceCheck(7, ReturnState.OK, null),
                                 new PieceCheck(8, ReturnState.MISSING, null))));
-        verify(lending, never()).markReturnedFromLent(anyInt(), anyInt());
+        verify(lending, never()).markReturned(anyInt(), anyInt());
     }
 
     /** A check that loses the race against another one is refused instead of sent twice. */
     @Test
     void aReturnCheckedTwiceIsTakenBackOnce() {
-        when(lending.markReturnedFromLent(41, STATION)).thenReturn(false);
+        when(lending.markReturned(41, STATION)).thenReturn(false);
 
         assertEquals(
                 FederationRefusal.LENDING_NOT_OUT,

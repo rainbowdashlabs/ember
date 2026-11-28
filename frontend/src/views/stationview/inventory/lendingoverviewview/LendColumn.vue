@@ -12,6 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import OverviewBlock from './OverviewBlock.vue'
 import RequestRow from './RequestRow.vue'
+import {LendingStatus} from '@/api/generated/schema'
 import type {LendBlocks} from './overviewBlocks'
 
 /** What the station lends: requests to answer, gear to hand out, gear out, and gear overdue. */
@@ -35,10 +36,12 @@ const {t} = useI18n()
     <OverviewBlock v-slot="{limit}" :title="t('lendingOverview.toAnswer')" :count="blocks.toAnswer.length" :empty="t('lendingOverview.toAnswerEmpty')">
       <RequestRow v-for="entry in blocks.toAnswer.slice(0, limit)" :key="entry.request.id" :entry="entry">
         <template #actions>
-          <ButtonRow pair>
-            <SuccessButton :icon="['fas', 'check']" :disabled="busy" :aria-label="t('lendingOverview.approveFrom', {station: entry.requestingStationName})"
+          <ButtonRow v-if="entry.allowedSteps.length > 0" pair>
+            <SuccessButton v-if="entry.allowedSteps.includes(LendingStatus.APPROVED)" :icon="['fas', 'check']" :disabled="busy"
+                           :aria-label="t('lendingOverview.approveFrom', {station: entry.requestingStationName})"
                            @click="emit('approve', entry.request.id)">{{ t('lending.approve') }}</SuccessButton>
-            <ErrorButton :icon="['fas', 'xmark']" :disabled="busy" :aria-label="t('lendingOverview.declineFrom', {station: entry.requestingStationName})"
+            <ErrorButton v-if="entry.allowedSteps.includes(LendingStatus.DECLINED)" :icon="['fas', 'xmark']" :disabled="busy"
+                         :aria-label="t('lendingOverview.declineFrom', {station: entry.requestingStationName})"
                          @click="emit('decline', entry.request.id)">{{ t('lending.decline') }}</ErrorButton>
           </ButtonRow>
         </template>

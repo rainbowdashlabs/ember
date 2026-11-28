@@ -9,6 +9,7 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
@@ -35,6 +36,7 @@ import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -52,7 +54,7 @@ class LendingRoutesTest {
     private static final UUID OWNER = UUID.fromString("00000000-0000-0000-0000-000000000099");
     private static final LendingRequest REQUEST = request(LendingStatus.APPROVED);
     private static final LendingRequestResponse VIEW =
-            new LendingRequestResponse(REQUEST, "Wache Süd", "Wache Nord", true, "2 Zelte", false);
+            new LendingRequestResponse(REQUEST, "Wache Süd", "Wache Nord", true, "2 Zelte", false, List.of());
 
     private LendingService lending;
     private LendingRequestViewService views;
@@ -78,7 +80,8 @@ class LendingRoutesTest {
     void setup() {
         lending = mock(LendingService.class);
         views = mock(LendingRequestViewService.class);
-        when(views.describe(any(LendingRequest.class), eq(STATION))).thenReturn(VIEW);
+        when(views.describe(any(LendingRequest.class), eq(STATION), anyBoolean()))
+                .thenReturn(VIEW);
         when(views.requireParty(5, STATION)).thenReturn(REQUEST);
         when(views.requireOwner(5, STATION)).thenReturn(REQUEST);
         when(lending.findRequest(5)).thenReturn(Optional.of(REQUEST));
@@ -251,5 +254,29 @@ class LendingRoutesTest {
 
         assertEquals(
                 "Wache Süd", json(answer).path(0).path("requestingStationName").asString());
+    }
+
+    /**
+     * A station that only asks for gear withdraws its own request, but declining what it lends is a
+     * lending manager's.
+     */
+    @Test
+    void aRequesterWithdrawsItsOwnRequestOnly() {
+        var asker = harness.as(TestSessions.member(STATION, StationPermission.INVENTORY_LENDING_REQUEST));
+        when(views.requireBorrower(5, STATION)).thenReturn(REQUEST);
+        when(views.requireBorrower(6, STATION)).thenThrow(GeneralRefusal.ROUTE_PERMISSION_MISSING.raise());
+
+        harness.run((server, client) -> {
+            assertEquals(
+                    200,
+                    client.post(PREFIX + "/lending/requests/5/decline", body("{\"reason\": null}"), asker)
+                            .code());
+            assertEquals(
+                    403,
+                    client.post(PREFIX + "/lending/requests/6/decline", body("{\"reason\": null}"), asker)
+                            .code());
+        });
+        verify(lending).declineRequest(5, STATION, null);
+        verify(lending, never()).declineRequest(eq(6), anyInt(), any());
     }
 }

@@ -6,12 +6,14 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
+import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.entity.LentOutItem;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
@@ -78,7 +80,7 @@ public class LendingRequestViewService {
             UUID stationUid = stationRepository.resolveUid(stationId);
             stream = stream.filter(r -> Objects.equals(r.requestingStationUid(), stationUid));
         }
-        return stream.map(r -> describe(r, stationId)).toList();
+        return stream.map(r -> describe(r, stationId, manager)).toList();
     }
 
     /**
@@ -97,6 +99,24 @@ public class LendingRequestViewService {
         if (!Objects.equals(request.requestingStationUid(), stationUid)
                 && !Objects.equals(request.owningStationUid(), stationUid)) {
             throw FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS.raise();
+        }
+        return request;
+    }
+
+    /**
+     * A request the asking station may withdraw: its own, never one it lends.
+     *
+     * @param requestId the request
+     * @param stationId the station asking
+     * @return the request
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when there is none, the station is not a party, or
+     *                                                     it is the lending station, whose decline is a
+     *                                                     lending manager's
+     */
+    public LendingRequest requireBorrower(int requestId, int stationId) {
+        var request = requireParty(requestId, stationId);
+        if (Objects.equals(request.owningStationUid(), stationRepository.resolveUid(stationId))) {
+            throw GeneralRefusal.ROUTE_PERMISSION_MISSING.raise();
         }
         return request;
     }
@@ -155,9 +175,10 @@ public class LendingRequestViewService {
      *
      * @param request          the request
      * @param currentStationId the station viewing it
+     * @param manager          whether the reader manages the station's lending, which decides the steps offered
      * @return the description
      */
-    public LendingRequestResponse describe(LendingRequest request, int currentStationId) {
+    public LendingRequestResponse describe(LendingRequest request, int currentStationId, boolean manager) {
         String requestingName = lendingService.stationName(request.requestingStationUid(), currentStationId);
         String owningName = lendingService.stationName(request.owningStationUid(), currentStationId);
         UUID currentStationUid = stationRepository.resolveUid(currentStationId);
@@ -167,7 +188,16 @@ public class LendingRequestViewService {
 
         boolean overdue = LendingReturnService.isOverdue(request, LocalDate.now());
 
-        return new LendingRequestResponse(request, requestingName, owningName, isOwner, itemSummary, overdue);
+        return new LendingRequestResponse(
+                request,
+                requestingName,
+                owningName,
+                isOwner,
+                itemSummary,
+                overdue,
+                currentStationUid == null
+                        ? List.of()
+                        : LendingService.allowedSteps(request, currentStationUid, manager));
     }
 
     /**
@@ -273,7 +303,8 @@ public class LendingRequestViewService {
             String owningStationName,
             boolean isOwner,
             String itemSummary,
-            boolean overdue) {}
+            boolean overdue,
+            List<LendingStatus> allowedSteps) {}
 
     public record EnrichedMessage(
             LendingMessage message, @Nullable String senderName, String senderStationName) {}

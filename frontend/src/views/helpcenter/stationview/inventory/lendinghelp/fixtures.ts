@@ -19,6 +19,7 @@ interface RequestFixture {
 /** A lending request as the list receives it, seen from this station's side of the exchange. */
 function request(fixture: RequestFixture, isOwner: boolean): LendingRequestResponse {
   return {
+    allowedSteps: [],
     isOwner,
     itemSummary: fixture.items,
     overdue: fixture.overdue ?? false,

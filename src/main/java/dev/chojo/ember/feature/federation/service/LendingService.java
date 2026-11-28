@@ -69,7 +69,9 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -494,7 +496,14 @@ public class LendingService implements FederationServer {
     private int withdraw(List<LendingRequest> requests, int stationId) {
         int withdrawn = 0;
         for (var request : requests) {
-            if (declineRequest(request.id(), stationId, "Der Termin wurde abgesagt")) withdrawn++;
+            try {
+                if (declineRequest(request.id(), stationId, "Der Termin wurde abgesagt")) withdrawn++;
+            } catch (RefusalResponse e) {
+                log.info(
+                        "Lending request {} stays as it is after its appointment was called off: {}",
+                        request.id(),
+                        e.refusal());
+            }
         }
         return withdrawn;
     }
@@ -522,6 +531,10 @@ public class LendingService implements FederationServer {
                 .findRequestItem(requestItemId)
                 .filter(found -> found.requestId() == requestId)
                 .orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
+        var request = repository
+                .findRequestById(requestId)
+                .orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
+        if (request.status() != LendingStatus.APPROVED) throw FederationRefusal.LENDING_REQUEST_NOT_APPROVED.raise();
         requireLendable(stationId, assignedItemId);
         var piece = inventoryRepository.findItemById(assignedItemId).orElse(null);
         if (piece != null && !fitsLine(line, piece)) throw FederationRefusal.LENDING_PIECE_NOT_FOR_LINE.raise();
@@ -659,9 +672,23 @@ public class LendingService implements FederationServer {
         return moveOn(requestId, stationId, LendingStatus.APPROVED, "Anfrage genehmigt", null);
     }
 
+    /**
+     * Declines a request as the lending station, or withdraws it as the borrowing one, until the gear
+     * is handed over. The thread shows which of the two it was.
+     *
+     * @param requestId the request
+     * @param stationId the station declining or withdrawing
+     * @param reason    why, or {@code null}
+     * @return {@code true} when the request moved, {@code false} when there is no such request
+     */
     public boolean declineRequest(int requestId, int stationId, @Nullable String reason) {
-        String msg = "Anfrage abgelehnt" + (reason != null && !reason.isBlank() ? ": " + reason : "");
-        return moveOn(requestId, stationId, LendingStatus.DECLINED, msg, reason);
+        String why = reason != null && !reason.isBlank() ? ": " + reason : "";
+        return moveOn(
+                requestId,
+                stationId,
+                LendingStatus.DECLINED,
+                lender -> (lender ? "Anfrage abgelehnt" : "Anfrage zurückgezogen") + why,
+                reason);
     }
 
     /**
@@ -722,22 +749,17 @@ public class LendingService implements FederationServer {
         return moveOn(requestId, stationId, LendingStatus.RETURNED, "Ausrüstung zurückgegeben", null);
     }
 
-    /**
-     * Returns a loan only while its gear is out, so a return checked twice at once is taken back once.
-     *
-     * @return {@code true} when this call returned it
-     */
-    public boolean markReturnedFromLent(int requestId, int stationId) {
-        if (!repository.updateRequestStatusFrom(requestId, LendingStatus.LENT, LendingStatus.RETURNED)) return false;
-        return moveOn(requestId, stationId, LendingStatus.RETURNED, "Ausrüstung zurückgegeben", null);
-    }
-
     public boolean closeRequest(int requestId, int stationId) {
         return moveOn(requestId, stationId, LendingStatus.CLOSED, "Anfrage geschlossen", null);
     }
 
     /**
      * Moves a request on as one of its two stations, and notifies the other one.
+     *
+     * <p>The step has to be one {@link LendingStatus} allows from where the request is, and one the
+     * acting station may take: agreeing, handing over and taking back are the lending station's. The
+     * write itself only happens from an allowed status, so two steps racing each other move the
+     * request once and refuse the second.
      *
      * <p>The change is made here, with its consequences for the gear, the station's own note in the
      * thread and the notice to the other station's managers, and then handed to the other station.
@@ -749,23 +771,51 @@ public class LendingService implements FederationServer {
      * @param status        where it moves to
      * @param systemMessage what the station's thread shows about it
      * @param reason        why, where it was declined, or {@code null}
-     * @return {@code true} when the request moved
+     * @return {@code true} when the request moved, {@code false} when there is no such request
+     * @throws RefusalResponse when the step is not the acting station's or not allowed from where the
+     *                         request is
      */
     private boolean moveOn(
             int requestId, int stationId, LendingStatus status, String systemMessage, @Nullable String reason) {
-        if (!repository.updateRequestStatus(requestId, status)) {
-            log.warn("Moving lending request {} to {} by station {} affected no row", requestId, status, stationId);
+        return moveOn(requestId, stationId, status, lender -> systemMessage, reason);
+    }
+
+    /**
+     * The same, with the thread's message chosen by whether the lending station takes the step.
+     *
+     * <p>A borrowing station's withdraw has to reach the lending station before it stands: the lending
+     * station's copy is the truth about whether the gear is out, and a withdraw it never heard of would
+     * split the two copies. See {@link #confirmWithdraw}.
+     *
+     * @param message the thread's message, given whether the acting station is the lending one
+     */
+    private boolean moveOn(
+            int requestId,
+            int stationId,
+            LendingStatus status,
+            Function<Boolean, String> message,
+            @Nullable String reason) {
+        var before = repository.findRequestById(requestId).orElse(null);
+        if (before == null) {
+            log.warn("Moving lending request {} to {} by station {} found no request", requestId, status, stationId);
             return false;
         }
-        var request = repository.findRequestById(requestId).orElse(null);
-        if (request == null) return true;
         UUID actingUid = stationRepository.requireUid(stationId);
+        boolean lender = before.owningStationUid().equals(actingUid);
+        requireStep(before, status, actingUid);
+        if (!repository.moveStatus(requestId, status)) throw FederationRefusal.LENDING_STEP_NOT_ALLOWED.raise();
+        var partner = findPartnerForStation(stationId, before.otherParty(actingUid));
+        boolean confirmed = !lender
+                && status == LendingStatus.DECLINED
+                && partner != null
+                && stationHere(before.owningStationUid()) == null;
+        if (confirmed) confirmWithdraw(partner, before, reason);
+        var request = repository.findRequestById(requestId).orElse(before);
         var handedOver = applyConsequences(request, status);
-        repository.createMessage(requestId, actingUid, null, systemMessage, true);
+        repository.createMessage(requestId, actingUid, null, message.apply(lender), true);
         publishStatusChange(
                 request, stationId, stationName(stationId), stationOf(request.otherParty(actingUid)), status);
-        var partner = findPartnerForStation(stationId, request.otherParty(actingUid));
-        if (partner != null) {
+        if (partner != null && !confirmed) {
             transport.notify(
                     partner,
                     RemoteLendingRoutes.CHANGE_STATUS.at(request.uid()),
@@ -776,6 +826,31 @@ public class LendingService implements FederationServer {
     }
 
     /**
+     * Hands a withdraw to the lending station and waits for it, taking the withdraw back here when the
+     * lending station refuses it or cannot be reached.
+     *
+     * <p>Only a lending station on another instance is asked: one on this instance shares the row and
+     * has nothing to agree to. The other instance checks the step against its own copy, which refuses
+     * once the gear is out.
+     *
+     * @param partner the partnership to the lending station
+     * @param before  the request as it was before the withdraw
+     * @param reason  why, or {@code null}
+     * @throws RuntimeException the lending station's refusal, or that it did not answer
+     */
+    private void confirmWithdraw(FederationPartner partner, LendingRequest before, @Nullable String reason) {
+        try {
+            transport.deliver(
+                    partner,
+                    RemoteLendingRoutes.CHANGE_STATUS.at(before.uid()),
+                    new RemoteLendingStatus(LendingStatus.DECLINED, reason, List.of()));
+        } catch (RuntimeException e) {
+            repository.moveStatus(before.id(), EnumSet.of(LendingStatus.DECLINED), before.status());
+            throw e;
+        }
+    }
+
+    /**
      * A request moved on by the partner station, made on this instance's copy.
      *
      * <p>Only the lending station agrees to a request and hands the gear over; either of the two may
@@ -783,24 +858,76 @@ public class LendingService implements FederationServer {
      * this instance share, and nothing further happens. Gear handed over by a lending station on
      * another instance is written down here from the pieces it lists.
      *
+     * <p>A step of the lending station reaches a copy that is behind on the lending station's path
+     * (a message that came late or never) and moves it straight there; a close from the lending station
+     * takes gear the copy still shows as out back first.
+     *
      * @param partner the partnership the change arrived on
      * @param uid     the request's identity between the two stations
      * @param body    what it moved to
      */
     public void serveStatus(ServingPartner partner, UUID uid, RemoteLendingStatus body) {
         var request = sharedRequest(partner, uid);
-        boolean lendersOnly = body.status() == LendingStatus.APPROVED
-                || body.status() == LendingStatus.LENT
-                || body.status() == LendingStatus.RETURNED;
-        if (lendersOnly && !request.owningStationUid().equals(partner.askingStationUid())) {
+        if (body.status().lenderOnly() && !request.owningStationUid().equals(partner.askingStationUid())) {
             throw FederationRefusal.LENDING_NOT_THE_OWNING_STATION.raise();
         }
         if (request.status() == body.status()) return;
-        if (!repository.updateRequestStatus(request.id(), body.status())) return;
+        boolean fromLender = request.owningStationUid().equals(partner.askingStationUid());
+        if (fromLender && body.status() == LendingStatus.CLOSED && request.status() == LendingStatus.LENT) {
+            serveStatus(partner, uid, new RemoteLendingStatus(LendingStatus.RETURNED, null));
+            request = sharedRequest(partner, uid);
+        }
+        var catchUp = LendingStatus.catchUpFrom(body.status());
+        if (catchUp.contains(request.status())) {
+            if (!repository.moveStatus(request.id(), catchUp, body.status())) {
+                throw FederationRefusal.LENDING_STEP_NOT_ALLOWED.raise();
+            }
+        } else {
+            requireStep(request, body.status(), partner.askingStationUid());
+            if (!repository.moveStatus(request.id(), body.status())) {
+                throw FederationRefusal.LENDING_STEP_NOT_ALLOWED.raise();
+            }
+        }
         applyConsequences(request, body.status());
         if (body.status() == LendingStatus.LENT) receiveHandedOver(request, body.handedOver());
         publishStatusChange(request, 0, partnerName(partner), partner.servingStationId(), body.status());
         log.info("Lending request {} moved to {} by partner {}", request.id(), body.status(), partner.partnerId());
+    }
+
+    /**
+     * Refuses a step the acting station may not take, or one the request cannot take from where it is.
+     *
+     * @param request   the request as it is now
+     * @param next      the status asked for
+     * @param actingUid the station taking the step
+     * @throws RefusalResponse with {@link FederationRefusal#LENDING_NOT_THE_OWNING_STATION} for a lending
+     *                         station's step taken by the borrower, and
+     *                         {@link FederationRefusal#LENDING_STEP_NOT_ALLOWED} for a step the table refuses
+     */
+    private static void requireStep(LendingRequest request, LendingStatus next, UUID actingUid) {
+        if (next.lenderOnly() && !request.owningStationUid().equals(actingUid)) {
+            throw FederationRefusal.LENDING_NOT_THE_OWNING_STATION.raise();
+        }
+        if (!request.status().canMoveTo(next)) throw FederationRefusal.LENDING_STEP_NOT_ALLOWED.raise();
+    }
+
+    /**
+     * The steps a station may take on a request now, for the screen to offer exactly those.
+     *
+     * <p>Every step of the lending station is a lending manager's; the borrowing station's members who
+     * may ask for gear may also withdraw and close.
+     *
+     * @param request    the request as it is now
+     * @param stationUid the station looking at it
+     * @param manager    whether the reader manages the station's lending
+     * @return the statuses it may move the request to
+     */
+    public static List<LendingStatus> allowedSteps(LendingRequest request, UUID stationUid, boolean manager) {
+        boolean lender = request.owningStationUid().equals(stationUid);
+        return Arrays.stream(LendingStatus.values())
+                .filter(next -> request.status().canMoveTo(next))
+                .filter(next -> lender ? manager : !next.lenderOnly())
+                .toList();
     }
 
     /**

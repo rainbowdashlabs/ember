@@ -19,6 +19,8 @@ import type {Failure} from '@/util/failure'
 const open = defineModel<boolean>({required: true})
 
 defineProps<{
+  /** Whether the borrowing station withdraws its own request rather than the lender declining it. */
+  withdraw?: boolean
   /** Whether a decline is on its way, which holds the button back. */
   busy?: boolean
   /** Why the last decline failed, shown in the dialog where it is seen. */
@@ -47,12 +49,12 @@ function decline() {
 
 <template>
   <Modal v-model="open" data-confirm-always>
-    <SectionHeader class="mb-4">{{ t('lending.declineTitle') }}</SectionHeader>
-    <TextAreaInput v-model="reason" :placeholder="t('lending.declineReasonPlaceholder')" :rows="3"/>
+    <SectionHeader class="mb-4">{{ withdraw ? t('lending.withdrawTitle') : t('lending.declineTitle') }}</SectionHeader>
+    <TextAreaInput v-model="reason" :placeholder="withdraw ? t('lending.withdrawReasonPlaceholder') : t('lending.declineReasonPlaceholder')" :rows="3"/>
     <FailureAlert :failure="pressed ? failure ?? null : null" class="mt-3"/>
     <ButtonRow pair align="end" class="mt-4">
       <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
-      <ErrorButton :disabled="busy" @click="decline">{{ t('lending.decline') }}</ErrorButton>
+      <ErrorButton :disabled="busy" @click="decline">{{ withdraw ? t('lending.withdraw') : t('lending.decline') }}</ErrorButton>
     </ButtonRow>
   </Modal>
 </template>

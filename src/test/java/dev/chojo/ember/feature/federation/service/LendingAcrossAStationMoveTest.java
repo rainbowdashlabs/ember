@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.api.FederationHeaders;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.DomainEventHandler;
@@ -26,6 +28,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteLendingNotice;
+import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteLendingStatus;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.federation.transport.ServingPartner;
@@ -61,6 +64,7 @@ import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.feature.federation.FederationTestContracts.pathIs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -159,7 +163,7 @@ class LendingAcrossAStationMoveTest extends RepositoryTestBase {
     }
 
     @Test
-    void theBorrowerLeftBehindKeepsItsCopyAndHandsGearBackToTheNewAddress() {
+    void theBorrowerLeftBehindKeepsItsCopyAndTheNewAddressTakesTheGearBack() {
         int ladder = gearOf(moved, "SL-1");
         var loan = lend(moved, ladder, stayed);
 
@@ -174,17 +178,15 @@ class LendingAcrossAStationMoveTest extends RepositoryTestBase {
         assertNull(line.itemId(), "the moved station's gear is not here to be named");
         assertEquals(List.of(), requests.findAssignedItems(line.id()));
 
-        assertTrue(lending.markReturned(loan.id(), stayed.id()));
+        var notTheBorrowers = assertThrows(RefusalResponse.class, () -> lending.markReturned(loan.id(), stayed.id()));
+        assertEquals(FederationRefusal.LENDING_NOT_THE_OWNING_STATION, notTheBorrowers.refusal());
+        lending.serveStatus(
+                new ServingPartner(partnershipWithMoved(), moved.uid()),
+                loan.uid(),
+                new RemoteLendingStatus(LendingStatus.RETURNED, null));
 
         assertEquals(List.of(), inventoryRepo.findBorrowedItems(stayed.id()), "the borrowed row went home");
         assertEquals(ItemCustody.WITH_PARTNER, custodyOf(ladder), "the moved station's copy is not treated as here");
-        verify(httpClient)
-                .post(
-                        eq(DESTINATION),
-                        pathIs("/remote/lending/requests/" + loan.uid() + "/status"),
-                        any(),
-                        eq(moved.uid()),
-                        eq(stayed.id()));
     }
 
     @Test
@@ -324,7 +326,10 @@ class LendingAcrossAStationMoveTest extends RepositoryTestBase {
                 requests.findItemsByRequest(loan.id()).getFirst().label(),
                 "a line without a label is named before the gear it named goes");
         assertEquals(1, inventoryRepo.findBorrowedItems(stayed.id()).size());
-        assertTrue(lending.markReturned(loan.id(), stayed.id()));
+        lending.serveStatus(
+                new ServingPartner(partnershipWithMoved(), moved.uid()),
+                loan.uid(),
+                new RemoteLendingStatus(LendingStatus.RETURNED, null));
         assertEquals(List.of(), inventoryRepo.findBorrowedItems(stayed.id()));
     }
 
@@ -370,6 +375,7 @@ class LendingAcrossAStationMoveTest extends RepositoryTestBase {
         int line =
                 requests.addRequestItem(request.id(), null, item, null, 1, null).id();
         requests.assignItem(line, item);
+        requests.updateRequestStatus(request.id(), LendingStatus.APPROVED);
         assertTrue(lending.markLent(request.id(), lender.id()));
         return request;
     }

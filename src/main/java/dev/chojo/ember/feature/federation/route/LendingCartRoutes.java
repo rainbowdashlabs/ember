@@ -187,7 +187,7 @@ public class LendingCartRoutes implements Routes {
                 NameParts.of(session.user().account()).called());
         ctx.json(new CheckoutView(
                 result.sent().stream()
-                        .map(request -> views.describe(request, session.stationId()))
+                        .map(request -> views.describe(request, session.stationId(), lendingManager(session)))
                         .toList(),
                 result.failed(),
                 result.notesMissing()));
@@ -283,4 +283,8 @@ public class LendingCartRoutes implements Routes {
      * @param notesMissing the lending stations whose request did not get the note
      */
     public record CheckoutView(List<LendingRequestResponse> sent, List<String> failed, List<String> notesMissing) {}
+
+    private static boolean lendingManager(StationSession session) {
+        return session.hasPermission(StationPermission.INVENTORY_LENDING_MANAGER);
+    }
 }

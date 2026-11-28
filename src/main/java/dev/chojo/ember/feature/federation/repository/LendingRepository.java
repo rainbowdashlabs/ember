@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.federation.entity.InventoryBlock;
@@ -19,6 +20,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -218,12 +220,33 @@ public class LendingRepository {
                 .all();
     }
 
-    /** Moves a request on only from the status it is expected to be in, so two moves never both happen. */
-    public boolean updateRequestStatusFrom(int id, LendingStatus expected, LendingStatus status) {
+    /**
+     * Moves a request on only from a status the step is allowed from, so a step the table refuses, or one
+     * another move got to first, changes nothing.
+     *
+     * @param id     the request
+     * @param status the status it moves to
+     * @return {@code true} when this call moved it
+     */
+    public boolean moveStatus(int id, LendingStatus status) {
+        return moveStatus(id, LendingStatus.predecessorsOf(status), status);
+    }
+
+    /**
+     * Moves a request on only from one of the given statuses.
+     *
+     * @param id       the request
+     * @param expected the statuses it may be in now
+     * @param status   the status it moves to
+     * @return {@code true} when this call moved it
+     */
+    public boolean moveStatus(int id, Set<LendingStatus> expected, LendingStatus status) {
+        var from = expected.stream().map(Enum::name).toList();
+        if (from.isEmpty()) return false;
         return query("""
                 UPDATE federation_lending_request SET status = :status, updated_at = now()
-                WHERE id = :id AND status = :expected;""")
-                .single(call().bind("id", id).bind("status", status).bind("expected", expected))
+                WHERE id = :id AND status = ANY(:from::TEXT[]);""")
+                .single(call().bind("id", id).bind("status", status).bind("from", from, PostgreSqlTypes.TEXT))
                 .update()
                 .changed();
     }

@@ -107,4 +107,5 @@ export default {
     'X-089': 'Nur Ausrüstung, die unterwegs ist, lässt sich zurückprüfen oder anmahnen',
     'X-090': 'Die Rückgabeprüfung muss jedes Stück der Ausleihe abdecken, und nur diese',
     'X-091': 'Die Ausrüstung ist noch nicht überfällig',
+    'X-092': 'Die Anfrage kann diesen Schritt gerade nicht gehen. Lade die Seite neu, um den aktuellen Stand zu sehen',
 }

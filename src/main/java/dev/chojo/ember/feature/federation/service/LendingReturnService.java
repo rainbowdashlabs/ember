@@ -121,7 +121,7 @@ public class LendingReturnService implements TaskSource {
                 custodyService.requireFreeToActOn(check.itemId(), ItemCustodyService.Allowance.lending(request.id()));
             }
         }
-        if (!lendingService.markReturnedFromLent(request.id(), stationId)) {
+        if (!lendingService.markReturned(request.id(), stationId)) {
             throw FederationRefusal.LENDING_NOT_OUT.raise();
         }
         String partner = lendingService.stationName(request.requestingStationUid(), stationId);

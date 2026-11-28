@@ -85,6 +85,7 @@ public class LendingRoutes implements Routes {
         routes.post(
                 prefix + "/lending/requests/{id}/decline",
                 this::declineRequest,
+                StationPermission.INVENTORY_LENDING_REQUEST,
                 StationPermission.INVENTORY_LENDING_MANAGER,
                 StationModule.INVENTORY_LENDING);
         routes.get(
@@ -191,7 +192,7 @@ public class LendingRoutes implements Routes {
                 views.occasionOf(session.stationId(), req.eventId()),
                 lines);
 
-        ctx.status(HttpStatus.CREATED).json(views.describe(request, session.stationId()));
+        ctx.status(HttpStatus.CREATED).json(views.describe(request, session.stationId(), lendingManager(session)));
     }
 
     @OpenApi(
@@ -202,7 +203,8 @@ public class LendingRoutes implements Routes {
         var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var request = views.requireParty(id, session.stationId());
-        ctx.json(new LendingRequestDetail(views.describe(request, session.stationId()), views.describeItems(id)));
+        ctx.json(new LendingRequestDetail(
+                views.describe(request, session.stationId(), lendingManager(session)), views.describeItems(id)));
     }
 
     @OpenApi(
@@ -217,7 +219,8 @@ public class LendingRoutes implements Routes {
         service.approveRequest(id, session.stationId());
         ctx.json(views.describe(
                 service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_APPROVAL::raise),
-                session.stationId()));
+                session.stationId(),
+                lendingManager(session)));
     }
 
     @OpenApi(
@@ -229,12 +232,15 @@ public class LendingRoutes implements Routes {
     private void declineRequest(Context ctx) {
         var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        views.requireOwner(id, session.stationId());
+        if (session.hasPermission(StationPermission.INVENTORY_LENDING_MANAGER))
+            views.requireParty(id, session.stationId());
+        else views.requireBorrower(id, session.stationId());
         var body = ctx.bodyAsClass(DeclineBody.class);
         service.declineRequest(id, session.stationId(), body.reason());
         ctx.json(views.describe(
                 service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_DECLINE::raise),
-                session.stationId()));
+                session.stationId(),
+                lendingManager(session)));
     }
 
     @OpenApi(
@@ -282,7 +288,8 @@ public class LendingRoutes implements Routes {
         service.markLent(id, session.stationId());
         ctx.json(views.describe(
                 service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_LENDING::raise),
-                session.stationId()));
+                session.stationId(),
+                lendingManager(session)));
     }
 
     @OpenApi(
@@ -297,7 +304,8 @@ public class LendingRoutes implements Routes {
         service.closeRequest(id, session.stationId());
         ctx.json(views.describe(
                 service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_CLOSING::raise),
-                session.stationId()));
+                session.stationId(),
+                lendingManager(session)));
     }
 
     @OpenApi(
@@ -420,4 +428,8 @@ public class LendingRoutes implements Routes {
     public record AssignItemsRequest(List<ItemAssignment> items) {}
 
     public record ItemAssignment(int requestItemId, int itemId) {}
+
+    private static boolean lendingManager(StationSession session) {
+        return session.hasPermission(StationPermission.INVENTORY_LENDING_MANAGER);
+    }
 }

@@ -74700,9 +74700,15 @@
           },
           "overdue" : {
             "type" : "boolean"
+          },
+          "allowedSteps" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LendingStatus"
+            }
           }
         },
-        "required" : [ "request", "requestingStationName", "owningStationName", "isOwner", "itemSummary", "overdue" ]
+        "required" : [ "request", "requestingStationName", "owningStationName", "isOwner", "itemSummary", "overdue", "allowedSteps" ]
       },
       "LendingStatus" : {
         "type" : "string",

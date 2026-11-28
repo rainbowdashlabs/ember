@@ -22,6 +22,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -516,5 +517,22 @@ class LendingRepositoryTest extends RepositoryTestBase {
         assertFalse(found.contains(dueToday.id()));
         assertTrue(found.contains(oneDay.id()));
         for (var request : List.of(agreed, dueToday, oneDay)) lendingRepo.deleteRequest(request.uid());
+    }
+
+    /** A status is written only from a status the step is allowed from, so a step that lost a race changes nothing. */
+    @Test
+    void aStatusMovesOnlyFromAnAllowedOne() {
+        var request = lendingRepo.createRequest(
+                stationB.uid(), stationA.uid(), LocalDate.now(), LocalDate.now(), memberB.id(), null, null, "");
+
+        assertFalse(lendingRepo.moveStatus(request.id(), LendingStatus.LENT), "nothing is handed over unagreed");
+        assertTrue(lendingRepo.moveStatus(request.id(), LendingStatus.APPROVED));
+        assertFalse(lendingRepo.moveStatus(request.id(), LendingStatus.APPROVED), "a second agreement moves nothing");
+        assertEquals(
+                LendingStatus.APPROVED,
+                lendingRepo.findRequestById(request.id()).orElseThrow().status());
+        assertTrue(lendingRepo.moveStatus(
+                request.id(), Set.of(LendingStatus.REQUESTED, LendingStatus.APPROVED), LendingStatus.LENT));
+        lendingRepo.deleteRequest(request.uid());
     }
 }
