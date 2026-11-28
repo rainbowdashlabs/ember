@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed, useSlots} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -22,6 +23,9 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
  * <p>The arrow that opens and closes the card stands at the far end of the line in both states, with the delete
  * button kept apart before it: a second click on the arrow, as in a double click, toggles the card again and never
  * lands on delete.
+ *
+ * <p>The line is laid out in fixed columns, so the names, values and type badges of a list stand
+ * under each other whatever type each question has. Without a value the name takes its column.
  */
 const open = defineModel<boolean>('open', {required: true})
 
@@ -35,6 +39,14 @@ defineProps<{
   disabled?: boolean
 }>()
 
+const slots = useSlots()
+
+/** The columns of the closed line: name, value where the list has one, then type, marks and buttons. */
+const LINE = computed(() => [
+  'grid grid-cols-1 items-center gap-2',
+  slots.value ? 'sm:grid-cols-[14rem_minmax(0,1fr)_auto]' : 'sm:grid-cols-[minmax(0,1fr)_auto]',
+])
+
 const emit = defineEmits<{
   'update:name': [name: string]
   remove: []
@@ -45,18 +57,20 @@ const {t} = useI18n()
 
 <template>
   <div data-testid="question-row">
-    <div v-if="!open" class="flex flex-wrap items-center gap-2">
+    <div v-if="!open" :class="LINE">
       <TextInput
           :model-value="name"
           :aria-label="nameLabel"
           :disabled="disabled"
-          class="min-w-0 grow basis-32 font-semibold"
+          class="min-w-0 font-semibold"
           data-testid="question-row-name"
           @update:model-value="value => emit('update:name', String(value ?? ''))"
       />
       <slot name="value"/>
-      <div class="flex shrink-0 items-center gap-1">
-        <SecondaryBadge data-testid="question-row-type">{{ typeLabel }}</SecondaryBadge>
+      <div class="flex min-w-0 shrink-0 items-center justify-end gap-1">
+        <span class="flex w-56 min-w-0 justify-end">
+          <SecondaryBadge class="max-w-full truncate" :title="typeLabel" data-testid="question-row-type">{{ typeLabel }}</SecondaryBadge>
+        </span>
         <slot name="marks"/>
         <DeleteButton
             :disabled="disabled"
