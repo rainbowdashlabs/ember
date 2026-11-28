@@ -355,7 +355,13 @@ public class EventGroupRegistrationService {
             return signUps.find(eventGroupId, memberId).orElseThrow();
         });
         registrationService.recordedAll(written);
-        announce(decided.getFirst(), memberId, decision);
+        eventBus.publish(EventGroupRegistrationStatusChanged.decision(
+                decided.getFirst().stationId(),
+                decided.getFirst().id(),
+                decided.getFirst().details().name(),
+                memberId,
+                names.called(memberId),
+                decision));
         return signUp;
     }
 
@@ -454,6 +460,7 @@ public class EventGroupRegistrationService {
                 names.called(memberId),
                 RegistrationStatus.QUEUED,
                 rank,
+                false,
                 false,
                 false));
     }

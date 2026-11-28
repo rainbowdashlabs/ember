@@ -308,7 +308,8 @@ public class EventGroupQueue {
                     RegistrationStatus.ACCEPTED,
                     null,
                     true,
-                    atShortNotice.contains(memberId))));
+                    atShortNotice.contains(memberId),
+                    false)));
         }
         return moved;
     }

@@ -21,8 +21,8 @@ import jakarta.inject.Singleton;
 
 /**
  * Notifies a member, and whoever runs events, that an event group sign-up changed: once for the event group, not
- * once for every part chosen with it. Moving up from the waiting list and being put on it are sent to
- * the member only.
+ * once for every part chosen with it. Moving up from the waiting list, being put on it, and being
+ * accepted or denied are sent to the member only.
  */
 @Singleton
 public class EventGroupRegistrationStatusHandler implements DomainEventHandler<EventGroupRegistrationStatusChanged> {
@@ -55,7 +55,7 @@ public class EventGroupRegistrationStatusHandler implements DomainEventHandler<E
                 NotificationType.EVENT_REGISTRATION_STATUS,
                 data,
                 Delivery.EVERY_TIME);
-        if (event.movedUp() || event.newStatus() == RegistrationStatus.QUEUED) return;
+        if (event.movedUp() || event.decided() || event.newStatus() == RegistrationStatus.QUEUED) return;
         notifier.notify(
                 StationAudience.holders(event.stationId(), StationPermission.EVENT_MANAGER)
                         .except(event.memberId()),
