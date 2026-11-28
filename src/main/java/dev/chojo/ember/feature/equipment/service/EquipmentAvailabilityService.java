@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.equipment.service;
 
 import dev.chojo.ember.feature.equipment.entity.ClaimOrigin;
+import dev.chojo.ember.feature.equipment.entity.ClaimSnapshot;
 import dev.chojo.ember.feature.equipment.entity.EquipmentAvailability;
 import dev.chojo.ember.feature.equipment.entity.EquipmentClaim;
 import dev.chojo.ember.feature.equipment.entity.EquipmentHandover;
@@ -168,6 +169,33 @@ public class EquipmentAvailabilityService {
                 .map(claim -> sizeAgainst(claim, stock))
                 .toList();
         return new EquipmentAvailability(question, from, to, stock, claims);
+    }
+
+    /**
+     * Every claim on a station's stock over a span, read once, for a caller that counts many windows or
+     * many things inside it.
+     *
+     * @param stationId the station
+     * @param from      the first moment of the span
+     * @param to        the last moment of the span
+     * @return the claims
+     */
+    public ClaimSnapshot snapshot(int stationId, Instant from, Instant to) {
+        return new ClaimSnapshot(claims(stationId, from, to, null));
+    }
+
+    /**
+     * One thing to ask a snapshot about, resolved with its stock.
+     *
+     * @param stationId the station
+     * @param target    what is asked about
+     * @return the question, or empty where the thing no longer exists
+     */
+    public Optional<ClaimSnapshot.Question> question(int stationId, LineTarget target) {
+        return availabilityRepository
+                .resolve(target)
+                .map(resolved -> new ClaimSnapshot.Question(
+                        target, resolved, availabilityRepository.stockOf(stationId, target)));
     }
 
     /**
@@ -412,17 +440,7 @@ public class EquipmentAvailabilityService {
     }
 
     private static EquipmentClaim sizeAgainst(EquipmentClaim claim, int stock) {
-        if (claim.origin() != ClaimOrigin.BLOCK || claim.firm()) return claim;
-        return new EquipmentClaim(
-                claim.origin(),
-                claim.target(),
-                claim.label(),
-                claim.eventId(),
-                claim.eventDate(),
-                stock,
-                claim.from(),
-                claim.to(),
-                claim.firm());
+        return ClaimSnapshot.sized(claim, stock);
     }
 
     private static @Nullable LineTarget targetOf(

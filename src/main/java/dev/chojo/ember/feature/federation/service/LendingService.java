@@ -162,7 +162,7 @@ public class LendingService implements FederationServer {
         });
     }
 
-    private static LocalDate day(PathParams params, String name) {
+    static LocalDate day(PathParams params, String name) {
         try {
             return params.query(name)
                     .filter(value -> !value.isBlank())
@@ -403,7 +403,7 @@ public class LendingService implements FederationServer {
      * @param partner the partnership seen from the asking station
      * @return {@code true} when gear may travel along it
      */
-    private boolean lendsWith(FederationPartner partner) {
+    boolean lendsWith(FederationPartner partner) {
         return federationService.hasCapability(partner, CapabilityType.INVENTORY_LEND, Direction.IMPORT);
     }
 
@@ -1132,7 +1132,8 @@ public class LendingService implements FederationServer {
         }
     }
 
-    private @Nullable FederationPartner findPartnerForStation(int localStationId, UUID partnerStationUid) {
+    @Nullable
+    FederationPartner findPartnerForStation(int localStationId, UUID partnerStationUid) {
         var partners = federationService.findPartners(localStationId);
         for (var p : partners) {
             if (Objects.equals(p.partnerStationId(), partnerStationUid)
@@ -1154,21 +1155,8 @@ public class LendingService implements FederationServer {
         if (local == null || local.latitude() == null || local.longitude() == null) {
             return results;
         }
-        double localLat = local.latitude().doubleValue();
-        double localLon = local.longitude().doubleValue();
-
         var decorated = new ArrayList<AvailableInventoryEntry>(results.size());
         for (var entry : results) {
-            Double distance = null;
-            var partnerStation =
-                    stationRepository.findHereByUid(entry.stationId()).orElse(null);
-            if (partnerStation != null && partnerStation.latitude() != null && partnerStation.longitude() != null) {
-                distance = StationLocationService.distanceKm(
-                        localLat,
-                        localLon,
-                        partnerStation.latitude().doubleValue(),
-                        partnerStation.longitude().doubleValue());
-            }
             decorated.add(new AvailableInventoryEntry(
                     entry.inventoryId(),
                     entry.inventoryName(),
@@ -1177,7 +1165,7 @@ public class LendingService implements FederationServer {
                     entry.stationId(),
                     entry.stationName(),
                     entry.availableCount(),
-                    distance,
+                    distanceKm(local, entry.stationId()),
                     entry.pictureKey(),
                     entry.icon(),
                     entry.color(),
@@ -1186,6 +1174,26 @@ public class LendingService implements FederationServer {
         decorated.sort(Comparator.comparing(
                 AvailableInventoryEntry::distanceKm, Comparator.nullsLast(Comparator.naturalOrder())));
         return decorated;
+    }
+
+    /**
+     * The great-circle distance from a station to a partner station on this instance, computed here so
+     * the partner never has to give its coordinates away.
+     *
+     * @param local             the asking station, or {@code null}
+     * @param partnerStationUid the partner station
+     * @return the distance in kilometres, or {@code null} where either station gives no location
+     */
+    @Nullable
+    Double distanceKm(@Nullable Station local, UUID partnerStationUid) {
+        if (local == null || local.latitude() == null || local.longitude() == null) return null;
+        var partner = stationRepository.findHereByUid(partnerStationUid).orElse(null);
+        if (partner == null || partner.latitude() == null || partner.longitude() == null) return null;
+        return StationLocationService.distanceKm(
+                local.latitude().doubleValue(),
+                local.longitude().doubleValue(),
+                partner.latitude().doubleValue(),
+                partner.longitude().doubleValue());
     }
 
     /**
@@ -1254,9 +1262,10 @@ public class LendingService implements FederationServer {
     }
 
     /**
-     * Whether a partner may see a photo: it belongs to an inventory or a kind with something on offer
-     * to the partner right now, whatever the day, and is the photo that offer is shown with. Only the
-     * inventory holding the key is looked at.
+     * Whether a partner may see a photo: it belongs to an inventory with something on offer to the
+     * partner right now, whatever the day, and is one the lending shop shows that offer with: the
+     * inventory's own, a kind's of an offered piece, or an offered piece's own. Only the inventory
+     * holding the key is looked at.
      *
      * @param partner    the partnership the question arrived on
      * @param pictureKey the key asked for
@@ -1268,8 +1277,24 @@ public class LendingService implements FederationServer {
         if (inventoryId.isEmpty()) return false;
         var policy = shareService.policyFor(lendingStationId, partner.askingStationUid());
         if (!policy.offersAnything()) return false;
-        return offeredGroups(lendingStationId, policy, inventoryId.get(), null, null, null).stream()
-                .anyMatch(group -> pictureKey.equals(group.pictureKey()));
+        for (var stock : offeredStock(lendingStationId, policy, inventoryId.get(), null, null, null)) {
+            if (pictureKey.equals(stock.inventory().pictureKey())) return true;
+            var offeredArts = stock.pieces().stream()
+                    .map(InventoryItem::artId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            for (var art : artRepository.findByInventory(stock.inventory().id())) {
+                if (offeredArts.contains(art.id()) && pictureKey.equals(art.pictureKey())) return true;
+            }
+            var offeredPieces = stock.pieces().stream().map(InventoryItem::id).collect(Collectors.toSet());
+            for (var presentation :
+                    inventoryRepository.findItemPresentations(stock.inventory().id())) {
+                if (offeredPieces.contains(presentation.itemId()) && pictureKey.equals(presentation.pictureKey())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -1283,17 +1308,55 @@ public class LendingService implements FederationServer {
             @Nullable String query,
             @Nullable LocalDate dateFrom,
             @Nullable LocalDate dateTo) {
-        var lender = lenderAt(lendingStationId);
         var groups = new ArrayList<OfferedGroup>();
+        for (var stock : offeredStock(lendingStationId, policy, onlyInventory, query, dateFrom, dateTo)) {
+            var perArt = new LinkedHashMap<Integer, Integer>();
+            for (var item : stock.pieces()) {
+                perArt.merge(item.artId(), 1, Integer::sum);
+            }
+            for (var group : perArt.entrySet()) {
+                Integer artId = group.getKey();
+                InventoryArt art =
+                        artId == null ? null : artRepository.findById(artId).orElse(null);
+                groups.add(new OfferedGroup(stock.inventory(), artId, art, group.getValue()));
+            }
+        }
+        return groups;
+    }
+
+    /**
+     * What a station has free to offer under a policy, per inventory: the pieces on the shelf, carried by
+     * no open movement, held by no loan, owned by the station, shared with the partner, and not blocked
+     * over the days asked for. An inventory with nothing on offer is left out, and so is one the search
+     * does not reach through something on offer.
+     *
+     * @param lendingStationId the station doing the lending
+     * @param policy           what the station shares with the asking partner
+     * @param onlyInventory    one inventory to look at, or {@code null} for every one
+     * @param query            a search over names and descriptions, or {@code null}
+     * @param dateFrom         the first day the gear is wanted, or {@code null}
+     * @param dateTo           the last day, or {@code null}
+     * @return one entry per inventory with something on offer, in the station's order
+     */
+    List<OfferedStock> offeredStock(
+            int lendingStationId,
+            SharePolicy policy,
+            @Nullable Integer onlyInventory,
+            @Nullable String query,
+            @Nullable LocalDate dateFrom,
+            @Nullable LocalDate dateTo) {
+        var lender = lenderAt(lendingStationId);
+        var result = new ArrayList<OfferedStock>();
         Map<Integer, InventoryMatch> matches =
                 query == null || query.isBlank() ? null : searchService.match(lendingStationId, query);
+        List<InventoryBlock> blocks = dateFrom == null
+                ? List.of()
+                : repository.findActiveBlocks(lendingStationId, dateFrom, dateTo == null ? dateFrom : dateTo);
         for (var inv : inventoryRepository.findByStation(lendingStationId)) {
             if (onlyInventory != null && inv.id() != onlyInventory) continue;
             InventoryMatch match = matches == null ? null : matches.get(inv.id());
             if (matches != null && match == null) continue;
-            if (dateFrom != null && isBlocked(lendingStationId, inv.id(), null, dateFrom, dateTo)) {
-                continue;
-            }
+            if (blocks(blocks, inv.id(), null)) continue;
 
             var offered = shareService
                     .filterShared(
@@ -1302,23 +1365,51 @@ public class LendingService implements FederationServer {
                                     .filter(lender::owns)
                                     .toList())
                     .stream()
-                    .filter(item -> dateFrom == null || !isBlocked(lendingStationId, null, item.id(), dateFrom, dateTo))
+                    .filter(item -> !blocks(blocks, null, item.id()))
                     .toList();
+            if (offered.isEmpty()) continue;
             if (match != null && !matchesAnyOffered(match, offered)) continue;
-
-            var perArt = new LinkedHashMap<Integer, Integer>();
-            for (var item : offered) {
-                perArt.merge(item.artId(), 1, Integer::sum);
-            }
-            for (var group : perArt.entrySet()) {
-                Integer artId = group.getKey();
-                InventoryArt art =
-                        artId == null ? null : artRepository.findById(artId).orElse(null);
-                groups.add(new OfferedGroup(inv, artId, art, group.getValue()));
-            }
+            result.add(new OfferedStock(inv, offered, match));
         }
-        return groups;
+        return result;
     }
+
+    /**
+     * Whether any of the blocks covers the station, the inventory or the piece, by
+     * {@link InventoryBlock#covers}, for a caller that read the blocks once.
+     *
+     * @param blocks      the blocks over the days in question
+     * @param inventoryId the inventory, or {@code null}
+     * @param itemId      the piece, or {@code null}
+     * @return {@code true} when one of them covers it
+     */
+    static boolean blocks(List<InventoryBlock> blocks, @Nullable Integer inventoryId, @Nullable Integer itemId) {
+        return blocks.stream().anyMatch(block -> block.covers(inventoryId, itemId));
+    }
+
+    /**
+     * The blocks of a station that touch any of the days, read once.
+     *
+     * @param stationId the station
+     * @param first     the first day
+     * @param last      the last day, inclusive
+     * @return the blocks
+     */
+    List<InventoryBlock> blocksBetween(int stationId, LocalDate first, LocalDate last) {
+        return repository.findActiveBlocks(stationId, first, last);
+    }
+
+    /**
+     * One inventory with the pieces of it on offer to a partner, and how a search reached it.
+     *
+     * @param inventory the inventory
+     * @param pieces    the pieces on offer, never empty
+     * @param match     how the search reached it, or {@code null} where nothing was searched for
+     */
+    record OfferedStock(
+            Inventory inventory,
+            List<InventoryItem> pieces,
+            @Nullable InventoryMatch match) {}
 
     /**
      * Whether a search reaches the inventory through something actually on offer: the inventory

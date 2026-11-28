@@ -91,4 +91,7 @@ export default {
     'X-073': 'Eine Partnerschaftsanfrage dieser Wache ist hier nicht bekannt',
     'X-074': 'Eine Wache kann keine Partnerschaft mit sich selbst eingehen',
     'X-075': 'Dieses Foto gehört nicht zu dem, was deiner Wache angeboten wird',
+    'X-076': 'Diese Ausrüstung gehört nicht zu dem, was deiner Wache angeboten wird',
+    'X-077': 'Ein abgefragter Monat ist kein Monat',
+    'X-078': 'Der letzte Tag liegt vor dem ersten, tausche die beiden',
 }

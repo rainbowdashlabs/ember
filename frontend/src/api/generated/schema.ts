@@ -34069,6 +34069,148 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/lending/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the lending partners offer, one product per inventory, nearest first */
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    q?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductList"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/lending/products/{stationUid}/{inventoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One product of a lending partner with its kinds or single pieces */
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path: {
+                    inventoryId: number;
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductDetail"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/lending/products/{stationUid}/{inventoryId}/days": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What is free of a partner's product on each day of a month */
+        get: {
+            parameters: {
+                query: {
+                    itemId?: number;
+                    month: string;
+                };
+                header?: never;
+                path: {
+                    inventoryId: number;
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RemoteProductDays"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federated/my-registrations": {
         parameters: {
             query?: never;
@@ -80412,6 +80554,24 @@ export interface components {
             sizeLabel: string | null;
             stock: components["schemas"]["StockPiece"][];
         };
+        ProductDetail: {
+            distanceKm: number | null;
+            product: components["schemas"]["RemoteProduct"];
+            /** Format: uuid */
+            stationId: string;
+            stationName: string;
+        };
+        ProductList: {
+            emptyReason: components["schemas"]["EmptyReason"] | null;
+            products: components["schemas"]["ProductSummary"][];
+        };
+        ProductSummary: {
+            distanceKm: number | null;
+            product: components["schemas"]["RemoteProductSummary"];
+            /** Format: uuid */
+            stationId: string;
+            stationName: string;
+        };
         ProfileField: {
             config: components["schemas"]["ProfileFieldConfig"];
             /** Format: int32 */
@@ -81551,6 +81711,12 @@ export interface components {
         ReminderResult: "SENT" | "CONFIRMED_WITHOUT_MAIL";
         /** @enum {string} */
         ReminderTrigger: "MANUAL" | "AFTER_7_DAYS" | "AFTER_21_DAYS";
+        RemoteAddress: {
+            addressLine: string;
+            city: string;
+            country: string;
+            postalCode: string;
+        };
         RemoteAttachment: {
             fileName: string;
             /** Format: int64 */
@@ -81589,6 +81755,22 @@ export interface components {
             /** Format: int32 */
             waiting: number;
         };
+        RemoteDay: {
+            blocked: boolean;
+            counts: components["schemas"]["RemoteDayCount"][];
+            day: components["schemas"]["LocalDate"];
+        };
+        RemoteDayCount: {
+            /** Format: int32 */
+            artId: number | null;
+            /** Format: int32 */
+            free: number;
+            /** Format: int32 */
+            itemId: number | null;
+            /** Format: int32 */
+            offered: number;
+            singles: boolean;
+        };
         RemoteKbFile: {
             conversionStatus: components["schemas"]["ConversionStatus"] | null;
             createdAt: components["schemas"]["Instant"];
@@ -81606,6 +81788,17 @@ export interface components {
             updatedAt: components["schemas"]["Instant"];
             youtubeUrl: string | null;
         };
+        RemoteKind: {
+            /** Format: int32 */
+            artId: number | null;
+            color: string | null;
+            description: string;
+            /** Format: int32 */
+            free: number;
+            icon: string | null;
+            name: string;
+            pictureKey: string | null;
+        };
         RemoteMemberRegistration: {
             eventDate: string;
             /** Format: int32 */
@@ -81622,10 +81815,50 @@ export interface components {
             instanceHost: string;
             stationName: string;
         };
+        RemotePiece: {
+            description: string;
+            free: boolean;
+            /** Format: int32 */
+            itemId: number;
+            name: string;
+            pictureKey: string | null;
+        };
         RemotePlaces: {
             decidesItself: boolean;
             /** Format: int32 */
             slotBudget: number | null;
+        };
+        RemoteProduct: {
+            address: components["schemas"]["RemoteAddress"] | null;
+            color: string | null;
+            description: string;
+            icon: string | null;
+            /** Format: int32 */
+            inventoryId: number;
+            kinds: components["schemas"]["RemoteKind"][];
+            name: string;
+            pictureKey: string | null;
+            pieces: components["schemas"]["RemotePiece"][];
+        };
+        RemoteProductDays: {
+            days: components["schemas"]["RemoteDay"][];
+        };
+        RemoteProductSummary: {
+            color: string | null;
+            /** Format: int32 */
+            free: number;
+            icon: string | null;
+            /** Format: int32 */
+            inventoryId: number;
+            /** Format: int32 */
+            kinds: number;
+            matched: string[];
+            name: string;
+            pictureKey: string | null;
+            /** Format: int32 */
+            pieces: number;
+            rank: number;
+            teaser: string;
         };
         RemoteProtocolDetail: {
             items: components["schemas"]["TestProtocolItem"][];
@@ -86268,6 +86501,9 @@ export type ProcedureTemplateDetail = components['schemas']['ProcedureTemplateDe
 export type ProcedureTemplateItem = components['schemas']['ProcedureTemplateItem'];
 export type ProcedureTemplateRequest = components['schemas']['ProcedureTemplateRequest'];
 export type ProcurementResponse = components['schemas']['ProcurementResponse'];
+export type ProductDetail = components['schemas']['ProductDetail'];
+export type ProductList = components['schemas']['ProductList'];
+export type ProductSummary = components['schemas']['ProductSummary'];
 export type ProfileField = components['schemas']['ProfileField'];
 export type ProfileFieldAssignment = components['schemas']['ProfileFieldAssignment'];
 export type ProfileFieldChange = components['schemas']['ProfileFieldChange'];
@@ -86417,14 +86653,22 @@ export type RelatedFilesRequest = components['schemas']['RelatedFilesRequest'];
 export type RelatedFilesResponse = components['schemas']['RelatedFilesResponse'];
 export type ReminderResult = components['schemas']['ReminderResult'];
 export type ReminderTrigger = components['schemas']['ReminderTrigger'];
+export type RemoteAddress = components['schemas']['RemoteAddress'];
 export type RemoteAttachment = components['schemas']['RemoteAttachment'];
 export type RemoteBoard = components['schemas']['RemoteBoard'];
 export type RemoteCatalogDetail = components['schemas']['RemoteCatalogDetail'];
 export type RemoteDatePlaces = components['schemas']['RemoteDatePlaces'];
+export type RemoteDay = components['schemas']['RemoteDay'];
+export type RemoteDayCount = components['schemas']['RemoteDayCount'];
 export type RemoteKbFile = components['schemas']['RemoteKbFile'];
+export type RemoteKind = components['schemas']['RemoteKind'];
 export type RemoteMemberRegistration = components['schemas']['RemoteMemberRegistration'];
 export type RemotePairRequestResponse = components['schemas']['RemotePairRequestResponse'];
+export type RemotePiece = components['schemas']['RemotePiece'];
 export type RemotePlaces = components['schemas']['RemotePlaces'];
+export type RemoteProduct = components['schemas']['RemoteProduct'];
+export type RemoteProductDays = components['schemas']['RemoteProductDays'];
+export type RemoteProductSummary = components['schemas']['RemoteProductSummary'];
 export type RemoteProtocolDetail = components['schemas']['RemoteProtocolDetail'];
 export type RemovalResponse = components['schemas']['RemovalResponse'];
 export type Renamed = components['schemas']['Renamed'];

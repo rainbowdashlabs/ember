@@ -27049,6 +27049,156 @@
         } ]
       }
     },
+    "/api/v1/federated/lending/products" : {
+      "get" : {
+        "summary" : "What the lending partners offer, one product per inventory, nearest first",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProductList"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "from",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federated/lending/products/{stationUid}/{inventoryId}" : {
+      "get" : {
+        "summary" : "One product of a lending partner with its kinds or single pieces",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProductDetail"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "from",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federated/lending/products/{stationUid}/{inventoryId}/days" : {
+      "get" : {
+        "summary" : "What is free of a partner's product on each day of a month",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RemoteProductDays"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "month",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "itemId",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/federated/my-registrations" : {
       "get" : {
         "summary" : "List the reader's household's registrations at partner stations",
@@ -81434,6 +81584,63 @@
         },
         "required" : [ "id", "inventoryId", "inventoryName", "memberId", "memberName", "memberIdentity", "sizeId", "sizeLabel", "notes", "requestedAt", "fulfilledAt", "stock", "movementId", "owner" ]
       },
+      "ProductDetail" : {
+        "type" : "object",
+        "properties" : {
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "distanceKm" : {
+            "type" : [ "number", "null" ]
+          },
+          "product" : {
+            "$ref" : "#/components/schemas/RemoteProduct"
+          }
+        },
+        "required" : [ "stationId", "stationName", "distanceKm", "product" ]
+      },
+      "ProductList" : {
+        "type" : "object",
+        "properties" : {
+          "products" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ProductSummary"
+            }
+          },
+          "emptyReason" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EmptyReason"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "products", "emptyReason" ]
+      },
+      "ProductSummary" : {
+        "type" : "object",
+        "properties" : {
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "distanceKm" : {
+            "type" : [ "number", "null" ]
+          },
+          "product" : {
+            "$ref" : "#/components/schemas/RemoteProductSummary"
+          }
+        },
+        "required" : [ "stationId", "stationName", "distanceKm", "product" ]
+      },
       "ProfileField" : {
         "type" : "object",
         "properties" : {
@@ -84745,6 +84952,24 @@
         "type" : "string",
         "enum" : [ "MANUAL", "AFTER_7_DAYS", "AFTER_21_DAYS" ]
       },
+      "RemoteAddress" : {
+        "type" : "object",
+        "properties" : {
+          "addressLine" : {
+            "type" : "string"
+          },
+          "postalCode" : {
+            "type" : "string"
+          },
+          "city" : {
+            "type" : "string"
+          },
+          "country" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "addressLine", "postalCode", "city", "country" ]
+      },
       "RemoteAttachment" : {
         "type" : "object",
         "properties" : {
@@ -84847,6 +85072,49 @@
         },
         "required" : [ "date", "limit", "taken", "waiting" ]
       },
+      "RemoteDay" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "blocked" : {
+            "type" : "boolean"
+          },
+          "counts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RemoteDayCount"
+            }
+          }
+        },
+        "required" : [ "day", "blocked", "counts" ]
+      },
+      "RemoteDayCount" : {
+        "type" : "object",
+        "properties" : {
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "singles" : {
+            "type" : "boolean"
+          },
+          "free" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "offered" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "artId", "itemId", "singles", "free", "offered" ]
+      },
       "RemoteKbFile" : {
         "type" : "object",
         "properties" : {
@@ -84896,6 +85164,35 @@
         },
         "required" : [ "id", "stationUid", "name", "description", "fileType", "mimeType", "fileSize", "youtubeUrl", "linkUrl", "createdAt", "updatedAt", "conversionStatus" ]
       },
+      "RemoteKind" : {
+        "type" : "object",
+        "properties" : {
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          },
+          "free" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "artId", "name", "description", "pictureKey", "icon", "color", "free" ]
+      },
       "RemoteMemberRegistration" : {
         "type" : "object",
         "properties" : {
@@ -84938,6 +85235,28 @@
         },
         "required" : [ "id", "stationName", "instanceHost", "createdAt" ]
       },
+      "RemotePiece" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "free" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "itemId", "name", "description", "pictureKey", "free" ]
+      },
       "RemotePlaces" : {
         "type" : "object",
         "properties" : {
@@ -84950,6 +85269,108 @@
           }
         },
         "required" : [ "slotBudget", "decidesItself" ]
+      },
+      "RemoteProduct" : {
+        "type" : "object",
+        "properties" : {
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          },
+          "address" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RemoteAddress"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "kinds" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RemoteKind"
+            }
+          },
+          "pieces" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RemotePiece"
+            }
+          }
+        },
+        "required" : [ "inventoryId", "name", "description", "pictureKey", "icon", "color", "address", "kinds", "pieces" ]
+      },
+      "RemoteProductDays" : {
+        "type" : "object",
+        "properties" : {
+          "days" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RemoteDay"
+            }
+          }
+        },
+        "required" : [ "days" ]
+      },
+      "RemoteProductSummary" : {
+        "type" : "object",
+        "properties" : {
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "teaser" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          },
+          "kinds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pieces" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "free" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "matched" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "rank" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "inventoryId", "name", "teaser", "pictureKey", "icon", "color", "kinds", "pieces", "free", "matched", "rank" ]
       },
       "RemoteProtocolDetail" : {
         "type" : "object",

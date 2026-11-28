@@ -318,7 +318,16 @@ public enum FederationRefusal implements Refusal {
      * station, or a partner that does not lend to it. One answer for both, so nothing is learned about
      * gear that is not offered.
      */
-    LENDING_PICTURE_NOT_OFFERED(75, HttpStatus.NOT_FOUND, "That photo is not part of what is offered to your station");
+    LENDING_PICTURE_NOT_OFFERED(75, HttpStatus.NOT_FOUND, "That photo is not part of what is offered to your station"),
+
+    /** A product page asked for an inventory, or a piece of it, that the station does not offer the asking one. */
+    LENDING_PRODUCT_NOT_OFFERED(76, HttpStatus.NOT_FOUND, "That gear is not part of what is offered to your station"),
+
+    /** A calendar asked for a month that is not one, such as {@code 2026-13}. */
+    LENDING_MONTH_NOT_A_MONTH(77, HttpStatus.BAD_REQUEST, "A month asked about is not a month"),
+
+    /** Days asked about whose last day comes before the first. */
+    LENDING_WINDOW_BACKWARDS(78, HttpStatus.BAD_REQUEST, "The last day comes before the first, so swap them");
 
     private final Definition definition;
 

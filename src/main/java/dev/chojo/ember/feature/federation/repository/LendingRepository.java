@@ -447,21 +447,8 @@ public class LendingRepository {
             @Nullable Integer itemId,
             LocalDate dateFrom,
             LocalDate dateTo) {
-        var blocks = findActiveBlocks(stationId, dateFrom, dateTo);
-        for (var block : blocks) {
-            Integer blockedInventory = block.inventoryId();
-            Integer blockedItem = block.itemId();
-            if (blockedInventory == null && blockedItem == null) {
-                return true;
-            }
-            if (blockedInventory != null && blockedInventory.equals(inventoryId) && blockedItem == null) {
-                return true;
-            }
-            if (blockedItem != null && blockedItem.equals(itemId)) {
-                return true;
-            }
-        }
-        return false;
+        return findActiveBlocks(stationId, dateFrom, dateTo).stream()
+                .anyMatch(block -> block.covers(inventoryId, itemId));
     }
 
     /**
