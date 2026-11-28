@@ -190,7 +190,7 @@ class LendingRoutesTest {
         verify(lending).approveRequest(5, STATION);
         verify(lending).declineRequest(5, STATION, "voll");
         verify(lending).markLent(5, STATION);
-        verify(lending).assignItem(1, 9, STATION);
+        verify(lending).assignItem(5, 1, 9, STATION);
     }
 
     @Test
@@ -201,7 +201,7 @@ class LendingRoutesTest {
                 client -> client.post(PREFIX + "/lending/requests/5/assign-items", body("{\"items\": []}"), manager()));
 
         assertEquals(FederationRefusal.LENDING_REQUEST_NOT_APPROVED, refusalOf(answer));
-        verify(lending, never()).assignItem(anyInt(), anyInt(), anyInt());
+        verify(lending, never()).assignItem(anyInt(), anyInt(), anyInt(), anyInt());
     }
 
     @Test

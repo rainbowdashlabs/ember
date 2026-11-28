@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityReposit
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
+import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
@@ -207,7 +208,10 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
         assertThrows(RefusalResponse.class, () -> inventoryService.deleteItem(copy.id(), null));
         assertThrows(RefusalResponse.class, () -> inventoryService.moveItem(copy.id(), inventoryId, null));
         assertTrue(
-                lending.findAssignableItems(borrower.id(), copy.inventoryId()).isEmpty(),
+                lending.findAssignableItems(
+                                borrower.id(),
+                                new LendingRequestItem(0, 0, copy.inventoryId(), null, null, 1, null, ""))
+                        .isEmpty(),
                 "a borrower cannot lend a partner's radio on to a third station");
 
         handBack(requestId, source);
@@ -277,7 +281,7 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
                 null,
                 "");
         var line = lending.addRequestItem(request.id(), inventoryId, item.id(), null, 1, null);
-        lending.assignItem(line.id(), item.id(), owner.id());
+        lending.assignItem(request.id(), line.id(), item.id(), owner.id());
         assertTrue(lending.markLent(request.id(), owner.id()));
         return request.id();
     }

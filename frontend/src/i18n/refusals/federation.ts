@@ -101,4 +101,5 @@ export default {
     'X-083': 'Erneut ausleihen geht nur bei einer Anfrage dieser Wache, die schon beantwortet wurde',
     'X-084': 'Der Anlass oder die Notiz ist zu lang',
     'X-085': 'Der Warenkorb wird gerade schon gesendet. Warte kurz und sieh dann nach',
+    'X-086': 'Das Stück passt nicht zu dieser Zeile der Anfrage. Wähle eines aus der Auswahl der Zeile',
 }

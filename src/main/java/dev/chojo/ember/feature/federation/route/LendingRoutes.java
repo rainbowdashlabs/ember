@@ -270,7 +270,7 @@ public class LendingRoutes implements Routes {
         var assignments = ctx.bodyAsClass(AssignItemsRequest.class);
         if (assignments.items() != null) {
             for (var a : assignments.items()) {
-                service.assignItem(a.requestItemId(), a.itemId(), session.stationId());
+                service.assignItem(id, a.requestItemId(), a.itemId(), session.stationId());
             }
         }
         ctx.status(HttpStatus.NO_CONTENT);

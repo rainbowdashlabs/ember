@@ -351,7 +351,11 @@ public enum FederationRefusal implements Refusal {
     LENDING_CART_TEXT_TOO_LONG(84, HttpStatus.BAD_REQUEST, "The occasion or the note is too long"),
 
     /** A cart sent while somebody else is already sending it. */
-    LENDING_CART_BEING_SENT(85, HttpStatus.CONFLICT, "The cart is being sent already, so wait a moment and look again");
+    LENDING_CART_BEING_SENT(85, HttpStatus.CONFLICT, "The cart is being sent already, so wait a moment and look again"),
+
+    /** A piece handed over for a line that asks for another kind, inventory or piece. */
+    LENDING_PIECE_NOT_FOR_LINE(
+            86, HttpStatus.BAD_REQUEST, "The piece does not fit this line of the request, so pick one the line offers");
 
     private final Definition definition;
 

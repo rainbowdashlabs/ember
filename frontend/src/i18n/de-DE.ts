@@ -1816,10 +1816,6 @@ export default {
             title: 'Ausleihe',
             subtitle: 'Ausrüstung einer Partnerwache',
         },
-        'inventory-lending-create': {
-            title: 'Ausleih-Anfrage',
-            subtitle: 'Neue Ausleihe anfragen',
-        },
         'inventory-lending-blocks-create': {
             title: 'Sperrzeit anlegen',
             subtitle: 'Neuen Sperrzeitraum erstellen',
@@ -11822,10 +11818,8 @@ export default {
         selectInventory: 'Inventar auswählen...',
         addInventory: 'Hinzufügen',
         noAvailableItems: 'Keine verfügbaren Gegenstände.',
-        createRequest: 'Neue Anfrage',
         note: 'Bemerkung',
         notePlaceholder: 'Optionale Bemerkung zur Anfrage',
-        sendRequest: 'Anfrage senden',
         assignItems: 'Ausrüstung zuweisen',
         selectItemsToLend: 'Wähle die Gegenstände aus, die du ausgeben möchtest:',
         lendOut: 'Ausgeben',

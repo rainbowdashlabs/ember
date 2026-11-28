@@ -114,13 +114,17 @@ const {t} = useI18n()
                    to="/helpcenter/station/inventory/lending/browse" @navigate="close">
         {{ t('helpCenter.inventoryLendingBrowse.title') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'box-open']" name="help-inventory-lending-product"
+                   to="/helpcenter/station/inventory/lending/product/0/0" @navigate="close">
+        {{ t('helpCenter.inventoryLendingProduct.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'cart-shopping']" name="help-inventory-lending-cart"
+                   to="/helpcenter/station/inventory/lending/cart" @navigate="close">
+        {{ t('helpCenter.inventoryLendingCart.title') }}
+      </SidebarLink>
       <SidebarLink :icon="['fas', 'file-lines']" name="help-inventory-lending-request"
                    to="/helpcenter/station/inventory/lending/request/0" @navigate="close">
         {{ t('helpCenter.inventoryLendingRequest.title') }}
-      </SidebarLink>
-      <SidebarLink :icon="['fas', 'plus']" name="help-inventory-lending-create"
-                   to="/helpcenter/station/inventory/lending/request/new" @navigate="close">
-        {{ t('helpCenter.inventoryLendingCreate.title') }}
       </SidebarLink>
     </SidebarExpandableLink>
   </SidebarGroup>

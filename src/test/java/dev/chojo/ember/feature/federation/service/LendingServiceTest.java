@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
+import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.entity.ShareGrant;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -312,7 +313,7 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void assignItem() {
-        assertTrue(service.assignItem(requestItemId, itemIdA, stationA.id()));
+        assertTrue(service.assignItem(requestOf(requestItemId), requestItemId, itemIdA, stationA.id()));
         assertEquals(List.of(itemIdA), lendingRepo.findAssignedItems(requestItemId));
     }
 
@@ -800,7 +801,8 @@ class LendingServiceTest extends RepositoryTestBase {
                 inventoryRepo.createItem(inv.id(), "HELD-001", "Kreis-Jacke", null, null, ItemOwner.CLUSTER, clusterId);
         var line = lineOn(stationA, inv.id(), null);
 
-        var refused = assertThrows(RefusalResponse.class, () -> service.assignItem(line, held.id(), stationA.id()));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.assignItem(requestOf(line), line, held.id(), stationA.id()));
         assertEquals(FederationRefusal.LENDING_GEAR_NOT_THE_STATIONS, refused.refusal());
     }
 
@@ -815,7 +817,7 @@ class LendingServiceTest extends RepositoryTestBase {
         var own = inventoryRepo.createItem(inv.id(), "CLU-001", "Kreis-Zelt", null, null, ItemOwner.CLUSTER, clusterId);
         var line = lineOn(clusterHome, inv.id(), null);
 
-        assertTrue(service.assignItem(line, own.id(), clusterHome.id()));
+        assertTrue(service.assignItem(requestOf(line), line, own.id(), clusterHome.id()));
     }
 
     /** Gear in another station's inventory is never this station's to lend, whoever owns it. */
@@ -826,7 +828,8 @@ class LendingServiceTest extends RepositoryTestBase {
         var foreign = inventoryRepo.createItem(inv.id(), "FOR-001", "Fremde Leiter", null, null);
         var line = lineOn(stationA, inv.id(), null);
 
-        var refused = assertThrows(RefusalResponse.class, () -> service.assignItem(line, foreign.id(), stationA.id()));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.assignItem(requestOf(line), line, foreign.id(), stationA.id()));
         assertEquals(FederationRefusal.LENDING_GEAR_NOT_THE_STATIONS, refused.refusal());
     }
 
@@ -906,7 +909,8 @@ class LendingServiceTest extends RepositoryTestBase {
         itemCustodyService.markLost(missing.id(), null, null);
         var line = lineOn(stationA, inv.id(), null);
 
-        var refused = assertThrows(RefusalResponse.class, () -> service.assignItem(line, missing.id(), stationA.id()));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.assignItem(requestOf(line), line, missing.id(), stationA.id()));
         assertEquals(InventoryRefusal.CUSTODY_PIECE_LOST, refused.refusal());
     }
 
@@ -960,7 +964,7 @@ class LendingServiceTest extends RepositoryTestBase {
         lendingRepo.addRequestItem(first, inv.id(), null, null, 1, null);
         assertTrue(service.approveRequest(first, stationA.id()));
 
-        assertTrue(service.findAssignableItems(stationA.id(), inv.id()).stream()
+        assertTrue(service.findAssignableItems(stationA.id(), wholeInventory(inv.id())).stream()
                 .noneMatch(item -> item.id() == piece.id()));
     }
 
@@ -993,14 +997,78 @@ class LendingServiceTest extends RepositoryTestBase {
         var laterLine =
                 lendingRepo.addRequestItem(later, inv.id(), null, null, 1, null).id();
 
-        var refused =
-                assertThrows(RefusalResponse.class, () -> service.assignItem(laterLine, radio.id(), stationA.id()));
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.assignItem(requestOf(laterLine), laterLine, radio.id(), stationA.id()));
         assertEquals(InventoryRefusal.CUSTODY_PIECE_SET_ASIDE_FOR_A_LOAN, refused.refusal());
 
         assertTrue(service.approveRequest(later, stationA.id()));
         assertNull(assignedItemOf(later, laterLine), "filling it by itself passes the held radio over");
 
-        assertTrue(service.assignItem(firstLine, radio.id(), stationA.id()), "the loan holding it may act on it");
+        assertTrue(
+                service.assignItem(requestOf(firstLine), firstLine, radio.id(), stationA.id()),
+                "the loan holding it may act on it");
+    }
+
+    /**
+     * A line counting a kind is offered pieces of that kind only, a line naming a piece only that piece,
+     * and a piece of another kind is refused by hand as well.
+     */
+    @Test
+    @Order(314)
+    void thePickerAndTheAssignmentKeepToTheLinesKind() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcKindPicker", InventoryType.INTERNAL, false);
+        var radio = inventoryRepo.createItem(inv.id(), "KP-001", "FuG 8b", null, null);
+        var charger = inventoryRepo.createItem(inv.id(), "KP-002", "Ladestation", null, null);
+        var radios = artRepo.create(inv.id(), "Funkgerät", "", 0);
+        var chargers = artRepo.create(inv.id(), "Ladegerät", "", 0);
+        artRepo.setArt(radios.id(), List.of(radio.id()));
+        artRepo.setArt(chargers.id(), List.of(charger.id()));
+        int request = requestOn(stationA);
+        var kindLine = lendingRepo.addRequestItem(request, inv.id(), null, radios.id(), 1, null);
+        var pieceLine = lendingRepo.addRequestItem(request, inv.id(), charger.id(), null, 1, null);
+
+        assertEquals(
+                List.of(radio.id()),
+                service.findAssignableItems(stationA.id(), kindLine).stream()
+                        .map(InventoryItem::id)
+                        .toList());
+        assertEquals(
+                List.of(charger.id()),
+                service.findAssignableItems(stationA.id(), pieceLine).stream()
+                        .map(InventoryItem::id)
+                        .toList());
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.assignItem(request, kindLine.id(), charger.id(), stationA.id()));
+        assertEquals(FederationRefusal.LENDING_PIECE_NOT_FOR_LINE, refused.refusal());
+        assertEquals(
+                FederationRefusal.LENDING_PIECE_NOT_FOR_LINE,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.assignItem(request, pieceLine.id(), radio.id(), stationA.id()))
+                        .refusal());
+    }
+
+    /** A line of another request, or one that does not exist, is not filled through this request. */
+    @Test
+    @Order(315)
+    void aLineOfAnotherRequestIsNotFilledThroughThisOne() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcForeignLine", InventoryType.INTERNAL, false);
+        var piece = inventoryRepo.createItem(inv.id(), "FL-001", "Zelt", null, null);
+        int mine = requestOn(stationA);
+        int other = requestOn(stationA);
+        var otherLine = lendingRepo.addRequestItem(other, inv.id(), null, null, 1, null);
+
+        assertEquals(
+                FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.assignItem(mine, otherLine.id(), piece.id(), stationA.id()))
+                        .refusal());
+        assertEquals(
+                FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS,
+                assertThrows(RefusalResponse.class, () -> service.assignItem(mine, -1, piece.id(), stationA.id()))
+                        .refusal());
     }
 
     @Test
@@ -1031,10 +1099,11 @@ class LendingServiceTest extends RepositoryTestBase {
         var own = inventoryRepo.createItem(inv.id(), "PK-001", "Wachen-Pumpe", null, null);
         inventoryRepo.createItem(inv.id(), "PK-002", "Kreis-Pumpe", null, null, ItemOwner.CLUSTER, clusterId);
 
-        var offered = service.findAssignableItems(stationA.id(), inv.id());
+        var offered = service.findAssignableItems(stationA.id(), wholeInventory(inv.id()));
         assertEquals(List.of(own.id()), offered.stream().map(InventoryItem::id).toList());
 
-        assertTrue(service.findAssignableItems(stationB.id(), inv.id()).isEmpty());
+        assertTrue(service.findAssignableItems(stationB.id(), wholeInventory(inv.id()))
+                .isEmpty());
     }
 
     @Test
@@ -1749,5 +1818,15 @@ class LendingServiceTest extends RepositoryTestBase {
                 LendingStatus.LENT,
                 lendingRepo.findRequestById(request.id()).orElseThrow().status());
         federationRepo.deletePartner(row.id());
+    }
+
+    /** A line counting the whole of an inventory, as the picker is asked for. */
+    private static LendingRequestItem wholeInventory(int inventoryId) {
+        return new LendingRequestItem(0, 0, inventoryId, null, null, 1, null, "");
+    }
+
+    /** The request a line belongs to. */
+    private static int requestOf(int requestItemId) {
+        return lendingRepo.findRequestItem(requestItemId).orElseThrow().requestId();
     }
 }

@@ -202,7 +202,7 @@ public class LendingRequestViewService {
             var inv = inventoryRepository.findById(inventoryId).orElse(null);
             if (inv == null) continue;
             Integer preselected = ri.itemId();
-            for (var item : lendingService.findAssignableItems(stationId, inventoryId)) {
+            for (var item : lendingService.findAssignableItems(stationId, ri)) {
                 String sizeName = null;
                 Integer sizeId = item.sizeId();
                 if (sizeId != null) {

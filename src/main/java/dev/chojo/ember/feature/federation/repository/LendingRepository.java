@@ -314,15 +314,15 @@ public class LendingRepository {
     }
 
     /**
-     * The request a line belongs to.
+     * One line of a request.
      *
      * @param requestItemId the line
-     * @return the request id, or empty when the line is gone
+     * @return the line, or empty when it is gone
      */
-    public Optional<Integer> findRequestIdOfLine(int requestItemId) {
-        return query("SELECT request_id FROM federation_lending_request_item WHERE id = :id;")
+    public Optional<LendingRequestItem> findRequestItem(int requestItemId) {
+        return query("SELECT %s FROM federation_lending_request_item WHERE id = :id;", LENDING_REQUEST_ITEM_COLUMNS)
                 .single(call().bind("id", requestItemId))
-                .map(row -> row.getInt("request_id"))
+                .map(LendingRequestItem.map())
                 .first();
     }
 

@@ -486,18 +486,23 @@ public class LendingService implements FederationServer {
      * <p>This is the path a person drives, so it refuses out loud. The automatic path cannot, and
      * quietly passes over what it may not lend instead.
      *
-     * @param requestItemId  the line of the request being filled
+     * @param requestId      the request being filled
+     * @param requestItemId  the line of that request being filled
      * @param assignedItemId the piece being set aside
      * @param stationId      the station doing the lending, whose gear it has to be
-     * @throws RefusalResponse when the piece is not this station's to lend, is reported missing, an open
+     * @throws RefusalResponse when the line is not one of the request's, the piece is not this
+     *                         station's to lend or does not fit the line, is reported missing, an open
      *                         movement carries it, or another loan holds it
      */
-    public boolean assignItem(int requestItemId, int assignedItemId, int stationId) {
+    public boolean assignItem(int requestId, int requestItemId, int assignedItemId, int stationId) {
+        var line = repository
+                .findRequestItem(requestItemId)
+                .filter(found -> found.requestId() == requestId)
+                .orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         requireLendable(stationId, assignedItemId);
-        repository
-                .findRequestIdOfLine(requestItemId)
-                .ifPresent(requestId -> custodyService.requireFreeToActOn(
-                        assignedItemId, ItemCustodyService.Allowance.lending(requestId)));
+        var piece = inventoryRepository.findItemById(assignedItemId).orElse(null);
+        if (piece != null && !fitsLine(line, piece)) throw FederationRefusal.LENDING_PIECE_NOT_FOR_LINE.raise();
+        custodyService.requireFreeToActOn(assignedItemId, ItemCustodyService.Allowance.lending(requestId));
         boolean assigned = repository.assignItem(requestItemId, assignedItemId);
         if (assigned) log.info("Item {} was set aside for lending request item {}", assignedItemId, requestItemId);
         else log.warn("Assign of item {} to lending request item {} affected zero rows", assignedItemId, requestItemId);
@@ -505,20 +510,34 @@ public class LendingService implements FederationServer {
     }
 
     /**
-     * The gear of one inventory a station may offer a partner, which is what the picker behind a
-     * manual assignment shows. A piece an open movement carries or a loan already holds is left out, as
-     * filling a loan by itself leaves it out.
+     * The gear a station may hand over for one line of a request, which is what the picker behind a
+     * manual assignment shows: pieces of the line's inventory, of its kind where it counts a kind, and
+     * only the named piece where it names one. A piece an open movement carries or a loan already holds
+     * is left out, as filling a loan by itself leaves it out.
      *
-     * @param stationId   the station doing the lending
-     * @param inventoryId the inventory being picked from
-     * @return the free pieces that are this station's to lend
+     * @param stationId the station doing the lending
+     * @param line      the line being filled
+     * @return the free pieces that are this station's to lend for that line
      */
-    public List<InventoryItem> findAssignableItems(int stationId, int inventoryId) {
+    public List<InventoryItem> findAssignableItems(int stationId, LendingRequestItem line) {
+        Integer inventoryId = line.inventoryId();
+        if (inventoryId == null || !ownsInventory(stationId, inventoryId)) return List.of();
         var lender = lenderAt(stationId);
-        if (!ownsInventory(stationId, inventoryId)) return List.of();
         return inventoryRepository.findFreeToHandOut(inventoryId).stream()
                 .filter(lender::owns)
+                .filter(item -> fitsLine(line, item))
                 .toList();
+    }
+
+    /**
+     * Whether a piece answers a line: the line's piece where the line names one, wherever it lies now,
+     * as approving fills such a line; otherwise a piece of the line's inventory, of the line's kind
+     * where the line counts a kind.
+     */
+    static boolean fitsLine(LendingRequestItem line, InventoryItem item) {
+        if (line.itemId() != null) return line.itemId() == item.id();
+        if (!Objects.equals(line.inventoryId(), item.inventoryId())) return false;
+        return line.artId() == null || line.artId().equals(item.artId());
     }
 
     /**
