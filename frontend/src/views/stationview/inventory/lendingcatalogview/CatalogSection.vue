@@ -17,17 +17,17 @@ import {useLendingCart} from '@/composables/useLendingCart'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {useRoute} from 'vue-router'
-import ShopFilters from './ShopFilters.vue'
+import CatalogFilters from './CatalogFilters.vue'
 import ProductTile from './ProductTile.vue'
-import {useShopQuery} from './useShopQuery'
+import {useCatalogQuery} from './useCatalogQuery'
 
 /**
- * The lending shop: every partner's products as tiles, narrowed by days, a search, a station and an
+ * The lending catalog: every partner's products as tiles, narrowed by days, a search, a station and an
  * order. Days and search are asked of the partners, a typed search only once typing pauses; the
  * station and the order narrow what came back.
  */
 const {t} = useI18n()
-const {dateFrom, dateTo, search, station, sort, onlyInCart} = useShopQuery()
+const {dateFrom, dateTo, search, station, sort, onlyInCart} = useCatalogQuery()
 const cart = useLendingCart()
 onMounted(cart.ensureLoaded)
 
@@ -74,7 +74,7 @@ onBeforeUnmount(cancelPendingSearch)
 const stations = computed(() => {
   const options = [...knownStations.value].map(([id, name]) => ({id, name}))
   if (station.value && !knownStations.value.has(station.value)) {
-    options.push({id: station.value, name: t('lendingShop.selectedStation')})
+    options.push({id: station.value, name: t('lendingCatalog.selectedStation')})
   }
   return options.sort((a, b) => a.name.localeCompare(b.name))
 })
@@ -90,9 +90,9 @@ const shown = computed(() => {
 
 const emptyMessage = computed(() => {
   if (emptyReason.value === 'NOTHING_SHARED') return t('lending.nothingShared')
-  if (station.value && products.value.length > 0) return t('lendingShop.stationOffersNothing')
-  if (onlyInCart.value && products.value.length > 0) return t('lendingShop.cartStationsOfferNothing')
-  if (search.value.trim()) return t('lendingShop.noMatch')
+  if (station.value && products.value.length > 0) return t('lendingCatalog.stationOffersNothing')
+  if (onlyInCart.value && products.value.length > 0) return t('lendingCatalog.cartStationsOfferNothing')
+  if (search.value.trim()) return t('lendingCatalog.noMatch')
   if (emptyReason.value === 'NOTHING_FREE') return t('lending.nothingFree')
   return t('lending.noAvailable')
 })
@@ -109,13 +109,13 @@ function productLink(summary: ProductSummary) {
 }
 
 const countLine = computed(() => shown.value.length === 1
-    ? t('lendingShop.countOne')
-    : t('lendingShop.count', {count: shown.value.length}))
+    ? t('lendingCatalog.countOne')
+    : t('lendingCatalog.count', {count: shown.value.length}))
 </script>
 
 <template>
   <div class="space-y-4">
-    <ShopFilters
+    <CatalogFilters
         v-model:search="search"
         v-model:date-from="dateFrom"
         v-model:date-to="dateTo"
@@ -126,11 +126,11 @@ const countLine = computed(() => shown.value.length === 1
     />
     <ButtonRow align="end">
       <SecondaryButton :icon="['fas', 'cart-shopping']" :to="{name: routes.lendingCart, query: route.query}"
-                       data-testid="lending-shop-cart">
-        {{ t('lendingShop.cart', {count: cart.lines.value.length}) }}
+                       data-testid="lending-catalog-cart">
+        {{ t('lendingCatalog.cart', {count: cart.lines.value.length}) }}
       </SecondaryButton>
     </ButtonRow>
-    <MutedText v-if="!dateFrom" tag="p" data-testid="lending-shop-today-hint">{{ t('lendingShop.todayHint') }}</MutedText>
+    <MutedText v-if="!dateFrom" tag="p" data-testid="lending-catalog-today-hint">{{ t('lendingCatalog.todayHint') }}</MutedText>
     <AsyncSection :empty="shown.length === 0" :empty-message="emptyMessage" :failure="failure" :loading="loading">
       <MutedText tag="p" class="mb-2">{{ countLine }}</MutedText>
       <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

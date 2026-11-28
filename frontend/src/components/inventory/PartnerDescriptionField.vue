@@ -13,7 +13,7 @@ import {renderMarkdown} from '@/util/markdown'
 
 /**
  * What partner stations read about an inventory, a kind or a piece: plain Markdown with a live
- * preview of how the lending shop shows it. Pictures from the media library are left out on purpose,
+ * preview of how the lending catalog shows it. Pictures from the media library are left out on purpose,
  * because a partner on another server cannot load them.
  */
 const model = defineModel<string>({required: true})

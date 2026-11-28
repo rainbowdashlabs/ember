@@ -22,7 +22,7 @@ import {inChosen, monthCells, monthOf, pickDay, rowKey, shiftMonth, type Calenda
 /**
  * What is free of a partner's product on each day of a month. A day is green where everything looked
  * at is free, amber where some is, grey where nothing is or the station lends nothing. Two clicks pick
- * the days, which then hold for the whole shop.
+ * the days, which then hold for the whole catalog.
  */
 const props = defineProps<{
   stationUid: string

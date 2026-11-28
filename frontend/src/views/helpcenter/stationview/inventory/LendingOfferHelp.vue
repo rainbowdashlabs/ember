@@ -9,12 +9,12 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import type {CatalogProduct} from '@/api/generated/schema'
-import CatalogCard from '@/views/stationview/inventory/lendingofferview/CatalogCard.vue'
+import type {OfferProduct} from '@/api/generated/schema'
+import OfferCard from '@/views/stationview/inventory/lendingofferview/OfferCard.vue'
 
 const {t} = useI18n()
 
-const sample: CatalogProduct = {
+const sample: OfferProduct = {
   inventoryId: 1, name: 'Funkgeräte', description: 'Handfunkgeräte für Übungen.', pictureKey: null, icon: null, color: null,
   homogeneous: false, pieceCount: 14, share: {grant: 'GRANT', scope: 'ALL_PARTNERS', partnerIds: []}, offered: true, visible: null,
   kinds: [
@@ -38,7 +38,7 @@ const sample: CatalogProduct = {
     </HelpSection>
     <HelpSection :title="t('helpCenter.inventoryLendingOffer.exampleTitle')">
       <NeutralContainer>
-        <CatalogCard :product="sample" :selected="new Set()" :editable="false" readonly/>
+        <OfferCard :product="sample" :selected="new Set()" :editable="false" readonly/>
       </NeutralContainer>
     </HelpSection>
     <HelpTip>{{ t('helpCenter.inventoryLendingOffer.tip') }}</HelpTip>

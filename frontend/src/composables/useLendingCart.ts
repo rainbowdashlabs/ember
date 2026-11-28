@@ -19,7 +19,7 @@ function productKey(stationId: string, inventoryId: number): string {
 }
 
 /**
- * The station's cart, shared by the shop, the product pages and the cart page, so a line put in on
+ * The station's cart, shared by the catalog, the product pages and the cart page, so a line put in on
  * one shows on the others and the sidebar count follows. Every change answers with the whole cart.
  */
 export function useLendingCart() {
@@ -34,7 +34,7 @@ export function useLendingCart() {
     }
 
     /**
-     * Reads the cart where it was not read yet. For the badges of the shop and the product pages,
+     * Reads the cart where it was not read yet. For the badges of the catalog and the product pages,
      * which show without them where the cart cannot be read; the cart page reads it with load.
      */
     function ensureLoaded(): void {

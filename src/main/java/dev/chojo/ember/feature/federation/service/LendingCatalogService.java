@@ -60,7 +60,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * The lending shop: what a station offers its partners, one product per inventory, and asking partners
+ * The lending catalog: what a station offers its partners, one product per inventory, and asking partners
  * for theirs.
  *
  * <p>A product counts its pieces by the rules a request is checked against. Without days it counts what
@@ -70,7 +70,7 @@ import java.util.stream.Collectors;
  * inventory of different things are lent one by one.
  *
  * <p>Every question reads the claims and the blocks of the days it is about once and counts in memory,
- * because a shop search reaches every partner at once and a calendar covers a whole month.
+ * because a catalog search reaches every partner at once and a calendar covers a whole month.
  *
  * <p>What is counted always starts from what is free on the shelf today. A piece out on loan today but
  * back before the days asked about is not offered yet.
@@ -115,7 +115,7 @@ public class LendingCatalogService implements FederationServer {
         this.fanout = fanout;
     }
 
-    /** Registers the three questions a partner asks of the lending shop. */
+    /** Registers the three questions a partner asks of the lending catalog. */
     @Override
     public void serveOn(FederationEndpoints endpoints) {
         endpoints.serve(
@@ -529,7 +529,7 @@ public class LendingCatalogService implements FederationServer {
     }
 
     /**
-     * The pieces of a product as the shop lends them. An inventory of copies is one count row without a
+     * The pieces of a product as the catalog lends them. An inventory of copies is one count row without a
      * kind. In an inventory of different things the pieces with a kind are counted per kind and the
      * pieces without one are lent one by one.
      *
@@ -687,7 +687,7 @@ public class LendingCatalogService implements FederationServer {
     private record PartnerProducts(FederationPartner partner, String stationName, RemoteProducts offers) {}
 
     /**
-     * One product of a partner as the shop lists it.
+     * One product of a partner as the catalog lists it.
      *
      * @param stationId   the partner station
      * @param stationName what the partner station is called
@@ -698,7 +698,7 @@ public class LendingCatalogService implements FederationServer {
             UUID stationId, String stationName, @Nullable Double distanceKm, RemoteProductSummary product) {}
 
     /**
-     * The shop's answer, with the reason an empty one is empty.
+     * The catalog's answer, with the reason an empty one is empty.
      *
      * @param products    what the partners offer, best match or nearest first
      * @param emptyReason why nothing came back, or {@code null} when something did

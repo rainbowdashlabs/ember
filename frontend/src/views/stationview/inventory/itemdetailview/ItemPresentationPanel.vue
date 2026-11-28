@@ -17,7 +17,7 @@ import {inventory, inventoryPictures} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
- * The text and photo of one piece as partner stations see them in the lending shop. Only an
+ * The text and photo of one piece as partner stations see them in the lending catalog. Only an
  * inventory of different things lends its pieces one by one, so only there does a piece carry text
  * and a photo of its own.
  */

@@ -16,7 +16,7 @@ import {showToast} from '@/util/toast'
 import {
   StationPermission,
   type BorrowedItemResponse,
-  type CatalogProduct,
+  type OfferProduct,
   type LendingRequestResponse,
 } from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -29,7 +29,7 @@ import BorrowColumn from './lendingoverviewview/BorrowColumn.vue'
 import LendColumn from './lendingoverviewview/LendColumn.vue'
 import OfferSummary from './lendingoverviewview/OfferSummary.vue'
 import RequestsTable from './lendingoverviewview/RequestsTable.vue'
-import {offerSummary} from './lendingofferview/catalogRows'
+import {offerSummary} from './lendingofferview/offerRows'
 import {borrowBlocks, borrowedGroups, lendBlocks} from './lendingoverviewview/overviewBlocks'
 import {useRequestsTable} from './lendingoverviewview/requestsTable'
 
@@ -49,7 +49,7 @@ const reads = computed(() => hasPermission(StationPermission.INVENTORY_READ))
 
 const requests = ref<LendingRequestResponse[]>([])
 const borrowed = ref<BorrowedItemResponse[]>([])
-const catalog = ref<CatalogProduct[]>([])
+const catalog = ref<OfferProduct[]>([])
 const summary = computed(() => offerSummary(catalog.value))
 
 const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
@@ -57,7 +57,7 @@ const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
   const [answered, here, offer] = await Promise.all([
     asks.value ? lending.listRequests() : Promise.resolve([]),
     reads.value ? inventory.listBorrowed() : Promise.resolve([]),
-    lends.value ? lending.getCatalog() : Promise.resolve([]),
+    lends.value ? lending.getOffer() : Promise.resolve([]),
   ])
   if (!isCurrent()) return
   requests.value = answered

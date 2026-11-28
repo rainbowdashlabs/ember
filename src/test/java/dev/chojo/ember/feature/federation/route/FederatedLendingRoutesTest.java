@@ -35,7 +35,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * The shop's three questions as the browser asks them: who may ask, how the days are read, and that
+ * The catalog's three questions as the browser asks them: who may ask, how the days are read, and that
  * a day or a piece that is not one is refused before any partner is asked.
  */
 class FederatedLendingRoutesTest {
@@ -67,9 +67,9 @@ class FederatedLendingRoutesTest {
                 .code();
     }
 
-    /** Only whoever may ask for gear reaches the shop. */
+    /** Only whoever may ask for gear reaches the catalog. */
     @Test
-    void theShopNeedsTheRightToAskForGear() {
+    void theCatalogNeedsTheRightToAskForGear() {
         assertEquals(403, get("/federated/lending/products"));
         assertEquals(403, get("/federated/lending/products/%s/7".formatted(PARTNER)));
         assertEquals(403, get("/federated/lending/products/%s/7/days?month=2030-06".formatted(PARTNER)));

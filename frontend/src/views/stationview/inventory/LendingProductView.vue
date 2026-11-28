@@ -16,7 +16,7 @@ import * as lending from '@/api/lending'
 import type {ProductDetail, RemotePiece} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import {useShopQuery} from './lendingshopview/useShopQuery'
+import {useCatalogQuery} from './lendingcatalogview/useCatalogQuery'
 import AvailabilityCalendar from './lendingproductview/AvailabilityCalendar.vue'
 import KindRows from './lendingproductview/KindRows.vue'
 import PieceList from './lendingproductview/PieceList.vue'
@@ -30,7 +30,7 @@ const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const routes = useInventoryRoutes()
-const {dateFrom, dateTo, setDays} = useShopQuery()
+const {dateFrom, dateTo, setDays} = useCatalogQuery()
 
 const stationUid = computed(() => String(route.params.stationId ?? ''))
 const inventoryId = computed(() => Number(route.params.inventoryId))
@@ -61,19 +61,19 @@ const calendarRows = computed(() => {
   return rows
 })
 
-function backToShop() {
-  void router.push({name: routes.lendingShop, query: route.query})
+function backToCatalog() {
+  void router.push({name: routes.lendingCatalog, query: route.query})
 }
 </script>
 
 <template>
   <ViewContent :title="detail?.product.name ?? t('pages.inventory-lending-product.title')"
                :subtitle="t('pages.inventory-lending-product.subtitle')">
-    <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="backToShop">{{ t('lendingProduct.back') }}</SecondaryButton>
+    <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="backToCatalog">{{ t('lendingProduct.back') }}</SecondaryButton>
     <AsyncSection :failure="failure" :loading="loading && !detail">
       <div v-if="detail" class="space-y-6">
         <ProductHeader :detail="detail" :station-in-cart="cart.stations.value.has(detail.stationId)"/>
-        <MutedText v-if="!dateFrom" tag="p">{{ t('lendingShop.todayHint') }}</MutedText>
+        <MutedText v-if="!dateFrom" tag="p">{{ t('lendingCatalog.todayHint') }}</MutedText>
         <section v-if="detail.product.kinds.length > 0" class="space-y-2">
           <SubHeader>{{ t('lendingProduct.kinds') }}</SubHeader>
           <KindRows :kinds="detail.product.kinds" :station-uid="detail.stationId" :product-name="detail.product.name">

@@ -78,7 +78,7 @@ describe('LendingCartView', () => {
         query.value = {station: 'own'}
     })
 
-    it('takes the days chosen in the shop into a cart without days', async () => {
+    it('takes the days chosen in the catalog into a cart without days', async () => {
         held.value = {...held.value!, dateFrom: null, occasion: 'Fest'}
         query.value = {station: 'own', from: '2030-06-12', to: '2030-06-14'}
         await page()

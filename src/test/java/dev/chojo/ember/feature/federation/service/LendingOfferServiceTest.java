@@ -9,7 +9,7 @@ import dev.chojo.ember.feature.federation.entity.InventoryShare;
 import dev.chojo.ember.feature.federation.entity.ShareGrant;
 import dev.chojo.ember.feature.federation.entity.SharePolicy;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.federation.service.LendingOfferCatalogService.CatalogShare;
+import dev.chojo.ember.feature.federation.service.LendingOfferService.OfferShare;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
  * things, leaves out what the station may not lend, and reads what one partner sees through the
  * partner's policy.
  */
-class LendingOfferCatalogServiceTest {
+class LendingOfferServiceTest {
     private static final int STATION = 3;
     private static final int PARTNER = 9;
 
@@ -42,7 +42,7 @@ class LendingOfferCatalogServiceTest {
     private InventoryArtRepository arts;
     private InventoryShareService shares;
     private LendingService lending;
-    private LendingOfferCatalogService service;
+    private LendingOfferService service;
 
     private static Inventory inventory(int id, String name, boolean homogeneous) {
         return new Inventory(
@@ -68,7 +68,7 @@ class LendingOfferCatalogServiceTest {
         arts = mock(InventoryArtRepository.class);
         shares = mock(InventoryShareService.class);
         lending = mock(LendingService.class);
-        service = new LendingOfferCatalogService(inventories, arts, shares, lending);
+        service = new LendingOfferService(inventories, arts, shares, lending);
 
         var radio = piece(11, 1, 101, "FuG 1");
         var charger = piece(12, 1, 102, "Lader");
@@ -99,13 +99,13 @@ class LendingOfferCatalogServiceTest {
     /** Each level shows its own rule, and only lendable pieces and kinds with pieces count. */
     @Test
     void eachLevelShowsItsOwnRule() {
-        var catalog = service.catalog(STATION, null);
+        var catalog = service.offer(STATION, null);
 
         assertEquals(
                 List.of("Funk", "Spiele"), catalog.stream().map(p -> p.name()).toList());
         var radios = catalog.getFirst();
         assertEquals(2, radios.pieceCount());
-        assertEquals(new CatalogShare(ShareGrant.GRANT, ShareScope.ALL_PARTNERS, List.of()), radios.share());
+        assertEquals(new OfferShare(ShareGrant.GRANT, ShareScope.ALL_PARTNERS, List.of()), radios.share());
         assertEquals(
                 List.of("Funkgerät", "Ladegerät"),
                 radios.kinds().stream().map(k -> k.name()).toList());
@@ -125,7 +125,7 @@ class LendingOfferCatalogServiceTest {
     /** Read through a partner, every level shows whether that partner sees it. */
     @Test
     void aPartnerSeesWhatItsPolicyAllows() {
-        var catalog = service.catalog(STATION, PARTNER);
+        var catalog = service.offer(STATION, PARTNER);
 
         var radios = catalog.getFirst();
         assertEquals(Boolean.TRUE, radios.visible());
@@ -146,7 +146,7 @@ class LendingOfferCatalogServiceTest {
      */
     @Test
     void aProductIsOfferedByTheNarrowestRuleOfSomePiece() {
-        var catalog = service.catalog(STATION, null);
+        var catalog = service.offer(STATION, null);
         assertTrue(catalog.getFirst().offered());
         assertTrue(catalog.get(1).offered());
 
@@ -155,13 +155,13 @@ class LendingOfferCatalogServiceTest {
                         new InventoryShare(1, STATION, 1, null, null, ShareScope.ALL_PARTNERS, ShareGrant.GRANT),
                         new InventoryShare(2, STATION, null, 101, null, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD),
                         new InventoryShare(4, STATION, null, 102, null, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD)));
-        assertEquals(false, service.catalog(STATION, null).getFirst().offered());
+        assertEquals(false, service.offer(STATION, null).getFirst().offered());
 
         when(inventories.findByStation(STATION)).thenReturn(List.of(inventory(1, "Funk", true)));
         when(shares.findShares(STATION))
                 .thenReturn(List.of(
                         new InventoryShare(5, STATION, null, null, 11, ShareScope.ALL_PARTNERS, ShareGrant.GRANT)));
-        var copies = service.catalog(STATION, null).getFirst();
+        var copies = service.offer(STATION, null).getFirst();
         assertTrue(copies.offered());
         assertTrue(copies.pieces().isEmpty());
     }

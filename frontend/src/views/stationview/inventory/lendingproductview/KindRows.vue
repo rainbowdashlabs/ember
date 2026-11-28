@@ -37,7 +37,7 @@ const {t} = useI18n()
         <p class="font-medium">{{ kind.name || productName }}</p>
         <ProductDescription :text="kind.description" folded/>
         <p class="text-sm font-medium" :class="kind.free > 0 ? 'text-success' : 'text-(--text-muted)'">
-          {{ t('lendingShop.free', {count: kind.free}) }}
+          {{ t('lendingCatalog.free', {count: kind.free}) }}
         </p>
       </div>
       <slot name="action" :kind="kind"/>

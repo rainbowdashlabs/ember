@@ -17,7 +17,7 @@ const i18n = createI18n({
     locale: 'de-DE',
     messages: {
         'de-DE': {
-            lendingShop: {
+            lendingCatalog: {
                 kindsOne: '1 Art', kinds: '{count} Arten', piecesOne: '1 Einzelstück', pieces: '{count} Einzelstücke',
                 free: '{count} frei', matched: 'enthält: {names}',
             },

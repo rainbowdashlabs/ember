@@ -13,10 +13,10 @@ import LinkButton from '@/components/button/LinkButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import LendingShareModal from '@/components/lending/LendingShareModal.vue'
 import * as lending from '@/api/lending'
-import type {CatalogShare} from '@/api/generated/schema'
+import type {OfferShare} from '@/api/generated/schema'
 import type {ShareTarget} from '@/api/lending'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {choiceOf, choicesFor, type ShareChoice} from './catalogRows'
+import {choiceOf, choicesFor, type ShareChoice} from './offerRows'
 
 /**
  * Who a product, a kind or a piece is offered to, set with one choice: nobody (a product) or as the
@@ -27,7 +27,7 @@ const props = defineProps<{
   target: ShareTarget
   targetId: number
   targetName: string
-  share: CatalogShare | null
+  share: OfferShare | null
   /** Whether a piece follows its kind rather than the product where it has no rule of its own. */
   underKind?: boolean
   /** Whether the choice is only shown, as in the help centre. */

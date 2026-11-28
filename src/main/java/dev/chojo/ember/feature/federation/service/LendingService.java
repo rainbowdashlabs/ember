@@ -1337,7 +1337,7 @@ public class LendingService implements FederationServer {
 
     /**
      * Whether a partner may see a photo: it belongs to an inventory with something on offer to the
-     * partner right now, whatever the day, and is one the lending shop shows that offer with: the
+     * partner right now, whatever the day, and is one the lending catalog shows that offer with: the
      * inventory's own, a kind's of an offered piece, or an offered piece's own. Only the inventory
      * holding the key is looked at.
      *

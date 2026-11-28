@@ -36277,34 +36277,6 @@
         } ]
       }
     },
-    "/api/v1/lending/catalog" : {
-      "get" : {
-        "summary" : "The station's own offer, product by product, read through one partner where one is named",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/CatalogProduct"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "parameters" : [ {
-          "name" : "partnerId",
-          "in" : "query",
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ]
-      }
-    },
     "/api/v1/lending/inventory/{inventoryId}/lent-out" : {
       "get" : {
         "responses" : {
@@ -36322,6 +36294,34 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/lending/offer" : {
+      "get" : {
+        "summary" : "The station's own offer, product by product, read through one partner where one is named",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/OfferProduct"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "partnerId",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/lending/requests" : {
@@ -60898,39 +60898,6 @@
         },
         "required" : [ "problems" ]
       },
-      "CatalogKind" : {
-        "type" : "object",
-        "properties" : {
-          "artId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "description" : {
-            "type" : "string"
-          },
-          "pictureKey" : {
-            "type" : [ "string", "null" ]
-          },
-          "pieceCount" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "share" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/CatalogShare"
-            }, {
-              "type" : "null"
-            } ]
-          },
-          "visible" : {
-            "type" : [ "boolean", "null" ]
-          }
-        },
-        "required" : [ "artId", "name", "description", "pictureKey", "pieceCount", "share", "visible" ]
-      },
       "CatalogListResponse" : {
         "type" : "object",
         "properties" : {
@@ -60966,118 +60933,6 @@
           }
         },
         "required" : [ "language", "source", "author", "license" ]
-      },
-      "CatalogPiece" : {
-        "type" : "object",
-        "properties" : {
-          "itemId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "internalId" : {
-            "type" : [ "string", "null" ]
-          },
-          "artId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "description" : {
-            "type" : "string"
-          },
-          "pictureKey" : {
-            "type" : [ "string", "null" ]
-          },
-          "share" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/CatalogShare"
-            }, {
-              "type" : "null"
-            } ]
-          },
-          "visible" : {
-            "type" : [ "boolean", "null" ]
-          }
-        },
-        "required" : [ "itemId", "name", "internalId", "artId", "description", "pictureKey", "share", "visible" ]
-      },
-      "CatalogProduct" : {
-        "type" : "object",
-        "properties" : {
-          "inventoryId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "description" : {
-            "type" : "string"
-          },
-          "pictureKey" : {
-            "type" : [ "string", "null" ]
-          },
-          "icon" : {
-            "type" : [ "string", "null" ]
-          },
-          "color" : {
-            "type" : [ "string", "null" ]
-          },
-          "homogeneous" : {
-            "type" : "boolean"
-          },
-          "pieceCount" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "share" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/CatalogShare"
-            }, {
-              "type" : "null"
-            } ]
-          },
-          "offered" : {
-            "type" : "boolean"
-          },
-          "visible" : {
-            "type" : [ "boolean", "null" ]
-          },
-          "kinds" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/CatalogKind"
-            }
-          },
-          "pieces" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/CatalogPiece"
-            }
-          }
-        },
-        "required" : [ "inventoryId", "name", "description", "pictureKey", "icon", "color", "homogeneous", "pieceCount", "share", "offered", "visible", "kinds", "pieces" ]
-      },
-      "CatalogShare" : {
-        "type" : "object",
-        "properties" : {
-          "grant" : {
-            "$ref" : "#/components/schemas/ShareGrant"
-          },
-          "scope" : {
-            "$ref" : "#/components/schemas/ShareScope"
-          },
-          "partnerIds" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int32"
-            }
-          }
-        },
-        "required" : [ "grant", "scope", "partnerIds" ]
       },
       "CatalogSharing" : {
         "type" : "object",
@@ -79708,6 +79563,132 @@
           }
         }
       },
+      "OfferKind" : {
+        "type" : "object",
+        "properties" : {
+          "artId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "pieceCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "share" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/OfferShare"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "visible" : {
+            "type" : [ "boolean", "null" ]
+          }
+        },
+        "required" : [ "artId", "name", "description", "pictureKey", "pieceCount", "share", "visible" ]
+      },
+      "OfferPiece" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "internalId" : {
+            "type" : [ "string", "null" ]
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "share" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/OfferShare"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "visible" : {
+            "type" : [ "boolean", "null" ]
+          }
+        },
+        "required" : [ "itemId", "name", "internalId", "artId", "description", "pictureKey", "share", "visible" ]
+      },
+      "OfferProduct" : {
+        "type" : "object",
+        "properties" : {
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          },
+          "homogeneous" : {
+            "type" : "boolean"
+          },
+          "pieceCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "share" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/OfferShare"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "offered" : {
+            "type" : "boolean"
+          },
+          "visible" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "kinds" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OfferKind"
+            }
+          },
+          "pieces" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OfferPiece"
+            }
+          }
+        },
+        "required" : [ "inventoryId", "name", "description", "pictureKey", "icon", "color", "homogeneous", "pieceCount", "share", "offered", "visible", "kinds", "pieces" ]
+      },
       "OfferResponse" : {
         "type" : "object",
         "properties" : {
@@ -79716,6 +79697,25 @@
           }
         },
         "required" : [ "offer" ]
+      },
+      "OfferShare" : {
+        "type" : "object",
+        "properties" : {
+          "grant" : {
+            "$ref" : "#/components/schemas/ShareGrant"
+          },
+          "scope" : {
+            "$ref" : "#/components/schemas/ShareScope"
+          },
+          "partnerIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "grant", "scope", "partnerIds" ]
       },
       "OfferedDate" : {
         "type" : "object",

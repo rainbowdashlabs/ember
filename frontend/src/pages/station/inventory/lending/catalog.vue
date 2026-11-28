@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import LendingShopView from '~/views/stationview/inventory/LendingShopView.vue'
+import LendingCatalogView from '~/views/stationview/inventory/LendingCatalogView.vue'
 
 definePageMeta({
   layout: 'station',
-  name: 'inventory-lending-shop',
+  name: 'inventory-lending-catalog',
 })
 </script>
 
 <template>
-  <LendingShopView />
+  <LendingCatalogView />
 </template>

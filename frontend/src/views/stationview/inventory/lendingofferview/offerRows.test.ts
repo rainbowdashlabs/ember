@@ -5,18 +5,18 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import type {CatalogProduct} from '@/api/generated/schema'
-import {choiceOf, choicesFor, matchesFilter, offerSummary, rowsOf} from './catalogRows'
+import type {OfferProduct} from '@/api/generated/schema'
+import {choiceOf, choicesFor, matchesFilter, offerSummary, rowsOf} from './offerRows'
 
-function product(overrides: Partial<CatalogProduct> = {}): CatalogProduct {
+function product(overrides: Partial<OfferProduct> = {}): OfferProduct {
     return {
         inventoryId: 1, name: 'Spiele', description: '', pictureKey: null, icon: null, color: null, homogeneous: false,
         pieceCount: 2, share: null, offered: false, visible: null, kinds: [], pieces: [], ...overrides,
     }
 }
 
-/** How the catalog reads rules into choices, rows and filters. */
-describe('catalogRows', () => {
+/** How the offer page reads rules into choices, rows and filters. */
+describe('offerRows', () => {
     it('reads a rule as the choice it stands for, per level', () => {
         expect(choiceOf(null, 'inventory')).toBe('none')
         expect(choiceOf(null, 'art')).toBe('inherit')

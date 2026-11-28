@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
- * The lending shop as a partner sees it: one product per shared inventory, counted per kind or listed
+ * The lending catalog as a partner sees it: one product per shared inventory, counted per kind or listed
  * piece by piece, narrowed by days and by search, with a calendar per day, and asked for across a
  * partnership on this instance.
  */
@@ -254,7 +254,7 @@ class LendingCatalogServiceTest extends RepositoryTestBase {
                 .isEmpty());
     }
 
-    /** A blocked piece is not free over the days it is blocked, and a station-wide block empties the shop. */
+    /** A blocked piece is not free over the days it is blocked, and a station-wide block empties the catalog. */
     @Test
     void blocksTakeWhatTheyCoverOutOfTheWindow() {
         var block = lending.createBlock(lender.id(), null, handheldOne, DAY, DAY, "Wartung");

@@ -245,7 +245,7 @@ export const STATION_NAV: Entry[] = [
                         badge: ({counts}) => counts.lendingRequests,
                         visible: canAny(StationPermission.INVENTORY_READ, StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER),
                     },
-                    {kind: 'page', key: 'inventory-lending-shop', label: 'sidebar.inventoryLendingShop', icon: 'store', to: '/station/inventory/lending/shop', visible: can(StationPermission.INVENTORY_LENDING_REQUEST)},
+                    {kind: 'page', key: 'inventory-lending-catalog', label: 'sidebar.inventoryLendingCatalog', icon: 'store', to: '/station/inventory/lending/catalog', visible: can(StationPermission.INVENTORY_LENDING_REQUEST)},
                     {
                         kind: 'page', key: 'inventory-lending-cart', label: 'sidebar.inventoryLendingCart', icon: 'cart-shopping', to: '/station/inventory/lending/cart',
                         badge: ({counts}) => counts.lendingCart,

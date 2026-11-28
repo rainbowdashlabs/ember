@@ -10,8 +10,8 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import type {ProductSummary} from '@/api/generated/schema'
-import ProductTile from '@/views/stationview/inventory/lendingshopview/ProductTile.vue'
-import ShopFilters from '@/views/stationview/inventory/lendingshopview/ShopFilters.vue'
+import ProductTile from '@/views/stationview/inventory/lendingcatalogview/ProductTile.vue'
+import CatalogFilters from '@/views/stationview/inventory/lendingcatalogview/CatalogFilters.vue'
 
 const {t} = useI18n()
 
@@ -30,21 +30,21 @@ const tiles = [
 </script>
 
 <template>
-  <HelpArticle :title="t('helpCenter.inventoryLendingShop.title')" :subtitle="t('helpCenter.inventoryLendingShop.subtitle')">
-    <HelpSection :title="t('helpCenter.inventoryLendingShop.whatIs')">
-      <p>{{ t('helpCenter.inventoryLendingShop.whatIsText') }}</p>
-      <p>{{ t('helpCenter.inventoryLendingShop.searchText') }}</p>
+  <HelpArticle :title="t('helpCenter.inventoryLendingCatalog.title')" :subtitle="t('helpCenter.inventoryLendingCatalog.subtitle')">
+    <HelpSection :title="t('helpCenter.inventoryLendingCatalog.whatIs')">
+      <p>{{ t('helpCenter.inventoryLendingCatalog.whatIsText') }}</p>
+      <p>{{ t('helpCenter.inventoryLendingCatalog.searchText') }}</p>
     </HelpSection>
 
-    <HelpSection :title="t('helpCenter.inventoryLendingShop.howTo')">
-      <p>{{ t('helpCenter.inventoryLendingShop.daysText') }}</p>
-      <p>{{ t('helpCenter.inventoryLendingShop.filterText') }}</p>
-      <p>{{ t('helpCenter.inventoryLendingShop.tileText') }}</p>
+    <HelpSection :title="t('helpCenter.inventoryLendingCatalog.howTo')">
+      <p>{{ t('helpCenter.inventoryLendingCatalog.daysText') }}</p>
+      <p>{{ t('helpCenter.inventoryLendingCatalog.filterText') }}</p>
+      <p>{{ t('helpCenter.inventoryLendingCatalog.tileText') }}</p>
     </HelpSection>
 
-    <HelpSection :title="t('helpCenter.inventoryLendingShop.exampleTitle')">
+    <HelpSection :title="t('helpCenter.inventoryLendingCatalog.exampleTitle')">
       <NeutralContainer class="space-y-4">
-        <ShopFilters search="" date-from="" date-to="" station="" sort="best" :only-in-cart="false"
+        <CatalogFilters search="" date-from="" date-to="" station="" sort="best" :only-in-cart="false"
                      :stations="[{id: 'a', name: 'DLRG Musterstadt'}, {id: 'b', name: 'DLRG Neustadt'}]"/>
         <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <li v-for="(tile, index) in tiles" :key="tile.product.name">
@@ -54,6 +54,6 @@ const tiles = [
       </NeutralContainer>
     </HelpSection>
 
-    <HelpTip>{{ t('helpCenter.inventoryLendingShop.tip') }}</HelpTip>
+    <HelpTip>{{ t('helpCenter.inventoryLendingCatalog.tip') }}</HelpTip>
   </HelpArticle>
 </template>

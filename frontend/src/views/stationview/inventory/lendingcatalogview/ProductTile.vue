@@ -17,10 +17,10 @@ import type {ProductSummary} from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
 import {offerLook} from '@/util/offerLook'
 
-/** One partner product as a tile of the lending shop: its photo or icon, what it offers and where it is. */
+/** One partner product as a tile of the lending catalog: its photo or icon, what it offers and where it is. */
 const props = defineProps<{
   summary: ProductSummary
-  /** The address of the product page, carrying the shop's days and filters along. */
+  /** The address of the product page, carrying the catalog's days and filters along. */
   link: RouteLocationRaw
   /** How many pieces of this product the cart holds. */
   inCart?: number
@@ -44,8 +44,8 @@ const glyph = computed(() => look.value.glyph)
 const offerLine = computed(() => {
   const parts: string[] = []
   const {kinds, pieces} = product.value
-  if (kinds > 0) parts.push(kinds === 1 ? t('lendingShop.kindsOne') : t('lendingShop.kinds', {count: kinds}))
-  if (pieces > 0) parts.push(pieces === 1 ? t('lendingShop.piecesOne') : t('lendingShop.pieces', {count: pieces}))
+  if (kinds > 0) parts.push(kinds === 1 ? t('lendingCatalog.kindsOne') : t('lendingCatalog.kinds', {count: kinds}))
+  if (pieces > 0) parts.push(pieces === 1 ? t('lendingCatalog.piecesOne') : t('lendingCatalog.pieces', {count: pieces}))
   return parts.join(' · ')
 })
 
@@ -63,10 +63,10 @@ const distance = computed(() => props.summary.distanceKm == null
     <div class="flex flex-1 flex-col gap-1 p-3">
       <SubHeader class="leading-tight">{{ product.name }}</SubHeader>
       <MutedText tag="p">
-        {{ offerLine }} · <span class="font-medium text-success">{{ t('lendingShop.free', {count: product.free}) }}</span>
+        {{ offerLine }} · <span class="font-medium text-success">{{ t('lendingCatalog.free', {count: product.free}) }}</span>
       </MutedText>
       <p v-if="product.matched.length > 0" class="text-xs" data-testid="lending-product-matched">
-        {{ t('lendingShop.matched', {names: product.matched.join(', ')}) }}
+        {{ t('lendingCatalog.matched', {names: product.matched.join(', ')}) }}
       </p>
       <MutedText v-else-if="product.teaser" tag="p" class="line-clamp-2">{{ product.teaser }}</MutedText>
       <div class="mt-auto flex flex-wrap items-center gap-2 pt-1">

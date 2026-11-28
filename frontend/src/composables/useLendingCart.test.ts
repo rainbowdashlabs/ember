@@ -24,7 +24,7 @@ function view(lines: CartLineView[]): CartView {
     return {dateFrom: null, dateTo: null, occasion: '', note: '', lines}
 }
 
-/** The one cart the shop, the product pages and the cart page share. */
+/** The one cart the catalog, the product pages and the cart page share. */
 describe('useLendingCart', () => {
     beforeEach(() => {
         getSidebarCounts.mockReset().mockResolvedValue({})

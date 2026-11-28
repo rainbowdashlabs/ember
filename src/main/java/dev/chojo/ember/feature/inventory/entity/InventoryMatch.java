@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * How one inventory answers a search: by itself, through some of its kinds, or through some of its
- * pieces. Kept apart because the lending shop shows a product whenever any of them matches, and shows
+ * pieces. Kept apart because the lending catalog shows a product whenever any of them matches, and shows
  * the kind or piece that matched where the product itself did not.
  *
  * @param inventoryId the inventory

@@ -44383,7 +44383,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/lending/catalog": {
+    "/api/v1/lending/inventory/{inventoryId}/lent-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LentOutItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/offer": {
         parameters: {
             query?: never;
             header?: never;
@@ -44408,42 +44443,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["CatalogProduct"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/lending/inventory/{inventoryId}/lent-out": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["LentOutItem"][];
+                        "application/json": components["schemas"]["OfferProduct"][];
                     };
                 };
             };
@@ -73788,17 +73788,6 @@ export interface components {
         CatalogImportRejected: {
             problems: components["schemas"]["CatalogTransferProblem"][];
         };
-        CatalogKind: {
-            /** Format: int32 */
-            artId: number;
-            description: string;
-            name: string;
-            pictureKey: string | null;
-            /** Format: int32 */
-            pieceCount: number;
-            share: components["schemas"]["CatalogShare"] | null;
-            visible: boolean | null;
-        };
         CatalogListResponse: {
             catalogs: components["schemas"]["QuizCatalog"][];
             sharedCatalogs: components["schemas"]["SharedQuizCatalog"][];
@@ -73808,40 +73797,6 @@ export interface components {
             language: string | null;
             license: string | null;
             source: string | null;
-        };
-        CatalogPiece: {
-            /** Format: int32 */
-            artId: number | null;
-            description: string;
-            internalId: string | null;
-            /** Format: int32 */
-            itemId: number;
-            name: string;
-            pictureKey: string | null;
-            share: components["schemas"]["CatalogShare"] | null;
-            visible: boolean | null;
-        };
-        CatalogProduct: {
-            color: string | null;
-            description: string;
-            homogeneous: boolean;
-            icon: string | null;
-            /** Format: int32 */
-            inventoryId: number;
-            kinds: components["schemas"]["CatalogKind"][];
-            name: string;
-            offered: boolean;
-            pictureKey: string | null;
-            /** Format: int32 */
-            pieceCount: number;
-            pieces: components["schemas"]["CatalogPiece"][];
-            share: components["schemas"]["CatalogShare"] | null;
-            visible: boolean | null;
-        };
-        CatalogShare: {
-            grant: components["schemas"]["ShareGrant"];
-            partnerIds: number[];
-            scope: components["schemas"]["ShareScope"];
         };
         CatalogSharing: {
             catalogIds: number[];
@@ -80241,8 +80196,53 @@ export interface components {
             /** Format: int32 */
             position: number;
         };
+        OfferKind: {
+            /** Format: int32 */
+            artId: number;
+            description: string;
+            name: string;
+            pictureKey: string | null;
+            /** Format: int32 */
+            pieceCount: number;
+            share: components["schemas"]["OfferShare"] | null;
+            visible: boolean | null;
+        };
+        OfferPiece: {
+            /** Format: int32 */
+            artId: number | null;
+            description: string;
+            internalId: string | null;
+            /** Format: int32 */
+            itemId: number;
+            name: string;
+            pictureKey: string | null;
+            share: components["schemas"]["OfferShare"] | null;
+            visible: boolean | null;
+        };
+        OfferProduct: {
+            color: string | null;
+            description: string;
+            homogeneous: boolean;
+            icon: string | null;
+            /** Format: int32 */
+            inventoryId: number;
+            kinds: components["schemas"]["OfferKind"][];
+            name: string;
+            offered: boolean;
+            pictureKey: string | null;
+            /** Format: int32 */
+            pieceCount: number;
+            pieces: components["schemas"]["OfferPiece"][];
+            share: components["schemas"]["OfferShare"] | null;
+            visible: boolean | null;
+        };
         OfferResponse: {
             offer: boolean;
+        };
+        OfferShare: {
+            grant: components["schemas"]["ShareGrant"];
+            partnerIds: number[];
+            scope: components["schemas"]["ShareScope"];
         };
         OkResponse: {
             ok: boolean;
@@ -86092,12 +86092,8 @@ export type CartLineState = components['schemas']['CartLineState'];
 export type CartLineView = components['schemas']['CartLineView'];
 export type CartView = components['schemas']['CartView'];
 export type CatalogImportRejected = components['schemas']['CatalogImportRejected'];
-export type CatalogKind = components['schemas']['CatalogKind'];
 export type CatalogListResponse = components['schemas']['CatalogListResponse'];
 export type CatalogMetadata = components['schemas']['CatalogMetadata'];
-export type CatalogPiece = components['schemas']['CatalogPiece'];
-export type CatalogProduct = components['schemas']['CatalogProduct'];
-export type CatalogShare = components['schemas']['CatalogShare'];
 export type CatalogSharing = components['schemas']['CatalogSharing'];
 export type CatalogSharingRequest = components['schemas']['CatalogSharingRequest'];
 export type CatalogTransfer = components['schemas']['CatalogTransfer'];
@@ -86981,7 +86977,11 @@ export type NumberValue = components['schemas']['NumberValue'];
 export type OfferAnswer = components['schemas']['OfferAnswer'];
 export type OfferAnswerRequest = components['schemas']['OfferAnswerRequest'];
 export type OfferedDate = components['schemas']['OfferedDate'];
+export type OfferKind = components['schemas']['OfferKind'];
+export type OfferPiece = components['schemas']['OfferPiece'];
+export type OfferProduct = components['schemas']['OfferProduct'];
 export type OfferResponse = components['schemas']['OfferResponse'];
+export type OfferShare = components['schemas']['OfferShare'];
 export type OkResponse = components['schemas']['OkResponse'];
 export type OldPieceWhereabouts = components['schemas']['OldPieceWhereabouts'];
 export type OnboardAgainResponse = components['schemas']['OnboardAgainResponse'];

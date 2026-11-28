@@ -334,7 +334,7 @@ test.describe('Inventory', () => {
 
     /** Borrowing is open to members; approving it is not. */
     test('a member reaches the equipment they may borrow', async ({memberPage: page}) => {
-        await page.goto('/station/inventory/lending/shop')
+        await page.goto('/station/inventory/lending/catalog')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
@@ -401,22 +401,22 @@ test.describe('Inventory', () => {
      * The story asks as one station and approves as the other, which is the only way to see that a
      * request reaches anybody - a request nobody can act on is a request that failed quietly.
      *
-     * <p>The gear goes through the shop: a product's page puts it in the cart, and the cart sends it
+     * <p>The gear goes through the catalog: a product's page puts it in the request list, and the list sends it
      * once it has a first day and the partner has found every line free. The created request is
      * reached through the link the cart shows. The day lies past every request and block the demo
      * seeds, since the cart sends only what is free on it.
      */
     test('equipment is asked for from a partner station', async ({managerPage: page}) => {
-        await page.goto('/station/inventory/lending/shop')
+        await page.goto('/station/inventory/lending/catalog')
 
         const tile = page.getByTestId('lending-product-tile').first()
         await expect(tile, 'a partner station offers something to ask for').toBeVisible()
         await tile.click()
         await page.waitForURL(/\/station\/inventory\/lending\/product\//)
 
-        const add = page.getByRole('button', {name: /in den Warenkorb/i}).and(page.locator(':enabled')).first()
+        const add = page.getByRole('button', {name: /in die Anfrageliste/i}).and(page.locator(':enabled')).first()
         await add.click()
-        await expect(page.getByText(/im Warenkorb/i).first()).toBeVisible()
+        await expect(page.getByText(/in der Anfrageliste/i).first()).toBeVisible()
 
         await page.goto('/station/inventory/lending/cart')
         await expect(page.getByTestId('lending-cart-line').first()).toBeVisible()

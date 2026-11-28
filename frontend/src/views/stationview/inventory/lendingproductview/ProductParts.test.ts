@@ -22,7 +22,7 @@ const i18n = createI18n({
     locale: 'de-DE',
     messages: {
         'de-DE': {
-            lendingShop: {free: '{count} frei'},
+            lendingCatalog: {free: '{count} frei'},
             lendingDistance: {distanceUnknown: 'Entfernung unbekannt', distanceKm: '{distance} km'},
             lendingProduct: {more: 'Mehr anzeigen', less: 'Weniger anzeigen', openMap: 'Karte öffnen'},
         },

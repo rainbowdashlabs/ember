@@ -17,16 +17,16 @@ import PartnerDescriptionField from '@/components/inventory/PartnerDescriptionFi
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {inventory, inventoryArts, inventoryPictures} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import type {CatalogRow} from './catalogRows'
+import type {OfferRow} from './offerRows'
 
 /**
- * The text and photo partners see of one product, kind or piece, edited beside the catalog: the text
+ * The text and photo partners see of one product, kind or piece, edited beside the offer page: the text
  * with its preview is saved on request, a photo as soon as it is picked.
  */
 const open = defineModel<boolean>({required: true})
 
 const props = defineProps<{
-  row: CatalogRow
+  row: OfferRow
 }>()
 
 const emit = defineEmits<{

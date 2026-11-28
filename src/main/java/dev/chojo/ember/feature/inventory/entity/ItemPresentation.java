@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  * How a single piece presents itself to partner stations: its own text and photo.
  *
  * <p>Kept apart from {@link InventoryItem} on purpose. The piece row is read by many queries that care
- * about custody and ownership, and none of them needs the text; only the lending shop and the screens
+ * about custody and ownership, and none of them needs the text; only the lending catalog and the screens
  * that edit it do.
  *
  * @param itemId      the piece

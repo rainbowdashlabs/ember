@@ -9,7 +9,7 @@ import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
-import dev.chojo.ember.feature.federation.service.LendingOfferCatalogService.CatalogProduct;
+import dev.chojo.ember.feature.federation.service.LendingOfferService.OfferProduct;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -35,18 +35,18 @@ public class LendingCalendarService {
     static final int MAX_DAYS = 92;
 
     private final LendingService lendingService;
-    private final LendingOfferCatalogService catalog;
+    private final LendingOfferService offer;
     private final InventoryRepository inventoryRepository;
     private final StationRepository stationRepository;
 
     @Inject
     public LendingCalendarService(
             LendingService lendingService,
-            LendingOfferCatalogService catalog,
+            LendingOfferService offer,
             InventoryRepository inventoryRepository,
             StationRepository stationRepository) {
         this.lendingService = lendingService;
-        this.catalog = catalog;
+        this.offer = offer;
         this.inventoryRepository = inventoryRepository;
         this.stationRepository = stationRepository;
     }
@@ -61,7 +61,7 @@ public class LendingCalendarService {
         if (to.isBefore(from)) throw FederationRefusal.LENDING_WINDOW_BACKWARDS.raise();
         if (from.plusDays(MAX_DAYS - 1).isBefore(to)) throw FederationRefusal.LENDING_CALENDAR_TOO_LONG.raise();
         UUID own = stationRepository.requireUid(stationId);
-        var products = catalog.catalog(stationId, null);
+        var products = offer.offer(stationId, null);
         var rows = products.stream().map(LendingCalendarService::row).toList();
         var pieces = new Pieces(products);
         Map<UUID, String> partners = new HashMap<>();
@@ -114,13 +114,13 @@ public class LendingCalendarService {
     }
 
     /**
-     * The pieces a calendar names by id, read from the catalog where it lists them and from the
+     * The pieces a calendar names by id, read from the offer where it lists them and from the
      * inventory once each otherwise, so a request for many pieces asks once per piece at most.
      */
     private final class Pieces {
         private final Map<Integer, Optional<PieceRef>> known = new HashMap<>();
 
-        Pieces(List<CatalogProduct> products) {
+        Pieces(List<OfferProduct> products) {
             for (var product : products) {
                 for (var piece : product.pieces()) {
                     known.put(
@@ -148,7 +148,7 @@ public class LendingCalendarService {
 
     private record PieceRef(int inventoryId, @Nullable Integer artId, String name) {}
 
-    private static CalendarRow row(CatalogProduct product) {
+    private static CalendarRow row(OfferProduct product) {
         return new CalendarRow(
                 product.inventoryId(),
                 product.name(),

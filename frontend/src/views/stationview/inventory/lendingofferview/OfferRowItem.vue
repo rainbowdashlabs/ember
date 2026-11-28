@@ -14,14 +14,14 @@ import MutedText from '@/components/typography/MutedText.vue'
 import {pictureUrl} from '@/api/inventoryPictures'
 import {glyphFor} from '@/util/glyph'
 import ShareControl from './ShareControl.vue'
-import type {CatalogRow} from './catalogRows'
+import type {OfferRow} from './offerRows'
 
 /**
- * One row of the offer catalog: selected for bulk changes, its photo, name and what it counts, who it
+ * One row of the offer page: selected for bulk changes, its photo, name and what it counts, who it
  * is offered to, and its text. A row the partner looked through does not see is greyed out.
  */
 const props = defineProps<{
-  row: CatalogRow
+  row: OfferRow
   /** How many pieces the row stands for, shown beside its name. */
   count?: number
   editable: boolean

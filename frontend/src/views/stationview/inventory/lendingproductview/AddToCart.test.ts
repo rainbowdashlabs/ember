@@ -24,7 +24,7 @@ vi.mock('@/composables/useLendingCart', () => ({
     }),
 }))
 
-const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': {lendingCart: {inCart: '{count} im Warenkorb'}}, en: {}}, missingWarn: false, fallbackWarn: false})
+const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': {lendingCart: {inCart: '{count} in der Anfrageliste'}}, en: {}}, missingWarn: false, fallbackWarn: false})
 
 const PRODUCT: RemoteProduct = {
     inventoryId: 7, name: 'Funk', description: '', pictureKey: 'inv', icon: null, color: null, address: null,

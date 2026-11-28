@@ -12,7 +12,7 @@ function field(text: string) {
     return mount(PartnerDescriptionField, {props: {modelValue: text}})
 }
 
-/** The description field shows how the lending shop renders the text, and nothing while it is empty. */
+/** The description field shows how the lending catalog renders the text, and nothing while it is empty. */
 describe('PartnerDescriptionField', () => {
     it('shows no preview while nothing is written', () => {
         expect(field('   ').find('[data-testid="partner-description-preview"]').exists()).toBe(false)

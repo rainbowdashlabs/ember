@@ -39,15 +39,15 @@ const outcome = ref<CheckoutView | null>(null)
 const {loading, failure} = useAsyncLoader(async (isCurrent) => {
   const loaded = await cart.load()
   if (!isCurrent()) return
-  await adoptShopDays(loaded)
+  await adoptCatalogDays(loaded)
   void recheck()
 })
 
 /**
- * Takes the days chosen in the shop into a cart that has none yet, so the cart is checked and sent
+ * Takes the days chosen in the catalog into a cart that has none yet, so the cart is checked and sent
  * for the days its gear was picked for.
  */
-async function adoptShopDays(loaded: CartView) {
+async function adoptCatalogDays(loaded: CartView) {
   const from = typeof route.query.from === 'string' ? route.query.from : ''
   if (loaded.dateFrom || !from) return
   const to = typeof route.query.to === 'string' ? route.query.to : ''
@@ -99,15 +99,15 @@ function saveDetails(next: CartDetails) {
   void change(() => cart.setDetails(next))
 }
 
-function backToShop() {
-  void router.push({name: routes.lendingShop, query: route.query})
+function backToCatalog() {
+  void router.push({name: routes.lendingCatalog, query: route.query})
 }
 
 </script>
 
 <template>
   <ViewContent :title="t('pages.inventory-lending-cart.title')" :subtitle="t('pages.inventory-lending-cart.subtitle')">
-    <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="backToShop">{{ t('lendingProduct.back') }}</SecondaryButton>
+    <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="backToCatalog">{{ t('lendingProduct.back') }}</SecondaryButton>
     <CheckoutOutcome v-if="outcome" :outcome="outcome" class="mb-4"/>
     <AsyncSection :failure="failure" :loading="loading" :empty="cart.lines.value.length === 0"
                   :empty-message="t('lendingCartPage.empty')">

@@ -13,7 +13,7 @@ import dev.chojo.ember.feature.federation.service.InventoryShareOverviewService;
 import dev.chojo.ember.feature.federation.service.InventoryShareOverviewService.ShareDetail;
 import dev.chojo.ember.feature.federation.service.InventoryShareOverviewService.SharePartner;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
-import dev.chojo.ember.feature.federation.service.LendingOfferCatalogService;
+import dev.chojo.ember.feature.federation.service.LendingOfferService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -46,8 +46,8 @@ class InventoryShareRoutesTest {
                         null,
                         true,
                         List.of(new SharePartner(7, "Wache Nord")))));
-        var harness = RouteHarness.serving(new InventoryShareRoutes(
-                mock(InventoryShareService.class), overview, mock(LendingOfferCatalogService.class)));
+        var harness = RouteHarness.serving(
+                new InventoryShareRoutes(mock(InventoryShareService.class), overview, mock(LendingOfferService.class)));
 
         var answer = harness.request(client -> client.get(
                 PREFIX + "/lending/shares",
@@ -59,24 +59,24 @@ class InventoryShareRoutesTest {
                 "Wache Nord", row.path("partners").path(0).path("stationName").asString());
     }
 
-    /** The catalog is the lending manager's, reads the partner named, and refuses one that is not a number. */
+    /** The offer is the lending manager's, reads the partner named, and refuses one that is not a number. */
     @Test
-    void theCatalogReadsThePartnerNamed() {
-        var catalog = mock(LendingOfferCatalogService.class);
-        when(catalog.catalog(anyInt(), any())).thenReturn(List.of());
+    void theOfferReadsThePartnerNamed() {
+        var offer = mock(LendingOfferService.class);
+        when(offer.offer(anyInt(), any())).thenReturn(List.of());
         var harness = RouteHarness.serving(new InventoryShareRoutes(
-                mock(InventoryShareService.class), mock(InventoryShareOverviewService.class), catalog));
+                mock(InventoryShareService.class), mock(InventoryShareOverviewService.class), offer));
 
         var forbidden = harness.request(client -> client.get(
-                PREFIX + "/lending/catalog",
+                PREFIX + "/lending/offer",
                 harness.as(TestSessions.member(3, StationPermission.INVENTORY_LENDING_REQUEST))));
         assertEquals(403, forbidden.code());
 
         var manager = TestSessions.member(3, StationPermission.INVENTORY_LENDING_MANAGER);
-        harness.request(client -> client.get(PREFIX + "/lending/catalog?partnerId=9", harness.as(manager)));
-        verify(catalog).catalog(3, 9);
+        harness.request(client -> client.get(PREFIX + "/lending/offer?partnerId=9", harness.as(manager)));
+        verify(offer).offer(3, 9);
         var refused =
-                harness.request(client -> client.get(PREFIX + "/lending/catalog?partnerId=nord", harness.as(manager)));
+                harness.request(client -> client.get(PREFIX + "/lending/offer?partnerId=nord", harness.as(manager)));
         assertEquals(FederationRefusal.LENDING_PARTNER_NOT_A_NUMBER, refusalOf(refused));
     }
 }

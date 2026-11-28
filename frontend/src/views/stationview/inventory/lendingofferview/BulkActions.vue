@@ -18,19 +18,19 @@ import MutedText from '@/components/typography/MutedText.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import * as lending from '@/api/lending'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import type {CatalogRow} from './catalogRows'
+import type {OfferRow} from './offerRows'
 
 /**
  * What can be done with every selected row at once: offer to all partners, offer to chosen partners,
  * or withdraw. Withdrawing a product removes its rule and the offering rules of the kinds and pieces
- * the catalog lists under it; single pieces of an inventory of copies keep their rules, which live on
+ * the offer page lists under it; single pieces of an inventory of copies keep their rules, which live on
  * the inventory's page. Withdrawing a kind or a piece holds it back.
  */
 const props = defineProps<{
-  rows: CatalogRow[]
+  rows: OfferRow[]
   partners: {value: string; label: string}[]
   /** The rows below each product, so withdrawing a product also takes back what its kinds and pieces grant. */
-  childrenOf: (row: CatalogRow) => CatalogRow[]
+  childrenOf: (row: OfferRow) => OfferRow[]
 }>()
 
 const emit = defineEmits<{
@@ -42,7 +42,7 @@ const pickerOpen = ref(false)
 const chosen = ref<string[]>([])
 const pickerId = useId()
 
-const {run, running, failure} = useAsyncAction(async (change: (row: CatalogRow) => Promise<unknown>) => {
+const {run, running, failure} = useAsyncAction(async (change: (row: OfferRow) => Promise<unknown>) => {
   for (const row of props.rows) await change(row)
   pickerOpen.value = false
   emit('done')
@@ -57,7 +57,7 @@ function offerToChosen() {
   void run(row => lending.setShare(row.target, row.id, {grant: 'GRANT', scope: 'SPECIFIC', partnerIds}))
 }
 
-async function withdrawOne(row: CatalogRow) {
+async function withdrawOne(row: OfferRow) {
   if (row.target !== 'inventory') {
     await lending.setShare(row.target, row.id, {grant: 'WITHHOLD', scope: 'ALL_PARTNERS', partnerIds: []})
     return

@@ -7,18 +7,18 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import AppLink from '@/components/navigation/AppLink.vue'
-import type {CatalogProduct} from '@/api/generated/schema'
+import type {OfferProduct} from '@/api/generated/schema'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useRouter} from 'vue-router'
-import CatalogRowItem from './CatalogRowItem.vue'
-import {rowsOf, type CatalogRow} from './catalogRows'
+import OfferRowItem from './OfferRowItem.vue'
+import {rowsOf, type OfferRow} from './offerRows'
 
 /**
- * One product of the catalog: its row, a row per kind, and in an inventory of different things a row
+ * One product of the offer page: its row, a row per kind, and in an inventory of different things a row
  * per piece. In an inventory of copies single pieces keep their rules on the inventory's page.
  */
 const props = defineProps<{
-  product: CatalogProduct
+  product: OfferProduct
   selected: ReadonlySet<string>
   editable: boolean
   /** Whether the card is only shown, as in the help centre. */
@@ -27,7 +27,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   toggle: [key: string, selected: boolean]
-  edit: [row: CatalogRow]
+  edit: [row: OfferRow]
   changed: []
 }>()
 
@@ -47,7 +47,7 @@ const inventoryHref = computed(() => routes.detail
 <template>
   <section class="rounded-theme border border-(--border) px-3" data-testid="lending-offer-card">
     <ul class="divide-y divide-(--border)">
-      <CatalogRowItem v-for="row in rows" :key="row.key" :row="row" :count="counts.get(row.key)"
+      <OfferRowItem v-for="row in rows" :key="row.key" :row="row" :count="counts.get(row.key)"
                       :editable="editable" :readonly="readonly" :selected="selected.has(row.key)" @update:selected="value => emit('toggle', row.key, value)"
                       @edit="emit('edit', row)" @changed="emit('changed')"/>
     </ul>

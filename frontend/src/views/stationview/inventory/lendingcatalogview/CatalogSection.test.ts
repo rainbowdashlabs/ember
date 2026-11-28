@@ -11,9 +11,9 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import type {ProductList, ProductSummary} from '@/api/generated/schema'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import ProductTile from './ProductTile.vue'
-import ShopFilters from './ShopFilters.vue'
-import ShopSection from './ShopSection.vue'
-import type {ShopSort} from './useShopQuery'
+import CatalogFilters from './CatalogFilters.vue'
+import CatalogSection from './CatalogSection.vue'
+import type {CatalogSort} from './useCatalogQuery'
 
 const listProducts = vi.fn()
 const cartStations = ref(new Set<string>())
@@ -29,11 +29,11 @@ vi.mock('@/composables/useLendingCart', () => ({
 vi.mock('@/api/lending', () => ({listProducts: (options: unknown) => listProducts(options)}))
 
 function freshQuery() {
-    return {dateFrom: ref(''), dateTo: ref(''), search: ref(''), station: ref(''), sort: ref<ShopSort>('best'), onlyInCart: ref(false)}
+    return {dateFrom: ref(''), dateTo: ref(''), search: ref(''), station: ref(''), sort: ref<CatalogSort>('best'), onlyInCart: ref(false)}
 }
 
 let query = freshQuery()
-vi.mock('./useShopQuery', () => ({useShopQuery: () => query}))
+vi.mock('./useCatalogQuery', () => ({useCatalogQuery: () => query}))
 vi.mock('vue-router', () => ({useRoute: () => ({query: {station: 'own'}})}))
 
 const i18n = createI18n({
@@ -42,7 +42,7 @@ const i18n = createI18n({
     messages: {
         'de-DE': {
             lending: {nothingShared: 'shared', nothingFree: 'free', noAvailable: 'none'},
-            lendingShop: {noMatch: 'nomatch', stationOffersNothing: 'stationempty', selectedStation: 'Ausgewählte Wache'},
+            lendingCatalog: {noMatch: 'nomatch', stationOffersNothing: 'stationempty', selectedStation: 'Ausgewählte Wache'},
         },
         en: {},
     },
@@ -62,7 +62,7 @@ function answer(products: ProductSummary[], emptyReason: ProductList['emptyReaso
 }
 
 async function section() {
-    const wrapper = shallowMount(ShopSection, {global: {plugins: [i18n], renderStubDefaultSlot: true}})
+    const wrapper = shallowMount(CatalogSection, {global: {plugins: [i18n], renderStubDefaultSlot: true}})
     await flushPromises()
     return wrapper
 }
@@ -75,8 +75,8 @@ function emptyMessage(wrapper: ReturnType<typeof shallowMount>) {
     return wrapper.findComponent(AsyncSection).props('emptyMessage')
 }
 
-/** The shop asks the partners with the days and the search, and narrows by station and order itself. */
-describe('ShopSection', () => {
+/** The catalog asks the partners with the days and the search, and narrows by station and order itself. */
+describe('CatalogSection', () => {
     beforeEach(() => {
         cartStations.value = new Set()
         query = freshQuery()
@@ -100,7 +100,7 @@ describe('ShopSection', () => {
         expect(wrapper.findComponent(ProductTile).props('link')).toEqual({
             name: 'inventory-lending-product', params: {stationId: 'b', inventoryId: 4}, query: {station: 'own'},
         })
-        expect(wrapper.find('[data-testid="lending-shop-today-hint"]').exists()).toBe(false)
+        expect(wrapper.find('[data-testid="lending-catalog-today-hint"]').exists()).toBe(false)
     })
 
     it('narrows to one station and sorts by name on its own', async () => {
@@ -132,7 +132,7 @@ describe('ShopSection', () => {
         query.station.value = 'gone'
         const wrapper = await section()
 
-        const stations = wrapper.findComponent(ShopFilters).props('stations') as {id: string; name: string}[]
+        const stations = wrapper.findComponent(CatalogFilters).props('stations') as {id: string; name: string}[]
         expect(stations).toContainEqual({id: 'gone', name: 'Ausgewählte Wache'})
         expect(emptyMessage(wrapper)).toBe('stationempty')
     })
@@ -153,7 +153,7 @@ describe('ShopSection', () => {
 
     it('shows the hint about today without days', async () => {
         query.dateFrom.value = ''
-        expect((await section()).find('[data-testid="lending-shop-today-hint"]').exists()).toBe(true)
+        expect((await section()).find('[data-testid="lending-catalog-today-hint"]').exists()).toBe(true)
     })
 
     it('asks once after typing pauses, at once on new days, and not after leaving', async () => {
@@ -191,7 +191,7 @@ describe('ShopSection', () => {
             .mockReset()
             .mockImplementationOnce(() => new Promise<ProductList>(resolve => { resolveFirst = resolve }))
             .mockResolvedValueOnce(answer([product('a', 'FF Nord', 'Neu')]))
-        const wrapper = shallowMount(ShopSection, {global: {plugins: [i18n], renderStubDefaultSlot: true}})
+        const wrapper = shallowMount(CatalogSection, {global: {plugins: [i18n], renderStubDefaultSlot: true}})
         await wrapper.vm.$nextTick()
 
         query.dateTo.value = '2030-06-13'

@@ -13,14 +13,14 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import * as federation from '@/api/federation'
 import * as lending from '@/api/lending'
-import {StationPermission, type CatalogProduct} from '@/api/generated/schema'
+import {StationPermission, type OfferProduct} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useRouteQueryRef} from '@/composables/useRouteQueryRef'
 import {useSession} from '@/composables/useSession'
 import BulkActions from './lendingofferview/BulkActions.vue'
-import CatalogCard from './lendingofferview/CatalogCard.vue'
+import OfferCard from './lendingofferview/OfferCard.vue'
 import DescriptionDrawer from './lendingofferview/DescriptionDrawer.vue'
-import {CATALOG_FILTERS, matchesFilter, rowsOf, type CatalogFilter, type CatalogRow} from './lendingofferview/catalogRows'
+import {OFFER_FILTERS, matchesFilter, rowsOf, type OfferFilter, type OfferRow} from './lendingofferview/offerRows'
 
 /**
  * The station's offer as partners see it, with the controls to change it: who each product, kind and
@@ -31,31 +31,31 @@ const {loaded, hasPermission} = useSession()
 const editable = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 
 const filterRaw = useRouteQueryRef('filter', 'all')
-const filter = computed<CatalogFilter>(() => (CATALOG_FILTERS as readonly string[]).includes(filterRaw.value) ? filterRaw.value as CatalogFilter : 'all')
+const filter = computed<OfferFilter>(() => (OFFER_FILTERS as readonly string[]).includes(filterRaw.value) ? filterRaw.value as OfferFilter : 'all')
 const viewAs = useRouteQueryRef('viewAs')
 const viewAsId = useId()
 
-const products = ref<CatalogProduct[]>([])
+const products = ref<OfferProduct[]>([])
 const partners = ref<{value: string; label: string}[]>([])
 const selected = ref(new Set<string>())
 
 const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
   if (!loaded.value) return
-  const [catalog, partnerList] = await Promise.all([
-    lending.getCatalog(viewAs.value ? Number(viewAs.value) : undefined),
+  const [offered, partnerList] = await Promise.all([
+    lending.getOffer(viewAs.value ? Number(viewAs.value) : undefined),
     federation.listPartners(),
   ])
   if (!isCurrent()) return
-  products.value = catalog
+  products.value = offered
   partners.value = partnerList.map(entry => ({value: String(entry.partner.id), label: entry.partnerStationName}))
 })
 watch([loaded, viewAs], () => { void reload() })
 
 const shown = computed(() => products.value.filter(product => matchesFilter(product, filter.value)))
-const selectedRows = computed<CatalogRow[]>(() => shown.value.flatMap(rowsOf).filter(row => selected.value.has(row.key)))
+const selectedRows = computed<OfferRow[]>(() => shown.value.flatMap(rowsOf).filter(row => selected.value.has(row.key)))
 watch(filter, () => { selected.value = new Set() })
 
-function childrenOf(row: CatalogRow): CatalogRow[] {
+function childrenOf(row: OfferRow): OfferRow[] {
   const product = products.value.find(entry => entry.inventoryId === row.inventoryId)
   return product ? rowsOf(product).filter(child => child.depth > 0) : []
 }
@@ -72,7 +72,7 @@ async function bulkDone() {
   await reload()
 }
 
-const editing = ref<CatalogRow | null>(null)
+const editing = ref<OfferRow | null>(null)
 const drawerOpen = computed({
   get: () => editing.value !== null,
   set: (value: boolean) => { if (!value) editing.value = null },
@@ -83,7 +83,7 @@ const drawerOpen = computed({
   <ViewContent :title="t('pages.inventory-lending-offer.title')" :subtitle="t('pages.inventory-lending-offer.subtitle')">
     <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div class="flex flex-wrap gap-1" role="group" :aria-label="t('lendingOffer.filterLabel')">
-        <SelectionToggleButton v-for="option in CATALOG_FILTERS" :key="option" :selected="filter === option"
+        <SelectionToggleButton v-for="option in OFFER_FILTERS" :key="option" :selected="filter === option"
                                :data-testid="`lending-offer-filter-${option}`" @toggle="filterRaw = option">
           {{ t(`lendingOffer.filter.${option}`) }}
         </SelectionToggleButton>
@@ -100,7 +100,7 @@ const drawerOpen = computed({
                  @done="bulkDone"/>
     <AsyncSection :failure="failure" :loading="loading" :empty="shown.length === 0" :empty-message="t('lendingOffer.empty')">
       <div class="space-y-3">
-        <CatalogCard v-for="product in shown" :key="product.inventoryId" :product="product" :selected="selected" :editable="editable"
+        <OfferCard v-for="product in shown" :key="product.inventoryId" :product="product" :selected="selected" :editable="editable"
                      @toggle="toggle" @edit="editing = $event" @changed="reload()"/>
       </div>
     </AsyncSection>

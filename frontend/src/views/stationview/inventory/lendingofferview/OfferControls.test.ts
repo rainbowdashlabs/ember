@@ -14,7 +14,7 @@ import LendingShareModal from '@/components/lending/LendingShareModal.vue'
 import BulkActions from './BulkActions.vue'
 import DescriptionDrawer from './DescriptionDrawer.vue'
 import ShareControl from './ShareControl.vue'
-import type {CatalogRow} from './catalogRows'
+import type {OfferRow} from './offerRows'
 
 const setShare = vi.fn()
 const removeShare = vi.fn()
@@ -34,13 +34,13 @@ vi.mock('@/api', () => ({
 const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': {}, en: {}}, missingWarn: false, fallbackWarn: false})
 const global = {plugins: [i18n], stubs: {LendingShareModal: true}}
 
-function row(target: CatalogRow['target'], id: number): CatalogRow {
+function row(target: OfferRow['target'], id: number): OfferRow {
     return {key: `${target}:${id}`, target, id, inventoryId: 1, artId: null, name: 'Funk', detail: '', description: 'alt',
         pictureKey: null, share: null, visible: null, depth: target === 'inventory' ? 0 : 1}
 }
 
-/** The catalog's controls write the share rules and texts the way each level needs. */
-describe('offer catalog controls', () => {
+/** The offer page's controls write the share rules and texts the way each level needs. */
+describe('offer page controls', () => {
     beforeEach(() => {
         setShare.mockReset().mockResolvedValue({})
         removeShare.mockReset().mockResolvedValue(undefined)

@@ -103,7 +103,7 @@ public class RemoteLendingRoutes implements Routes {
     public record RemoteProducts(List<RemoteProductSummary> products, boolean offersAnything) {}
 
     /**
-     * One inventory as a tile of the lending shop.
+     * One inventory as a tile of the lending catalog.
      *
      * @param inventoryId  the inventory
      * @param name         what the station calls it

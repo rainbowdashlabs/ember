@@ -11,8 +11,8 @@ import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
-import dev.chojo.ember.feature.federation.service.LendingOfferCatalogService.CatalogKind;
-import dev.chojo.ember.feature.federation.service.LendingOfferCatalogService.CatalogProduct;
+import dev.chojo.ember.feature.federation.service.LendingOfferService.OfferKind;
+import dev.chojo.ember.feature.federation.service.LendingOfferService.OfferProduct;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -73,11 +73,11 @@ class LendingCalendarServiceTest {
     void setUp() {
         lending = mock(LendingService.class);
         inventories = mock(InventoryRepository.class);
-        var catalog = mock(LendingOfferCatalogService.class);
+        var offer = mock(LendingOfferService.class);
         var stations = mock(StationRepository.class);
         when(stations.requireUid(STATION)).thenReturn(OWN);
-        when(catalog.catalog(STATION, null))
-                .thenReturn(List.of(new CatalogProduct(
+        when(offer.offer(STATION, null))
+                .thenReturn(List.of(new OfferProduct(
                         1,
                         "Funk",
                         "",
@@ -89,14 +89,14 @@ class LendingCalendarServiceTest {
                         null,
                         true,
                         null,
-                        List.of(new CatalogKind(10, "FuG", "", null, 4, null, null)),
+                        List.of(new OfferKind(10, "FuG", "", null, 4, null, null)),
                         List.of())));
         when(lending.stationName(any(), anyInt())).thenReturn("Nord");
         var piece = mock(InventoryItem.class);
         when(piece.inventoryId()).thenReturn(1);
         when(piece.artId()).thenReturn(10);
         when(inventories.findItemById(77)).thenReturn(Optional.of(piece));
-        service = new LendingCalendarService(lending, catalog, inventories, stations);
+        service = new LendingCalendarService(lending, offer, inventories, stations);
     }
 
     /** Only own gear inside the window becomes bars; a piece line takes its kind; out past its last day is overdue. */
