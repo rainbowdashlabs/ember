@@ -31,7 +31,7 @@ Personen, die schon ein Konto auf dieser Instanz haben, lassen sich über ihren 
 
 ### Sicherheit
 
-- **Zuweisungen beim Verleih werden gegen ihre Anfrage geprüft.** Ausrüstung ließ sich einer Zeile außerhalb der bearbeiteten Anfrage zuweisen. Jede Zuweisung muss jetzt zu dieser Anfrage gehören.
+- **Verleih-Anfragen und Zuweisungen werden gegen das Angebot geprüft.** Eine Partnerwache konnte Ausrüstung anfragen, die die verleihende Wache ihr nicht freigegeben oder zurückgehalten hatte. Jede Zeile einer Anfrage muss jetzt Ausrüstung nennen, die der anfragenden Wache angeboten wird. Außerdem ließ sich Ausrüstung einer Zeile außerhalb der bearbeiteten Anfrage zuweisen. Jede Zuweisung muss jetzt zu dieser Anfrage gehören.
 
 ### Änderungen
 

@@ -31,7 +31,7 @@ People who already have an account on this instance can be invited into a statio
 
 ### Security
 
-- **Lending assignments are checked against their request.** Gear could be set aside for a request line outside the request being worked on. Each assignment now has to belong to that request.
+- **Lending requests and assignments are checked against what is offered.** A partner station could ask for gear the lending station had not shared with it or had held back. Every line of a request now has to name gear that is offered to the asking station. Gear could also be set aside for a request line outside the request being worked on. Each assignment now has to belong to that request.
 
 ### Changes
 

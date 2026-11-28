@@ -70,12 +70,14 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -234,6 +236,14 @@ public class LendingService implements FederationServer {
         UUID requestingUid = stationRepository.requireUid(requestingStationId);
         var partner = requireLendingPartner(requestingStationId, owningUid);
         Integer lendingStationHere = stationHere(owningUid);
+        if (lendingStationHere != null) {
+            requireOffered(
+                    lendingStationHere,
+                    requestingUid,
+                    lines.stream()
+                            .map(line -> new AskedLine(line.inventoryId(), line.itemId(), line.artId()))
+                            .toList());
+        }
         var request = repository.createRequest(
                 UUID.randomUUID(), requestingUid, owningUid, dateFrom, dateTo, createdBy, eventId, eventDate, occasion);
         for (var line : lines) {
@@ -326,13 +336,12 @@ public class LendingService implements FederationServer {
             return new RemoteLendingAccepted(labelsOf(request.id()));
         }
         var lines = body.lines() == null ? List.<RemoteLendingLine>of() : body.lines();
-        for (var line : lines) {
-            var target =
-                    new LendingRequestItem(0, 0, line.inventoryId(), line.itemId(), line.artId(), 0, null, "").target();
-            if (target == null || !ownsTarget(partner.servingStationId(), target)) {
-                throw FederationRefusal.LENDING_LINE_NAMES_FOREIGN_GEAR.raise();
-            }
-        }
+        requireOffered(
+                partner.servingStationId(),
+                partner.askingStationUid(),
+                lines.stream()
+                        .map(line -> new AskedLine(line.inventoryId(), line.itemId(), line.artId()))
+                        .toList());
         var request = repository.createRequest(
                 body.uid(),
                 partner.askingStationUid(),
@@ -1190,6 +1199,78 @@ public class LendingService implements FederationServer {
     private boolean isFree(int stationId, LineTarget target, Instant from, Instant to) {
         return !availability.freePieces(stationId, target, from, to).isEmpty();
     }
+
+    /**
+     * Refuses lines that ask for gear the lending station does not offer the asking one.
+     *
+     * <p>Every line has to name gear of the lending station that its share policy offers the asking
+     * station: the named piece itself, or at least one piece of the kind or inventory a count is drawn
+     * from. Every id a line carries is kept and shown later, so the wider ones have to agree with the
+     * narrowest: a piece's inventory and kind, a kind's inventory. Gear that is not shared is refused
+     * with the same refusal as gear of another station, so a request cannot tell what a station holds
+     * back from what it does not have. Each inventory is read once, however many lines draw on it.
+     *
+     * @param lendingStationId the station asked for the gear
+     * @param askingUid        the station asking
+     * @param lines            the lines as asked for
+     * @throws RefusalResponse when one line names gear that is not offered
+     */
+    private void requireOffered(int lendingStationId, UUID askingUid, List<AskedLine> lines) {
+        if (lines.isEmpty()) return;
+        var policy = shareService.policyFor(lendingStationId, askingUid);
+        var lender = lenderAt(lendingStationId);
+        Map<Integer, List<InventoryItem>> offeredByInventory = new HashMap<>();
+        Function<Integer, List<InventoryItem>> offeredIn = inventoryId -> offeredByInventory.computeIfAbsent(
+                inventoryId,
+                id -> shareService.filterShared(
+                        policy,
+                        inventoryRepository.findItems(id).stream()
+                                .filter(lender::owns)
+                                .toList()));
+        for (var line : lines) {
+            if (!offers(lendingStationId, line, offeredIn)) {
+                throw FederationRefusal.LENDING_LINE_NAMES_FOREIGN_GEAR.raise();
+            }
+        }
+    }
+
+    private boolean offers(int lendingStationId, AskedLine line, Function<Integer, List<InventoryItem>> offeredIn) {
+        var target =
+                new LendingRequestItem(0, 0, line.inventoryId(), line.itemId(), line.artId(), 0, null, "").target();
+        if (target == null || !ownsTarget(lendingStationId, target)) return false;
+        Integer itemId = line.itemId();
+        if (itemId != null) {
+            var item = inventoryRepository.findItemById(itemId).orElse(null);
+            return item != null
+                    && agrees(line.inventoryId(), item.inventoryId())
+                    && agrees(line.artId(), item.artId())
+                    && offeredIn.apply(item.inventoryId()).stream().anyMatch(piece -> piece.id() == itemId);
+        }
+        Integer artId = line.artId();
+        if (artId != null) {
+            var art = artRepository.findById(artId).orElse(null);
+            return art != null
+                    && agrees(line.inventoryId(), art.inventoryId())
+                    && offeredIn.apply(art.inventoryId()).stream().anyMatch(piece -> artId.equals(piece.artId()));
+        }
+        return !offeredIn.apply(Objects.requireNonNull(line.inventoryId())).isEmpty();
+    }
+
+    private static boolean agrees(@Nullable Integer asked, @Nullable Integer actual) {
+        return asked == null || asked.equals(actual);
+    }
+
+    /**
+     * One line of a request as the asking station wrote it, before any of its ids are trusted.
+     *
+     * @param inventoryId the inventory it names, or {@code null}
+     * @param itemId      the piece it names, or {@code null}
+     * @param artId       the kind it names, or {@code null}
+     */
+    private record AskedLine(
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            @Nullable Integer artId) {}
 
     /**
      * Whether what a line names is the lending station's to offer at all.

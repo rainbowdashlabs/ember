@@ -1228,6 +1228,84 @@ class LendingServiceTest extends RepositoryTestBase {
                 .anyMatch(e -> e.inventoryId() == inventory.id()));
     }
 
+    /**
+     * A station of this instance asks only for what its partner offers it: lines for an inventory
+     * nobody shared are refused before anything is written, and the same lines go through once it is
+     * shared.
+     */
+    @Test
+    @Order(405)
+    void aRequestHereForGearNotOfferedIsRefused() {
+        var inventory = inventoryRepo.create(stationA.id(), "LendSvcAskUnshared", InventoryType.INTERNAL, false);
+        inventoryRepo.createItem(inventory.id(), "AU-001", "Nicht geteilt", null, null);
+        var lines = List.of(new LendingService.RequestLine(inventory.id(), null, null, 1, null));
+        int before = lendingRepo.findRequestsByStation(stationB.uid()).size();
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.createRequest(
+                        stationB.id(), stationA.uid(), LocalDate.now(), null, memberB.id(), null, null, "", lines));
+        assertEquals(FederationRefusal.LENDING_LINE_NAMES_FOREIGN_GEAR, refused.refusal());
+        assertEquals(before, lendingRepo.findRequestsByStation(stationB.uid()).size());
+
+        shareService.setInventoryShare(
+                stationA.id(), inventory.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+        var asked = service.createRequest(
+                stationB.id(), stationA.uid(), LocalDate.now(), null, memberB.id(), null, null, "", lines);
+        lendingRepo.deleteRequest(asked.uid());
+        shareService.removeInventoryShare(stationA.id(), inventory.id());
+    }
+
+    /**
+     * Kind and piece lines go by the narrowest share, and every id a line carries has to agree with
+     * what it names: a kind granted inside an unshared inventory can be asked for, its unshared
+     * neighbour and its pieces of another kind cannot, and a line that pairs a piece or a kind with an
+     * inventory or kind it is not part of is refused like gear that is not offered.
+     */
+    @Test
+    @Order(406)
+    void kindAndPieceLinesHereFollowTheNarrowestShare() {
+        var inventory = inventoryRepo.create(stationA.id(), "LendSvcAskKinds", InventoryType.INTERNAL, false);
+        var radio = inventoryRepo.createItem(inventory.id(), "AK-001", "FuG 8b", null, null);
+        var charger = inventoryRepo.createItem(inventory.id(), "AK-002", "Ladestation", null, null);
+        var radios = artRepo.create(inventory.id(), "Funkgerät", "", 0);
+        var chargers = artRepo.create(inventory.id(), "Ladegerät", "", 0);
+        artRepo.setArt(radios.id(), List.of(radio.id()));
+        artRepo.setArt(chargers.id(), List.of(charger.id()));
+        shareService.setArtShare(stationA.id(), radios.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+
+        for (var line : List.of(
+                new LendingService.RequestLine(inventory.id(), null, radios.id(), 1, null),
+                new LendingService.RequestLine(null, radio.id(), null, 1, null),
+                new LendingService.RequestLine(inventory.id(), radio.id(), radios.id(), 1, null))) {
+            var asked = service.createRequest(
+                    stationB.id(), stationA.uid(), LocalDate.now(), null, memberB.id(), null, null, "", List.of(line));
+            lendingRepo.deleteRequest(asked.uid());
+        }
+        for (var line : List.of(
+                new LendingService.RequestLine(inventory.id(), null, chargers.id(), 1, null),
+                new LendingService.RequestLine(null, charger.id(), null, 1, null),
+                new LendingService.RequestLine(null, radio.id(), chargers.id(), 1, null),
+                new LendingService.RequestLine(inventoryIdA, radio.id(), null, 1, null),
+                new LendingService.RequestLine(inventoryIdA, null, radios.id(), 1, null))) {
+            var refused = assertThrows(
+                    RefusalResponse.class,
+                    () -> service.createRequest(
+                            stationB.id(),
+                            stationA.uid(),
+                            LocalDate.now(),
+                            null,
+                            memberB.id(),
+                            null,
+                            null,
+                            "",
+                            List.of(line)));
+            assertEquals(FederationRefusal.LENDING_LINE_NAMES_FOREIGN_GEAR, refused.refusal(), line.toString());
+        }
+
+        shareService.removeArtShare(stationA.id(), radios.id());
+    }
+
     /** Turning lending off for a partner takes the whole offer away from that partner. */
     @Test
     @Order(402)
@@ -1575,6 +1653,40 @@ class LendingServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * A partner elsewhere asks only for what this station offers it: an inventory nobody shared, and a
+     * piece withheld from a shared one, are refused like gear of another station, and nothing is kept.
+     */
+    @Test
+    @Order(610)
+    void aRequestFromElsewhereForGearNotOfferedIsRefused() {
+        UUID elsewhere = UUID.randomUUID();
+        var row = partnerElsewhere(elsewhere);
+        var asking = new ServingPartner(row, elsewhere);
+        var unshared = inventoryRepo.create(stationA.id(), "LendSvcUnshared", InventoryType.INTERNAL, false);
+        inventoryRepo.createItem(unshared.id(), "US-1", "Nicht geteilt", null, null);
+        var hiddenKind = artRepo.create(unshared.id(), "Verborgen", "", 0);
+        var shared = inventoryRepo.createItem(inventoryIdA, "LendSvcSharedPiece", "Geteilt", null, null);
+        var kept = inventoryRepo.createItem(inventoryIdA, "LendSvcKept", "Zurückgehalten", null, null);
+        shareService.setItemShare(stationA.id(), kept.id(), ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
+
+        for (var line : List.of(
+                new RemoteLendingRoutes.RemoteLendingLine(unshared.id(), null, null, 1),
+                new RemoteLendingRoutes.RemoteLendingLine(null, kept.id(), null, 1),
+                new RemoteLendingRoutes.RemoteLendingLine(null, shared.id(), hiddenKind.id(), 1))) {
+            var sent = new RemoteLendingRoutes.RemoteLendingRequest(
+                    UUID.randomUUID(), LocalDate.now(), null, "", List.of(line));
+            var refused = assertThrows(RefusalResponse.class, () -> service.serveRequest(asking, sent));
+            assertEquals(FederationRefusal.LENDING_LINE_NAMES_FOREIGN_GEAR, refused.refusal());
+            assertTrue(lendingRepo.findRequestByUid(sent.uid()).isEmpty());
+        }
+
+        shareService.removeItemShare(stationA.id(), kept.id());
+        inventoryRepo.deleteItem(kept.id());
+        inventoryRepo.deleteItem(shared.id());
+        federationRepo.deletePartner(row.id());
+    }
+
+    /**
      * This station borrows from a partner on another instance. The lines name the partner's gear,
      * which is not here, so they keep the names the partner gave them; a partner that cannot be
      * reached leaves nothing behind.
@@ -1671,6 +1783,8 @@ class LendingServiceTest extends RepositoryTestBase {
         var inventory = inventoryRepo.create(stationA.id(), "LendSvcLadders", InventoryType.INTERNAL, false);
         var first = inventoryRepo.createItem(inventory.id(), "LD-1", "Leiter 1", null, null);
         var second = inventoryRepo.createItem(inventory.id(), "LD-2", "Leiter 2", null, null);
+        shareService.setInventoryShare(
+                stationA.id(), inventory.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
         UUID uid = UUID.randomUUID();
         service.serveRequest(
                 new ServingPartner(row, elsewhere),
