@@ -14,7 +14,6 @@ import EntryDetailView from './EntryDetailView.vue'
 const listEntries = vi.fn()
 const listFields = vi.fn()
 const deleteEntry = vi.fn()
-const refreshSidebarCounts = vi.fn()
 const push = vi.fn()
 const granted = new Set<string>()
 
@@ -34,10 +33,6 @@ vi.mock('@/api', () => ({
 
 vi.mock('@/composables/useSession', () => ({
     useSession: () => ({hasPermission: (permission: string) => granted.has(permission), loaded: ref(true)}),
-}))
-
-vi.mock('@/composables/useSidebarCounts', () => ({
-    useSidebarCounts: () => ({refresh: refreshSidebarCounts}),
 }))
 
 function entryIn(status: WaitingListEntryStatus): WaitingListEntryWithScore {
@@ -90,7 +85,6 @@ describe('EntryDetailView', () => {
         listEntries.mockReset()
         listFields.mockReset().mockResolvedValue([])
         deleteEntry.mockReset().mockResolvedValue(undefined)
-        refreshSidebarCounts.mockReset()
         push.mockReset()
     })
 
@@ -117,7 +111,6 @@ describe('EntryDetailView', () => {
             await flushPromises()
 
             expect(deleteEntry).toHaveBeenCalledWith(3, 7)
-            expect(refreshSidebarCounts).toHaveBeenCalled()
             expect(push).toHaveBeenCalledWith({name: 'waiting-list-detail', params: {id: 3}})
         },
     )

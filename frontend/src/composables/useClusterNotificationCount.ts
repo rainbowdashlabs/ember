@@ -12,10 +12,17 @@ import {clusterInbox} from '@/api/notifications'
  */
 export function useClusterNotificationCount() {
     const count = useState<number>('useClusterNotificationCount', () => 0)
+    const latestRead = useState<number>('useClusterNotificationCount.latestRead', () => 0)
 
-    /** Reads the count again, keeping the last one where the association's inbox cannot be read. */
+    /**
+     * Reads the count again, keeping the last one where the association's inbox cannot be read. An
+     * answer to an older read that arrives after a newer one was asked for is dropped.
+     */
     async function refresh() {
-        await clusterInbox.count().then(found => { count.value = found }).catch(() => {})
+        const read = ++latestRead.value
+        await clusterInbox.count()
+            .then(found => { if (read === latestRead.value) count.value = found })
+            .catch(() => {})
     }
 
     return {

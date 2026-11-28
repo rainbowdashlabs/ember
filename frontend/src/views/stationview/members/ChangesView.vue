@@ -14,7 +14,6 @@ import type {ChangeEntry} from '@/api/profileFieldChanges'
 import type {EnrichedMemberChangeSummary} from '@/api/generated/schema'
 import {profileFieldChanges} from '@/api'
 import {useSession} from '@/composables/useSession'
-import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useChangeAcknowledgement} from '@/composables/useChangeAcknowledgement'
 import PendingTabContent from './changesview/PendingTabContent.vue'
@@ -26,7 +25,6 @@ import {describeFailure} from '@/util/failure'
 const {t} = useI18n()
 const router = useRouter()
 const {sessionInfo} = useSession()
-const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const activeTab = ref('pending')
 const tabs = [
@@ -82,7 +80,6 @@ const {
 
 async function reloadExpanded() {
   summaries.value = await profileFieldChanges.getPendingSummary()
-  refreshSidebarCounts()
   if (expandedMemberId.value != null) {
     const stillInList = summaries.value.some(s => s.memberId === expandedMemberId.value)
     if (stillInList) {

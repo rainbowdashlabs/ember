@@ -28,6 +28,7 @@ import {StationPermission} from '@/api/generated/schema'
 import { waitingList, memberGroups } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { markShownAsSeen } from './detailview/markShownAsSeen'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useFlashMessage } from '@/composables/useFlashMessage'
@@ -129,6 +130,7 @@ const {loading, failure} = useAsyncLoader(async () => {
   invites.value = inviteData
   fields.value = fieldData
   groups.value = groupData
+  markShownAsSeen(listId.value, entryData)
 })
 
 const invite = useListInvites(listId, invites, failure, flash)

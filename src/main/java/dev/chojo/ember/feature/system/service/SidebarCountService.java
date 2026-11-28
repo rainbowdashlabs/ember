@@ -109,7 +109,7 @@ public class SidebarCountService {
 
         int waitingListEntries = 0;
         if (roles.contains(StationPermission.WAITLIST_READ)) {
-            waitingListEntries = waitingListRepository.countPendingEntries(stationId);
+            waitingListEntries = waitingListRepository.countUnseenEntries(stationId, memberId);
         }
 
         int lostAndFoundPending = 0;

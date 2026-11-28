@@ -55720,6 +55720,35 @@
         }
       }
     },
+    "/api/v1/waiting-lists/{id}/seen" : {
+      "post" : {
+        "summary" : "Record how far the reader was shown a waiting list",
+        "tags" : [ "Waiting List" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WaitingListSeenRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/waiting-lists/{id}/visible-fields" : {
       "put" : {
         "responses" : {
@@ -94178,6 +94207,15 @@
           },
           "minAgeJoin" : {
             "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
+      "WaitingListSeenRequest" : {
+        "type" : "object",
+        "properties" : {
+          "upToEntryId" : {
+            "type" : "integer",
             "format" : "int32"
           }
         }

@@ -137,7 +137,7 @@ class SidebarCountServiceTest {
                 .thenReturn(2);
         when(eventRegistrationRepository.countPendingByStation(STATION_ID)).thenReturn(7);
         when(lendingRepository.countActionableRequests(STATION_UID)).thenReturn(4);
-        when(waitingListRepository.countPendingEntries(STATION_ID)).thenReturn(6);
+        when(waitingListRepository.countUnseenEntries(STATION_ID, MEMBER_ID)).thenReturn(6);
         when(lostAndFoundRepository.countClaimedNotProvided(STATION_ID)).thenReturn(1);
 
         when(federationRepository.countPendingRequests(STATION_UID)).thenReturn(8);

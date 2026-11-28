@@ -14,6 +14,7 @@ import type {
     WaitingList,
     WaitingListAccessResponse,
     WaitingListCreatedAtRequest,
+    WaitingListSeenRequest,
     WaitingListEntry,
     WaitingListEntryRequest,
     WaitingListEntryWithScore,
@@ -99,6 +100,16 @@ export const listEntries = entries.list
 export const createEntry = entries.create
 export const updateEntry = entries.update
 export const deleteEntry = entries.remove
+
+/**
+ * Records how far the reader was shown a list, which takes those entries off their own sidebar count.
+ *
+ * @param upToEntryId the highest entry id the page showed
+ */
+export async function markSeen(listId: number, upToEntryId: number): Promise<void> {
+    const request: WaitingListSeenRequest = {upToEntryId}
+    await client.post(`/waiting-lists/${listId}/seen`, request)
+}
 
 export async function updateCreatedAt(listId: number, entryId: number, createdAt: string): Promise<WaitingListEntry> {
     const request: WaitingListCreatedAtRequest = {createdAt}

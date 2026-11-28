@@ -109,6 +109,23 @@ INSERT INTO ember_schema.station_permission (name)
 VALUES ('EVENT_CALENDAR_FEEDS')
 ON CONFLICT (name) DO NOTHING;
 
+-- A member's waiting list count shows the waiting entries they have not been shown yet.
+
+CREATE TABLE ember_schema.waiting_list_seen
+(
+    list_id    INTEGER NOT NULL REFERENCES ember_schema.waiting_list (id) ON DELETE CASCADE,
+    member_id  INTEGER NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    seen_up_to INTEGER NOT NULL,
+    PRIMARY KEY (list_id, member_id)
+);
+
+COMMENT ON TABLE ember_schema.waiting_list_seen IS
+    'How far a member has looked at a waiting list. The sidebar counts the waiting entries the member has not been shown yet.';
+COMMENT ON COLUMN ember_schema.waiting_list_seen.list_id IS 'References the waiting list.';
+COMMENT ON COLUMN ember_schema.waiting_list_seen.member_id IS 'References the station member who looked at the list.';
+COMMENT ON COLUMN ember_schema.waiting_list_seen.seen_up_to IS
+    'The highest entry id the member was shown on the list. Entries with a higher id count as new for them. An id rather than a time, because the creation time of an entry can be set back by hand.';
+
 -- Reading and editing members no longer bring member documents along. Whoever held a member permission
 -- that reached them is given the document permission of their own, so nothing changes until a station
 -- gives the two apart.

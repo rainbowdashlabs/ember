@@ -8,7 +8,6 @@ import {useI18n} from 'vue-i18n'
 import type {WaitingListEntryWithScore} from '@/api/generated/schema'
 import {waitingList} from '@/api'
 import {useConfirmAction} from '@/composables/useConfirmAction'
-import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import type {Failure} from '@/util/failure'
 import {entryFullName} from './detailview/entryFullName'
 
@@ -30,12 +29,10 @@ export function useEntryDeletion(
     afterDeletion: () => void | Promise<void>,
 ) {
     const {t} = useI18n()
-    const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
     const action = useConfirmAction<WaitingListEntryWithScore>({
         onConfirm: entry => waitingList.deleteEntry(listId.value, entry.entry.id),
         onSuccess: async () => {
-            void refreshSidebarCounts()
             await afterDeletion()
         },
         failure,

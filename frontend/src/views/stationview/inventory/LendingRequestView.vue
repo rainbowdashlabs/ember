@@ -26,7 +26,6 @@ import {
 } from '@/api/generated/schema'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
-import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import LendingRequestHeader from './lendingrequestview/LendingRequestHeader.vue'
@@ -42,7 +41,6 @@ const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {loaded} = useSession()
-const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const detail = ref<LendingRequestDetail | null>(null)
 const messages = ref<EnrichedMessage[]>([])
@@ -128,7 +126,6 @@ const {running: assigning, run: handleAssignAndLend} = useAsyncAction(async () =
   await lending.assignItems(requestId, items)
   await lending.markLent(requestId)
   await loadData()
-  refreshSidebarCounts()
 })
 
 watch(loaded, (v) => {
@@ -158,7 +155,6 @@ async function answer(action: () => Promise<unknown>) {
     return
   }
   await loadData()
-  refreshSidebarCounts()
 }
 
 function handleApprove() {

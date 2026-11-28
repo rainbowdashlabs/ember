@@ -7,7 +7,6 @@ import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { profileFieldChanges } from '@/api'
 import type { ChangeEntry } from '@/api/profileFieldChanges'
-import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { describeFailure, type Failure } from '@/util/failure'
 
 /**
@@ -29,7 +28,6 @@ export function useChangeAcknowledgement(
   onAcknowledged: () => void | Promise<void>,
 ) {
   const { t } = useI18n()
-  const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
   const acknowledgeComment = ref('')
   const showCommentForChangeId: Ref<number | null> = ref(null)
@@ -55,7 +53,6 @@ export function useChangeAcknowledgement(
       return
     }
 
-    refreshSidebarCounts()
     try {
       await onAcknowledged()
     } catch (e) {

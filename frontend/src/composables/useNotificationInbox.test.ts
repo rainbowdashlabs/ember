@@ -42,30 +42,26 @@ describe('useNotificationInbox', () => {
         expect(inbox.loading.value).toBe(false)
     })
 
-    it('marks one read once, however often it is pressed, and says so once', async () => {
+    it('marks one read once, however often it is pressed', async () => {
         const api = fakeInbox([waiting(1), waiting(2)])
-        const changed = vi.fn()
-        const inbox = useNotificationInbox(api, changed)
+        const inbox = useNotificationInbox(api)
         await inbox.load()
 
         await Promise.all([inbox.acknowledge(1), inbox.acknowledge(1)])
 
         expect(api.acknowledge).toHaveBeenCalledTimes(1)
         expect(api.acknowledge).toHaveBeenCalledWith(1)
-        expect(changed).toHaveBeenCalledTimes(1)
         expect(inbox.notifications.value.map(entry => entry.id)).toEqual([2])
     })
 
     it('marks everything read', async () => {
         const api = fakeInbox([waiting(1), waiting(2)])
-        const changed = vi.fn()
-        const inbox = useNotificationInbox(api, changed)
+        const inbox = useNotificationInbox(api)
         await inbox.load()
 
         await inbox.acknowledgeAll()
 
         expect(api.acknowledgeAll).toHaveBeenCalledTimes(1)
-        expect(changed).toHaveBeenCalledTimes(1)
         expect(inbox.notifications.value).toEqual([])
     })
 

@@ -23,10 +23,18 @@ export function useSidebarCounts() {
         openMovements: 0,
         procedureCount: 0,
     }))
+    const latestRead = useState<number>('useSidebarCounts.latestRead', () => 0)
 
-    /** Reads the counts again, keeping the last ones when the endpoint is not available yet. */
+    /**
+     * Reads the counts again, keeping the last ones when the endpoint is not available yet. An answer
+     * to an older read that arrives after a newer one was asked for is dropped, so a slow answer cannot
+     * bring back a count that was already acknowledged away.
+     */
     async function refresh() {
-        await getSidebarCounts().then(found => { counts.value = found }).catch(() => {})
+        const read = ++latestRead.value
+        await getSidebarCounts()
+            .then(found => { if (read === latestRead.value) counts.value = found })
+            .catch(() => {})
     }
 
     return {

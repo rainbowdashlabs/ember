@@ -27,14 +27,12 @@ import { useFormWalk } from '@/composables/useFormWalk'
 import { useAnswerBaseline } from '@/composables/useAnswerBaseline'
 import { describeFailure, type Failure } from '@/util/failure'
 import { useSession } from '@/composables/useSession'
-import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import MemberSelector from './fillview/MemberSelector.vue'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { sessionInfo, loaded } = useSession()
-const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const formId = computed(() => Number(route.params.id))
 const form = ref<Form | null>(null)
@@ -209,7 +207,6 @@ const {failure: submitFailure, run: send} = useAsyncAction(async () => {
     walk.showRefused(e)
     throw e
   }
-  refreshSidebarCounts()
   sent.value = true
 })
 

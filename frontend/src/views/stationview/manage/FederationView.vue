@@ -20,7 +20,6 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
-import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import FederationCompatibilityBadge from './federationview/FederationCompatibilityBadge.vue'
 import IncomingPairRequests, { type IncomingPairRequest } from './federationview/IncomingPairRequests.vue'
 import OutgoingPairRequests from './federationview/OutgoingPairRequests.vue'
@@ -42,7 +41,6 @@ import { describeFailure, type Failure } from '@/util/failure'
 const { t } = useI18n()
 const router = useRouter()
 const { canManageFederation, loaded } = useSession()
-const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const partners = ref<PartnerResponse[]>([])
 const pairRequests = ref<PairRequestResponse[]>([])
@@ -84,7 +82,6 @@ async function handleAcceptRequest(request: IncomingPairRequest) {
       : federation.acceptPairRequest(request.id))
     flash(t('federation.connected'))
     await reload()
-    refreshSidebarCounts()
   } catch (e) { failure.value = federationFailure(e) }
 }
 
@@ -94,7 +91,6 @@ async function handleDeclineRequest(request: IncomingPairRequest) {
       ? federation.declineRemotePairRequest(request.id)
       : federation.declinePairRequest(request.id))
     await reload()
-    refreshSidebarCounts()
   } catch (e) { failure.value = federationFailure(e) }
 }
 

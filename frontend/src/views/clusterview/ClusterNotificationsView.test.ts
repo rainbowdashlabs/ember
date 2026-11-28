@@ -59,7 +59,7 @@ describe('ClusterNotificationsView', () => {
         expect(view.text()).toContain('Wache Süd')
     })
 
-    it('reads the count again once something was marked read', async () => {
+    it('marks a notice read when it is opened', async () => {
         const view = await mountSuspended(ClusterNotificationsView)
         await flushPromises()
 
@@ -67,6 +67,5 @@ describe('ClusterNotificationsView', () => {
         await flushPromises()
 
         expect(acknowledge).toHaveBeenCalledWith(9)
-        expect(count).toHaveBeenCalled()
     })
 })

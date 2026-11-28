@@ -9,7 +9,6 @@ import {beacon, problems} from '@/api'
 import {ProblemLevel, ProblemState, type StoredProblem} from '@/api/generated/schema'
 import type {ProblemStateFilter} from '@/api/problems'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
-import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /** The changes of state a card offers, each by the call that makes it. */
@@ -33,7 +32,6 @@ export type ProblemStateChange = keyof typeof STATE_CHANGES
  */
 export function useProblemList() {
     const {t} = useI18n()
-    const {refresh: refreshCounts} = useMonitoringCounts()
 
     const refusals = ref(false)
     const state = ref<ProblemStateFilter>(ProblemState.OPEN)
@@ -95,7 +93,6 @@ export function useProblemList() {
 
     async function settled() {
         await load(true)
-        void refreshCounts()
     }
 
     async function run(action: () => Promise<void>) {
