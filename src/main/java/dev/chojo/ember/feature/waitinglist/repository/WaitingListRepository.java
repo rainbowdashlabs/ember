@@ -795,7 +795,17 @@ public class WaitingListRepository {
                 .delete();
     }
 
-    public int countPendingEntries(int stationId) {
+    /**
+     * The waiting entries of the station's lists that the member has not been shown yet: on a list
+     * they never opened every one, otherwise those above the highest entry they were shown there. An
+     * entry put back to waiting keeps its place in that order, so it is new again only if it was never
+     * shown.
+     *
+     * @param stationId the station
+     * @param memberId  the member reading the sidebar
+     * @return how many entries are new to them
+     */
+    public int countUnseenEntries(int stationId, int memberId) {
         return count("""
                 SELECT
                     count(*) AS cnt
@@ -803,8 +813,38 @@ public class WaitingListRepository {
                     waiting_list_entry wle
                         JOIN waiting_list wl
                         ON wl.id = wle.list_id
+                        LEFT JOIN waiting_list_seen seen
+                        ON seen.list_id = wl.id AND seen.member_id = :member_id
                 WHERE wl.station_id = :station_id
-                  AND wle.status = 'WAITING';""", call().bind("station_id", stationId));
+                  AND wle.status = 'WAITING'
+                  AND wle.id > coalesce(seen.seen_up_to, 0);""", call().bind("station_id", stationId).bind("member_id", memberId));
+    }
+
+    /**
+     * Records that the member was shown the list up to an entry. Never moves back, and never past the
+     * list's highest entry, so an id from elsewhere cannot hide entries that do not exist yet.
+     *
+     * @param listId    the list
+     * @param memberId  the member who looked
+     * @param upToEntry the highest entry id they were shown
+     */
+    public void markSeen(int listId, int memberId, int upToEntry) {
+        query("""
+                INSERT
+                INTO
+                    waiting_list_seen
+                    (list_id, member_id, seen_up_to)
+                SELECT
+                    :list_id, :member_id, least(:up_to, coalesce(max(id), 0))
+                FROM
+                    waiting_list_entry
+                WHERE list_id = :list_id
+                ON CONFLICT (list_id, member_id) DO UPDATE
+                    SET seen_up_to = greatest(waiting_list_seen.seen_up_to, excluded.seen_up_to);""")
+                .single(call().bind("list_id", listId)
+                        .bind("member_id", memberId)
+                        .bind("up_to", upToEntry))
+                .insert();
     }
 
     public List<WaitingListEntryGuardian> findGuardiansByEntry(int entryId) {

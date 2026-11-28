@@ -142,6 +142,7 @@ public class WaitingListRoutes implements Routes {
         routes.get(prefix + "/waiting-lists/{id}/fields", this::listFields, StationPermission.WAITLIST_READ);
         routes.get(prefix + "/waiting-lists/{id}/invites", this::listInvites, StationPermission.WAITLIST_READ);
         routes.get(prefix + "/waiting-lists/{id}/entries", this::listEntries, StationPermission.WAITLIST_READ);
+        routes.post(prefix + "/waiting-lists/{id}/seen", this::markSeen, StationPermission.WAITLIST_READ);
 
         routes.post(prefix + "/waiting-lists/{id}/entries", this::createEntry, StationPermission.WAITLIST_ADD);
 
@@ -749,6 +750,22 @@ public class WaitingListRoutes implements Routes {
         int eventId = ctx.queryParamAsClass("event", Integer.class).get();
         LocalDate date = dateParam(ctx);
         ctx.json(service.visitors(StationSession.from(ctx).stationId(), eventId, date));
+    }
+
+    @OpenApi(
+            path = "/api/v1/waiting-lists/{id}/seen",
+            methods = HttpMethod.POST,
+            summary = "Record how far the reader was shown a waiting list",
+            tags = {"Waiting List"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WaitingListSeenRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void markSeen(Context ctx) {
+        int listId = pathInt(ctx, "id");
+        verifyListOwnership(ctx, listId);
+        var request = ctx.bodyAsClass(WaitingListSeenRequest.class);
+        service.markSeen(listId, StationSession.from(ctx).member().id(), request.upToEntryId());
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     @OpenApi(
@@ -1409,6 +1426,13 @@ public class WaitingListRoutes implements Routes {
             @Nullable String notes) {}
 
     public record WaitingListCreatedAtRequest(Instant createdAt) {}
+
+    /**
+     * How far the reader was shown a waiting list.
+     *
+     * @param upToEntryId the highest entry id the page showed
+     */
+    public record WaitingListSeenRequest(int upToEntryId) {}
 
     public record WaitingListInviteInfo(String listName, String listDescription, List<WaitingListField> fields) {}
 

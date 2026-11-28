@@ -137,6 +137,19 @@ public class WaitingListService implements TaskSource {
         return repository.findById(id);
     }
 
+    /**
+     * Records that a member was shown a list up to an entry, which takes those entries off the
+     * member's sidebar count. Only for the member who looked; everybody else still counts them.
+     *
+     * @param listId    the list
+     * @param memberId  the member who looked
+     * @param upToEntry the highest entry id they were shown; below one they were shown nothing
+     */
+    public void markSeen(int listId, int memberId, int upToEntry) {
+        if (upToEntry < 1) return;
+        repository.markSeen(listId, memberId, upToEntry);
+    }
+
     public WaitingList create(
             int stationId,
             String name,

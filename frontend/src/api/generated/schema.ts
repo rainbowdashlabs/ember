@@ -71347,6 +71347,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/waiting-lists/{id}/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record how far the reader was shown a waiting list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListSeenRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/waiting-lists/{id}/visible-fields": {
         parameters: {
             query?: never;
@@ -84590,6 +84630,10 @@ export interface components {
             /** Format: int32 */
             testingGroupId?: number | null;
         };
+        WaitingListSeenRequest: {
+            /** Format: int32 */
+            upToEntryId?: number;
+        };
         WaitingListVisibleFieldsRequest: {
             fieldIds?: number[] | null;
         };
@@ -86569,6 +86613,7 @@ export type WaitingListPublicStatus = components['schemas']['WaitingListPublicSt
 export type WaitingListRegisterRequest = components['schemas']['WaitingListRegisterRequest'];
 export type WaitingListRegistrationStatus = components['schemas']['WaitingListRegistrationStatus'];
 export type WaitingListRequest = components['schemas']['WaitingListRequest'];
+export type WaitingListSeenRequest = components['schemas']['WaitingListSeenRequest'];
 export type WaitingListVisibleFieldsRequest = components['schemas']['WaitingListVisibleFieldsRequest'];
 export type WaitingListVisitor = components['schemas']['WaitingListVisitor'];
 export type WaitingListWithCount = components['schemas']['WaitingListWithCount'];

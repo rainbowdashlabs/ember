@@ -194,3 +194,18 @@ WHERE f.id IN (SELECT DISTINCT ON (m.event_group_id) m.id
                   FROM ember_schema.event_group_field o
                   WHERE o.event_group_id = f.event_group_id
                     AND (o.config ->> 'calendarLocation')::BOOLEAN IS TRUE);
+
+CREATE TABLE ember_schema.waiting_list_seen
+(
+    list_id    INTEGER NOT NULL REFERENCES ember_schema.waiting_list (id) ON DELETE CASCADE,
+    member_id  INTEGER NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    seen_up_to INTEGER NOT NULL,
+    PRIMARY KEY (list_id, member_id)
+);
+
+COMMENT ON TABLE ember_schema.waiting_list_seen IS
+    'How far a member has looked at a waiting list. The sidebar counts the waiting entries the member has not been shown yet.';
+COMMENT ON COLUMN ember_schema.waiting_list_seen.list_id IS 'References the waiting list.';
+COMMENT ON COLUMN ember_schema.waiting_list_seen.member_id IS 'References the station member who looked at the list.';
+COMMENT ON COLUMN ember_schema.waiting_list_seen.seen_up_to IS
+    'The highest entry id the member was shown on the list. Entries with a higher id count as new for them. An id rather than a time, because the creation time of an entry can be set back by hand.';

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:613b9d0916f6a99d2f84723a098149af0197bdb79de8e5881430bfad9bd41ac1",
-  "generatedAt": "2026-11-27T18:23:15Z",
+  "schemaHash": "sha256:c43ba525f0c54575d9b7c47ec6acb8b589a2a1274ca4288eb0c62c15a13a2fd3",
+  "generatedAt": "2026-11-28T12:33:11Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -35398,6 +35398,72 @@
         ]
       },
       "description": "Invite codes for joining a waiting list."
+    },
+    "waiting_list_seen": {
+      "feature": "waitinglist",
+      "scope": "USER",
+      "tableHash": "sha256:4271dbf744be4d5f321e5ca47c14e0fafd43ee9d6d0700f0cefb17a2974797cc",
+      "columns": [
+        {
+          "name": "list_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the waiting list."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the station member who looked at the list."
+        },
+        {
+          "name": "seen_up_to",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The highest entry id the member was shown on the list. Entries with a higher id count as new for them. An id rather than a time, because the creation time of an entry can be set back by hand."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "list_id",
+          "refTable": "waiting_list",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A member's reading position on the sidebar; opening the list sets it again"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          }
+        ]
+      },
+      "description": "How far a member has looked at a waiting list. The sidebar counts the waiting entries the member has not been shown yet."
     },
     "waitlist_verification_token": {
       "feature": "waitinglist",
