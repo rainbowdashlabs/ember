@@ -164,7 +164,7 @@ public final class ItemCustodySql {
                 JOIN federation_lending_request_item loan_line ON loan_line.id = loan_piece.request_item_id \
                 JOIN federation_lending_request loan ON loan.id = loan_line.request_id \
                 WHERE loan_piece.item_id = %1$s.id AND loan.status IN ('APPROVED', 'LENT') \
-                AND (loan.requested_date_to IS NULL OR loan.requested_date_to >= current_date)%2$s)""".formatted(itemAlias, except);
+                AND loan.requested_date_to >= current_date%2$s)""".formatted(itemAlias, except);
     }
 
     /**

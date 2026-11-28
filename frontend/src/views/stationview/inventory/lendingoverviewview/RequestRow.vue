@@ -28,7 +28,7 @@ const routes = useInventoryRoutes()
 const station = computed(() => props.entry.isOwner ? props.entry.requestingStationName : props.entry.owningStationName)
 const days = computed(() => {
   const {requestedDateFrom: from, requestedDateTo: to} = props.entry.request
-  return to && to !== from ? `${formatDate(from)} - ${formatDate(to)}` : formatDate(from)
+  return to !== from ? `${formatDate(from)} - ${formatDate(to)}` : formatDate(from)
 })
 const link = computed(() => routes.lendingRequest ? {name: routes.lendingRequest, params: {id: props.entry.request.id}} : null)
 </script>

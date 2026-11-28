@@ -141,8 +141,7 @@ public class EquipmentAvailabilityRepository {
                   AND r.status IN ('APPROVED', 'LENT')
                   AND (:ignore_request::INT IS NULL OR r.id <> :ignore_request::INT)
                   AND (:date_to::DATE IS NULL OR r.requested_date_from <= :date_to::DATE)
-                  AND (r.requested_date_to IS NULL OR :date_from::DATE IS NULL
-                       OR r.requested_date_to >= :date_from::DATE)
+                  AND (:date_from::DATE IS NULL OR r.requested_date_to >= :date_from::DATE)
                 ORDER BY ri.id, a.item_id;""")
                 .single(call().bind("station_id", stationId)
                         .bind("date_from", from)

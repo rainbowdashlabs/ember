@@ -68,7 +68,7 @@ public class LendingCalendarService {
         var bars = new ArrayList<CalendarBar>();
         for (LendingRequest request : lendingService.findRequestsByStation(stationId)) {
             if (!request.owningStationUid().equals(own) || request.status() == LendingStatus.DECLINED) continue;
-            LocalDate last = request.lastDay();
+            LocalDate last = request.requestedDateTo();
             if (last.isBefore(from) || request.requestedDateFrom().isAfter(to)) continue;
             String partner = partners.computeIfAbsent(
                     request.requestingStationUid(), uid -> lendingService.stationName(uid, stationId));

@@ -66,11 +66,9 @@ public class LendingFeedDetails implements FeedDetailsContributor {
             if (request == null) return;
             var from = request.requestedDateFrom();
             var to = request.requestedDateTo();
-            if (from != null && to != null) {
-                details.put(details.label("needed", "Needed"), details.dateRange(from, to));
-            } else if (from != null) {
-                details.put(details.label("needed", "Needed"), details.date(from));
-            }
+            details.put(
+                    details.label("needed", "Needed"),
+                    from.equals(to) ? details.date(from) : details.dateRange(from, to));
         } catch (Exception ignored) {
         }
     }

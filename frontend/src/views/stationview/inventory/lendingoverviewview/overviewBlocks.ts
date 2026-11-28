@@ -31,12 +31,8 @@ export interface BorrowBlocks {
 export interface BorrowedGroup {
     requestId: number
     stationName: string
-    dueOn: string | null
+    dueOn: string
     pieces: {name: string; internalId: string | null}[]
-}
-
-function lastDay(entry: LendingRequestResponse): string {
-    return entry.request.requestedDateTo ?? entry.request.requestedDateFrom
 }
 
 function byCreated(a: LendingRequestResponse, b: LendingRequestResponse): number {
@@ -48,7 +44,7 @@ function byFirstDay(a: LendingRequestResponse, b: LendingRequestResponse): numbe
 }
 
 function byLastDay(a: LendingRequestResponse, b: LendingRequestResponse): number {
-    return lastDay(a).localeCompare(lastDay(b))
+    return a.request.requestedDateTo.localeCompare(b.request.requestedDateTo)
 }
 
 function inStatus(entries: LendingRequestResponse[], status: LendingStatus): LendingRequestResponse[] {
@@ -86,7 +82,7 @@ export function borrowBlocks(requests: readonly LendingRequestResponse[], today:
             .filter(entry => entry.request.requestedDateFrom <= soon)
             .sort(byFirstDay),
         giveBackSoon: inStatus(asked, LendingStatus.LENT)
-            .filter(entry => entry.overdue || lastDay(entry) <= soon)
+            .filter(entry => entry.overdue || entry.request.requestedDateTo <= soon)
             .sort(byLastDay),
     }
 }
@@ -100,5 +96,5 @@ export function borrowedGroups(items: readonly BorrowedItemResponse[]): Borrowed
         group.pieces.push({name: row.item.name, internalId: row.item.internalId})
         groups.set(row.loanRequestId, group)
     }
-    return [...groups.values()].sort((a, b) => (a.dueOn ?? '9999').localeCompare(b.dueOn ?? '9999'))
+    return [...groups.values()].sort((a, b) => a.dueOn.localeCompare(b.dueOn))
 }

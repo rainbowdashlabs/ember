@@ -43,7 +43,7 @@ public record LendingRequest(
         UUID owningStationUid,
         LendingStatus status,
         LocalDate requestedDateFrom,
-        @Nullable LocalDate requestedDateTo,
+        LocalDate requestedDateTo,
         @Nullable Integer createdBy,
         Instant createdAt,
         Instant updatedAt,
@@ -120,10 +120,5 @@ public record LendingRequest(
                 row.getObject("event_date", LocalDate.class),
                 row.getString("occasion"),
                 row.get("uid", StandardValueConverter.UUID_STRING));
-    }
-
-    /** The last day the gear is wanted, which is the first day where the request names no other. */
-    public LocalDate lastDay() {
-        return requestedDateTo != null ? requestedDateTo : requestedDateFrom;
     }
 }

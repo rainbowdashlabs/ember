@@ -6,9 +6,13 @@
 package dev.chojo.ember.feature.station.transfer;
 
 import dev.chojo.ember.tracking.engine.ImportReach;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,6 +39,10 @@ public final class LendingRowScope {
      * The lending requests of a page the imported station is a party to, each recorded with its two
      * stations for the messages that follow.
      *
+     * <p>Every request has a last day, never before its first. One exported before that, with none or
+     * with one before its first, arrives with its first day as its last, as the migration settles it on
+     * an instance that ran it.
+     *
      * @param context     the run
      * @param importedUid the uid the imported station carries here
      * @param rows        the page's rows
@@ -44,9 +52,37 @@ public final class LendingRowScope {
             StationImportContext context, UUID importedUid, List<Map<String, Object>> rows) {
         var kept = rows.stream()
                 .filter(row -> namesTheStation(context, importedUid, row))
+                .map(LendingRowScope::withLastDay)
                 .toList();
         report(rows.size() - kept.size(), "lending request(s) that are not the imported station's");
         return kept;
+    }
+
+    /**
+     * The row with its first day as its last where it names none or one before its first, unchanged
+     * otherwise.
+     *
+     * @param row an exported request row
+     * @return the row as it may arrive
+     */
+    static Map<String, Object> withLastDay(Map<String, Object> row) {
+        LocalDate from = asDay(row.get("requested_date_from"));
+        if (from == null) return row;
+        LocalDate to = asDay(row.get("requested_date_to"));
+        if (to != null && !to.isBefore(from)) return row;
+        var filled = new HashMap<>(row);
+        filled.put("requested_date_to", row.get("requested_date_from"));
+        return filled;
+    }
+
+    private static @Nullable LocalDate asDay(@Nullable Object value) {
+        if (value == null) return null;
+        try {
+            return LocalDate.parse(
+                    value.toString().substring(0, Math.min(10, value.toString().length())));
+        } catch (DateTimeParseException e) {
+            return null;
+        }
     }
 
     /**

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:54bc31bc9ed08f33730e275e0104250241ec10745585a4d5f3e75b59e0dbe340",
-  "generatedAt": "2026-11-28T10:11:07Z",
+  "schemaHash": "sha256:85dec4019da67cf2e14ab9c48b0a6429bcdab58175db0c36ed4be2b457784636",
+  "generatedAt": "2026-11-28T16:09:52Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -15228,7 +15228,7 @@
     "federation_lending_request": {
       "feature": "federation",
       "scope": "STATION",
-      "tableHash": "sha256:6446312f93a9dd5e04399ec557bf407fd38d52050edb9e30f51ddc8b468b9763",
+      "tableHash": "sha256:85a7f6dfc74c4d6202918f48eb22ea923a95edeaea31b1b07294c90f4bc9398c",
       "columns": [
         {
           "name": "id",
@@ -15254,9 +15254,9 @@
         {
           "name": "requested_date_to",
           "type": "date",
-          "nullable": true,
+          "nullable": false,
           "verified": true,
-          "description": "Requested end date for the lending period."
+          "description": "The last day the gear is wanted, the first day itself for a request of one day."
         },
         {
           "name": "created_by",

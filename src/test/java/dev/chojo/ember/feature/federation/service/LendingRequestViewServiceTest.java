@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -70,14 +71,15 @@ class LendingRequestViewServiceTest {
     private EventCrudService events;
     private LendingRequestViewService service;
 
-    private static LendingRequest request(int id, UUID asking, UUID owning, LendingStatus status, LocalDate to) {
+    private static LendingRequest request(
+            int id, UUID asking, UUID owning, LendingStatus status, @Nullable LocalDate to) {
         return new LendingRequest(
                 id,
                 asking,
                 owning,
                 status,
                 LocalDate.of(2020, 1, 1),
-                to,
+                to == null ? LocalDate.of(2020, 1, 1) : to,
                 11,
                 Instant.EPOCH,
                 Instant.EPOCH,

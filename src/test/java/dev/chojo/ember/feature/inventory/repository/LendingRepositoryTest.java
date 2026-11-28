@@ -346,7 +346,7 @@ class LendingRepositoryTest extends RepositoryTestBase {
         UUID uid = UUID.randomUUID();
         UUID elsewhere = UUID.randomUUID();
         var copy = lendingRepo.createRequest(
-                uid, stationA.uid(), elsewhere, LocalDate.now(), null, null, null, null, "Übung");
+                uid, stationA.uid(), elsewhere, LocalDate.now(), LocalDate.now(), null, null, null, "Übung");
         assertEquals(uid, copy.uid());
         assertNull(copy.createdBy());
         assertEquals(copy.id(), lendingRepo.findRequestByUid(uid).orElseThrow().id());
@@ -371,7 +371,15 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Order(61)
     void aLineIsLabelledWhenItIsAskedFor() {
         var request = lendingRepo.createRequest(
-                UUID.randomUUID(), stationB.uid(), stationA.uid(), LocalDate.now(), null, null, null, null, "");
+                UUID.randomUUID(),
+                stationB.uid(),
+                stationA.uid(),
+                LocalDate.now(),
+                LocalDate.now(),
+                null,
+                null,
+                null,
+                "");
 
         assertEquals(
                 "Lend Item",
@@ -400,12 +408,28 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Order(62)
     void anArrivedCopyJoinsTheCopyThePartnerKeeps() {
         var kept = lendingRepo.createRequest(
-                UUID.randomUUID(), stationB.uid(), stationA.uid(), LocalDate.now(), null, memberB.id(), null, null, "");
+                UUID.randomUUID(),
+                stationB.uid(),
+                stationA.uid(),
+                LocalDate.now(),
+                LocalDate.now(),
+                memberB.id(),
+                null,
+                null,
+                "");
         int keptLine =
                 lendingRepo.addRequestItem(kept.id(), null, null, null, 1, null).id();
         lendingRepo.labelItems(kept.id(), List.of("Lend Item"));
         var arrived = lendingRepo.createRequest(
-                UUID.randomUUID(), stationB.uid(), stationA.uid(), LocalDate.now(), null, null, null, null, "Übung");
+                UUID.randomUUID(),
+                stationB.uid(),
+                stationA.uid(),
+                LocalDate.now(),
+                LocalDate.now(),
+                null,
+                null,
+                null,
+                "Übung");
         int arrivedLine = lendingRepo
                 .addRequestItem(arrived.id(), inventoryIdA, itemIdA, null, 1, null)
                 .id();
@@ -506,7 +530,14 @@ class LendingRepositoryTest extends RepositoryTestBase {
                 "");
         lendingRepo.updateRequestStatus(dueToday.id(), LendingStatus.LENT);
         var oneDay = lendingRepo.createRequest(
-                stationB.uid(), stationA.uid(), LocalDate.now().minusDays(1), null, memberB.id(), null, null, "");
+                stationB.uid(),
+                stationA.uid(),
+                LocalDate.now().minusDays(1),
+                LocalDate.now().minusDays(1),
+                memberB.id(),
+                null,
+                null,
+                "");
         lendingRepo.updateRequestStatus(oneDay.id(), LendingStatus.LENT);
 
         var found = lendingRepo.findOverdueUnreminded(LocalDate.now()).stream()

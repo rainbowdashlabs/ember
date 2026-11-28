@@ -213,7 +213,7 @@ public class LendingRepository {
                 FROM federation_lending_request r
                 WHERE r.status = 'LENT'
                   AND r.reminded_at IS NULL
-                  AND coalesce(r.requested_date_to, r.requested_date_from) < :today
+                  AND r.requested_date_to < :today
                   AND EXISTS (SELECT 1 FROM station s WHERE s.uid = r.owning_station_uid AND s.moved_away_at IS NULL);""", LENDING_REQUEST_COLUMNS)
                 .single(call().bind("today", today))
                 .map(LendingRequest.map())
@@ -461,7 +461,7 @@ public class LendingRepository {
                 WHERE ri.inventory_id = :inventory_id
                   AND r.owning_station_uid = :owning_station_uid::uuid
                   AND r.status IN ('APPROVED', 'LENT')
-                ORDER BY r.requested_date_to ASC NULLS LAST;""")
+                ORDER BY r.requested_date_to ASC;""")
                 .single(call().bind("inventory_id", inventoryId)
                         .bind("owning_station_uid", owningStationUid, StandardValueConverter.UUID_STRING))
                 .map(LentOutItem.map())

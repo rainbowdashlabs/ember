@@ -280,8 +280,9 @@ class StatisticsSeriesRepositoryTest extends RepositoryTestBase {
         int requester = memberOf(station.id(), "lender");
         query("""
                         INSERT INTO federation_lending_request
-                            (uid, requesting_station_uid, owning_station_uid, requested_date_from, created_by)
-                        VALUES (:uid::UUID, :requesting::UUID, :owning::UUID, CURRENT_DATE, :member);""")
+                            (uid, requesting_station_uid, owning_station_uid, requested_date_from, requested_date_to,
+                             created_by)
+                        VALUES (:uid::UUID, :requesting::UUID, :owning::UUID, CURRENT_DATE, CURRENT_DATE, :member);""")
                 .single(call().bind("uid", UUID.randomUUID(), StandardValueConverter.UUID_STRING)
                         .bind("requesting", station.uid(), StandardValueConverter.UUID_STRING)
                         .bind("owning", other.uid(), StandardValueConverter.UUID_STRING)

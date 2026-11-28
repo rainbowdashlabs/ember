@@ -27,7 +27,6 @@ import org.jspecify.annotations.Nullable;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -58,11 +57,6 @@ public class EquipmentAvailabilityService {
      */
     static final int MAX_LEAD_TRAIL_DAYS = 60;
 
-    /**
-     * How far a window reaches when nobody said where it ends.
-     */
-    private static final int OPEN_END_DAYS = 366;
-
     private final EquipmentAvailabilityRepository availabilityRepository;
     private final EquipmentNeedRepository needRepository;
     private final EventRepository eventRepository;
@@ -88,22 +82,6 @@ public class EquipmentAvailabilityService {
      */
     public Optional<ResolvedTarget> resolve(LineTarget target) {
         return availabilityRepository.resolve(target);
-    }
-
-    /**
-     * The far end of a window whose end nobody wrote down.
-     *
-     * <p>A loan with no return date runs until the gear comes back, which is not a date. A window is
-     * nonetheless read as days and walked day by day, so the far end has to be a day the arithmetic
-     * can reach and the walk can finish on. The largest instant there is answers neither: it names a
-     * year no date can hold, so the first question about which day it falls on throws, and a walk
-     * towards it would not end.
-     *
-     * @param from the first moment of the window
-     * @return a far but real end
-     */
-    public static Instant openEndAfter(Instant from) {
-        return from.plus(OPEN_END_DAYS, ChronoUnit.DAYS);
     }
 
     /**
@@ -465,18 +443,12 @@ public class EquipmentAvailabilityService {
      * instants, so a day becomes the day it stands for rather than a moment inside it.
      */
     private static Instant dayStart(LocalDate date) {
-        return date == null ? Instant.EPOCH : date.atStartOfDay(ZoneOffset.UTC).toInstant();
+        return date.atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 
-    /**
-     * The end of a day-grained window. A request with no return date reaches forward without an end,
-     * which is what an open end means: the piece is not offered to a second borrower until it is known
-     * to be back.
-     */
+    /** The end of a day-grained window: the start of the day after its last day. */
     private static Instant dayEnd(LocalDate date) {
-        return date == null
-                ? Instant.MAX
-                : date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        return date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 
     private record HandoverKey(int needId, LocalDate date) {}

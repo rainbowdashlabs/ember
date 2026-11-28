@@ -22,7 +22,7 @@ const {t} = useI18n()
       <div><span class="font-medium">{{ t('lending.requestingStation') }}:</span> {{ detail.request.requestingStationName }}</div>
       <div><span class="font-medium">{{ t('lending.owningStation') }}:</span> {{ detail.request.owningStationName }}</div>
       <div><span class="font-medium">{{ t('lending.dateFrom') }}:</span> {{ formatDate(detail.request.request.requestedDateFrom) || '-' }}</div>
-      <div><span class="font-medium">{{ t('lending.dateTo') }}:</span> {{ formatDate(detail.request.request.requestedDateTo) || '-' }}</div>
+      <div><span class="font-medium">{{ t('lending.dateTo') }}:</span> {{ formatDate(detail.request.request.requestedDateTo) }}</div>
     </div>
   </NeutralContainer>
 </template>

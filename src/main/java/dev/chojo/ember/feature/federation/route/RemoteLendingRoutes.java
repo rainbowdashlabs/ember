@@ -296,11 +296,17 @@ public class RemoteLendingRoutes implements Routes {
      * A request for gear, as the borrowing station sends it to the lending one.
      *
      * @param uid      the identity both copies of the request carry
+     * @param dateFrom the first day the gear is wanted; a request without one is refused
+     * @param dateTo   the last day, {@code null} from an instance that still sends none for one day
      * @param occasion what the request is for, a copy of the appointment's name
      * @param lines    what is asked for, each line naming gear of the lending station
      */
     public record RemoteLendingRequest(
-            UUID uid, LocalDate dateFrom, LocalDate dateTo, String occasion, List<RemoteLendingLine> lines) {}
+            UUID uid,
+            @Nullable LocalDate dateFrom,
+            @Nullable LocalDate dateTo,
+            String occasion,
+            List<RemoteLendingLine> lines) {}
 
     /**
      * One line of a request.

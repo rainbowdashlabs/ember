@@ -1250,14 +1250,22 @@ class LendingServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.createRequest(
-                        stationB.id(), stationA.uid(), LocalDate.now(), null, memberB.id(), null, null, "", lines));
+                        stationB.id(),
+                        stationA.uid(),
+                        LocalDate.now(),
+                        LocalDate.now(),
+                        memberB.id(),
+                        null,
+                        null,
+                        "",
+                        lines));
         assertEquals(FederationRefusal.LENDING_LINE_NAMES_FOREIGN_GEAR, refused.refusal());
         assertEquals(before, lendingRepo.findRequestsByStation(stationB.uid()).size());
 
         shareService.setInventoryShare(
                 stationA.id(), inventory.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
         var asked = service.createRequest(
-                stationB.id(), stationA.uid(), LocalDate.now(), null, memberB.id(), null, null, "", lines);
+                stationB.id(), stationA.uid(), LocalDate.now(), LocalDate.now(), memberB.id(), null, null, "", lines);
         lendingRepo.deleteRequest(asked.uid());
         shareService.removeInventoryShare(stationA.id(), inventory.id());
     }
@@ -1285,7 +1293,15 @@ class LendingServiceTest extends RepositoryTestBase {
                 new LendingService.RequestLine(null, radio.id(), null, 1, null),
                 new LendingService.RequestLine(inventory.id(), radio.id(), radios.id(), 1, null))) {
             var asked = service.createRequest(
-                    stationB.id(), stationA.uid(), LocalDate.now(), null, memberB.id(), null, null, "", List.of(line));
+                    stationB.id(),
+                    stationA.uid(),
+                    LocalDate.now(),
+                    LocalDate.now(),
+                    memberB.id(),
+                    null,
+                    null,
+                    "",
+                    List.of(line));
             lendingRepo.deleteRequest(asked.uid());
         }
         for (var line : List.of(
@@ -1300,7 +1316,7 @@ class LendingServiceTest extends RepositoryTestBase {
                             stationB.id(),
                             stationA.uid(),
                             LocalDate.now(),
-                            null,
+                            LocalDate.now(),
                             memberB.id(),
                             null,
                             null,
@@ -1382,20 +1398,17 @@ class LendingServiceTest extends RepositoryTestBase {
         assertEquals(LendingService.EmptyReason.NOTHING_FREE, results.emptyReason());
     }
 
-    /**
-     * A request that names no return date is approved and filled like any other. The open end is a
-     * window reaching forward, not a moment outside every calendar.
-     */
+    /** A request for one day is approved and filled like any other. */
     @Test
     @Order(500)
-    void aRequestWithNoReturnDateIsApproved() {
+    void aOneDayRequestIsApproved() {
         var inventory = inventoryRepo.create(stationA.id(), "LendSvcOpenEnd", InventoryType.INTERNAL, false);
         inventoryRepo.createItem(inventory.id(), "OE-001", "Offenes Ende", null, null);
         shareService.setInventoryShare(
                 stationA.id(), inventory.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
 
         var request = service.createRequest(
-                stationB.id(), stationA.id(), LocalDate.now(), null, memberB.id(), null, null, "");
+                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now(), memberB.id(), null, null, "");
         service.addRequestItem(request.id(), inventory.id(), null, null, 1, null);
 
         assertTrue(service.approveRequest(request.id(), stationA.id()));
@@ -2131,6 +2144,64 @@ class LendingServiceTest extends RepositoryTestBase {
         assertEquals(
                 LendingStatus.DECLINED,
                 service.findRequest(request.id()).orElseThrow().status());
+        federationRepo.deletePartner(row.id());
+    }
+
+    /**
+     * A request from an older instance that names no last day is written down for its first day; one
+     * naming no first day, or a last day before the first, is refused before anything is kept.
+     */
+    @Test
+    @Order(615)
+    void aRequestFromElsewhereAlwaysHasItsDaysInOrder() {
+        UUID elsewhere = UUID.randomUUID();
+        var row = partnerElsewhere(elsewhere);
+        var asking = new ServingPartner(row, elsewhere);
+        var line = List.of(new RemoteLendingRoutes.RemoteLendingLine(inventoryIdA, null, null, 1));
+        LocalDate day = LocalDate.now().plusDays(3);
+
+        UUID oneDay = UUID.randomUUID();
+        service.serveRequest(asking, new RemoteLendingRoutes.RemoteLendingRequest(oneDay, day, null, "", line));
+        assertEquals(day, lendingRepo.findRequestByUid(oneDay).orElseThrow().requestedDateTo());
+
+        UUID noFirstDay = UUID.randomUUID();
+        assertEquals(
+                FederationRefusal.LENDING_FIRST_DAY_MISSING,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.serveRequest(
+                                        asking,
+                                        new RemoteLendingRoutes.RemoteLendingRequest(noFirstDay, null, day, "", line)))
+                        .refusal());
+        UUID backwards = UUID.randomUUID();
+        assertEquals(
+                FederationRefusal.LENDING_WINDOW_BACKWARDS,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.serveRequest(
+                                        asking,
+                                        new RemoteLendingRoutes.RemoteLendingRequest(
+                                                backwards, day, day.minusDays(1), "", line)))
+                        .refusal());
+        assertTrue(lendingRepo.findRequestByUid(noFirstDay).isEmpty());
+        assertTrue(lendingRepo.findRequestByUid(backwards).isEmpty());
+
+        assertEquals(
+                FederationRefusal.LENDING_WINDOW_BACKWARDS,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.createRequest(
+                                        stationB.id(),
+                                        stationA.id(),
+                                        day,
+                                        day.minusDays(1),
+                                        memberB.id(),
+                                        null,
+                                        null,
+                                        ""))
+                        .refusal(),
+                "a station here cannot ask backwards either");
+        lendingRepo.deleteRequest(oneDay);
         federationRepo.deletePartner(row.id());
     }
 }

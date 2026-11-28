@@ -51,7 +51,7 @@ function requestLink(id: number) {
       <li v-for="group in borrowed.slice(0, limit)" :key="group.requestId" class="py-2" data-testid="lending-overview-borrowed">
         <component :is="requestLink(group.requestId) ? RouterLink : 'span'" :to="requestLink(group.requestId)" class="hover:underline">
           <span class="font-medium">{{ group.stationName }}</span>
-          <MutedText v-if="group.dueOn" class="ml-2">{{ t('lendingOverview.until', {day: formatDate(group.dueOn)}) }}</MutedText>
+          <MutedText class="ml-2">{{ t('lendingOverview.until', {day: formatDate(group.dueOn)}) }}</MutedText>
         </component>
         <MutedText tag="p">{{ group.pieces.map(piece => piece.internalId ? `${piece.name} (${piece.internalId})` : piece.name).join(', ') }}</MutedText>
       </li>

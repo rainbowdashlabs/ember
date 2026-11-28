@@ -73560,7 +73560,7 @@ export interface components {
             skipped: string[];
         };
         BorrowedItemResponse: {
-            dueOn: string | null;
+            dueOn: string;
             item: components["schemas"]["InventoryItem"];
             /** Format: int32 */
             loanRequestId: number;
@@ -78471,7 +78471,7 @@ export interface components {
             /** Format: uuid */
             owningStationUid: string;
             requestedDateFrom: components["schemas"]["LocalDate"];
-            requestedDateTo: components["schemas"]["LocalDate"] | null;
+            requestedDateTo: components["schemas"]["LocalDate"];
             /** Format: uuid */
             requestingStationUid: string;
             status: components["schemas"]["LendingStatus"];
@@ -78515,7 +78515,7 @@ export interface components {
             /** Format: int32 */
             assignedItemId: number | null;
             dateFrom: components["schemas"]["LocalDate"];
-            dateTo: components["schemas"]["LocalDate"] | null;
+            dateTo: components["schemas"]["LocalDate"];
             /** Format: int32 */
             itemId: number | null;
             /** Format: int32 */

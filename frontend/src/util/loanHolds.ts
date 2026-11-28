@@ -22,7 +22,7 @@ export function piecesHeldByLoans(loans: readonly LentOutItem[], today: string):
     const held = new Map<number, string>()
     for (const loan of loans) {
         if (loan.assignedItemId == null || !HOLDING_STATUSES.has(loan.status)) continue
-        if (loan.dateTo != null && loan.dateTo < today) continue
+        if (loan.dateTo < today) continue
         held.set(loan.assignedItemId, loan.requestingStationName)
     }
     return held

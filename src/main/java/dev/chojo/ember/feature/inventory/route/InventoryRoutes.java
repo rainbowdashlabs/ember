@@ -1217,14 +1217,11 @@ public class InventoryRoutes implements Routes {
     private void listBorrowed(Context ctx) {
         StationSession session = StationSession.from(ctx);
         ctx.json(borrowedGearService.borrowedAt(session.stationId()).stream()
-                .map(borrowed -> {
-                    var dueOn = borrowed.dueOn();
-                    return new BorrowedItemResponse(
-                            borrowed.item(),
-                            borrowed.ownerStationName(),
-                            borrowed.loanRequestId(),
-                            dueOn != null ? dueOn.toString() : null);
-                })
+                .map(borrowed -> new BorrowedItemResponse(
+                        borrowed.item(),
+                        borrowed.ownerStationName(),
+                        borrowed.loanRequestId(),
+                        borrowed.dueOn().toString()))
                 .toList());
     }
 
@@ -1234,15 +1231,10 @@ public class InventoryRoutes implements Routes {
      * @param item             the row as it was written at handover, which is not kept in step with
      *                         the owner's afterwards
      * @param ownerStationName the partner the gear belongs to
-     * @param loanRequestId    the lending request it came in on, which is where anything about the
-     *                         loan is said
-     * @param dueOn            the day the loan was asked to run to, or {@code null} when none was named
+     * @param loanRequestId    the lending request it came in on, which holds everything about the loan
+     * @param dueOn            the last day of the loan
      */
-    public record BorrowedItemResponse(
-            InventoryItem item,
-            String ownerStationName,
-            int loanRequestId,
-            @Nullable String dueOn) {}
+    public record BorrowedItemResponse(InventoryItem item, String ownerStationName, int loanRequestId, String dueOn) {}
 
     @OpenApi(
             path = "/api/v1/inventory-requirements",

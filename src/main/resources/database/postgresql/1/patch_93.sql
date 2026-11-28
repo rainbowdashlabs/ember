@@ -184,6 +184,20 @@ COMMENT ON COLUMN ember_schema.lending_cart_line.line_name IS 'The kind''s or th
 COMMENT ON COLUMN ember_schema.lending_cart_line.picture_key IS 'The key of the photo the lending station last showed for the line, to ask for through this instance; NULL for none.';
 COMMENT ON COLUMN ember_schema.lending_cart_line.added_at IS 'When the line was first put in the cart.';
 
+-- Every lending request has a last day, never before its first; a request written without one, or with one
+-- before its first, was asked for its first day only.
+
+UPDATE ember_schema.federation_lending_request
+SET requested_date_to = requested_date_from
+WHERE requested_date_to IS NULL
+   OR requested_date_to < requested_date_from;
+
+ALTER TABLE ember_schema.federation_lending_request
+    ALTER COLUMN requested_date_to SET NOT NULL,
+    ADD CONSTRAINT federation_lending_request_days CHECK (requested_date_to >= requested_date_from);
+
+COMMENT ON COLUMN ember_schema.federation_lending_request.requested_date_to IS 'The last day the gear is wanted, the first day itself for a request of one day.';
+
 -- A lending station reminds a borrowing station of gear past its last day once on its own.
 
 ALTER TABLE ember_schema.federation_lending_request
@@ -192,7 +206,7 @@ ALTER TABLE ember_schema.federation_lending_request
 UPDATE ember_schema.federation_lending_request
 SET reminded_at = now()
 WHERE status = 'LENT'
-  AND coalesce(requested_date_to, requested_date_from) < current_date;
+  AND requested_date_to < current_date;
 
 COMMENT ON COLUMN ember_schema.federation_lending_request.reminded_at IS 'When the borrowing station was last reminded of gear past its last day, NULL while it was not. The reminder sent on its own the day after the last day goes once; a manager can remind again by hand.';
 

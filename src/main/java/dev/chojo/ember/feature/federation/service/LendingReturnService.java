@@ -185,12 +185,13 @@ public class LendingReturnService implements TaskSource {
 
     private static String reminder(LendingRequest request) {
         return "Erinnerung: Die Ausrüstung dieser Ausleihe war bis zum %s vereinbart. Bitte gebt sie zurück oder schreibt, wann sie kommt."
-                .formatted(DAY.format(request.lastDay()));
+                .formatted(DAY.format(request.requestedDateTo()));
     }
 
-    /** Whether a loan's gear is out past its last day, the first day where it names none. */
+    /** Whether a loan's gear is out past its last day. */
     public static boolean isOverdue(LendingRequest request, LocalDate today) {
-        return request.status() == LendingStatus.LENT && request.lastDay().isBefore(today);
+        return request.status() == LendingStatus.LENT
+                && request.requestedDateTo().isBefore(today);
     }
 
     static String summary(List<LoanPiece> pieces, List<PieceCheck> checks) {

@@ -41,7 +41,7 @@ function entry(id: number, isOwner: boolean, status: LendingStatus): LendingRequ
         allowedSteps: isOwner && status === 'REQUESTED' ? ['APPROVED', 'DECLINED'] : [],
         isOwner, overdue: false, itemSummary: '', owningStationName: 'Nord', requestingStationName: 'Süd',
         request: {
-            id, status, requestedDateFrom: '2099-01-01', requestedDateTo: null, createdAt: '2030-01-01T00:00:00Z',
+            id, status, requestedDateFrom: '2099-01-01', requestedDateTo: '2099-01-01', createdAt: '2030-01-01T00:00:00Z',
             createdBy: null, eventDate: null, eventId: null, occasion: '', owningStationUid: 'a', requestingStationUid: 'b', uid: String(id),
         },
     } as LendingRequestResponse

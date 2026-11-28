@@ -60211,7 +60211,7 @@
             "format" : "int32"
           },
           "dueOn" : {
-            "type" : [ "string", "null" ]
+            "type" : "string"
           }
         },
         "required" : [ "item", "ownerStationName", "loanRequestId", "dueOn" ]
@@ -74591,11 +74591,7 @@
             "$ref" : "#/components/schemas/LocalDate"
           },
           "requestedDateTo" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/LocalDate"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/LocalDate"
           },
           "createdBy" : {
             "type" : [ "integer", "null" ],
@@ -74744,11 +74740,7 @@
             "$ref" : "#/components/schemas/LocalDate"
           },
           "dateTo" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/LocalDate"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/LocalDate"
           },
           "requestingStationName" : {
             "type" : "string"

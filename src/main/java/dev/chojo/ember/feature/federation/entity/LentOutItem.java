@@ -22,7 +22,7 @@ public record LentOutItem(
         @Nullable Integer assignedItemId,
         String status,
         LocalDate dateFrom,
-        @Nullable LocalDate dateTo,
+        LocalDate dateTo,
         String requestingStationName) {
     public static RowMapping<LentOutItem> map() {
         return row -> new LentOutItem(

@@ -12,9 +12,9 @@ const TODAY = '2030-06-10'
 
 function entry(id: number, isOwner: boolean, status: LendingStatus, from: string, to: string | null, overdue = false, created = '2030-06-01T00:00:00Z'): LendingRequestResponse {
     return {
-        isOwner, overdue, itemSummary: '', owningStationName: 'Nord', requestingStationName: 'Süd',
+        allowedSteps: [] as LendingStatus[], isOwner, overdue, itemSummary: '', owningStationName: 'Nord', requestingStationName: 'Süd',
         request: {
-            id, status, requestedDateFrom: from, requestedDateTo: to, createdAt: created, createdBy: null,
+            id, status, requestedDateFrom: from, requestedDateTo: to ?? from, createdAt: created, createdBy: null,
             eventDate: null, eventId: null, occasion: '', owningStationUid: 'a', requestingStationUid: 'b', uid: String(id),
         },
     } as LendingRequestResponse

@@ -145,12 +145,12 @@ class ItemCustodyGuardRepositoryTest extends RepositoryTestBase {
         int over = piece();
         int free = piece();
         loan(approved, LendingStatus.APPROVED, LocalDate.now().plusDays(2));
-        loan(lent, LendingStatus.LENT, null);
+        loan(lent, LendingStatus.LENT, LocalDate.now().plusDays(1));
         loan(asked, LendingStatus.REQUESTED, LocalDate.now().plusDays(2));
         loan(over, LendingStatus.APPROVED, LocalDate.now().minusDays(1));
 
         assertTrue(inventoryRepo.isSetAsideForALoan(approved));
-        assertTrue(inventoryRepo.isSetAsideForALoan(lent), "a loan without an end is not over");
+        assertTrue(inventoryRepo.isSetAsideForALoan(lent), "a running loan holds its piece");
         assertFalse(inventoryRepo.isSetAsideForALoan(asked), "a loan only asked for holds nothing yet");
         assertFalse(inventoryRepo.isSetAsideForALoan(over), "a loan that is over holds nothing");
         assertFalse(inventoryRepo.isSetAsideForALoan(free));
@@ -171,7 +171,7 @@ class ItemCustodyGuardRepositoryTest extends RepositoryTestBase {
         int radio = piece();
         int holding = loan(radio, LendingStatus.APPROVED, LocalDate.now().plusDays(2));
         int other = LENDING.createRequest(
-                        partner.uid(), station.uid(), LocalDate.now(), null, member.id(), null, null, "")
+                        partner.uid(), station.uid(), LocalDate.now(), LocalDate.now(), member.id(), null, null, "")
                 .id();
 
         assertFalse(inventoryRepo.isSetAsideForAnotherLoan(radio, holding));

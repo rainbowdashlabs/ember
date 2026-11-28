@@ -27,7 +27,7 @@ describe('piecesHeldByLoans', () => {
     it('holds a piece from approval until the end date has passed', () => {
         const held = piecesHeldByLoans([
             loan({assignedItemId: 7}),
-            loan({assignedItemId: 8, status: 'LENT', dateTo: null}),
+            loan({assignedItemId: 8, status: 'LENT', dateTo: '2026-11-20'}),
             loan({assignedItemId: 9, dateTo: '2026-11-19'}),
             loan({assignedItemId: 10, status: 'REQUESTED'}),
             loan({assignedItemId: 11, dateTo: '2026-11-20'}),

@@ -236,6 +236,7 @@ public class LendingService implements FederationServer {
             @Nullable LocalDate eventDate,
             String occasion,
             List<RequestLine> lines) {
+        if (dateTo.isBefore(dateFrom)) throw FederationRefusal.LENDING_WINDOW_BACKWARDS.raise();
         UUID requestingUid = stationRepository.requireUid(requestingStationId);
         var partner = requireLendingPartner(requestingStationId, owningUid);
         Integer lendingStationHere = stationHere(owningUid);
@@ -350,6 +351,10 @@ public class LendingService implements FederationServer {
             }
             return new RemoteLendingAccepted(labelsOf(request.id()));
         }
+        LocalDate dateFrom = body.dateFrom();
+        if (dateFrom == null) throw FederationRefusal.LENDING_FIRST_DAY_MISSING.raise();
+        LocalDate dateTo = Objects.requireNonNullElse(body.dateTo(), dateFrom);
+        if (dateTo.isBefore(dateFrom)) throw FederationRefusal.LENDING_WINDOW_BACKWARDS.raise();
         var lines = body.lines() == null ? List.<RemoteLendingLine>of() : body.lines();
         requireOffered(
                 partner.servingStationId(),
@@ -361,8 +366,8 @@ public class LendingService implements FederationServer {
                 body.uid(),
                 partner.askingStationUid(),
                 lendingUid,
-                body.dateFrom(),
-                body.dateTo(),
+                dateFrom,
+                dateTo,
                 null,
                 null,
                 null,
@@ -1288,10 +1293,10 @@ public class LendingService implements FederationServer {
         if (owningStation == null) return;
         var lender = lenderAt(owningStation.id());
         Instant from = request.requestedDateFrom().atStartOfDay(ZoneOffset.UTC).toInstant();
-        LocalDate until = request.requestedDateTo();
-        Instant to = until == null
-                ? EquipmentAvailabilityService.openEndAfter(from)
-                : until.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant to = request.requestedDateTo()
+                .plusDays(1)
+                .atStartOfDay(ZoneOffset.UTC)
+                .toInstant();
         for (var ri : repository.findItemsByRequest(requestId)) {
             int alreadySet = repository.findAssignedItems(ri.id()).size();
             if (alreadySet >= ri.quantity()) continue;

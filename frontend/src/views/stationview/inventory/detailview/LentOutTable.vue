@@ -7,7 +7,6 @@
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { useI18n } from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import DataTable from '@/components/table/DataTable.vue'
@@ -44,10 +43,7 @@ const { t } = useI18n()
       <TRow v-for="lent in props.lentOutItems" :key="lent.requestItemId">
         <Td class="font-medium">{{ lent.requestingStationName }}</Td>
         <Td align="center">{{ lent.quantity }}</Td>
-        <Td>
-          <template v-if="lent.dateTo">{{ formatDate(lent.dateTo) }}</template>
-          <MutedText v-else size="base">&#x2013;</MutedText>
-        </Td>
+        <Td>{{ formatDate(lent.dateTo) }}</Td>
         <Td>
           <InfoBadge>{{ lent.status === 'LENT' ? t('inventory.detail.statusLent') : t('inventory.detail.statusApproved') }}</InfoBadge>
         </Td>

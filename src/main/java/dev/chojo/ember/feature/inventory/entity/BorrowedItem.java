@@ -23,7 +23,7 @@ import java.util.UUID;
  * @param ownerStationName the partner's name as it stands now, which is the one thing here that
  *                         is not part of the snapshot
  * @param loanRequestId    the lending request it came in on
- * @param dueOn            the day the loan was asked to run to, or {@code null} when none was named
+ * @param dueOn            the last day of the loan
  */
 public record BorrowedItem(
         InventoryItem item,
@@ -31,7 +31,7 @@ public record BorrowedItem(
         @Nullable Integer ownerStationId,
         String ownerStationName,
         int loanRequestId,
-        @Nullable LocalDate dueOn) {
+        LocalDate dueOn) {
     public static RowMapping<BorrowedItem> map() {
         return row -> new BorrowedItem(
                 InventoryItem.map().map(row),
