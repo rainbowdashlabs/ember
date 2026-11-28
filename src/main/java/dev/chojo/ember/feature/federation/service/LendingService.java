@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.entity.SharePolicy;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.repository.LendingRepository.OfferedIds;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteAvailability;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteAvailableEntry;
@@ -239,7 +240,14 @@ public class LendingService implements FederationServer {
                 repository.addRequestItem(
                         request.id(), line.inventoryId(), line.itemId(), line.artId(), line.quantity(), line.needId());
             } else {
-                repository.addRequestItem(request.id(), null, null, null, line.quantity(), line.needId());
+                repository.addRequestItem(
+                        request.id(),
+                        null,
+                        null,
+                        null,
+                        line.quantity(),
+                        line.needId(),
+                        new OfferedIds(line.inventoryId(), line.artId(), line.itemId()));
             }
         }
         var sent = new RemoteLendingRequest(

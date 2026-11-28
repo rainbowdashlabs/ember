@@ -436,4 +436,26 @@ class LendingRepositoryTest extends RepositoryTestBase {
 
         lendingRepo.deleteRequest(kept.uid());
     }
+
+    /**
+     * A line keeps what it asked for in the lending station's ids: the referenced ids where the gear
+     * is here, the ids given apart where it is not.
+     */
+    @Test
+    void aLineKeepsWhatItAskedForInTheLendersIds() {
+        var request = lendingRepo.createRequest(
+                stationB.uid(), stationA.uid(), LocalDate.now(), LocalDate.now(), memberB.id(), null, null, "");
+        lendingRepo.addRequestItem(request.id(), inventoryIdA, itemIdA, null, 1, null);
+        lendingRepo.addRequestItem(
+                request.id(), null, null, null, 2, null, new LendingRepository.OfferedIds(77, 5, null));
+
+        var lines = lendingRepo.findOfferedLines(request.id());
+
+        assertEquals(
+                new LendingRepository.OfferedLine(
+                        inventoryIdA, null, itemIdA, 1, lines.get(0).label()),
+                lines.get(0));
+        assertEquals(new LendingRepository.OfferedLine(77, 5, null, 2, ""), lines.get(1));
+        lendingRepo.deleteRequest(request.uid());
+    }
 }

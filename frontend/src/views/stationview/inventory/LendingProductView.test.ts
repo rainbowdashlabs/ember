@@ -18,10 +18,19 @@ import PiecePanel from './lendingproductview/PiecePanel.vue'
 import LendingProductView from './LendingProductView.vue'
 
 const getProduct = vi.fn()
+vi.mock('@/composables/useLendingCart', () => ({
+    useLendingCart: () => ({
+        lines: ref([]),
+        stations: ref(new Set<string>()),
+        shareOf: () => undefined,
+        load: () => Promise.resolve(),
+        ensureLoaded: () => {},
+    }),
+}))
 vi.mock('@/api/lending', () => ({getProduct: (...args: unknown[]) => getProduct(...args)}))
 
 const setDays = vi.fn()
-const query = {dateFrom: ref('2030-06-12'), dateTo: ref(''), search: ref(''), station: ref(''), sort: ref('best'), setDays}
+const query = {dateFrom: ref('2030-06-12'), dateTo: ref(''), search: ref(''), station: ref(''), sort: ref('best'), onlyInCart: ref(false), setDays}
 vi.mock('./lendingview/useShopQuery', () => ({useShopQuery: () => query}))
 
 const push = vi.fn()

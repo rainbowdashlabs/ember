@@ -36082,6 +36082,169 @@
         }
       }
     },
+    "/api/v1/lending/cart" : {
+      "get" : {
+        "summary" : "The station's cart with its lines",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CartView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Sets the days, the occasion and the note of the cart",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CartView"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CartDetails"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/cart/check" : {
+      "get" : {
+        "summary" : "What of the cart is free on its days, asked of the lending stations",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CartLineCheck"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/cart/checkout" : {
+      "post" : {
+        "summary" : "Sends the cart as one request per lending station",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CheckoutView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/cart/lines" : {
+      "post" : {
+        "summary" : "Puts gear of a partner in the cart, adding to the same line where there is one",
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CartView"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NewCartLine"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/cart/lines/{lineId}" : {
+      "put" : {
+        "summary" : "Sets how many of a counted line are wanted",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CartView"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "lineId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuantityBody"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Takes a line out of the cart",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CartView"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "lineId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/lending/inventory/{inventoryId}/lent-out" : {
       "get" : {
         "responses" : {
@@ -36210,6 +36373,32 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/lending/requests/{id}/borrow-again" : {
+      "post" : {
+        "summary" : "Puts the lines of an answered request back in the cart",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BorrowAgainResult"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/lending/requests/{id}/close" : {
@@ -59874,6 +60063,22 @@
         },
         "required" : [ "value" ]
       },
+      "BorrowAgainResult" : {
+        "type" : "object",
+        "properties" : {
+          "added" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skipped" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "added", "skipped" ]
+      },
       "BorrowedItemResponse" : {
         "type" : "object",
         "properties" : {
@@ -60331,6 +60536,126 @@
       "CapabilityType" : {
         "type" : "string",
         "enum" : [ "KB_SHARE", "QUIZ_SHARE", "PROTOCOL_SHARE", "INVENTORY_LEND", "EVENT_SHARE", "BOARD_SHARE", "NEWS_SHARE" ]
+      },
+      "CartDetails" : {
+        "type" : "object",
+        "properties" : {
+          "dateFrom" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "dateTo" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "occasion" : {
+            "type" : [ "string", "null" ]
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
+      "CartLineCheck" : {
+        "type" : "object",
+        "properties" : {
+          "lineId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "free" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/CartLineState"
+          }
+        },
+        "required" : [ "lineId", "free", "state" ]
+      },
+      "CartLineState" : {
+        "type" : "string",
+        "enum" : [ "FREE", "SHORT", "GONE", "UNREACHABLE" ]
+      },
+      "CartLineView" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryName" : {
+            "type" : "string"
+          },
+          "lineName" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "stationId", "stationName", "inventoryId", "artId", "itemId", "quantity", "inventoryName", "lineName", "pictureKey" ]
+      },
+      "CartView" : {
+        "type" : "object",
+        "properties" : {
+          "dateFrom" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "dateTo" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "occasion" : {
+            "type" : "string"
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "lines" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CartLineView"
+            }
+          }
+        },
+        "required" : [ "dateFrom", "dateTo", "occasion", "note", "lines" ]
       },
       "CatalogImportRejected" : {
         "type" : "object",
@@ -61067,6 +61392,30 @@
           }
         },
         "required" : [ "id", "name", "description", "memberCount", "columnCount", "lastRefreshedAt", "createdAt" ]
+      },
+      "CheckoutView" : {
+        "type" : "object",
+        "properties" : {
+          "sent" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LendingRequestResponse"
+            }
+          },
+          "failed" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "notesMissing" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "sent", "failed", "notesMissing" ]
       },
       "Choice" : {
         "type" : "object",
@@ -78184,6 +78533,40 @@
           "rows" : { }
         }
       },
+      "NewCartLine" : {
+        "type" : "object",
+        "properties" : {
+          "lendingStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryName" : {
+            "type" : [ "string", "null" ]
+          },
+          "lineName" : {
+            "type" : [ "string", "null" ]
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "NewClusterFlowRequest" : {
         "type" : "object",
         "properties" : {
@@ -83016,6 +83399,15 @@
           }
         },
         "required" : [ "publicKey", "enabled" ]
+      },
+      "QuantityBody" : {
+        "type" : "object",
+        "properties" : {
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
       },
       "QuestionAnswerCount" : {
         "type" : "object",
@@ -89236,6 +89628,10 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "lendingCart" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "federationRequests" : {
             "type" : "integer",
             "format" : "int32"
@@ -89265,7 +89661,7 @@
             "format" : "int32"
           }
         },
-        "required" : [ "notifications", "requirements", "pendingChanges", "pendingRegistrations", "lendingRequests", "federationRequests", "openEvents", "waitingListEntries", "lostAndFoundPending", "myInventoryCount", "openMovements", "procedureCount" ]
+        "required" : [ "notifications", "requirements", "pendingChanges", "pendingRegistrations", "lendingRequests", "lendingCart", "federationRequests", "openEvents", "waitingListEntries", "lostAndFoundPending", "myInventoryCount", "openMovements", "procedureCount" ]
       },
       "SidebarMode" : {
         "type" : "string",

@@ -14,6 +14,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.repository.LendingCartRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
@@ -47,6 +48,7 @@ class SidebarCountServiceTest {
     private ProfileFieldChangeRepository profileFieldChangeRepository;
     private EventRegistrationRepository eventRegistrationRepository;
     private LendingRepository lendingRepository;
+    private LendingCartRepository lendingCartRepository;
     private FederationRepository federationRepository;
     private WaitingListRepository waitingListRepository;
     private LostAndFoundRepository lostAndFoundRepository;
@@ -70,6 +72,7 @@ class SidebarCountServiceTest {
         profileFieldChangeRepository = mock(ProfileFieldChangeRepository.class);
         eventRegistrationRepository = mock(EventRegistrationRepository.class);
         lendingRepository = mock(LendingRepository.class);
+        lendingCartRepository = mock(LendingCartRepository.class);
         federationRepository = mock(FederationRepository.class);
         waitingListRepository = mock(WaitingListRepository.class);
         lostAndFoundRepository = mock(LostAndFoundRepository.class);
@@ -87,6 +90,7 @@ class SidebarCountServiceTest {
                 profileFieldChangeRepository,
                 eventRegistrationRepository,
                 lendingRepository,
+                lendingCartRepository,
                 federationRepository,
                 waitingListRepository,
                 lostAndFoundRepository,
@@ -208,6 +212,18 @@ class SidebarCountServiceTest {
         verifyNoInteractions(eventRegistrationRepository);
     }
 
+    /** The cart's lines are counted for whoever may ask for gear, and for nobody else. */
+    @Test
+    void theCartIsCountedForWhoeverMayAskForGear() {
+        when(lendingCartRepository.countLines(STATION_ID)).thenReturn(3);
+
+        var asking =
+                sessionWithPermissions(Set.of(StationPermission.LOGIN, StationPermission.INVENTORY_LENDING_REQUEST));
+        assertEquals(3, service.getCounts(asking).lendingCart());
+        var other = sessionWithPermissions(Set.of(StationPermission.LOGIN));
+        assertEquals(0, service.getCounts(other).lendingCart());
+    }
+
     @Test
     void getCountsInventoryOnlyNoLendingRequests() {
         var roles = Set.of(StationPermission.LOGIN, StationPermission.INVENTORY_MANAGER);
@@ -261,13 +277,14 @@ class SidebarCountServiceTest {
 
     @Test
     void sidebarCountsRecord() {
-        var counts = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+        var counts = new SidebarCounts(1, 2, 3, 4, 5, 13, 6, 7, 8, 9, 10, 11, 12);
 
         assertEquals(1, counts.notifications());
         assertEquals(2, counts.requirements());
         assertEquals(3, counts.pendingChanges());
         assertEquals(4, counts.pendingRegistrations());
         assertEquals(5, counts.lendingRequests());
+        assertEquals(13, counts.lendingCart());
         assertEquals(6, counts.federationRequests());
         assertEquals(7, counts.openEvents());
         assertEquals(8, counts.waitingListEntries());
@@ -279,7 +296,7 @@ class SidebarCountServiceTest {
 
     @Test
     void sidebarCountsZeroed() {
-        var counts = new SidebarCounts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        var counts = new SidebarCounts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
         assertEquals(0, counts.notifications());
         assertEquals(0, counts.requirements());
@@ -297,8 +314,8 @@ class SidebarCountServiceTest {
 
     @Test
     void sidebarCountsEquality() {
-        var a = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
-        var b = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+        var a = new SidebarCounts(1, 2, 3, 4, 5, 13, 6, 7, 8, 9, 10, 11, 12);
+        var b = new SidebarCounts(1, 2, 3, 4, 5, 13, 6, 7, 8, 9, 10, 11, 12);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
     }

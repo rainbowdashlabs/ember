@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onBeforeUnmount, ref, watch} from 'vue'
+import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -13,6 +13,9 @@ import type {ProductSummary} from '@/api/generated/schema'
 import type {LendingEmptyReasonName} from '@/api/lending'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
+import {useLendingCart} from '@/composables/useLendingCart'
+import ButtonRow from '@/components/button/ButtonRow.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {useRoute} from 'vue-router'
 import ShopFilters from './ShopFilters.vue'
 import ProductTile from './ProductTile.vue'
@@ -24,7 +27,9 @@ import {useShopQuery} from './useShopQuery'
  * station and the order narrow what came back.
  */
 const {t} = useI18n()
-const {dateFrom, dateTo, search, station, sort} = useShopQuery()
+const {dateFrom, dateTo, search, station, sort, onlyInCart} = useShopQuery()
+const cart = useLendingCart()
+onMounted(cart.ensureLoaded)
 
 /** How long typing has to pause before the partners are asked again. */
 const SEARCH_PAUSE_MS = 300
@@ -75,9 +80,10 @@ const stations = computed(() => {
 })
 
 const shown = computed(() => {
-  const narrowed = station.value
-      ? products.value.filter(summary => summary.stationId === station.value)
-      : products.value
+  const stationsInCart = cart.stations.value
+  const narrowed = products.value
+      .filter(summary => !station.value || summary.stationId === station.value)
+      .filter(summary => !onlyInCart.value || stationsInCart.has(summary.stationId))
   if (sort.value !== 'name') return narrowed
   return [...narrowed].sort((a, b) => a.product.name.localeCompare(b.product.name))
 })
@@ -85,6 +91,7 @@ const shown = computed(() => {
 const emptyMessage = computed(() => {
   if (emptyReason.value === 'NOTHING_SHARED') return t('lending.nothingShared')
   if (station.value && products.value.length > 0) return t('lendingShop.stationOffersNothing')
+  if (onlyInCart.value && products.value.length > 0) return t('lendingShop.cartStationsOfferNothing')
   if (search.value.trim()) return t('lendingShop.noMatch')
   if (emptyReason.value === 'NOTHING_FREE') return t('lending.nothingFree')
   return t('lending.noAvailable')
@@ -114,14 +121,23 @@ const countLine = computed(() => shown.value.length === 1
         v-model:date-to="dateTo"
         v-model:station="station"
         v-model:sort="sort"
+        v-model:only-in-cart="onlyInCart"
         :stations="stations"
     />
+    <ButtonRow align="end">
+      <SecondaryButton :icon="['fas', 'cart-shopping']" :to="{name: routes.lendingCart, query: route.query}"
+                       data-testid="lending-shop-cart">
+        {{ t('lendingShop.cart', {count: cart.lines.value.length}) }}
+      </SecondaryButton>
+    </ButtonRow>
     <MutedText v-if="!dateFrom" tag="p" data-testid="lending-shop-today-hint">{{ t('lendingShop.todayHint') }}</MutedText>
     <AsyncSection :empty="shown.length === 0" :empty-message="emptyMessage" :failure="failure" :loading="loading">
       <MutedText tag="p" class="mb-2">{{ countLine }}</MutedText>
       <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         <li v-for="summary in shown" :key="`${summary.stationId}-${summary.product.inventoryId}`">
-          <ProductTile :summary="summary" :link="productLink(summary)"/>
+          <ProductTile :summary="summary" :link="productLink(summary)"
+                       :in-cart="cart.shareOf(summary.stationId, summary.product.inventoryId)?.quantity ?? 0"
+                       :station-in-cart="cart.stations.value.has(summary.stationId)"/>
         </li>
       </ul>
     </AsyncSection>

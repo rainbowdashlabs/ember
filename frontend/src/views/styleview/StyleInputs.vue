@@ -14,6 +14,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
+import QuantityStepper from '@/components/input/number/QuantityStepper.vue'
 import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SliderInput from '@/components/input/number/SliderInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
@@ -31,6 +32,7 @@ const textAreaValue = ref('')
 const passwordValue = ref('')
 const searchValue = ref('')
 const numberValue = ref(0)
+const quantityValue = ref(1)
 const decimalValue = ref(0)
 const sliderValue = ref(50)
 const dateValue = ref('')
@@ -75,6 +77,10 @@ const radioValue = ref('a')
       <div class="space-y-1">
         <FieldLabel>Number (integer)</FieldLabel>
         <NumberInput v-model="numberValue" placeholder="Enter number..."/>
+      </div>
+      <div class="space-y-1">
+        <FieldLabel>Quantity stepper</FieldLabel>
+        <QuantityStepper v-model="quantityValue" :max="5" label="Quantity"/>
       </div>
       <div class="space-y-1">
         <FieldLabel>Decimal</FieldLabel>

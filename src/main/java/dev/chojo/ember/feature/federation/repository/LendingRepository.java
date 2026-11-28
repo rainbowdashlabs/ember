@@ -215,24 +215,94 @@ public class LendingRepository {
             @Nullable Integer artId,
             int quantity,
             @Nullable Integer needId) {
+        return addRequestItem(
+                requestId, inventoryId, itemId, artId, quantity, needId, new OfferedIds(inventoryId, artId, itemId));
+    }
+
+    /**
+     * Adds a line to a request as {@link #addRequestItem(int, Integer, Integer, Integer, int, Integer)}
+     * does, keeping what was asked for in the lending station's own ids apart from the references,
+     * for a lending station whose gear is not here to reference.
+     *
+     * @param offered what the line asks for in the lending station's ids
+     * @return the stored line
+     */
+    public LendingRequestItem addRequestItem(
+            int requestId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            @Nullable Integer artId,
+            int quantity,
+            @Nullable Integer needId,
+            OfferedIds offered) {
         return insertReturning(
                 """
-                INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, art_id, quantity, need_id, label)
+                INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, art_id, quantity, need_id, label,
+                                                            offered_inventory_id, offered_art_id, offered_item_id)
                 VALUES (:request_id, :inventory_id, :item_id, :art_id, :quantity, :need_id,
                         coalesce((SELECT name FROM inventory_art WHERE id = :art_id),
                                  (SELECT name FROM inventory_item WHERE id = :item_id),
                                  (SELECT name FROM inventory WHERE id = :inventory_id),
-                                 ''))
+                                 ''),
+                        :offered_inventory_id, :offered_art_id, :offered_item_id)
                 RETURNING %s;""",
                 call().bind("request_id", requestId)
                         .bind("inventory_id", inventoryId)
                         .bind("item_id", itemId)
                         .bind("art_id", artId)
                         .bind("quantity", quantity)
-                        .bind("need_id", needId),
+                        .bind("need_id", needId)
+                        .bind("offered_inventory_id", offered.inventoryId())
+                        .bind("offered_art_id", offered.artId())
+                        .bind("offered_item_id", offered.itemId()),
                 LendingRequestItem.map(),
                 LENDING_REQUEST_ITEM_COLUMNS);
     }
+
+    /**
+     * What a line asks for in the lending station's own ids.
+     *
+     * @param inventoryId the inventory, or {@code null}
+     * @param artId       the kind, or {@code null}
+     * @param itemId      the piece, or {@code null}
+     */
+    public record OfferedIds(
+            @Nullable Integer inventoryId,
+            @Nullable Integer artId,
+            @Nullable Integer itemId) {}
+
+    /** The lines of a request as the borrowing station asked for them, in the lending station's ids. */
+    public List<OfferedLine> findOfferedLines(int requestId) {
+        return query("""
+                SELECT offered_inventory_id, offered_art_id, offered_item_id, quantity, label
+                FROM federation_lending_request_item
+                WHERE request_id = :request_id
+                ORDER BY id;""")
+                .single(call().bind("request_id", requestId))
+                .map(row -> new OfferedLine(
+                        row.getObject("offered_inventory_id", Integer.class),
+                        row.getObject("offered_art_id", Integer.class),
+                        row.getObject("offered_item_id", Integer.class),
+                        row.getInt("quantity"),
+                        row.getString("label")))
+                .all();
+    }
+
+    /**
+     * One line of a request in the lending station's ids.
+     *
+     * @param inventoryId the inventory asked for, or {@code null} on a line written before it was kept
+     * @param artId       the kind asked for, or {@code null}
+     * @param itemId      the piece asked for, or {@code null}
+     * @param quantity    how many
+     * @param label       what the line is called
+     */
+    public record OfferedLine(
+            @Nullable Integer inventoryId,
+            @Nullable Integer artId,
+            @Nullable Integer itemId,
+            int quantity,
+            String label) {}
 
     public List<LendingRequestItem> findItemsByRequest(int requestId) {
         return query(

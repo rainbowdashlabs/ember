@@ -15,6 +15,7 @@ export function useSidebarCounts() {
         pendingChanges: 0,
         pendingRegistrations: 0,
         lendingRequests: 0,
+        lendingCart: 0,
         federationRequests: 0,
         openEvents: 0,
         waitingListEntries: 0,

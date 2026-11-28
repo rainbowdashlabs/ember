@@ -12,6 +12,7 @@ import type {Locator, Page} from '@playwright/test'
 import {must} from './fixtures/must'
 import {cast} from './fixtures/cast'
 import {ownMember} from './fixtures/ownMember'
+import {stationDay} from './fixtures/stationDay'
 
 /**
  * A piece of the station's own gear that belongs to this story alone, and answers with its id and code.
@@ -400,22 +401,37 @@ test.describe('Inventory', () => {
      * The story asks as one station and approves as the other, which is the only way to see that a
      * request reaches anybody - a request nobody can act on is a request that failed quietly.
      *
-     * <p>The offer is reached by its own id, since the tab for requests carries the same word, and a
-     * start date is given because the form will not send without one.
+     * <p>The gear goes through the shop: a product's page puts it in the cart, and the cart sends it
+     * once it has a first day and the partner has found every line free. The created request is
+     * reached through the link the cart shows. The day lies past every request and block the demo
+     * seeds, since the cart sends only what is free on it.
      */
     test('equipment is asked for from a partner station', async ({managerPage: page}) => {
         await page.goto('/station/inventory/lending')
-
         await page.getByRole('button', {name: 'Angebote'}).click()
 
-        const offer = page.getByTestId('lending-offer-request').first()
-        await expect(offer, 'a partner station offers something to ask for').toBeVisible()
-        await offer.click()
-        await page.waitForURL(/\/station\/inventory\/lending\/request\/new/)
+        const tile = page.getByTestId('lending-product-tile').first()
+        await expect(tile, 'a partner station offers something to ask for').toBeVisible()
+        await tile.click()
+        await page.waitForURL(/\/station\/inventory\/lending\/product\//)
 
-        await page.locator('input[type="date"]').first().fill('2026-12-01')
-        await page.getByRole('button', {name: 'Anfrage senden'}).click()
+        const add = page.getByRole('button', {name: /in den Warenkorb/i}).and(page.locator(':enabled')).first()
+        await add.click()
+        await expect(page.getByText(/im Warenkorb/i).first()).toBeVisible()
 
+        await page.goto('/station/inventory/lending/cart')
+        await expect(page.getByTestId('lending-cart-line').first()).toBeVisible()
+        const free = stationDay(new Date(Date.now() + 60 * 86_400_000))
+        await page.getByTestId('lending-cart-from').fill(free)
+        await page.getByTestId('lending-cart-from').blur()
+
+        const send = page.getByTestId('lending-cart-send')
+        await expect(send).toBeEnabled()
+        await send.click()
+
+        const outcome = page.getByTestId('lending-cart-outcome')
+        await expect(outcome.getByText(/Anfrage wurde gesendet|Anfragen wurden gesendet/)).toBeVisible()
+        await outcome.getByRole('link').first().click()
         await page.waitForURL(/\/station\/inventory\/lending\/request\/\d+/)
         await expect(page.getByText('Angefragt').first()).toBeVisible()
     })

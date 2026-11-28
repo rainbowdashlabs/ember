@@ -327,7 +327,31 @@ public enum FederationRefusal implements Refusal {
     LENDING_MONTH_NOT_A_MONTH(77, HttpStatus.BAD_REQUEST, "A month asked about is not a month"),
 
     /** Days asked about whose last day comes before the first. */
-    LENDING_WINDOW_BACKWARDS(78, HttpStatus.BAD_REQUEST, "The last day comes before the first, so swap them");
+    LENDING_WINDOW_BACKWARDS(78, HttpStatus.BAD_REQUEST, "The last day comes before the first, so swap them"),
+
+    /** A cart sent with nothing in it. */
+    LENDING_CART_EMPTY(79, HttpStatus.BAD_REQUEST, "The cart holds nothing to ask for"),
+
+    /** A cart sent while a line is not free in full, or its lending station could not be asked. */
+    LENDING_CART_NOT_FREE(
+            80, HttpStatus.CONFLICT, "Not everything in the cart is free on those days, so adjust the marked lines"),
+
+    /** A cart line that counts nothing, or counts a single piece more than once. */
+    LENDING_CART_LINE_INVALID(
+            81, HttpStatus.BAD_REQUEST, "A line names a partner and asks for one to 999, and a single piece only once"),
+
+    /** A cart line that is not in this station's cart. */
+    LENDING_CART_LINE_NOT_HERE(82, HttpStatus.NOT_FOUND, "The line is not in the cart"),
+
+    /** Borrowing again from a request the station did not send or that was never answered. */
+    LENDING_NOT_BORROWED_AGAIN(
+            83, HttpStatus.CONFLICT, "Only a request this station sent and that was answered can be borrowed again"),
+
+    /** A cart text longer than the cart keeps. */
+    LENDING_CART_TEXT_TOO_LONG(84, HttpStatus.BAD_REQUEST, "The occasion or the note is too long"),
+
+    /** A cart sent while somebody else is already sending it. */
+    LENDING_CART_BEING_SENT(85, HttpStatus.CONFLICT, "The cart is being sent already, so wait a moment and look again");
 
     private final Definition definition;
 

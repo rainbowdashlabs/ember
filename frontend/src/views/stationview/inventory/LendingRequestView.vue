@@ -20,6 +20,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {
   LendingStatus,
+  StationPermission,
   type AvailableItemDetail,
   type EnrichedMessage,
   type LendingRequestDetail,
@@ -35,16 +36,20 @@ import LendingItemsTable from './lendingrequestview/LendingItemsTable.vue'
 import LendingActionsBar from './lendingrequestview/LendingActionsBar.vue'
 import LendingItemAssignment from './lendingrequestview/LendingItemAssignment.vue'
 import LendingChat from './lendingrequestview/LendingChat.vue'
+import BorrowAgainPanel from './lendingrequestview/BorrowAgainPanel.vue'
 
 const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded} = useSession()
+const {loaded, hasPermission} = useSession()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const detail = ref<LendingRequestDetail | null>(null)
+const canBorrowAgain = computed(() => !!detail.value && !detail.value.request.isOwner
+    && detail.value.request.request.status !== LendingStatus.REQUESTED
+    && hasPermission(StationPermission.INVENTORY_LENDING_REQUEST))
 const messages = ref<EnrichedMessage[]>([])
 const newMessage = ref('')
 const showDeclineModal = ref(false)
@@ -205,6 +210,7 @@ function handleClose() {
           @decline="showDeclineModal = true"
           @mark-returned="handleMarkReturned"
           @close="handleClose"/>
+      <BorrowAgainPanel v-if="canBorrowAgain" :request-id="detail.request.request.id"/>
       <LendingItemAssignment
           v-if="detail.request.isOwner && detail.request.request.status === LendingStatus.APPROVED"
           :loading="loadingItems"

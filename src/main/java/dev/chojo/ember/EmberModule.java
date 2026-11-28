@@ -185,6 +185,7 @@ import dev.chojo.ember.feature.federation.handler.LendingStatusChangedHandler;
 import dev.chojo.ember.feature.federation.route.FederatedLendingRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
 import dev.chojo.ember.feature.federation.route.InventoryShareRoutes;
+import dev.chojo.ember.feature.federation.route.LendingCartRoutes;
 import dev.chojo.ember.feature.federation.route.LendingRoutes;
 import dev.chojo.ember.feature.federation.route.PairRequestRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
@@ -748,6 +749,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(LendingRoutes.class);
         routesBinder.addBinding().to(InventoryShareRoutes.class);
         routesBinder.addBinding().to(FederatedLendingRoutes.class);
+        routesBinder.addBinding().to(LendingCartRoutes.class);
         routesBinder.addBinding().to(RemoteLendingRoutes.class);
         routesBinder.addBinding().to(DiscoveryRoutes.class);
         routesBinder.addBinding().to(PublicDiscoveryRoutes.class);

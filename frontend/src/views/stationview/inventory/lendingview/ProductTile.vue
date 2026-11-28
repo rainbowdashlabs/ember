@@ -9,6 +9,9 @@ import type {RouteLocationRaw} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import PieceThumb from '@/components/inventory/PieceThumb.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import AppIcon from '@/components/display/AppIcon.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {ProductSummary} from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -19,6 +22,10 @@ const props = defineProps<{
   summary: ProductSummary
   /** The address of the product page, carrying the shop's days and filters along. */
   link: RouteLocationRaw
+  /** How many pieces of this product the cart holds. */
+  inCart?: number
+  /** Whether the cart holds gear of this product's station, so a request to it would bundle. */
+  stationInCart?: boolean
 }>()
 
 const {t} = useI18n()
@@ -64,6 +71,12 @@ const distance = computed(() => props.summary.distanceKm == null
       <MutedText v-else-if="product.teaser" tag="p" class="line-clamp-2">{{ product.teaser }}</MutedText>
       <div class="mt-auto flex flex-wrap items-center gap-2 pt-1">
         <StationBadge :station-name="summary.stationName"/>
+        <SuccessBadge v-if="inCart" data-testid="lending-tile-in-cart">
+          <AppIcon :icon="['fas', 'cart-shopping']" aria-hidden="true"/> {{ t('lendingCart.inCart', {count: inCart}) }}
+        </SuccessBadge>
+        <InfoBadge v-else-if="stationInCart" data-testid="lending-tile-station-in-cart">
+          <AppIcon :icon="['fas', 'cart-shopping']" aria-hidden="true"/> {{ t('lendingCart.stationInCart') }}
+        </InfoBadge>
         <span class="text-xs text-(--text-muted)">{{ distance }}</span>
       </div>
     </div>

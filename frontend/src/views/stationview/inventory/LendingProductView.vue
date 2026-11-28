@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -22,6 +22,9 @@ import KindRows from './lendingproductview/KindRows.vue'
 import PieceList from './lendingproductview/PieceList.vue'
 import PiecePanel from './lendingproductview/PiecePanel.vue'
 import ProductHeader from './lendingproductview/ProductHeader.vue'
+import AddCountToCart from './lendingproductview/AddCountToCart.vue'
+import AddPieceToCart from './lendingproductview/AddPieceToCart.vue'
+import {useLendingCart} from '@/composables/useLendingCart'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -32,6 +35,8 @@ const {dateFrom, dateTo, setDays} = useShopQuery()
 const stationUid = computed(() => String(route.params.stationId ?? ''))
 const inventoryId = computed(() => Number(route.params.inventoryId))
 const detail = ref<ProductDetail | null>(null)
+const cart = useLendingCart()
+onMounted(cart.ensureLoaded)
 
 const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
   const answer = await lending.getProduct(stationUid.value, inventoryId.value, {
@@ -67,15 +72,23 @@ function backToShop() {
     <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="backToShop">{{ t('lendingProduct.back') }}</SecondaryButton>
     <AsyncSection :failure="failure" :loading="loading && !detail">
       <div v-if="detail" class="space-y-6">
-        <ProductHeader :detail="detail"/>
+        <ProductHeader :detail="detail" :station-in-cart="cart.stations.value.has(detail.stationId)"/>
         <MutedText v-if="!dateFrom" tag="p">{{ t('lendingShop.todayHint') }}</MutedText>
         <section v-if="detail.product.kinds.length > 0" class="space-y-2">
           <SubHeader>{{ t('lendingProduct.kinds') }}</SubHeader>
-          <KindRows :kinds="detail.product.kinds" :station-uid="detail.stationId" :product-name="detail.product.name"/>
+          <KindRows :kinds="detail.product.kinds" :station-uid="detail.stationId" :product-name="detail.product.name">
+            <template #action="{kind}">
+              <AddCountToCart :station-id="detail.stationId" :product="detail.product" :kind="kind"/>
+            </template>
+          </KindRows>
         </section>
         <section v-if="detail.product.pieces.length > 0" class="space-y-2">
           <SubHeader>{{ t('lendingProduct.pieces') }}</SubHeader>
-          <PieceList :pieces="detail.product.pieces" :station-uid="detail.stationId" :windowed="!!dateFrom" @open="opened = $event"/>
+          <PieceList :pieces="detail.product.pieces" :station-uid="detail.stationId" :windowed="!!dateFrom" @open="opened = $event">
+            <template #action="{piece}">
+              <AddPieceToCart :station-id="detail.stationId" :product="detail.product" :piece="piece"/>
+            </template>
+          </PieceList>
         </section>
         <AvailabilityCalendar :date-from="dateFrom" :date-to="dateTo" :station-uid="detail.stationId"
                               :inventory-id="detail.product.inventoryId" :rows="calendarRows" @pick="setDays"/>

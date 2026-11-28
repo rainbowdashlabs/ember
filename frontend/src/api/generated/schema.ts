@@ -44108,6 +44108,242 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/lending/cart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The station's cart with its lines */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CartView"];
+                    };
+                };
+            };
+        };
+        /** Sets the days, the occasion and the note of the cart */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CartDetails"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CartView"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/cart/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What of the cart is free on its days, asked of the lending stations */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CartLineCheck"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/cart/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sends the cart as one request per lending station */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CheckoutView"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/cart/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Puts gear of a partner in the cart, adding to the same line where there is one */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["NewCartLine"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CartView"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/cart/lines/{lineId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Sets how many of a counted line are wanted */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    lineId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuantityBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CartView"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Takes a line out of the cart */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    lineId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CartView"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/lending/inventory/{inventoryId}/lent-out": {
         parameters: {
             query?: never;
@@ -44337,6 +44573,44 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests/{id}/borrow-again": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Puts the lines of an answered request back in the cart */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BorrowAgainResult"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -73140,6 +73414,11 @@ export interface components {
         BooleanValue: {
             value: boolean;
         };
+        BorrowAgainResult: {
+            /** Format: int32 */
+            added: number;
+            skipped: string[];
+        };
         BorrowedItemResponse: {
             dueOn: string | null;
             item: components["schemas"]["InventoryItem"];
@@ -73282,6 +73561,46 @@ export interface components {
         };
         /** @enum {string} */
         CapabilityType: "KB_SHARE" | "QUIZ_SHARE" | "PROTOCOL_SHARE" | "INVENTORY_LEND" | "EVENT_SHARE" | "BOARD_SHARE" | "NEWS_SHARE";
+        CartDetails: {
+            dateFrom?: components["schemas"]["LocalDate"] | null;
+            dateTo?: components["schemas"]["LocalDate"] | null;
+            note?: string | null;
+            occasion?: string | null;
+        };
+        CartLineCheck: {
+            /** Format: int32 */
+            free: number;
+            /** Format: int32 */
+            lineId: number;
+            state: components["schemas"]["CartLineState"];
+        };
+        /** @enum {string} */
+        CartLineState: "FREE" | "SHORT" | "GONE" | "UNREACHABLE";
+        CartLineView: {
+            /** Format: int32 */
+            artId: number | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            inventoryId: number;
+            inventoryName: string;
+            /** Format: int32 */
+            itemId: number | null;
+            lineName: string;
+            pictureKey: string | null;
+            /** Format: int32 */
+            quantity: number;
+            /** Format: uuid */
+            stationId: string;
+            stationName: string;
+        };
+        CartView: {
+            dateFrom: components["schemas"]["LocalDate"] | null;
+            dateTo: components["schemas"]["LocalDate"] | null;
+            lines: components["schemas"]["CartLineView"][];
+            note: string;
+            occasion: string;
+        };
         CatalogImportRejected: {
             problems: components["schemas"]["CatalogTransferProblem"][];
         };
@@ -73505,6 +73824,11 @@ export interface components {
             /** Format: int32 */
             memberCount: number;
             name: string;
+        };
+        CheckoutView: {
+            failed: string[];
+            notesMissing: string[];
+            sent: components["schemas"]["LendingRequestResponse"][];
         };
         /** @enum {string} */
         CheckResult: "CONFIRMED" | "NOT_IN_POSSESSION" | "LOST" | "EXTRA";
@@ -79411,6 +79735,21 @@ export interface components {
         NestedRowsConfig: {
             rows?: unknown;
         };
+        NewCartLine: {
+            /** Format: int32 */
+            artId?: number | null;
+            /** Format: int32 */
+            inventoryId?: number;
+            inventoryName?: string | null;
+            /** Format: int32 */
+            itemId?: number | null;
+            /** Format: uuid */
+            lendingStationUid?: string;
+            lineName?: string | null;
+            pictureKey?: string | null;
+            /** Format: int32 */
+            quantity?: number;
+        };
         NewClusterFlowRequest: {
             name?: string;
             purpose?: string;
@@ -81041,6 +81380,10 @@ export interface components {
         PushKey: {
             enabled: boolean;
             publicKey: string;
+        };
+        QuantityBody: {
+            /** Format: int32 */
+            quantity?: number;
         };
         QuestionAnswerCount: {
             /** Format: int32 */
@@ -83092,6 +83435,8 @@ export interface components {
         SidebarCounts: {
             /** Format: int32 */
             federationRequests: number;
+            /** Format: int32 */
+            lendingCart: number;
             /** Format: int32 */
             lendingRequests: number;
             /** Format: int32 */
@@ -85460,6 +85805,7 @@ export type BoardTicketTransitionResponse = components['schemas']['BoardTicketTr
 export type BoardWeblink = components['schemas']['BoardWeblink'];
 export type BooleanConfig = components['schemas']['BooleanConfig'];
 export type BooleanValue = components['schemas']['BooleanValue'];
+export type BorrowAgainResult = components['schemas']['BorrowAgainResult'];
 export type BorrowedItemResponse = components['schemas']['BorrowedItemResponse'];
 export type BreakRequest = components['schemas']['BreakRequest'];
 export type BrowseResponse = components['schemas']['BrowseResponse'];
@@ -85485,6 +85831,11 @@ export type CandidateResponse = components['schemas']['CandidateResponse'];
 export type CanEditResponse = components['schemas']['CanEditResponse'];
 export type CapabilityRequest = components['schemas']['CapabilityRequest'];
 export type CapabilityType = components['schemas']['CapabilityType'];
+export type CartDetails = components['schemas']['CartDetails'];
+export type CartLineCheck = components['schemas']['CartLineCheck'];
+export type CartLineState = components['schemas']['CartLineState'];
+export type CartLineView = components['schemas']['CartLineView'];
+export type CartView = components['schemas']['CartView'];
 export type CatalogImportRejected = components['schemas']['CatalogImportRejected'];
 export type CatalogListResponse = components['schemas']['CatalogListResponse'];
 export type CatalogMetadata = components['schemas']['CatalogMetadata'];
@@ -85516,6 +85867,7 @@ export type CheckItemResult = components['schemas']['CheckItemResult'];
 export type ChecklistDetailResponse = components['schemas']['ChecklistDetailResponse'];
 export type ChecklistItemRequest = components['schemas']['ChecklistItemRequest'];
 export type ChecklistSummaryResponse = components['schemas']['ChecklistSummaryResponse'];
+export type CheckoutView = components['schemas']['CheckoutView'];
 export type CheckResult = components['schemas']['CheckResult'];
 export type Choice = components['schemas']['Choice'];
 export type ChoiceAnswer = components['schemas']['ChoiceAnswer'];
@@ -86329,6 +86681,7 @@ export type NeedCoverage = components['schemas']['NeedCoverage'];
 export type NeedRequest = components['schemas']['NeedRequest'];
 export type NeedUpdate = components['schemas']['NeedUpdate'];
 export type NestedRowsConfig = components['schemas']['NestedRowsConfig'];
+export type NewCartLine = components['schemas']['NewCartLine'];
 export type NewClusterFlowRequest = components['schemas']['NewClusterFlowRequest'];
 export type NewClusterMemberRequest = components['schemas']['NewClusterMemberRequest'];
 export type NewClusterStationRequest = components['schemas']['NewClusterStationRequest'];
@@ -86563,6 +86916,7 @@ export type PublicWaitlistRegistrationRequest = components['schemas']['PublicWai
 export type PublicWaitlistSummary = components['schemas']['PublicWaitlistSummary'];
 export type PushDevice = components['schemas']['PushDevice'];
 export type PushKey = components['schemas']['PushKey'];
+export type QuantityBody = components['schemas']['QuantityBody'];
 export type QuestionAnswerCount = components['schemas']['QuestionAnswerCount'];
 export type QuestionBranch = components['schemas']['QuestionBranch'];
 export type QuestionColumn = components['schemas']['QuestionColumn'];
@@ -87273,6 +87627,13 @@ export const CapabilityType = {
     NEWS_SHARE: "NEWS_SHARE",
     PROTOCOL_SHARE: "PROTOCOL_SHARE",
     QUIZ_SHARE: "QUIZ_SHARE",
+} as const;
+
+export const CartLineState = {
+    FREE: "FREE",
+    GONE: "GONE",
+    SHORT: "SHORT",
+    UNREACHABLE: "UNREACHABLE",
 } as const;
 
 export const CellContentType = {

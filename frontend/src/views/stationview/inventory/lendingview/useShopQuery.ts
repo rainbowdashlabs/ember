@@ -22,6 +22,11 @@ export function useShopQuery() {
     const search = useRouteQueryRef('q')
     const station = useRouteQueryRef('partner')
     const sortRaw = useRouteQueryRef('sort', 'best')
+    const inCartRaw = useRouteQueryRef('incart')
+    const onlyInCart = computed<boolean>({
+        get: () => inCartRaw.value === '1',
+        set: value => { inCartRaw.value = value ? '1' : '' },
+    })
     const sort = computed<ShopSort>({
         get: () => (sortRaw.value === 'name' ? 'name' : 'best'),
         set: value => { sortRaw.value = value },
@@ -38,5 +43,5 @@ export function useShopQuery() {
         void router.replace({query: {...others, ...(from ? {from} : {}), ...(to ? {to} : {})}})
     }
 
-    return {dateFrom, dateTo, search, station, sort, setDays}
+    return {dateFrom, dateTo, search, station, sort, onlyInCart, setDays}
 }

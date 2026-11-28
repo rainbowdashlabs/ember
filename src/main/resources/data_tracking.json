@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:200928d95226612d3e7ab170de2b9cdfe7a22c73eb05cbebeabe04b9cc0dcc47",
-  "generatedAt": "2026-11-27T23:16:13Z",
+  "schemaHash": "sha256:1f9d240abb1637589e03510f9a9c77f9efb479df67e04ce1e05eeeff0bf77c65",
+  "generatedAt": "2026-11-28T02:18:33Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -15367,7 +15367,7 @@
     "federation_lending_request_item": {
       "feature": "federation",
       "scope": "STATION",
-      "tableHash": "sha256:61ea65ea40bec79713a69427e141d0ada29fdabd97b3a1a61935f6f543f2504f",
+      "tableHash": "sha256:b20e9bb94835470251b74598b5ec36ab133d689f7af92fc0ccf5a3fc96ba36b0",
       "columns": [
         {
           "name": "id",
@@ -15424,6 +15424,27 @@
           "nullable": false,
           "verified": true,
           "description": "What the line asks for, in words, as it was named when it was asked for: the kind of thing, the piece or the inventory it names, and on the copy of a request to a station on another installation, what the lending station called it. Kept when the gear it names is gone or on another installation, so the line still says what it was. Empty only where nothing named it."
+        },
+        {
+          "name": "offered_inventory_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The inventory the borrowing station asked for, by the lending station's id; not a reference, since that station may run on another instance. NULL on lines written before it was kept."
+        },
+        {
+          "name": "offered_art_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The kind the borrowing station asked for, by the lending station's id; NULL for none or on lines written before it was kept."
+        },
+        {
+          "name": "offered_item_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The single piece the borrowing station asked for, by the lending station's id; NULL for none or on lines written before it was kept."
         }
       ],
       "foreignKeys": [
@@ -21148,6 +21169,188 @@
         "reason": "KB structure data, not per-member"
       },
       "description": "Tags for organizing KB files and folders."
+    },
+    "lending_cart": {
+      "feature": "federation",
+      "scope": "STATION",
+      "tableHash": "sha256:5c52238518fd0d338213fdc8378ca5b13cf579d38650f6f5218687b94d9d8d10",
+      "columns": [
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the borrowing station the cart belongs to."
+        },
+        {
+          "name": "date_from",
+          "type": "date",
+          "nullable": true,
+          "verified": true,
+          "description": "The first day the gear is wanted, NULL while none is chosen."
+        },
+        {
+          "name": "date_to",
+          "type": "date",
+          "nullable": true,
+          "verified": true,
+          "description": "The last day the gear is wanted, NULL for a single day or while none is chosen."
+        },
+        {
+          "name": "occasion",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the gear is wanted for, shown to the lending stations with each request; empty when nobody wrote it."
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "A note sent to every lending station as the first message of its request; empty when nobody wrote one."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the cart or one of its lines last changed."
+        },
+        {
+          "name": "sending_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When somebody started sending the cart, NULL while nobody is. Another sending waits until that one is done, or until it is so old it can only have been cut off."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A cart is a list being worked on and names gear by the partners' ids, which a moved station's partnerships do not keep; the station starts a new cart where it arrives"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Lending metadata of the station, no personal data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Lending metadata of the station, no personal data"
+      },
+      "description": "The one cart of a station for gear it wants to borrow from partner stations. Every member who may ask for gear works on the same cart; sending it opens one request per lending station and empties it."
+    },
+    "lending_cart_line": {
+      "feature": "federation",
+      "scope": "STATION",
+      "tableHash": "sha256:53155239989f033735c28025b1a7a729cd17565614b025a57c188fe21fd3517a",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Identifies the line."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the cart, and so the borrowing station, the line belongs to."
+        },
+        {
+          "name": "lending_station_uid",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The identity of the partner station the gear is borrowed from."
+        },
+        {
+          "name": "inventory_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The inventory at the lending station the line draws from, by that station's id."
+        },
+        {
+          "name": "art_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The kind at the lending station the line counts, by that station's id; NULL for a count of the whole inventory or a single piece."
+        },
+        {
+          "name": "item_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The single piece at the lending station the line names, by that station's id; NULL for a count."
+        },
+        {
+          "name": "quantity",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many are wanted; always 1 for a single piece."
+        },
+        {
+          "name": "inventory_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The inventory's name as last shown by the lending station, for showing the cart without asking it."
+        },
+        {
+          "name": "line_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The kind's or the piece's name as last shown by the lending station; empty for a count of the whole inventory."
+        },
+        {
+          "name": "picture_key",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The key of the photo the lending station last showed for the line, to ask for through this instance; NULL for none."
+        },
+        {
+          "name": "added_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the line was first put in the cart."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "lending_cart",
+          "refColumn": "station_id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Lines go with their cart, which does not move"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Lending metadata of the station, no personal data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Lending metadata of the station, no personal data"
+      },
+      "description": "One thing in a station's cart: a count of a partner's inventory or of one of its kinds, or one single piece. The ids are the lending station's own and are not references here, since that station may run on another instance."
     },
     "lost_and_found_item": {
       "feature": "lostandfound",

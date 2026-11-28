@@ -16,10 +16,20 @@ import ShopSection from './ShopSection.vue'
 import type {ShopSort} from './useShopQuery'
 
 const listProducts = vi.fn()
+const cartStations = ref(new Set<string>())
+vi.mock('@/composables/useLendingCart', () => ({
+    useLendingCart: () => ({
+        lines: ref([]),
+        stations: cartStations,
+        shareOf: (stationId: string, inventoryId: number) => (stationId === 'b' && inventoryId === 4 ? {lines: [], quantity: 3} : undefined),
+        load: () => Promise.resolve(),
+        ensureLoaded: () => {},
+    }),
+}))
 vi.mock('@/api/lending', () => ({listProducts: (options: unknown) => listProducts(options)}))
 
 function freshQuery() {
-    return {dateFrom: ref(''), dateTo: ref(''), search: ref(''), station: ref(''), sort: ref<ShopSort>('best')}
+    return {dateFrom: ref(''), dateTo: ref(''), search: ref(''), station: ref(''), sort: ref<ShopSort>('best'), onlyInCart: ref(false)}
 }
 
 let query = freshQuery()
@@ -68,6 +78,7 @@ function emptyMessage(wrapper: ReturnType<typeof shallowMount>) {
 /** The shop asks the partners with the days and the search, and narrows by station and order itself. */
 describe('ShopSection', () => {
     beforeEach(() => {
+        cartStations.value = new Set()
         query = freshQuery()
         query.dateFrom.value = '2030-06-12'
         query.dateTo.value = ''
@@ -100,6 +111,19 @@ describe('ShopSection', () => {
         expect(names(wrapper)).toEqual(['Bänke', 'Zelt'])
 
         query.station.value = 'b'
+        await wrapper.vm.$nextTick()
+        expect(names(wrapper)).toEqual(['Zelt'])
+    })
+
+    it('marks what the cart holds and narrows to the stations in it', async () => {
+        cartStations.value = new Set(['b'])
+        const wrapper = await section()
+
+        const zelt = wrapper.findAllComponents(ProductTile)[0]!
+        expect(zelt.props('inCart')).toBe(3)
+        expect(zelt.props('stationInCart')).toBe(true)
+
+        query.onlyInCart.value = true
         await wrapper.vm.$nextTick()
         expect(names(wrapper)).toEqual(['Zelt'])
     })

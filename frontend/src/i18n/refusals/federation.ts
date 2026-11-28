@@ -94,4 +94,11 @@ export default {
     'X-076': 'Diese Ausrüstung gehört nicht zu dem, was deiner Wache angeboten wird',
     'X-077': 'Ein abgefragter Monat ist kein Monat',
     'X-078': 'Der letzte Tag liegt vor dem ersten, tausche die beiden',
+    'X-079': 'Im Warenkorb liegt nichts, das angefragt werden kann',
+    'X-080': 'Nicht alles im Warenkorb ist an diesen Tagen frei. Passe die markierten Zeilen an',
+    'X-081': 'Zu einer Zeile gehören eine Partnerwache und 1 bis 999 Stück, ein Einzelstück nur einmal',
+    'X-082': 'Die Zeile liegt nicht im Warenkorb',
+    'X-083': 'Erneut ausleihen geht nur bei einer Anfrage dieser Wache, die schon beantwortet wurde',
+    'X-084': 'Der Anlass oder die Notiz ist zu lang',
+    'X-085': 'Der Warenkorb wird gerade schon gesendet. Warte kurz und sieh dann nach',
 }

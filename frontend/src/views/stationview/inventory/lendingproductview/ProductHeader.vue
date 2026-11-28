@@ -8,6 +8,8 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PieceThumb from '@/components/inventory/PieceThumb.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
+import AppIcon from '@/components/display/AppIcon.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import AppLink from '@/components/navigation/AppLink.vue'
 import type {ProductDetail} from '@/api/generated/schema'
@@ -20,6 +22,8 @@ import ProductDescription from './ProductDescription.vue'
  */
 const props = defineProps<{
   detail: ProductDetail
+  /** Whether the cart already holds gear of this station, which a request to it would bundle. */
+  stationInCart?: boolean
 }>()
 
 const {t} = useI18n()
@@ -56,6 +60,9 @@ const distance = computed(() => props.detail.distanceKm == null
     <div class="min-w-0 flex-1 space-y-2">
       <div class="flex flex-wrap items-center gap-2">
         <StationBadge :station-name="detail.stationName"/>
+        <InfoBadge v-if="stationInCart" data-testid="lending-station-in-cart">
+          <AppIcon :icon="['fas', 'cart-shopping']" aria-hidden="true"/> {{ t('lendingCart.stationInCart') }}
+        </InfoBadge>
         <MutedText>{{ distance }}</MutedText>
       </div>
       <MutedText v-if="address" tag="p" data-testid="lending-product-address">
