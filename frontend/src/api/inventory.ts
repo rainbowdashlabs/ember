@@ -12,6 +12,7 @@ import type {
     BorrowedItemResponse,
     HistoryResponse,
     Inventory,
+    ItemPresentation,
     InventoryDetail,
     InventoryIntakeRow,
     InventoryItem,
@@ -323,4 +324,22 @@ export const deleteRequirement = requirements.remove
 
 export async function updateRequirementPosition(id: number, position: number): Promise<void> {
     await client.patch(`/inventory-requirements/${id}/position`, {position})
+}
+
+/** Sets what partner stations read about an inventory, in Markdown; an empty text clears it. */
+export async function describeInventory(inventoryId: number, description: string): Promise<Inventory> {
+    const res = await client.put<Inventory>(`/inventories/${inventoryId}/description`, {description})
+    return res.data
+}
+
+/** A single piece's own text and photo for partner stations. */
+export async function getItemPresentation(itemId: number): Promise<ItemPresentation> {
+    const res = await client.get<ItemPresentation>(`/inventory-items/${itemId}/presentation`)
+    return res.data
+}
+
+/** Sets what partner stations read about a single piece, in Markdown; an empty text clears it. */
+export async function describeItem(itemId: number, description: string): Promise<ItemPresentation> {
+    const res = await client.put<ItemPresentation>(`/inventory-items/${itemId}/description`, {description})
+    return res.data
 }

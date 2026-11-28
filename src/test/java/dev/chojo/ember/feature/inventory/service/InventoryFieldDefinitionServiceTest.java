@@ -46,7 +46,7 @@ class InventoryFieldDefinitionServiceTest {
     }
 
     private static InventoryArt art(int id, int inventoryId) {
-        return new InventoryArt(id, inventoryId, "Funk", "", 0, "funk", null, null, null);
+        return new InventoryArt(id, inventoryId, "Funk", "", 0, "funk", null, null, null, "");
     }
 
     private static InventoryItem item(int id, int inventoryId) {

@@ -4,25 +4,35 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import LendingTabs from '@/views/stationview/inventory/lendingview/LendingTabs.vue'
-import LendingOfferFilters from '@/views/stationview/inventory/lendingview/LendingOfferFilters.vue'
-import LendingOfferList from '@/views/stationview/inventory/lendingview/LendingOfferList.vue'
-import LendingRequestList from '@/views/stationview/inventory/lendingview/LendingRequestList.vue'
+import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
+import {StationPermission} from '@/api/generated/schema'
 import {provideInventoryRoutes, STATION_INVENTORY_ROUTES} from '@/composables/useInventoryRoutes'
-import {incomingRequests, offers, outgoingRequests} from './lendinghelp/fixtures'
+import BorrowColumn from '@/views/stationview/inventory/lendingoverviewview/BorrowColumn.vue'
+import LendColumn from '@/views/stationview/inventory/lendingoverviewview/LendColumn.vue'
+import RequestsTable from '@/views/stationview/inventory/lendingoverviewview/RequestsTable.vue'
+import {borrowBlocks, lendBlocks, type BorrowedGroup} from '@/views/stationview/inventory/lendingoverviewview/overviewBlocks'
+import {useRequestsTable} from '@/views/stationview/inventory/lendingoverviewview/requestsTable'
+import {incomingRequests, outgoingRequests} from './lendinghelp/fixtures'
 
 const {t} = useI18n()
-
 provideInventoryRoutes({...STATION_INVENTORY_ROUTES, lendingRequest: undefined})
+
+/** The day the sample requests are read on, so the blocks stay the same whenever the page is read. */
+const SAMPLE_DAY = '2026-06-01'
+
+const requests = ref([...incomingRequests, ...outgoingRequests])
+const lend = lendBlocks(requests.value, SAMPLE_DAY)
+const borrow = borrowBlocks(requests.value, SAMPLE_DAY)
+const borrowed: BorrowedGroup[] = [
+  {requestId: 7, stationName: 'DLRG Musterstadt', dueOn: '2026-06-04', pieces: [{name: 'Schwimmweste', internalId: 'SW-01'}, {name: 'Schwimmweste', internalId: 'SW-02'}]},
+]
+const table = useRequestsTable(requests)
 </script>
 
 <template>
@@ -32,37 +42,37 @@ provideInventoryRoutes({...STATION_INVENTORY_ROUTES, lendingRequest: undefined})
       <p>{{ t('helpCenter.inventoryLending.whatIsText2') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryLending.borrowTitle')">
+      <p>{{ t('helpCenter.inventoryLending.borrowText') }}</p>
+      <p>{{ t('helpCenter.inventoryLending.blocksText') }}</p>
+      <NeutralContainer>
+        <BorrowColumn :blocks="borrow" :borrowed="borrowed" reads/>
+      </NeutralContainer>
+    </HelpSection>
+
+    <HelpPermissionGuard :permissions="[StationPermission.INVENTORY_LENDING_MANAGER]" :label="t('helpCenter.permissionLabel.inventoryLending')">
+      <HelpSection :title="t('helpCenter.inventoryLending.lend')">
+        <p>{{ t('helpCenter.inventoryLending.lendText') }}</p>
+        <NeutralContainer>
+          <LendColumn :blocks="lend"/>
+        </NeutralContainer>
+      </HelpSection>
+    </HelpPermissionGuard>
+
+    <HelpSection :title="t('helpCenter.inventoryLending.borrowedTitle')">
+      <p>{{ t('helpCenter.inventoryLending.borrowedText') }}</p>
+      <p>{{ t('helpCenter.inventoryLending.borrowedSnapshot') }}</p>
+      <p>{{ t('helpCenter.inventoryLending.borrowedReturn') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryLending.tableTitle')">
+      <p>{{ t('helpCenter.inventoryLending.tableText') }}</p>
+      <RequestsTable :table="table"/>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.inventoryLending.otherInstanceTitle')">
       <p>{{ t('helpCenter.inventoryLending.otherInstanceText') }}</p>
       <p>{{ t('helpCenter.inventoryLending.otherInstanceText2') }}</p>
-    </HelpSection>
-
-    <HelpSection :title="t('helpCenter.inventoryLending.tabsTitle')">
-      <p>{{ t('helpCenter.inventoryLending.tabsOffersText') }}</p>
-      <p>{{ t('helpCenter.inventoryLending.tabsRequestsText') }}</p>
-    </HelpSection>
-
-    <HelpSection :title="t('helpCenter.inventoryLending.dummyOffersTitle')">
-      <NeutralContainer class="space-y-4">
-        <ButtonRow>
-          <PrimaryButton :icon="['fas', 'calendar-xmark']">{{ t('lending.blocks') }}</PrimaryButton>
-          <SecondaryButton :icon="['fas', 'share-nodes']">{{ t('lendingShare.overview') }}</SecondaryButton>
-        </ButtonRow>
-        <LendingTabs model-value="offers"/>
-        <LendingOfferFilters search-query="" date-from="" date-to=""/>
-        <LendingOfferList :items="offers"/>
-      </NeutralContainer>
-    </HelpSection>
-
-    <HelpSection :title="t('helpCenter.inventoryLending.dummyRequestsTitle')">
-      <p>{{ t('helpCenter.inventoryLending.requestsExplanation') }}</p>
-      <NeutralContainer class="space-y-4">
-        <LendingTabs model-value="requests"/>
-        <SubHeader>{{ t('lending.incoming') }}</SubHeader>
-        <LendingRequestList :entries="incomingRequests" direction="incoming"/>
-        <SubHeader>{{ t('lending.outgoing') }}</SubHeader>
-        <LendingRequestList :entries="outgoingRequests" direction="outgoing"/>
-      </NeutralContainer>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryLending.statusTitle')">

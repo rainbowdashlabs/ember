@@ -253,13 +253,25 @@ test.describe('Lending offer', () => {
         await expect(page.getByTestId('lending-shares-withheld')).toBeVisible()
     })
 
-    /** The way into the offer screen, which only somebody who may manage lending is shown. */
+    /** The way into the offer screen, which the sidebar shows only somebody who may manage lending. */
     test('the lending screen leads to what the station offers', async ({managerPage: page}) => {
         await page.goto('/station/inventory/lending')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
-        await page.getByTestId('lending-shares-link').click()
-        await page.waitForURL(/\/station\/inventory\/lending\/shares/)
+        await page.getByRole('navigation').getByRole('link', {name: 'Angebot', exact: true}).click()
+        await page.waitForURL(/\/station\/inventory\/lending\/offer/)
+        await expect(page.getByTestId('lending-offer-card').first()).toBeVisible()
         await expect(page.getByTestId('app-shell')).toBeVisible()
+    })
+
+    /**
+     * The calendar draws the requests for the station's gear across its days. The demo lends a radio
+     * to a partner from three days ago until four days ahead, so its bar is in the first four weeks.
+     */
+    test('the lending calendar shows a loan of the station as a bar', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/lending/calendar')
+
+        await expect(page.getByTestId('lending-calendar')).toBeVisible()
+        await expect(page.getByTestId('lending-calendar-bar').first()).toBeVisible()
     })
 })

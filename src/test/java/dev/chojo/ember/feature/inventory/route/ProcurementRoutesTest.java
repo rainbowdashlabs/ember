@@ -81,7 +81,17 @@ class ProcurementRoutesTest {
         when(names.called(MEMBER_ID)).thenReturn("Mara");
         when(inventories.findById(INVENTORY))
                 .thenReturn(Optional.of(new Inventory(
-                        INVENTORY, STATION, "Jacken", InventoryType.INTERNAL, true, false, false, null, null, null)));
+                        INVENTORY,
+                        STATION,
+                        "Jacken",
+                        InventoryType.INTERNAL,
+                        true,
+                        false,
+                        false,
+                        null,
+                        null,
+                        null,
+                        "")));
         when(inventories.findSizes(INVENTORY)).thenReturn(List.of(new InventorySize(2, INVENTORY, "L", 0, null)));
         when(procurements.findById(1)).thenReturn(Optional.of(forMara));
         when(procurements.issueFromStock(eq(1), eq(77), any()))

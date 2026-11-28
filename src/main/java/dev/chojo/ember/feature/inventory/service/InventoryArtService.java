@@ -186,6 +186,18 @@ public class InventoryArtService {
     }
 
     /**
+     * Sets what partner stations read about a kind.
+     *
+     * @param id          the kind
+     * @param description the text in Markdown, empty for none
+     * @return the kind as it now stands, or empty when it was not there to change
+     */
+    public Optional<InventoryArt> describe(int id, String description) {
+        if (!artRepository.setDescription(id, description)) return Optional.empty();
+        return artRepository.findById(id);
+    }
+
+    /**
      * Renames a kind or moves it in the list, and sets what its pieces are drawn with.
      *
      * @param id       the kind

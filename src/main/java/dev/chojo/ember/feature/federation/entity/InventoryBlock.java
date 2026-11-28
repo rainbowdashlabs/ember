@@ -32,4 +32,18 @@ public record InventoryBlock(
                 row.getObject("block_to", LocalDate.class),
                 row.getString("reason"));
     }
+
+    /**
+     * Whether this block covers the station, the inventory or the piece: a station-wide block covers
+     * everything, an inventory block its inventory, a piece block its piece.
+     *
+     * @param inventoryId the inventory asked about, or {@code null}
+     * @param itemId      the piece asked about, or {@code null}
+     * @return {@code true} when it covers it
+     */
+    public boolean covers(@Nullable Integer inventoryId, @Nullable Integer itemId) {
+        if (this.inventoryId == null && this.itemId == null) return true;
+        if (this.inventoryId != null && this.inventoryId.equals(inventoryId) && this.itemId == null) return true;
+        return this.itemId != null && this.itemId.equals(itemId);
+    }
 }

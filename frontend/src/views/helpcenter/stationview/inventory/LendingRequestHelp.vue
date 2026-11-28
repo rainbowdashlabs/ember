@@ -8,6 +8,8 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import type {ReturnState} from '@/api/generated/schema'
+import ReturnCheckList from '@/views/stationview/inventory/lendingrequestview/ReturnCheckList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -17,6 +19,14 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 
 const {t} = useI18n()
+
+const samplePieces = [
+  {itemId: 1, name: 'Rettungsring', internalId: 'RR-01'},
+  {itemId: 2, name: 'Rettungsring', internalId: 'RR-02'},
+  {itemId: 3, name: 'Rettungsring', internalId: 'RR-03'},
+]
+const sampleStates = new Map<number, ReturnState>([[1, 'OK'], [2, 'DAMAGED'], [3, 'MISSING']])
+const sampleComments = new Map<number, string>([[2, t('helpCenter.inventoryLendingRequest.sampleDamage')]])
 </script>
 
 <template>
@@ -60,12 +70,8 @@ const {t} = useI18n()
         </NeutralContainer>
       </div>
       <ButtonRow pair>
-        <PrimaryButton :icon="['fas', 'check']">
-          {{ t('helpCenter.inventoryLendingRequest.dummyMarkLent') }}
-        </PrimaryButton>
-        <SecondaryButton :icon="['fas', 'rotate-left']">
-          {{ t('helpCenter.inventoryLendingRequest.dummyMarkReturned') }}
-        </SecondaryButton>
+        <PrimaryButton :icon="['fas', 'clipboard-check']">{{ t('lendingReturn.start') }}</PrimaryButton>
+        <SecondaryButton :icon="['fas', 'bell']">{{ t('lendingReturn.remind') }}</SecondaryButton>
       </ButtonRow>
       <NeutralContainer class="space-y-2">
         <p class="text-xs text-[var(--text-muted)] font-medium uppercase tracking-wide">{{ t('helpCenter.inventoryLendingRequest.chatTitle') }}</p>
@@ -81,6 +87,22 @@ const {t} = useI18n()
         </div>
       </NeutralContainer>
     </NeutralContainer>
+
+    <HelpSection :title="t('helpCenter.inventoryLendingRequest.returnTitle')">
+      <p>{{ t('helpCenter.inventoryLendingRequest.returnText') }}</p>
+      <p>{{ t('helpCenter.inventoryLendingRequest.returnMissing') }}</p>
+      <NeutralContainer>
+        <ReturnCheckList :pieces="samplePieces" :states="sampleStates" :comments="sampleComments"/>
+      </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryLendingRequest.remindTitle')">
+      <p>{{ t('helpCenter.inventoryLendingRequest.remindText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryLendingRequest.againTitle')">
+      <p>{{ t('helpCenter.inventoryLendingRequest.againText') }}</p>
+    </HelpSection>
 
     <HelpTip>{{ t('helpCenter.inventoryLendingRequest.tip') }}</HelpTip>
   </HelpArticle>

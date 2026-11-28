@@ -31,7 +31,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class InventoryArtRepository {
 
     private static final String ART_COLUMNS =
-            "id, inventory_id, name, note, position, merge_key, icon, color, picture_key";
+            "id, inventory_id, name, note, position, merge_key, icon, color, picture_key, description";
 
     /**
      * Finds a kind by its identifier.
@@ -150,11 +150,26 @@ public class InventoryArtRepository {
     }
 
     /**
-     * Whether a photo key belongs to an inventory of the station or to one of its kinds.
+     * Sets what partner stations read about a kind.
+     *
+     * @param id          the kind
+     * @param description the text in Markdown, empty for none
+     * @return whether the kind was there to change
+     */
+    public boolean setDescription(int id, String description) {
+        return query("UPDATE inventory_art SET description = :description WHERE id = :id;")
+                .single(call().bind("id", id).bind("description", description))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Whether a photo key belongs to an inventory of the station, to one of its kinds or to one of its
+     * pieces.
      *
      * @param stationId  the station
      * @param pictureKey the key
-     * @return true when an inventory or a kind of the station holds it
+     * @return true when an inventory, a kind or a piece of the station holds it
      */
     public boolean isPictureOfStation(int stationId, String pictureKey) {
         return query("""
@@ -163,6 +178,9 @@ public class InventoryArtRepository {
                     UNION ALL
                     SELECT 1 FROM inventory_art a JOIN inventory i ON i.id = a.inventory_id
                     WHERE i.station_id = :station_id AND a.picture_key = :key
+                    UNION ALL
+                    SELECT 1 FROM inventory_item p JOIN inventory i ON i.id = p.inventory_id
+                    WHERE i.station_id = :station_id AND p.picture_key = :key
                 ) AS held;""")
                 .single(call().bind("station_id", stationId).bind("key", pictureKey))
                 .map(row -> row.getBoolean("held"))
@@ -171,11 +189,11 @@ public class InventoryArtRepository {
     }
 
     /**
-     * The inventory a photo key belongs to, as the inventory's own photo or a kind's of it.
+     * The inventory a photo key belongs to, as the inventory's own photo, a kind's of it or a piece's.
      *
      * @param stationId  the station the inventory has to belong to
      * @param pictureKey the key
-     * @return the inventory, or empty where no inventory or kind of the station holds the key
+     * @return the inventory, or empty where no inventory, kind or piece of the station holds the key
      */
     public Optional<Integer> inventoryOfPicture(int stationId, String pictureKey) {
         return query("""
@@ -183,6 +201,9 @@ public class InventoryArtRepository {
                 UNION ALL
                 SELECT a.inventory_id FROM inventory_art a JOIN inventory i ON i.id = a.inventory_id
                 WHERE i.station_id = :station_id AND a.picture_key = :key
+                UNION ALL
+                SELECT p.inventory_id FROM inventory_item p JOIN inventory i ON i.id = p.inventory_id
+                WHERE i.station_id = :station_id AND p.picture_key = :key
                 LIMIT 1;""")
                 .single(call().bind("station_id", stationId).bind("key", pictureKey))
                 .map(row -> row.getInt("inventory_id"))

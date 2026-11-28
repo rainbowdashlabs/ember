@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -440,6 +441,39 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Order(50)
     void deleteItemFinal() {
         assertFalse(inventoryRepo.deleteItem(itemId));
+    }
+
+    /**
+     * Descriptions for partner stations start empty and are kept for the inventory, a kind and a
+     * single piece alike.
+     */
+    @Test
+    @Order(60)
+    void descriptionsAreKeptForInventoryKindAndPiece() {
+        var piece = inventoryRepo.createItem(inventoryId, "DESC-1", "Helm Gr. M", null, null);
+        var kind = artRepo.create(inventoryId, "Helm", "intern", 0);
+        assertEquals("", inventoryRepo.findById(inventoryId).orElseThrow().description());
+        assertEquals("", artRepo.findById(kind.id()).orElseThrow().description());
+        assertEquals(
+                "", inventoryRepo.findItemPresentation(piece.id()).orElseThrow().description());
+
+        assertTrue(inventoryRepo.setDescription(inventoryId, "**Helme** für die Jugend"));
+        assertTrue(artRepo.setDescription(kind.id(), "Mit Visier"));
+        assertTrue(inventoryRepo.setItemDescription(piece.id(), "Kratzer links"));
+        assertTrue(inventoryRepo.setItemPictureKey(piece.id(), "piece-key"));
+
+        assertEquals(
+                "**Helme** für die Jugend",
+                inventoryRepo.findById(inventoryId).orElseThrow().description());
+        var art = artRepo.findById(kind.id()).orElseThrow();
+        assertEquals("Mit Visier", art.description());
+        assertEquals("intern", art.note());
+        var presentation = inventoryRepo.findItemPresentation(piece.id()).orElseThrow();
+        assertEquals("Kratzer links", presentation.description());
+        assertEquals("piece-key", presentation.pictureKey());
+        assertTrue(inventoryRepo.findItemPresentations(inventoryId).contains(presentation));
+        assertEquals(List.of("piece-key"), inventoryRepo.itemPictureKeys(inventoryId));
+        assertFalse(inventoryRepo.setItemDescription(-1, "x"));
     }
 
     @Test

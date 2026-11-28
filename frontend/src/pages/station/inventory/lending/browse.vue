@@ -4,14 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import LendingBrowseView from '~/views/stationview/inventory/LendingBrowseView.vue'
-
+/**
+ * Partner gear is found in the lending catalog now. This keeps the address of the former browse page
+ * working, because somebody has it bookmarked.
+ */
 definePageMeta({
   layout: 'station',
-  name: 'inventory-lending-browse',
+  name: 'inventory-lending-browse-legacy',
+  redirect: '/station/inventory/lending/catalog',
 })
 </script>
 
 <template>
-  <LendingBrowseView />
+  <div/>
 </template>

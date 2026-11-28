@@ -125,6 +125,35 @@ class InventoryPictureServiceTest extends RepositoryTestBase {
         assertFalse(Files.exists(filesOf(benchKey)));
     }
 
+    /**
+     * A piece's own photo comes before its kind's and its inventory's, counts as the station's photo,
+     * goes with the inventory, and taking it away shows the kind's again.
+     */
+    @Test
+    void aPieceShowsItsOwnPhotoFirst() throws IOException {
+        byte[] png = MediaLayoutFixtures.samplePng();
+        var games = artRepo.create(inventoryId, "Brettspiele", "", 0);
+        var catan = inventoryRepo.createItem(inventoryId, "SP-14", "Siedler von Catan", null, null);
+        artRepo.setArt(games.id(), List.of(catan.id()));
+        String gamesKey = pictures.storeForArt(station.id(), inventoryId, games.id(), png, 0);
+
+        String first = pictures.storeForItem(station.id(), catan.id(), png, 0);
+        String own = pictures.storeForItem(station.id(), catan.id(), png, 0);
+
+        assertFalse(Files.exists(filesOf(first)), "the replaced photo is gone");
+        assertEquals(own, pictures.pictureKeyOfItem(station.id(), catan.id()));
+        assertTrue(artRepo.isPictureOfStation(station.id(), own));
+        assertEquals(inventoryId, artRepo.inventoryOfPicture(station.id(), own).orElseThrow());
+        assertEquals(List.of(own), pictures.keysOfItem(catan.id()));
+        assertTrue(pictures.keysOfInventory(inventoryId).containsAll(List.of(gamesKey, own)));
+
+        pictures.removeFromItem(station.id(), catan.id());
+
+        assertFalse(Files.exists(filesOf(own)));
+        assertEquals(gamesKey, pictures.pictureKeyOfItem(station.id(), catan.id()));
+        assertEquals(List.of(), pictures.keysOfItem(catan.id()));
+    }
+
     @Test
     void anotherStationsInventoryOrKindIsRefusedAsGone() throws IOException {
         byte[] png = MediaLayoutFixtures.samplePng();

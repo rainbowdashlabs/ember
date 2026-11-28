@@ -9,22 +9,19 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure, type Failure} from '@/util/failure'
-import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {
   LendingStatus,
+  StationPermission,
   type AvailableItemDetail,
   type EnrichedMessage,
   type LendingRequestDetail,
 } from '@/api/generated/schema'
 import * as lending from '@/api/lending'
+import {showToast} from '@/util/toast'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -35,20 +32,25 @@ import LendingItemsTable from './lendingrequestview/LendingItemsTable.vue'
 import LendingActionsBar from './lendingrequestview/LendingActionsBar.vue'
 import LendingItemAssignment from './lendingrequestview/LendingItemAssignment.vue'
 import LendingChat from './lendingrequestview/LendingChat.vue'
+import DeclineRequestModal from './lendingrequestview/DeclineRequestModal.vue'
+import BorrowAgainPanel from './lendingrequestview/BorrowAgainPanel.vue'
+import ReturnCheckPanel from './lendingrequestview/ReturnCheckPanel.vue'
 
 const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded} = useSession()
+const {loaded, hasPermission} = useSession()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const detail = ref<LendingRequestDetail | null>(null)
+const canBorrowAgain = computed(() => !!detail.value && !detail.value.request.isOwner
+    && detail.value.request.request.status !== LendingStatus.REQUESTED
+    && hasPermission(StationPermission.INVENTORY_LENDING_REQUEST))
 const messages = ref<EnrichedMessage[]>([])
 const newMessage = ref('')
 const showDeclineModal = ref(false)
-const declineReason = ref('')
 
 const availableItems = ref<AvailableItemDetail[]>([])
 const selectedItemIds = ref<Set<number>>(new Set())
@@ -71,6 +73,7 @@ const pageTitle = computed(() => (counterpartName.value
 
 /** What an answer to this request ran into, kept apart from what stopped the page loading. */
 const actionFailure = ref<Failure | null>(null)
+const answering = ref(false)
 
 const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   detail.value = await lending.getRequest(requestId)
@@ -151,11 +154,14 @@ const {running: sending, run: handleSendMessage} = useAsyncAction(async () => {
  */
 async function answer(action: () => Promise<unknown>) {
   actionFailure.value = null
+  answering.value = true
   try {
     await action()
   } catch (e) {
     actionFailure.value = describeFailure(e, t)
     return
+  } finally {
+    answering.value = false
   }
   await loadData()
   refreshSidebarCounts()
@@ -165,17 +171,28 @@ function handleApprove() {
   return answer(() => lending.approveRequest(requestId))
 }
 
-function handleDecline() {
+function handleDecline(reason: string) {
   return answer(async () => {
-    await lending.declineRequest(requestId, declineReason.value)
+    await lending.declineRequest(requestId, reason)
     showDeclineModal.value = false
-    declineReason.value = ''
   })
 }
 
-function handleMarkReturned() {
-  return answer(() => lending.markReturned(requestId))
+const checkingReturn = ref(false)
+
+async function returnChecked() {
+  checkingReturn.value = false
+  await loadData()
+  refreshSidebarCounts()
 }
+
+function handleRemind() {
+  return answer(async () => {
+    await lending.remind(requestId)
+    showToast(t('lendingReturn.reminded'), 'success')
+  })
+}
+
 
 function handleClose() {
   return answer(() => lending.closeRequest(requestId))
@@ -203,8 +220,11 @@ function handleClose() {
           :detail="detail"
           @approve="handleApprove"
           @decline="showDeclineModal = true"
-          @mark-returned="handleMarkReturned"
+          @check-return="checkingReturn = true"
+          @remind="handleRemind"
           @close="handleClose"/>
+      <ReturnCheckPanel v-if="checkingReturn" :request-id="detail.request.request.id" @done="returnChecked" @cancel="checkingReturn = false"/>
+      <BorrowAgainPanel v-if="canBorrowAgain" :request-id="detail.request.request.id"/>
       <LendingItemAssignment
           v-if="detail.request.isOwner && detail.request.request.status === LendingStatus.APPROVED"
           :loading="loadingItems"
@@ -221,13 +241,6 @@ function handleClose() {
           @send="handleSendMessage"/>
     </template>
 
-    <Modal v-model="showDeclineModal" data-confirm-always>
-      <SectionHeader class="mb-4">{{ t('lending.declineTitle') }}</SectionHeader>
-      <TextAreaInput v-model="declineReason" :placeholder="t('lending.declineReasonPlaceholder')" :rows="3"/>
-      <ButtonRow pair align="end" class="mt-4">
-        <SecondaryButton @click="showDeclineModal = false">{{ t('common.cancel') }}</SecondaryButton>
-        <ErrorButton @click="handleDecline">{{ t('lending.decline') }}</ErrorButton>
-      </ButtonRow>
-    </Modal>
+    <DeclineRequestModal v-model="showDeclineModal" :busy="answering" :failure="actionFailure" @decline="handleDecline"/>
   </ViewContent>
 </template>

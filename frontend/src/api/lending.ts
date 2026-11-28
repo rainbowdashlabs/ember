@@ -8,16 +8,23 @@ import {createCrudResource} from './crud'
 import type {
     AvailableInventoryResult,
     AvailableItemDetail,
+    OfferProduct,
     components,
     CreateBlockRequest,
     CreateLendingRequest,
     EnrichedMessage,
     InventoryBlock,
     ItemAssignment,
+    LendingCalendar,
     LendingMessage,
     LendingRequestDetail,
     LendingRequestResponse,
     LentOutItem,
+    LoanPiece,
+    PieceCheck,
+    ProductDetail,
+    ProductList,
+    RemoteProductDays,
     SetShareRequest,
     ShareDetail,
     ShareSetting,
@@ -41,6 +48,51 @@ export type ShareTarget = 'inventory' | 'art' | 'item'
 
 export async function getLentOutByInventory(inventoryId: number): Promise<LentOutItem[]> {
     const res = await client.get<LentOutItem[]>(`/lending/inventory/${inventoryId}/lent-out`)
+    return res.data
+}
+
+/** What every lending partner offers, one product per inventory; best match first where something was searched. */
+export async function listProducts(options?: { q?: string; from?: string; to?: string }): Promise<ProductList> {
+    const params: Record<string, string> = {}
+    if (options?.q) params.q = options.q
+    if (options?.from) params.from = options.from
+    if (options?.to) params.to = options.to
+    const res = await client.get<ProductList>('/federated/lending/products', {params})
+    return res.data
+}
+
+/** One product of a lending partner with its kinds, single pieces and where the gear is kept. */
+export async function getProduct(
+    stationUid: string, inventoryId: number, options?: { from?: string; to?: string },
+): Promise<ProductDetail> {
+    const params: Record<string, string> = {}
+    if (options?.from) params.from = options.from
+    if (options?.to) params.to = options.to
+    const res = await client.get<ProductDetail>(`/federated/lending/products/${stationUid}/${inventoryId}`, {params})
+    return res.data
+}
+
+/** What is free of a partner's product on each day of a month, as `yyyy-MM`; of one piece where given. */
+export async function getProductDays(
+    stationUid: string, inventoryId: number, month: string, itemId?: number,
+): Promise<RemoteProductDays> {
+    const params: Record<string, string> = {month}
+    if (itemId != null) params.itemId = String(itemId)
+    const res = await client.get<RemoteProductDays>(`/federated/lending/products/${stationUid}/${inventoryId}/days`, {params})
+    return res.data
+}
+
+/** The station's own offer, product by product; read through one partnership where one is given. */
+export async function getOffer(partnerId?: number): Promise<OfferProduct[]> {
+    const params: Record<string, string> = {}
+    if (partnerId != null) params.partnerId = String(partnerId)
+    const res = await client.get<OfferProduct[]>('/lending/offer', {params})
+    return res.data
+}
+
+/** The station's products, the requests for its gear and its block periods from one day to another. */
+export async function getCalendar(from: string, to: string): Promise<LendingCalendar> {
+    const res = await client.get<LendingCalendar>('/lending/calendar', {params: {from, to}})
     return res.data
 }
 
@@ -121,11 +173,6 @@ export async function markLent(id: number): Promise<LendingRequestResponse> {
     return res.data
 }
 
-export async function markReturned(id: number): Promise<LendingRequestResponse> {
-    const res = await client.post<LendingRequestResponse>(`/lending/requests/${id}/returned`)
-    return res.data
-}
-
 export async function closeRequest(id: number): Promise<LendingRequestResponse> {
     const res = await client.post<LendingRequestResponse>(`/lending/requests/${id}/close`)
     return res.data
@@ -138,6 +185,22 @@ export async function getAvailableItems(requestId: number): Promise<AvailableIte
 
 export async function assignItems(requestId: number, items: ItemAssignment[]): Promise<void> {
     await client.post(`/lending/requests/${requestId}/assign-items`, {items})
+}
+
+/** The pieces a loan of this station holds, to check back one by one. */
+export async function getReturnPieces(requestId: number): Promise<LoanPiece[]> {
+    const res = await client.get<LoanPiece[]>(`/lending/requests/${requestId}/return-check`)
+    return res.data
+}
+
+/** Takes the gear of a loan back with how each piece came back. */
+export async function checkReturn(requestId: number, pieces: PieceCheck[]): Promise<void> {
+    await client.post(`/lending/requests/${requestId}/return-check`, {pieces})
+}
+
+/** Reminds the borrowing station of gear past its last day. */
+export async function remind(requestId: number): Promise<void> {
+    await client.post(`/lending/requests/${requestId}/remind`)
 }
 
 export async function getMessages(requestId: number): Promise<EnrichedMessage[]> {

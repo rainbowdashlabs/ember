@@ -30,7 +30,7 @@ COMMENT ON COLUMN ember_schema.account_link_request.origin IS
 COMMENT ON CONSTRAINT account_link_request_owner ON ember_schema.account_link_request IS
     'A request belongs to exactly one asker: a station member (station and member set, origin IMPORT, INVITE or NAME_INVITE) or an association role (association, role and address set, origin ASSOCIATION_INVITE).';
 
--- An inventory and a kind can carry a picture; a piece shows its kind's picture, otherwise its inventory's.
+-- An inventory and a kind can carry a picture; a piece shows its own, otherwise its kind's, otherwise its inventory's.
 
 ALTER TABLE ember_schema.inventory
     ADD COLUMN picture_key TEXT;
@@ -108,6 +108,105 @@ COMMENT ON COLUMN ember_schema.user_feed_hidden_category.category_id IS 'Referen
 INSERT INTO ember_schema.station_permission (name)
 VALUES ('EVENT_CALENDAR_FEEDS')
 ON CONFLICT (name) DO NOTHING;
+
+-- Partner stations read a description of what they borrow: of an inventory, of each kind, and of a
+-- single piece where every piece is a different thing. A piece can also carry a photo of its own.
+
+ALTER TABLE ember_schema.inventory
+    ADD COLUMN description TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE ember_schema.inventory_art
+    ADD COLUMN description TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE ember_schema.inventory_item
+    ADD COLUMN description TEXT NOT NULL DEFAULT '',
+    ADD COLUMN picture_key TEXT NULL;
+
+COMMENT ON COLUMN ember_schema.inventory.description IS 'What partner stations read about the inventory before they borrow from it, in Markdown; empty when nobody wrote one.';
+COMMENT ON COLUMN ember_schema.inventory_art.description IS 'What partner stations read about the kind, in Markdown; empty when nobody wrote one. The note stays internal.';
+COMMENT ON COLUMN ember_schema.inventory_item.description IS 'What partner stations read about this one piece, in Markdown; empty when nobody wrote one.';
+COMMENT ON COLUMN ember_schema.inventory_item.picture_key IS 'Storage key of the piece''s own photo, shown before its kind''s and its inventory''s; null for none.';
+
+-- A station collects what it wants to borrow from its partners in one cart, shared by everybody who may
+-- ask for gear there, and sends it as one request per lending station.
+
+CREATE TABLE ember_schema.lending_cart
+(
+    station_id INTEGER     PRIMARY KEY REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    date_from  DATE,
+    date_to    DATE,
+    occasion   TEXT        NOT NULL DEFAULT '',
+    note       TEXT        NOT NULL DEFAULT '',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    sending_at TIMESTAMPTZ,
+    CONSTRAINT lending_cart_days CHECK (date_to IS NULL OR (date_from IS NOT NULL AND date_to >= date_from))
+);
+
+COMMENT ON TABLE ember_schema.lending_cart IS
+    'The one cart of a station for gear it wants to borrow from partner stations. Every member who may ask for gear works on the same cart; sending it opens one request per lending station and empties it.';
+COMMENT ON COLUMN ember_schema.lending_cart.station_id IS 'References the borrowing station the cart belongs to.';
+COMMENT ON COLUMN ember_schema.lending_cart.date_from IS 'The first day the gear is wanted, NULL while none is chosen.';
+COMMENT ON COLUMN ember_schema.lending_cart.date_to IS 'The last day the gear is wanted, NULL for a single day or while none is chosen.';
+COMMENT ON COLUMN ember_schema.lending_cart.occasion IS 'What the gear is wanted for, shown to the lending stations with each request; empty when nobody wrote it.';
+COMMENT ON COLUMN ember_schema.lending_cart.note IS 'A note sent to every lending station as the first message of its request; empty when nobody wrote one.';
+COMMENT ON COLUMN ember_schema.lending_cart.updated_at IS 'When the cart or one of its lines last changed.';
+COMMENT ON COLUMN ember_schema.lending_cart.sending_at IS 'When somebody started sending the cart, NULL while nobody is. Another sending waits until that one is done, or until it is so old it can only have been cut off.';
+
+CREATE TABLE ember_schema.lending_cart_line
+(
+    id                  SERIAL PRIMARY KEY,
+    station_id          INTEGER     NOT NULL REFERENCES ember_schema.lending_cart (station_id) ON DELETE CASCADE,
+    lending_station_uid UUID        NOT NULL,
+    inventory_id        INTEGER     NOT NULL,
+    art_id              INTEGER,
+    item_id             INTEGER,
+    quantity            INTEGER     NOT NULL CHECK (quantity > 0),
+    inventory_name      TEXT        NOT NULL DEFAULT '',
+    line_name           TEXT        NOT NULL DEFAULT '',
+    picture_key         TEXT,
+    added_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT lending_cart_line_one_target CHECK (art_id IS NULL OR item_id IS NULL),
+    CONSTRAINT lending_cart_line_piece_once CHECK (item_id IS NULL OR quantity = 1),
+    CONSTRAINT lending_cart_line_unique UNIQUE NULLS NOT DISTINCT (station_id, lending_station_uid, inventory_id, art_id, item_id)
+);
+
+COMMENT ON TABLE ember_schema.lending_cart_line IS
+    'One thing in a station''s cart: a count of a partner''s inventory or of one of its kinds, or one single piece. The ids are the lending station''s own and are not references here, since that station may run on another instance.';
+COMMENT ON COLUMN ember_schema.lending_cart_line.id IS 'Identifies the line.';
+COMMENT ON COLUMN ember_schema.lending_cart_line.station_id IS 'References the cart, and so the borrowing station, the line belongs to.';
+COMMENT ON COLUMN ember_schema.lending_cart_line.lending_station_uid IS 'The identity of the partner station the gear is borrowed from.';
+COMMENT ON COLUMN ember_schema.lending_cart_line.inventory_id IS 'The inventory at the lending station the line draws from, by that station''s id.';
+COMMENT ON COLUMN ember_schema.lending_cart_line.art_id IS 'The kind at the lending station the line counts, by that station''s id; NULL for a count of the whole inventory or a single piece.';
+COMMENT ON COLUMN ember_schema.lending_cart_line.item_id IS 'The single piece at the lending station the line names, by that station''s id; NULL for a count.';
+COMMENT ON COLUMN ember_schema.lending_cart_line.quantity IS 'How many are wanted; always 1 for a single piece.';
+COMMENT ON COLUMN ember_schema.lending_cart_line.inventory_name IS 'The inventory''s name as last shown by the lending station, for showing the cart without asking it.';
+COMMENT ON COLUMN ember_schema.lending_cart_line.line_name IS 'The kind''s or the piece''s name as last shown by the lending station; empty for a count of the whole inventory.';
+COMMENT ON COLUMN ember_schema.lending_cart_line.picture_key IS 'The key of the photo the lending station last showed for the line, to ask for through this instance; NULL for none.';
+COMMENT ON COLUMN ember_schema.lending_cart_line.added_at IS 'When the line was first put in the cart.';
+
+-- A lending station reminds a borrowing station of gear past its last day once on its own.
+
+ALTER TABLE ember_schema.federation_lending_request
+    ADD COLUMN reminded_at TIMESTAMPTZ;
+
+UPDATE ember_schema.federation_lending_request
+SET reminded_at = now()
+WHERE status = 'LENT'
+  AND coalesce(requested_date_to, requested_date_from) < current_date;
+
+COMMENT ON COLUMN ember_schema.federation_lending_request.reminded_at IS 'When the borrowing station was last reminded of gear past its last day, NULL while it was not. The reminder sent on its own the day after the last day goes once; a manager can remind again by hand.';
+
+-- A borrowing station keeps what it asked for in the lending station's own ids, so a request to a station
+-- on another instance can be borrowed again.
+
+ALTER TABLE ember_schema.federation_lending_request_item
+    ADD COLUMN offered_inventory_id INTEGER,
+    ADD COLUMN offered_art_id       INTEGER,
+    ADD COLUMN offered_item_id      INTEGER;
+
+COMMENT ON COLUMN ember_schema.federation_lending_request_item.offered_inventory_id IS 'The inventory the borrowing station asked for, by the lending station''s id; not a reference, since that station may run on another instance. NULL on lines written before it was kept.';
+COMMENT ON COLUMN ember_schema.federation_lending_request_item.offered_art_id IS 'The kind the borrowing station asked for, by the lending station''s id; NULL for none or on lines written before it was kept.';
+COMMENT ON COLUMN ember_schema.federation_lending_request_item.offered_item_id IS 'The single piece the borrowing station asked for, by the lending station''s id; NULL for none or on lines written before it was kept.';
 
 -- Reading and editing members no longer bring member documents along. Whoever held a member permission
 -- that reached them is given the document permission of their own, so nothing changes until a station

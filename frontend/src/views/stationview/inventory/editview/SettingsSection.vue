@@ -16,6 +16,7 @@ import SaveButton from '@/components/button/SaveButton.vue'
 import InventoryKindField from '@/components/inventory/InventoryKindField.vue'
 import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
 import InventoryPictureField from '@/components/inventory/InventoryPictureField.vue'
+import PartnerDescriptionField from '@/components/inventory/PartnerDescriptionField.vue'
 import {switchRefusal} from '@/api/inventory'
 import {InventoryType, type InventoryDetail, type SwitchBlocker} from '@/api/generated/schema'
 import {inventory, inventoryPictures} from '@/api'
@@ -40,6 +41,7 @@ const editHomogeneous = ref(props.detail.homogeneous)
 const editHasSizes = ref(props.detail.hasSizes ?? false)
 const editIcon = ref<string | null>(props.detail.icon ?? null)
 const editColor = ref<string | null>(props.detail.color ?? null)
+const editDescription = ref(props.detail.description ?? '')
 
 /** The photo as it stands; it is saved on its own the moment it is picked, apart from the form. */
 const pictureKey = ref<string | null>(props.detail.pictureKey ?? null)
@@ -77,6 +79,9 @@ async function saveSettings() {
       icon: editIcon.value,
       color: editColor.value,
     })
+    if (editDescription.value.trim() !== (props.detail.description ?? '')) {
+      await inventory.describeInventory(props.detail.id, editDescription.value)
+    }
     emit('saved')
   } catch (e) {
     const refusal = switchRefusal(e)
@@ -109,6 +114,8 @@ async function saveSettings() {
         <p class="text-xs text-(--text-muted)">{{ t('inventory.edit.typeSwitchHint') }}</p>
       </div>
     </div>
+
+    <PartnerDescriptionField v-model="editDescription"/>
 
     <GearIconPicker v-model:icon="editIcon" v-model:color="editColor" allow-no-icon/>
 

@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
-import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.entity.LentOutItem;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
@@ -166,10 +165,7 @@ public class LendingRequestViewService {
 
         String itemSummary = lendingService.buildItemSummary(request.id());
 
-        LocalDate dueBack = request.requestedDateTo();
-        boolean overdue = (request.status() == LendingStatus.LENT || request.status() == LendingStatus.APPROVED)
-                && dueBack != null
-                && dueBack.isBefore(LocalDate.now());
+        boolean overdue = LendingReturnService.isOverdue(request, LocalDate.now());
 
         return new LendingRequestResponse(request, requestingName, owningName, isOwner, itemSummary, overdue);
     }
@@ -202,7 +198,7 @@ public class LendingRequestViewService {
             var inv = inventoryRepository.findById(inventoryId).orElse(null);
             if (inv == null) continue;
             Integer preselected = ri.itemId();
-            for (var item : lendingService.findAssignableItems(stationId, inventoryId)) {
+            for (var item : lendingService.findAssignableItems(stationId, ri)) {
                 String sizeName = null;
                 Integer sizeId = item.sizeId();
                 if (sizeId != null) {

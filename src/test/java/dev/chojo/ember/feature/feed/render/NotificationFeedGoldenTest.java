@@ -259,7 +259,7 @@ class NotificationFeedGoldenTest {
         when(inventoryService.findById(anyInt())).thenReturn(Optional.empty());
         when(inventoryService.findById(99))
                 .thenReturn(Optional.of(new Inventory(
-                        99, 1, "Schlauch 25m", InventoryType.INTERNAL, false, true, false, null, null, null)));
+                        99, 1, "Schlauch 25m", InventoryType.INTERNAL, false, true, false, null, null, null, "")));
         when(boardTicketService.findById(anyInt())).thenReturn(Optional.empty());
         when(boardTicketService.findById(123))
                 .thenReturn(Optional.of(new BoardTicket(

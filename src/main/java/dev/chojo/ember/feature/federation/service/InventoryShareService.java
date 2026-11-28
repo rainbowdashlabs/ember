@@ -25,6 +25,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -131,6 +132,15 @@ public class InventoryShareService {
     /** Every statement a station has made about what it offers. */
     public List<InventoryShare> findShares(int stationId) {
         return repository.findByStation(stationId);
+    }
+
+    /** The partnerships every share of a station is aimed at, by share, read at once. */
+    public Map<Integer, List<Integer>> findTargetsByStation(int stationId) {
+        var targets = new HashMap<Integer, List<Integer>>();
+        for (var target : repository.findTargetsByStation(stationId)) {
+            targets.computeIfAbsent(target.shareId(), id -> new ArrayList<>()).add(target.partnerId());
+        }
+        return targets;
     }
 
     /** The partners one share names, empty when it reaches everybody. */

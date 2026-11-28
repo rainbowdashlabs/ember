@@ -12,6 +12,7 @@ import type {Locator, Page} from '@playwright/test'
 import {must} from './fixtures/must'
 import {cast} from './fixtures/cast'
 import {ownMember} from './fixtures/ownMember'
+import {stationDay} from './fixtures/stationDay'
 
 /**
  * A piece of the station's own gear that belongs to this story alone, and answers with its id and code.
@@ -333,7 +334,7 @@ test.describe('Inventory', () => {
 
     /** Borrowing is open to members; approving it is not. */
     test('a member reaches the equipment they may borrow', async ({memberPage: page}) => {
-        await page.goto('/station/inventory/lending/browse')
+        await page.goto('/station/inventory/lending/catalog')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
@@ -400,42 +401,55 @@ test.describe('Inventory', () => {
      * The story asks as one station and approves as the other, which is the only way to see that a
      * request reaches anybody - a request nobody can act on is a request that failed quietly.
      *
-     * <p>The offer is reached by its own id, since the tab for requests carries the same word, and a
-     * start date is given because the form will not send without one.
+     * <p>The gear goes through the catalog: a product's page puts it in the request list, and the list sends it
+     * once it has a first day and the partner has found every line free. The created request is
+     * reached through the link the cart shows. The day lies past every request and block the demo
+     * seeds, since the cart sends only what is free on it.
      */
     test('equipment is asked for from a partner station', async ({managerPage: page}) => {
-        await page.goto('/station/inventory/lending')
+        await page.goto('/station/inventory/lending/catalog')
 
-        await page.getByRole('button', {name: 'Angebote'}).click()
+        const tile = page.getByTestId('lending-product-tile').first()
+        await expect(tile, 'a partner station offers something to ask for').toBeVisible()
+        await tile.click()
+        await page.waitForURL(/\/station\/inventory\/lending\/product\//)
 
-        const offer = page.getByTestId('lending-offer-request').first()
-        await expect(offer, 'a partner station offers something to ask for').toBeVisible()
-        await offer.click()
-        await page.waitForURL(/\/station\/inventory\/lending\/request\/new/)
+        const add = page.getByRole('button', {name: /in die Anfrageliste/i}).and(page.locator(':enabled')).first()
+        await add.click()
+        await expect(page.getByText(/in der Anfrageliste/i).first()).toBeVisible()
 
-        await page.locator('input[type="date"]').first().fill('2026-12-01')
-        await page.getByRole('button', {name: 'Anfrage senden'}).click()
+        await page.goto('/station/inventory/lending/cart')
+        await expect(page.getByTestId('lending-cart-line').first()).toBeVisible()
+        const free = stationDay(new Date(Date.now() + 60 * 86_400_000))
+        await page.getByTestId('lending-cart-from').fill(free)
+        await page.getByTestId('lending-cart-from').blur()
 
+        const send = page.getByTestId('lending-cart-send')
+        await expect(send).toBeEnabled()
+        await send.click()
+
+        const outcome = page.getByTestId('lending-cart-outcome')
+        await expect(outcome.getByText(/Anfrage wurde gesendet|Anfragen wurden gesendet/)).toBeVisible()
+        await outcome.getByRole('link').first().click()
         await page.waitForURL(/\/station\/inventory\/lending\/request\/\d+/)
         await expect(page.getByText('Angefragt').first()).toBeVisible()
     })
 
     /**
-     * The other end of a borrowing: somebody has to say yes. The story takes a request that is
-     * waiting and approves it, and the request shows that afterwards.
+     * The other end of a borrowing: somebody has to say yes. The story takes a request waiting on the
+     * overview and approves it right there, then opens it and finds it approved.
      */
     test('an incoming request for equipment is approved', async ({managerPage: page}) => {
         await page.goto('/station/inventory/lending')
-        await page.getByRole('button', {name: 'Anfragen'}).first().click()
 
-        const waiting = page.locator('main').filter({hasText: 'Eingehende Anfragen'})
-            .getByText('Angefragt').first()
+        const waiting = page.getByTestId('lending-overview-lend').getByTestId('lending-overview-row').first()
         await expect(waiting).toBeVisible()
-        await waiting.click()
+        const address = must(await waiting.getByRole('link').getAttribute('href'), 'the waiting request links to itself')
+        await waiting.getByRole('button', {name: 'Genehmigen'}).click()
+        await expect(page.getByTestId('lending-overview-lend').locator(`a[href="${address}"]`)
+            .locator('xpath=ancestor::li').getByRole('button', {name: 'Genehmigen'})).toHaveCount(0)
 
-        await page.waitForURL(/\/station\/inventory\/lending\/request\/\d+/)
-        await page.getByRole('button', {name: 'Genehmigen'}).click()
-
+        await page.goto(address)
         await expect(page.getByText('Genehmigt').first()).toBeVisible()
     })
 

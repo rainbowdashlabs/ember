@@ -89,8 +89,15 @@ export interface InventoryRoutes {
     lending?: string
     lendingBlocks?: string
     lendingBlocksCreate?: string
-    lendingCreate?: string
     lendingRequest?: string
+    /** The station's own offer, product by product, with its sharing and texts. */
+    lendingOffer?: string
+    /** The lending catalog: every partner's gear as products. */
+    lendingCatalog?: string
+    /** One partner product of the lending catalog. */
+    lendingProduct?: string
+    /** The station's cart of gear to borrow. */
+    lendingCart?: string
     /** What the station currently puts on offer to its partners. Absent at an association for the same reason. */
     lendingShares?: string
 }
@@ -122,8 +129,11 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     lending: 'inventory-lending',
     lendingBlocks: 'inventory-lending-blocks',
     lendingBlocksCreate: 'inventory-lending-blocks-create',
-    lendingCreate: 'inventory-lending-create',
     lendingRequest: 'inventory-lending-request',
+    lendingOffer: 'inventory-lending-offer',
+    lendingCatalog: 'inventory-lending-catalog',
+    lendingProduct: 'inventory-lending-product',
+    lendingCart: 'inventory-lending-cart',
     lendingShares: 'inventory-lending-shares',
 }
 

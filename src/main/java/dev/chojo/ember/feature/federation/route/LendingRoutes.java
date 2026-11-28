@@ -104,12 +104,6 @@ public class LendingRoutes implements Routes {
                 StationModule.INVENTORY_LENDING);
 
         routes.post(
-                prefix + "/lending/requests/{id}/returned",
-                this::markReturned,
-                StationPermission.INVENTORY_LENDING_REQUEST,
-                StationPermission.INVENTORY_LENDING_MANAGER,
-                StationModule.INVENTORY_LENDING);
-        routes.post(
                 prefix + "/lending/requests/{id}/close",
                 this::closeRequest,
                 StationPermission.INVENTORY_LENDING_REQUEST,
@@ -270,7 +264,7 @@ public class LendingRoutes implements Routes {
         var assignments = ctx.bodyAsClass(AssignItemsRequest.class);
         if (assignments.items() != null) {
             for (var a : assignments.items()) {
-                service.assignItem(a.requestItemId(), a.itemId(), session.stationId());
+                service.assignItem(id, a.requestItemId(), a.itemId(), session.stationId());
             }
         }
         ctx.status(HttpStatus.NO_CONTENT);
@@ -288,21 +282,6 @@ public class LendingRoutes implements Routes {
         service.markLent(id, session.stationId());
         ctx.json(views.describe(
                 service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_LENDING::raise),
-                session.stationId()));
-    }
-
-    @OpenApi(
-            path = "/api/v1/lending/requests/{id}/returned",
-            methods = HttpMethod.POST,
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse.class)))
-    private void markReturned(Context ctx) {
-        var session = StationSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        views.requireParty(id, session.stationId());
-        service.markReturned(id, session.stationId());
-        ctx.json(views.describe(
-                service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_RETURN::raise),
                 session.stationId()));
     }
 

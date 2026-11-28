@@ -194,6 +194,40 @@ public class LendingRepository {
                 .all();
     }
 
+    /** Notes that the borrowing station was reminded of a request, so it is reminded once on its own. */
+    public void markReminded(int requestId) {
+        query("UPDATE federation_lending_request SET reminded_at = now() WHERE id = :id;")
+                .single(call().bind("id", requestId))
+                .update();
+    }
+
+    /**
+     * The lent requests of stations on this instance whose last day was before the given day and whose
+     * borrowing station was not reminded yet.
+     */
+    public List<LendingRequest> findOverdueUnreminded(LocalDate today) {
+        return query("""
+                SELECT %s
+                FROM federation_lending_request r
+                WHERE r.status = 'LENT'
+                  AND r.reminded_at IS NULL
+                  AND coalesce(r.requested_date_to, r.requested_date_from) < :today
+                  AND EXISTS (SELECT 1 FROM station s WHERE s.uid = r.owning_station_uid AND s.moved_away_at IS NULL);""", LENDING_REQUEST_COLUMNS)
+                .single(call().bind("today", today))
+                .map(LendingRequest.map())
+                .all();
+    }
+
+    /** Moves a request on only from the status it is expected to be in, so two moves never both happen. */
+    public boolean updateRequestStatusFrom(int id, LendingStatus expected, LendingStatus status) {
+        return query("""
+                UPDATE federation_lending_request SET status = :status, updated_at = now()
+                WHERE id = :id AND status = :expected;""")
+                .single(call().bind("id", id).bind("status", status).bind("expected", expected))
+                .update()
+                .changed();
+    }
+
     public boolean updateRequestStatus(int id, LendingStatus status) {
         return query("UPDATE federation_lending_request SET status = :status, updated_at = now() WHERE id = :id;")
                 .single(call().bind("id", id).bind("status", status))
@@ -215,24 +249,94 @@ public class LendingRepository {
             @Nullable Integer artId,
             int quantity,
             @Nullable Integer needId) {
+        return addRequestItem(
+                requestId, inventoryId, itemId, artId, quantity, needId, new OfferedIds(inventoryId, artId, itemId));
+    }
+
+    /**
+     * Adds a line to a request as {@link #addRequestItem(int, Integer, Integer, Integer, int, Integer)}
+     * does, keeping what was asked for in the lending station's own ids apart from the references,
+     * for a lending station whose gear is not here to reference.
+     *
+     * @param offered what the line asks for in the lending station's ids
+     * @return the stored line
+     */
+    public LendingRequestItem addRequestItem(
+            int requestId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            @Nullable Integer artId,
+            int quantity,
+            @Nullable Integer needId,
+            OfferedIds offered) {
         return insertReturning(
                 """
-                INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, art_id, quantity, need_id, label)
+                INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, art_id, quantity, need_id, label,
+                                                            offered_inventory_id, offered_art_id, offered_item_id)
                 VALUES (:request_id, :inventory_id, :item_id, :art_id, :quantity, :need_id,
                         coalesce((SELECT name FROM inventory_art WHERE id = :art_id),
                                  (SELECT name FROM inventory_item WHERE id = :item_id),
                                  (SELECT name FROM inventory WHERE id = :inventory_id),
-                                 ''))
+                                 ''),
+                        :offered_inventory_id, :offered_art_id, :offered_item_id)
                 RETURNING %s;""",
                 call().bind("request_id", requestId)
                         .bind("inventory_id", inventoryId)
                         .bind("item_id", itemId)
                         .bind("art_id", artId)
                         .bind("quantity", quantity)
-                        .bind("need_id", needId),
+                        .bind("need_id", needId)
+                        .bind("offered_inventory_id", offered.inventoryId())
+                        .bind("offered_art_id", offered.artId())
+                        .bind("offered_item_id", offered.itemId()),
                 LendingRequestItem.map(),
                 LENDING_REQUEST_ITEM_COLUMNS);
     }
+
+    /**
+     * What a line asks for in the lending station's own ids.
+     *
+     * @param inventoryId the inventory, or {@code null}
+     * @param artId       the kind, or {@code null}
+     * @param itemId      the piece, or {@code null}
+     */
+    public record OfferedIds(
+            @Nullable Integer inventoryId,
+            @Nullable Integer artId,
+            @Nullable Integer itemId) {}
+
+    /** The lines of a request as the borrowing station asked for them, in the lending station's ids. */
+    public List<OfferedLine> findOfferedLines(int requestId) {
+        return query("""
+                SELECT offered_inventory_id, offered_art_id, offered_item_id, quantity, label
+                FROM federation_lending_request_item
+                WHERE request_id = :request_id
+                ORDER BY id;""")
+                .single(call().bind("request_id", requestId))
+                .map(row -> new OfferedLine(
+                        row.getObject("offered_inventory_id", Integer.class),
+                        row.getObject("offered_art_id", Integer.class),
+                        row.getObject("offered_item_id", Integer.class),
+                        row.getInt("quantity"),
+                        row.getString("label")))
+                .all();
+    }
+
+    /**
+     * One line of a request in the lending station's ids.
+     *
+     * @param inventoryId the inventory asked for, or {@code null} on a line written before it was kept
+     * @param artId       the kind asked for, or {@code null}
+     * @param itemId      the piece asked for, or {@code null}
+     * @param quantity    how many
+     * @param label       what the line is called
+     */
+    public record OfferedLine(
+            @Nullable Integer inventoryId,
+            @Nullable Integer artId,
+            @Nullable Integer itemId,
+            int quantity,
+            String label) {}
 
     public List<LendingRequestItem> findItemsByRequest(int requestId) {
         return query(
@@ -244,15 +348,15 @@ public class LendingRepository {
     }
 
     /**
-     * The request a line belongs to.
+     * One line of a request.
      *
      * @param requestItemId the line
-     * @return the request id, or empty when the line is gone
+     * @return the line, or empty when it is gone
      */
-    public Optional<Integer> findRequestIdOfLine(int requestItemId) {
-        return query("SELECT request_id FROM federation_lending_request_item WHERE id = :id;")
+    public Optional<LendingRequestItem> findRequestItem(int requestItemId) {
+        return query("SELECT %s FROM federation_lending_request_item WHERE id = :id;", LENDING_REQUEST_ITEM_COLUMNS)
                 .single(call().bind("id", requestItemId))
-                .map(row -> row.getInt("request_id"))
+                .map(LendingRequestItem.map())
                 .first();
     }
 
@@ -447,21 +551,8 @@ public class LendingRepository {
             @Nullable Integer itemId,
             LocalDate dateFrom,
             LocalDate dateTo) {
-        var blocks = findActiveBlocks(stationId, dateFrom, dateTo);
-        for (var block : blocks) {
-            Integer blockedInventory = block.inventoryId();
-            Integer blockedItem = block.itemId();
-            if (blockedInventory == null && blockedItem == null) {
-                return true;
-            }
-            if (blockedInventory != null && blockedInventory.equals(inventoryId) && blockedItem == null) {
-                return true;
-            }
-            if (blockedItem != null && blockedItem.equals(itemId)) {
-                return true;
-            }
-        }
-        return false;
+        return findActiveBlocks(stationId, dateFrom, dateTo).stream()
+                .anyMatch(block -> block.covers(inventoryId, itemId));
     }
 
     /**

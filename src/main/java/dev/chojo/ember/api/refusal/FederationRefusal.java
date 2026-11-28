@@ -318,7 +318,62 @@ public enum FederationRefusal implements Refusal {
      * station, or a partner that does not lend to it. One answer for both, so nothing is learned about
      * gear that is not offered.
      */
-    LENDING_PICTURE_NOT_OFFERED(75, HttpStatus.NOT_FOUND, "That photo is not part of what is offered to your station");
+    LENDING_PICTURE_NOT_OFFERED(75, HttpStatus.NOT_FOUND, "That photo is not part of what is offered to your station"),
+
+    /** A product page asked for an inventory, or a piece of it, that the station does not offer the asking one. */
+    LENDING_PRODUCT_NOT_OFFERED(76, HttpStatus.NOT_FOUND, "That gear is not part of what is offered to your station"),
+
+    /** A calendar asked for a month that is not one, such as {@code 2026-13}. */
+    LENDING_MONTH_NOT_A_MONTH(77, HttpStatus.BAD_REQUEST, "A month asked about is not a month"),
+
+    /** Days asked about whose last day comes before the first. */
+    LENDING_WINDOW_BACKWARDS(78, HttpStatus.BAD_REQUEST, "The last day comes before the first, so swap them"),
+
+    /** A cart sent with nothing in it. */
+    LENDING_CART_EMPTY(79, HttpStatus.BAD_REQUEST, "The cart holds nothing to ask for"),
+
+    /** A cart sent while a line is not free in full, or its lending station could not be asked. */
+    LENDING_CART_NOT_FREE(
+            80, HttpStatus.CONFLICT, "Not everything in the cart is free on those days, so adjust the marked lines"),
+
+    /** A cart line that counts nothing, or counts a single piece more than once. */
+    LENDING_CART_LINE_INVALID(
+            81, HttpStatus.BAD_REQUEST, "A line names a partner and asks for one to 999, and a single piece only once"),
+
+    /** A cart line that is not in this station's cart. */
+    LENDING_CART_LINE_NOT_HERE(82, HttpStatus.NOT_FOUND, "The line is not in the cart"),
+
+    /** Borrowing again from a request the station did not send or that was never answered. */
+    LENDING_NOT_BORROWED_AGAIN(
+            83, HttpStatus.CONFLICT, "Only a request this station sent and that was answered can be borrowed again"),
+
+    /** A cart text longer than the cart keeps. */
+    LENDING_CART_TEXT_TOO_LONG(84, HttpStatus.BAD_REQUEST, "The occasion or the note is too long"),
+
+    /** A cart sent while somebody else is already sending it. */
+    LENDING_CART_BEING_SENT(85, HttpStatus.CONFLICT, "The cart is being sent already, so wait a moment and look again"),
+
+    /** A piece handed over for a line that asks for another kind, inventory or piece. */
+    LENDING_PIECE_NOT_FOR_LINE(
+            86, HttpStatus.BAD_REQUEST, "The piece does not fit this line of the request, so pick one the line offers"),
+
+    /** A partner to read the offer through that is not given as a number. */
+    LENDING_PARTNER_NOT_A_NUMBER(87, HttpStatus.BAD_REQUEST, "The partner to look through is not given as a number"),
+
+    /** A lending calendar asked for over more than a quarter of a year. */
+    LENDING_CALENDAR_TOO_LONG(88, HttpStatus.BAD_REQUEST, "The calendar shows at most a quarter of a year at once"),
+
+    /** A return checked, or a reminder sent, for a request whose gear is not out. */
+    LENDING_NOT_OUT(89, HttpStatus.CONFLICT, "Only gear that is out can be checked back or reminded of"),
+
+    /** A return check that does not answer for exactly the pieces the loan holds. */
+    LENDING_RETURN_PIECES_MISMATCH(
+            90,
+            HttpStatus.BAD_REQUEST,
+            "The return check has to answer for every piece of the loan, and only for those"),
+
+    /** A reminder for gear whose last day has not passed. */
+    LENDING_NOT_OVERDUE(91, HttpStatus.CONFLICT, "The gear is not overdue yet");
 
     private final Definition definition;
 

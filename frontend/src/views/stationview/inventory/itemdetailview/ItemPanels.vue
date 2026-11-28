@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {ref, watch} from 'vue'
+import ItemPresentationPanel from './ItemPresentationPanel.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import ItemMetadataPanel from './ItemMetadataPanel.vue'
@@ -14,6 +16,7 @@ import ItemHistoryPanel from './ItemHistoryPanel.vue'
 import ItemCheckHistoryPanel from './ItemCheckHistoryPanel.vue'
 import LendingSharePanel from '@/components/lending/LendingSharePanel.vue'
 import {ItemOwner} from '@/api/generated/schema'
+import {inventory} from '@/api'
 import type {
   HistoryResponse,
   InventoryItem,
@@ -56,6 +59,17 @@ const emit = defineEmits<{
   markLost: []
   markFound: []
 }>()
+
+/** The piece's own photo, which the header shows before its kind's and its inventory's. */
+const ownPictureKey = ref<string | null>(null)
+
+watch(() => props.itemId, async id => {
+  try {
+    ownPictureKey.value = (await inventory.getItemPresentation(id)).pictureKey ?? null
+  } catch {
+    ownPictureKey.value = null
+  }
+}, {immediate: true})
 </script>
 
 <template>
@@ -65,6 +79,7 @@ const emit = defineEmits<{
       :members="props.members"
       :location="props.location"
       :can-edit-item="props.canEditItem"
+      :own-picture-key="ownPictureKey"
       @updated="emit('updated', $event)"
       @error="emit('error', $event)"
   />
@@ -87,6 +102,13 @@ const emit = defineEmits<{
       @unassign="emit('unassign')"
       @mark-lost="emit('markLost')"
       @mark-found="emit('markFound')"
+  />
+
+  <ItemPresentationPanel
+      v-if="props.canEditItem && !props.ownedElsewhere"
+      :item-id="props.itemId"
+      :inventory-id="props.item.inventoryId"
+      @picture-changed="ownPictureKey = $event"
   />
 
   <LendingSharePanel

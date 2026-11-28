@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.members.entity.InviteCandidate;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -165,7 +166,6 @@ public class InviteCandidateRepository {
     }
 
     private static String containing(String word) {
-        String escaped = folded(word).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
-        return "%" + escaped + "%";
+        return SqlSupport.containing(folded(word));
     }
 }

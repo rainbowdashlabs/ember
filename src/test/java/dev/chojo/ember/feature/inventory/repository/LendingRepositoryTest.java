@@ -436,4 +436,85 @@ class LendingRepositoryTest extends RepositoryTestBase {
 
         lendingRepo.deleteRequest(kept.uid());
     }
+
+    /**
+     * A line keeps what it asked for in the lending station's ids: the referenced ids where the gear
+     * is here, the ids given apart where it is not.
+     */
+    @Test
+    void aLineKeepsWhatItAskedForInTheLendersIds() {
+        var request = lendingRepo.createRequest(
+                stationB.uid(), stationA.uid(), LocalDate.now(), LocalDate.now(), memberB.id(), null, null, "");
+        lendingRepo.addRequestItem(request.id(), inventoryIdA, itemIdA, null, 1, null);
+        lendingRepo.addRequestItem(
+                request.id(), null, null, null, 2, null, new LendingRepository.OfferedIds(77, 5, null));
+
+        var lines = lendingRepo.findOfferedLines(request.id());
+
+        assertEquals(
+                new LendingRepository.OfferedLine(
+                        inventoryIdA, null, itemIdA, 1, lines.get(0).label()),
+                lines.get(0));
+        assertEquals(new LendingRepository.OfferedLine(77, 5, null, 2, ""), lines.get(1));
+        lendingRepo.deleteRequest(request.uid());
+    }
+
+    /** A lent request past its last day is found for its reminder until it was reminded. */
+    @Test
+    void anOverdueLoanIsFoundUntilReminded() {
+        var request = lendingRepo.createRequest(
+                stationB.uid(),
+                stationA.uid(),
+                LocalDate.now().minusDays(9),
+                LocalDate.now().minusDays(2),
+                memberB.id(),
+                null,
+                null,
+                "");
+        lendingRepo.updateRequestStatus(request.id(), LendingStatus.LENT);
+
+        assertTrue(lendingRepo.findOverdueUnreminded(LocalDate.now()).stream()
+                .anyMatch(found -> found.id() == request.id()));
+        lendingRepo.markReminded(request.id());
+        assertTrue(lendingRepo.findOverdueUnreminded(LocalDate.now()).stream()
+                .noneMatch(found -> found.id() == request.id()));
+        lendingRepo.deleteRequest(request.uid());
+    }
+
+    /** Neither agreed gear, nor gear due today, is overdue; a one-day loan is overdue the day after. */
+    @Test
+    void onlyLentGearPastItsLastDayIsOverdue() {
+        var agreed = lendingRepo.createRequest(
+                stationB.uid(),
+                stationA.uid(),
+                LocalDate.now().minusDays(5),
+                LocalDate.now().minusDays(2),
+                memberB.id(),
+                null,
+                null,
+                "");
+        lendingRepo.updateRequestStatus(agreed.id(), LendingStatus.APPROVED);
+        var dueToday = lendingRepo.createRequest(
+                stationB.uid(),
+                stationA.uid(),
+                LocalDate.now().minusDays(5),
+                LocalDate.now(),
+                memberB.id(),
+                null,
+                null,
+                "");
+        lendingRepo.updateRequestStatus(dueToday.id(), LendingStatus.LENT);
+        var oneDay = lendingRepo.createRequest(
+                stationB.uid(), stationA.uid(), LocalDate.now().minusDays(1), null, memberB.id(), null, null, "");
+        lendingRepo.updateRequestStatus(oneDay.id(), LendingStatus.LENT);
+
+        var found = lendingRepo.findOverdueUnreminded(LocalDate.now()).stream()
+                .map(r -> r.id())
+                .toList();
+
+        assertFalse(found.contains(agreed.id()));
+        assertFalse(found.contains(dueToday.id()));
+        assertTrue(found.contains(oneDay.id()));
+        for (var request : List.of(agreed, dueToday, oneDay)) lendingRepo.deleteRequest(request.uid());
+    }
 }

@@ -25,6 +25,7 @@ import InventoryFieldsPanel from '@/components/inventory/InventoryFieldsPanel.vu
 import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
 import InventoryPictureField from '@/components/inventory/InventoryPictureField.vue'
+import PartnerDescriptionField from '@/components/inventory/PartnerDescriptionField.vue'
 import {glyphFor} from '@/util/glyph'
 import {inventoryArts, inventoryPictures} from '@/api'
 import type {ArtStock, InventoryArt, InventoryType} from '@/api/generated/schema'
@@ -57,6 +58,7 @@ const showModal = ref(false)
 const editingArt = ref<InventoryArt | null>(null)
 const artName = ref('')
 const artNote = ref('')
+const artDescription = ref('')
 const artIcon = ref<string | null>(null)
 const artColor = ref<string | null>(null)
 
@@ -96,6 +98,7 @@ function openAdd() {
   editingArt.value = null
   artName.value = ''
   artNote.value = ''
+  artDescription.value = ''
   artIcon.value = null
   artColor.value = null
   showModal.value = true
@@ -105,6 +108,7 @@ function openEdit(art: InventoryArt) {
   editingArt.value = art
   artName.value = art.name
   artNote.value = art.note
+  artDescription.value = art.description
   artIcon.value = art.icon ?? null
   artPictureKey.value = art.pictureKey ?? null
   artColor.value = art.color ?? null
@@ -142,8 +146,9 @@ function artPictureChanged(pictureKey: string | null) {
 async function saveArt() {
   failure.value = null
   try {
+    let saved: InventoryArt
     if (editingArt.value) {
-      await inventoryArts.updateArt(props.inventoryId, editingArt.value.id, {
+      saved = await inventoryArts.updateArt(props.inventoryId, editingArt.value.id, {
         name: artName.value,
         note: artNote.value,
         position: editingArt.value.position,
@@ -151,13 +156,17 @@ async function saveArt() {
         color: artColor.value,
       })
     } else {
-      await inventoryArts.createArt(props.inventoryId, {
+      saved = await inventoryArts.createArt(props.inventoryId, {
         name: artName.value,
         note: artNote.value,
         position: arts.value.length * 10,
         icon: artIcon.value,
         color: artColor.value,
       })
+      editingArt.value = saved
+    }
+    if (artDescription.value.trim() !== saved.description) {
+      await inventoryArts.describeArt(props.inventoryId, saved.id, artDescription.value)
     }
   } catch (e) {
     failure.value = describeFailure(e, t)
@@ -237,6 +246,7 @@ watch(() => props.inventoryId, load, {immediate: true})
         <FieldLabel>{{ t('inventory.art.note') }}</FieldLabel>
         <TextInput v-model="artNote" :placeholder="t('inventory.art.notePlaceholder')"/>
       </div>
+      <PartnerDescriptionField v-model="artDescription" :hint="t('inventory.description.artHint')"/>
       <GearIconPicker v-model:icon="artIcon" v-model:color="artColor" allow-no-icon/>
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="showModal = false">{{ t('common.cancel') }}</SecondaryButton>

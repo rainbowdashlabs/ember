@@ -65,6 +65,7 @@ export const availableInventories: Inventory[] = [
   {
     borrowed: false,
     color: null,
+    description: '',
     hasSizes: true,
     homogeneous: false,
     icon: null,

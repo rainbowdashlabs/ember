@@ -141,7 +141,7 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
         lendingService.addRequestItem(returnedRequest.id(), partnerZelte.id(), null, null, 1, null);
         lendingService.approveRequest(returnedRequest.id(), partnerStationId);
         lendingService.markLent(returnedRequest.id(), partnerStationId);
-        lendingService.markReturned(returnedRequest.id(), stationId);
+        lendingService.markReturned(returnedRequest.id(), partnerStationId);
 
         lendingService.sendMessage(
                 returnedRequest.id(),

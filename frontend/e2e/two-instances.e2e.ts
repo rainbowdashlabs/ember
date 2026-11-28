@@ -563,8 +563,8 @@ test.describe('Federation requests between instances', () => {
  *
  * <p>The borrowing station finds what the lending one offers, asks for it, and the request is
  * written down at both ends under one identity. The lending station agrees and hands the gear over
- * on its own instance, the borrowing station reads that in the thread it shares with it, and when it
- * gives the gear back the lending station's copy follows.
+ * on its own instance, the borrowing station reads that in the thread it shares with it, and the
+ * lending station checks the gear back piece by piece.
  *
  * <p>Every call here goes from the first instance to the second. The second one knows the first
  * only by the address the browser uses, which no container can reach, so what the lending station
@@ -611,12 +611,15 @@ test.describe('Lending between instances', () => {
             expect(said).toContain('Anfrage genehmigt')
             expect(said).toContain('Ausrüstung ausgeliehen')
 
-            const returned = await homeManagerApi.post(`/api/v1/lending/requests/${borrowing}/returned`)
-            expect(returned.ok(), await returned.text()).toBe(true)
-            await expect.poll(async () => {
-                const detail = await lender.get(`/api/v1/lending/requests/${copy.request.id}`)
-                return (await detail.json()).request.request.status
-            }, {timeout: 30_000, message: 'the lending station\'s copy follows the gear coming back'}).toBe('RETURNED')
+            const pieces = await lender.get(`/api/v1/lending/requests/${copy.request.id}/return-check`)
+            expect(pieces.ok(), await pieces.text()).toBe(true)
+            const held = (await pieces.json()) as {itemId: number}[]
+            const checked = await lender.post(`/api/v1/lending/requests/${copy.request.id}/return-check`, {
+                data: {pieces: held.map(piece => ({itemId: piece.itemId, state: 'OK', comment: null}))},
+            })
+            expect(checked.ok(), await checked.text()).toBe(true)
+            const detail = await lender.get(`/api/v1/lending/requests/${copy.request.id}`)
+            expect((await detail.json()).request.request.status, 'the checked gear is back with the lending station').toBe('RETURNED')
         } finally {
             await lender.dispose()
         }

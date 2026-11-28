@@ -45,6 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -171,11 +173,11 @@ class LendingRequestViewServiceTest {
         assertEquals("Station " + PARTNER, overdue.requestingStationName());
         assertEquals("2 Zelte", overdue.itemSummary());
 
-        assertTrue(service.describe(request(2, PARTNER, HERE, LendingStatus.APPROVED, past), STATION)
+        assertFalse(service.describe(request(2, PARTNER, HERE, LendingStatus.APPROVED, past), STATION)
                 .overdue());
         assertFalse(service.describe(request(3, HERE, PARTNER, LendingStatus.RETURNED, past), STATION)
                 .overdue());
-        assertFalse(service.describe(request(4, HERE, PARTNER, LendingStatus.LENT, null), STATION)
+        assertTrue(service.describe(request(4, HERE, PARTNER, LendingStatus.LENT, null), STATION)
                 .overdue());
         assertFalse(service.describe(request(5, HERE, PARTNER, LendingStatus.LENT, LocalDate.of(2999, 1, 1)), STATION)
                 .overdue());
@@ -202,7 +204,9 @@ class LendingRequestViewServiceTest {
         var plain = mock(InventoryItem.class);
         when(plain.id()).thenReturn(10);
         when(plain.sizeId()).thenReturn(null);
-        when(lending.findAssignableItems(STATION, 2)).thenReturn(List.of(sized, plain));
+        when(lending.findAssignableItems(
+                        eq(STATION), argThat(line -> Integer.valueOf(2).equals(line.inventoryId()))))
+                .thenReturn(List.of(sized, plain));
         when(lending.findRequestItems(5))
                 .thenReturn(List.of(
                         new LendingRequestItem(1, 5, 2, 9, null, 1, null, null),

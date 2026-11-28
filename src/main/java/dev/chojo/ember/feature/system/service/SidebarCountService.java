@@ -9,6 +9,7 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.repository.LendingCartRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
@@ -31,6 +32,7 @@ public class SidebarCountService {
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
     private final EventRegistrationRepository eventRegistrationRepository;
     private final LendingRepository lendingRepository;
+    private final LendingCartRepository lendingCartRepository;
     private final FederationRepository federationRepository;
     private final WaitingListRepository waitingListRepository;
     private final LostAndFoundRepository lostAndFoundRepository;
@@ -48,6 +50,7 @@ public class SidebarCountService {
             ProfileFieldChangeRepository profileFieldChangeRepository,
             EventRegistrationRepository eventRegistrationRepository,
             LendingRepository lendingRepository,
+            LendingCartRepository lendingCartRepository,
             FederationRepository federationRepository,
             WaitingListRepository waitingListRepository,
             LostAndFoundRepository lostAndFoundRepository,
@@ -62,6 +65,7 @@ public class SidebarCountService {
         this.profileFieldChangeRepository = profileFieldChangeRepository;
         this.eventRegistrationRepository = eventRegistrationRepository;
         this.lendingRepository = lendingRepository;
+        this.lendingCartRepository = lendingCartRepository;
         this.federationRepository = federationRepository;
         this.waitingListRepository = waitingListRepository;
         this.lostAndFoundRepository = lostAndFoundRepository;
@@ -97,6 +101,11 @@ public class SidebarCountService {
         if (roles.contains(StationPermission.INVENTORY_MANAGER)
                 && roles.contains(StationPermission.STATION_FEDERATION)) {
             lendingRequests = lendingRepository.countActionableRequests(stationRepository.requireUid(stationId));
+        }
+
+        int lendingCart = 0;
+        if (roles.contains(StationPermission.INVENTORY_LENDING_REQUEST)) {
+            lendingCart = lendingCartRepository.countLines(stationId);
         }
 
         int federationRequests = 0;
@@ -139,6 +148,7 @@ public class SidebarCountService {
                 pendingChanges,
                 pendingRegistrations,
                 lendingRequests,
+                lendingCart,
                 federationRequests,
                 openEvents,
                 waitingListEntries,
@@ -167,6 +177,8 @@ public class SidebarCountService {
             int pendingChanges,
             int pendingRegistrations,
             int lendingRequests,
+            /** The lines in the station's cart of gear to borrow from partners. */
+            int lendingCart,
             int federationRequests,
             int openEvents,
             int waitingListEntries,

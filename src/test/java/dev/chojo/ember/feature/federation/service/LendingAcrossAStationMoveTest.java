@@ -31,9 +31,12 @@ import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
+import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.InventoryPictureService;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -262,7 +265,17 @@ class LendingAcrossAStationMoveTest extends RepositoryTestBase {
                                 mock(FederationService.class),
                                 mock(FederationTransport.class),
                                 mock(ImageVariants.class),
-                                mock(StorageService.class))),
+                                mock(StorageService.class)),
+                        new LendingCatalogService(
+                                lending,
+                                mock(InventoryShareService.class),
+                                mock(InventoryRepository.class),
+                                mock(InventoryArtRepository.class),
+                                mock(StationRepository.class),
+                                mock(EquipmentAvailabilityService.class),
+                                mock(FederationService.class),
+                                mock(FederationTransport.class),
+                                mock(FederationFanout.class))),
                 mock(ModuleAvailability.class))));
         var asMoved = harness.asPartner(new FederationSession(partnershipWithMoved(), moved.uid()))
                 .andThen(request -> request.header(

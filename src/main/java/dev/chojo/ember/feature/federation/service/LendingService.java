@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.entity.SharePolicy;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.repository.LendingRepository.OfferedIds;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteAvailability;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteAvailableEntry;
@@ -43,12 +44,14 @@ import dev.chojo.ember.feature.inventory.entity.BorrowedPiece;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventoryMatch;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
+import dev.chojo.ember.feature.inventory.service.InventorySearchService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.inventory.service.LineTargetService;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -67,11 +70,17 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Business logic for cross-station inventory lending. Internally peer references travel as
@@ -97,6 +106,7 @@ public class LendingService implements FederationServer {
     private final LineTargetService lineTargets;
     private final EquipmentAvailabilityService availability;
     private final DomainEventBus eventBus;
+    private final InventorySearchService searchService;
 
     @Inject
     public LendingService(
@@ -113,7 +123,8 @@ public class LendingService implements FederationServer {
             InventoryArtRepository artRepository,
             LineTargetService lineTargets,
             EquipmentAvailabilityService availability,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            InventorySearchService searchService) {
         this.fanout = fanout;
         this.artRepository = artRepository;
         this.lineTargets = lineTargets;
@@ -128,6 +139,7 @@ public class LendingService implements FederationServer {
         this.borrowedGearService = borrowedGearService;
         this.shareService = shareService;
         this.eventBus = eventBus;
+        this.searchService = searchService;
     }
 
     /**
@@ -155,7 +167,7 @@ public class LendingService implements FederationServer {
         });
     }
 
-    private static LocalDate day(PathParams params, String name) {
+    static LocalDate day(PathParams params, String name) {
         try {
             return params.query(name)
                     .filter(value -> !value.isBlank())
@@ -225,6 +237,14 @@ public class LendingService implements FederationServer {
         UUID requestingUid = stationRepository.requireUid(requestingStationId);
         var partner = requireLendingPartner(requestingStationId, owningUid);
         Integer lendingStationHere = stationHere(owningUid);
+        if (lendingStationHere != null) {
+            requireOffered(
+                    lendingStationHere,
+                    requestingUid,
+                    lines.stream()
+                            .map(line -> new AskedLine(line.inventoryId(), line.itemId(), line.artId()))
+                            .toList());
+        }
         var request = repository.createRequest(
                 UUID.randomUUID(), requestingUid, owningUid, dateFrom, dateTo, createdBy, eventId, eventDate, occasion);
         for (var line : lines) {
@@ -232,7 +252,14 @@ public class LendingService implements FederationServer {
                 repository.addRequestItem(
                         request.id(), line.inventoryId(), line.itemId(), line.artId(), line.quantity(), line.needId());
             } else {
-                repository.addRequestItem(request.id(), null, null, null, line.quantity(), line.needId());
+                repository.addRequestItem(
+                        request.id(),
+                        null,
+                        null,
+                        null,
+                        line.quantity(),
+                        line.needId(),
+                        new OfferedIds(line.inventoryId(), line.artId(), line.itemId()));
             }
         }
         var sent = new RemoteLendingRequest(
@@ -280,11 +307,23 @@ public class LendingService implements FederationServer {
      * @throws RefusalResponse when the two stations do not lend with each other
      */
     private FederationPartner requireLendingPartner(int requestingStationId, UUID owningUid) {
-        var partner = findPartnerForStation(requestingStationId, owningUid);
-        if (partner == null || !lendsWith(partner)) {
-            throw FederationRefusal.LENDING_PARTNER_DOES_NOT_LEND.raise();
-        }
+        var partner = lendingPartnerOf(requestingStationId, owningUid);
+        if (partner == null) throw FederationRefusal.LENDING_PARTNER_DOES_NOT_LEND.raise();
         return partner;
+    }
+
+    /**
+     * The active partnership two stations lend along, which is the one rule every lending question
+     * asks first: the catalog, the request list and every request.
+     *
+     * @param stationId        the station asking
+     * @param partnerStationUid the station it wants to borrow from
+     * @return the partnership, or {@code null} when the two are not partners or lending is off for it
+     */
+    @Nullable
+    FederationPartner lendingPartnerOf(int stationId, UUID partnerStationUid) {
+        var partner = findPartnerForStation(stationId, partnerStationUid);
+        return partner != null && lendsWith(partner) ? partner : null;
     }
 
     /**
@@ -310,13 +349,12 @@ public class LendingService implements FederationServer {
             return new RemoteLendingAccepted(labelsOf(request.id()));
         }
         var lines = body.lines() == null ? List.<RemoteLendingLine>of() : body.lines();
-        for (var line : lines) {
-            var target =
-                    new LendingRequestItem(0, 0, line.inventoryId(), line.itemId(), line.artId(), 0, null, "").target();
-            if (target == null || !ownsTarget(partner.servingStationId(), target)) {
-                throw FederationRefusal.LENDING_LINE_NAMES_FOREIGN_GEAR.raise();
-            }
-        }
+        requireOffered(
+                partner.servingStationId(),
+                partner.askingStationUid(),
+                lines.stream()
+                        .map(line -> new AskedLine(line.inventoryId(), line.itemId(), line.artId()))
+                        .toList());
         var request = repository.createRequest(
                 body.uid(),
                 partner.askingStationUid(),
@@ -396,7 +434,7 @@ public class LendingService implements FederationServer {
      * @param partner the partnership seen from the asking station
      * @return {@code true} when gear may travel along it
      */
-    private boolean lendsWith(FederationPartner partner) {
+    boolean lendsWith(FederationPartner partner) {
         return federationService.hasCapability(partner, CapabilityType.INVENTORY_LEND, Direction.IMPORT);
     }
 
@@ -471,18 +509,23 @@ public class LendingService implements FederationServer {
      * <p>This is the path a person drives, so it refuses out loud. The automatic path cannot, and
      * quietly passes over what it may not lend instead.
      *
-     * @param requestItemId  the line of the request being filled
+     * @param requestId      the request being filled
+     * @param requestItemId  the line of that request being filled
      * @param assignedItemId the piece being set aside
      * @param stationId      the station doing the lending, whose gear it has to be
-     * @throws RefusalResponse when the piece is not this station's to lend, is reported missing, an open
+     * @throws RefusalResponse when the line is not one of the request's, the piece is not this
+     *                         station's to lend or does not fit the line, is reported missing, an open
      *                         movement carries it, or another loan holds it
      */
-    public boolean assignItem(int requestItemId, int assignedItemId, int stationId) {
+    public boolean assignItem(int requestId, int requestItemId, int assignedItemId, int stationId) {
+        var line = repository
+                .findRequestItem(requestItemId)
+                .filter(found -> found.requestId() == requestId)
+                .orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         requireLendable(stationId, assignedItemId);
-        repository
-                .findRequestIdOfLine(requestItemId)
-                .ifPresent(requestId -> custodyService.requireFreeToActOn(
-                        assignedItemId, ItemCustodyService.Allowance.lending(requestId)));
+        var piece = inventoryRepository.findItemById(assignedItemId).orElse(null);
+        if (piece != null && !fitsLine(line, piece)) throw FederationRefusal.LENDING_PIECE_NOT_FOR_LINE.raise();
+        custodyService.requireFreeToActOn(assignedItemId, ItemCustodyService.Allowance.lending(requestId));
         boolean assigned = repository.assignItem(requestItemId, assignedItemId);
         if (assigned) log.info("Item {} was set aside for lending request item {}", assignedItemId, requestItemId);
         else log.warn("Assign of item {} to lending request item {} affected zero rows", assignedItemId, requestItemId);
@@ -490,20 +533,36 @@ public class LendingService implements FederationServer {
     }
 
     /**
-     * The gear of one inventory a station may offer a partner, which is what the picker behind a
-     * manual assignment shows. A piece an open movement carries or a loan already holds is left out, as
-     * filling a loan by itself leaves it out.
+     * The gear a station may hand over for one line of a request, which is what the picker behind a
+     * manual assignment shows: pieces of the line's inventory, of its kind where it counts a kind, and
+     * only the named piece where it names one. A piece an open movement carries or a loan already holds
+     * is left out, as filling a loan by itself leaves it out.
      *
-     * @param stationId   the station doing the lending
-     * @param inventoryId the inventory being picked from
-     * @return the free pieces that are this station's to lend
+     * @param stationId the station doing the lending
+     * @param line      the line being filled
+     * @return the free pieces that are this station's to lend for that line
      */
-    public List<InventoryItem> findAssignableItems(int stationId, int inventoryId) {
+    public List<InventoryItem> findAssignableItems(int stationId, LendingRequestItem line) {
+        Integer inventoryId = line.inventoryId();
+        if (inventoryId == null || !ownsInventory(stationId, inventoryId)) return List.of();
         var lender = lenderAt(stationId);
-        if (!ownsInventory(stationId, inventoryId)) return List.of();
         return inventoryRepository.findFreeToHandOut(inventoryId).stream()
                 .filter(lender::owns)
+                .filter(item -> fitsLine(line, item))
                 .toList();
+    }
+
+    /**
+     * Whether a piece answers a line: the line's piece where the line names one, wherever it lies now,
+     * as approving fills such a line; otherwise a piece of the line's inventory, of the line's kind
+     * where the line counts a kind.
+     */
+    static boolean fitsLine(LendingRequestItem line, InventoryItem item) {
+        Integer itemId = line.itemId();
+        if (itemId != null) return itemId == item.id();
+        if (!Objects.equals(line.inventoryId(), item.inventoryId())) return false;
+        Integer artId = line.artId();
+        return artId == null || artId.equals(item.artId());
     }
 
     /**
@@ -550,6 +609,17 @@ public class LendingService implements FederationServer {
                 .findById(inventoryId)
                 .map(inventory -> inventory.stationId() == stationId)
                 .orElse(false);
+    }
+
+    /**
+     * Whether a piece is the station's to lend at all, before anything about sharing: owned by the
+     * station, or by the association it is home to, and not a partner's piece on loan here.
+     *
+     * @param stationId the station doing the lending
+     * @return the test, read once for the station
+     */
+    Predicate<InventoryItem> lendableBy(int stationId) {
+        return lenderAt(stationId)::owns;
     }
 
     /**
@@ -652,6 +722,16 @@ public class LendingService implements FederationServer {
         return moveOn(requestId, stationId, LendingStatus.RETURNED, "Ausrüstung zurückgegeben", null);
     }
 
+    /**
+     * Returns a loan only while its gear is out, so a return checked twice at once is taken back once.
+     *
+     * @return {@code true} when this call returned it
+     */
+    public boolean markReturnedFromLent(int requestId, int stationId) {
+        if (!repository.updateRequestStatusFrom(requestId, LendingStatus.LENT, LendingStatus.RETURNED)) return false;
+        return moveOn(requestId, stationId, LendingStatus.RETURNED, "Ausrüstung zurückgegeben", null);
+    }
+
     public boolean closeRequest(int requestId, int stationId) {
         return moveOn(requestId, stationId, LendingStatus.CLOSED, "Anfrage geschlossen", null);
     }
@@ -709,7 +789,9 @@ public class LendingService implements FederationServer {
      */
     public void serveStatus(ServingPartner partner, UUID uid, RemoteLendingStatus body) {
         var request = sharedRequest(partner, uid);
-        boolean lendersOnly = body.status() == LendingStatus.APPROVED || body.status() == LendingStatus.LENT;
+        boolean lendersOnly = body.status() == LendingStatus.APPROVED
+                || body.status() == LendingStatus.LENT
+                || body.status() == LendingStatus.RETURNED;
         if (lendersOnly && !request.owningStationUid().equals(partner.askingStationUid())) {
             throw FederationRefusal.LENDING_NOT_THE_OWNING_STATION.raise();
         }
@@ -830,8 +912,31 @@ public class LendingService implements FederationServer {
 
     public LendingMessage sendMessage(
             int requestId, int senderStationId, int senderMemberId, String senderName, String message) {
+        return deliver(requestId, senderStationId, senderMemberId, senderName, message, false);
+    }
+
+    /**
+     * Writes a message in a station's own name rather than a member's, such as a reminder sent on
+     * its own, and lets the other station know as any message does.
+     *
+     * @param requestId       the request
+     * @param senderStationId the station writing
+     * @param message         what it writes
+     * @return the stored message
+     */
+    public LendingMessage sendStationMessage(int requestId, int senderStationId, String message) {
+        return deliver(requestId, senderStationId, null, stationName(senderStationId), message, true);
+    }
+
+    private LendingMessage deliver(
+            int requestId,
+            int senderStationId,
+            @Nullable Integer senderMemberId,
+            String senderName,
+            String message,
+            boolean fromStation) {
         UUID senderStationUid = stationRepository.requireUid(senderStationId);
-        var msg = repository.createMessage(requestId, senderStationUid, senderMemberId, message, false);
+        var msg = repository.createMessage(requestId, senderStationUid, senderMemberId, message, fromStation);
         repository.findRequestById(requestId).ifPresent(r -> {
             UUID targetStationUid = r.otherParty(senderStationUid);
             eventBus.publish(new LendingMessageSent(
@@ -1111,6 +1216,78 @@ public class LendingService implements FederationServer {
     }
 
     /**
+     * Refuses lines that ask for gear the lending station does not offer the asking one.
+     *
+     * <p>Every line has to name gear of the lending station that its share policy offers the asking
+     * station: the named piece itself, or at least one piece of the kind or inventory a count is drawn
+     * from. Every id a line carries is kept and shown later, so the wider ones have to agree with the
+     * narrowest: a piece's inventory and kind, a kind's inventory. Gear that is not shared is refused
+     * with the same refusal as gear of another station, so a request cannot tell what a station holds
+     * back from what it does not have. Each inventory is read once, however many lines draw on it.
+     *
+     * @param lendingStationId the station asked for the gear
+     * @param askingUid        the station asking
+     * @param lines            the lines as asked for
+     * @throws RefusalResponse when one line names gear that is not offered
+     */
+    private void requireOffered(int lendingStationId, UUID askingUid, List<AskedLine> lines) {
+        if (lines.isEmpty()) return;
+        var policy = shareService.policyFor(lendingStationId, askingUid);
+        var lender = lenderAt(lendingStationId);
+        Map<Integer, List<InventoryItem>> offeredByInventory = new HashMap<>();
+        Function<Integer, List<InventoryItem>> offeredIn = inventoryId -> offeredByInventory.computeIfAbsent(
+                inventoryId,
+                id -> shareService.filterShared(
+                        policy,
+                        inventoryRepository.findItems(id).stream()
+                                .filter(lender::owns)
+                                .toList()));
+        for (var line : lines) {
+            if (!offers(lendingStationId, line, offeredIn)) {
+                throw FederationRefusal.LENDING_LINE_NAMES_FOREIGN_GEAR.raise();
+            }
+        }
+    }
+
+    private boolean offers(int lendingStationId, AskedLine line, Function<Integer, List<InventoryItem>> offeredIn) {
+        var target =
+                new LendingRequestItem(0, 0, line.inventoryId(), line.itemId(), line.artId(), 0, null, "").target();
+        if (target == null || !ownsTarget(lendingStationId, target)) return false;
+        Integer itemId = line.itemId();
+        if (itemId != null) {
+            var item = inventoryRepository.findItemById(itemId).orElse(null);
+            return item != null
+                    && agrees(line.inventoryId(), item.inventoryId())
+                    && agrees(line.artId(), item.artId())
+                    && offeredIn.apply(item.inventoryId()).stream().anyMatch(piece -> piece.id() == itemId);
+        }
+        Integer artId = line.artId();
+        if (artId != null) {
+            var art = artRepository.findById(artId).orElse(null);
+            return art != null
+                    && agrees(line.inventoryId(), art.inventoryId())
+                    && offeredIn.apply(art.inventoryId()).stream().anyMatch(piece -> artId.equals(piece.artId()));
+        }
+        return !offeredIn.apply(Objects.requireNonNull(line.inventoryId())).isEmpty();
+    }
+
+    private static boolean agrees(@Nullable Integer asked, @Nullable Integer actual) {
+        return asked == null || asked.equals(actual);
+    }
+
+    /**
+     * One line of a request as the asking station wrote it, before any of its ids are trusted.
+     *
+     * @param inventoryId the inventory it names, or {@code null}
+     * @param itemId      the piece it names, or {@code null}
+     * @param artId       the kind it names, or {@code null}
+     */
+    private record AskedLine(
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            @Nullable Integer artId) {}
+
+    /**
      * Whether what a line names is the lending station's to offer at all.
      *
      * @param stationId the station being asked
@@ -1125,7 +1302,8 @@ public class LendingService implements FederationServer {
         }
     }
 
-    private @Nullable FederationPartner findPartnerForStation(int localStationId, UUID partnerStationUid) {
+    @Nullable
+    FederationPartner findPartnerForStation(int localStationId, UUID partnerStationUid) {
         var partners = federationService.findPartners(localStationId);
         for (var p : partners) {
             if (Objects.equals(p.partnerStationId(), partnerStationUid)
@@ -1147,21 +1325,8 @@ public class LendingService implements FederationServer {
         if (local == null || local.latitude() == null || local.longitude() == null) {
             return results;
         }
-        double localLat = local.latitude().doubleValue();
-        double localLon = local.longitude().doubleValue();
-
         var decorated = new ArrayList<AvailableInventoryEntry>(results.size());
         for (var entry : results) {
-            Double distance = null;
-            var partnerStation =
-                    stationRepository.findHereByUid(entry.stationId()).orElse(null);
-            if (partnerStation != null && partnerStation.latitude() != null && partnerStation.longitude() != null) {
-                distance = StationLocationService.distanceKm(
-                        localLat,
-                        localLon,
-                        partnerStation.latitude().doubleValue(),
-                        partnerStation.longitude().doubleValue());
-            }
             decorated.add(new AvailableInventoryEntry(
                     entry.inventoryId(),
                     entry.inventoryName(),
@@ -1170,7 +1335,7 @@ public class LendingService implements FederationServer {
                     entry.stationId(),
                     entry.stationName(),
                     entry.availableCount(),
-                    distance,
+                    distanceKm(local, entry.stationId()),
                     entry.pictureKey(),
                     entry.icon(),
                     entry.color(),
@@ -1179,6 +1344,26 @@ public class LendingService implements FederationServer {
         decorated.sort(Comparator.comparing(
                 AvailableInventoryEntry::distanceKm, Comparator.nullsLast(Comparator.naturalOrder())));
         return decorated;
+    }
+
+    /**
+     * The great-circle distance from a station to a partner station on this instance, computed here so
+     * the partner never has to give its coordinates away.
+     *
+     * @param local             the asking station, or {@code null}
+     * @param partnerStationUid the partner station
+     * @return the distance in kilometres, or {@code null} where either station gives no location
+     */
+    @Nullable
+    Double distanceKm(@Nullable Station local, UUID partnerStationUid) {
+        if (local == null || local.latitude() == null || local.longitude() == null) return null;
+        var partner = stationRepository.findHereByUid(partnerStationUid).orElse(null);
+        if (partner == null || partner.latitude() == null || partner.longitude() == null) return null;
+        return StationLocationService.distanceKm(
+                local.latitude().doubleValue(),
+                local.longitude().doubleValue(),
+                partner.latitude().doubleValue(),
+                partner.longitude().doubleValue());
     }
 
     /**
@@ -1217,7 +1402,8 @@ public class LendingService implements FederationServer {
      * it could only be refused.
      *
      * @param partner  the partnership the question arrived on
-     * @param query    part of an inventory's name to narrow by, or {@code null}
+     * @param query    a search over the names and descriptions of the inventories, their kinds and their
+     *                 pieces, or {@code null}
      * @param dateFrom the first day the gear is wanted, or {@code null}
      * @param dateTo   the last day, or {@code null}
      * @return what is offered
@@ -1246,9 +1432,10 @@ public class LendingService implements FederationServer {
     }
 
     /**
-     * Whether a partner may see a photo: it belongs to an inventory or a kind with something on offer
-     * to the partner right now, whatever the day, and is the photo that offer is shown with. Only the
-     * inventory holding the key is looked at.
+     * Whether a partner may see a photo: it belongs to an inventory with something on offer to the
+     * partner right now, whatever the day, and is one the lending catalog shows that offer with: the
+     * inventory's own, a kind's of an offered piece, or an offered piece's own. Only the inventory
+     * holding the key is looked at.
      *
      * @param partner    the partnership the question arrived on
      * @param pictureKey the key asked for
@@ -1260,8 +1447,21 @@ public class LendingService implements FederationServer {
         if (inventoryId.isEmpty()) return false;
         var policy = shareService.policyFor(lendingStationId, partner.askingStationUid());
         if (!policy.offersAnything()) return false;
-        return offeredGroups(lendingStationId, policy, inventoryId.get(), null, null, null).stream()
-                .anyMatch(group -> pictureKey.equals(group.pictureKey()));
+        for (var stock : offeredStock(lendingStationId, policy, inventoryId.get(), null, null, null)) {
+            if (pictureKey.equals(stock.inventory().pictureKey())) return true;
+            var offeredArts = stock.offeredArtIds();
+            for (var art : artRepository.findByInventory(stock.inventory().id())) {
+                if (offeredArts.contains(art.id()) && pictureKey.equals(art.pictureKey())) return true;
+            }
+            var offeredPieces = stock.offeredPieceIds();
+            for (var presentation :
+                    inventoryRepository.findItemPresentations(stock.inventory().id())) {
+                if (offeredPieces.contains(presentation.itemId()) && pictureKey.equals(presentation.pictureKey())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -1275,18 +1475,55 @@ public class LendingService implements FederationServer {
             @Nullable String query,
             @Nullable LocalDate dateFrom,
             @Nullable LocalDate dateTo) {
-        var lender = lenderAt(lendingStationId);
         var groups = new ArrayList<OfferedGroup>();
+        for (var stock : offeredStock(lendingStationId, policy, onlyInventory, query, dateFrom, dateTo)) {
+            var perArt = new LinkedHashMap<Integer, Integer>();
+            for (var item : stock.pieces()) {
+                perArt.merge(item.artId(), 1, Integer::sum);
+            }
+            for (var group : perArt.entrySet()) {
+                Integer artId = group.getKey();
+                InventoryArt art =
+                        artId == null ? null : artRepository.findById(artId).orElse(null);
+                groups.add(new OfferedGroup(stock.inventory(), artId, art, group.getValue()));
+            }
+        }
+        return groups;
+    }
+
+    /**
+     * What a station has free to offer under a policy, per inventory: the pieces on the shelf, carried by
+     * no open movement, held by no loan, owned by the station, shared with the partner, and not blocked
+     * over the days asked for. An inventory with nothing on offer is left out, and so is one the search
+     * does not reach through something on offer.
+     *
+     * @param lendingStationId the station doing the lending
+     * @param policy           what the station shares with the asking partner
+     * @param onlyInventory    one inventory to look at, or {@code null} for every one
+     * @param query            a search over names and descriptions, or {@code null}
+     * @param dateFrom         the first day the gear is wanted, or {@code null}
+     * @param dateTo           the last day, or {@code null}
+     * @return one entry per inventory with something on offer, in the station's order
+     */
+    List<OfferedStock> offeredStock(
+            int lendingStationId,
+            SharePolicy policy,
+            @Nullable Integer onlyInventory,
+            @Nullable String query,
+            @Nullable LocalDate dateFrom,
+            @Nullable LocalDate dateTo) {
+        var lender = lenderAt(lendingStationId);
+        var result = new ArrayList<OfferedStock>();
+        Map<Integer, InventoryMatch> matches =
+                query == null || query.isBlank() ? null : searchService.match(lendingStationId, query);
+        List<InventoryBlock> blocks = dateFrom == null
+                ? List.of()
+                : repository.findActiveBlocks(lendingStationId, dateFrom, dateTo == null ? dateFrom : dateTo);
         for (var inv : inventoryRepository.findByStation(lendingStationId)) {
             if (onlyInventory != null && inv.id() != onlyInventory) continue;
-            if (query != null && !query.isBlank()) {
-                if (!inv.name().toLowerCase().contains(query.toLowerCase())) {
-                    continue;
-                }
-            }
-            if (dateFrom != null && isBlocked(lendingStationId, inv.id(), null, dateFrom, dateTo)) {
-                continue;
-            }
+            InventoryMatch match = matches == null ? null : matches.get(inv.id());
+            if (matches != null && match == null) continue;
+            if (blocks(blocks, inv.id(), null)) continue;
 
             var offered = shareService
                     .filterShared(
@@ -1295,21 +1532,77 @@ public class LendingService implements FederationServer {
                                     .filter(lender::owns)
                                     .toList())
                     .stream()
-                    .filter(item -> dateFrom == null || !isBlocked(lendingStationId, null, item.id(), dateFrom, dateTo))
+                    .filter(item -> !blocks(blocks, null, item.id()))
                     .toList();
-
-            var perArt = new LinkedHashMap<Integer, Integer>();
-            for (var item : offered) {
-                perArt.merge(item.artId(), 1, Integer::sum);
-            }
-            for (var group : perArt.entrySet()) {
-                Integer artId = group.getKey();
-                InventoryArt art =
-                        artId == null ? null : artRepository.findById(artId).orElse(null);
-                groups.add(new OfferedGroup(inv, artId, art, group.getValue()));
-            }
+            if (offered.isEmpty()) continue;
+            if (match != null && !matchesAnyOffered(match, offered)) continue;
+            result.add(new OfferedStock(inv, offered, match));
         }
-        return groups;
+        return result;
+    }
+
+    /**
+     * Whether any of the blocks covers the station, the inventory or the piece, by
+     * {@link InventoryBlock#covers}, for a caller that read the blocks once.
+     *
+     * @param blocks      the blocks over the days in question
+     * @param inventoryId the inventory, or {@code null}
+     * @param itemId      the piece, or {@code null}
+     * @return {@code true} when one of them covers it
+     */
+    static boolean blocks(List<InventoryBlock> blocks, @Nullable Integer inventoryId, @Nullable Integer itemId) {
+        return blocks.stream().anyMatch(block -> block.covers(inventoryId, itemId));
+    }
+
+    /**
+     * The blocks of a station that touch any of the days, read once.
+     *
+     * @param stationId the station
+     * @param first     the first day
+     * @param last      the last day, inclusive
+     * @return the blocks
+     */
+    List<InventoryBlock> blocksBetween(int stationId, LocalDate first, LocalDate last) {
+        return repository.findActiveBlocks(stationId, first, last);
+    }
+
+    /**
+     * One inventory with the pieces of it on offer to a partner, and how a search reached it.
+     *
+     * @param inventory the inventory
+     * @param pieces    the pieces on offer, never empty
+     * @param match     how the search reached it, or {@code null} where nothing was searched for
+     */
+    record OfferedStock(
+            Inventory inventory,
+            List<InventoryItem> pieces,
+            @Nullable InventoryMatch match) {
+
+        /** The kinds at least one offered piece is of. */
+        Set<Integer> offeredArtIds() {
+            return pieces.stream()
+                    .map(InventoryItem::artId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+        }
+
+        /** The ids of the offered pieces. */
+        Set<Integer> offeredPieceIds() {
+            return pieces.stream().map(InventoryItem::id).collect(Collectors.toSet());
+        }
+    }
+
+    /**
+     * Whether a search reaches the inventory through something actually on offer: the inventory
+     * itself, or a kind or a piece among the offered pieces. A match on a piece held back must not
+     * bring the inventory into the answer, or the search would reveal to the partner that it exists.
+     */
+    private static boolean matchesAnyOffered(InventoryMatch match, List<InventoryItem> offered) {
+        if (match.itself()) return true;
+        var kinds = match.kinds().stream().map(InventoryMatch.Hit::id).collect(Collectors.toSet());
+        var pieces = match.pieces().stream().map(InventoryMatch.Hit::id).collect(Collectors.toSet());
+        return offered.stream()
+                .anyMatch(item -> pieces.contains(item.id()) || (item.artId() != null && kinds.contains(item.artId())));
     }
 
     /**

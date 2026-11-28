@@ -2,13 +2,18 @@
 
 ## v26.27.0
 
-People who already have an account on this instance can be invited into a station by their name. Inventories and their kinds can carry a photo, which partner stations also see when they borrow. Stations can create calendar subscriptions of their own for shared calendars. First steps arrive three at a time, in the order they build on each other.
+People who already have an account on this instance can be invited into a station by their name. Gear of partner stations is found in a catalog with photos, descriptions and a calendar per product. A request list collects it and sends one request per station. A new lending overview shows what a station lends and borrows.
 
 ### New Features
 
 - **Invite people of this instance by name.** The member wizard finds people who already have an account on this instance by their name and asks them to link it, without anybody knowing their address. People who share a station or an association with the inviting manager can be found, everybody else only after turning on "Findable from every station" under Account → Links.
-- **Photos of inventories and kinds.** An inventory can carry a photo, and a kind can carry one of its own that its pieces show instead. The photo appears on the stock page, on a piece's own page and in the overview of what the station lends. Partner stations see the photo, or otherwise the icon, in their lending list. With a partner on another server this works once both run this version, and lending between the two pauses until then.
+- **Photos of inventories and kinds.** An inventory can carry a photo, and a kind can carry one of its own that its pieces show instead. A single piece can carry a photo of its own as well. The photo appears on the stock page, on a piece's own page and in the overview of what the station lends. Partner stations see the photo, or otherwise the icon, in the lending catalog. With a partner on another server this works once both run this version, and lending between the two pauses until then.
 - **Calendar feeds for the station.** A station can create calendar subscriptions for shared calendars such as a screen in the station, each showing appointments up to a chosen visibility (public, all members or everything) and leaving out chosen categories. Event managers manage them under Events → Calendar feeds, and the permission can also be given on its own.
+- **Lending catalog and request list.** Partner gear appears in a catalog, one tile per inventory, searchable by names and descriptions of inventories, kinds and single pieces. Chosen days, the search and the filters stay in the address. A product page shows the description, the kinds with their free counts, single pieces such as one particular game, the address of the station, and a calendar of what is free on which day. Gear goes into a request list shared by the station, which checks again what is still free and sends one request per partner station. The note goes along as the first message, and an answered request can be put back into the list with "Borrow again".
+- **Descriptions for lending.** Inventories, kinds and single pieces carry a description in Markdown that partner stations read in the catalog.
+- **Offer page for lenders.** Lending → Offer shows the station's inventories as partners see them, with who each inventory, kind and piece is offered to, editable in place, also for several rows at once. Texts and photos are edited beside the list, and "View as" greys out what one partner station is not offered.
+- **Lending calendar.** Lending → Calendar shows every product as a row over four weeks, with requests as bars, block periods hatched and days marked where more is asked for than there is. Dragging over the days of a product or over the dates blocks them for that product or the whole station.
+- **Return check and reminders.** Gear that comes back is checked piece by piece as in order, damaged or missing. Missing pieces are marked lost, and the result goes to the borrowing station as a message. The borrowing station of overdue gear can be reminded with one click. A reminder also goes out on its own once, the day after the last day.
 
 ### Improvements
 
@@ -24,8 +29,13 @@ People who already have an account on this instance can be invited into a statio
 - **Permission picker shows what includes what.** An opened area of the permission picker shows its permissions as a tree, each one indented below the permission that includes it. A permission included by several others appears once, with a line naming the others.
 - **Stations side by side in several tabs.** Each browser tab keeps the station and the association it shows, so two stations can be open next to each other. The address of a station page includes its station, so a copied link or a link opened in a new tab opens the same station.
 
+### Security
+
+- **Lending requests and assignments are checked against what is offered.** A partner station could ask for gear the lending station had not shared with it or had held back. Every line of a request now has to name gear that is offered to the asking station. Gear could also be set aside for a request line outside the request being worked on. Each assignment now has to belong to that request.
+
 ### Changes
 
+- **Lending section reorganised.** The lending section opens on an overview of what the station lends and what it borrows, each sorted by the next step, with every request in one table below. Requests are answered there directly. The catalog, the request list, the offer page and the calendar have their own entries. The borrowed gear page and the single request form are gone, and their old addresses lead to the overview and the catalog. Only the lending station marks gear as returned, through the return check.
 - **Calendar subscriptions show the meeting point.** Calendar subscriptions show the marked place as an appointment's location, and otherwise the first place filled in. Existing place fields named meeting point are marked during the update. The venue stays in the description of the entry. Waiting list invitations show the same place.
 - **Requests outside Ember become procurements.** Where the association does not keep its gear in Ember, "Note down request" on the inventory overview records the request as a procurement of the association's piece. It carries the mark "Requested from the association". Requests to the association are offered only where it keeps its gear in Ember. Elsewhere the request chains on the movement chains page are hidden.
 - **Member data and member documents are separate permissions.** "Read members" no longer includes reading member documents. "Edit members" no longer includes managing member documents, generating documents or asking for signatures. During the update, everybody who held a member permission is given the matching document permission, so the two can now be granted separately. "Read member documents" no longer opens the station's own paperwork, which needs "Read documents". Whoever reads only members or member documents therefore sees only documents assigned to a member in the document store.
@@ -34,6 +44,8 @@ People who already have an account on this instance can be invited into a statio
 
 ### Fixes
 
+- **Pieces of the wrong kind could be assigned to a lending request.** When gear was assigned to a lending request by hand, the selection offered every free piece of the inventory, whatever kind the request asked for. It now offers only pieces of that kind, or the one piece named.
+- **The note of a lending request was not sent.** The note written on the request form never reached the lending station. The note of the request list now arrives as the first message of each request.
 - **A second place was missing from calendar entries.** When an appointment had both a place and a meeting point, calendar subscriptions showed one of them and left the other out entirely. The other place now appears in the description of the entry, in every subscription setting.
 - **Single appointments in calendar subscriptions were written in UTC.** In the personal and the public subscription, one-time appointments were written in UTC, while series already carried the station's timezone. One-time appointments are now written in the station's timezone too, with summer and winter time as the date has them.
 - **Hours on printed attendance sheets had the wrong number format.** In some cases, printed attendance sheets and reports showed hours with a decimal comma for an English station, or with a decimal point for a German one. The hours now follow the station's language, as they already did in the spreadsheet export.

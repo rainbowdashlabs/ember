@@ -8,10 +8,12 @@ package dev.chojo.ember.feature.inventory.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.inventory.service.InventoryPictureService;
+import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -54,11 +56,14 @@ public class InventoryPictureRoutes implements Routes {
     private static final String KEYED_PICTURE = "/inventory-pictures/{pictureKey}";
 
     private final InventoryPictureService pictureService;
+    private final InventoryService inventoryService;
     private final Api apiConfig;
 
     @Inject
-    public InventoryPictureRoutes(InventoryPictureService pictureService, Api apiConfig) {
+    public InventoryPictureRoutes(
+            InventoryPictureService pictureService, InventoryService inventoryService, Api apiConfig) {
         this.pictureService = pictureService;
+        this.inventoryService = inventoryService;
         this.apiConfig = apiConfig;
     }
 
@@ -71,6 +76,8 @@ public class InventoryPictureRoutes implements Routes {
         routes.put(prefix + ART_PICTURE, this::storeArtPicture, StationPermission.INVENTORY_EDIT);
         routes.delete(prefix + ART_PICTURE, this::removeArtPicture, StationPermission.INVENTORY_EDIT);
         routes.get(prefix + ITEM_PICTURE, this::itemPicture, StationPermission.INVENTORY_READ);
+        routes.put(prefix + ITEM_PICTURE, this::storeItemPicture, StationPermission.INVENTORY_EDIT);
+        routes.delete(prefix + ITEM_PICTURE, this::removeItemPicture, StationPermission.INVENTORY_EDIT);
         routes.get(
                 prefix + KEYED_PICTURE,
                 this::keyedPicture,
@@ -192,7 +199,7 @@ public class InventoryPictureRoutes implements Routes {
     @OpenApi(
             path = "/api/v1" + ITEM_PICTURE,
             methods = HttpMethod.GET,
-            summary = "The photo a piece is shown with: its kind's, otherwise its inventory's",
+            summary = "The photo a piece is shown with: its own, otherwise its kind's, otherwise its inventory's",
             tags = {"Inventory"},
             pathParams = @OpenApiParam(name = "itemId", type = Integer.class, required = true),
             queryParams = @OpenApiParam(name = "size", type = Integer.class, description = "Side in pixels"),
@@ -202,6 +209,43 @@ public class InventoryPictureRoutes implements Routes {
             })
     private void itemPicture(Context ctx) {
         send(ctx, pictureService.readForItem(stationId(ctx), pathInt(ctx, "itemId"), size(ctx)));
+    }
+
+    @OpenApi(
+            path = "/api/v1" + ITEM_PICTURE,
+            methods = HttpMethod.PUT,
+            summary = "Give a single piece a photo of its own",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "itemId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(type = "multipart/form-data")),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PictureResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void storeItemPicture(Context ctx) {
+        int itemId = pathInt(ctx, "itemId");
+        requirePresentable(ctx, itemId);
+        byte[] data = picture(ctx);
+        ctx.json(new PictureResponse(stored(
+                () -> pictureService.storeForItem(stationId(ctx), itemId, data, apiConfig.maxImageSizeBytes()))));
+    }
+
+    @OpenApi(
+            path = "/api/v1" + ITEM_PICTURE,
+            methods = HttpMethod.DELETE,
+            summary = "Take a piece's own photo away, so it shows its kind's or its inventory's again",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "itemId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void removeItemPicture(Context ctx) {
+        int itemId = pathInt(ctx, "itemId");
+        requirePresentable(ctx, itemId);
+        pictureService.removeFromItem(stationId(ctx), itemId);
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     @OpenApi(
@@ -217,6 +261,15 @@ public class InventoryPictureRoutes implements Routes {
             })
     private void keyedPicture(Context ctx) {
         send(ctx, pictureService.readByKey(stationId(ctx), ctx.pathParam("pictureKey"), size(ctx)));
+    }
+
+    /**
+     * Refuses a piece of another station as gone, and a piece somebody else owns as not the caller's to
+     * present, before anything is read from the request.
+     */
+    private void requirePresentable(Context ctx, int itemId) {
+        pictureService.requireItem(stationId(ctx), itemId);
+        inventoryService.requirePresentable(itemId, InventoryRoutes.describingClusterId(UserSession.from(ctx)));
     }
 
     private static int stationId(Context ctx) {

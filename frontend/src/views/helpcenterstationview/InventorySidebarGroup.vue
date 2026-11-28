@@ -27,10 +27,6 @@ const {t} = useI18n()
                  to="/helpcenter/station/inventory/my" @navigate="close">
       {{ t('sidebar.myInventory') }}
     </SidebarLink>
-    <SidebarLink :icon="['fas', 'hand-holding']" name="help-inventory-borrowed"
-                 to="/helpcenter/station/inventory/borrowed" @navigate="close">
-      {{ t('helpCenter.inventoryBorrowed.title') }}
-    </SidebarLink>
     <SidebarLink :icon="['fas', 'rotate']" name="help-inventory-movements"
                  to="/helpcenter/station/inventory/movements" @navigate="close">
       {{ t('sidebar.inventoryMovements') }}
@@ -105,22 +101,38 @@ const {t} = useI18n()
     </SidebarLink>
     <SidebarExpandableLink :icon="['fas', 'handshake']" name="help-inventory-lending"
                            to="/helpcenter/station/inventory/lending" prefix="/helpcenter/station/inventory/lending" @navigate="close">
-      <template #label>{{ t('sidebar.inventoryLending') }}</template>
+      <template #label>{{ t('sidebar.inventoryLendingGroup') }}</template>
       <SidebarLink :icon="['fas', 'calendar-xmark']" name="help-inventory-lending-blocks"
                    to="/helpcenter/station/inventory/lending/blocks" @navigate="close">
         {{ t('helpCenter.inventoryLendingBlocks.title') }}
       </SidebarLink>
-      <SidebarLink :icon="['fas', 'magnifying-glass']" name="help-inventory-lending-browse"
-                   to="/helpcenter/station/inventory/lending/browse" @navigate="close">
-        {{ t('helpCenter.inventoryLendingBrowse.title') }}
+      <SidebarLink :icon="['fas', 'calendar-days']" name="help-inventory-lending-calendar"
+                   to="/helpcenter/station/inventory/lending/calendar" @navigate="close">
+        {{ t('helpCenter.inventoryLendingCalendar.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'share-nodes']" name="help-inventory-lending-offer"
+                   to="/helpcenter/station/inventory/lending/offer" @navigate="close">
+        {{ t('helpCenter.inventoryLendingOffer.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'list-check']" name="help-inventory-lending-shares"
+                   to="/helpcenter/station/inventory/lending/shares" @navigate="close">
+        {{ t('helpCenter.inventoryLendingShares.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'store']" name="help-inventory-lending-catalog"
+                   to="/helpcenter/station/inventory/lending/catalog" @navigate="close">
+        {{ t('helpCenter.inventoryLendingCatalog.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'box-open']" name="help-inventory-lending-product"
+                   to="/helpcenter/station/inventory/lending/product/0/0" @navigate="close">
+        {{ t('helpCenter.inventoryLendingProduct.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'cart-shopping']" name="help-inventory-lending-cart"
+                   to="/helpcenter/station/inventory/lending/cart" @navigate="close">
+        {{ t('helpCenter.inventoryLendingCart.title') }}
       </SidebarLink>
       <SidebarLink :icon="['fas', 'file-lines']" name="help-inventory-lending-request"
                    to="/helpcenter/station/inventory/lending/request/0" @navigate="close">
         {{ t('helpCenter.inventoryLendingRequest.title') }}
-      </SidebarLink>
-      <SidebarLink :icon="['fas', 'plus']" name="help-inventory-lending-create"
-                   to="/helpcenter/station/inventory/lending/request/new" @navigate="close">
-        {{ t('helpCenter.inventoryLendingCreate.title') }}
       </SidebarLink>
     </SidebarExpandableLink>
   </SidebarGroup>

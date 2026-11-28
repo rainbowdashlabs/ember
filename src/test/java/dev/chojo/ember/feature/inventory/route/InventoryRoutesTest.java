@@ -98,7 +98,17 @@ class InventoryRoutesTest {
         when(inventoryService.findItemById(ITEM)).thenReturn(Optional.of(PIECE));
         when(inventoryService.findById(INVENTORY))
                 .thenReturn(Optional.of(new Inventory(
-                        INVENTORY, STATION, "Jacken", InventoryType.INTERNAL, false, false, false, null, null, null)));
+                        INVENTORY,
+                        STATION,
+                        "Jacken",
+                        InventoryType.INTERNAL,
+                        false,
+                        false,
+                        false,
+                        null,
+                        null,
+                        null,
+                        "")));
         harness = RouteHarness.serving(new InventoryRoutes(
                 inventoryService,
                 mock(InventoryCheckService.class),
@@ -147,7 +157,7 @@ class InventoryRoutesTest {
     void aLossOfGearOfAnotherStationIsNotReported() {
         when(inventoryService.findById(INVENTORY))
                 .thenReturn(Optional.of(new Inventory(
-                        INVENTORY, 4, "Jacken", InventoryType.INTERNAL, false, false, false, null, null, null)));
+                        INVENTORY, 4, "Jacken", InventoryType.INTERNAL, false, false, false, null, null, null, "")));
 
         harness.run((server, client) -> assertEquals(
                 GeneralRefusal.NOT_YOURS_TO_OPEN,

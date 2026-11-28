@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AvailableInventoryEntry} from '@/api/generated/schema'
 import {partnerPictureUrl} from '@/api/inventoryPictures'
 import {glyphFor, type Glyph} from '@/util/glyph'
 
@@ -20,7 +19,16 @@ export interface OfferLook {
  * @param offer what the partner offers
  * @param size  the side of the photo wanted
  */
-export function offerLook(offer: AvailableInventoryEntry, size = 64): OfferLook {
+/** What a partner's offer is drawn from: its station, its photo, and its icon where it has no photo. */
+export interface OfferLookSource {
+    stationId: string
+    pictureKey: string | null
+    icon: string | null
+    color: string | null
+    homogeneous: boolean
+}
+
+export function offerLook(offer: OfferLookSource, size = 64): OfferLook {
     return {
         pictureSrc: offer.pictureKey ? partnerPictureUrl(offer.stationId, offer.pictureKey, size) : null,
         glyph: glyphFor({icon: offer.icon, color: offer.color, homogeneous: offer.homogeneous}),

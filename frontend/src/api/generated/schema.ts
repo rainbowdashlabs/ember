@@ -34069,6 +34069,148 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/lending/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the lending partners offer, one product per inventory, nearest first */
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    q?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductList"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/lending/products/{stationUid}/{inventoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One product of a lending partner with its kinds or single pieces */
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path: {
+                    inventoryId: number;
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductDetail"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/lending/products/{stationUid}/{inventoryId}/days": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What is free of a partner's product on each day of a month */
+        get: {
+            parameters: {
+                query: {
+                    itemId?: number;
+                    month: string;
+                };
+                header?: never;
+                path: {
+                    inventoryId: number;
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RemoteProductDays"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federated/my-registrations": {
         parameters: {
             query?: never;
@@ -37491,6 +37633,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventories/{id}/description": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set what partner stations read about an inventory */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DescriptionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Inventory"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventories/{inventoryId}/art-items/{artId}": {
         parameters: {
             query?: never;
@@ -37778,6 +37980,67 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventories/{inventoryId}/arts/{artId}/description": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set what partner stations read about a kind of thing */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    artId: number;
+                    inventoryId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DescriptionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InventoryArt"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -40149,6 +40412,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory-items/{id}/description": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set what partner stations read about a single piece */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DescriptionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ItemPresentation"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory-items/{id}/fields": {
         parameters: {
             query?: never;
@@ -40547,6 +40870,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory-items/{id}/presentation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A single piece's own text and photo for partner stations */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ItemPresentation"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory-items/{itemId}/picture": {
         parameters: {
             query?: never;
@@ -40554,7 +40924,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The photo a piece is shown with: its kind's, otherwise its inventory's */
+        /** The photo a piece is shown with: its own, otherwise its kind's, otherwise its inventory's */
         get: {
             parameters: {
                 query?: {
@@ -40586,9 +40956,82 @@ export interface paths {
                 };
             };
         };
-        put?: never;
+        /** Give a single piece a photo of its own */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    itemId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": string;
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PictureResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         post?: never;
-        delete?: never;
+        /** Take a piece's own photo away, so it shows its kind's or its inventory's again */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    itemId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -43665,6 +44108,281 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/lending/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The station's products, the requests for its gear and its block periods over some days */
+        get: {
+            parameters: {
+                query: {
+                    from: string;
+                    to: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LendingCalendar"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/cart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The station's cart with its lines */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CartView"];
+                    };
+                };
+            };
+        };
+        /** Sets the days, the occasion and the note of the cart */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CartDetails"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CartView"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/cart/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What of the cart is free on its days, asked of the lending stations */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CartLineCheck"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/cart/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sends the cart as one request per lending station */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CheckoutView"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/cart/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Puts gear of a partner in the cart, adding to the same line where there is one */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["NewCartLine"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CartView"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/cart/lines/{lineId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Sets how many of a counted line are wanted */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    lineId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuantityBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CartView"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Takes a line out of the cart */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    lineId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CartView"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/lending/inventory/{inventoryId}/lent-out": {
         parameters: {
             query?: never;
@@ -43688,6 +44406,44 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["LentOutItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The station's own offer, product by product, read through one partner where one is named */
+        get: {
+            parameters: {
+                query?: {
+                    partnerId?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OfferProduct"][];
                     };
                 };
             };
@@ -43900,6 +44656,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/lending/requests/{id}/borrow-again": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Puts the lines of an answered request back in the cart */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BorrowAgainResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/lending/requests/{id}/close": {
         parameters: {
             query?: never;
@@ -44067,7 +44861,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/lending/requests/{id}/returned": {
+    "/api/v1/lending/requests/{id}/remind": {
         parameters: {
             query?: never;
             header?: never;
@@ -44076,11 +44870,48 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Reminds the borrowing station of gear past its last day */
         post: {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests/{id}/return-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The pieces a loan of this station holds, to check back */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -44091,8 +44922,34 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["LendingRequestResponse"];
+                        "application/json": components["schemas"]["LoanPiece"][];
                     };
+                };
+            };
+        };
+        put?: never;
+        /** Takes the gear of a loan back, every piece in order, damaged or missing */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ReturnCheckBody"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -72697,6 +73554,11 @@ export interface components {
         BooleanValue: {
             value: boolean;
         };
+        BorrowAgainResult: {
+            /** Format: int32 */
+            added: number;
+            skipped: string[];
+        };
         BorrowedItemResponse: {
             dueOn: string | null;
             item: components["schemas"]["InventoryItem"];
@@ -72776,6 +73638,35 @@ export interface components {
             /** Format: int64 */
             tiles: number;
         };
+        CalendarBar: {
+            /** Format: int32 */
+            artId: number | null;
+            from: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            inventoryId: number;
+            overdue: boolean;
+            partner: string;
+            /** Format: int32 */
+            quantity: number;
+            /** Format: int32 */
+            requestId: number;
+            status: components["schemas"]["LendingStatus"];
+            to: components["schemas"]["LocalDate"];
+        };
+        CalendarBlock: {
+            /** Format: int32 */
+            artId: number | null;
+            from: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            inventoryId: number | null;
+            /** Format: int32 */
+            itemId: number | null;
+            pieceName: string | null;
+            reason: string;
+            to: components["schemas"]["LocalDate"];
+        };
         CalendarFeedRequest: {
             hiddenCategories?: number[] | null;
             level?: components["schemas"]["StationFeedLevel"] | null;
@@ -72790,6 +73681,21 @@ export interface components {
             name: string;
             polledAt: string | null;
             token: string;
+        };
+        CalendarKind: {
+            /** Format: int32 */
+            artId: number;
+            name: string;
+            /** Format: int32 */
+            pieceCount: number;
+        };
+        CalendarRow: {
+            /** Format: int32 */
+            inventoryId: number;
+            kinds: components["schemas"]["CalendarKind"][];
+            name: string;
+            /** Format: int32 */
+            pieceCount: number;
         };
         CalloutConfig: {
             title?: string;
@@ -72839,6 +73745,46 @@ export interface components {
         };
         /** @enum {string} */
         CapabilityType: "KB_SHARE" | "QUIZ_SHARE" | "PROTOCOL_SHARE" | "INVENTORY_LEND" | "EVENT_SHARE" | "BOARD_SHARE" | "NEWS_SHARE";
+        CartDetails: {
+            dateFrom?: components["schemas"]["LocalDate"] | null;
+            dateTo?: components["schemas"]["LocalDate"] | null;
+            note?: string | null;
+            occasion?: string | null;
+        };
+        CartLineCheck: {
+            /** Format: int32 */
+            free: number;
+            /** Format: int32 */
+            lineId: number;
+            state: components["schemas"]["CartLineState"];
+        };
+        /** @enum {string} */
+        CartLineState: "FREE" | "SHORT" | "GONE" | "UNREACHABLE";
+        CartLineView: {
+            /** Format: int32 */
+            artId: number | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            inventoryId: number;
+            inventoryName: string;
+            /** Format: int32 */
+            itemId: number | null;
+            lineName: string;
+            pictureKey: string | null;
+            /** Format: int32 */
+            quantity: number;
+            /** Format: uuid */
+            stationId: string;
+            stationName: string;
+        };
+        CartView: {
+            dateFrom: components["schemas"]["LocalDate"] | null;
+            dateTo: components["schemas"]["LocalDate"] | null;
+            lines: components["schemas"]["CartLineView"][];
+            note: string;
+            occasion: string;
+        };
         CatalogImportRejected: {
             problems: components["schemas"]["CatalogTransferProblem"][];
         };
@@ -73062,6 +74008,11 @@ export interface components {
             /** Format: int32 */
             memberCount: number;
             name: string;
+        };
+        CheckoutView: {
+            failed: string[];
+            notesMissing: string[];
+            sent: components["schemas"]["LendingRequestResponse"][];
         };
         /** @enum {string} */
         CheckResult: "CONFIRMED" | "NOT_IN_POSSESSION" | "LOST" | "EXTRA";
@@ -74128,6 +75079,9 @@ export interface components {
         };
         DependencyRequest: {
             dependencies?: components["schemas"]["DependencyEntry"][] | null;
+        };
+        DescriptionRequest: {
+            description?: string | null;
         };
         DevErrorReport: {
             context?: string | null;
@@ -76727,6 +77681,7 @@ export interface components {
         Inventory: {
             borrowed: boolean;
             color: string | null;
+            description: string;
             hasSizes: boolean;
             homogeneous: boolean;
             icon: string | null;
@@ -76740,6 +77695,7 @@ export interface components {
         };
         InventoryArt: {
             color: string | null;
+            description: string;
             icon: string | null;
             /** Format: int32 */
             id: number;
@@ -76837,6 +77793,7 @@ export interface components {
         };
         InventoryDetail: {
             color: string | null;
+            description: string;
             hasSizes: boolean;
             homogeneous: boolean;
             icon: string | null;
@@ -77181,6 +78138,12 @@ export interface components {
         };
         /** @enum {string} */
         ItemOwner: "STATION" | "CLUSTER" | "PARTNER_STATION";
+        ItemPresentation: {
+            description: string;
+            /** Format: int32 */
+            itemId: number;
+            pictureKey: string | null;
+        };
         ItemRequest: {
             /** Format: int32 */
             artId?: number | null;
@@ -77465,6 +78428,11 @@ export interface components {
             privacyVersion: string;
             tosVersion: string;
         };
+        LendingCalendar: {
+            bars: components["schemas"]["CalendarBar"][];
+            blocks: components["schemas"]["CalendarBlock"][];
+            rows: components["schemas"]["CalendarRow"][];
+        };
         LendingItemRequest: {
             /** Format: int32 */
             artId?: number | null;
@@ -77658,6 +78626,12 @@ export interface components {
             next: string | null;
             /** Format: int32 */
             total: number;
+        };
+        LoanPiece: {
+            internalId: string | null;
+            /** Format: int32 */
+            itemId: number;
+            name: string;
         };
         Local: {
             /**
@@ -78956,6 +79930,21 @@ export interface components {
         NestedRowsConfig: {
             rows?: unknown;
         };
+        NewCartLine: {
+            /** Format: int32 */
+            artId?: number | null;
+            /** Format: int32 */
+            inventoryId?: number;
+            inventoryName?: string | null;
+            /** Format: int32 */
+            itemId?: number | null;
+            /** Format: uuid */
+            lendingStationUid?: string;
+            lineName?: string | null;
+            pictureKey?: string | null;
+            /** Format: int32 */
+            quantity?: number;
+        };
         NewClusterFlowRequest: {
             name?: string;
             purpose?: string;
@@ -79207,8 +80196,53 @@ export interface components {
             /** Format: int32 */
             position: number;
         };
+        OfferKind: {
+            /** Format: int32 */
+            artId: number;
+            description: string;
+            name: string;
+            pictureKey: string | null;
+            /** Format: int32 */
+            pieceCount: number;
+            share: components["schemas"]["OfferShare"] | null;
+            visible: boolean | null;
+        };
+        OfferPiece: {
+            /** Format: int32 */
+            artId: number | null;
+            description: string;
+            internalId: string | null;
+            /** Format: int32 */
+            itemId: number;
+            name: string;
+            pictureKey: string | null;
+            share: components["schemas"]["OfferShare"] | null;
+            visible: boolean | null;
+        };
+        OfferProduct: {
+            color: string | null;
+            description: string;
+            homogeneous: boolean;
+            icon: string | null;
+            /** Format: int32 */
+            inventoryId: number;
+            kinds: components["schemas"]["OfferKind"][];
+            name: string;
+            offered: boolean;
+            pictureKey: string | null;
+            /** Format: int32 */
+            pieceCount: number;
+            pieces: components["schemas"]["OfferPiece"][];
+            share: components["schemas"]["OfferShare"] | null;
+            visible: boolean | null;
+        };
         OfferResponse: {
             offer: boolean;
+        };
+        OfferShare: {
+            grant: components["schemas"]["ShareGrant"];
+            partnerIds: number[];
+            scope: components["schemas"]["ShareScope"];
         };
         OkResponse: {
             ok: boolean;
@@ -79747,6 +80781,12 @@ export interface components {
         PictureResponse: {
             pictureKey: string;
         };
+        PieceCheck: {
+            comment?: string | null;
+            /** Format: int32 */
+            itemId?: number;
+            state?: components["schemas"]["ReturnState"] | null;
+        };
         PlaceAnswer: {
             place: components["schemas"]["StationPlace"] | null;
         };
@@ -80098,6 +81138,24 @@ export interface components {
             sizeId: number | null;
             sizeLabel: string | null;
             stock: components["schemas"]["StockPiece"][];
+        };
+        ProductDetail: {
+            distanceKm: number | null;
+            product: components["schemas"]["RemoteProduct"];
+            /** Format: uuid */
+            stationId: string;
+            stationName: string;
+        };
+        ProductList: {
+            emptyReason: components["schemas"]["EmptyReason"] | null;
+            products: components["schemas"]["ProductSummary"][];
+        };
+        ProductSummary: {
+            distanceKm: number | null;
+            product: components["schemas"]["RemoteProductSummary"];
+            /** Format: uuid */
+            stationId: string;
+            stationName: string;
         };
         ProfileField: {
             config: components["schemas"]["ProfileFieldConfig"];
@@ -80568,6 +81626,10 @@ export interface components {
         PushKey: {
             enabled: boolean;
             publicKey: string;
+        };
+        QuantityBody: {
+            /** Format: int32 */
+            quantity?: number;
         };
         QuestionAnswerCount: {
             /** Format: int32 */
@@ -81238,6 +82300,12 @@ export interface components {
         ReminderResult: "SENT" | "CONFIRMED_WITHOUT_MAIL";
         /** @enum {string} */
         ReminderTrigger: "MANUAL" | "AFTER_7_DAYS" | "AFTER_21_DAYS";
+        RemoteAddress: {
+            addressLine: string;
+            city: string;
+            country: string;
+            postalCode: string;
+        };
         RemoteAttachment: {
             fileName: string;
             /** Format: int64 */
@@ -81276,6 +82344,22 @@ export interface components {
             /** Format: int32 */
             waiting: number;
         };
+        RemoteDay: {
+            blocked: boolean;
+            counts: components["schemas"]["RemoteDayCount"][];
+            day: components["schemas"]["LocalDate"];
+        };
+        RemoteDayCount: {
+            /** Format: int32 */
+            artId: number | null;
+            /** Format: int32 */
+            free: number;
+            /** Format: int32 */
+            itemId: number | null;
+            /** Format: int32 */
+            offered: number;
+            singles: boolean;
+        };
         RemoteKbFile: {
             conversionStatus: components["schemas"]["ConversionStatus"] | null;
             createdAt: components["schemas"]["Instant"];
@@ -81293,6 +82377,17 @@ export interface components {
             updatedAt: components["schemas"]["Instant"];
             youtubeUrl: string | null;
         };
+        RemoteKind: {
+            /** Format: int32 */
+            artId: number | null;
+            color: string | null;
+            description: string;
+            /** Format: int32 */
+            free: number;
+            icon: string | null;
+            name: string;
+            pictureKey: string | null;
+        };
         RemoteMemberRegistration: {
             eventDate: string;
             /** Format: int32 */
@@ -81309,10 +82404,50 @@ export interface components {
             instanceHost: string;
             stationName: string;
         };
+        RemotePiece: {
+            description: string;
+            free: boolean;
+            /** Format: int32 */
+            itemId: number;
+            name: string;
+            pictureKey: string | null;
+        };
         RemotePlaces: {
             decidesItself: boolean;
             /** Format: int32 */
             slotBudget: number | null;
+        };
+        RemoteProduct: {
+            address: components["schemas"]["RemoteAddress"] | null;
+            color: string | null;
+            description: string;
+            icon: string | null;
+            /** Format: int32 */
+            inventoryId: number;
+            kinds: components["schemas"]["RemoteKind"][];
+            name: string;
+            pictureKey: string | null;
+            pieces: components["schemas"]["RemotePiece"][];
+        };
+        RemoteProductDays: {
+            days: components["schemas"]["RemoteDay"][];
+        };
+        RemoteProductSummary: {
+            color: string | null;
+            /** Format: int32 */
+            free: number;
+            icon: string | null;
+            /** Format: int32 */
+            inventoryId: number;
+            /** Format: int32 */
+            kinds: number;
+            matched: string[];
+            name: string;
+            pictureKey: string | null;
+            /** Format: int32 */
+            pieces: number;
+            rank: number;
+            teaser: string;
         };
         RemoteProtocolDetail: {
             items: components["schemas"]["TestProtocolItem"][];
@@ -81649,10 +82784,15 @@ export interface components {
             fieldId?: number | null;
             only?: string[];
         };
+        ReturnCheckBody: {
+            pieces?: components["schemas"]["PieceCheck"][];
+        };
         ReturnEverythingRequest: {
             /** Format: int32 */
             memberId?: number | null;
         };
+        /** @enum {string} */
+        ReturnState: "OK" | "DAMAGED" | "MISSING";
         /** @enum {string} */
         RevocationReason: "KEY_COMPROMISE" | "SUPERSEDED" | "CESSATION_OF_OPERATION";
         /** @enum {string} */
@@ -82546,6 +83686,8 @@ export interface components {
         SidebarCounts: {
             /** Format: int32 */
             federationRequests: number;
+            /** Format: int32 */
+            lendingCart: number;
             /** Format: int32 */
             lendingRequests: number;
             /** Format: int32 */
@@ -84914,6 +86056,7 @@ export type BoardTicketTransitionResponse = components['schemas']['BoardTicketTr
 export type BoardWeblink = components['schemas']['BoardWeblink'];
 export type BooleanConfig = components['schemas']['BooleanConfig'];
 export type BooleanValue = components['schemas']['BooleanValue'];
+export type BorrowAgainResult = components['schemas']['BorrowAgainResult'];
 export type BorrowedItemResponse = components['schemas']['BorrowedItemResponse'];
 export type BreakRequest = components['schemas']['BreakRequest'];
 export type BrowseResponse = components['schemas']['BrowseResponse'];
@@ -84926,8 +86069,12 @@ export type BulkSetRequest = components['schemas']['BulkSetRequest'];
 export type BulkSetResponse = components['schemas']['BulkSetResponse'];
 export type BulkTagsRequest = components['schemas']['BulkTagsRequest'];
 export type CacheStats = components['schemas']['CacheStats'];
+export type CalendarBar = components['schemas']['CalendarBar'];
+export type CalendarBlock = components['schemas']['CalendarBlock'];
 export type CalendarFeedRequest = components['schemas']['CalendarFeedRequest'];
 export type CalendarFeedResponse = components['schemas']['CalendarFeedResponse'];
+export type CalendarKind = components['schemas']['CalendarKind'];
+export type CalendarRow = components['schemas']['CalendarRow'];
 export type CalloutConfig = components['schemas']['CalloutConfig'];
 export type CalloutVariant = components['schemas']['CalloutVariant'];
 export type CancellationCause = components['schemas']['CancellationCause'];
@@ -84939,6 +86086,11 @@ export type CandidateResponse = components['schemas']['CandidateResponse'];
 export type CanEditResponse = components['schemas']['CanEditResponse'];
 export type CapabilityRequest = components['schemas']['CapabilityRequest'];
 export type CapabilityType = components['schemas']['CapabilityType'];
+export type CartDetails = components['schemas']['CartDetails'];
+export type CartLineCheck = components['schemas']['CartLineCheck'];
+export type CartLineState = components['schemas']['CartLineState'];
+export type CartLineView = components['schemas']['CartLineView'];
+export type CartView = components['schemas']['CartView'];
 export type CatalogImportRejected = components['schemas']['CatalogImportRejected'];
 export type CatalogListResponse = components['schemas']['CatalogListResponse'];
 export type CatalogMetadata = components['schemas']['CatalogMetadata'];
@@ -84970,6 +86122,7 @@ export type CheckItemResult = components['schemas']['CheckItemResult'];
 export type ChecklistDetailResponse = components['schemas']['ChecklistDetailResponse'];
 export type ChecklistItemRequest = components['schemas']['ChecklistItemRequest'];
 export type ChecklistSummaryResponse = components['schemas']['ChecklistSummaryResponse'];
+export type CheckoutView = components['schemas']['CheckoutView'];
 export type CheckResult = components['schemas']['CheckResult'];
 export type Choice = components['schemas']['Choice'];
 export type ChoiceAnswer = components['schemas']['ChoiceAnswer'];
@@ -85132,6 +86285,7 @@ export type DenyNameChangeRequest = components['schemas']['DenyNameChangeRequest
 export type DenyRequest = components['schemas']['DenyRequest'];
 export type DependencyEntry = components['schemas']['DependencyEntry'];
 export type DependencyRequest = components['schemas']['DependencyRequest'];
+export type DescriptionRequest = components['schemas']['DescriptionRequest'];
 export type DevErrorReport = components['schemas']['DevErrorReport'];
 export type DeviceCodeRequest = components['schemas']['DeviceCodeRequest'];
 export type DeviceEnrollBeginRequest = components['schemas']['DeviceEnrollBeginRequest'];
@@ -85538,6 +86692,7 @@ export type ItemLocationResponse = components['schemas']['ItemLocationResponse']
 export type ItemNameCount = components['schemas']['ItemNameCount'];
 export type ItemNumberValue = components['schemas']['ItemNumberValue'];
 export type ItemOwner = components['schemas']['ItemOwner'];
+export type ItemPresentation = components['schemas']['ItemPresentation'];
 export type ItemRequest = components['schemas']['ItemRequest'];
 export type ItemTagsBatchRequest = components['schemas']['ItemTagsBatchRequest'];
 export type ItemTagsRequest = components['schemas']['ItemTagsRequest'];
@@ -85580,6 +86735,7 @@ export type LegalFileEntry = components['schemas']['LegalFileEntry'];
 export type LegalImportRequest = components['schemas']['LegalImportRequest'];
 export type LegalImportResponse = components['schemas']['LegalImportResponse'];
 export type LegalVersionsResponse = components['schemas']['LegalVersionsResponse'];
+export type LendingCalendar = components['schemas']['LendingCalendar'];
 export type LendingItemRequest = components['schemas']['LendingItemRequest'];
 export type LendingMessage = components['schemas']['LendingMessage'];
 export type LendingRequest = components['schemas']['LendingRequest'];
@@ -85603,6 +86759,7 @@ export type LinkState = components['schemas']['LinkState'];
 export type LinkStatus = components['schemas']['LinkStatus'];
 export type LinkType = components['schemas']['LinkType'];
 export type ListKeysResponse = components['schemas']['ListKeysResponse'];
+export type LoanPiece = components['schemas']['LoanPiece'];
 export type Local = components['schemas']['Local'];
 export type LocalBookmarkRequest = components['schemas']['LocalBookmarkRequest'];
 export type LocalChecklistItemRequest = components['schemas']['LocalChecklistItemRequest'];
@@ -85781,6 +86938,7 @@ export type NeedCoverage = components['schemas']['NeedCoverage'];
 export type NeedRequest = components['schemas']['NeedRequest'];
 export type NeedUpdate = components['schemas']['NeedUpdate'];
 export type NestedRowsConfig = components['schemas']['NestedRowsConfig'];
+export type NewCartLine = components['schemas']['NewCartLine'];
 export type NewClusterFlowRequest = components['schemas']['NewClusterFlowRequest'];
 export type NewClusterMemberRequest = components['schemas']['NewClusterMemberRequest'];
 export type NewClusterStationRequest = components['schemas']['NewClusterStationRequest'];
@@ -85819,7 +86977,11 @@ export type NumberValue = components['schemas']['NumberValue'];
 export type OfferAnswer = components['schemas']['OfferAnswer'];
 export type OfferAnswerRequest = components['schemas']['OfferAnswerRequest'];
 export type OfferedDate = components['schemas']['OfferedDate'];
+export type OfferKind = components['schemas']['OfferKind'];
+export type OfferPiece = components['schemas']['OfferPiece'];
+export type OfferProduct = components['schemas']['OfferProduct'];
 export type OfferResponse = components['schemas']['OfferResponse'];
+export type OfferShare = components['schemas']['OfferShare'];
 export type OkResponse = components['schemas']['OkResponse'];
 export type OldPieceWhereabouts = components['schemas']['OldPieceWhereabouts'];
 export type OnboardAgainResponse = components['schemas']['OnboardAgainResponse'];
@@ -85907,6 +87069,7 @@ export type PermissionsByMember = components['schemas']['PermissionsByMember'];
 export type PickerEvent = components['schemas']['PickerEvent'];
 export type PickerPage = components['schemas']['PickerPage'];
 export type PictureResponse = components['schemas']['PictureResponse'];
+export type PieceCheck = components['schemas']['PieceCheck'];
 export type PlaceAnswer = components['schemas']['PlaceAnswer'];
 export type PlaceDraft = components['schemas']['PlaceDraft'];
 export type Placeholder = components['schemas']['Placeholder'];
@@ -85953,6 +87116,9 @@ export type ProcedureTemplateDetail = components['schemas']['ProcedureTemplateDe
 export type ProcedureTemplateItem = components['schemas']['ProcedureTemplateItem'];
 export type ProcedureTemplateRequest = components['schemas']['ProcedureTemplateRequest'];
 export type ProcurementResponse = components['schemas']['ProcurementResponse'];
+export type ProductDetail = components['schemas']['ProductDetail'];
+export type ProductList = components['schemas']['ProductList'];
+export type ProductSummary = components['schemas']['ProductSummary'];
 export type ProfileField = components['schemas']['ProfileField'];
 export type ProfileFieldAssignment = components['schemas']['ProfileFieldAssignment'];
 export type ProfileFieldChange = components['schemas']['ProfileFieldChange'];
@@ -86012,6 +87178,7 @@ export type PublicWaitlistRegistrationRequest = components['schemas']['PublicWai
 export type PublicWaitlistSummary = components['schemas']['PublicWaitlistSummary'];
 export type PushDevice = components['schemas']['PushDevice'];
 export type PushKey = components['schemas']['PushKey'];
+export type QuantityBody = components['schemas']['QuantityBody'];
 export type QuestionAnswerCount = components['schemas']['QuestionAnswerCount'];
 export type QuestionBranch = components['schemas']['QuestionBranch'];
 export type QuestionColumn = components['schemas']['QuestionColumn'];
@@ -86102,14 +87269,22 @@ export type RelatedFilesRequest = components['schemas']['RelatedFilesRequest'];
 export type RelatedFilesResponse = components['schemas']['RelatedFilesResponse'];
 export type ReminderResult = components['schemas']['ReminderResult'];
 export type ReminderTrigger = components['schemas']['ReminderTrigger'];
+export type RemoteAddress = components['schemas']['RemoteAddress'];
 export type RemoteAttachment = components['schemas']['RemoteAttachment'];
 export type RemoteBoard = components['schemas']['RemoteBoard'];
 export type RemoteCatalogDetail = components['schemas']['RemoteCatalogDetail'];
 export type RemoteDatePlaces = components['schemas']['RemoteDatePlaces'];
+export type RemoteDay = components['schemas']['RemoteDay'];
+export type RemoteDayCount = components['schemas']['RemoteDayCount'];
 export type RemoteKbFile = components['schemas']['RemoteKbFile'];
+export type RemoteKind = components['schemas']['RemoteKind'];
 export type RemoteMemberRegistration = components['schemas']['RemoteMemberRegistration'];
 export type RemotePairRequestResponse = components['schemas']['RemotePairRequestResponse'];
+export type RemotePiece = components['schemas']['RemotePiece'];
 export type RemotePlaces = components['schemas']['RemotePlaces'];
+export type RemoteProduct = components['schemas']['RemoteProduct'];
+export type RemoteProductDays = components['schemas']['RemoteProductDays'];
+export type RemoteProductSummary = components['schemas']['RemoteProductSummary'];
 export type RemoteProtocolDetail = components['schemas']['RemoteProtocolDetail'];
 export type RemovalResponse = components['schemas']['RemovalResponse'];
 export type Renamed = components['schemas']['Renamed'];
@@ -86162,7 +87337,9 @@ export type RestrictionType = components['schemas']['RestrictionType'];
 export type ResultFieldCondition = components['schemas']['ResultFieldCondition'];
 export type ResultFilter = components['schemas']['ResultFilter'];
 export type ResultGrouping = components['schemas']['ResultGrouping'];
+export type ReturnCheckBody = components['schemas']['ReturnCheckBody'];
 export type ReturnEverythingRequest = components['schemas']['ReturnEverythingRequest'];
+export type ReturnState = components['schemas']['ReturnState'];
 export type RevocationReason = components['schemas']['RevocationReason'];
 export type RevocationStatus = components['schemas']['RevocationStatus'];
 export type RichMember = components['schemas']['RichMember'];
@@ -86714,6 +87891,13 @@ export const CapabilityType = {
     NEWS_SHARE: "NEWS_SHARE",
     PROTOCOL_SHARE: "PROTOCOL_SHARE",
     QUIZ_SHARE: "QUIZ_SHARE",
+} as const;
+
+export const CartLineState = {
+    FREE: "FREE",
+    GONE: "GONE",
+    SHORT: "SHORT",
+    UNREACHABLE: "UNREACHABLE",
 } as const;
 
 export const CellContentType = {
@@ -87820,6 +89004,12 @@ export const RestrictionType = {
     QUIZ_TEST: "QUIZ_TEST",
     STATION_CHAT: "STATION_CHAT",
     WITNESS_REACH: "WITNESS_REACH",
+} as const;
+
+export const ReturnState = {
+    DAMAGED: "DAMAGED",
+    MISSING: "MISSING",
+    OK: "OK",
 } as const;
 
 export const RevocationReason = {

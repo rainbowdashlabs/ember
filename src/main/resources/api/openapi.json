@@ -27049,6 +27049,156 @@
         } ]
       }
     },
+    "/api/v1/federated/lending/products" : {
+      "get" : {
+        "summary" : "What the lending partners offer, one product per inventory, nearest first",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProductList"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "from",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federated/lending/products/{stationUid}/{inventoryId}" : {
+      "get" : {
+        "summary" : "One product of a lending partner with its kinds or single pieces",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProductDetail"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "from",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federated/lending/products/{stationUid}/{inventoryId}/days" : {
+      "get" : {
+        "summary" : "What is free of a partner's product on each day of a month",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RemoteProductDays"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "month",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "itemId",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/federated/my-registrations" : {
       "get" : {
         "summary" : "List the reader's household's registrations at partner stations",
@@ -31064,6 +31214,62 @@
         } ]
       }
     },
+    "/api/v1/inventories/{id}/description" : {
+      "put" : {
+        "summary" : "Set what partner stations read about an inventory",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Inventory"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DescriptionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/inventories/{inventoryId}/art-items/{artId}" : {
       "get" : {
         "summary" : "The pieces of one kind",
@@ -31350,6 +31556,70 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/inventories/{inventoryId}/arts/{artId}/description" : {
+      "put" : {
+        "summary" : "Set what partner stations read about a kind of thing",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InventoryArt"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "inventoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "artId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DescriptionRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/inventories/{inventoryId}/arts/{artId}/picture" : {
@@ -33391,6 +33661,62 @@
         }
       }
     },
+    "/api/v1/inventory-items/{id}/description" : {
+      "put" : {
+        "summary" : "Set what partner stations read about a single piece",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ItemPresentation"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DescriptionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/inventory-items/{id}/fields" : {
       "get" : {
         "summary" : "The custom fields that describe one piece",
@@ -33735,9 +34061,46 @@
         }
       }
     },
+    "/api/v1/inventory-items/{id}/presentation" : {
+      "get" : {
+        "summary" : "A single piece's own text and photo for partner stations",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ItemPresentation"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/inventory-items/{itemId}/picture" : {
       "get" : {
-        "summary" : "The photo a piece is shown with: its kind's, otherwise its inventory's",
+        "summary" : "The photo a piece is shown with: its own, otherwise its kind's, otherwise its inventory's",
         "tags" : [ "Inventory" ],
         "responses" : {
           "200" : {
@@ -33765,6 +34128,88 @@
         }, {
           "name" : "size",
           "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Give a single piece a photo of its own",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PictureResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "itemId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Take a piece's own photo away, so it shows its kind's or its inventory's again",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "itemId",
+          "in" : "path",
+          "required" : true,
           "schema" : {
             "type" : "integer",
             "format" : "int32"
@@ -35637,6 +36082,201 @@
         }
       }
     },
+    "/api/v1/lending/calendar" : {
+      "get" : {
+        "summary" : "The station's products, the requests for its gear and its block periods over some days",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LendingCalendar"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "from",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/lending/cart" : {
+      "get" : {
+        "summary" : "The station's cart with its lines",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CartView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Sets the days, the occasion and the note of the cart",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CartView"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CartDetails"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/cart/check" : {
+      "get" : {
+        "summary" : "What of the cart is free on its days, asked of the lending stations",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CartLineCheck"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/cart/checkout" : {
+      "post" : {
+        "summary" : "Sends the cart as one request per lending station",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CheckoutView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/cart/lines" : {
+      "post" : {
+        "summary" : "Puts gear of a partner in the cart, adding to the same line where there is one",
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CartView"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NewCartLine"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/cart/lines/{lineId}" : {
+      "put" : {
+        "summary" : "Sets how many of a counted line are wanted",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CartView"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "lineId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuantityBody"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Takes a line out of the cart",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CartView"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "lineId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/lending/inventory/{inventoryId}/lent-out" : {
       "get" : {
         "responses" : {
@@ -35654,6 +36294,34 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/lending/offer" : {
+      "get" : {
+        "summary" : "The station's own offer, product by product, read through one partner where one is named",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/OfferProduct"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "partnerId",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/lending/requests" : {
@@ -35767,6 +36435,32 @@
         }
       }
     },
+    "/api/v1/lending/requests/{id}/borrow-again" : {
+      "post" : {
+        "summary" : "Puts the lines of an answered request back in the cart",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BorrowAgainResult"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/lending/requests/{id}/close" : {
       "post" : {
         "responses" : {
@@ -35866,20 +36560,78 @@
         }
       }
     },
-    "/api/v1/lending/requests/{id}/returned" : {
+    "/api/v1/lending/requests/{id}/remind" : {
       "post" : {
+        "summary" : "Reminds the borrowing station of gear past its last day",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/lending/requests/{id}/return-check" : {
+      "post" : {
+        "summary" : "Takes the gear of a loan back, every piece in order, damaged or missing",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReturnCheckBody"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The pieces a loan of this station holds, to check back",
         "responses" : {
           "200" : {
             "description" : "OK",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/LendingRequestResponse"
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/LoanPiece"
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/lending/shares" : {
@@ -59429,6 +60181,22 @@
         },
         "required" : [ "value" ]
       },
+      "BorrowAgainResult" : {
+        "type" : "object",
+        "properties" : {
+          "added" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skipped" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "added", "skipped" ]
+      },
       "BorrowedItemResponse" : {
         "type" : "object",
         "properties" : {
@@ -59695,6 +60463,77 @@
         },
         "required" : [ "bytes", "tiles", "maxBytes" ]
       },
+      "CalendarBar" : {
+        "type" : "object",
+        "properties" : {
+          "requestId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "partner" : {
+            "type" : "string"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/LendingStatus"
+          },
+          "overdue" : {
+            "type" : "boolean"
+          },
+          "from" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "to" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          }
+        },
+        "required" : [ "requestId", "inventoryId", "artId", "partner", "quantity", "status", "overdue", "from", "to" ]
+      },
+      "CalendarBlock" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "pieceName" : {
+            "type" : [ "string", "null" ]
+          },
+          "from" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "to" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "inventoryId", "artId", "itemId", "pieceName", "from", "to", "reason" ]
+      },
       "CalendarFeedRequest" : {
         "type" : "object",
         "properties" : {
@@ -59748,6 +60587,46 @@
           }
         },
         "required" : [ "id", "name", "level", "token", "hiddenCategories", "createdAt", "polledAt" ]
+      },
+      "CalendarKind" : {
+        "type" : "object",
+        "properties" : {
+          "artId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "pieceCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "artId", "name", "pieceCount" ]
+      },
+      "CalendarRow" : {
+        "type" : "object",
+        "properties" : {
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "pieceCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "kinds" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CalendarKind"
+            }
+          }
+        },
+        "required" : [ "inventoryId", "name", "pieceCount", "kinds" ]
       },
       "CalloutConfig" : {
         "type" : "object",
@@ -59886,6 +60765,126 @@
       "CapabilityType" : {
         "type" : "string",
         "enum" : [ "KB_SHARE", "QUIZ_SHARE", "PROTOCOL_SHARE", "INVENTORY_LEND", "EVENT_SHARE", "BOARD_SHARE", "NEWS_SHARE" ]
+      },
+      "CartDetails" : {
+        "type" : "object",
+        "properties" : {
+          "dateFrom" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "dateTo" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "occasion" : {
+            "type" : [ "string", "null" ]
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
+      "CartLineCheck" : {
+        "type" : "object",
+        "properties" : {
+          "lineId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "free" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/CartLineState"
+          }
+        },
+        "required" : [ "lineId", "free", "state" ]
+      },
+      "CartLineState" : {
+        "type" : "string",
+        "enum" : [ "FREE", "SHORT", "GONE", "UNREACHABLE" ]
+      },
+      "CartLineView" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryName" : {
+            "type" : "string"
+          },
+          "lineName" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "stationId", "stationName", "inventoryId", "artId", "itemId", "quantity", "inventoryName", "lineName", "pictureKey" ]
+      },
+      "CartView" : {
+        "type" : "object",
+        "properties" : {
+          "dateFrom" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "dateTo" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "occasion" : {
+            "type" : "string"
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "lines" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CartLineView"
+            }
+          }
+        },
+        "required" : [ "dateFrom", "dateTo", "occasion", "note", "lines" ]
       },
       "CatalogImportRejected" : {
         "type" : "object",
@@ -60622,6 +61621,30 @@
           }
         },
         "required" : [ "id", "name", "description", "memberCount", "columnCount", "lastRefreshedAt", "createdAt" ]
+      },
+      "CheckoutView" : {
+        "type" : "object",
+        "properties" : {
+          "sent" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LendingRequestResponse"
+            }
+          },
+          "failed" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "notesMissing" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "sent", "failed", "notesMissing" ]
       },
       "Choice" : {
         "type" : "object",
@@ -63718,6 +64741,14 @@
             "items" : {
               "$ref" : "#/components/schemas/DependencyEntry"
             }
+          }
+        }
+      },
+      "DescriptionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -71496,9 +72527,12 @@
           },
           "pictureKey" : {
             "type" : [ "string", "null" ]
+          },
+          "description" : {
+            "type" : "string"
           }
         },
-        "required" : [ "id", "stationId", "name", "inventoryType", "hasSizes", "homogeneous", "borrowed", "icon", "color", "pictureKey" ]
+        "required" : [ "id", "stationId", "name", "inventoryType", "hasSizes", "homogeneous", "borrowed", "icon", "color", "pictureKey", "description" ]
       },
       "InventoryArt" : {
         "type" : "object",
@@ -71532,9 +72566,12 @@
           },
           "pictureKey" : {
             "type" : [ "string", "null" ]
+          },
+          "description" : {
+            "type" : "string"
           }
         },
-        "required" : [ "id", "inventoryId", "name", "note", "position", "mergeKey", "icon", "color", "pictureKey" ]
+        "required" : [ "id", "inventoryId", "name", "note", "position", "mergeKey", "icon", "color", "pictureKey", "description" ]
       },
       "InventoryBlock" : {
         "type" : "object",
@@ -71778,9 +72815,12 @@
           },
           "pictureKey" : {
             "type" : [ "string", "null" ]
+          },
+          "description" : {
+            "type" : "string"
           }
         },
-        "required" : [ "id", "stationId", "name", "inventoryType", "hasSizes", "homogeneous", "sizes", "icon", "color", "pictureKey" ]
+        "required" : [ "id", "stationId", "name", "inventoryType", "hasSizes", "homogeneous", "sizes", "icon", "color", "pictureKey", "description" ]
       },
       "InventoryFieldDefinition" : {
         "type" : "object",
@@ -72601,6 +73641,22 @@
       "ItemOwner" : {
         "type" : "string",
         "enum" : [ "STATION", "CLUSTER", "PARTNER_STATION" ]
+      },
+      "ItemPresentation" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "itemId", "description", "pictureKey" ]
       },
       "ItemRequest" : {
         "type" : "object",
@@ -73433,6 +74489,30 @@
         },
         "required" : [ "privacyVersion", "tosVersion", "consentVersion", "legacyPrivacyVersion", "legacyTosVersion", "legacyConsentVersion" ]
       },
+      "LendingCalendar" : {
+        "type" : "object",
+        "properties" : {
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CalendarRow"
+            }
+          },
+          "bars" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CalendarBar"
+            }
+          },
+          "blocks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CalendarBlock"
+            }
+          }
+        },
+        "required" : [ "rows", "bars", "blocks" ]
+      },
       "LendingItemRequest" : {
         "type" : "object",
         "properties" : {
@@ -73945,6 +75025,22 @@
           }
         },
         "required" : [ "keys", "next", "total" ]
+      },
+      "LoanPiece" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "internalId" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "itemId", "name", "internalId" ]
       },
       "Local" : {
         "type" : "object",
@@ -77706,6 +78802,40 @@
           "rows" : { }
         }
       },
+      "NewCartLine" : {
+        "type" : "object",
+        "properties" : {
+          "lendingStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryName" : {
+            "type" : [ "string", "null" ]
+          },
+          "lineName" : {
+            "type" : [ "string", "null" ]
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "NewClusterFlowRequest" : {
         "type" : "object",
         "properties" : {
@@ -78433,6 +79563,132 @@
           }
         }
       },
+      "OfferKind" : {
+        "type" : "object",
+        "properties" : {
+          "artId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "pieceCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "share" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/OfferShare"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "visible" : {
+            "type" : [ "boolean", "null" ]
+          }
+        },
+        "required" : [ "artId", "name", "description", "pictureKey", "pieceCount", "share", "visible" ]
+      },
+      "OfferPiece" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "internalId" : {
+            "type" : [ "string", "null" ]
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "share" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/OfferShare"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "visible" : {
+            "type" : [ "boolean", "null" ]
+          }
+        },
+        "required" : [ "itemId", "name", "internalId", "artId", "description", "pictureKey", "share", "visible" ]
+      },
+      "OfferProduct" : {
+        "type" : "object",
+        "properties" : {
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          },
+          "homogeneous" : {
+            "type" : "boolean"
+          },
+          "pieceCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "share" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/OfferShare"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "offered" : {
+            "type" : "boolean"
+          },
+          "visible" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "kinds" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OfferKind"
+            }
+          },
+          "pieces" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OfferPiece"
+            }
+          }
+        },
+        "required" : [ "inventoryId", "name", "description", "pictureKey", "icon", "color", "homogeneous", "pieceCount", "share", "offered", "visible", "kinds", "pieces" ]
+      },
       "OfferResponse" : {
         "type" : "object",
         "properties" : {
@@ -78441,6 +79697,25 @@
           }
         },
         "required" : [ "offer" ]
+      },
+      "OfferShare" : {
+        "type" : "object",
+        "properties" : {
+          "grant" : {
+            "$ref" : "#/components/schemas/ShareGrant"
+          },
+          "scope" : {
+            "$ref" : "#/components/schemas/ShareScope"
+          },
+          "partnerIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "grant", "scope", "partnerIds" ]
       },
       "OfferedDate" : {
         "type" : "object",
@@ -80038,6 +81313,25 @@
         },
         "required" : [ "pictureKey" ]
       },
+      "PieceCheck" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ReturnState"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "comment" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "PlaceAnswer" : {
         "type" : "object",
         "properties" : {
@@ -81105,6 +82399,63 @@
           }
         },
         "required" : [ "id", "inventoryId", "inventoryName", "memberId", "memberName", "memberIdentity", "sizeId", "sizeLabel", "notes", "requestedAt", "fulfilledAt", "stock", "movementId", "owner" ]
+      },
+      "ProductDetail" : {
+        "type" : "object",
+        "properties" : {
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "distanceKm" : {
+            "type" : [ "number", "null" ]
+          },
+          "product" : {
+            "$ref" : "#/components/schemas/RemoteProduct"
+          }
+        },
+        "required" : [ "stationId", "stationName", "distanceKm", "product" ]
+      },
+      "ProductList" : {
+        "type" : "object",
+        "properties" : {
+          "products" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ProductSummary"
+            }
+          },
+          "emptyReason" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EmptyReason"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "products", "emptyReason" ]
+      },
+      "ProductSummary" : {
+        "type" : "object",
+        "properties" : {
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "distanceKm" : {
+            "type" : [ "number", "null" ]
+          },
+          "product" : {
+            "$ref" : "#/components/schemas/RemoteProductSummary"
+          }
+        },
+        "required" : [ "stationId", "stationName", "distanceKm", "product" ]
       },
       "ProfileField" : {
         "type" : "object",
@@ -82481,6 +83832,15 @@
           }
         },
         "required" : [ "publicKey", "enabled" ]
+      },
+      "QuantityBody" : {
+        "type" : "object",
+        "properties" : {
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
       },
       "QuestionAnswerCount" : {
         "type" : "object",
@@ -84417,6 +85777,24 @@
         "type" : "string",
         "enum" : [ "MANUAL", "AFTER_7_DAYS", "AFTER_21_DAYS" ]
       },
+      "RemoteAddress" : {
+        "type" : "object",
+        "properties" : {
+          "addressLine" : {
+            "type" : "string"
+          },
+          "postalCode" : {
+            "type" : "string"
+          },
+          "city" : {
+            "type" : "string"
+          },
+          "country" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "addressLine", "postalCode", "city", "country" ]
+      },
       "RemoteAttachment" : {
         "type" : "object",
         "properties" : {
@@ -84519,6 +85897,49 @@
         },
         "required" : [ "date", "limit", "taken", "waiting" ]
       },
+      "RemoteDay" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "blocked" : {
+            "type" : "boolean"
+          },
+          "counts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RemoteDayCount"
+            }
+          }
+        },
+        "required" : [ "day", "blocked", "counts" ]
+      },
+      "RemoteDayCount" : {
+        "type" : "object",
+        "properties" : {
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "singles" : {
+            "type" : "boolean"
+          },
+          "free" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "offered" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "artId", "itemId", "singles", "free", "offered" ]
+      },
       "RemoteKbFile" : {
         "type" : "object",
         "properties" : {
@@ -84568,6 +85989,35 @@
         },
         "required" : [ "id", "stationUid", "name", "description", "fileType", "mimeType", "fileSize", "youtubeUrl", "linkUrl", "createdAt", "updatedAt", "conversionStatus" ]
       },
+      "RemoteKind" : {
+        "type" : "object",
+        "properties" : {
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          },
+          "free" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "artId", "name", "description", "pictureKey", "icon", "color", "free" ]
+      },
       "RemoteMemberRegistration" : {
         "type" : "object",
         "properties" : {
@@ -84610,6 +86060,28 @@
         },
         "required" : [ "id", "stationName", "instanceHost", "createdAt" ]
       },
+      "RemotePiece" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "free" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "itemId", "name", "description", "pictureKey", "free" ]
+      },
       "RemotePlaces" : {
         "type" : "object",
         "properties" : {
@@ -84622,6 +86094,108 @@
           }
         },
         "required" : [ "slotBudget", "decidesItself" ]
+      },
+      "RemoteProduct" : {
+        "type" : "object",
+        "properties" : {
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          },
+          "address" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RemoteAddress"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "kinds" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RemoteKind"
+            }
+          },
+          "pieces" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RemotePiece"
+            }
+          }
+        },
+        "required" : [ "inventoryId", "name", "description", "pictureKey", "icon", "color", "address", "kinds", "pieces" ]
+      },
+      "RemoteProductDays" : {
+        "type" : "object",
+        "properties" : {
+          "days" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RemoteDay"
+            }
+          }
+        },
+        "required" : [ "days" ]
+      },
+      "RemoteProductSummary" : {
+        "type" : "object",
+        "properties" : {
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "teaser" : {
+            "type" : "string"
+          },
+          "pictureKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          },
+          "kinds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pieces" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "free" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "matched" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "rank" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "inventoryId", "name", "teaser", "pictureKey", "icon", "color", "kinds", "pieces", "free", "matched", "rank" ]
       },
       "RemoteProtocolDetail" : {
         "type" : "object",
@@ -85713,6 +87287,17 @@
           }
         }
       },
+      "ReturnCheckBody" : {
+        "type" : "object",
+        "properties" : {
+          "pieces" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PieceCheck"
+            }
+          }
+        }
+      },
       "ReturnEverythingRequest" : {
         "type" : "object",
         "properties" : {
@@ -85721,6 +87306,10 @@
             "format" : "int32"
           }
         }
+      },
+      "ReturnState" : {
+        "type" : "string",
+        "enum" : [ "OK", "DAMAGED", "MISSING" ]
       },
       "RevocationReason" : {
         "type" : "string",
@@ -88487,6 +90076,10 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "lendingCart" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "federationRequests" : {
             "type" : "integer",
             "format" : "int32"
@@ -88516,7 +90109,7 @@
             "format" : "int32"
           }
         },
-        "required" : [ "notifications", "requirements", "pendingChanges", "pendingRegistrations", "lendingRequests", "federationRequests", "openEvents", "waitingListEntries", "lostAndFoundPending", "myInventoryCount", "openMovements", "procedureCount" ]
+        "required" : [ "notifications", "requirements", "pendingChanges", "pendingRegistrations", "lendingRequests", "lendingCart", "federationRequests", "openEvents", "waitingListEntries", "lostAndFoundPending", "myInventoryCount", "openMovements", "procedureCount" ]
       },
       "SidebarMode" : {
         "type" : "string",

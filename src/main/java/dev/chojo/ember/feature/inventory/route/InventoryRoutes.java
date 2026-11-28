@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.ItemPresentation;
 import dev.chojo.ember.feature.inventory.entity.MyInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
@@ -168,6 +169,7 @@ public class InventoryRoutes implements Routes {
         routes.get(prefix + "/inventories/summary", this::listSummaries, StationPermission.INVENTORY_READ);
         routes.get(prefix + "/inventories/{id}", this::get, StationPermission.INVENTORY_READ);
         routes.put(prefix + "/inventories/{id}", this::update, StationPermission.INVENTORY_EDIT);
+        routes.put(prefix + "/inventories/{id}/description", this::describe, StationPermission.INVENTORY_EDIT);
         routes.delete(prefix + "/inventories/{id}", this::delete, StationPermission.INVENTORY_MANAGER);
 
         routes.get(
@@ -203,6 +205,11 @@ public class InventoryRoutes implements Routes {
                 prefix + "/inventory-items/by-internal-id", this::findByInternalId, StationPermission.INVENTORY_READ);
         routes.get(prefix + "/inventory-items/{id}", this::getItem, StationPermission.INVENTORY_READ);
         routes.put(prefix + "/inventory-items/{id}", this::updateItem, StationPermission.INVENTORY_EDIT);
+        routes.get(
+                prefix + "/inventory-items/{id}/presentation",
+                this::itemPresentation,
+                StationPermission.INVENTORY_READ);
+        routes.put(prefix + "/inventory-items/{id}/description", this::describeItem, StationPermission.INVENTORY_EDIT);
         routes.put(
                 prefix + "/inventory-items/{id}/assign",
                 this::assignItem,
@@ -272,7 +279,7 @@ public class InventoryRoutes implements Routes {
      * @param session who is asking
      * @return the cluster they act for, or {@code null} when they are acting as the station alone
      */
-    private @Nullable Integer describingClusterId(UserSession session) {
+    static @Nullable Integer describingClusterId(UserSession session) {
         if (session.clusterId() == null) return null;
         if (!session.hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_EDIT)) return null;
         return session.clusterId();
@@ -545,7 +552,8 @@ public class InventoryRoutes implements Routes {
                                     sizes,
                                     inventory.icon(),
                                     inventory.color(),
-                                    inventory.pictureKey()));
+                                    inventory.pictureKey(),
+                                    inventory.description()));
                         },
                         () -> {
                             throw InventoryRefusal.INVENTORY_NOT_HERE_ON_READ.raise();
@@ -805,6 +813,68 @@ public class InventoryRoutes implements Routes {
         inventoryService.findByInternalId(session.stationId(), internalId).ifPresentOrElse(ctx::json, () -> {
             throw InventoryRefusal.ITEM_NOT_HERE_BY_CODE.raise();
         });
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventories/{id}/description",
+            methods = HttpMethod.PUT,
+            summary = "Set what partner stations read about an inventory",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DescriptionRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = Inventory.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void describe(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedInventory(id, StationSession.from(ctx));
+        String text = ctx.bodyAsClass(DescriptionRequest.class).text();
+        inventoryService.describe(id, text).ifPresentOrElse(ctx::json, () -> {
+            throw InventoryRefusal.INVENTORY_NOT_CHANGED.raise();
+        });
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-items/{id}/presentation",
+            methods = HttpMethod.GET,
+            summary = "A single piece's own text and photo for partner stations",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemPresentation.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void itemPresentation(Context ctx) {
+        int id = pathInt(ctx, "id");
+        verifyItemOwnership(id, StationSession.from(ctx));
+        inventoryService.findItemPresentation(id).ifPresentOrElse(ctx::json, () -> {
+            throw InventoryRefusal.ITEM_NOT_HERE_ON_READ.raise();
+        });
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-items/{id}/description",
+            methods = HttpMethod.PUT,
+            summary = "Set what partner stations read about a single piece",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DescriptionRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemPresentation.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void describeItem(Context ctx) {
+        int id = pathInt(ctx, "id");
+        verifyItemOwnership(id, StationSession.from(ctx));
+        String text = ctx.bodyAsClass(DescriptionRequest.class).text();
+        inventoryService
+                .describeItem(id, text, describingClusterId(UserSession.from(ctx)))
+                .ifPresentOrElse(ctx::json, () -> {
+                    throw InventoryRefusal.ITEM_NOT_HERE_ON_READ.raise();
+                });
     }
 
     @OpenApi(
@@ -1088,7 +1158,9 @@ public class InventoryRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
+        List<String> pictureKeys = pictureService.keysOfItem(id);
         if (inventoryService.deleteItem(id, describingClusterId(session.user()))) {
+            pictureService.removeFiles(session.stationId(), pictureKeys);
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw InventoryRefusal.ITEM_NOT_DELETED.raise();
@@ -1365,7 +1437,8 @@ public class InventoryRoutes implements Routes {
             List<InventorySize> sizes,
             @Nullable String icon,
             @Nullable String color,
-            @Nullable String pictureKey) {}
+            @Nullable String pictureKey,
+            String description) {}
 
     /**
      * A refused change of kind, carrying everything that stands in its way.

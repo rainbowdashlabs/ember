@@ -210,7 +210,12 @@ public class StorageReconciliationService implements TaskSource {
                     SELECT a.picture_key AS identity
                       FROM inventory_art a
                       JOIN inventory i ON i.id = a.inventory_id
-                     WHERE i.station_id = :station_id AND a.picture_key IS NOT NULL;""", stationId, "identity"));
+                     WHERE i.station_id = :station_id AND a.picture_key IS NOT NULL
+                    UNION
+                    SELECT p.picture_key AS identity
+                      FROM inventory_item p
+                      JOIN inventory i ON i.id = p.inventory_id
+                     WHERE i.station_id = :station_id AND p.picture_key IS NOT NULL;""", stationId, "identity"));
             case IMAGE_QUIZ_QUESTION -> Optional.of(queryIdentitySet("""
                     SELECT q.id::text AS identity
                       FROM quiz_question q

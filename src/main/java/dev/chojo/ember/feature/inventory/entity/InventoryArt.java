@@ -37,6 +37,8 @@ import java.util.Locale;
  *                    back to the inventory
  * @param pictureKey  the storage key of the kind's photo, shown before the inventory's, or
  *                    {@code null} for none
+ * @param description what partner stations read about this kind, in Markdown, empty when nobody wrote
+ *                    one; the note is internal and never leaves the station
  */
 public record InventoryArt(
         int id,
@@ -47,7 +49,8 @@ public record InventoryArt(
         String mergeKey,
         @Nullable String icon,
         @Nullable String color,
-        @Nullable String pictureKey) {
+        @Nullable String pictureKey,
+        String description) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -62,7 +65,8 @@ public record InventoryArt(
                 row.getString("merge_key"),
                 row.getString("icon"),
                 row.getString("color"),
-                row.getString("picture_key"));
+                row.getString("picture_key"),
+                row.getString("description"));
     }
 
     /**

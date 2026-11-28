@@ -372,4 +372,5 @@ export default {
     'I-320': 'Dieses Inventar enthält Ausrüstung der Wache und des Trägers. Wähle, wem das bestellte Stück gehört',
     'I-321': 'Eine Bestellung bringt ein Stück der Wache oder des Trägers, sonst niemandes',
     'I-322': 'Der Träger dieser Wache nutzt Ember nicht. Notiere die Anfrage als Beschaffung',
+    'I-323': 'Diese Beschreibung ist zu lang. Bleib unter zwanzigtausend Zeichen',
 }
